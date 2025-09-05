@@ -1,117 +1,188 @@
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Bell, Menu, User, LogOut, Truck, Package } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import agriRouteLogo from "@/assets/agriroute-logo.png";
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Bell, Settings, LogOut, User, Menu, Leaf } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
-interface HeaderProps {
-  user: {
-    name: string;
-    role: 'PRODUTOR' | 'MOTORISTA';
-  };
-  onMenuClick: () => void;
-  onLogout: () => void;
+interface User {
+  name: string;
+  role: 'PRODUTOR' | 'MOTORISTA';
+  avatar?: string;
 }
 
-export const Header = ({ user, onMenuClick, onLogout }: HeaderProps) => {
-  const [notifications] = useState(3); // Mock notification count
+interface HeaderProps {
+  user: User;
+  onLogout: () => void;
+  onMenuClick?: () => void;
+  notifications?: number;
+}
 
-  const getRoleIcon = () => {
-    return user.role === 'PRODUTOR' ? 
-      <Package className="h-4 w-4" /> : 
-      <Truck className="h-4 w-4" />;
+const Header: React.FC<HeaderProps> = ({ 
+  user, 
+  onLogout, 
+  onMenuClick,
+  notifications = 0 
+}) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const getUserInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const getRoleLabel = () => {
-    return user.role === 'PRODUTOR' ? 'Produtor' : 'Motorista';
+  const getRoleBadge = (role: string) => {
+    return role === 'PRODUTOR' ? 'Produtor' : 'Motorista';
   };
+
+  const getRoleColor = (role: string) => {
+    return role === 'PRODUTOR' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent';
+  };
+
+  const menuItems = [
+    { icon: User, label: 'Perfil', action: () => console.log('Perfil') },
+    { icon: Settings, label: 'Configurações', action: () => console.log('Configurações') },
+  ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={onMenuClick}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          
-          <div className="flex items-center gap-3">
-            <img 
-              src={agriRouteLogo} 
-              alt="AgriRoute" 
-              className="h-8 w-8"
-            />
+    <header className="bg-card border-b shadow-card sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <Leaf className="h-8 w-8 text-primary" />
+              <span className="text-2xl font-bold text-foreground">AgriRoute</span>
+            </div>
             <div className="hidden sm:block">
-              <h1 className="text-xl font-bold gradient-primary bg-clip-text text-transparent">
-                AgriRoute
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Logística Agrícola
-              </p>
+              <Badge className={getRoleColor(user.role)}>
+                {getRoleBadge(user.role)}
+              </Badge>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            {notifications > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs p-0"
-              >
-                {notifications}
-              </Badge>
-            )}
-          </Button>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-4">
+            {/* Notifications */}
+            <Button variant="ghost" size="sm" className="relative">
+              <Bell className="h-5 w-5" />
+              {notifications > 0 && (
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-destructive text-destructive-foreground text-xs">
+                  {notifications > 9 ? '9+' : notifications}
+                </Badge>
+              )}
+            </Button>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
-                  {getRoleIcon()}
-                  <div className="hidden sm:flex flex-col items-start">
-                    <span className="text-sm font-medium">{user.name}</span>
-                    <span className="text-xs text-muted-foreground">{getRoleLabel()}</span>
+            {/* User Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="gradient-primary text-primary-foreground">
+                      {getUserInitials(user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end">
+                <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="flex flex-col space-y-1 leading-none">
+                    <p className="font-medium text-sm">{user.name}</p>
+                    <p className="w-[200px] truncate text-xs text-muted-foreground">
+                      {getRoleBadge(user.role)}
+                    </p>
                   </div>
                 </div>
-                <User className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                Perfil
-              </DropdownMenuItem>
-              {user.role === 'MOTORISTA' && (
-                <DropdownMenuItem>
-                  <Truck className="mr-2 h-4 w-4" />
-                  Meus Veículos
+                <DropdownMenuSeparator />
+                {menuItems.map((item, index) => (
+                  <DropdownMenuItem key={index} onClick={item.action}>
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {item.label}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onLogout} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onLogout} className="text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Mobile Menu */}
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px]">
+                <div className="flex flex-col space-y-6 py-6">
+                  {/* User Info */}
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="gradient-primary text-primary-foreground">
+                        {getUserInitials(user.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{user.name}</p>
+                      <Badge className={getRoleColor(user.role)}>
+                        {getRoleBadge(user.role)}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Notifications */}
+                  <Button variant="ghost" className="justify-start" size="sm">
+                    <Bell className="mr-3 h-5 w-5" />
+                    Notificações
+                    {notifications > 0 && (
+                      <Badge className="ml-auto bg-destructive text-destructive-foreground">
+                        {notifications}
+                      </Badge>
+                    )}
+                  </Button>
+
+                  {/* Menu Items */}
+                  {menuItems.map((item, index) => (
+                    <Button
+                      key={index}
+                      variant="ghost"
+                      className="justify-start"
+                      size="sm"
+                      onClick={item.action}
+                    >
+                      <item.icon className="mr-3 h-5 w-5" />
+                      {item.label}
+                    </Button>
+                  ))}
+
+                  {/* Logout */}
+                  <Button
+                    variant="ghost"
+                    className="justify-start text-destructive hover:text-destructive"
+                    size="sm"
+                    onClick={onLogout}
+                  >
+                    <LogOut className="mr-3 h-5 w-5" />
+                    Sair
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </header>
   );
 };
+
+export default Header;

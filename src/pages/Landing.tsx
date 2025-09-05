@@ -1,188 +1,178 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { AuthModal } from "@/components/AuthModal";
-import { Truck, Package, MapPin, Shield, Clock, Star, ArrowRight, Play } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import heroImage from "@/assets/hero-logistics.jpg";
-import agriRouteLogo from "@/assets/agriroute-logo.png";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import AuthModal from '@/components/AuthModal';
+import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock } from 'lucide-react';
+import heroImage from '@/assets/hero-logistics.jpg';
 
-export default function Landing() {
-  const [authModal, setAuthModal] = useState({ isOpen: false, tab: 'login' as 'login' | 'signup' });
+const Landing = () => {
   const navigate = useNavigate();
+  const [authModal, setAuthModal] = useState<{ isOpen: boolean; initialTab?: 'login' | 'signup' }>({
+    isOpen: false,
+  });
 
-  const handleGetStarted = (type: 'PRODUTOR' | 'MOTORISTA') => {
-    // For demo purposes, direct navigation based on user type
-    if (type === 'PRODUTOR') {
-      navigate('/dashboard/producer');
-    } else {
-      navigate('/dashboard/driver');
-    }
+  const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA') => {
+    const route = userType === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver';
+    navigate(route);
   };
 
-  const openAuthModal = (tab: 'login' | 'signup' = 'signup') => {
-    setAuthModal({ isOpen: true, tab });
+  const openAuthModal = (initialTab?: 'login' | 'signup') => {
+    setAuthModal({ isOpen: true, initialTab });
   };
 
   const closeAuthModal = () => {
-    setAuthModal({ isOpen: false, tab: 'login' });
+    setAuthModal({ isOpen: false });
   };
 
   const features = [
     {
+      icon: Truck,
+      title: 'Logística Inteligente',
+      description: 'Conecte produtores e transportadores de forma eficiente e segura.'
+    },
+    {
       icon: MapPin,
-      title: "Rastreamento em Tempo Real",
-      description: "Acompanhe sua carga do ponto de origem até o destino final"
+      title: 'Rastreamento em Tempo Real',
+      description: 'Acompanhe suas cargas em tempo real com nossa tecnologia avançada.'
     },
     {
       icon: Shield,
-      title: "Segurança Garantida",
-      description: "Motoristas verificados e cargas seguradas para sua tranquilidade"
+      title: 'Transações Seguras',
+      description: 'Pagamentos protegidos e contratos digitais para sua tranquilidade.'
     },
     {
       icon: Clock,
-      title: "Entrega no Prazo",
-      description: "Sistema inteligente de otimização de rotas e prazos"
-    },
-    {
-      icon: Star,
-      title: "Avaliações Confiáveis",
-      description: "Sistema de reputação para produtores e motoristas"
+      title: 'Entrega Pontual',
+      description: 'Otimização de rotas para garantir entregas no prazo.'
     }
   ];
 
   const stats = [
-    { number: "15K+", label: "Fretes Realizados" },
-    { number: "2.5K+", label: "Motoristas Ativos" },
-    { number: "800+", label: "Produtores Cadastrados" },
-    { number: "98%", label: "Satisfação dos Clientes" }
+    { value: '10,000+', label: 'Produtores Conectados' },
+    { value: '5,000+', label: 'Motoristas Ativos' },
+    { value: '1M+', label: 'Toneladas Transportadas' },
+    { value: '98%', label: 'Satisfação do Cliente' }
   ];
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={agriRouteLogo} alt="AgriRoute" className="h-8 w-8" />
-            <div>
-              <h1 className="text-xl font-bold gradient-primary bg-clip-text text-transparent">
-                AgriRoute
-              </h1>
-              <p className="text-xs text-muted-foreground">Logística Agrícola</p>
-            </div>
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Leaf className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-bold text-foreground">AgriRoute</span>
           </div>
-          
-          <div className="flex items-center gap-4">
-            <Button variant="ghost">Sobre</Button>
-            <Button variant="ghost">Contato</Button>
-            <Button variant="outline" onClick={() => openAuthModal('login')}>Entrar</Button>
-            <Button variant="hero" onClick={() => openAuthModal('signup')}>Cadastre-se</Button>
+          <nav className="hidden md:flex items-center space-x-6">
+            <a href="#features" className="text-muted-foreground hover:text-foreground transition-smooth">
+              Recursos
+            </a>
+            <a href="#about" className="text-muted-foreground hover:text-foreground transition-smooth">
+              Sobre
+            </a>
+            <a href="#contact" className="text-muted-foreground hover:text-foreground transition-smooth">
+              Contato
+            </a>
+          </nav>
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" onClick={() => openAuthModal('login')}>
+              Entrar
+            </Button>
+            <Button onClick={() => openAuthModal('signup')} className="gradient-primary text-primary-foreground">
+              Cadastrar-se
+            </Button>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div 
+      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        />
-        <div className="absolute inset-0 bg-primary/85" />
+          style={{
+            backgroundImage: `url(${heroImage})`,
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/50 to-transparent" />
+        </div>
         
-        <div className="relative container py-24 text-center text-white">
-          <Badge variant="secondary" className="mb-6 text-primary">
-            🚚 Plataforma #1 em Logística Agrícola
-          </Badge>
-          
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-            Conectamos
+        <div className="relative z-10 container mx-auto px-4 text-center max-w-4xl">
+          <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight">
+            Conectando o Campo
             <span className="block gradient-hero bg-clip-text text-transparent">
-              Produtores & Motoristas
+              ao Destino
             </span>
           </h1>
-          
-          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto opacity-90">
-            A plataforma completa para transporte de cargas agrícolas. 
-            Encontre fretes, gerencie entregas e aumente sua eficiência.
+          <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto">
+            A plataforma que revoluciona o transporte agrícola brasileiro, 
+            conectando produtores e transportadores de forma inteligente.
           </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <Button 
-              variant="hero" 
-              size="xl" 
+              size="lg"
               onClick={() => handleGetStarted('PRODUTOR')}
+              className="gradient-primary text-primary-foreground text-lg px-8 py-6 rounded-xl shadow-glow hover:scale-105 transition-bounce"
             >
-              <Package className="mr-2 h-5 w-5" />
+              <Users className="mr-2 h-5 w-5" />
               Sou Produtor
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button 
-              variant="outline" 
-              size="xl"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              size="lg"
               onClick={() => handleGetStarted('MOTORISTA')}
+              className="bg-accent text-accent-foreground text-lg px-8 py-6 rounded-xl shadow-elegant hover:scale-105 transition-bounce"
             >
               <Truck className="mr-2 h-5 w-5" />
               Sou Motorista
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
-
-          <Button variant="ghost" className="text-white/80 hover:text-white">
-            <Play className="mr-2 h-4 w-4" />
-            Assistir demonstração
-          </Button>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-muted/50">
-        <div className="container">
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-4xl font-bold text-primary mb-2">
-                  {stat.number}
-                </div>
-                <div className="text-muted-foreground">
-                  {stat.label}
-                </div>
-              </div>
+              <Card key={index} className="text-center shadow-card">
+                <CardContent className="p-6">
+                  <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
+                    {stat.value}
+                  </div>
+                  <div className="text-muted-foreground">{stat.label}</div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20">
-        <div className="container">
+      <section id="features" className="py-20">
+        <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge variant="outline" className="mb-4">
-              Por que escolher AgriRoute?
-            </Badge>
-            <h2 className="text-4xl font-bold mb-6">
-              Tecnologia que transforma
-              <span className="block text-primary">o transporte agrícola</span>
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+              Por que escolher a AgriRoute?
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Utilizamos as mais avançadas tecnologias para conectar produtores 
-              e motoristas de forma eficiente e segura.
+              Tecnologia de ponta para otimizar sua cadeia logística agrícola
             </p>
           </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="text-center gradient-card shadow-card hover:shadow-elegant transition-smooth">
-                <CardContent className="p-8">
-                  <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center mx-auto mb-6">
-                    <feature.icon className="h-8 w-8 text-white" />
+              <Card key={index} className="shadow-card hover:shadow-glow transition-smooth group">
+                <CardContent className="p-8 text-center">
+                  <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full gradient-primary">
+                    <feature.icon className="h-8 w-8 text-primary-foreground" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-4">
+                  <h3 className="text-xl font-semibold text-foreground mb-4 group-hover:text-primary transition-smooth">
                     {feature.title}
                   </h3>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground leading-relaxed">
                     {feature.description}
                   </p>
                 </CardContent>
@@ -193,98 +183,76 @@ export default function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-muted/50">
-        <div className="container text-center">
-          <h2 className="text-4xl font-bold mb-6">
-            Pronto para revolucionar
-            <span className="block text-primary">sua logística agrícola?</span>
+      <section className="py-20 gradient-hero">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
+            Pronto para revolucionar seu negócio?
           </h2>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Junte-se a milhares de produtores e motoristas que já confiam 
-            na AgriRoute para suas operações logísticas.
+          <p className="text-xl text-primary-foreground/90 mb-12 max-w-2xl mx-auto">
+            Junte-se à maior rede de logística agrícola do Brasil
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="hero" size="xl">
-              <Package className="mr-2 h-5 w-5" />
-              Começar como Produtor
-            </Button>
-            <Button variant="outline" size="xl">
-              <Truck className="mr-2 h-5 w-5" />
-              Começar como Motorista
-            </Button>
-          </div>
+          <Button 
+            size="lg"
+            onClick={() => openAuthModal('signup')}
+            className="bg-background text-foreground text-lg px-8 py-6 rounded-xl hover:scale-105 transition-bounce shadow-xl"
+          >
+            Começar Agora
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
         </div>
       </section>
 
-      {/* Auth Modal */}
-      <AuthModal 
-        isOpen={authModal.isOpen}
-        onClose={closeAuthModal}
-        initialTab={authModal.tab}
-      />
-
       {/* Footer */}
-      <footer className="border-t py-12 bg-background">
-        <div className="container">
-          <div className="grid md:grid-cols-4 gap-8">
+      <footer className="bg-card border-t py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <img src={agriRouteLogo} alt="AgriRoute" className="h-8 w-8" />
-                <div>
-                  <h3 className="font-bold text-lg">AgriRoute</h3>
-                  <p className="text-sm text-muted-foreground">Logística Agrícola</p>
-                </div>
+              <div className="flex items-center space-x-2 mb-6">
+                <Leaf className="h-8 w-8 text-primary" />
+                <span className="text-2xl font-bold">AgriRoute</span>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Conectando o agronegócio brasileiro através de tecnologia 
-                e inovação em logística.
+              <p className="text-muted-foreground">
+                Conectando o agronegócio brasileiro através da tecnologia.
               </p>
             </div>
-            
             <div>
-              <h4 className="font-semibold mb-4">Produto</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>Para Produtores</li>
-                <li>Para Motoristas</li>
-                <li>Preços</li>
-                <li>API</li>
+              <h4 className="font-semibold text-foreground mb-4">Empresa</h4>
+              <ul className="space-y-2 text-muted-foreground">
+                <li><a href="#" className="hover:text-foreground transition-smooth">Sobre nós</a></li>
+                <li><a href="#" className="hover:text-foreground transition-smooth">Carreiras</a></li>
+                <li><a href="#" className="hover:text-foreground transition-smooth">Imprensa</a></li>
               </ul>
             </div>
-            
             <div>
-              <h4 className="font-semibold mb-4">Empresa</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>Sobre nós</li>
-                <li>Blog</li>
-                <li>Carreiras</li>
-                <li>Contato</li>
+              <h4 className="font-semibold text-foreground mb-4">Suporte</h4>
+              <ul className="space-y-2 text-muted-foreground">
+                <li><a href="#" className="hover:text-foreground transition-smooth">Central de Ajuda</a></li>
+                <li><a href="#" className="hover:text-foreground transition-smooth">Contato</a></li>
+                <li><a href="#" className="hover:text-foreground transition-smooth">Status</a></li>
               </ul>
             </div>
-            
             <div>
-              <h4 className="font-semibold mb-4">Suporte</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>Central de Ajuda</li>
-                <li>Documentação</li>
-                <li>Status do Sistema</li>
-                <li>Segurança</li>
+              <h4 className="font-semibold text-foreground mb-4">Legal</h4>
+              <ul className="space-y-2 text-muted-foreground">
+                <li><a href="#" className="hover:text-foreground transition-smooth">Privacidade</a></li>
+                <li><a href="#" className="hover:text-foreground transition-smooth">Termos</a></li>
+                <li><a href="#" className="hover:text-foreground transition-smooth">Cookies</a></li>
               </ul>
             </div>
           </div>
-          
-          <div className="border-t mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center">
-            <p className="text-sm text-muted-foreground">
-              © 2024 AgriRoute. Todos os direitos reservados.
-            </p>
-            <div className="flex gap-6 text-sm text-muted-foreground">
-              <span>Termos de Uso</span>
-              <span>Privacidade</span>
-              <span>Cookies</span>
-            </div>
+          <div className="border-t mt-12 pt-8 text-center text-muted-foreground">
+            <p>&copy; 2024 AgriRoute. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>
+
+      <AuthModal
+        isOpen={authModal.isOpen}
+        onClose={closeAuthModal}
+        initialTab={authModal.initialTab}
+      />
     </div>
   );
-}
+};
+
+export default Landing;
