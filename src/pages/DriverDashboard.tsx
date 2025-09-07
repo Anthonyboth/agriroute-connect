@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FreightCard } from "@/components/FreightCard";
-import { Header } from "@/components/Header";
+import FreightCard from "@/components/FreightCard";
+import Header from "@/components/Header";
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Filter } from "lucide-react";
 import heroImage from "@/assets/hero-logistics.jpg";
 
@@ -12,28 +12,28 @@ const mockAvailableFreights = [
   {
     id: '1',
     cargoType: 'Soja',
-    totalWeight: 34,
-    requiredVehicleType: 'Bitrem',
-    originAddress: 'Fazenda Santa Maria - Sorriso/MT',
-    destAddress: 'Porto de Santos/SP',
-    suggestedPrice: 8500,
+    weight: 34000,
+    origin: 'Fazenda Santa Maria - Sorriso/MT',
+    destination: 'Porto de Santos/SP',
+    price: 8500,
     distance: 1247,
-    status: 'OPEN' as const,
-    windowStart: '2024-01-15',
-    windowEnd: '2024-01-17'
+    status: 'ABERTO' as const,
+    pickupDate: '2024-01-15',
+    deliveryDate: '2024-01-17',
+    urgency: 'MEDIA' as const
   },
   {
     id: '5',
     cargoType: 'Fertilizante',
-    totalWeight: 30,
-    requiredVehicleType: 'Bitrem',
-    originAddress: 'Terminal Yara - Cubatão/SP',
-    destAddress: 'Fazenda Aurora - Lucas do Rio Verde/MT',
-    suggestedPrice: 9200,
+    weight: 30000,
+    origin: 'Terminal Yara - Cubatão/SP',
+    destination: 'Fazenda Aurora - Lucas do Rio Verde/MT',
+    price: 9200,
     distance: 1450,
-    status: 'OPEN' as const,
-    windowStart: '2024-01-16',
-    windowEnd: '2024-01-18'
+    status: 'ABERTO' as const,
+    pickupDate: '2024-01-16',
+    deliveryDate: '2024-01-18',
+    urgency: 'ALTA' as const
   }
 ];
 
@@ -42,28 +42,28 @@ const mockMyTrips = [
   {
     id: '2', 
     cargoType: 'Milho',
-    totalWeight: 40,
-    requiredVehicleType: 'Bitrem',
-    originAddress: 'Fazenda Boa Vista - Campo Verde/MT',
-    destAddress: 'Terminal Cargill - Rondonópolis/MT',
-    suggestedPrice: 2800,
+    weight: 40000,
+    origin: 'Fazenda Boa Vista - Campo Verde/MT',
+    destination: 'Terminal Cargill - Rondonópolis/MT',
+    price: 2800,
     distance: 87,
-    status: 'IN_TRANSIT' as const,
-    windowStart: '2024-01-14',
-    windowEnd: '2024-01-15'
+    status: 'EM_TRANSITO' as const,
+    pickupDate: '2024-01-14',
+    deliveryDate: '2024-01-15',
+    urgency: 'BAIXA' as const
   },
   {
     id: '3',
     cargoType: 'Algodão',
-    totalWeight: 28,
-    requiredVehicleType: 'Bitrem',
-    originAddress: 'Fazenda Primavera - Primavera do Leste/MT',
-    destAddress: 'Fiação São Paulo/SP',
-    suggestedPrice: 7200,
+    weight: 28000,
+    origin: 'Fazenda Primavera - Primavera do Leste/MT',
+    destination: 'Fiação São Paulo/SP',
+    price: 7200,
     distance: 980,
-    status: 'DELIVERED' as const,
-    windowStart: '2024-01-10',
-    windowEnd: '2024-01-12'
+    status: 'ENTREGUE' as const,
+    pickupDate: '2024-01-10',
+    deliveryDate: '2024-01-12',
+    urgency: 'ALTA' as const
   }
 ];
 
@@ -90,10 +90,10 @@ export default function DriverDashboard() {
   };
 
   // Stats calculation
-  const activeTrips = myTrips.filter(t => ['BOOKED', 'PICKUP', 'IN_TRANSIT'].includes(t.status)).length;
-  const completedTrips = myTrips.filter(t => t.status === 'DELIVERED').length;
+  const activeTrips = myTrips.filter(t => ['RESERVADO', 'EM_TRANSITO'].includes(t.status)).length;
+  const completedTrips = myTrips.filter(t => t.status === 'ENTREGUE').length;
   const availableCount = availableFreights.length;
-  const totalEarnings = myTrips.reduce((sum, t) => sum + t.suggestedPrice, 0);
+  const totalEarnings = myTrips.reduce((sum, t) => sum + t.price, 0);
 
   return (
     <div className="min-h-screen bg-background">

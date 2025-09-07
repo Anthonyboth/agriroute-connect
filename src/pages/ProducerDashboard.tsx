@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FreightCard } from "@/components/FreightCard";
-import { Header } from "@/components/Header";
+import FreightCard from "@/components/FreightCard";
+import Header from "@/components/Header";
 import { Plus, TrendingUp, Package, Clock, CheckCircle } from "lucide-react";
 import heroImage from "@/assets/hero-logistics.jpg";
 
@@ -12,54 +12,54 @@ const mockFreights = [
   {
     id: '1',
     cargoType: 'Soja',
-    totalWeight: 34,
-    requiredVehicleType: 'Bitrem',
-    originAddress: 'Fazenda Santa Maria - Sorriso/MT',
-    destAddress: 'Porto de Santos/SP',
-    suggestedPrice: 8500,
+    weight: 34000,
+    origin: 'Fazenda Santa Maria - Sorriso/MT',
+    destination: 'Porto de Santos/SP',
+    price: 8500,
     distance: 1247,
-    status: 'OPEN' as const,
-    windowStart: '2024-01-15',
-    windowEnd: '2024-01-17'
+    status: 'ABERTO' as const,
+    pickupDate: '2024-01-15',
+    deliveryDate: '2024-01-17',
+    urgency: 'MEDIA' as const
   },
   {
     id: '2', 
     cargoType: 'Milho',
-    totalWeight: 40,
-    requiredVehicleType: 'Rodotrem',
-    originAddress: 'Fazenda Boa Vista - Campo Verde/MT',
-    destAddress: 'Terminal Cargill - Rondonópolis/MT',
-    suggestedPrice: 2800,
+    weight: 40000,
+    origin: 'Fazenda Boa Vista - Campo Verde/MT',
+    destination: 'Terminal Cargill - Rondonópolis/MT',
+    price: 2800,
     distance: 87,
-    status: 'BOOKED' as const,
-    windowStart: '2024-01-14',
-    windowEnd: '2024-01-15'
+    status: 'RESERVADO' as const,
+    pickupDate: '2024-01-14',
+    deliveryDate: '2024-01-15',
+    urgency: 'BAIXA' as const
   },
   {
     id: '3',
     cargoType: 'Algodão',
-    totalWeight: 28,
-    requiredVehicleType: 'Bitrem',
-    originAddress: 'Fazenda Primavera - Primavera do Leste/MT',
-    destAddress: 'Fiação São Paulo/SP',
-    suggestedPrice: 7200,
+    weight: 28000,
+    origin: 'Fazenda Primavera - Primavera do Leste/MT',
+    destination: 'Fiação São Paulo/SP',
+    price: 7200,
     distance: 980,
-    status: 'DELIVERED' as const,
-    windowStart: '2024-01-10',
-    windowEnd: '2024-01-12'
+    status: 'ENTREGUE' as const,
+    pickupDate: '2024-01-10',
+    deliveryDate: '2024-01-12',
+    urgency: 'ALTA' as const
   },
   {
     id: '4',
     cargoType: 'Adubo',
-    totalWeight: 35,
-    requiredVehicleType: 'Rodotrem',
-    originAddress: 'Fazenda Rio Verde - Diamantino/MT',
-    destAddress: 'Cooperativa Nova Mutum/MT',
-    suggestedPrice: 1800,
+    weight: 35000,
+    origin: 'Fazenda Rio Verde - Diamantino/MT',
+    destination: 'Cooperativa Nova Mutum/MT',
+    price: 1800,
     distance: 65,
-    status: 'IN_TRANSIT' as const,
-    windowStart: '2024-01-13',
-    windowEnd: '2024-01-14'
+    status: 'EM_TRANSITO' as const,
+    pickupDate: '2024-01-13',
+    deliveryDate: '2024-01-14',
+    urgency: 'MEDIA' as const
   }
 ];
 
@@ -88,10 +88,10 @@ export default function ProducerDashboard() {
   };
 
   // Stats calculation
-  const openFreights = freights.filter(f => f.status === 'OPEN').length;
-  const activeFreights = freights.filter(f => ['BOOKED', 'PICKUP', 'IN_TRANSIT'].includes(f.status)).length;
-  const completedFreights = freights.filter(f => f.status === 'DELIVERED').length;
-  const totalValue = freights.reduce((sum, f) => sum + f.suggestedPrice, 0);
+  const openFreights = freights.filter(f => f.status === 'ABERTO').length;
+  const activeFreights = freights.filter(f => ['RESERVADO', 'EM_TRANSITO'].includes(f.status)).length;
+  const completedFreights = freights.filter(f => f.status === 'ENTREGUE').length;
+  const totalValue = freights.reduce((sum, f) => sum + f.price, 0);
 
   return (
     <div className="min-h-screen bg-background">
