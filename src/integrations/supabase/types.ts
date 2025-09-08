@@ -14,16 +14,202 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      freight_proposals: {
+        Row: {
+          created_at: string
+          driver_id: string
+          freight_id: string
+          id: string
+          message: string | null
+          proposed_price: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          driver_id: string
+          freight_id: string
+          id?: string
+          message?: string | null
+          proposed_price: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string
+          freight_id?: string
+          id?: string
+          message?: string | null
+          proposed_price?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_proposals_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_proposals_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freights: {
+        Row: {
+          cargo_type: string
+          created_at: string
+          delivery_date: string
+          description: string | null
+          destination_address: string
+          destination_lat: number | null
+          destination_lng: number | null
+          distance_km: number | null
+          driver_id: string | null
+          id: string
+          minimum_antt_price: number | null
+          origin_address: string
+          origin_lat: number | null
+          origin_lng: number | null
+          pickup_date: string
+          price: number
+          producer_id: string
+          status: Database["public"]["Enums"]["freight_status"]
+          toll_cost: number | null
+          updated_at: string
+          urgency: Database["public"]["Enums"]["urgency_level"]
+          weight: number
+        }
+        Insert: {
+          cargo_type: string
+          created_at?: string
+          delivery_date: string
+          description?: string | null
+          destination_address: string
+          destination_lat?: number | null
+          destination_lng?: number | null
+          distance_km?: number | null
+          driver_id?: string | null
+          id?: string
+          minimum_antt_price?: number | null
+          origin_address: string
+          origin_lat?: number | null
+          origin_lng?: number | null
+          pickup_date: string
+          price: number
+          producer_id: string
+          status?: Database["public"]["Enums"]["freight_status"]
+          toll_cost?: number | null
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["urgency_level"]
+          weight: number
+        }
+        Update: {
+          cargo_type?: string
+          created_at?: string
+          delivery_date?: string
+          description?: string | null
+          destination_address?: string
+          destination_lat?: number | null
+          destination_lng?: number | null
+          distance_km?: number | null
+          driver_id?: string | null
+          id?: string
+          minimum_antt_price?: number | null
+          origin_address?: string
+          origin_lat?: number | null
+          origin_lng?: number | null
+          pickup_date?: string
+          price?: number
+          producer_id?: string
+          status?: Database["public"]["Enums"]["freight_status"]
+          toll_cost?: number | null
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["urgency_level"]
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freights_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freights_producer_id_fkey"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          document: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["user_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          document?: string | null
+          full_name: string
+          id?: string
+          phone?: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["user_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          document?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["user_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      freight_status:
+        | "OPEN"
+        | "IN_NEGOTIATION"
+        | "ACCEPTED"
+        | "IN_TRANSIT"
+        | "DELIVERED"
+        | "CANCELLED"
+      urgency_level: "LOW" | "MEDIUM" | "HIGH"
+      user_role: "PRODUTOR" | "MOTORISTA" | "ADMIN"
+      user_status: "PENDING" | "APPROVED" | "REJECTED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +336,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      freight_status: [
+        "OPEN",
+        "IN_NEGOTIATION",
+        "ACCEPTED",
+        "IN_TRANSIT",
+        "DELIVERED",
+        "CANCELLED",
+      ],
+      urgency_level: ["LOW", "MEDIUM", "HIGH"],
+      user_role: ["PRODUTOR", "MOTORISTA", "ADMIN"],
+      user_status: ["PENDING", "APPROVED", "REJECTED"],
+    },
   },
 } as const

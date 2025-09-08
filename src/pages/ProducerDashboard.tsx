@@ -1,236 +1,153 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import FreightCard from "@/components/FreightCard";
-import Header from "@/components/Header";
-import { Plus, TrendingUp, Package, Clock, CheckCircle } from "lucide-react";
-import heroImage from "@/assets/hero-logistics.jpg";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Header from '@/components/Header';
+import FreightCard from '@/components/FreightCard';
+import CreateFreightModal from '@/components/CreateFreightModal';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-// Mock data
-const mockFreights = [
-  {
-    id: '1',
-    cargoType: 'Soja',
-    weight: 34000,
-    origin: 'Fazenda Santa Maria - Sorriso/MT',
-    destination: 'Porto de Santos/SP',
-    price: 8500,
-    distance: 1247,
-    status: 'ABERTO' as const,
-    pickupDate: '2024-01-15',
-    deliveryDate: '2024-01-17',
-    urgency: 'MEDIA' as const
-  },
-  {
-    id: '2', 
-    cargoType: 'Milho',
-    weight: 40000,
-    origin: 'Fazenda Boa Vista - Campo Verde/MT',
-    destination: 'Terminal Cargill - Rondonópolis/MT',
-    price: 2800,
-    distance: 87,
-    status: 'RESERVADO' as const,
-    pickupDate: '2024-01-14',
-    deliveryDate: '2024-01-15',
-    urgency: 'BAIXA' as const
-  },
-  {
-    id: '3',
-    cargoType: 'Algodão',
-    weight: 28000,
-    origin: 'Fazenda Primavera - Primavera do Leste/MT',
-    destination: 'Fiação São Paulo/SP',
-    price: 7200,
-    distance: 980,
-    status: 'ENTREGUE' as const,
-    pickupDate: '2024-01-10',
-    deliveryDate: '2024-01-12',
-    urgency: 'ALTA' as const
-  },
-  {
-    id: '4',
-    cargoType: 'Adubo',
-    weight: 35000,
-    origin: 'Fazenda Rio Verde - Diamantino/MT',
-    destination: 'Cooperativa Nova Mutum/MT',
-    price: 1800,
-    distance: 65,
-    status: 'EM_TRANSITO' as const,
-    pickupDate: '2024-01-13',
-    deliveryDate: '2024-01-14',
-    urgency: 'MEDIA' as const
+const ProducerDashboard = () => {
+  const { profile, signOut } = useAuth();
+  const [freights, setFreights] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (profile) {
+      fetchFreights();
+    }
+  }, [profile]);
+
+  const fetchFreights = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('freights')
+        .select('*')
+        .eq('producer_id', profile?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setFreights(data || []);
+    } catch (error) {
+      console.error('Error fetching freights:', error);
+      toast.error('Erro ao carregar fretes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
-];
 
-const mockUser = {
-  name: 'João Silva',
-  role: 'PRODUTOR' as const
-};
-
-export default function ProducerDashboard() {
-  const [freights] = useState(mockFreights);
-
-  const handleLogout = () => {
-    console.log('Logout');
-  };
-
-  const handleMenuClick = () => {
-    console.log('Menu click');
-  };
-
-  const handleFreightAction = (freight: any) => {
-    console.log('Freight action:', freight);
-  };
-
-  const handleCreateFreight = () => {
-    console.log('Create freight');
-  };
-
-  // Stats calculation
-  const openFreights = freights.filter(f => f.status === 'ABERTO').length;
-  const activeFreights = freights.filter(f => ['RESERVADO', 'EM_TRANSITO'].includes(f.status)).length;
-  const completedFreights = freights.filter(f => f.status === 'ENTREGUE').length;
+  const openFreights = freights.filter(f => f.status === 'OPEN').length;
+  const activeFreights = freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).length;
+  const completedFreights = freights.filter(f => f.status === 'DELIVERED').length;
   const totalValue = freights.reduce((sum, f) => sum + f.price, 0);
 
   return (
     <div className="min-h-screen bg-background">
       <Header 
-        user={mockUser}
-        onMenuClick={handleMenuClick}
-        onLogout={handleLogout}
+        user={{ name: profile?.full_name || 'Usuário', role: (profile?.role as 'PRODUTOR' | 'MOTORISTA') || 'PRODUTOR' }}
+        onLogout={signOut}
+        onMenuClick={() => {}}
       />
-
-      {/* Hero Section */}
-      <section className="relative h-[300px] flex items-center justify-center overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        />
-        <div className="absolute inset-0 bg-primary/80" />
-        <div className="relative z-10 text-center text-white">
-          <h1 className="text-4xl font-bold mb-4">
-            Bem-vindo, {mockUser.name}
-          </h1>
-          <p className="text-xl mb-6 opacity-90">
-            Gerencie seus fretes agrícolas com facilidade
-          </p>
-          <Button 
-            variant="hero" 
-            size="xl" 
-            onClick={handleCreateFreight}
-          >
-            <Plus className="mr-2 h-5 w-5" />
-            Criar Novo Frete
-          </Button>
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Dashboard do Produtor</h1>
+          <p className="text-muted-foreground">Gerencie seus fretes e acompanhe o desempenho</p>
         </div>
-      </section>
 
-      <div className="container py-8">
+        <div className="mb-6">
+          <CreateFreightModal 
+            onFreightCreated={fetchFreights}
+            userProfile={profile}
+          />
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="gradient-card shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Package className="h-8 w-8 text-primary" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Fretes Abertos
-                  </p>
-                  <p className="text-2xl font-bold">{openFreights}</p>
-                </div>
-              </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Fretes Abertos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{openFreights}</div>
             </CardContent>
           </Card>
-
-          <Card className="gradient-card shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Clock className="h-8 w-8 text-warning" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Em Andamento
-                  </p>
-                  <p className="text-2xl font-bold">{activeFreights}</p>
-                </div>
-              </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{activeFreights}</div>
             </CardContent>
           </Card>
-
-          <Card className="gradient-card shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <CheckCircle className="h-8 w-8 text-success" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Concluídos
-                  </p>
-                  <p className="text-2xl font-bold">{completedFreights}</p>
-                </div>
-              </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Concluídos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{completedFreights}</div>
             </CardContent>
           </Card>
-
-          <Card className="gradient-card shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <TrendingUp className="h-8 w-8 text-accent" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Valor Total
-                  </p>
-                  <p className="text-2xl font-bold">
-                    {new Intl.NumberFormat('pt-BR', { 
-                      style: 'currency', 
-                      currency: 'BRL',
-                      notation: 'compact',
-                      maximumFractionDigits: 0
-                    }).format(totalValue)}
-                  </p>
-                </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Freights List */}
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-2xl">Meus Fretes</CardTitle>
-              <div className="flex gap-2">
-                <Badge variant="secondary">Todos ({freights.length})</Badge>
-              </div>
-            </div>
+            <CardTitle>Meus Fretes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4">
-              {freights.length > 0 ? (
-                freights.map((freight) => (
+            {freights.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Nenhum frete cadastrado ainda.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {freights.map((freight) => (
                   <FreightCard
                     key={freight.id}
-                    freight={freight}
+                    freight={{
+                      id: freight.id,
+                      cargoType: freight.cargo_type,
+                      weight: freight.weight,
+                      distance: freight.distance_km,
+                      origin: freight.origin_address,
+                      destination: freight.destination_address,
+                      price: freight.price,
+                      status: freight.status,
+                      pickupDate: freight.pickup_date,
+                      deliveryDate: freight.delivery_date,
+                      urgency: freight.urgency,
+                      description: freight.description
+                    }}
                     userRole="PRODUTOR"
-                    onAction={handleFreightAction}
+                    onAction={() => {}}
                   />
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Nenhum frete cadastrado</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Crie seu primeiro frete para começar a encontrar motoristas.
-                  </p>
-                  <Button variant="hero" onClick={handleCreateFreight}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Criar Primeiro Frete
-                  </Button>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
     </div>
   );
-}
+export default ProducerDashboard;
