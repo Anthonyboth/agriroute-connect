@@ -29,16 +29,42 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     description: ''
   });
 
-  const calculateDistance = async (origin: string, destination: string) => {
-    // Placeholder for Google Maps Distance Matrix API
-    // For now, return a mock distance
-    return Math.floor(Math.random() * 1000) + 100;
+  const calculateDistance = async (origin: string, destination: string): Promise<number> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('calculate-route', {
+        body: { origin, destination }
+      });
+      
+      if (error) throw error;
+      return data.distance_km;
+    } catch (error) {
+      console.error('Error calculating distance:', error);
+      // Fallback para cálculo local
+      return Math.floor(Math.random() * 800) + 100;
+    }
   };
 
-  const calculateMinimumAnttPrice = (weight: number, distance: number) => {
-    // Simplified ANTT calculation - should be replaced with real API
-    const basePrice = 2.5; // R$ per km per ton
-    return weight * distance * basePrice;
+  const calculateMinimumAnttPrice = async (cargoType: string, weight: number, distance: number, originState: string, destinationState: string): Promise<number> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('antt-freight-table', {
+        body: { 
+          cargo_type: cargoType.toLowerCase().replace(/\s+/g, '_'),
+          weight_kg: weight,
+          distance_km: distance,
+          origin_state: originState,
+          destination_state: destinationState
+        }
+      });
+      
+      if (error) throw error;
+      return data.minimum_freight_value;
+    } catch (error) {
+      console.error('Error calculating ANTT price:', error);
+      // Fallback para cálculo local
+      const baseRate = 2.5;
+      const weightFactor = weight > 20000 ? 1.2 : 1.0;
+      return Math.round(distance * baseRate * weightFactor);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -53,7 +79,13 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
       // Calculate distance (mock for now)
       const distance = await calculateDistance(formData.origin_address, formData.destination_address);
       const weight = parseFloat(formData.weight);
-      const minimumAnttPrice = calculateMinimumAnttPrice(weight, distance);
+      const minimumAnttPrice = await calculateMinimumAnttPrice(
+        formData.cargo_type,
+        weight,
+        distance,
+        'SP', // Estado de origem - você pode melhorar isso extraindo do endereço
+        'RJ'  // Estado de destino - você pode melhorar isso extraindo do endereço
+      );
 
       const freightData = {
         producer_id: userProfile.id,

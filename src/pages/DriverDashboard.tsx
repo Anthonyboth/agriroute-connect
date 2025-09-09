@@ -1,104 +1,165 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import FreightCard from "@/components/FreightCard";
-import Header from "@/components/Header";
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Filter } from "lucide-react";
-import heroImage from "@/assets/hero-logistics.jpg";
+import React, { useState, useEffect } from 'react';
+import Header from '@/components/Header';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FreightCard } from '@/components/FreightCard';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle } from 'lucide-react';
+import heroLogistics from '@/assets/hero-logistics.jpg';
 
-// Mock data for available freights
-const mockAvailableFreights = [
-  {
-    id: '1',
-    cargoType: 'Soja',
-    weight: 34000,
-    origin: 'Fazenda Santa Maria - Sorriso/MT',
-    destination: 'Porto de Santos/SP',
-    price: 8500,
-    distance: 1247,
-    status: 'ABERTO' as const,
-    pickupDate: '2024-01-15',
-    deliveryDate: '2024-01-17',
-    urgency: 'MEDIA' as const
-  },
-  {
-    id: '5',
-    cargoType: 'Fertilizante',
-    weight: 30000,
-    origin: 'Terminal Yara - Cubatão/SP',
-    destination: 'Fazenda Aurora - Lucas do Rio Verde/MT',
-    price: 9200,
-    distance: 1450,
-    status: 'ABERTO' as const,
-    pickupDate: '2024-01-16',
-    deliveryDate: '2024-01-18',
-    urgency: 'ALTA' as const
-  }
-];
+interface Freight {
+  id: string;
+  cargo_type: string;
+  weight: number;
+  origin_address: string;
+  destination_address: string;
+  pickup_date: string;
+  delivery_date: string;
+  price: number;
+  urgency: 'LOW' | 'MEDIUM' | 'HIGH';
+  status: string; // Allow all database status values
+  distance_km: number;
+  minimum_antt_price: number;
+}
 
-// Mock data for driver's trips
-const mockMyTrips = [
-  {
-    id: '2', 
-    cargoType: 'Milho',
-    weight: 40000,
-    origin: 'Fazenda Boa Vista - Campo Verde/MT',
-    destination: 'Terminal Cargill - Rondonópolis/MT',
-    price: 2800,
-    distance: 87,
-    status: 'EM_TRANSITO' as const,
-    pickupDate: '2024-01-14',
-    deliveryDate: '2024-01-15',
-    urgency: 'BAIXA' as const
-  },
-  {
-    id: '3',
-    cargoType: 'Algodão',
-    weight: 28000,
-    origin: 'Fazenda Primavera - Primavera do Leste/MT',
-    destination: 'Fiação São Paulo/SP',
-    price: 7200,
-    distance: 980,
-    status: 'ENTREGUE' as const,
-    pickupDate: '2024-01-10',
-    deliveryDate: '2024-01-12',
-    urgency: 'ALTA' as const
-  }
-];
+interface Proposal {
+  id: string;
+  freight_id: string;
+  driver_id: string;
+  proposed_price: number;
+  status: string; // Allow all database status values
+  freight?: Freight;
+}
 
-const mockUser = {
-  name: 'Carlos Santos',
-  role: 'MOTORISTA' as const
-};
+const DriverDashboard = () => {
+  const { profile } = useAuth();
+  const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
+  const [myProposals, setMyProposals] = useState<Proposal[]>([]);
+  const [activeTab, setActiveTab] = useState('available');
+  const [loading, setLoading] = useState(true);
 
-export default function DriverDashboard() {
-  const [availableFreights] = useState(mockAvailableFreights);
-  const [myTrips] = useState(mockMyTrips);
-  const [activeTab, setActiveTab] = useState<'available' | 'mytrips'>('available');
+  // Buscar fretes disponíveis
+  const fetchAvailableFreights = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('freights')
+        .select('*')
+        .eq('status', 'OPEN')
+        .order('created_at', { ascending: false });
 
-  const handleLogout = () => {
-    console.log('Logout');
+      if (error) throw error;
+      setAvailableFreights(data || []);
+    } catch (error) {
+      console.error('Error fetching freights:', error);
+      toast.error('Erro ao carregar fretes disponíveis');
+    }
+  };
+
+  // Buscar propostas do motorista
+  const fetchMyProposals = async () => {
+    if (!profile?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('freight_proposals')
+        .select(`
+          *,
+          freight:freights(*)
+        `)
+        .eq('driver_id', profile.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setMyProposals(data || []);
+    } catch (error) {
+      console.error('Error fetching proposals:', error);
+      toast.error('Erro ao carregar suas propostas');
+    }
+  };
+
+  // Carregar dados
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchAvailableFreights(), fetchMyProposals()]);
+      setLoading(false);
+    };
+
+    if (profile) {
+      loadData();
+    }
+  }, [profile]);
+
+  // Calcular estatísticas
+  const acceptedProposals = myProposals.filter(p => p.status === 'ACCEPTED');
+  const activeTrips = acceptedProposals.filter(p => p.freight?.status === 'IN_TRANSIT').length;
+  const completedTrips = acceptedProposals.filter(p => p.freight?.status === 'DELIVERED').length;
+  const availableCount = availableFreights.length;
+  const totalEarnings = acceptedProposals
+    .filter(p => p.freight?.status === 'DELIVERED')
+    .reduce((sum, proposal) => sum + (proposal.proposed_price || 0), 0);
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Erro ao fazer logout');
+    } else {
+      toast.success('Logout realizado com sucesso');
+    }
   };
 
   const handleMenuClick = () => {
-    console.log('Menu click');
+    // Implementar menu lateral se necessário
   };
 
-  const handleFreightAction = (freight: any) => {
-    console.log('Freight action:', freight);
+  const handleFreightAction = async (freightId: string, action: 'propose' | 'accept' | 'complete') => {
+    if (!profile?.id) return;
+
+    try {
+      if (action === 'propose') {
+        // Criar uma proposta para o frete
+        const freight = availableFreights.find(f => f.id === freightId);
+        if (!freight) return;
+
+        const { error } = await supabase
+          .from('freight_proposals')
+          .insert({
+            freight_id: freightId,
+            driver_id: profile.id,
+            proposed_price: freight.price, // Por enquanto aceita o preço oferecido
+            status: 'PENDING'
+          });
+
+        if (error) throw error;
+        
+        toast.success('Proposta enviada com sucesso!');
+        fetchMyProposals(); // Atualizar lista
+      }
+    } catch (error) {
+      console.error('Error handling freight action:', error);
+      toast.error('Erro ao processar ação');
+    }
   };
 
-  // Stats calculation
-  const activeTrips = myTrips.filter(t => ['RESERVADO', 'EM_TRANSITO'].includes(t.status)).length;
-  const completedTrips = myTrips.filter(t => t.status === 'ENTREGUE').length;
-  const availableCount = availableFreights.length;
-  const totalEarnings = myTrips.reduce((sum, t) => sum + t.price, 0);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Header 
-        user={mockUser}
+        user={{ name: profile?.display_name || 'Motorista' }}
         onMenuClick={handleMenuClick}
         onLogout={handleLogout}
       />
@@ -107,20 +168,21 @@ export default function DriverDashboard() {
       <section className="relative h-[300px] flex items-center justify-center overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${heroImage})` }}
+          style={{ backgroundImage: `url(${heroLogistics})` }}
         />
         <div className="absolute inset-0 bg-primary/80" />
         <div className="relative z-10 text-center text-white">
           <h1 className="text-4xl font-bold mb-4">
-            Olá, {mockUser.name}
+            Olá, {profile?.full_name || 'Motorista'}
           </h1>
           <p className="text-xl mb-6 opacity-90">
             Encontre fretes agrícolas próximos e aumente sua renda
           </p>
           <Button 
-            variant="hero" 
-            size="xl" 
+            variant="default"
+            size="lg"
             onClick={() => setActiveTab('available')}
+            className="bg-white text-primary hover:bg-white/90"
           >
             <MapPin className="mr-2 h-5 w-5" />
             Buscar Fretes
@@ -131,7 +193,7 @@ export default function DriverDashboard() {
       <div className="container py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="gradient-card shadow-card">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
                 <MapPin className="h-8 w-8 text-primary" />
@@ -145,10 +207,10 @@ export default function DriverDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="gradient-card shadow-card">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Clock className="h-8 w-8 text-warning" />
+                <Clock className="h-8 w-8 text-orange-500" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-muted-foreground">
                     Viagens Ativas
@@ -159,10 +221,10 @@ export default function DriverDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="gradient-card shadow-card">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <CheckCircle className="h-8 w-8 text-success" />
+                <CheckCircle className="h-8 w-8 text-green-500" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-muted-foreground">
                     Concluídas
@@ -173,10 +235,10 @@ export default function DriverDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="gradient-card shadow-card">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <TrendingUp className="h-8 w-8 text-accent" />
+                <TrendingUp className="h-8 w-8 text-blue-500" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-muted-foreground">
                     Ganhos Totais
@@ -196,89 +258,75 @@ export default function DriverDashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="flex space-x-1 mb-6">
-          <Button
-            variant={activeTab === 'available' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('available')}
-          >
-            Fretes Disponíveis ({availableCount})
-          </Button>
-          <Button
-            variant={activeTab === 'mytrips' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('mytrips')}
-          >
-            Minhas Viagens ({myTrips.length})
-          </Button>
-        </div>
-
-        {/* Content */}
-        <Card>
-          <CardHeader>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="available">Fretes Disponíveis ({availableCount})</TabsTrigger>
+            <TabsTrigger value="my-trips">Minhas Propostas ({myProposals.length})</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="available" className="space-y-4">
             <div className="flex justify-between items-center">
-              <CardTitle className="text-2xl">
-                {activeTab === 'available' ? 'Fretes Disponíveis' : 'Minhas Viagens'}
-              </CardTitle>
-              {activeTab === 'available' && (
-                <Button variant="outline" size="sm">
-                  <Filter className="mr-2 h-4 w-4" />
-                  Filtros
-                </Button>
-              )}
+              <h3 className="text-lg font-semibold">Fretes Disponíveis</h3>
+              <Button variant="outline" size="sm">
+                Filtros
+              </Button>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4">
-              {activeTab === 'available' ? (
-                availableFreights.length > 0 ? (
-                  availableFreights.map((freight) => (
-                    <FreightCard
-                      key={freight.id}
-                      freight={freight}
-                      userRole="MOTORISTA"
-                      onAction={handleFreightAction}
-                    />
-                  ))
-                ) : (
-                  <div className="text-center py-12">
-                    <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Nenhum frete disponível</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Não há fretes compatíveis com seu veículo na região no momento.
-                    </p>
-                    <Button variant="outline">
-                      <Filter className="mr-2 h-4 w-4" />
-                      Ajustar Filtros
-                    </Button>
-                  </div>
-                )
-              ) : (
-                myTrips.length > 0 ? (
-                  myTrips.map((trip) => (
-                    <FreightCard
-                      key={trip.id}
-                      freight={trip}
-                      userRole="MOTORISTA"
-                      onAction={handleFreightAction}
-                    />
-                  ))
-                ) : (
-                  <div className="text-center py-12">
-                    <Truck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Nenhuma viagem ainda</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Aceite seu primeiro frete para começar a fazer viagens.
-                    </p>
-                    <Button variant="hero" onClick={() => setActiveTab('available')}>
-                      <MapPin className="mr-2 h-4 w-4" />
-                      Buscar Fretes
-                    </Button>
-                  </div>
-                )
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            {availableFreights.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {availableFreights.map((freight) => (
+                  <FreightCard 
+                    key={freight.id} 
+                    freight={freight}
+                    onAction={(action) => handleFreightAction(freight.id, action)}
+                    showActions={true}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">
+                Nenhum frete disponível no momento
+              </p>
+            )}
+          </TabsContent>
+          <TabsContent value="my-trips" className="space-y-4">
+            <h3 className="text-lg font-semibold">Minhas Propostas e Viagens</h3>
+            {myProposals.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {myProposals.map((proposal) => (
+                  proposal.freight && (
+                    <div key={proposal.id} className="relative">
+                      <FreightCard 
+                        freight={proposal.freight}
+                        showActions={false}
+                      />
+                      <div className="mt-2 flex justify-between items-center">
+                        <Badge 
+                          variant={
+                            proposal.status === 'ACCEPTED' ? 'default' :
+                            proposal.status === 'PENDING' ? 'secondary' : 'destructive'
+                          }
+                        >
+                          {proposal.status === 'ACCEPTED' ? 'Aceita' :
+                           proposal.status === 'PENDING' ? 'Pendente' : 'Rejeitada'}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">
+                          Proposta: R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">
+                Você ainda não fez propostas para fretes
+              </p>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
-}
+};
+
+export default DriverDashboard;

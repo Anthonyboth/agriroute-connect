@@ -15,142 +15,59 @@ import {
   ArrowRight 
 } from 'lucide-react';
 
-export interface Freight {
-  id: string;
-  cargoType: string;
-  weight: number;
-  origin: string;
-  destination: string;
-  price: number;
-  distance: number;
-  status: 'ABERTO' | 'RESERVADO' | 'EM_TRANSITO' | 'ENTREGUE' | 'CANCELADO';
-  pickupDate: string;
-  deliveryDate: string;
-  urgency?: 'BAIXA' | 'MEDIA' | 'ALTA';
-  description?: string;
-}
-
 interface FreightCardProps {
-  freight: Freight;
-  userRole: 'PRODUTOR' | 'MOTORISTA';
-  onAction: (freight: Freight, action: string) => void;
+  freight: {
+    id: string;
+    cargo_type: string;
+    weight: number;
+    origin_address: string;
+    destination_address: string;
+    pickup_date: string;
+    delivery_date: string;
+    price: number;
+    urgency: 'LOW' | 'MEDIUM' | 'HIGH';
+    status: 'OPEN' | 'IN_TRANSIT' | 'DELIVERED';
+    distance_km: number;
+    minimum_antt_price: number;
+  };
+  onAction?: (action: 'propose' | 'accept' | 'complete') => void;
+  showActions?: boolean;
 }
 
-const FreightCard: React.FC<FreightCardProps> = ({ freight, userRole, onAction }) => {
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      ABERTO: { label: 'Aberto', className: 'status-open' },
-      RESERVADO: { label: 'Reservado', className: 'status-booked' },
-      EM_TRANSITO: { label: 'Em Trânsito', className: 'status-in-transit' },
-      ENTREGUE: { label: 'Entregue', className: 'status-delivered' },
-      CANCELADO: { label: 'Cancelado', className: 'status-cancelled' },
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig];
-    return (
-      <Badge className={config.className}>
-        {config.label}
-      </Badge>
-    );
-  };
-
-  const getUrgencyBadge = (urgency?: string) => {
-    if (!urgency) return null;
-    
-    const urgencyConfig = {
-      BAIXA: { label: 'Baixa', className: 'bg-success/10 text-success' },
-      MEDIA: { label: 'Média', className: 'bg-warning/10 text-warning' },
-      ALTA: { label: 'Alta', className: 'bg-destructive/10 text-destructive' },
-    };
-    
-    const config = urgencyConfig[urgency as keyof typeof urgencyConfig];
-    return (
-      <Badge className={config.className}>
-        <Clock className="w-3 h-3 mr-1" />
-        {config.label}
-      </Badge>
-    );
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
-  const formatWeight = (weight: number) => {
-    return weight >= 1000 ? `${(weight / 1000).toFixed(1)}t` : `${weight}kg`;
-  };
-
-  const getActionButton = () => {
-    if (userRole === 'MOTORISTA') {
-      if (freight.status === 'ABERTO') {
-        return (
-          <Button 
-            onClick={() => onAction(freight, 'fazer_proposta')}
-            className="gradient-primary text-primary-foreground w-full"
-            size="sm"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Fazer Proposta
-          </Button>
-        );
-      } else if (freight.status === 'RESERVADO') {
-        return (
-          <Button 
-            onClick={() => onAction(freight, 'iniciar_transporte')}
-            className="bg-accent text-accent-foreground w-full"
-            size="sm"
-          >
-            <Truck className="w-4 h-4 mr-2" />
-            Iniciar Transporte
-          </Button>
-        );
-      }
+export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, showActions = false }) => {
+  const getUrgencyVariant = (urgency: string) => {
+    switch (urgency) {
+      case 'HIGH': return 'destructive';
+      case 'LOW': return 'secondary';
+      default: return 'default';
     }
-    
-    return (
-      <Button 
-        variant="outline" 
-        onClick={() => onAction(freight, 'ver_detalhes')}
-        className="w-full"
-        size="sm"
-      >
-        <Eye className="w-4 h-4 mr-2" />
-        Ver Detalhes
-      </Button>
-    );
   };
+
+  const getUrgencyLabel = (urgency: string) => {
+    switch (urgency) {
+      case 'HIGH': return 'Alta';
+      case 'LOW': return 'Baixa';
+      default: return 'Normal';
+    }
+  };
+
+  const urgencyVariant = getUrgencyVariant(freight.urgency);
+  const urgencyLabel = getUrgencyLabel(freight.urgency);
 
   return (
-    <Card className="shadow-card hover:shadow-glow transition-smooth group">
+    <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
             <Package className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold text-foreground group-hover:text-primary transition-smooth">
-              {freight.cargoType}
+            <h3 className="font-semibold text-foreground">
+              {freight.cargo_type}
             </h3>
           </div>
-          <div className="flex flex-col space-y-2">
-            {getStatusBadge(freight.status)}
-            {getUrgencyBadge(freight.urgency)}
-          </div>
+          <Badge variant={urgencyVariant}>
+            {urgencyLabel}
+          </Badge>
         </div>
-        {freight.description && (
-          <p className="text-sm text-muted-foreground mt-2">
-            {freight.description}
-          </p>
-        )}
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -158,34 +75,24 @@ const FreightCard: React.FC<FreightCardProps> = ({ freight, userRole, onAction }
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center space-x-1 text-muted-foreground">
             <Package className="h-4 w-4" />
-            <span>{formatWeight(freight.weight)}</span>
+            <span>{freight.weight >= 1000 ? `${(freight.weight / 1000).toFixed(1)}t` : `${freight.weight}kg`}</span>
           </div>
           <div className="flex items-center space-x-1 text-muted-foreground">
             <MapPin className="h-4 w-4" />
-            <span>{freight.distance} km</span>
+            <span>{freight.distance_km} km</span>
           </div>
         </div>
 
         {/* Origem e Destino */}
         <div className="space-y-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-3 h-3 rounded-full bg-primary" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Origem</p>
-              <p className="text-sm text-muted-foreground">{freight.origin}</p>
-            </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Origem</p>
+            <p className="text-sm text-muted-foreground">{freight.origin_address}</p>
           </div>
           
-          <div className="flex items-center space-x-3 ml-6">
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <div className="w-3 h-3 rounded-full bg-accent" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Destino</p>
-              <p className="text-sm text-muted-foreground">{freight.destination}</p>
-            </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Destino</p>
+            <p className="text-sm text-muted-foreground">{freight.destination_address}</p>
           </div>
         </div>
 
@@ -198,31 +105,45 @@ const FreightCard: React.FC<FreightCardProps> = ({ freight, userRole, onAction }
               <Calendar className="h-4 w-4" />
               <span>Coleta</span>
             </div>
-            <p className="font-medium text-foreground">{formatDate(freight.pickupDate)}</p>
+            <p className="font-medium text-foreground">
+              {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
+            </p>
           </div>
           <div className="space-y-1">
             <div className="flex items-center space-x-1 text-muted-foreground">
               <Calendar className="h-4 w-4" />
               <span>Entrega</span>
             </div>
-            <p className="font-medium text-foreground">{formatDate(freight.deliveryDate)}</p>
+            <p className="font-medium text-foreground">
+              {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}
+            </p>
           </div>
         </div>
       </CardContent>
 
       <CardFooter className="pt-4">
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center space-x-1">
-            <DollarSign className="h-5 w-5 text-success" />
-            <span className="text-2xl font-bold text-success">
-              {formatCurrency(freight.price)}
-            </span>
+          <div className="text-right">
+            <p className="font-semibold text-lg">R$ {freight.price.toLocaleString('pt-BR')}</p>
+            <p className="text-sm text-muted-foreground">
+              Min. ANTT: R$ {freight.minimum_antt_price.toLocaleString('pt-BR')}
+            </p>
           </div>
-          {getActionButton()}
         </div>
       </CardFooter>
+
+      {showActions && onAction && freight.status === 'OPEN' && (
+        <div className="px-6 pb-6">
+          <Button 
+            onClick={() => onAction('propose')}
+            className="w-full"
+            size="sm"
+          >
+            Fazer Proposta
+          </Button>
+        </div>
+      )}
     </Card>
   );
 };
-
 export default FreightCard;
