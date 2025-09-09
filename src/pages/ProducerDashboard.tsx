@@ -150,4 +150,6 @@ const ProducerDashboard = () => {
       </div>
     </div>
   );
+};
+
 export default ProducerDashboard;
