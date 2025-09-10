@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import CompleteProfile from "./pages/CompleteProfile";
@@ -17,6 +18,7 @@ import Terms from "./pages/Terms";
 import Cookies from "./pages/Cookies";
 import Status from "./pages/Status";
 import Press from "./pages/Press";
+import Subscription from "./pages/Subscription";
 import { useAuth } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
@@ -61,56 +63,59 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route 
-            path="/complete-profile" 
-            element={
-              <ProtectedRoute requiresAuth>
-                <CompleteProfile />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute requiresAuth adminOnly>
-                <AdminPanel />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard/producer" 
-            element={
-              <ProtectedRoute requiresAuth requiresApproval>
-                <ProducerDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard/driver" 
-            element={
-              <ProtectedRoute requiresAuth requiresApproval>
-                <DriverDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="/sobre" element={<About />} />
-          <Route path="/privacidade" element={<Privacy />} />
-          <Route path="/termos" element={<Terms />} />
-          <Route path="/cookies" element={<Cookies />} />
-          <Route path="/status" element={<Status />} />
-          <Route path="/imprensa" element={<Press />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <SubscriptionProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route 
+              path="/complete-profile" 
+              element={
+                <ProtectedRoute requiresAuth>
+                  <CompleteProfile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute requiresAuth adminOnly>
+                  <AdminPanel />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/producer" 
+              element={
+                <ProtectedRoute requiresAuth requiresApproval>
+                  <ProducerDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/driver" 
+              element={
+                <ProtectedRoute requiresAuth requiresApproval>
+                  <DriverDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="/subscription" element={<Subscription />} />
+            <Route path="/sobre" element={<About />} />
+            <Route path="/privacidade" element={<Privacy />} />
+            <Route path="/termos" element={<Terms />} />
+            <Route path="/cookies" element={<Cookies />} />
+            <Route path="/status" element={<Status />} />
+            <Route path="/imprensa" element={<Press />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </SubscriptionProvider>
   </QueryClientProvider>
 );
 
