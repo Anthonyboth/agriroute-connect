@@ -26,7 +26,12 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     pickup_date: '',
     delivery_date: '',
     urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
-    description: ''
+    description: '',
+    service_type: 'CARGA',
+    vehicle_type_required: '',
+    pickup_observations: '',
+    delivery_observations: '',
+    payment_method: 'PIX'
   });
 
   const calculateDistance = async (origin: string, destination: string): Promise<number> => {
@@ -262,6 +267,42 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
               placeholder="Informações adicionais sobre a carga, requisitos especiais, etc."
               rows={3}
             />
+          </div>
+
+          {/* New Enhanced Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="vehicle_type_required">Tipo de Veículo Preferido</Label>
+              <Select value={formData.vehicle_type_required || ''} onValueChange={(value) => handleInputChange('vehicle_type_required', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Qualquer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Qualquer</SelectItem>
+                  <SelectItem value="TRUCK">Truck</SelectItem>
+                  <SelectItem value="BITREM">Bitrem</SelectItem>
+                  <SelectItem value="RODOTREM">Rodotrem</SelectItem>
+                  <SelectItem value="CARRETA">Carreta</SelectItem>
+                  <SelectItem value="VUC">VUC</SelectItem>
+                  <SelectItem value="TOCO">Toco</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payment_method">Forma de Pagamento</Label>
+              <Select value={formData.payment_method} onValueChange={(value) => handleInputChange('payment_method', value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PIX">PIX</SelectItem>
+                  <SelectItem value="BOLETO">Boleto</SelectItem>
+                  <SelectItem value="CARTAO">Cartão</SelectItem>
+                  <SelectItem value="DIRETO">Direto ao Motorista</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">

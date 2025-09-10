@@ -39,7 +39,37 @@ const DriverDashboard = () => {
   const { profile } = useAuth();
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
-  const [activeTab, setActiveTab] = useState('available');
+  const [filters, setFilters] = useState({
+    cargo_type: '',
+    service_type: '',
+    min_weight: '',
+    max_weight: '',
+    max_distance: '',
+    min_price: '',
+    max_price: '',
+    origin_city: '',
+    destination_city: '',
+    vehicle_type: '',
+  });
+
+  const handleFilterChange = (field: string, value: string) => {
+    setFilters(prev => ({ ...prev, [field]: value }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      cargo_type: '',
+      service_type: '',
+      min_weight: '',
+      max_weight: '',
+      max_distance: '',
+      min_price: '',
+      max_price: '',
+      origin_city: '',
+      destination_city: '',
+      vehicle_type: '',
+    });
+  };
   const [loading, setLoading] = useState(true);
 
   // Buscar fretes disponíveis

@@ -50,27 +50,33 @@ export type Database = {
       freight_proposals: {
         Row: {
           created_at: string
+          delivery_estimate_days: number | null
           driver_id: string
           freight_id: string
           id: string
+          justification: string | null
           message: string | null
           proposed_price: number
           status: string
         }
         Insert: {
           created_at?: string
+          delivery_estimate_days?: number | null
           driver_id: string
           freight_id: string
           id?: string
+          justification?: string | null
           message?: string | null
           proposed_price: number
           status?: string
         }
         Update: {
           created_at?: string
+          delivery_estimate_days?: number | null
           driver_id?: string
           freight_id?: string
           id?: string
+          justification?: string | null
           message?: string | null
           proposed_price?: number
           status?: string
@@ -97,18 +103,22 @@ export type Database = {
           cargo_type: string
           created_at: string
           delivery_date: string
+          delivery_observations: string | null
           description: string | null
           destination_address: string
           destination_lat: number | null
           destination_lng: number | null
           distance_km: number | null
           driver_id: string | null
+          fiscal_documents_url: string | null
           id: string
           minimum_antt_price: number | null
           origin_address: string
           origin_lat: number | null
           origin_lng: number | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
           pickup_date: string
+          pickup_observations: string | null
           price: number
           producer_id: string
           service_type: string | null
@@ -116,24 +126,31 @@ export type Database = {
           toll_cost: number | null
           updated_at: string
           urgency: Database["public"]["Enums"]["urgency_level"]
+          vehicle_type_required:
+            | Database["public"]["Enums"]["vehicle_type"]
+            | null
           weight: number
         }
         Insert: {
           cargo_type: string
           created_at?: string
           delivery_date: string
+          delivery_observations?: string | null
           description?: string | null
           destination_address: string
           destination_lat?: number | null
           destination_lng?: number | null
           distance_km?: number | null
           driver_id?: string | null
+          fiscal_documents_url?: string | null
           id?: string
           minimum_antt_price?: number | null
           origin_address: string
           origin_lat?: number | null
           origin_lng?: number | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
           pickup_date: string
+          pickup_observations?: string | null
           price: number
           producer_id: string
           service_type?: string | null
@@ -141,24 +158,31 @@ export type Database = {
           toll_cost?: number | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["urgency_level"]
+          vehicle_type_required?:
+            | Database["public"]["Enums"]["vehicle_type"]
+            | null
           weight: number
         }
         Update: {
           cargo_type?: string
           created_at?: string
           delivery_date?: string
+          delivery_observations?: string | null
           description?: string | null
           destination_address?: string
           destination_lat?: number | null
           destination_lng?: number | null
           distance_km?: number | null
           driver_id?: string | null
+          fiscal_documents_url?: string | null
           id?: string
           minimum_antt_price?: number | null
           origin_address?: string
           origin_lat?: number | null
           origin_lng?: number | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
           pickup_date?: string
+          pickup_observations?: string | null
           price?: number
           producer_id?: string
           service_type?: string | null
@@ -166,6 +190,9 @@ export type Database = {
           toll_cost?: number | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["urgency_level"]
+          vehicle_type_required?:
+            | Database["public"]["Enums"]["vehicle_type"]
+            | null
           weight?: number
         }
         Relationships: [
@@ -188,11 +215,18 @@ export type Database = {
       profiles: {
         Row: {
           address_proof_url: string | null
+          antt_number: string | null
           cnh_photo_url: string | null
           contact_phone: string | null
+          cooperative: string | null
+          cpf_cnpj: string | null
           created_at: string
           document: string | null
           document_photo_url: string | null
+          farm_address: string | null
+          farm_lat: number | null
+          farm_lng: number | null
+          farm_name: string | null
           full_name: string
           id: string
           license_plate_photo_url: string | null
@@ -200,6 +234,7 @@ export type Database = {
           phone: string | null
           rating: number | null
           rating_sum: number | null
+          rntrc: string | null
           role: Database["public"]["Enums"]["user_role"]
           selfie_url: string | null
           status: Database["public"]["Enums"]["user_status"]
@@ -211,11 +246,18 @@ export type Database = {
         }
         Insert: {
           address_proof_url?: string | null
+          antt_number?: string | null
           cnh_photo_url?: string | null
           contact_phone?: string | null
+          cooperative?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           document?: string | null
           document_photo_url?: string | null
+          farm_address?: string | null
+          farm_lat?: number | null
+          farm_lng?: number | null
+          farm_name?: string | null
           full_name: string
           id?: string
           license_plate_photo_url?: string | null
@@ -223,6 +265,7 @@ export type Database = {
           phone?: string | null
           rating?: number | null
           rating_sum?: number | null
+          rntrc?: string | null
           role: Database["public"]["Enums"]["user_role"]
           selfie_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
@@ -234,11 +277,18 @@ export type Database = {
         }
         Update: {
           address_proof_url?: string | null
+          antt_number?: string | null
           cnh_photo_url?: string | null
           contact_phone?: string | null
+          cooperative?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           document?: string | null
           document_photo_url?: string | null
+          farm_address?: string | null
+          farm_lat?: number | null
+          farm_lng?: number | null
+          farm_name?: string | null
           full_name?: string
           id?: string
           license_plate_photo_url?: string | null
@@ -246,6 +296,7 @@ export type Database = {
           phone?: string | null
           rating?: number | null
           rating_sum?: number | null
+          rntrc?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           selfie_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
@@ -290,6 +341,56 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicles: {
+        Row: {
+          axle_count: number
+          created_at: string
+          crlv_url: string | null
+          driver_id: string
+          id: string
+          license_plate: string
+          max_capacity_tons: number
+          status: string
+          updated_at: string
+          vehicle_photo_url: string | null
+          vehicle_type: Database["public"]["Enums"]["vehicle_type"]
+        }
+        Insert: {
+          axle_count?: number
+          created_at?: string
+          crlv_url?: string | null
+          driver_id: string
+          id?: string
+          license_plate: string
+          max_capacity_tons: number
+          status?: string
+          updated_at?: string
+          vehicle_photo_url?: string | null
+          vehicle_type: Database["public"]["Enums"]["vehicle_type"]
+        }
+        Update: {
+          axle_count?: number
+          created_at?: string
+          crlv_url?: string | null
+          driver_id?: string
+          id?: string
+          license_plate?: string
+          max_capacity_tons?: number
+          status?: string
+          updated_at?: string
+          vehicle_photo_url?: string | null
+          vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -314,9 +415,11 @@ export type Database = {
         | "CANCELLED"
         | "GUINCHO"
         | "MUDANCA"
+      payment_method: "PIX" | "BOLETO" | "CARTAO" | "DIRETO"
       urgency_level: "LOW" | "MEDIUM" | "HIGH"
       user_role: "PRODUTOR" | "MOTORISTA" | "ADMIN"
       user_status: "PENDING" | "APPROVED" | "REJECTED"
+      vehicle_type: "TRUCK" | "BITREM" | "RODOTREM" | "CARRETA" | "VUC" | "TOCO"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -454,9 +557,11 @@ export const Constants = {
         "GUINCHO",
         "MUDANCA",
       ],
+      payment_method: ["PIX", "BOLETO", "CARTAO", "DIRETO"],
       urgency_level: ["LOW", "MEDIUM", "HIGH"],
       user_role: ["PRODUTOR", "MOTORISTA", "ADMIN"],
       user_status: ["PENDING", "APPROVED", "REJECTED"],
+      vehicle_type: ["TRUCK", "BITREM", "RODOTREM", "CARRETA", "VUC", "TOCO"],
     },
   },
 } as const

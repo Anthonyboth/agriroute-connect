@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import DocumentUpload from '@/components/DocumentUpload';
 import LocationPermission from '@/components/LocationPermission';
-import { CheckCircle, AlertCircle, User, FileText, Truck } from 'lucide-react';
+import GoogleMap from '@/components/GoogleMap';
+import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building } from 'lucide-react';
 
 const CompleteProfile = () => {
   const { profile, loading: authLoading } = useAuth();
@@ -25,6 +29,26 @@ const CompleteProfile = () => {
     address_proof: ''
   });
   const [locationEnabled, setLocationEnabled] = useState(false);
+  const [profileData, setProfileData] = useState({
+    full_name: '',
+    phone: '',
+    contact_phone: '',
+    cpf_cnpj: '',
+    farm_name: '',
+    farm_address: '',
+    farm_lat: null as number | null,
+    farm_lng: null as number | null,
+    rntrc: '',
+    antt_number: '',
+    cooperative: '',
+  });
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [newVehicle, setNewVehicle] = useState({
+    vehicle_type: '',
+    axle_count: 2,
+    max_capacity_tons: 0,
+    license_plate: '',
+  });
 
   useEffect(() => {
     if (!authLoading && !profile) {
@@ -44,6 +68,26 @@ const CompleteProfile = () => {
         address_proof: profile.address_proof_url || ''
       });
       setLocationEnabled(profile.location_enabled || false);
+      
+      // Load profile data with safe access
+      setProfileData({
+        full_name: profile.full_name || '',
+        phone: profile.phone || '',
+        contact_phone: profile.contact_phone || '',
+        cpf_cnpj: (profile as any).cpf_cnpj || '',
+        farm_name: (profile as any).farm_name || '',
+        farm_address: (profile as any).farm_address || '',
+        farm_lat: (profile as any).farm_lat,
+        farm_lng: (profile as any).farm_lng,
+        rntrc: (profile as any).rntrc || '',
+        antt_number: (profile as any).antt_number || '',
+        cooperative: (profile as any).cooperative || '',
+      });
+
+      // Fetch vehicles for drivers
+      if (profile.role === 'MOTORISTA') {
+        fetchVehicles();
+      }
 
       // Check if profile is already complete
       const isProfileComplete = profile.selfie_url && profile.document_photo_url;
@@ -64,21 +108,81 @@ const CompleteProfile = () => {
     }
   }, [profile, authLoading, navigate]);
 
+  const fetchVehicles = async () => {
+    if (!profile) return;
+    
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select('*')
+      .eq('driver_id', profile.id);
+
+    if (!error && data) {
+      setVehicles(data);
+    }
+  };
+
+  const addVehicle = async () => {
+    if (!profile || !newVehicle.vehicle_type || !newVehicle.license_plate) return;
+
+    const { error } = await supabase
+      .from('vehicles')
+      .insert({
+        driver_id: profile.id,
+        vehicle_type: newVehicle.vehicle_type as 'TRUCK' | 'BITREM' | 'RODOTREM' | 'CARRETA' | 'VUC' | 'TOCO',
+        axle_count: newVehicle.axle_count,
+        max_capacity_tons: newVehicle.max_capacity_tons,
+        license_plate: newVehicle.license_plate,
+      });
+
+    if (error) {
+      toast.error('Erro ao cadastrar veículo: ' + error.message);
+    } else {
+      toast.success('Veículo cadastrado com sucesso!');
+      setNewVehicle({
+        vehicle_type: '',
+        axle_count: 2,
+        max_capacity_tons: 0,
+        license_plate: '',
+      });
+      fetchVehicles();
+    }
+  };
+
   const handleSaveAndContinue = async () => {
     if (!profile) return;
 
-    // Validate step 1 requirements
+    // Validate step 1 requirements - basic info
     if (currentStep === 1) {
-      if (!documentUrls.selfie || !documentUrls.document_photo) {
-        toast.error('Por favor, envie sua selfie e foto do documento');
+      if (!profileData.full_name || !profileData.phone || !profileData.cpf_cnpj) {
+        toast.error('Por favor, preencha todos os campos obrigatórios');
+        return;
+      }
+      if (profile.role === 'MOTORISTA' && !profileData.rntrc) {
+        toast.error('RNTRC é obrigatório para motoristas');
         return;
       }
       setCurrentStep(2);
       return;
     }
 
-    // Validate step 2 requirements for drivers
-    if (currentStep === 2 && profile.role === 'MOTORISTA') {
+    // Validate step 2 requirements - documents
+    if (currentStep === 2) {
+      if (!documentUrls.selfie || !documentUrls.document_photo) {
+        toast.error('Por favor, envie sua selfie e foto do documento');
+        return;
+      }
+      if (profile.role === 'MOTORISTA') {
+        setCurrentStep(3);
+        return;
+      } else {
+        // Producer - finalize here
+        await finalizeProfile();
+        return;
+      }
+    }
+
+    // Validate step 3 requirements for drivers - additional docs and vehicles
+    if (currentStep === 3 && profile.role === 'MOTORISTA') {
       const requiredDocs = ['cnh', 'truck_documents', 'truck_photo', 'license_plate', 'address_proof'];
       const missingDocs = requiredDocs.filter(doc => !documentUrls[doc as keyof typeof documentUrls]);
       
@@ -91,7 +195,17 @@ const CompleteProfile = () => {
         toast.error('Ative a localização para continuar');
         return;
       }
+
+      if (vehicles.length === 0) {
+        toast.error('Cadastre pelo menos um veículo');
+        return;
+      }
+
+      await finalizeProfile();
     }
+  };
+
+  const finalizeProfile = async () => {
 
     setLoading(true);
 
@@ -99,6 +213,7 @@ const CompleteProfile = () => {
       const { error } = await supabase
         .from('profiles')
         .update({
+          ...profileData,
           selfie_url: documentUrls.selfie,
           document_photo_url: documentUrls.document_photo,
           cnh_photo_url: documentUrls.cnh,
@@ -115,8 +230,13 @@ const CompleteProfile = () => {
       toast.success('Perfil completado com sucesso! Aguarde aprovação.');
       
       // Redirect to appropriate dashboard
-      const dashboardPath = profile.role === 'MOTORISTA' ? '/dashboard/driver' : '/dashboard/producer';
-      navigate(dashboardPath);
+      if (profile.role === 'MOTORISTA') {
+        navigate('/driver-dashboard');
+      } else if (profile.role === 'PRODUTOR') {
+        navigate('/producer-dashboard');
+      } else {
+        navigate('/');
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error('Erro ao salvar perfil');
@@ -138,7 +258,7 @@ const CompleteProfile = () => {
 
   if (!profile) return null;
 
-  const totalSteps = profile.role === 'MOTORISTA' ? 2 : 1;
+  const totalSteps = profile.role === 'MOTORISTA' ? 3 : 2;
   const progress = (currentStep / totalSteps) * 100;
 
   return (
@@ -162,11 +282,140 @@ const CompleteProfile = () => {
           </CardHeader>
 
           <CardContent className="space-y-6">
-            {/* Step 1: Basic Documents */}
+            {/* Step 1: Basic Information */}
             {currentStep === 1 && (
               <div className="space-y-6">
                 <div className="flex items-center space-x-2">
                   <User className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-semibold">Informações Básicas</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="full_name">Nome Completo *</Label>
+                    <Input
+                      id="full_name"
+                      value={profileData.full_name}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cpf_cnpj">CPF/CNPJ *</Label>
+                    <Input
+                      id="cpf_cnpj"
+                      value={profileData.cpf_cnpj}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, cpf_cnpj: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefone *</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={profileData.phone}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_phone">Telefone de Contato</Label>
+                    <Input
+                      id="contact_phone"
+                      type="tel"
+                      value={profileData.contact_phone}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, contact_phone: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                {/* Producer-specific fields */}
+                {profile.role === 'PRODUTOR' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Building className="h-5 w-5 text-primary" />
+                      <h4 className="text-md font-semibold">Dados da Fazenda</h4>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="farm_name">Nome da Fazenda</Label>
+                        <Input
+                          id="farm_name"
+                          value={profileData.farm_name}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, farm_name: e.target.value }))}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="farm_address">Endereço da Fazenda</Label>
+                        <Input
+                          id="farm_address"
+                          value={profileData.farm_address}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, farm_address: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Driver-specific fields */}
+                {profile.role === 'MOTORISTA' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Truck className="h-5 w-5 text-primary" />
+                      <h4 className="text-md font-semibold">Dados Profissionais</h4>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="rntrc">RNTRC *</Label>
+                        <Input
+                          id="rntrc"
+                          value={profileData.rntrc}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, rntrc: e.target.value }))}
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="antt_number">Número ANTT</Label>
+                        <Input
+                          id="antt_number"
+                          value={profileData.antt_number}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, antt_number: e.target.value }))}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="cooperative">Cooperativa</Label>
+                        <Input
+                          id="cooperative"
+                          value={profileData.cooperative}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, cooperative: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveAndContinue}>
+                    Continuar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Basic Documents */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div className="flex items-center space-x-2">
+                  <FileText className="h-5 w-5 text-primary" />
                   <h3 className="text-lg font-semibold">Documentos Básicos</h3>
                 </div>
 
@@ -186,23 +435,23 @@ const CompleteProfile = () => {
                   required
                 />
 
-                <div className="flex justify-end">
-                  <Button 
-                    onClick={handleSaveAndContinue}
-                    disabled={!documentUrls.selfie || !documentUrls.document_photo}
-                  >
+                <div className="flex justify-between">
+                  <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                    Voltar
+                  </Button>
+                  <Button onClick={handleSaveAndContinue}>
                     {profile.role === 'MOTORISTA' ? 'Continuar' : 'Finalizar Cadastro'}
                   </Button>
                 </div>
               </div>
             )}
 
-            {/* Step 2: Driver Documents */}
-            {currentStep === 2 && profile.role === 'MOTORISTA' && (
+            {/* Step 3: Driver Documents and Vehicles */}
+            {currentStep === 3 && profile.role === 'MOTORISTA' && (
               <div className="space-y-6">
                 <div className="flex items-center space-x-2">
                   <Truck className="h-5 w-5 text-primary" />
-                  <h3 className="text-lg font-semibold">Documentos do Motorista</h3>
+                  <h3 className="text-lg font-semibold">Documentos e Veículos</h3>
                 </div>
 
                 <DocumentUpload
@@ -251,10 +500,94 @@ const CompleteProfile = () => {
                   required
                 />
 
+                {/* Vehicle Registration */}
+                <div className="space-y-4 border-t pt-4">
+                  <h4 className="text-md font-semibold">Cadastro de Veículos</h4>
+                  
+                  {vehicles.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Veículos Cadastrados:</p>
+                      {vehicles.map((vehicle) => (
+                        <div key={vehicle.id} className="p-3 border rounded-lg">
+                          <p className="font-medium">{vehicle.vehicle_type} - {vehicle.license_plate}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {vehicle.max_capacity_tons}t • {vehicle.axle_count} eixos • Status: {vehicle.status}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <h5 className="text-sm font-medium">Adicionar Novo Veículo:</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Tipo de Veículo</Label>
+                        <Select
+                          value={newVehicle.vehicle_type}
+                          onValueChange={(value) => setNewVehicle(prev => ({ ...prev, vehicle_type: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="TRUCK">Truck</SelectItem>
+                            <SelectItem value="BITREM">Bitrem</SelectItem>
+                            <SelectItem value="RODOTREM">Rodotrem</SelectItem>
+                            <SelectItem value="CARRETA">Carreta</SelectItem>
+                            <SelectItem value="VUC">VUC</SelectItem>
+                            <SelectItem value="TOCO">Toco</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Placa do Veículo</Label>
+                        <Input
+                          placeholder="ABC-1234"
+                          value={newVehicle.license_plate}
+                          onChange={(e) => setNewVehicle(prev => ({ ...prev, license_plate: e.target.value }))}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Capacidade (toneladas)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          value={newVehicle.max_capacity_tons}
+                          onChange={(e) => setNewVehicle(prev => ({ ...prev, max_capacity_tons: Number(e.target.value) }))}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Número de Eixos</Label>
+                        <Input
+                          type="number"
+                          min="2"
+                          max="9"
+                          value={newVehicle.axle_count}
+                          onChange={(e) => setNewVehicle(prev => ({ ...prev, axle_count: Number(e.target.value) }))}
+                        />
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="button" 
+                      onClick={addVehicle}
+                      disabled={!newVehicle.vehicle_type || !newVehicle.license_plate}
+                      className="w-full"
+                    >
+                      Adicionar Veículo
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="flex justify-between">
                   <Button 
                     variant="outline"
-                    onClick={() => setCurrentStep(1)}
+                    onClick={() => setCurrentStep(2)}
                   >
                     Voltar
                   </Button>
