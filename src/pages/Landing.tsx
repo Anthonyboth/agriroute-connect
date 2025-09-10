@@ -134,7 +134,7 @@ const Landing = () => {
             <a href="#features" className="text-muted-foreground hover:text-foreground transition-smooth">
               Recursos
             </a>
-            <a href="#about" className="text-muted-foreground hover:text-foreground transition-smooth">
+            <a href="/sobre" className="text-muted-foreground hover:text-foreground transition-smooth">
               Sobre
             </a>
             <a href="#contact" className="text-muted-foreground hover:text-foreground transition-smooth">
