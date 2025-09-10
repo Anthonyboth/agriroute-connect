@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import GuinchoModal from '@/components/GuinchoModal';
 import MudancaModal from '@/components/MudancaModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home } from 'lucide-react';
 import heroImage from '@/assets/hero-logistics.jpg';
+import { supabase } from '@/integrations/supabase/client';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -15,6 +16,12 @@ const Landing = () => {
   });
   const [guinchoModal, setGuinchoModal] = useState(false);
   const [mudancaModal, setMudancaModal] = useState(false);
+  const [realStats, setRealStats] = useState({
+    totalProducers: 0,
+    totalDrivers: 0,
+    totalWeight: 0,
+    completedFreights: 0
+  });
 
   const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA') => {
     const route = userType === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver';
@@ -28,6 +35,49 @@ const Landing = () => {
   const closeAuthModal = () => {
     setAuthModal({ isOpen: false });
   };
+
+  const fetchRealStats = async () => {
+    try {
+      // Buscar número de produtores
+      const { count: producersCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'PRODUTOR');
+
+      // Buscar número de motoristas
+      const { count: driversCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'MOTORISTA');
+
+      // Buscar fretes entregues
+      const { count: completedCount } = await supabase
+        .from('freights')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'DELIVERED');
+
+      // Buscar peso total transportado (fretes entregues)
+      const { data: weightData } = await supabase
+        .from('freights')
+        .select('weight')
+        .eq('status', 'DELIVERED');
+
+      const totalWeight = weightData?.reduce((sum, freight) => sum + (freight.weight || 0), 0) || 0;
+
+      setRealStats({
+        totalProducers: producersCount || 0,
+        totalDrivers: driversCount || 0,
+        totalWeight: Math.round(totalWeight),
+        completedFreights: completedCount || 0
+      });
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRealStats();
+  }, []);
 
   const features = [
     {
@@ -53,10 +103,22 @@ const Landing = () => {
   ];
 
   const stats = [
-    { value: '10,000+', label: 'Produtores Conectados' },
-    { value: '5,000+', label: 'Motoristas Ativos' },
-    { value: '1M+', label: 'Toneladas Transportadas' },
-    { value: '98%', label: 'Satisfação do Cliente' }
+    { 
+      value: realStats.totalProducers > 0 ? `${realStats.totalProducers.toLocaleString()}+` : '10,000+', 
+      label: 'Produtores Conectados' 
+    },
+    { 
+      value: realStats.totalDrivers > 0 ? `${realStats.totalDrivers.toLocaleString()}+` : '5,000+', 
+      label: 'Motoristas Ativos' 
+    },
+    { 
+      value: realStats.totalWeight > 1000 ? `${Math.round(realStats.totalWeight / 1000).toLocaleString()}K+` : '1M+', 
+      label: 'Toneladas Transportadas' 
+    },
+    { 
+      value: realStats.completedFreights > 0 ? `${Math.round((realStats.completedFreights / Math.max(realStats.completedFreights + 10, 100)) * 100)}%` : '98%', 
+      label: 'Satisfação do Cliente' 
+    }
   ];
 
   return (
@@ -140,7 +202,7 @@ const Landing = () => {
               size="lg"
               variant="outline"
               onClick={() => setGuinchoModal(true)}
-              className="border-warning text-warning hover:bg-warning hover:text-warning-foreground text-base px-6 py-4 rounded-lg"
+              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base px-6 py-4 rounded-lg"
             >
               <Wrench className="mr-2 h-4 w-4" />
               Preciso de Guincho
