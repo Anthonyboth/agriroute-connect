@@ -101,6 +101,8 @@ export type Database = {
       freights: {
         Row: {
           cargo_type: string
+          commission_amount: number | null
+          commission_rate: number | null
           created_at: string
           delivery_date: string
           delivery_observations: string | null
@@ -133,6 +135,8 @@ export type Database = {
         }
         Insert: {
           cargo_type: string
+          commission_amount?: number | null
+          commission_rate?: number | null
           created_at?: string
           delivery_date: string
           delivery_observations?: string | null
@@ -165,6 +169,8 @@ export type Database = {
         }
         Update: {
           cargo_type?: string
+          commission_amount?: number | null
+          commission_rate?: number | null
           created_at?: string
           delivery_date?: string
           delivery_observations?: string | null
@@ -338,6 +344,42 @@ export type Database = {
           rater_user_id?: string
           rating?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          stripe_customer_id: string | null
+          subscribed: boolean
+          subscription_end: string | null
+          subscription_tier: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
