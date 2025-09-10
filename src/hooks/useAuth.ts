@@ -41,6 +41,8 @@ interface UserProfile {
   last_gps_update?: string;
   current_location_lat?: number;
   current_location_lng?: number;
+  // Sistema de match inteligente
+  service_types?: string[];
 }
 
 export const useAuth = () => {

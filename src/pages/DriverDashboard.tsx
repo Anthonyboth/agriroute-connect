@@ -9,10 +9,13 @@ import { VehicleManager } from '@/components/VehicleManager';
 import { FreightDetails } from '@/components/FreightDetails';
 import { DriverAvailabilityCalendar } from '@/components/DriverAvailabilityCalendar';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
+import { SmartFreightMatcher } from '@/components/SmartFreightMatcher';
+import { ServiceTypeManager } from '@/components/ServiceTypeManager';
+import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings } from 'lucide-react';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 interface Freight {
@@ -226,17 +229,28 @@ const DriverDashboard = () => {
             Olá, {profile?.full_name || 'Motorista'}
           </h1>
           <p className="text-xl mb-6 opacity-90">
-            Encontre fretes agrícolas próximos e aumente sua renda
+            Sistema IA encontra fretes compatíveis com seus serviços automaticamente
           </p>
-          <Button 
-            variant="default"
-            size="lg"
-            onClick={() => setActiveTab('available')}
-            className="bg-white text-primary hover:bg-white/90"
-          >
-            <MapPin className="mr-2 h-5 w-5" />
-            Buscar Fretes
-          </Button>
+          <div className="flex gap-4">
+            <Button 
+              variant="default"
+              size="lg"
+              onClick={() => setActiveTab('available')}
+              className="bg-white text-primary hover:bg-white/90"
+            >
+              <Brain className="mr-2 h-5 w-5" />
+              Ver Fretes IA
+            </Button>
+            <Button 
+              variant="outline"
+              size="lg"
+              onClick={() => setActiveTab('services')}
+              className="border-white text-white hover:bg-white/10"
+            >
+              <Settings className="mr-2 h-5 w-5" />
+              Configurar Serviços
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -309,40 +323,17 @@ const DriverDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="available">Fretes Disponíveis</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="available">Fretes IA</TabsTrigger>
             <TabsTrigger value="scheduled">Agendados</TabsTrigger>
             <TabsTrigger value="calendar">Calendário</TabsTrigger>
-            <TabsTrigger value="my-trips">Minhas Propostas</TabsTrigger>
+            <TabsTrigger value="my-trips">Propostas</TabsTrigger>
+            <TabsTrigger value="services">Serviços</TabsTrigger>
             <TabsTrigger value="vehicles">Veículos</TabsTrigger>
           </TabsList>
           
           <TabsContent value="available" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Fretes Disponíveis</h3>
-              <Button variant="outline" size="sm">
-                Filtros
-              </Button>
-            </div>
-            {availableFreights.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {availableFreights.map((freight) => (
-                  <FreightCard 
-                    key={freight.id} 
-                    freight={{
-                      ...freight,
-                      status: freight.status as 'OPEN'
-                    }}
-                    onAction={(action) => handleFreightAction(freight.id, action)}
-                    showActions={true}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-center py-8">
-                Nenhum frete disponível no momento
-              </p>
-            )}
+            <SmartFreightMatcher onFreightAction={handleFreightAction} />
           </TabsContent>
           <TabsContent value="scheduled">
             <ScheduledFreightsManager />
@@ -350,6 +341,13 @@ const DriverDashboard = () => {
 
           <TabsContent value="calendar">
             <DriverAvailabilityCalendar />
+          </TabsContent>
+
+          <TabsContent value="services">
+            <div className="space-y-6">
+              <ServiceTypeManager />
+              <MatchIntelligentDemo />
+            </div>
           </TabsContent>
 
           <TabsContent value="my-trips" className="space-y-4">
