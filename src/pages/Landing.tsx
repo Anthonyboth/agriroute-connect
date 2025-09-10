@@ -218,9 +218,9 @@ const Landing = () => {
             <div>
               <h4 className="font-semibold text-foreground mb-4">Empresa</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-smooth">Sobre nós</a></li>
+                <li><a href="/sobre" className="hover:text-foreground transition-smooth">Sobre nós</a></li>
                 <li><a href="#" className="hover:text-foreground transition-smooth">Carreiras</a></li>
-                <li><a href="#" className="hover:text-foreground transition-smooth">Imprensa</a></li>
+                <li><a href="/imprensa" className="hover:text-foreground transition-smooth">Imprensa</a></li>
               </ul>
             </div>
             <div>
@@ -228,15 +228,15 @@ const Landing = () => {
               <ul className="space-y-2 text-muted-foreground">
                 <li><a href="#" className="hover:text-foreground transition-smooth">Central de Ajuda</a></li>
                 <li><a href="#" className="hover:text-foreground transition-smooth">Contato</a></li>
-                <li><a href="#" className="hover:text-foreground transition-smooth">Status</a></li>
+                <li><a href="/status" className="hover:text-foreground transition-smooth">Status</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold text-foreground mb-4">Legal</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-smooth">Privacidade</a></li>
-                <li><a href="#" className="hover:text-foreground transition-smooth">Termos</a></li>
-                <li><a href="#" className="hover:text-foreground transition-smooth">Cookies</a></li>
+                <li><a href="/privacidade" className="hover:text-foreground transition-smooth">Privacidade</a></li>
+                <li><a href="/termos" className="hover:text-foreground transition-smooth">Termos</a></li>
+                <li><a href="/cookies" className="hover:text-foreground transition-smooth">Cookies</a></li>
               </ul>
             </div>
           </div>

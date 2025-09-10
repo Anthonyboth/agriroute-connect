@@ -162,9 +162,12 @@ export type Database = {
           license_plate_photo_url: string | null
           location_enabled: boolean | null
           phone: string | null
+          rating: number | null
+          rating_sum: number | null
           role: Database["public"]["Enums"]["user_role"]
           selfie_url: string | null
           status: Database["public"]["Enums"]["user_status"]
+          total_ratings: number | null
           truck_documents_url: string | null
           truck_photo_url: string | null
           updated_at: string
@@ -182,9 +185,12 @@ export type Database = {
           license_plate_photo_url?: string | null
           location_enabled?: boolean | null
           phone?: string | null
+          rating?: number | null
+          rating_sum?: number | null
           role: Database["public"]["Enums"]["user_role"]
           selfie_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
+          total_ratings?: number | null
           truck_documents_url?: string | null
           truck_photo_url?: string | null
           updated_at?: string
@@ -202,13 +208,49 @@ export type Database = {
           license_plate_photo_url?: string | null
           location_enabled?: boolean | null
           phone?: string | null
+          rating?: number | null
+          rating_sum?: number | null
           role?: Database["public"]["Enums"]["user_role"]
           selfie_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
+          total_ratings?: number | null
           truck_documents_url?: string | null
           truck_photo_url?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          freight_id: string | null
+          id: string
+          rated_user_id: string
+          rater_user_id: string
+          rating: number
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          freight_id?: string | null
+          id?: string
+          rated_user_id: string
+          rater_user_id: string
+          rating: number
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          freight_id?: string | null
+          id?: string
+          rated_user_id?: string
+          rater_user_id?: string
+          rating?: number
+          updated_at?: string
         }
         Relationships: []
       }

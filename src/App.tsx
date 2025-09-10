@@ -11,6 +11,12 @@ import ProducerDashboard from "./pages/ProducerDashboard";
 import DriverDashboard from "./pages/DriverDashboard";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import About from "./pages/About";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Cookies from "./pages/Cookies";
+import Status from "./pages/Status";
+import Press from "./pages/Press";
 import { useAuth } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
@@ -94,6 +100,12 @@ const App = () => (
               </ProtectedRoute>
             } 
           />
+          <Route path="/sobre" element={<About />} />
+          <Route path="/privacidade" element={<Privacy />} />
+          <Route path="/termos" element={<Terms />} />
+          <Route path="/cookies" element={<Cookies />} />
+          <Route path="/status" element={<Status />} />
+          <Route path="/imprensa" element={<Press />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
