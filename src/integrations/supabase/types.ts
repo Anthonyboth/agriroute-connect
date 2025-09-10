@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_reports: {
+        Row: {
+          active_drivers: number | null
+          active_producers: number | null
+          average_freight_value: number | null
+          commission_earned: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          period_end: string
+          period_start: string
+          report_type: string
+          revenue_breakdown: Json | null
+          top_routes: Json | null
+          total_freights: number | null
+          total_revenue: number | null
+          total_users: number | null
+          user_growth: Json | null
+        }
+        Insert: {
+          active_drivers?: number | null
+          active_producers?: number | null
+          average_freight_value?: number | null
+          commission_earned?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          report_type: string
+          revenue_breakdown?: Json | null
+          top_routes?: Json | null
+          total_freights?: number | null
+          total_revenue?: number | null
+          total_users?: number | null
+          user_growth?: Json | null
+        }
+        Update: {
+          active_drivers?: number | null
+          active_producers?: number | null
+          average_freight_value?: number | null
+          commission_earned?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          report_type?: string
+          revenue_breakdown?: Json | null
+          top_routes?: Json | null
+          total_freights?: number | null
+          total_revenue?: number | null
+          total_users?: number | null
+          user_growth?: Json | null
+        }
+        Relationships: []
+      }
       antt_freight_prices: {
         Row: {
           base_price: number
@@ -189,6 +246,68 @@ export type Database = {
         }
         Relationships: []
       }
+      freight_advances: {
+        Row: {
+          approved_amount: number | null
+          approved_at: string | null
+          created_at: string
+          driver_id: string
+          freight_id: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          payment_method: string
+          producer_id: string
+          requested_amount: number
+          requested_at: string
+          status: string
+          stripe_payment_intent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_amount?: number | null
+          approved_at?: string | null
+          created_at?: string
+          driver_id: string
+          freight_id: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: string
+          producer_id: string
+          requested_amount: number
+          requested_at?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_amount?: number | null
+          approved_at?: string | null
+          created_at?: string
+          driver_id?: string
+          freight_id?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: string
+          producer_id?: string
+          requested_amount?: number
+          requested_at?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_advances_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_attachments: {
         Row: {
           created_at: string
@@ -281,6 +400,68 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freight_payments: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          external_transaction_id: string | null
+          freight_id: string
+          id: string
+          metadata: Json | null
+          payer_id: string
+          payment_method: string
+          payment_type: string
+          receiver_id: string
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          external_transaction_id?: string | null
+          freight_id: string
+          id?: string
+          metadata?: Json | null
+          payer_id: string
+          payment_method: string
+          payment_type: string
+          receiver_id: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          external_transaction_id?: string | null
+          freight_id?: string
+          id?: string
+          metadata?: Json | null
+          payer_id?: string
+          payment_method?: string
+          payment_type?: string
+          receiver_id?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_payments_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
             referencedColumns: ["id"]
           },
         ]
@@ -1180,6 +1361,14 @@ export type Database = {
       check_low_ratings: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      generate_admin_report: {
+        Args: {
+          p_period_end: string
+          p_period_start: string
+          p_report_type: string
+        }
+        Returns: string
       }
       get_compatible_freights_for_driver: {
         Args: { p_driver_id: string }
