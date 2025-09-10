@@ -164,13 +164,13 @@ const Landing = () => {
         </div>
         
         <div className="relative z-10 container mx-auto px-4 text-center max-w-4xl">
-          <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight">
-            Conectando o Campo
-            <span className="block gradient-hero bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+            <span className="text-foreground">Conectando o Campo</span>
+            <span className="block text-primary font-extrabold">
               ao Destino
             </span>
           </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto">
+          <p className="text-xl md:text-2xl text-foreground/80 mb-12 max-w-2xl mx-auto font-medium">
             A plataforma que revoluciona o transporte agrícola brasileiro, 
             conectando produtores e transportadores de forma inteligente.
           </p>
