@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+import CompleteProfile from "./pages/CompleteProfile";
 import AdminPanel from "./pages/AdminPanel";
 import ProducerDashboard from "./pages/ProducerDashboard";
 import DriverDashboard from "./pages/DriverDashboard";
@@ -61,6 +62,14 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route 
+            path="/complete-profile" 
+            element={
+              <ProtectedRoute requiresAuth>
+                <CompleteProfile />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="/admin" 
             element={

@@ -10,6 +10,15 @@ interface UserProfile {
   document: string;
   role: 'PRODUTOR' | 'MOTORISTA' | 'ADMIN';
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  selfie_url?: string;
+  document_photo_url?: string;
+  cnh_photo_url?: string;
+  truck_documents_url?: string;
+  truck_photo_url?: string;
+  license_plate_photo_url?: string;
+  address_proof_url?: string;
+  contact_phone?: string;
+  location_enabled?: boolean;
 }
 
 export const useAuth = () => {

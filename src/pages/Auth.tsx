@@ -9,8 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import DocumentUpload from '@/components/DocumentUpload';
-import LocationPermission from '@/components/LocationPermission';
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -20,16 +18,6 @@ const Auth = () => {
   const [role, setRole] = useState<'PRODUTOR' | 'MOTORISTA'>('PRODUTOR');
   const [phone, setPhone] = useState('');
   const [document, setDocument] = useState('');
-  const [documentUrls, setDocumentUrls] = useState({
-    selfie: '',
-    document_photo: '',
-    cnh: '',
-    truck_documents: '',
-    truck_photo: '',
-    license_plate: '',
-    address_proof: ''
-  });
-  const [locationEnabled, setLocationEnabled] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,11 +44,27 @@ const Auth = () => {
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, status')
+        .select('*')
         .eq('user_id', userId)
         .single();
 
       if (profile) {
+        // Check if profile is complete (has required documents)
+        const isProfileComplete = profile.selfie_url && profile.document_photo_url;
+        const isDriverComplete = profile.role !== 'MOTORISTA' || (
+          profile.cnh_photo_url && 
+          profile.truck_documents_url && 
+          profile.truck_photo_url && 
+          profile.license_plate_photo_url && 
+          profile.address_proof_url &&
+          profile.location_enabled
+        );
+
+        if (!isProfileComplete || !isDriverComplete) {
+          navigate('/complete-profile');
+          return;
+        }
+
         if (profile.status !== 'APPROVED') {
           toast.info('Sua conta está pendente de aprovação');
           return;
@@ -88,36 +92,10 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validation for required fields
-    if (role === 'MOTORISTA' && !locationEnabled) {
-      toast.error('Motoristas devem ativar a localização para usar o app');
-      return;
-    }
-    
-    if (!documentUrls.selfie) {
-      toast.error('Selfie é obrigatória para todos os usuários');
-      return;
-    }
-    
-    if (!documentUrls.document_photo) {
-      toast.error('Foto do documento é obrigatória');
-      return;
-    }
-    
-    if (role === 'MOTORISTA') {
-      const requiredDocs = ['cnh', 'truck_documents', 'truck_photo', 'license_plate', 'address_proof'];
-      const missingDocs = requiredDocs.filter(doc => !documentUrls[doc as keyof typeof documentUrls]);
-      if (missingDocs.length > 0) {
-        toast.error('Motoristas devem enviar todos os documentos obrigatórios');
-        return;
-      }
-    }
-
     setLoading(true);
 
     try {
-      const { data: authData, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -126,9 +104,7 @@ const Auth = () => {
             full_name: fullName,
             role,
             phone,
-            document,
-            ...documentUrls,
-            location_enabled: locationEnabled
+            document
           }
         }
       });
@@ -139,28 +115,8 @@ const Auth = () => {
         } else {
           toast.error(error.message);
         }
-      } else if (authData.user) {
-        // Update profile with document URLs
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            selfie_url: documentUrls.selfie,
-            document_photo_url: documentUrls.document_photo,
-            cnh_photo_url: documentUrls.cnh,
-            truck_documents_url: documentUrls.truck_documents,
-            truck_photo_url: documentUrls.truck_photo,
-            license_plate_photo_url: documentUrls.license_plate,
-            address_proof_url: documentUrls.address_proof,
-            contact_phone: phone,
-            location_enabled: locationEnabled
-          })
-          .eq('user_id', authData.user.id);
-          
-        if (profileError) {
-          console.error('Error updating profile:', profileError);
-        }
-        
-        toast.success('Cadastro realizado! Verifique seu email e aguarde aprovação.');
+      } else {
+        toast.success('Pré-cadastro realizado! Verifique seu email para continuar.');
       }
     } catch (error) {
       toast.error('Erro no cadastro');
@@ -300,80 +256,6 @@ const Auth = () => {
                     </SelectContent>
                   </Select>
                 </div>
-
-                {/* Document Uploads - Universal */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Documentos Obrigatórios</h3>
-                  
-                  <DocumentUpload
-                    label="Selfie"
-                    fileType="selfie"
-                    bucketName="profile-photos"
-                    onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, selfie: url }))}
-                    required
-                  />
-                  
-                  <DocumentUpload
-                    label="Foto do Documento (RG/CNH)"
-                    fileType="document"
-                    bucketName="profile-photos"
-                    onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, document_photo: url }))}
-                    required
-                  />
-                </div>
-
-                {/* Motorista-specific documents */}
-                {role === 'MOTORISTA' && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Documentos Adicionais - Motorista</h3>
-                    
-                    <DocumentUpload
-                      label="CNH (Carteira Nacional de Habilitação)"
-                      fileType="cnh"
-                      bucketName="driver-documents"
-                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, cnh: url }))}
-                      required
-                    />
-                    
-                    <DocumentUpload
-                      label="Documentos da Carreta"
-                      fileType="truck_docs"
-                      bucketName="driver-documents"
-                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, truck_documents: url }))}
-                      required
-                    />
-                    
-                    <DocumentUpload
-                      label="Foto da Carreta"
-                      fileType="truck_photo"
-                      bucketName="driver-documents"
-                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, truck_photo: url }))}
-                      required
-                    />
-                    
-                    <DocumentUpload
-                      label="Foto das Placas"
-                      fileType="plates"
-                      bucketName="driver-documents"
-                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, license_plate: url }))}
-                      required
-                    />
-                    
-                    <DocumentUpload
-                      label="Comprovante de Endereço"
-                      fileType="address"
-                      bucketName="driver-documents"
-                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, address_proof: url }))}
-                      required
-                      accept="image/*,application/pdf"
-                    />
-
-                    <LocationPermission
-                      onPermissionChange={setLocationEnabled}
-                      required
-                    />
-                  </div>
-                )}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Cadastrar
