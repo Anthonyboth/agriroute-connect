@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FreightCard } from '@/components/FreightCard';
 import { VehicleManager } from '@/components/VehicleManager';
 import { FreightDetails } from '@/components/FreightDetails';
-import { EmergencyButton } from '@/components/EmergencyButton';
+import { DriverAvailabilityCalendar } from '@/components/DriverAvailabilityCalendar';
+import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -308,10 +309,12 @@ const DriverDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="available">Fretes Disponíveis ({availableCount})</TabsTrigger>
-            <TabsTrigger value="my-trips">Minhas Propostas ({myProposals.length})</TabsTrigger>
-            <TabsTrigger value="vehicles">Meus Veículos</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="available">Fretes Disponíveis</TabsTrigger>
+            <TabsTrigger value="scheduled">Agendados</TabsTrigger>
+            <TabsTrigger value="calendar">Calendário</TabsTrigger>
+            <TabsTrigger value="my-trips">Minhas Propostas</TabsTrigger>
+            <TabsTrigger value="vehicles">Veículos</TabsTrigger>
           </TabsList>
           
           <TabsContent value="available" className="space-y-4">
@@ -341,6 +344,14 @@ const DriverDashboard = () => {
               </p>
             )}
           </TabsContent>
+          <TabsContent value="scheduled">
+            <ScheduledFreightsManager />
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <DriverAvailabilityCalendar />
+          </TabsContent>
+
           <TabsContent value="my-trips" className="space-y-4">
             <h3 className="text-lg font-semibold">Minhas Propostas e Viagens</h3>
             {myProposals.length > 0 ? (

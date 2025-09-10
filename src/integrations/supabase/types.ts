@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      driver_availability: {
+        Row: {
+          available_date: string
+          available_until_date: string | null
+          city: string
+          created_at: string
+          driver_id: string
+          id: string
+          notes: string | null
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          available_date: string
+          available_until_date?: string | null
+          city: string
+          created_at?: string
+          driver_id: string
+          id?: string
+          notes?: string | null
+          state: string
+          updated_at?: string
+        }
+        Update: {
+          available_date?: string
+          available_until_date?: string | null
+          city?: string
+          created_at?: string
+          driver_id?: string
+          id?: string
+          notes?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       emergency_events: {
         Row: {
           created_at: string
@@ -110,6 +146,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      flexible_freight_proposals: {
+        Row: {
+          created_at: string
+          days_difference: number
+          driver_id: string
+          freight_id: string
+          id: string
+          message: string | null
+          original_date: string
+          proposed_date: string
+          proposed_price: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          days_difference: number
+          driver_id: string
+          freight_id: string
+          id?: string
+          message?: string | null
+          original_date: string
+          proposed_date: string
+          proposed_price?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          days_difference?: number
+          driver_id?: string
+          freight_id?: string
+          id?: string
+          message?: string | null
+          original_date?: string
+          proposed_date?: string
+          proposed_price?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       freight_attachments: {
         Row: {
@@ -314,6 +392,8 @@ export type Database = {
           created_at: string
           current_lat: number | null
           current_lng: number | null
+          date_range_end: string | null
+          date_range_start: string | null
           delivery_date: string
           delivery_observations: string | null
           description: string | null
@@ -323,7 +403,9 @@ export type Database = {
           distance_km: number | null
           driver_id: string | null
           fiscal_documents_url: string | null
+          flexible_dates: boolean | null
           id: string
+          is_scheduled: boolean | null
           last_location_update: string | null
           minimum_antt_price: number | null
           origin_address: string
@@ -334,6 +416,7 @@ export type Database = {
           pickup_observations: string | null
           price: number
           producer_id: string
+          scheduled_date: string | null
           service_type: string | null
           status: Database["public"]["Enums"]["freight_status"]
           toll_cost: number | null
@@ -351,6 +434,8 @@ export type Database = {
           created_at?: string
           current_lat?: number | null
           current_lng?: number | null
+          date_range_end?: string | null
+          date_range_start?: string | null
           delivery_date: string
           delivery_observations?: string | null
           description?: string | null
@@ -360,7 +445,9 @@ export type Database = {
           distance_km?: number | null
           driver_id?: string | null
           fiscal_documents_url?: string | null
+          flexible_dates?: boolean | null
           id?: string
+          is_scheduled?: boolean | null
           last_location_update?: string | null
           minimum_antt_price?: number | null
           origin_address: string
@@ -371,6 +458,7 @@ export type Database = {
           pickup_observations?: string | null
           price: number
           producer_id: string
+          scheduled_date?: string | null
           service_type?: string | null
           status?: Database["public"]["Enums"]["freight_status"]
           toll_cost?: number | null
@@ -388,6 +476,8 @@ export type Database = {
           created_at?: string
           current_lat?: number | null
           current_lng?: number | null
+          date_range_end?: string | null
+          date_range_start?: string | null
           delivery_date?: string
           delivery_observations?: string | null
           description?: string | null
@@ -397,7 +487,9 @@ export type Database = {
           distance_km?: number | null
           driver_id?: string | null
           fiscal_documents_url?: string | null
+          flexible_dates?: boolean | null
           id?: string
+          is_scheduled?: boolean | null
           last_location_update?: string | null
           minimum_antt_price?: number | null
           origin_address?: string
@@ -408,6 +500,7 @@ export type Database = {
           pickup_observations?: string | null
           price?: number
           producer_id?: string
+          scheduled_date?: string | null
           service_type?: string | null
           status?: Database["public"]["Enums"]["freight_status"]
           toll_cost?: number | null
@@ -1084,6 +1177,23 @@ export type Database = {
       check_low_ratings: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      get_scheduled_freights_by_location_and_date: {
+        Args: { p_city: string; p_date: string; p_days_range?: number }
+        Returns: {
+          cargo_type: string
+          date_range_end: string
+          date_range_start: string
+          destination_address: string
+          distance_km: number
+          flexible_dates: boolean
+          freight_id: string
+          origin_address: string
+          price: number
+          producer_name: string
+          scheduled_date: string
+          weight: number
+        }[]
       }
       get_user_role: {
         Args: Record<PropertyKey, never>

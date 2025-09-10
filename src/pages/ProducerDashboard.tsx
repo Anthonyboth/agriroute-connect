@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Header from '@/components/Header';
 import FreightCard from '@/components/FreightCard';
 import CreateFreightModal from '@/components/CreateFreightModal';
+import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -63,89 +65,61 @@ const ProducerDashboard = () => {
           <p className="text-muted-foreground">Gerencie seus fretes e acompanhe o desempenho</p>
         </div>
 
-        <div className="mb-6">
-          <CreateFreightModal 
-            onFreightCreated={fetchFreights}
-            userProfile={profile}
-          />
-        </div>
+        <Tabs defaultValue="fretes" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="fretes">Fretes Imediatos</TabsTrigger>
+            <TabsTrigger value="agendados">Fretes Agendados</TabsTrigger>
+          </TabsList>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Fretes Abertos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{openFreights}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{activeFreights}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Concluídos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{completedFreights}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          <TabsContent value="fretes" className="space-y-6">
+            <div className="mb-6">
+              <CreateFreightModal 
+                onFreightCreated={fetchFreights}
+                userProfile={profile}
+              />
+            </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Meus Fretes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {freights.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Nenhum frete cadastrado ainda.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {freights.map((freight) => (
-                  <FreightCard
-                    key={freight.id}
-                    freight={{
-                      id: freight.id,
-                      cargo_type: freight.cargo_type,
-                      weight: freight.weight,
-                      distance_km: freight.distance_km,
-                      origin_address: freight.origin_address,
-                      destination_address: freight.destination_address,
-                      price: freight.price,
-                      status: freight.status,
-                      pickup_date: freight.pickup_date,
-                      delivery_date: freight.delivery_date,
-                      urgency: freight.urgency,
-                      minimum_antt_price: freight.minimum_antt_price || 0
-                    }}
-                    onAction={() => {}}
-                  />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Meus Fretes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {freights.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Nenhum frete cadastrado ainda.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {freights.map((freight) => (
+                      <FreightCard
+                        key={freight.id}
+                        freight={{
+                          id: freight.id,
+                          cargo_type: freight.cargo_type,
+                          weight: freight.weight,
+                          distance_km: freight.distance_km,
+                          origin_address: freight.origin_address,
+                          destination_address: freight.destination_address,
+                          price: freight.price,
+                          status: freight.status,
+                          pickup_date: freight.pickup_date,
+                          delivery_date: freight.delivery_date,
+                          urgency: freight.urgency,
+                          minimum_antt_price: freight.minimum_antt_price || 0
+                        }}
+                        onAction={() => {}}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="agendados">
+            <ScheduledFreightsManager />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
