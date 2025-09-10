@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText } from 'lucide-react';
+import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign } from 'lucide-react';
 import { FreightChat } from './FreightChat';
 import { FreightStatusTracker } from './FreightStatusTracker';
 import { FreightRatingModal } from './FreightRatingModal';
+import { FreightAdvanceModal } from './FreightAdvanceModal';
+import { FreightPaymentModal } from './FreightPaymentModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -28,6 +30,9 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [loading, setLoading] = useState(true);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [userToRate, setUserToRate] = useState<any>(null);
+  const [advanceModalOpen, setAdvanceModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [advances, setAdvances] = useState<any[]>([]);
 
   const fetchFreightDetails = async () => {
     try {
@@ -43,6 +48,15 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
 
       if (error) throw error;
       setFreight(data);
+
+      // Buscar adiantamentos
+      const { data: advancesData } = await supabase
+        .from('freight_advances')
+        .select('*')
+        .eq('freight_id', freightId)
+        .eq('status', 'COMPLETED');
+      
+      setAdvances(advancesData || []);
     } catch (error: any) {
       console.error('Erro ao carregar detalhes do frete:', error);
       toast({
@@ -83,6 +97,13 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const isProducer = currentUserProfile?.role === 'PRODUTOR';
   const isDriver = currentUserProfile?.role === 'MOTORISTA';
   const isParticipant = freight?.producer?.id === currentUserProfile?.id || freight?.driver?.id === currentUserProfile?.id;
+  const isFreightProducer = freight?.producer?.id === currentUserProfile?.id;
+  
+  const totalAdvances = advances.reduce((sum, advance) => sum + advance.amount, 0);
+  const remainingAmount = freight?.price - totalAdvances;
+  
+  const canRequestAdvance = isDriver && freight?.status === 'ACCEPTED' && totalAdvances < (freight?.price * 0.5);
+  const canMakePayment = isFreightProducer && freight?.status === 'DELIVERED' && remainingAmount > 0;
 
   useEffect(() => {
     fetchFreightDetails();
@@ -262,6 +283,53 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         )}
       </div>
 
+      {/* Payment Actions */}
+      {(canRequestAdvance || canMakePayment) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Pagamentos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {totalAdvances > 0 && (
+              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                  Adiantamentos pagos: R$ {(totalAdvances / 100).toFixed(2)}
+                </p>
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Valor restante: R$ {(remainingAmount / 100).toFixed(2)}
+                </p>
+              </div>
+            )}
+            
+            <div className="flex gap-3">
+              {canRequestAdvance && (
+                <Button 
+                  onClick={() => setAdvanceModalOpen(true)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Solicitar Adiantamento
+                </Button>
+              )}
+              
+              {canMakePayment && (
+                <Button 
+                  onClick={() => setPaymentModalOpen(true)}
+                  className="flex-1"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Pagar Frete
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Content Tabs - Only for participants */}
       {isParticipant && (
         <Tabs defaultValue="status" className="w-full">
@@ -316,7 +384,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         </Card>
       )}
 
-      {/* Rating Modal */}
+      {/* Modals */}
       {ratingModalOpen && userToRate && (
         <FreightRatingModal
           isOpen={ratingModalOpen}
@@ -324,6 +392,25 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           freightId={freightId}
           userToRate={userToRate}
           currentUserProfile={currentUserProfile}
+        />
+      )}
+
+      {advanceModalOpen && (
+        <FreightAdvanceModal
+          isOpen={advanceModalOpen}
+          onClose={() => setAdvanceModalOpen(false)}
+          freightId={freightId}
+          freightPrice={freight?.price || 0}
+        />
+      )}
+
+      {paymentModalOpen && (
+        <FreightPaymentModal
+          isOpen={paymentModalOpen}
+          onClose={() => setPaymentModalOpen(false)}
+          freightId={freightId}
+          freightPrice={freight?.price || 0}
+          advancesTotal={totalAdvances}
         />
       )}
     </div>

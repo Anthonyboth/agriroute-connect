@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { CheckCircle, XCircle, Users, Truck, Package, FileText } from 'lucide-react';
 import Header from '@/components/Header';
+import { AdminReportsPanel } from '@/components/AdminReportsPanel';
 
 interface Profile {
   id: string;
@@ -192,6 +193,7 @@ const AdminPanel = () => {
           <TabsList>
             <TabsTrigger value="users">Usuários Pendentes</TabsTrigger>
             <TabsTrigger value="freights">Todos os Fretes</TabsTrigger>
+            <TabsTrigger value="reports">Relatórios</TabsTrigger>
           </TabsList>
           
           <TabsContent value="users">
@@ -315,6 +317,10 @@ const AdminPanel = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+          
+          <TabsContent value="reports">
+            <AdminReportsPanel />
           </TabsContent>
         </Tabs>
       </div>
