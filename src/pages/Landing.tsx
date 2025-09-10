@@ -166,7 +166,7 @@ const Landing = () => {
         <div className="relative z-10 container mx-auto px-4 text-center max-w-4xl">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
             <span className="text-foreground">Conectando o Campo</span>
-            <span className="block text-primary font-extrabold">
+            <span className="block gradient-hero bg-clip-text text-transparent font-extrabold">
               ao Destino
             </span>
           </h1>
