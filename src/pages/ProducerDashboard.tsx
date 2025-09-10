@@ -127,19 +127,18 @@ const ProducerDashboard = () => {
                     key={freight.id}
                     freight={{
                       id: freight.id,
-                      cargoType: freight.cargo_type,
+                      cargo_type: freight.cargo_type,
                       weight: freight.weight,
-                      distance: freight.distance_km,
-                      origin: freight.origin_address,
-                      destination: freight.destination_address,
+                      distance_km: freight.distance_km,
+                      origin_address: freight.origin_address,
+                      destination_address: freight.destination_address,
                       price: freight.price,
                       status: freight.status,
-                      pickupDate: freight.pickup_date,
-                      deliveryDate: freight.delivery_date,
+                      pickup_date: freight.pickup_date,
+                      delivery_date: freight.delivery_date,
                       urgency: freight.urgency,
-                      description: freight.description
+                      minimum_antt_price: freight.minimum_antt_price || 0
                     }}
-                    userRole="PRODUTOR"
                     onAction={() => {}}
                   />
                 ))}

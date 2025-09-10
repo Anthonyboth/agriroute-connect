@@ -159,7 +159,7 @@ const DriverDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header 
-        user={{ name: profile?.display_name || 'Motorista' }}
+        user={{ name: profile?.full_name || 'Motorista', role: 'MOTORISTA' }}
         onMenuClick={handleMenuClick}
         onLogout={handleLogout}
       />
@@ -276,7 +276,10 @@ const DriverDashboard = () => {
                 {availableFreights.map((freight) => (
                   <FreightCard 
                     key={freight.id} 
-                    freight={freight}
+                    freight={{
+                      ...freight,
+                      status: freight.status as 'OPEN'
+                    }}
                     onAction={(action) => handleFreightAction(freight.id, action)}
                     showActions={true}
                   />
@@ -296,7 +299,10 @@ const DriverDashboard = () => {
                   proposal.freight && (
                     <div key={proposal.id} className="relative">
                       <FreightCard 
-                        freight={proposal.freight}
+                        freight={{
+                          ...proposal.freight,
+                          status: proposal.freight.status as 'OPEN' | 'IN_TRANSIT' | 'DELIVERED'
+                        }}
                         showActions={false}
                       />
                       <div className="mt-2 flex justify-between items-center">

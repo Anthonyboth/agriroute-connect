@@ -151,35 +151,62 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address_proof_url: string | null
+          cnh_photo_url: string | null
+          contact_phone: string | null
           created_at: string
           document: string | null
+          document_photo_url: string | null
           full_name: string
           id: string
+          license_plate_photo_url: string | null
+          location_enabled: boolean | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
+          selfie_url: string | null
           status: Database["public"]["Enums"]["user_status"]
+          truck_documents_url: string | null
+          truck_photo_url: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          address_proof_url?: string | null
+          cnh_photo_url?: string | null
+          contact_phone?: string | null
           created_at?: string
           document?: string | null
+          document_photo_url?: string | null
           full_name: string
           id?: string
+          license_plate_photo_url?: string | null
+          location_enabled?: boolean | null
           phone?: string | null
           role: Database["public"]["Enums"]["user_role"]
+          selfie_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
+          truck_documents_url?: string | null
+          truck_photo_url?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          address_proof_url?: string | null
+          cnh_photo_url?: string | null
+          contact_phone?: string | null
           created_at?: string
           document?: string | null
+          document_photo_url?: string | null
           full_name?: string
           id?: string
+          license_plate_photo_url?: string | null
+          location_enabled?: boolean | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          selfie_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
+          truck_documents_url?: string | null
+          truck_photo_url?: string | null
           updated_at?: string
           user_id?: string
         }
