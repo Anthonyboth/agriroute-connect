@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      antt_freight_prices: {
+        Row: {
+          base_price: number
+          created_at: string
+          distance_range_max: number | null
+          distance_range_min: number
+          id: string
+          price_per_km: number
+          service_type: string
+          updated_at: string
+        }
+        Insert: {
+          base_price?: number
+          created_at?: string
+          distance_range_max?: number | null
+          distance_range_min: number
+          id?: string
+          price_per_km: number
+          service_type: string
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number
+          created_at?: string
+          distance_range_max?: number | null
+          distance_range_min?: number
+          id?: string
+          price_per_km?: number
+          service_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       freight_proposals: {
         Row: {
           created_at: string
@@ -78,6 +111,7 @@ export type Database = {
           pickup_date: string
           price: number
           producer_id: string
+          service_type: string | null
           status: Database["public"]["Enums"]["freight_status"]
           toll_cost: number | null
           updated_at: string
@@ -102,6 +136,7 @@ export type Database = {
           pickup_date: string
           price: number
           producer_id: string
+          service_type?: string | null
           status?: Database["public"]["Enums"]["freight_status"]
           toll_cost?: number | null
           updated_at?: string
@@ -126,6 +161,7 @@ export type Database = {
           pickup_date?: string
           price?: number
           producer_id?: string
+          service_type?: string | null
           status?: Database["public"]["Enums"]["freight_status"]
           toll_cost?: number | null
           updated_at?: string
@@ -276,6 +312,8 @@ export type Database = {
         | "IN_TRANSIT"
         | "DELIVERED"
         | "CANCELLED"
+        | "GUINCHO"
+        | "MUDANCA"
       urgency_level: "LOW" | "MEDIUM" | "HIGH"
       user_role: "PRODUTOR" | "MOTORISTA" | "ADMIN"
       user_status: "PENDING" | "APPROVED" | "REJECTED"
@@ -413,6 +451,8 @@ export const Constants = {
         "IN_TRANSIT",
         "DELIVERED",
         "CANCELLED",
+        "GUINCHO",
+        "MUDANCA",
       ],
       urgency_level: ["LOW", "MEDIUM", "HIGH"],
       user_role: ["PRODUTOR", "MOTORISTA", "ADMIN"],

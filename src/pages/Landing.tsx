@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AuthModal from '@/components/AuthModal';
-import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock } from 'lucide-react';
+import GuinchoModal from '@/components/GuinchoModal';
+import MudancaModal from '@/components/MudancaModal';
+import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home } from 'lucide-react';
 import heroImage from '@/assets/hero-logistics.jpg';
 
 const Landing = () => {
@@ -11,6 +13,8 @@ const Landing = () => {
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; initialTab?: 'login' | 'signup' }>({
     isOpen: false,
   });
+  const [guinchoModal, setGuinchoModal] = useState(false);
+  const [mudancaModal, setMudancaModal] = useState(false);
 
   const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA') => {
     const route = userType === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver';
@@ -109,7 +113,7 @@ const Landing = () => {
             conectando produtores e transportadores de forma inteligente.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-8">
             <Button 
               size="lg"
               onClick={() => handleGetStarted('PRODUTOR')}
@@ -127,6 +131,28 @@ const Landing = () => {
               <Truck className="mr-2 h-5 w-5" />
               Sou Motorista
               <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Quick Service Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button 
+              size="lg"
+              variant="outline"
+              onClick={() => setGuinchoModal(true)}
+              className="border-warning text-warning hover:bg-warning hover:text-warning-foreground text-base px-6 py-4 rounded-lg"
+            >
+              <Wrench className="mr-2 h-4 w-4" />
+              Preciso de Guincho
+            </Button>
+            <Button 
+              size="lg"
+              variant="outline"
+              onClick={() => setMudancaModal(true)}
+              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base px-6 py-4 rounded-lg"
+            >
+              <Home className="mr-2 h-4 w-4" />
+              Solicitar Mudança
             </Button>
           </div>
         </div>
@@ -250,6 +276,16 @@ const Landing = () => {
         isOpen={authModal.isOpen}
         onClose={closeAuthModal}
         initialTab={authModal.initialTab}
+      />
+      
+      <GuinchoModal
+        isOpen={guinchoModal}
+        onClose={() => setGuinchoModal(false)}
+      />
+      
+      <MudancaModal
+        isOpen={mudancaModal}
+        onClose={() => setMudancaModal(false)}
       />
     </div>
   );
