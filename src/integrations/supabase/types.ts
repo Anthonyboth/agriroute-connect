@@ -47,6 +47,102 @@ export type Database = {
         }
         Relationships: []
       }
+      freight_attachments: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_type: string
+          file_url: string
+          freight_id: string
+          id: string
+          upload_stage: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_type: string
+          file_url: string
+          freight_id: string
+          id?: string
+          upload_stage: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_type?: string
+          file_url?: string
+          freight_id?: string
+          id?: string
+          upload_stage?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_attachments_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freight_messages: {
+        Row: {
+          created_at: string
+          freight_id: string
+          id: string
+          image_url: string | null
+          message: string
+          message_type: string
+          read_at: string | null
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string
+          freight_id: string
+          id?: string
+          image_url?: string | null
+          message: string
+          message_type?: string
+          read_at?: string | null
+          sender_id: string
+        }
+        Update: {
+          created_at?: string
+          freight_id?: string
+          id?: string
+          image_url?: string | null
+          message?: string
+          message_type?: string
+          read_at?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_messages_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_proposals: {
         Row: {
           created_at: string
@@ -98,12 +194,62 @@ export type Database = {
           },
         ]
       }
+      freight_status_history: {
+        Row: {
+          changed_by: string
+          created_at: string
+          freight_id: string
+          id: string
+          location_lat: number | null
+          location_lng: number | null
+          notes: string | null
+          status: Database["public"]["Enums"]["freight_status"]
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          freight_id: string
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          notes?: string | null
+          status: Database["public"]["Enums"]["freight_status"]
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          freight_id?: string
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["freight_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_status_history_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freights: {
         Row: {
           cargo_type: string
           commission_amount: number | null
           commission_rate: number | null
           created_at: string
+          current_lat: number | null
+          current_lng: number | null
           delivery_date: string
           delivery_observations: string | null
           description: string | null
@@ -114,6 +260,7 @@ export type Database = {
           driver_id: string | null
           fiscal_documents_url: string | null
           id: string
+          last_location_update: string | null
           minimum_antt_price: number | null
           origin_address: string
           origin_lat: number | null
@@ -138,6 +285,8 @@ export type Database = {
           commission_amount?: number | null
           commission_rate?: number | null
           created_at?: string
+          current_lat?: number | null
+          current_lng?: number | null
           delivery_date: string
           delivery_observations?: string | null
           description?: string | null
@@ -148,6 +297,7 @@ export type Database = {
           driver_id?: string | null
           fiscal_documents_url?: string | null
           id?: string
+          last_location_update?: string | null
           minimum_antt_price?: number | null
           origin_address: string
           origin_lat?: number | null
@@ -172,6 +322,8 @@ export type Database = {
           commission_amount?: number | null
           commission_rate?: number | null
           created_at?: string
+          current_lat?: number | null
+          current_lng?: number | null
           delivery_date?: string
           delivery_observations?: string | null
           description?: string | null
@@ -182,6 +334,7 @@ export type Database = {
           driver_id?: string | null
           fiscal_documents_url?: string | null
           id?: string
+          last_location_update?: string | null
           minimum_antt_price?: number | null
           origin_address?: string
           origin_lat?: number | null
@@ -784,6 +937,8 @@ export type Database = {
         | "CANCELLED"
         | "GUINCHO"
         | "MUDANCA"
+        | "LOADING"
+        | "LOADED"
       payment_method: "PIX" | "BOLETO" | "CARTAO" | "DIRETO"
       urgency_level: "LOW" | "MEDIUM" | "HIGH"
       user_role: "PRODUTOR" | "MOTORISTA" | "ADMIN"
@@ -925,6 +1080,8 @@ export const Constants = {
         "CANCELLED",
         "GUINCHO",
         "MUDANCA",
+        "LOADING",
+        "LOADED",
       ],
       payment_method: ["PIX", "BOLETO", "CARTAO", "DIRETO"],
       urgency_level: ["LOW", "MEDIUM", "HIGH"],
