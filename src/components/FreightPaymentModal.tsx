@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, CreditCard, Smartphone, Building, DollarSign } from "lucide-react";
+import { Loader2, CreditCard, Smartphone, Building, DollarSign, FileText } from "lucide-react";
 
 interface FreightPaymentModalProps {
   isOpen: boolean;
@@ -64,6 +64,12 @@ export function FreightPaymentModal({
       label: "PIX",
       icon: Smartphone,
       description: "Pagamento instantâneo"
+    },
+    {
+      id: "BOLETO",
+      label: "Boleto Bancário",
+      icon: FileText,
+      description: "Vencimento em 3 dias úteis"
     },
     {
       id: "BANK_TRANSFER",
