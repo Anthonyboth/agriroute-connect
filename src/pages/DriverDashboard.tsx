@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FreightCard } from '@/components/FreightCard';
+import { VehicleManager } from '@/components/VehicleManager';
+import { FreightDetails } from '@/components/FreightDetails';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -40,6 +42,8 @@ const DriverDashboard = () => {
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
   const [activeTab, setActiveTab] = useState('available');
+  const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
   const [filters, setFilters] = useState({
     cargo_type: '',
     service_type: '',
@@ -187,6 +191,19 @@ const DriverDashboard = () => {
     );
   }
 
+  if (showDetails && selectedFreightId) {
+    return (
+      <FreightDetails
+        freightId={selectedFreightId}
+        currentUserProfile={profile}
+        onClose={() => {
+          setShowDetails(false);
+          setSelectedFreightId(null);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header 
@@ -290,9 +307,10 @@ const DriverDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="available">Fretes Disponíveis ({availableCount})</TabsTrigger>
             <TabsTrigger value="my-trips">Minhas Propostas ({myProposals.length})</TabsTrigger>
+            <TabsTrigger value="vehicles">Meus Veículos</TabsTrigger>
           </TabsList>
           
           <TabsContent value="available" className="space-y-4">
@@ -350,6 +368,18 @@ const DriverDashboard = () => {
                           Proposta: R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
                         </span>
                       </div>
+                      {proposal.status === 'ACCEPTED' && (
+                        <Button 
+                          className="w-full mt-2" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedFreightId(proposal.freight!.id);
+                            setShowDetails(true);
+                          }}
+                        >
+                          Gerenciar Frete
+                        </Button>
+                      )}
                     </div>
                   )
                 ))}
@@ -359,6 +389,10 @@ const DriverDashboard = () => {
                 Você ainda não fez propostas para fretes
               </p>
             )}
+          </TabsContent>
+
+          <TabsContent value="vehicles" className="space-y-4">
+            <VehicleManager driverProfile={profile} />
           </TabsContent>
         </Tabs>
       </div>
