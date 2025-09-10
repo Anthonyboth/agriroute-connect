@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -46,6 +46,70 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      emergency_events: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_type: string
+          freight_id: string | null
+          id: string
+          location_lat: number | null
+          location_lng: number | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          freight_id?: string | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          freight_id?: string | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_events_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_events_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       freight_attachments: {
         Row: {
@@ -471,25 +535,37 @@ export type Database = {
         Row: {
           address_proof_url: string | null
           antt_number: string | null
+          background_check_status: string | null
+          cnh_category: string | null
+          cnh_expiry_date: string | null
           cnh_photo_url: string | null
+          cnh_validation_status: string | null
           contact_phone: string | null
           cooperative: string | null
           cpf_cnpj: string | null
           created_at: string
+          current_location_lat: number | null
+          current_location_lng: number | null
           document: string | null
           document_photo_url: string | null
+          document_validation_status: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
           farm_address: string | null
           farm_lat: number | null
           farm_lng: number | null
           farm_name: string | null
           full_name: string
           id: string
+          last_gps_update: string | null
           license_plate_photo_url: string | null
           location_enabled: boolean | null
           phone: string | null
           rating: number | null
+          rating_locked: boolean | null
           rating_sum: number | null
           rntrc: string | null
+          rntrc_validation_status: string | null
           role: Database["public"]["Enums"]["user_role"]
           selfie_url: string | null
           status: Database["public"]["Enums"]["user_status"]
@@ -498,29 +574,42 @@ export type Database = {
           truck_photo_url: string | null
           updated_at: string
           user_id: string
+          validation_notes: string | null
         }
         Insert: {
           address_proof_url?: string | null
           antt_number?: string | null
+          background_check_status?: string | null
+          cnh_category?: string | null
+          cnh_expiry_date?: string | null
           cnh_photo_url?: string | null
+          cnh_validation_status?: string | null
           contact_phone?: string | null
           cooperative?: string | null
           cpf_cnpj?: string | null
           created_at?: string
+          current_location_lat?: number | null
+          current_location_lng?: number | null
           document?: string | null
           document_photo_url?: string | null
+          document_validation_status?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           farm_address?: string | null
           farm_lat?: number | null
           farm_lng?: number | null
           farm_name?: string | null
           full_name: string
           id?: string
+          last_gps_update?: string | null
           license_plate_photo_url?: string | null
           location_enabled?: boolean | null
           phone?: string | null
           rating?: number | null
+          rating_locked?: boolean | null
           rating_sum?: number | null
           rntrc?: string | null
+          rntrc_validation_status?: string | null
           role: Database["public"]["Enums"]["user_role"]
           selfie_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
@@ -529,29 +618,42 @@ export type Database = {
           truck_photo_url?: string | null
           updated_at?: string
           user_id: string
+          validation_notes?: string | null
         }
         Update: {
           address_proof_url?: string | null
           antt_number?: string | null
+          background_check_status?: string | null
+          cnh_category?: string | null
+          cnh_expiry_date?: string | null
           cnh_photo_url?: string | null
+          cnh_validation_status?: string | null
           contact_phone?: string | null
           cooperative?: string | null
           cpf_cnpj?: string | null
           created_at?: string
+          current_location_lat?: number | null
+          current_location_lng?: number | null
           document?: string | null
           document_photo_url?: string | null
+          document_validation_status?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           farm_address?: string | null
           farm_lat?: number | null
           farm_lng?: number | null
           farm_name?: string | null
           full_name?: string
           id?: string
+          last_gps_update?: string | null
           license_plate_photo_url?: string | null
           location_enabled?: boolean | null
           phone?: string | null
           rating?: number | null
+          rating_locked?: boolean | null
           rating_sum?: number | null
           rntrc?: string | null
+          rntrc_validation_status?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           selfie_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
@@ -560,6 +662,7 @@ export type Database = {
           truck_photo_url?: string | null
           updated_at?: string
           user_id?: string
+          validation_notes?: string | null
         }
         Relationships: []
       }
@@ -853,45 +956,111 @@ export type Database = {
         }
         Relationships: []
       }
+      validation_history: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          profile_id: string
+          status: string
+          updated_at: string
+          validated_by: string | null
+          validation_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          profile_id: string
+          status: string
+          updated_at?: string
+          validated_by?: string | null
+          validation_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          status?: string
+          updated_at?: string
+          validated_by?: string | null
+          validation_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "validation_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "validation_history_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           axle_count: number
           created_at: string
+          crlv_expiry_date: string | null
           crlv_url: string | null
           driver_id: string
           id: string
+          inspection_certificate_url: string | null
+          insurance_document_url: string | null
+          insurance_expiry_date: string | null
+          last_inspection_date: string | null
           license_plate: string
           max_capacity_tons: number
           status: string
           updated_at: string
           vehicle_photo_url: string | null
           vehicle_type: Database["public"]["Enums"]["vehicle_type"]
+          vehicle_validation_status: string | null
         }
         Insert: {
           axle_count?: number
           created_at?: string
+          crlv_expiry_date?: string | null
           crlv_url?: string | null
           driver_id: string
           id?: string
+          inspection_certificate_url?: string | null
+          insurance_document_url?: string | null
+          insurance_expiry_date?: string | null
+          last_inspection_date?: string | null
           license_plate: string
           max_capacity_tons: number
           status?: string
           updated_at?: string
           vehicle_photo_url?: string | null
           vehicle_type: Database["public"]["Enums"]["vehicle_type"]
+          vehicle_validation_status?: string | null
         }
         Update: {
           axle_count?: number
           created_at?: string
+          crlv_expiry_date?: string | null
           crlv_url?: string | null
           driver_id?: string
           id?: string
+          inspection_certificate_url?: string | null
+          insurance_document_url?: string | null
+          insurance_expiry_date?: string | null
+          last_inspection_date?: string | null
           license_plate?: string
           max_capacity_tons?: number
           status?: string
           updated_at?: string
           vehicle_photo_url?: string | null
           vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
+          vehicle_validation_status?: string | null
         }
         Relationships: [
           {
@@ -908,6 +1077,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_expired_documents: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      check_low_ratings: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]

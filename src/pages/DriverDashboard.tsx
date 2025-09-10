@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FreightCard } from '@/components/FreightCard';
 import { VehicleManager } from '@/components/VehicleManager';
 import { FreightDetails } from '@/components/FreightDetails';
+import { EmergencyButton } from '@/components/EmergencyButton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';

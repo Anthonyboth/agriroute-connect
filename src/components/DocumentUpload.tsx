@@ -8,21 +8,27 @@ import { toast } from 'sonner';
 import { Upload, Check, X, Camera } from 'lucide-react';
 
 interface DocumentUploadProps {
-  label: string;
-  fileType: string;
-  bucketName: string;
   onUploadComplete: (url: string) => void;
+  acceptedTypes?: string[];
+  maxSize?: number;
+  currentFile?: string;
+  label?: string;
+  fileType?: string;
+  bucketName?: string;
   required?: boolean;
   accept?: string;
 }
 
 export const DocumentUpload: React.FC<DocumentUploadProps> = ({
-  label,
-  fileType,
-  bucketName,
   onUploadComplete,
+  acceptedTypes = ['image/*'],
+  maxSize = 5,
+  currentFile,
+  label = 'Documento',
+  fileType = 'document',
+  bucketName = 'profile-photos',
   required = false,
-  accept = "image/*"
+  accept = acceptedTypes.join(',')
 }) => {
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);

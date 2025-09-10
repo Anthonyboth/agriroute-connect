@@ -19,6 +19,28 @@ interface UserProfile {
   address_proof_url?: string;
   contact_phone?: string;
   location_enabled?: boolean;
+  // Campos existentes adicionais
+  farm_name?: string;
+  farm_address?: string;
+  cpf_cnpj?: string;
+  rntrc?: string;
+  antt_number?: string;
+  cooperative?: string;
+  rating?: number;
+  // Novos campos de segurança
+  cnh_expiry_date?: string;
+  cnh_category?: string;
+  document_validation_status?: string;
+  cnh_validation_status?: string;
+  rntrc_validation_status?: string;
+  validation_notes?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  background_check_status?: string;
+  rating_locked?: boolean;
+  last_gps_update?: string;
+  current_location_lat?: number;
+  current_location_lng?: number;
 }
 
 export const useAuth = () => {
