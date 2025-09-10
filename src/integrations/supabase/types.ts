@@ -661,6 +661,7 @@ export type Database = {
           rntrc_validation_status: string | null
           role: Database["public"]["Enums"]["user_role"]
           selfie_url: string | null
+          service_types: string[] | null
           status: Database["public"]["Enums"]["user_status"]
           total_ratings: number | null
           truck_documents_url: string | null
@@ -705,6 +706,7 @@ export type Database = {
           rntrc_validation_status?: string | null
           role: Database["public"]["Enums"]["user_role"]
           selfie_url?: string | null
+          service_types?: string[] | null
           status?: Database["public"]["Enums"]["user_status"]
           total_ratings?: number | null
           truck_documents_url?: string | null
@@ -749,6 +751,7 @@ export type Database = {
           rntrc_validation_status?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           selfie_url?: string | null
+          service_types?: string[] | null
           status?: Database["public"]["Enums"]["user_status"]
           total_ratings?: number | null
           truck_documents_url?: string | null
@@ -1178,6 +1181,25 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_compatible_freights_for_driver: {
+        Args: { p_driver_id: string }
+        Returns: {
+          cargo_type: string
+          created_at: string
+          delivery_date: string
+          destination_address: string
+          distance_km: number
+          freight_id: string
+          minimum_antt_price: number
+          origin_address: string
+          pickup_date: string
+          price: number
+          service_type: string
+          status: string
+          urgency: string
+          weight: number
+        }[]
+      }
       get_scheduled_freights_by_location_and_date: {
         Args: { p_city: string; p_date: string; p_days_range?: number }
         Returns: {
@@ -1201,6 +1223,10 @@ export type Database = {
       }
       is_admin: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_service_compatible: {
+        Args: { driver_service_types: string[]; freight_service_type: string }
         Returns: boolean
       }
       send_notification: {
