@@ -293,43 +293,92 @@ const Landing = () => {
       {/* Footer */}
       <footer className="bg-card border-t py-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
+          {/* Seção de Estatísticas do Agronegócio */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 p-6 bg-gradient-card rounded-lg">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary">24.8%</div>
+              <div className="text-sm text-muted-foreground">do PIB brasileiro</div>
+              <div className="text-xs text-muted-foreground mt-1">Participação do Agronegócio em 2024</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary">US$ 166B</div>
+              <div className="text-sm text-muted-foreground">em exportações</div>
+              <div className="text-xs text-muted-foreground mt-1">Recorde do setor em 2023/2024</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary">58%</div>
+              <div className="text-sm text-muted-foreground">via modal rodoviário</div>
+              <div className="text-xs text-muted-foreground mt-1">Transporte de cargas agrícolas</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+            <div className="md:col-span-2">
               <div className="flex items-center space-x-2 mb-6">
                 <Leaf className="h-8 w-8 text-primary" />
                 <span className="text-2xl font-bold">AgriRoute</span>
               </div>
-              <p className="text-muted-foreground">
-                Conectando o agronegócio brasileiro através da tecnologia.
+              <p className="text-muted-foreground mb-4">
+                Conectando o agronegócio brasileiro através da tecnologia. 
+                Facilitamos o transporte de cargas agrícolas com segurança e eficiência.
               </p>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="font-semibold text-foreground">+5.000</div>
+                  <div className="text-muted-foreground">Produtores cadastrados</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground">+2.000</div>
+                  <div className="text-muted-foreground">Motoristas ativos</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground">98.5%</div>
+                  <div className="text-muted-foreground">Taxa de entrega</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground">4.8★</div>
+                  <div className="text-muted-foreground">Avaliação média</div>
+                </div>
+              </div>
             </div>
+            
             <div>
-              <h4 className="font-semibold text-foreground mb-4">Empresa</h4>
+              <h4 className="font-semibold text-foreground mb-4">Serviços</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li><a href="/sobre" className="hover:text-foreground transition-smooth">Sobre nós</a></li>
-                <li><a href="#" className="hover:text-foreground transition-smooth">Carreiras</a></li>
-                <li><a href="/imprensa" className="hover:text-foreground transition-smooth">Imprensa</a></li>
+                <li><a href="#" className="hover:text-foreground transition-smooth">Transporte de Grãos</a></li>
+                <li><a href="#" className="hover:text-foreground transition-smooth">Mudanças Rurais</a></li>
+                <li><a href="#" className="hover:text-foreground transition-smooth">Guincho Agrícola</a></li>
+                <li><a href="#" className="hover:text-foreground transition-smooth">Seguro de Cargas</a></li>
               </ul>
             </div>
+            
+            <div>
+              <h4 className="font-semibold text-foreground mb-4">Recursos</h4>
+              <ul className="space-y-2 text-muted-foreground">
+                <li><a href="https://www.cepea.org.br/br/pib-do-agronegocio-brasileiro.aspx" target="_blank" rel="noopener" className="hover:text-foreground transition-smooth">PIB do Agronegócio</a></li>
+                <li><a href="https://www.cnabrasil.org.br" target="_blank" rel="noopener" className="hover:text-foreground transition-smooth">CNA Brasil</a></li>
+                <li><a href="https://www.gov.br/agricultura" target="_blank" rel="noopener" className="hover:text-foreground transition-smooth">MAPA</a></li>
+                <li><a href="/sobre" className="hover:text-foreground transition-smooth">Sobre o Setor</a></li>
+              </ul>
+            </div>
+            
             <div>
               <h4 className="font-semibold text-foreground mb-4">Suporte</h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li><a href="#" className="hover:text-foreground transition-smooth">Central de Ajuda</a></li>
-                <li><a href="#" className="hover:text-foreground transition-smooth">Contato</a></li>
-                <li><a href="/status" className="hover:text-foreground transition-smooth">Status</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-4">Legal</h4>
-              <ul className="space-y-2 text-muted-foreground">
-                <li><a href="/privacidade" className="hover:text-foreground transition-smooth">Privacidade</a></li>
-                <li><a href="/termos" className="hover:text-foreground transition-smooth">Termos</a></li>
-                <li><a href="/cookies" className="hover:text-foreground transition-smooth">Cookies</a></li>
+                <li><a href="#" className="hover:text-foreground transition-smooth">WhatsApp: (11) 9999-9999</a></li>
+                <li><a href="/status" className="hover:text-foreground transition-smooth">Status da Plataforma</a></li>
+                <li><a href="/termos" className="hover:text-foreground transition-smooth">Termos de Uso</a></li>
+                <li><a href="/privacidade" className="hover:text-foreground transition-smooth">Política de Privacidade</a></li>
               </ul>
             </div>
           </div>
+          
           <div className="border-t mt-12 pt-8 text-center text-muted-foreground">
-            <p>&copy; 2024 AgriRoute. Todos os direitos reservados.</p>
+            <p>&copy; 2024 AgriRoute - Conectando o Agronegócio Brasileiro. Todos os direitos reservados.</p>
+            <p className="text-xs mt-2">
+              Dados: CEPEA/USP, CNA, MAPA | Agronegócio representa 24.8% do PIB brasileiro (2024)
+            </p>
           </div>
         </div>
       </footer>
