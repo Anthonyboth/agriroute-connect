@@ -39,6 +39,7 @@ const DriverDashboard = () => {
   const { profile } = useAuth();
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
+  const [activeTab, setActiveTab] = useState('available');
   const [filters, setFilters] = useState({
     cargo_type: '',
     service_type: '',

@@ -124,8 +124,13 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         price: '',
         pickup_date: '',
         delivery_date: '',
-        urgency: 'MEDIUM',
-        description: ''
+        urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
+        description: '',
+        service_type: 'CARGA',
+        vehicle_type_required: '',
+        pickup_observations: '',
+        delivery_observations: '',
+        payment_method: 'PIX'
       });
       onFreightCreated();
     } catch (error) {
