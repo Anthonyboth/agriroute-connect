@@ -16,6 +16,7 @@ import {
   Wrench,
   Home 
 } from 'lucide-react';
+import { getCargoTypeLabel } from '@/lib/cargo-types';
 
 interface FreightCardProps {
   freight: {
@@ -88,7 +89,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
           <div className="flex items-center space-x-2">
             {getServiceIcon()}
             <h3 className="font-semibold text-foreground">
-              {freight.cargo_type}
+              {getCargoTypeLabel(freight.cargo_type)}
             </h3>
           </div>
           <div className="flex gap-2">

@@ -1,10 +1,12 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { MapPin, Search, Filter } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Filter, MapPin } from 'lucide-react';
+import { CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
 
 interface FreightFiltersProps {
   filters: {
@@ -60,11 +62,30 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
           {/* Tipo de Carga */}
           <div className="space-y-2">
             <Label>Tipo de Carga</Label>
-            <Input
-              placeholder="Ex: soja, milho..."
+            <Select
               value={filters.cargo_type}
-              onChange={(e) => onFilterChange('cargo_type', e.target.value)}
-            />
+              onValueChange={(value) => onFilterChange('cargo_type', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Todos os tipos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos os tipos</SelectItem>
+                {CARGO_CATEGORIES.map((category) => (
+                  <div key={category.value}>
+                    <SelectLabel className="font-semibold text-primary">
+                      {category.label}
+                    </SelectLabel>
+                    {getCargoTypesByCategory(category.value).map((cargo) => (
+                      <SelectItem key={cargo.value} value={cargo.value}>
+                        {cargo.label}
+                      </SelectItem>
+                    ))}
+                    {category.value !== 'outros' && <Separator className="my-1" />}
+                  </div>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Tipo de Veículo */}

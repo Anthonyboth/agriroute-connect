@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FreightCard } from '@/components/FreightCard';
@@ -264,7 +265,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                 <FreightCard
                   freight={{
                     id: freight.freight_id,
-                    cargo_type: freight.cargo_type,
+                    cargo_type: getCargoTypeLabel(freight.cargo_type),
                     weight: freight.weight,
                     origin_address: freight.origin_address,
                     destination_address: freight.destination_address,

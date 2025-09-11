@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Plus, Loader2 } from 'lucide-react';
+import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
 
 interface CreateFreightModalProps {
   onFreightCreated: () => void;
@@ -161,13 +163,29 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cargo_type">Tipo de Carga *</Label>
-              <Input
-                id="cargo_type"
+              <Select
                 value={formData.cargo_type}
-                onChange={(e) => handleInputChange('cargo_type', e.target.value)}
-                placeholder="Ex: Soja, Milho, Algodão"
-                required
-              />
+                onValueChange={(value) => handleInputChange('cargo_type', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo de carga" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CARGO_CATEGORIES.map((category) => (
+                    <div key={category.value}>
+                      <SelectLabel className="font-semibold text-primary">
+                        {category.label}
+                      </SelectLabel>
+                      {getCargoTypesByCategory(category.value).map((cargo) => (
+                        <SelectItem key={cargo.value} value={cargo.value}>
+                          {cargo.label}
+                        </SelectItem>
+                      ))}
+                      {category.value !== 'outros' && <Separator className="my-1" />}
+                    </div>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-2">
