@@ -197,27 +197,23 @@ const Landing = () => {
           </div>
 
           {/* Quick Service Buttons */}
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mt-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
-              <Button 
-                size="lg"
-                variant="outline"
-                onClick={() => setGuinchoModal(true)}
-                className="border-accent/50 text-accent hover:bg-accent hover:text-accent-foreground text-sm px-6 py-5 rounded-xl backdrop-blur-sm bg-background/20 transition-all duration-300 hover:scale-105 shadow-lg"
-              >
-                <Wrench className="mr-2 h-4 w-4" />
-                Preciso de Guincho
-              </Button>
-              <Button 
-                size="lg"
-                variant="outline"
-                onClick={() => setMudancaModal(true)}
-                className="border-accent/50 text-accent hover:bg-accent hover:text-accent-foreground text-sm px-6 py-5 rounded-xl backdrop-blur-sm bg-background/20 transition-all duration-300 hover:scale-105 shadow-lg"
-              >
-                <Home className="mr-2 h-4 w-4" />
-                Preciso de Frete Urbano
-              </Button>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button 
+              variant="outline"
+              onClick={() => setGuinchoModal(true)}
+              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base px-5 py-3 rounded-lg"
+            >
+              <Wrench className="mr-2 h-4 w-4" />
+              Preciso de Guincho
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setMudancaModal(true)}
+              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base px-5 py-3 rounded-lg"
+            >
+              <Home className="mr-2 h-4 w-4" />
+              Preciso de Frete Urbano
+            </Button>
           </div>
         </div>
       </section>
