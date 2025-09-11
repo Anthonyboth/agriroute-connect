@@ -197,7 +197,7 @@ const Landing = () => {
           </div>
 
           {/* Quick Service Buttons */}
-          <div className="flex justify-center items-center gap-8 mt-4">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <Button 
               variant="outline"
               onClick={() => setGuinchoModal(true)}
