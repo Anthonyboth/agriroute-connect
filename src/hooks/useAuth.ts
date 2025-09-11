@@ -55,22 +55,46 @@ export const useAuth = () => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          // Validar se o user.id é um UUID válido
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          if (!uuidRegex.test(session.user.id)) {
+            console.error('Invalid UUID format for user.id:', session.user.id);
+            setProfile(null);
+            setLoading(false);
+            return;
+          }
+
           // Fetch user profile
           setTimeout(async () => {
             try {
-              const { data: profileData } = await supabase
+              console.log('Fetching profile for user:', session.user.id);
+              const { data: profileData, error } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('user_id', session.user.id)
                 .single();
               
-              setProfile(profileData);
+              if (error) {
+                console.error('Profile fetch error:', error);
+                // Se não encontrou perfil, não é necessariamente um erro
+                if (error.code === 'PGRST116') {
+                  console.log('Profile not found, user may need to complete registration');
+                  setProfile(null);
+                } else {
+                  throw error;
+                }
+              } else {
+                console.log('Profile fetched successfully:', profileData);
+                setProfile(profileData);
+              }
             } catch (error) {
               console.error('Error fetching profile:', error);
+              setProfile(null);
             } finally {
               setLoading(false);
             }
@@ -84,22 +108,46 @@ export const useAuth = () => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Existing session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        // Validar se o user.id é um UUID válido
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(session.user.id)) {
+          console.error('Invalid UUID format for user.id in existing session:', session.user.id);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+
         // Fetch user profile
         setTimeout(async () => {
           try {
-            const { data: profileData } = await supabase
+            console.log('Fetching profile for existing session user:', session.user.id);
+            const { data: profileData, error } = await supabase
               .from('profiles')
               .select('*')
               .eq('user_id', session.user.id)
               .single();
             
-            setProfile(profileData);
+            if (error) {
+              console.error('Profile fetch error in existing session:', error);
+              // Se não encontrou perfil, não é necessariamente um erro
+              if (error.code === 'PGRST116') {
+                console.log('Profile not found for existing user, may need to complete registration');
+                setProfile(null);
+              } else {
+                throw error;
+              }
+            } else {
+              console.log('Profile fetched successfully for existing session:', profileData);
+              setProfile(profileData);
+            }
           } catch (error) {
-            console.error('Error fetching profile:', error);
+            console.error('Error fetching profile in existing session:', error);
+            setProfile(null);
           } finally {
             setLoading(false);
           }

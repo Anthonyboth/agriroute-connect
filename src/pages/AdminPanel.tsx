@@ -174,12 +174,18 @@ const AdminPanel = () => {
   const fetchPendingUsers = async () => {
     setLoading(true);
     try {
+      console.log('AdminPanel: Fetching users...');
       const { data: users, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('AdminPanel fetch error:', error);
+        throw error;
+      }
+      
+      console.log('AdminPanel: Users fetched successfully:', users?.length || 0);
       setPendingUsers(users || []);
     } catch (error) {
       console.error('Error fetching users:', error);
