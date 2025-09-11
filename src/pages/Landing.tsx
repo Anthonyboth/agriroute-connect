@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import AuthModal from '@/components/AuthModal';
 import GuinchoModal from '@/components/GuinchoModal';
 import MudancaModal from '@/components/MudancaModal';
+import HowItWorksModal from '@/components/HowItWorksModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home } from 'lucide-react';
 import heroImage from '@/assets/hero-logistics.jpg';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +17,9 @@ const Landing = () => {
   });
   const [guinchoModal, setGuinchoModal] = useState(false);
   const [mudancaModal, setMudancaModal] = useState(false);
+  const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' }>({
+    isOpen: false,
+  });
   const [realStats, setRealStats] = useState({
     totalProducers: 0,
     totalDrivers: 0,
@@ -24,8 +28,20 @@ const Landing = () => {
   });
 
   const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA') => {
-    const route = userType === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver';
-    navigate(route);
+    setHowItWorksModal({ isOpen: true, userType });
+  };
+
+  const closeHowItWorksModal = () => {
+    setHowItWorksModal({ isOpen: false });
+  };
+
+  const handleProceedToDashboard = () => {
+    const userType = howItWorksModal.userType;
+    if (userType) {
+      const route = userType === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver';
+      navigate(route);
+    }
+    closeHowItWorksModal();
   };
 
   const openAuthModal = (initialTab?: 'login' | 'signup') => {
@@ -369,6 +385,15 @@ const Landing = () => {
         isOpen={mudancaModal}
         onClose={() => setMudancaModal(false)}
       />
+
+      {howItWorksModal.userType && (
+        <HowItWorksModal
+          isOpen={howItWorksModal.isOpen}
+          onClose={closeHowItWorksModal}
+          userType={howItWorksModal.userType}
+          onProceed={handleProceedToDashboard}
+        />
+      )}
     </div>
   );
 };
