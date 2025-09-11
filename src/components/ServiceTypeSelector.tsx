@@ -34,8 +34,8 @@ export const ServiceTypeSelector: React.FC<ServiceTypeSelectorProps> = ({
     {
       type: 'MUDANCA' as ServiceType,
       icon: Home,
-      title: 'Mudanças',
-      description: 'Transporte de móveis e pertences',
+      title: 'Frete Urbano',
+      description: 'Mudanças e fretes urbanos com diversos veículos',
       color: 'text-accent'
     }
   ];

@@ -172,7 +172,7 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Home className="h-5 w-5 text-accent" />
-            Solicitar Serviço de Mudança
+            Solicitar Frete Urbano
           </DialogTitle>
         </DialogHeader>
 
@@ -182,10 +182,10 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-accent mb-2">
                 <Package className="h-4 w-4" />
-                <span className="font-semibold">Mudanças Residenciais e Comerciais</span>
+                <span className="font-semibold">Fretes Urbanos e Mudanças</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Serviços completos de mudança com preços regulamentados pela ANTT. Inclui carga, transporte e descarga.
+                Serviços de frete urbano e mudanças com diversos tipos de veículos: carretas baú, F-400, Strada e carros pequenos. Preços regulamentados pela ANTT.
               </p>
             </CardContent>
           </Card>
@@ -396,7 +396,7 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="gradient-primary text-primary-foreground">
-              {loading ? 'Enviando...' : 'Solicitar Mudança'}
+              {loading ? 'Enviando...' : 'Solicitar Frete Urbano'}
             </Button>
           </div>
         </form>

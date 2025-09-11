@@ -214,7 +214,7 @@ const Landing = () => {
               className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base px-6 py-4 rounded-lg"
             >
               <Home className="mr-2 h-4 w-4" />
-              Solicitar Mudança
+              Frete Urbano
             </Button>
           </div>
         </div>

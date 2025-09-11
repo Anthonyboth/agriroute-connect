@@ -535,8 +535,12 @@ const CompleteProfile = () => {
                             <SelectItem value="BITREM">Bitrem</SelectItem>
                             <SelectItem value="RODOTREM">Rodotrem</SelectItem>
                             <SelectItem value="CARRETA">Carreta</SelectItem>
+                            <SelectItem value="CARRETA_BAU">Carreta Baú</SelectItem>
                             <SelectItem value="VUC">VUC</SelectItem>
                             <SelectItem value="TOCO">Toco</SelectItem>
+                            <SelectItem value="F400">Ford F-400</SelectItem>
+                            <SelectItem value="STRADA">Fiat Strada</SelectItem>
+                            <SelectItem value="CARRO_PEQUENO">Carro Pequeno</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

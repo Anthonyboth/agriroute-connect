@@ -132,7 +132,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="CARGA">Transporte de Carga</SelectItem>
-                <SelectItem value="MUDANCA">Mudança</SelectItem>
+                <SelectItem value="MUDANCA">Frete Urbano</SelectItem>
                 <SelectItem value="GUINCHO">Guincho</SelectItem>
               </SelectContent>
             </Select>

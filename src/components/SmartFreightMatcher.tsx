@@ -197,7 +197,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               <SelectContent>
                 <SelectItem value="all">Todos os tipos</SelectItem>
                 <SelectItem value="CARGA">Rural</SelectItem>
-                <SelectItem value="MUDANCA">Mudança</SelectItem>
+                <SelectItem value="MUDANCA">Frete Urbano</SelectItem>
                 <SelectItem value="GUINCHO">Guincho</SelectItem>
               </SelectContent>
             </Select>

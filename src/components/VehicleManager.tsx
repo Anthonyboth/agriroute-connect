@@ -15,9 +15,13 @@ const VEHICLE_TYPES = [
   { value: 'VUC', label: 'Caminhão 3/4' },
   { value: 'TRUCK', label: 'Caminhão Truck' },
   { value: 'CARRETA', label: 'Semirreboque' },
+  { value: 'CARRETA_BAU', label: 'Carreta Baú para Mudanças' },
   { value: 'BITREM', label: 'Bitruck' },
   { value: 'RODOTREM', label: 'Rodotrem' },
-  { value: 'TOCO', label: 'Toco' }
+  { value: 'TOCO', label: 'Toco' },
+  { value: 'F400', label: 'Ford F-400' },
+  { value: 'STRADA', label: 'Fiat Strada' },
+  { value: 'CARRO_PEQUENO', label: 'Carro Pequeno para Fretes Urbanos' }
 ];
 
 interface Vehicle {
