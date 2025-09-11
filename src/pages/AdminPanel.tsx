@@ -1,103 +1,214 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Users, Truck, Package, FileText } from 'lucide-react';
-import Header from '@/components/Header';
-import { AdminReportsPanel } from '@/components/AdminReportsPanel';
+import { CheckCircle, XCircle, Users, Truck, Package, FileText, Eye, Search, LayoutDashboard, Building2, HelpCircle, UserPlus, Folder, TrendingUp, DollarSign, CreditCard, Menu } from 'lucide-react';
 
 interface Profile {
   id: string;
   user_id: string;
   full_name: string;
   phone: string;
-  document: string;
+  cpf_cnpj: string;
   role: 'PRODUTOR' | 'MOTORISTA' | 'ADMIN';
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   created_at: string;
+  document_validation_status?: string;
+  cnh_validation_status?: string;
 }
 
-interface Freight {
-  id: string;
-  producer_id: string;
-  cargo_type: string;
-  weight: number;
-  origin_address: string;
-  destination_address: string;
-  price: number;
-  status: string;
-  created_at: string;
-  profiles: {
-    full_name: string;
-  };
+// Sidebar Menu Items
+const sidebarItems = [
+  { title: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
+  { title: "Administrador", icon: Users, id: "admin" },
+  { title: "Franquias", icon: Building2, id: "franchises" },
+  { title: "Empresa", icon: Building2, id: "company" },
+  { title: "Help Desk", icon: HelpCircle, id: "help" },
+  { title: "Cadastro", icon: UserPlus, id: "register" },
+];
+
+const approvalItems = [
+  { title: "Motoristas", icon: Truck, id: "drivers" },
+  { title: "Passageiros", icon: Users, id: "passengers" },
+];
+
+const moduleItems = [
+  { title: "Mobilidade urbana", icon: Truck, id: "urban-mobility" },
+];
+
+const financialItems = [
+  { title: "Relatórios", icon: TrendingUp, id: "reports" },
+  { title: "Financeiro", icon: DollarSign, id: "financial" },
+  { title: "Contas Digitais", icon: CreditCard, id: "digital-accounts" },
+];
+
+function AdminSidebar() {
+  const [activeItem, setActiveItem] = useState("drivers");
+  const [openGroup, setOpenGroup] = useState("approvals");
+
+  return (
+    <Sidebar className="bg-slate-800 text-white border-r-0">
+      <SidebarContent className="bg-slate-800">
+        {/* Main Menu Items */}
+        <SidebarGroup>
+          <SidebarMenu>
+            {sidebarItems.map((item) => (
+              <SidebarMenuItem key={item.id}>
+                <SidebarMenuButton 
+                  className="text-gray-300 hover:text-white hover:bg-slate-700 transition-colors"
+                  onClick={() => setActiveItem(item.id)}
+                >
+                  <item.icon className="mr-3 h-4 w-4" />
+                  <span>{item.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {/* Aprovações Group */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-red-400 font-medium px-3 py-2">
+            <div 
+              className="flex items-center cursor-pointer w-full"
+              onClick={() => setOpenGroup(openGroup === "approvals" ? "" : "approvals")}
+            >
+              <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+              Aprovações
+            </div>
+          </SidebarGroupLabel>
+          {openGroup === "approvals" && (
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {approvalItems.map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton 
+                      className={`text-gray-300 hover:text-white hover:bg-slate-700 transition-colors ml-4 ${
+                        activeItem === item.id ? 'bg-slate-700 text-white' : ''
+                      }`}
+                      onClick={() => setActiveItem(item.id)}
+                    >
+                      <item.icon className="mr-3 h-4 w-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          )}
+        </SidebarGroup>
+
+        {/* Módulos Group */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-gray-400 font-medium px-3 py-2">
+            Módulos
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {moduleItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton 
+                    className="text-gray-300 hover:text-white hover:bg-slate-700 transition-colors"
+                    onClick={() => setActiveItem(item.id)}
+                  >
+                    <item.icon className="mr-3 h-4 w-4" />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Financeiro Group */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-gray-400 font-medium px-3 py-2">
+            Financeiro
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {financialItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton 
+                    className="text-gray-300 hover:text-white hover:bg-slate-700 transition-colors"
+                    onClick={() => setActiveItem(item.id)}
+                  >
+                    <item.icon className="mr-3 h-4 w-4" />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+  );
 }
 
 const AdminPanel = () => {
   const [pendingUsers, setPendingUsers] = useState<Profile[]>([]);
-  const [allFreights, setAllFreights] = useState<Freight[]>([]);
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    pendingApprovals: 0,
-    totalFreights: 0,
-    activeFreights: 0
-  });
+  const [filteredUsers, setFilteredUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Filters
+  const [nameFilter, setNameFilter] = useState('');
+  const [emailFilter, setEmailFilter] = useState('');
+  const [cpfFilter, setCpfFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
-    fetchData();
+    fetchPendingUsers();
   }, []);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    applyFilters();
+  }, [pendingUsers, nameFilter, emailFilter, cpfFilter, statusFilter]);
+
+  const fetchPendingUsers = async () => {
     setLoading(true);
     try {
-      // Fetch pending users
-      const { data: pending } = await supabase
+      const { data: users, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('status', 'PENDING')
         .order('created_at', { ascending: false });
 
-      // Fetch all freights with producer info
-      const { data: freights } = await supabase
-        .from('freights')
-        .select(`
-          *,
-          profiles!producer_id(full_name)
-        `)
-        .order('created_at', { ascending: false });
-
-      // Fetch stats
-      const { count: totalUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: totalFreights } = await supabase
-        .from('freights')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: activeFreights } = await supabase
-        .from('freights')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['OPEN', 'IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT']);
-
-      setPendingUsers(pending || []);
-      setAllFreights(freights || []);
-      setStats({
-        totalUsers: totalUsers || 0,
-        pendingApprovals: pending?.length || 0,
-        totalFreights: totalFreights || 0,
-        activeFreights: activeFreights || 0
-      });
+      if (error) throw error;
+      setPendingUsers(users || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Erro ao carregar dados');
+      console.error('Error fetching users:', error);
+      toast.error('Erro ao carregar usuários');
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFilters = () => {
+    let filtered = pendingUsers;
+
+    if (nameFilter) {
+      filtered = filtered.filter(user => 
+        user.full_name.toLowerCase().includes(nameFilter.toLowerCase())
+      );
+    }
+
+    if (cpfFilter) {
+      filtered = filtered.filter(user => 
+        user.cpf_cnpj?.toLowerCase().includes(cpfFilter.toLowerCase())
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(user => user.status === statusFilter);
+    }
+
+    setFilteredUsers(filtered);
   };
 
   const handleUserApproval = async (userId: string, approve: boolean) => {
@@ -110,15 +221,24 @@ const AdminPanel = () => {
       if (error) throw error;
 
       toast.success(`Usuário ${approve ? 'aprovado' : 'rejeitado'} com sucesso`);
-      fetchData(); // Refresh data
+      fetchPendingUsers();
     } catch (error) {
       console.error('Error updating user status:', error);
       toast.error('Erro ao atualizar status do usuário');
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">AGUARDANDO FINALIZAR CADASTRO</Badge>;
+      case 'APPROVED':
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">APROVADO</Badge>;
+      case 'REJECTED':
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">REJEITADO</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
   if (loading) {
@@ -133,198 +253,172 @@ const AdminPanel = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header 
-        user={{ name: 'Administrador', role: 'ADMIN' as any }}
-        onLogout={handleLogout}
-        onMenuClick={() => {}}
-      />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Painel Administrativo</h1>
-          <p className="text-muted-foreground">Gerencie usuários e fretes da plataforma</p>
-        </div>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gray-50">
+        <AdminSidebar />
+        
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger className="p-2 hover:bg-gray-100 rounded-md">
+                <Menu className="h-5 w-5" />
+              </SidebarTrigger>
+              <h1 className="text-xl font-semibold text-gray-800">Administrador</h1>
+            </div>
+          </header>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUsers}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pendentes de Aprovação</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingApprovals}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Fretes</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalFreights}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Fretes Ativos</CardTitle>
-              <Truck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.activeFreights}</div>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Main Content */}
+          <main className="flex-1 p-6">
+            <div className="space-y-6">
+              {/* Title */}
+              <div className="flex items-center gap-2 mb-6">
+                <h2 className="text-2xl font-semibold text-gray-800">Aprovações de Motoristas</h2>
+                <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                  {filteredUsers.filter(u => u.status === 'PENDING').length}
+                </div>
+              </div>
 
-        <Tabs defaultValue="users" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="users">Usuários Pendentes</TabsTrigger>
-            <TabsTrigger value="freights">Todos os Fretes</TabsTrigger>
-            <TabsTrigger value="reports">Relatórios</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>Usuários Aguardando Aprovação</CardTitle>
-                <CardDescription>
-                  Aprove ou rejeite novos cadastros de produtores e motoristas
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {pendingUsers.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    Nenhum usuário pendente de aprovação
-                  </p>
-                ) : (
+              {/* Filters */}
+              <Card className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 mb-1 block">Nome</label>
+                    <Input
+                      placeholder="Digite para pesquisar"
+                      value={nameFilter}
+                      onChange={(e) => setNameFilter(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 mb-1 block">E-mail</label>
+                    <Input
+                      placeholder="Digite para pesquisar"
+                      value={emailFilter}
+                      onChange={(e) => setEmailFilter(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 mb-1 block">CPF</label>
+                    <Input
+                      placeholder="Digite para pesquisar"
+                      value={cpfFilter}
+                      onChange={(e) => setCpfFilter(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 mb-1 block">Status</label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="PENDING">Pendente</SelectItem>
+                        <SelectItem value="APPROVED">Aprovado</SelectItem>
+                        <SelectItem value="REJECTED">Rejeitado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Results Table */}
+              <Card>
+                <CardContent className="p-0">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-gray-50">
                       <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Telefone</TableHead>
-                        <TableHead>Documento</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Ações</TableHead>
+                        <TableHead className="font-medium text-gray-700">Nome</TableHead>
+                        <TableHead className="font-medium text-gray-700">CPF / NIF / CNPJ</TableHead>
+                        <TableHead className="font-medium text-gray-700">Telefone</TableHead>
+                        <TableHead className="font-medium text-gray-700">Status</TableHead>
+                        <TableHead className="font-medium text-gray-700">Data Cadastro</TableHead>
+                        <TableHead className="font-medium text-gray-700">Ação</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {pendingUsers.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">{user.full_name}</TableCell>
-                          <TableCell>{user.user_id}</TableCell>
-                          <TableCell>
-                            <Badge variant={user.role === 'PRODUTOR' ? 'default' : 'secondary'}>
-                              {user.role}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{user.phone || '-'}</TableCell>
-                          <TableCell>{user.document || '-'}</TableCell>
-                          <TableCell>
-                            {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleUserApproval(user.id, true)}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleUserApproval(user.id, false)}
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            </div>
+                      {filteredUsers.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                            Nenhum usuário encontrado com os filtros aplicados
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        filteredUsers.map((user) => (
+                          <TableRow key={user.id} className="hover:bg-gray-50">
+                            <TableCell className="font-medium text-blue-600">
+                              {user.full_name}
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {user.cpf_cnpj || '-'}
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {user.phone || '-'}
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(user.status)}
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {new Date(user.created_at).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                {user.status === 'PENDING' && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleUserApproval(user.id, true)}
+                                      className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700"
+                                    >
+                                      <CheckCircle className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => handleUserApproval(user.id, false)}
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <XCircle className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="freights">
-            <Card>
-              <CardHeader>
-                <CardTitle>Todos os Fretes</CardTitle>
-                <CardDescription>
-                  Visualize e gerencie todos os fretes da plataforma
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {allFreights.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    Nenhum frete cadastrado
-                  </p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Produtor</TableHead>
-                        <TableHead>Carga</TableHead>
-                        <TableHead>Peso</TableHead>
-                        <TableHead>Origem</TableHead>
-                        <TableHead>Destino</TableHead>
-                        <TableHead>Valor</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Data</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {allFreights.map((freight) => (
-                        <TableRow key={freight.id}>
-                          <TableCell className="font-medium">
-                            {freight.profiles?.full_name}
-                          </TableCell>
-                          <TableCell>{freight.cargo_type}</TableCell>
-                          <TableCell>{freight.weight} kg</TableCell>
-                          <TableCell>{freight.origin_address}</TableCell>
-                          <TableCell>{freight.destination_address}</TableCell>
-                          <TableCell>
-                            R$ {freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{freight.status}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {new Date(freight.created_at).toLocaleDateString('pt-BR')}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="reports">
-            <AdminReportsPanel />
-          </TabsContent>
-        </Tabs>
+                </CardContent>
+              </Card>
+
+              {/* Pagination Info */}
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <div>
+                  Items per page: 20
+                </div>
+                <div>
+                  1 – 1 of 1
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
