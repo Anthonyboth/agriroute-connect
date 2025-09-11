@@ -175,7 +175,7 @@ const Landing = () => {
             conectando produtores e transportadores de forma inteligente.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-8">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-10">
             <Button 
               size="lg"
               onClick={() => handleGetStarted('PRODUTOR')}
