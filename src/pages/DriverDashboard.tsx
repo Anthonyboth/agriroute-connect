@@ -215,6 +215,7 @@ const DriverDashboard = () => {
         user={{ name: profile?.full_name || 'Motorista', role: 'MOTORISTA' }}
         onMenuClick={handleMenuClick}
         onLogout={handleLogout}
+        userProfile={profile}
       />
 
       {/* Hero Section */}
@@ -236,16 +237,16 @@ const DriverDashboard = () => {
               variant="default"
               size="lg"
               onClick={() => setActiveTab('available')}
-              className="bg-white text-primary hover:bg-white/90"
+              className="bg-white text-primary hover:bg-white/90 font-semibold"
             >
               <Brain className="mr-2 h-5 w-5" />
               Ver Fretes IA
             </Button>
             <Button 
-              variant="outline"
+              variant="default"
               size="lg"
               onClick={() => setActiveTab('services')}
-              className="border-white text-white hover:bg-white/10"
+              className="bg-white text-primary hover:bg-white/90 font-semibold"
             >
               <Settings className="mr-2 h-5 w-5" />
               Configurar Serviços
@@ -254,7 +255,7 @@ const DriverDashboard = () => {
         </div>
       </section>
 
-      <div className="container py-8">
+      <div className="container max-w-7xl mx-auto py-8 px-4">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
@@ -323,13 +324,13 @@ const DriverDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="available">Fretes IA</TabsTrigger>
-            <TabsTrigger value="scheduled">Agendados</TabsTrigger>
-            <TabsTrigger value="calendar">Calendário</TabsTrigger>
-            <TabsTrigger value="my-trips">Propostas</TabsTrigger>
-            <TabsTrigger value="services">Serviços</TabsTrigger>
-            <TabsTrigger value="vehicles">Veículos</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-6 bg-card">
+            <TabsTrigger value="available" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Fretes IA</TabsTrigger>
+            <TabsTrigger value="scheduled" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Agendados</TabsTrigger>
+            <TabsTrigger value="calendar" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Disponibilidade</TabsTrigger>
+            <TabsTrigger value="my-trips" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Propostas</TabsTrigger>
+            <TabsTrigger value="services" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Serviços</TabsTrigger>
+            <TabsTrigger value="vehicles" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Meus Veículos</TabsTrigger>
           </TabsList>
           
           <TabsContent value="available" className="space-y-4">

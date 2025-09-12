@@ -57,6 +57,7 @@ const ProducerDashboard = () => {
         user={{ name: profile?.full_name || 'Usuário', role: (profile?.role as 'PRODUTOR' | 'MOTORISTA') || 'PRODUTOR' }}
         onLogout={signOut}
         onMenuClick={() => {}}
+        userProfile={profile}
       />
       
       <div className="container mx-auto px-4 py-8">

@@ -31,7 +31,9 @@ export const StarRating: React.FC<StarRatingProps> = ({
 
   const renderStar = (index: number) => {
     const starValue = index + 1;
-    const fillPercentage = Math.max(0, Math.min(1, rating - index));
+    const fillValue = rating - index;
+    const isFullFilled = fillValue >= 1;
+    const isHalfFilled = fillValue >= 0.5 && fillValue < 1;
     
     return (
       <div key={index} className="relative inline-block">
@@ -39,20 +41,32 @@ export const StarRating: React.FC<StarRatingProps> = ({
         <Star 
           className={cn(
             sizeClasses[size],
-            "text-muted-foreground/30"
+            "text-muted-foreground/20"
           )}
         />
         
-        {/* Foreground star (filled) */}
-        {fillPercentage > 0 && (
+        {/* Half star fill */}
+        {isHalfFilled && (
           <div 
             className="absolute inset-0 overflow-hidden"
-            style={{ width: `${fillPercentage * 100}%` }}
+            style={{ width: '50%' }}
           >
             <Star 
               className={cn(
                 sizeClasses[size],
-                "text-warning fill-warning"
+                "text-yellow-400 fill-yellow-400"
+              )}
+            />
+          </div>
+        )}
+        
+        {/* Full star fill */}
+        {isFullFilled && (
+          <div className="absolute inset-0">
+            <Star 
+              className={cn(
+                sizeClasses[size],
+                "text-yellow-400 fill-yellow-400"
               )}
             />
           </div>
