@@ -12,7 +12,11 @@ import { supabase } from '@/integrations/supabase/client';
 import DocumentUpload from '@/components/DocumentUpload';
 import LocationPermission from '@/components/LocationPermission';
 import GoogleMap from '@/components/GoogleMap';
+import { CameraSelfie } from '@/components/CameraSelfie';
+import { AddressInput } from '@/components/AddressInput';
+import AutomaticApprovalService from '@/components/AutomaticApproval';
 import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building } from 'lucide-react';
+import { validateDocument } from '@/utils/cpfValidator';
 
 const CompleteProfile = () => {
   const { profile, loading: authLoading } = useAuth();
@@ -41,6 +45,7 @@ const CompleteProfile = () => {
     rntrc: '',
     antt_number: '',
     cooperative: '',
+    fixed_address: '',
   });
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [newVehicle, setNewVehicle] = useState({
@@ -82,6 +87,7 @@ const CompleteProfile = () => {
         rntrc: (profile as any).rntrc || '',
         antt_number: (profile as any).antt_number || '',
         cooperative: (profile as any).cooperative || '',
+        fixed_address: (profile as any).fixed_address || '',
       });
 
       // Fetch vehicles for drivers
@@ -153,10 +159,17 @@ const CompleteProfile = () => {
 
     // Validate step 1 requirements - basic info
     if (currentStep === 1) {
-      if (!profileData.full_name || !profileData.phone || !profileData.cpf_cnpj) {
+      if (!profileData.full_name || !profileData.phone || !profileData.cpf_cnpj || !profileData.fixed_address) {
         toast.error('Por favor, preencha todos os campos obrigatórios');
         return;
       }
+      
+      // Validate CPF/CNPJ
+      if (!validateDocument(profileData.cpf_cnpj)) {
+        toast.error('CPF/CNPJ inválido. Verifique os dados informados.');
+        return;
+      }
+      
       if (profile.role === 'MOTORISTA' && !profileData.rntrc) {
         toast.error('RNTRC é obrigatório para motoristas');
         return;
@@ -227,13 +240,16 @@ const CompleteProfile = () => {
 
       if (error) throw error;
 
-      toast.success('Perfil completado com sucesso! Aguarde aprovação.');
+      // Trigger automatic approval process
+      AutomaticApprovalService.triggerApprovalProcess(profile.id);
+
+      toast.success('Perfil completado com sucesso! Processando aprovação automática...');
       
       // Redirect to appropriate dashboard
       if (profile.role === 'MOTORISTA') {
-        navigate('/driver-dashboard');
+        navigate('/dashboard/driver');
       } else if (profile.role === 'PRODUTOR') {
-        navigate('/producer-dashboard');
+        navigate('/dashboard/producer');
       } else {
         navigate('/');
       }
@@ -322,16 +338,27 @@ const CompleteProfile = () => {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="contact_phone">Telefone de Contato</Label>
-                    <Input
-                      id="contact_phone"
-                      type="tel"
-                      value={profileData.contact_phone}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, contact_phone: e.target.value }))}
-                    />
-                  </div>
-                </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="contact_phone">Telefone de Contato</Label>
+                        <Input
+                          id="contact_phone"
+                          type="tel"
+                          value={profileData.contact_phone}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, contact_phone: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Fixed Address - Required for all users */}
+                    <div className="space-y-4">
+                      <AddressInput
+                        address={profileData.fixed_address}
+                        onAddressChange={(address) => setProfileData(prev => ({ ...prev, fixed_address: address }))}
+                        label="Endereço Fixo"
+                        required={true}
+                        placeholder="Rua, número, bairro, cidade, estado, CEP"
+                      />
+                    </div>
 
                 {/* Producer-specific fields */}
                 {profile.role === 'PRODUTOR' && (
@@ -419,12 +446,12 @@ const CompleteProfile = () => {
                   <h3 className="text-lg font-semibold">Documentos Básicos</h3>
                 </div>
 
-                <DocumentUpload
-                  label="Selfie"
-                  fileType="selfie"
-                  bucketName="profile-photos"
-                  onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, selfie: url }))}
-                  required
+                <CameraSelfie
+                  onCapture={(blob) => {
+                    // Upload blob to Supabase and set URL
+                    const url = URL.createObjectURL(blob);
+                    setDocumentUrls(prev => ({ ...prev, selfie: url }));
+                  }}
                 />
 
                 <DocumentUpload

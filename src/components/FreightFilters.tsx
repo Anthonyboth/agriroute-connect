@@ -23,13 +23,22 @@ interface FreightFiltersProps {
   };
   onFilterChange: (field: string, value: string) => void;
   onClearFilters: () => void;
+  userRole?: 'MOTORISTA' | 'PRODUTOR' | 'ADMIN';
+  userServiceTypes?: string[];
 }
 
 export const FreightFilters: React.FC<FreightFiltersProps> = ({
   filters,
   onFilterChange,
-  onClearFilters
+  onClearFilters,
+  userRole,
+  userServiceTypes = []
 }) => {
+  // Filter service types based on user's allowed types
+  const availableServiceTypes = userRole === 'MOTORISTA' && userServiceTypes.length > 0
+    ? userServiceTypes
+    : ['CARGA', 'GUINCHO', 'MUDANCA'];
+
   return (
     <Card>
       <CardHeader>
@@ -52,9 +61,15 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Todos</SelectItem>
-                <SelectItem value="CARGA">Carga</SelectItem>
-                <SelectItem value="GUINCHO">Guincho</SelectItem>
-                <SelectItem value="MUDANCA">Frete Urbano</SelectItem>
+                {availableServiceTypes.includes('CARGA') && (
+                  <SelectItem value="CARGA">Carga</SelectItem>
+                )}
+                {availableServiceTypes.includes('GUINCHO') && (
+                  <SelectItem value="GUINCHO">Guincho</SelectItem>
+                )}
+                {availableServiceTypes.includes('MUDANCA') && (
+                  <SelectItem value="MUDANCA">Frete Urbano</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
