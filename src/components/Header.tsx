@@ -11,8 +11,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Settings, LogOut, User, Menu, Leaf } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { UserProfileModal } from '@/components/UserProfileModal';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import { UserProfileModal } from '@/components/UserProfileModal';
+import { SettingsModal } from '@/components/SettingsModal';
 
 interface User {
   name: string;
@@ -214,6 +215,11 @@ const Header: React.FC<HeaderProps> = ({
       <NotificationCenter
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
+      />
+
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
       />
     </>
   );

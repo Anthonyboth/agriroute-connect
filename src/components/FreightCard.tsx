@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { FlexibleProposalModal } from './FlexibleProposalModal';
 import { Separator } from '@/components/ui/separator';
 import { 
   MapPin, 
@@ -39,6 +40,7 @@ interface FreightCardProps {
 }
 
 export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, showActions = false }) => {
+  const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const getUrgencyVariant = (urgency: string) => {
     switch (urgency) {
       case 'HIGH': return 'destructive';
@@ -182,7 +184,13 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
       {showActions && onAction && freight.status === 'OPEN' && (
         <div className="px-6 pb-6">
           <Button 
-            onClick={() => onAction('propose')}
+            onClick={() => {
+              if (freight.service_type === 'CARGA') {
+                setProposalModalOpen(true);
+              } else {
+                onAction('propose');
+              }
+            }}
             className="w-full"
             size="sm"
           >
@@ -192,6 +200,24 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
           </Button>
         </div>
       )}
+
+      {/* Flexible Proposal Modal */}
+      <FlexibleProposalModal
+        isOpen={proposalModalOpen}
+        onClose={() => setProposalModalOpen(false)}
+        freight={{
+          ...freight,
+          producer_name: 'Produtor',
+          scheduled_date: freight.pickup_date,
+          flexible_dates: true,
+          date_range_start: freight.pickup_date,
+          date_range_end: freight.delivery_date
+        }}
+        onSuccess={() => {
+          setProposalModalOpen(false);
+          if (onAction) onAction('propose');
+        }}
+      />
     </Card>
   );
 };
