@@ -809,6 +809,7 @@ export type Database = {
         Row: {
           address_proof_url: string | null
           antt_number: string | null
+          aprovado: boolean | null
           background_check_status: string | null
           cnh_category: string | null
           cnh_expiry_date: string | null
@@ -854,6 +855,7 @@ export type Database = {
         Insert: {
           address_proof_url?: string | null
           antt_number?: string | null
+          aprovado?: boolean | null
           background_check_status?: string | null
           cnh_category?: string | null
           cnh_expiry_date?: string | null
@@ -899,6 +901,7 @@ export type Database = {
         Update: {
           address_proof_url?: string | null
           antt_number?: string | null
+          aprovado?: boolean | null
           background_check_status?: string | null
           cnh_category?: string | null
           cnh_expiry_date?: string | null
