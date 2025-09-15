@@ -1824,60 +1824,7 @@ export type Database = {
       }
     }
     Views: {
-      public_urban_service_requests: {
-        Row: {
-          created_at: string | null
-          destination_city: string | null
-          destination_lat_approx: number | null
-          destination_lng_approx: number | null
-          distance_km: number | null
-          estimated_volume: number | null
-          estimated_weight: number | null
-          id: string | null
-          origin_city: string | null
-          origin_lat_approx: number | null
-          origin_lng_approx: number | null
-          pickup_date: string | null
-          price: number | null
-          service_type: string | null
-          status: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          destination_city?: never
-          destination_lat_approx?: never
-          destination_lng_approx?: never
-          distance_km?: number | null
-          estimated_volume?: number | null
-          estimated_weight?: number | null
-          id?: string | null
-          origin_city?: never
-          origin_lat_approx?: never
-          origin_lng_approx?: never
-          pickup_date?: string | null
-          price?: number | null
-          service_type?: string | null
-          status?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          destination_city?: never
-          destination_lat_approx?: never
-          destination_lng_approx?: never
-          distance_km?: number | null
-          estimated_volume?: number | null
-          estimated_weight?: number | null
-          id?: string | null
-          origin_city?: never
-          origin_lat_approx?: never
-          origin_lng_approx?: never
-          pickup_date?: string | null
-          price?: number | null
-          service_type?: string | null
-          status?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       check_expired_documents: {
@@ -1923,6 +1870,26 @@ export type Database = {
           weight: number
         }[]
       }
+      get_public_service_requests: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          destination_city: string
+          destination_lat_approx: number
+          destination_lng_approx: number
+          distance_km: number
+          estimated_volume: number
+          estimated_weight: number
+          id: string
+          origin_city: string
+          origin_lat_approx: number
+          origin_lng_approx: number
+          pickup_date: string
+          price: number
+          service_type: string
+          status: string
+        }[]
+      }
       get_scheduled_freights_by_location_and_date: {
         Args: { p_city: string; p_date: string; p_days_range?: number }
         Returns: {
@@ -1963,6 +1930,10 @@ export type Database = {
       is_service_compatible: {
         Args: { driver_service_types: string[]; freight_service_type: string }
         Returns: boolean
+      }
+      log_sensitive_data_access: {
+        Args: { access_type: string; request_id: string }
+        Returns: undefined
       }
       send_notification: {
         Args: {
