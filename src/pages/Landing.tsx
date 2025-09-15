@@ -160,10 +160,10 @@ const Landing = () => {
             </a>
           </nav>
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={() => openAuthModal('login')}>
+            <Button variant="ghost" onClick={() => navigate('/auth')}>
               Entrar
             </Button>
-            <Button onClick={() => openAuthModal('signup')} className="gradient-primary text-primary-foreground">
+            <Button onClick={() => navigate('/auth')} className="gradient-primary text-primary-foreground">
               Cadastrar-se
             </Button>
           </div>
@@ -303,7 +303,7 @@ const Landing = () => {
           </p>
           <Button 
             size="lg"
-            onClick={() => openAuthModal('signup')}
+            onClick={() => navigate('/auth')}
             className="bg-background text-foreground text-lg px-8 py-6 rounded-xl hover:scale-105 transition-bounce shadow-xl"
           >
             Começar Agora
