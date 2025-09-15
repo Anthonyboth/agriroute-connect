@@ -1197,6 +1197,102 @@ export type Database = {
           },
         ]
       }
+      service_requests: {
+        Row: {
+          accepted_at: string | null
+          additional_info: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          client_comment: string | null
+          client_id: string
+          client_rating: number | null
+          completed_at: string | null
+          contact_name: string | null
+          contact_phone: string
+          created_at: string
+          estimated_price: number | null
+          final_price: number | null
+          id: string
+          is_emergency: boolean | null
+          location_address: string
+          location_lat: number | null
+          location_lng: number | null
+          preferred_datetime: string | null
+          problem_description: string
+          provider_comment: string | null
+          provider_id: string | null
+          provider_notes: string | null
+          provider_rating: number | null
+          service_type: string
+          status: string
+          updated_at: string
+          urgency: string
+          vehicle_info: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          additional_info?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          client_comment?: string | null
+          client_id: string
+          client_rating?: number | null
+          completed_at?: string | null
+          contact_name?: string | null
+          contact_phone: string
+          created_at?: string
+          estimated_price?: number | null
+          final_price?: number | null
+          id?: string
+          is_emergency?: boolean | null
+          location_address: string
+          location_lat?: number | null
+          location_lng?: number | null
+          preferred_datetime?: string | null
+          problem_description: string
+          provider_comment?: string | null
+          provider_id?: string | null
+          provider_notes?: string | null
+          provider_rating?: number | null
+          service_type: string
+          status?: string
+          updated_at?: string
+          urgency?: string
+          vehicle_info?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          additional_info?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          client_comment?: string | null
+          client_id?: string
+          client_rating?: number | null
+          completed_at?: string | null
+          contact_name?: string | null
+          contact_phone?: string
+          created_at?: string
+          estimated_price?: number | null
+          final_price?: number | null
+          id?: string
+          is_emergency?: boolean | null
+          location_address?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          preferred_datetime?: string | null
+          problem_description?: string
+          provider_comment?: string | null
+          provider_id?: string | null
+          provider_notes?: string | null
+          provider_rating?: number | null
+          service_type?: string
+          status?: string
+          updated_at?: string
+          urgency?: string
+          vehicle_info?: string | null
+        }
+        Relationships: []
+      }
       subscribers: {
         Row: {
           created_at: string

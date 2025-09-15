@@ -13,6 +13,7 @@ import { SmartFreightMatcher } from '@/components/SmartFreightMatcher';
 import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
+import { ServiceProviderDashboard } from '@/components/ServiceProviderDashboard';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -362,8 +363,22 @@ const DriverDashboard = () => {
 
           <TabsContent value="services">
             <div className="space-y-6">
-              <ServiceTypeManager />
-              <MatchIntelligentDemo />
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Tipos de Serviços</h3>
+                <ServiceTypeManager />
+              </div>
+              
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4">Prestação de Serviços</h3>
+                <p className="text-muted-foreground mb-4">
+                  Gerencie suas solicitações como prestador de serviços
+                </p>
+                <ServiceProviderDashboard />
+              </div>
+              
+              <div className="border-t pt-6">
+                <MatchIntelligentDemo />
+              </div>
             </div>
           </TabsContent>
 

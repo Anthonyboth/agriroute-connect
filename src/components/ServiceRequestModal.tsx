@@ -112,36 +112,32 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         throw new Error('Profile não encontrado');
       }
 
-      // Criar a solicitação de serviço como um frete especial
+      // Criar a solicitação de serviço na nova tabela
       const requestData = {
-        producer_id: userProfile.id,
+        client_id: userProfile.id,
         service_type: serviceType,
-        origin_address: formData.location,
-        destination_address: formData.location, // Para serviços, origem e destino são iguais
-        origin_lat: formData.locationLat,
-        origin_lng: formData.locationLng,
-        destination_lat: formData.locationLat,
-        destination_lng: formData.locationLng,
-        cargo_type: `Solicitação de ${serviceTitle}`,
-        weight: 0, // Peso zero para serviços
-        price: provider.base_price || 0,
-        pickup_date: formData.preferredDateTime ? new Date(formData.preferredDateTime).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        delivery_date: formData.preferredDateTime ? new Date(formData.preferredDateTime).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        description: `${formData.problemDescription}\n\nInformações adicionais: ${formData.additionalInfo}\n\nContato: ${formData.contactPhone}\nVeículo: ${formData.vehicleInfo}`,
-        urgency: formData.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
-        status: 'OPEN' as const,
-        // Campos específicos para serviços
-        pickup_observations: `Prestador solicitado: ${provider.profiles.full_name} (ID: ${provider.id})`,
-        delivery_observations: formData.isEmergency ? 'EMERGÊNCIA - Atendimento prioritário' : 'Serviço normal'
+        location_address: formData.location,
+        location_lat: formData.locationLat,
+        location_lng: formData.locationLng,
+        problem_description: formData.problemDescription,
+        vehicle_info: formData.vehicleInfo,
+        urgency: formData.urgency,
+        contact_phone: formData.contactPhone,
+        contact_name: formData.contactName,
+        preferred_datetime: formData.preferredDateTime ? new Date(formData.preferredDateTime).toISOString() : null,
+        additional_info: formData.additionalInfo,
+        is_emergency: formData.isEmergency,
+        estimated_price: provider.base_price || null,
+        status: 'PENDING'
       };
 
-      const { data: freight, error: freightError } = await supabase
-        .from('freights')
+      const { data: serviceRequest, error: requestError } = await supabase
+        .from('service_requests')
         .insert(requestData)
         .select()
         .single();
 
-      if (freightError) throw freightError;
+      if (requestError) throw requestError;
 
       // Enviar notificação para o prestador de serviços
       const { error: notificationError } = await supabase
@@ -152,7 +148,7 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
           message: `${formData.contactName || 'Cliente'} solicitou seus serviços em ${formData.location}`,
           type: formData.isEmergency ? 'emergency' : 'service_request',
           data: {
-            freight_id: freight.id,
+            service_request_id: serviceRequest.id,
             service_type: serviceType,
             location: formData.location,
             contact_phone: formData.contactPhone,
