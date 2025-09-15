@@ -156,6 +156,58 @@ const CompleteProfile = () => {
     }
   };
 
+  const deleteVehicle = async (vehicleId: string) => {
+    if (!profile) return;
+    const confirmed = window.confirm('Tem certeza que deseja remover este veículo?');
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from('vehicles')
+      .delete()
+      .eq('id', vehicleId)
+      .eq('driver_id', profile.id);
+
+    if (error) {
+      toast.error('Erro ao remover veículo: ' + error.message);
+    } else {
+      toast.success('Veículo removido com sucesso');
+      setVehicles(prev => prev.filter(v => v.id !== vehicleId));
+    }
+  };
+
+  const uploadVehicleFile = async (
+    vehicleId: string,
+    field: 'crlv_url' | 'vehicle_photo_url' | 'insurance_document_url',
+    file: File,
+    label: string
+  ) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Não autenticado');
+
+      const ext = file.name.split('.').pop();
+      const path = `${user.id}/vehicles/${vehicleId}/${field}_${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('driver-documents')
+        .upload(path, file, { contentType: file.type });
+      if (uploadError) throw uploadError;
+
+      const { error: updateError } = await supabase
+        .from('vehicles')
+        .update({ [field]: path })
+        .eq('id', vehicleId)
+        .eq('driver_id', profile!.id);
+      if (updateError) throw updateError;
+
+      setVehicles(prev => prev.map(v => v.id === vehicleId ? { ...v, [field]: path } : v));
+      toast.success(`${label} enviado com sucesso!`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(`Falha ao enviar ${label}`);
+    }
+  };
+
   const handleSaveAndContinue = async () => {
     if (!profile) return;
 
@@ -196,28 +248,34 @@ const CompleteProfile = () => {
       }
     }
 
-    // Validate step 3 requirements for drivers - additional docs and vehicles
-    if (currentStep === 3 && profile.role === 'MOTORISTA') {
-      const requiredDocs = ['cnh', 'truck_documents', 'truck_photo', 'license_plate', 'address_proof'];
-      const missingDocs = requiredDocs.filter(doc => !documentUrls[doc as keyof typeof documentUrls]);
-      
-      if (missingDocs.length > 0) {
-        toast.error('Por favor, envie todos os documentos obrigatórios');
-        return;
-      }
-
-      if (!locationEnabled) {
-        toast.error('Ative a localização para continuar');
-        return;
-      }
-
-      if (vehicles.length === 0) {
-        toast.error('Cadastre pelo menos um veículo');
-        return;
-      }
-
-      await finalizeProfile();
+  // Validate step 3 requirements for drivers - additional docs and vehicles
+  if (currentStep === 3 && profile.role === 'MOTORISTA') {
+    const requiredDocs = ['cnh', 'truck_documents', 'truck_photo', 'license_plate', 'address_proof'];
+    const missingDocs = requiredDocs.filter(doc => !documentUrls[doc as keyof typeof documentUrls]);
+    
+    if (missingDocs.length > 0) {
+      toast.error('Por favor, envie todos os documentos obrigatórios');
+      return;
     }
+
+    if (!locationEnabled) {
+      toast.error('Ative a localização para continuar');
+      return;
+    }
+
+    if (vehicles.length === 0) {
+      toast.error('Cadastre pelo menos um veículo');
+      return;
+    }
+
+    const vehiclesMissingDocs = vehicles.filter(v => !v.crlv_url || !v.vehicle_photo_url);
+    if (vehiclesMissingDocs.length > 0) {
+      toast.error('Para cada veículo, envie o CRLV e a foto do veículo.');
+      return;
+    }
+
+    await finalizeProfile();
+  }
   };
 
   const finalizeProfile = async () => {
@@ -594,15 +652,65 @@ const CompleteProfile = () => {
                     <div className="space-y-2">
                       <p className="text-sm font-medium">Veículos Cadastrados:</p>
                       {vehicles.map((vehicle) => (
-                        <div key={vehicle.id} className="p-3 border rounded-lg">
-                          <p className="font-medium">{vehicle.vehicle_type} - {vehicle.license_plate}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {vehicle.max_capacity_tons}t • {vehicle.axle_count} eixos • Status: {vehicle.status}
-                          </p>
+                        <div key={vehicle.id} className="p-3 border rounded-lg space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="font-medium">{vehicle.vehicle_type} - {vehicle.license_plate}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {vehicle.max_capacity_tons}t • {vehicle.axle_count} eixos • Status: {vehicle.status}
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteVehicle(vehicle.id)}
+                            >
+                              Remover
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="space-y-2">
+                              <Label>CRLV {vehicle.crlv_url ? '✓' : ''}</Label>
+                              <Input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) uploadVehicleFile(vehicle.id, 'crlv_url', f, 'CRLV');
+                                }}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Foto do veículo {vehicle.vehicle_photo_url ? '✓' : ''}</Label>
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) uploadVehicleFile(vehicle.id, 'vehicle_photo_url', f, 'Foto do veículo');
+                                }}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Seguro (opcional) {vehicle.insurance_document_url ? '✓' : ''}</Label>
+                              <Input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) uploadVehicleFile(vehicle.id, 'insurance_document_url', f, 'Seguro');
+                                }}
+                              />
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
+
 
                   <div className="border rounded-lg p-4 space-y-4">
                     <h5 className="text-sm font-medium">Adicionar Novo Veículo:</h5>
