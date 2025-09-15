@@ -15,7 +15,7 @@ import {
   Hammer
 } from 'lucide-react';
 import { GuinchoModal } from './GuinchoModal';
-import { ServiceProviderRegistrationModal } from './ServiceProviderRegistrationModal';
+import { ServiceProviderRegistrationForm } from './ServiceProviderRegistrationForm';
 import { ServiceProvidersListing } from './ServiceProvidersListing';
 
 interface ServicesModalProps {
@@ -167,7 +167,7 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
         onClose={() => setShowGuincho(false)} 
       />
 
-      <ServiceProviderRegistrationModal 
+      <ServiceProviderRegistrationForm 
         isOpen={showRegistration}
         onClose={() => setShowRegistration(false)}
       />
