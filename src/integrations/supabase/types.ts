@@ -718,6 +718,45 @@ export type Database = {
           },
         ]
       }
+      identity_selfies: {
+        Row: {
+          created_at: string
+          id: string
+          selfie_url: string
+          updated_at: string
+          upload_method: string
+          user_id: string
+          verification_notes: string | null
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          selfie_url: string
+          updated_at?: string
+          upload_method?: string
+          user_id: string
+          verification_notes?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          selfie_url?: string
+          updated_at?: string
+          upload_method?: string
+          user_id?: string
+          verification_notes?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       loyalty_points: {
         Row: {
           action_type: string

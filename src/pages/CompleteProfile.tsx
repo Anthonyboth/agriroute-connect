@@ -466,25 +466,39 @@ const CompleteProfile = () => {
                         <DialogTitle>Capturar Selfie</DialogTitle>
                       </DialogHeader>
                       <CameraSelfie autoStart
-                        onCapture={async (blob) => {
+                        onCapture={async (blob, uploadMethod) => {
                           try {
                             const { data: { user } } = await supabase.auth.getUser();
                             if (!user) {
                               toast.error('Faça login para enviar a selfie.');
                               return;
                             }
-                            const path = `${user.id}/selfie_${Date.now()}.jpg`;
+                            
+                            const path = `${user.id}/identity_selfie_${Date.now()}.jpg`;
                             const { error: uploadError } = await supabase.storage
                               .from('profile-photos')
                               .upload(path, blob, { contentType: 'image/jpeg' });
+                            
                             if (uploadError) throw uploadError;
 
                             const { data: { publicUrl } } = supabase.storage
                               .from('profile-photos')
                               .getPublicUrl(path);
 
+                            // Salvar na tabela identity_selfies
+                            const { error: dbError } = await supabase
+                              .from('identity_selfies')
+                              .upsert({
+                                user_id: user.id,
+                                selfie_url: publicUrl,
+                                upload_method: uploadMethod,
+                                verification_status: 'PENDING'
+                              });
+
+                            if (dbError) throw dbError;
+
                             setDocumentUrls(prev => ({ ...prev, selfie: publicUrl }));
-                            toast.success('Selfie enviada com sucesso!');
+                            toast.success(`Selfie ${uploadMethod === 'CAMERA' ? 'capturada' : 'enviada da galeria'} com sucesso!`);
                             setShowSelfieModal(false);
                           } catch (err) {
                             console.error('Erro ao enviar selfie:', err);
