@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import AuthModal from '@/components/AuthModal';
 import GuinchoModal from '@/components/GuinchoModal';
 import MudancaModal from '@/components/MudancaModal';
+import GuestServiceModal from '@/components/GuestServiceModal';
 import HowItWorksModal from '@/components/HowItWorksModal';
 import { ServicesModal } from '@/components/ServicesModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail } from 'lucide-react';
@@ -18,6 +19,9 @@ const Landing = () => {
   });
   const [guinchoModal, setGuinchoModal] = useState(false);
   const [mudancaModal, setMudancaModal] = useState(false);
+  const [guestServiceModal, setGuestServiceModal] = useState<{ isOpen: boolean; serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' }>({
+    isOpen: false,
+  });
   const [servicesModal, setServicesModal] = useState(false);
   const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' }>({
     isOpen: false,
@@ -159,14 +163,21 @@ const Landing = () => {
               Contato
             </a>
           </nav>
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={() => navigate('/auth')}>
-              Entrar
-            </Button>
-            <Button onClick={() => navigate('/auth')} className="gradient-primary text-primary-foreground">
-              Cadastrar-se
-            </Button>
-          </div>
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" onClick={() => navigate('/auth')}>
+                Entrar
+              </Button>
+              <Button onClick={() => navigate('/auth')} className="gradient-primary text-primary-foreground">
+                Cadastrar-se
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setGuestServiceModal({ isOpen: true, serviceType: 'GUINCHO' })}
+                className="hidden lg:flex"
+              >
+                Solicitar Serviço
+              </Button>
+            </div>
         </div>
       </header>
 
@@ -216,7 +227,7 @@ const Landing = () => {
             
             <Button 
               variant="outline"
-              onClick={() => setServicesModal(true)}
+              onClick={() => setGuestServiceModal({ isOpen: true, serviceType: 'GUINCHO' })}
               className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-lg px-8 py-6 rounded-xl"
             >
               <Wrench className="mr-2 h-5 w-5" />
@@ -224,7 +235,7 @@ const Landing = () => {
             </Button>
             <Button 
               variant="outline"
-              onClick={() => setMudancaModal(true)}
+              onClick={() => setGuestServiceModal({ isOpen: true, serviceType: 'FRETE_URBANO' })}
               className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-lg px-8 py-6 rounded-xl"
             >
               <Home className="mr-2 h-5 w-5" />
@@ -440,12 +451,18 @@ const Landing = () => {
         </div>
       </footer>
 
-      <AuthModal
+      <AuthModal 
         isOpen={authModal.isOpen}
         onClose={closeAuthModal}
         initialTab={authModal.initialTab}
       />
-      
+
+      <GuestServiceModal
+        isOpen={guestServiceModal.isOpen}
+        onClose={() => setGuestServiceModal({ isOpen: false })}
+        serviceType={guestServiceModal.serviceType || 'GUINCHO'}
+      />
+
       <GuinchoModal
         isOpen={guinchoModal}
         onClose={() => setGuinchoModal(false)}
