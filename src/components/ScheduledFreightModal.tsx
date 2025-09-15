@@ -111,7 +111,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
@@ -122,7 +122,10 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Formulário */}
+          <div className="lg:col-span-2">
+            <form onSubmit={handleSubmit} className="space-y-6">
           {/* Tipo de Serviço */}
           <div className="space-y-2">
             <Label>Tipo de Serviço</Label>
@@ -325,23 +328,75 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
             />
           </div>
 
-          {/* Botões */}
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading} className="gradient-primary">
-              {loading ? (
-                <>
-                  <Clock className="mr-2 h-4 w-4 animate-spin" />
-                  Agendando...
-                </>
-              ) : (
-                'Agendar Frete'
-              )}
-            </Button>
+              {/* Botões */}
+              <div className="flex justify-end gap-3">
+                <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={loading} className="gradient-primary">
+                  {loading ? (
+                    <>
+                      <Clock className="mr-2 h-4 w-4 animate-spin" />
+                      Agendando...
+                    </>
+                  ) : (
+                    'Agendar Frete'
+                  )}
+                </Button>
+              </div>
+            </form>
           </div>
-        </form>
+
+          {/* Painel lateral com informações */}
+          <div className="lg:col-span-1 space-y-4">
+            <div className="bg-card border rounded-lg p-4 space-y-4">
+              <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+                Calendário
+              </h3>
+              
+              {scheduledDate && (
+                <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="text-center space-y-2">
+                    <Calendar className="h-8 w-8 text-primary mx-auto" />
+                    <div className="font-semibold text-primary">
+                      {format(scheduledDate, 'dd/MM/yyyy', { locale: ptBR })}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Data selecionada
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>Agendamento para o futuro</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <MapPin className="h-4 w-4" />
+                  <span>Localização automática</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Package className="h-4 w-4" />
+                  <span>Preço baseado na ANTT</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                💡 Dicas para seu frete
+              </h4>
+              <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                <li>• Agende com antecedência para melhores propostas</li>
+                <li>• Use datas flexíveis para mais opções</li>
+                <li>• Informe detalhes na descrição</li>
+                <li>• Preços competitivos atraem mais motoristas</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1,0 +1,197 @@
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Upload, Camera, User, X } from 'lucide-react';
+
+interface ProfilePhotoUploadProps {
+  currentPhotoUrl?: string;
+  onUploadComplete: (url: string) => void;
+  userName?: string;
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export const ProfilePhotoUpload: React.FC<ProfilePhotoUploadProps> = ({
+  currentPhotoUrl,
+  onUploadComplete,
+  userName,
+  size = 'md'
+}) => {
+  const [uploading, setUploading] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState(currentPhotoUrl);
+
+  const sizeClasses = {
+    sm: 'h-16 w-16',
+    md: 'h-24 w-24',
+    lg: 'h-32 w-32'
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      toast.error('Selecione apenas arquivos de imagem');
+      return;
+    }
+
+    // Validar tamanho (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Imagem muito grande. Máximo 5MB');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/profile_${Date.now()}.${fileExt}`;
+
+      // Fazer upload da imagem
+      const { error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(fileName);
+
+      setPhotoUrl(publicUrl);
+      onUploadComplete(publicUrl);
+      toast.success('Foto de perfil atualizada com sucesso!');
+    } catch (error: any) {
+      console.error('Error uploading profile photo:', error);
+      toast.error('Erro ao enviar foto: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePhoto = async () => {
+    if (!photoUrl) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      // Extrair o nome do arquivo da URL
+      const urlParts = photoUrl.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      const filePath = `${user.id}/${fileName}`;
+
+      // Remover do storage
+      const { error } = await supabase.storage
+        .from('profile-photos')
+        .remove([filePath]);
+
+      if (error) {
+        console.warn('Error removing file from storage:', error);
+        // Continuar mesmo se der erro na remoção do storage
+      }
+
+      setPhotoUrl('');
+      onUploadComplete('');
+      toast.success('Foto removida com sucesso!');
+    } catch (error: any) {
+      console.error('Error removing photo:', error);
+      toast.error('Erro ao remover foto');
+    }
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Label>Foto de Perfil</Label>
+      
+      <div className="flex items-center gap-4">
+        <Avatar className={sizeClasses[size]}>
+          <AvatarImage src={photoUrl} alt={userName || 'Usuário'} />
+          <AvatarFallback className="bg-primary/10 text-primary">
+            <User className="h-6 w-6" />
+            {userName && (
+              <span className="absolute inset-0 flex items-center justify-center font-semibold">
+                {getInitials(userName)}
+              </span>
+            )}
+          </AvatarFallback>
+        </Avatar>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              disabled={uploading}
+              className="hidden"
+              id="profile-photo-upload"
+            />
+            <Label
+              htmlFor="profile-photo-upload"
+              className="cursor-pointer"
+            >
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploading}
+                asChild
+              >
+                <span>
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-4 w-4 mr-2" />
+                      {photoUrl ? 'Alterar' : 'Adicionar'}
+                    </>
+                  )}
+                </span>
+              </Button>
+            </Label>
+
+            {photoUrl && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={removePhoto}
+                className="text-destructive hover:text-destructive"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          
+          <p className="text-xs text-muted-foreground">
+            Formatos aceitos: JPG, PNG, WEBP (máx. 5MB)
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ProfilePhotoUpload;

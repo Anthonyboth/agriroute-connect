@@ -54,7 +54,7 @@ export const useAuth = () => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state change:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
@@ -69,36 +69,8 @@ export const useAuth = () => {
             return;
           }
 
-          // Fetch user profile
-          setTimeout(async () => {
-            try {
-              console.log('Fetching profile for user:', session.user.id);
-              const { data: profileData, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('user_id', session.user.id)
-                .single();
-              
-              if (error) {
-                console.error('Profile fetch error:', error);
-                // Se não encontrou perfil, não é necessariamente um erro
-                if (error.code === 'PGRST116') {
-                  console.log('Profile not found, user may need to complete registration');
-                  setProfile(null);
-                } else {
-                  throw error;
-                }
-              } else {
-                console.log('Profile fetched successfully:', profileData);
-                setProfile(profileData);
-              }
-            } catch (error) {
-              console.error('Error fetching profile:', error);
-              setProfile(null);
-            } finally {
-              setLoading(false);
-            }
-          }, 0);
+          // Fetch user profile without setTimeout
+          fetchProfile(session.user.id);
         } else {
           setProfile(null);
           setLoading(false);
@@ -122,36 +94,8 @@ export const useAuth = () => {
           return;
         }
 
-        // Fetch user profile
-        setTimeout(async () => {
-          try {
-            console.log('Fetching profile for existing session user:', session.user.id);
-            const { data: profileData, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('user_id', session.user.id)
-              .single();
-            
-            if (error) {
-              console.error('Profile fetch error in existing session:', error);
-              // Se não encontrou perfil, não é necessariamente um erro
-              if (error.code === 'PGRST116') {
-                console.log('Profile not found for existing user, may need to complete registration');
-                setProfile(null);
-              } else {
-                throw error;
-              }
-            } else {
-              console.log('Profile fetched successfully for existing session:', profileData);
-              setProfile(profileData);
-            }
-          } catch (error) {
-            console.error('Error fetching profile in existing session:', error);
-            setProfile(null);
-          } finally {
-            setLoading(false);
-          }
-        }, 0);
+        // Fetch user profile without setTimeout  
+        fetchProfile(session.user.id);
       } else {
         setLoading(false);
       }
@@ -159,6 +103,33 @@ export const useAuth = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      console.log('Fetching profile for user:', userId);
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Profile fetch error:', error);
+        setProfile(null);
+      } else if (profileData) {
+        console.log('Profile fetched successfully:', profileData);
+        setProfile(profileData);
+      } else {
+        console.log('Profile not found, user may need to complete registration');
+        setProfile(null);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const signOut = async () => {
     await supabase.auth.signOut();

@@ -583,6 +583,8 @@ export type Database = {
           destination_lng: number | null
           distance_km: number | null
           driver_id: string | null
+          extra_fees: number | null
+          extra_fees_description: string | null
           fiscal_documents_url: string | null
           flexible_dates: boolean | null
           id: string
@@ -596,6 +598,7 @@ export type Database = {
           pickup_date: string
           pickup_observations: string | null
           price: number
+          price_per_km: number | null
           producer_id: string
           scheduled_date: string | null
           service_type: string | null
@@ -625,6 +628,8 @@ export type Database = {
           destination_lng?: number | null
           distance_km?: number | null
           driver_id?: string | null
+          extra_fees?: number | null
+          extra_fees_description?: string | null
           fiscal_documents_url?: string | null
           flexible_dates?: boolean | null
           id?: string
@@ -638,6 +643,7 @@ export type Database = {
           pickup_date: string
           pickup_observations?: string | null
           price: number
+          price_per_km?: number | null
           producer_id: string
           scheduled_date?: string | null
           service_type?: string | null
@@ -667,6 +673,8 @@ export type Database = {
           destination_lng?: number | null
           distance_km?: number | null
           driver_id?: string | null
+          extra_fees?: number | null
+          extra_fees_description?: string | null
           fiscal_documents_url?: string | null
           flexible_dates?: boolean | null
           id?: string
@@ -680,6 +688,7 @@ export type Database = {
           pickup_date?: string
           pickup_observations?: string | null
           price?: number
+          price_per_km?: number | null
           producer_id?: string
           scheduled_date?: string | null
           service_type?: string | null
@@ -805,6 +814,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_plans: {
+        Row: {
+          created_at: string
+          free_freight_percentage: number | null
+          free_freights_count: number | null
+          freight_percentage: number | null
+          id: string
+          monthly_fee: number | null
+          plan_type: string
+          updated_at: string
+          vehicle_category: string
+        }
+        Insert: {
+          created_at?: string
+          free_freight_percentage?: number | null
+          free_freights_count?: number | null
+          freight_percentage?: number | null
+          id?: string
+          monthly_fee?: number | null
+          plan_type: string
+          updated_at?: string
+          vehicle_category: string
+        }
+        Update: {
+          created_at?: string
+          free_freight_percentage?: number | null
+          free_freights_count?: number | null
+          freight_percentage?: number | null
+          id?: string
+          monthly_fee?: number | null
+          plan_type?: string
+          updated_at?: string
+          vehicle_category?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address_proof_url: string | null
@@ -832,10 +877,13 @@ export type Database = {
           farm_name: string | null
           full_name: string
           id: string
+          invoice_number: string | null
           last_gps_update: string | null
           license_plate_photo_url: string | null
+          live_cargo_experience: boolean | null
           location_enabled: boolean | null
           phone: string | null
+          profile_photo_url: string | null
           rating: number | null
           rating_locked: boolean | null
           rating_sum: number | null
@@ -851,6 +899,8 @@ export type Database = {
           updated_at: string
           user_id: string
           validation_notes: string | null
+          vehicle_other_type: string | null
+          vehicle_specifications: string | null
         }
         Insert: {
           address_proof_url?: string | null
@@ -878,10 +928,13 @@ export type Database = {
           farm_name?: string | null
           full_name: string
           id?: string
+          invoice_number?: string | null
           last_gps_update?: string | null
           license_plate_photo_url?: string | null
+          live_cargo_experience?: boolean | null
           location_enabled?: boolean | null
           phone?: string | null
+          profile_photo_url?: string | null
           rating?: number | null
           rating_locked?: boolean | null
           rating_sum?: number | null
@@ -897,6 +950,8 @@ export type Database = {
           updated_at?: string
           user_id: string
           validation_notes?: string | null
+          vehicle_other_type?: string | null
+          vehicle_specifications?: string | null
         }
         Update: {
           address_proof_url?: string | null
@@ -924,10 +979,13 @@ export type Database = {
           farm_name?: string | null
           full_name?: string
           id?: string
+          invoice_number?: string | null
           last_gps_update?: string | null
           license_plate_photo_url?: string | null
+          live_cargo_experience?: boolean | null
           location_enabled?: boolean | null
           phone?: string | null
+          profile_photo_url?: string | null
           rating?: number | null
           rating_locked?: boolean | null
           rating_sum?: number | null
@@ -943,6 +1001,8 @@ export type Database = {
           updated_at?: string
           user_id?: string
           validation_notes?: string | null
+          vehicle_other_type?: string | null
+          vehicle_specifications?: string | null
         }
         Relationships: []
       }
@@ -1068,6 +1128,74 @@ export type Database = {
           uses?: number
         }
         Relationships: []
+      }
+      service_providers: {
+        Row: {
+          base_price: number | null
+          certifications: string[] | null
+          created_at: string
+          emergency_service: boolean | null
+          equipment_description: string | null
+          hourly_rate: number | null
+          id: string
+          profile_id: string
+          service_area_cities: string[] | null
+          service_radius_km: number | null
+          service_type: string
+          specialties: string[] | null
+          updated_at: string
+          work_hours_end: string | null
+          work_hours_start: string | null
+          works_holidays: boolean | null
+          works_weekends: boolean | null
+        }
+        Insert: {
+          base_price?: number | null
+          certifications?: string[] | null
+          created_at?: string
+          emergency_service?: boolean | null
+          equipment_description?: string | null
+          hourly_rate?: number | null
+          id?: string
+          profile_id: string
+          service_area_cities?: string[] | null
+          service_radius_km?: number | null
+          service_type: string
+          specialties?: string[] | null
+          updated_at?: string
+          work_hours_end?: string | null
+          work_hours_start?: string | null
+          works_holidays?: boolean | null
+          works_weekends?: boolean | null
+        }
+        Update: {
+          base_price?: number | null
+          certifications?: string[] | null
+          created_at?: string
+          emergency_service?: boolean | null
+          equipment_description?: string | null
+          hourly_rate?: number | null
+          id?: string
+          profile_id?: string
+          service_area_cities?: string[] | null
+          service_radius_km?: number | null
+          service_type?: string
+          specialties?: string[] | null
+          updated_at?: string
+          work_hours_end?: string | null
+          work_hours_start?: string | null
+          works_holidays?: boolean | null
+          works_weekends?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_providers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscribers: {
         Row: {
