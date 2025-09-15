@@ -1168,6 +1168,36 @@ export type Database = {
         }
         Relationships: []
       }
+      sensitive_data_access_log: {
+        Row: {
+          access_type: string | null
+          accessed_at: string | null
+          id: string
+          ip_address: unknown | null
+          request_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_type?: string | null
+          accessed_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          request_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_type?: string | null
+          accessed_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          request_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       service_providers: {
         Row: {
           base_price: number | null
@@ -1530,9 +1560,11 @@ export type Database = {
           client_id: string
           completed_at: string | null
           contact_phone: string
+          contact_phone_encrypted: string | null
           created_at: string
           delivery_date: string | null
           destination_address: string
+          destination_address_encrypted: string | null
           destination_lat: number | null
           destination_lng: number | null
           distance_km: number | null
@@ -1541,6 +1573,7 @@ export type Database = {
           id: string
           notes: string | null
           origin_address: string
+          origin_address_encrypted: string | null
           origin_lat: number | null
           origin_lng: number | null
           package_dimensions: string | null
@@ -1558,9 +1591,11 @@ export type Database = {
           client_id: string
           completed_at?: string | null
           contact_phone: string
+          contact_phone_encrypted?: string | null
           created_at?: string
           delivery_date?: string | null
           destination_address: string
+          destination_address_encrypted?: string | null
           destination_lat?: number | null
           destination_lng?: number | null
           distance_km?: number | null
@@ -1569,6 +1604,7 @@ export type Database = {
           id?: string
           notes?: string | null
           origin_address: string
+          origin_address_encrypted?: string | null
           origin_lat?: number | null
           origin_lng?: number | null
           package_dimensions?: string | null
@@ -1586,9 +1622,11 @@ export type Database = {
           client_id?: string
           completed_at?: string | null
           contact_phone?: string
+          contact_phone_encrypted?: string | null
           created_at?: string
           delivery_date?: string | null
           destination_address?: string
+          destination_address_encrypted?: string | null
           destination_lat?: number | null
           destination_lng?: number | null
           distance_km?: number | null
@@ -1597,6 +1635,7 @@ export type Database = {
           id?: string
           notes?: string | null
           origin_address?: string
+          origin_address_encrypted?: string | null
           origin_lat?: number | null
           origin_lng?: number | null
           package_dimensions?: string | null
@@ -1785,7 +1824,60 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_urban_service_requests: {
+        Row: {
+          created_at: string | null
+          destination_city: string | null
+          destination_lat_approx: number | null
+          destination_lng_approx: number | null
+          distance_km: number | null
+          estimated_volume: number | null
+          estimated_weight: number | null
+          id: string | null
+          origin_city: string | null
+          origin_lat_approx: number | null
+          origin_lng_approx: number | null
+          pickup_date: string | null
+          price: number | null
+          service_type: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          destination_city?: never
+          destination_lat_approx?: never
+          destination_lng_approx?: never
+          distance_km?: number | null
+          estimated_volume?: number | null
+          estimated_weight?: number | null
+          id?: string | null
+          origin_city?: never
+          origin_lat_approx?: never
+          origin_lng_approx?: never
+          pickup_date?: string | null
+          price?: number | null
+          service_type?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          destination_city?: never
+          destination_lat_approx?: never
+          destination_lng_approx?: never
+          distance_km?: number | null
+          estimated_volume?: number | null
+          estimated_weight?: number | null
+          id?: string | null
+          origin_city?: never
+          origin_lat_approx?: never
+          origin_lng_approx?: never
+          pickup_date?: string | null
+          price?: number | null
+          service_type?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_expired_documents: {
@@ -1795,6 +1887,14 @@ export type Database = {
       check_low_ratings: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      decrypt_sensitive_data: {
+        Args: { encrypted_data: string; key?: string }
+        Returns: string
+      }
+      encrypt_sensitive_data: {
+        Args: { data: string; key?: string }
+        Returns: string
       }
       generate_admin_report: {
         Args: {
@@ -1838,6 +1938,18 @@ export type Database = {
           producer_name: string
           scheduled_date: string
           weight: number
+        }[]
+      }
+      get_secure_request_details: {
+        Args: { request_id: string }
+        Returns: {
+          contact_phone: string
+          destination_address: string
+          destination_lat: number
+          destination_lng: number
+          origin_address: string
+          origin_lat: number
+          origin_lng: number
         }[]
       }
       get_user_role: {
