@@ -1997,7 +1997,17 @@ export type Database = {
       urgency_level: "LOW" | "MEDIUM" | "HIGH"
       user_role: "PRODUTOR" | "MOTORISTA" | "ADMIN"
       user_status: "PENDING" | "APPROVED" | "REJECTED"
-      vehicle_type: "TRUCK" | "BITREM" | "RODOTREM" | "CARRETA" | "VUC" | "TOCO"
+      vehicle_type:
+        | "TRUCK"
+        | "BITREM"
+        | "RODOTREM"
+        | "CARRETA"
+        | "VUC"
+        | "TOCO"
+        | "CARRETA_BAU"
+        | "F400"
+        | "STRADA"
+        | "CARRO_PEQUENO"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2141,7 +2151,18 @@ export const Constants = {
       urgency_level: ["LOW", "MEDIUM", "HIGH"],
       user_role: ["PRODUTOR", "MOTORISTA", "ADMIN"],
       user_status: ["PENDING", "APPROVED", "REJECTED"],
-      vehicle_type: ["TRUCK", "BITREM", "RODOTREM", "CARRETA", "VUC", "TOCO"],
+      vehicle_type: [
+        "TRUCK",
+        "BITREM",
+        "RODOTREM",
+        "CARRETA",
+        "VUC",
+        "TOCO",
+        "CARRETA_BAU",
+        "F400",
+        "STRADA",
+        "CARRO_PEQUENO",
+      ],
     },
   },
 } as const
