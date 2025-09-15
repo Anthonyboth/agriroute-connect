@@ -86,25 +86,28 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       if (!profile) return;
 
-      const { data, error } = await supabase
-        .from('service_requests')
-        .select('*')
-        .eq('provider_id', profile.id)
-        .order('created_at', { ascending: false });
+      // Usar a nova função segura que protege dados sensíveis
+      const { data: secureRequests, error } = await supabase
+        .rpc('get_provider_service_requests', {
+          provider_profile_id: profile.id
+        });
 
       if (error) throw error;
 
-      // Buscar os dados dos clientes separadamente
+      // Buscar os dados dos clientes separadamente (dados não sensíveis)
       const requestsWithProfiles = await Promise.all(
-        (data || []).map(async (request) => {
+        (secureRequests || []).map(async (request) => {
           const { data: clientProfile } = await supabase
             .from('profiles')
-            .select('full_name, profile_photo_url, phone')
+            .select('full_name, profile_photo_url')
             .eq('id', request.client_id)
             .single();
 
           return {
             ...request,
+            // Usar dados seguros da função RPC
+            contact_phone: request.contact_phone_safe,
+            location_address: request.location_address_safe,
             profiles: clientProfile || {
               full_name: 'Cliente',
               profile_photo_url: null,
@@ -462,27 +465,33 @@ export const ServiceProviderDashboard: React.FC = () => {
                             </Button>
                           </div>
 
-                          <div className="flex gap-2">
-                            {request.status === 'PENDING' && (
-                              <Button 
-                                size="sm"
-                                onClick={() => handleAcceptRequest(request.id)}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Aceitar
-                              </Button>
-                            )}
-                            {request.status === 'ACCEPTED' && (
-                              <Button 
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleCompleteRequest(request.id)}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Marcar como Concluído
-                              </Button>
-                            )}
-                          </div>
+                           <div className="flex gap-2">
+                             {request.status === 'PENDING' && (
+                               <Button 
+                                 size="sm"
+                                 onClick={() => handleAcceptRequest(request.id)}
+                               >
+                                 <CheckCircle className="h-4 w-4 mr-2" />
+                                 Aceitar
+                               </Button>
+                             )}
+                             {request.status === 'ACCEPTED' && (
+                               <Button 
+                                 size="sm"
+                                 variant="outline"
+                                 onClick={() => handleCompleteRequest(request.id)}
+                               >
+                                 <CheckCircle className="h-4 w-4 mr-2" />
+                                 Marcar como Concluído
+                               </Button>
+                             )}
+                              {/* Mostrar indicador de dados protegidos */}
+                              {request.contact_phone?.includes('***') && (
+                                <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
+                                  🔒 Dados protegidos
+                                </Badge>
+                              )}
+                           </div>
                         </div>
                       </CardContent>
                     </Card>

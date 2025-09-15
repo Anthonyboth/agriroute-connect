@@ -1876,6 +1876,23 @@ export type Database = {
           weight: number
         }[]
       }
+      get_provider_service_requests: {
+        Args: { provider_profile_id: string }
+        Returns: {
+          client_id: string
+          contact_phone_safe: string
+          created_at: string
+          estimated_price: number
+          id: string
+          is_emergency: boolean
+          location_address_safe: string
+          problem_description: string
+          service_type: string
+          status: string
+          urgency: string
+          vehicle_info: string
+        }[]
+      }
       get_public_service_requests: {
         Args: Record<PropertyKey, never>
         Returns: {
