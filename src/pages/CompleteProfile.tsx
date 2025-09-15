@@ -465,7 +465,7 @@ const CompleteProfile = () => {
                       <DialogHeader>
                         <DialogTitle>Capturar Selfie</DialogTitle>
                       </DialogHeader>
-                      <CameraSelfie
+                      <CameraSelfie autoStart
                         onCapture={async (blob) => {
                           try {
                             const { data: { user } } = await supabase.auth.getUser();

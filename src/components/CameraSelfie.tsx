@@ -7,9 +7,10 @@ import { toast } from 'sonner';
 interface CameraSelfieProps {
   onCapture: (imageBlob: Blob) => void;
   onCancel?: () => void;
+  autoStart?: boolean;
 }
 
-export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel }) => {
+export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel, autoStart = false }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -114,6 +115,14 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
     }
   }, [capturedImage, onCapture]);
 
+// Auto-start camera when component mounts/opened
+  React.useEffect(() => {
+    if (autoStart && !isStreaming) {
+      startCamera();
+    }
+  }, [autoStart, isStreaming, startCamera]);
+
+  // Cleanup on unmount
   React.useEffect(() => {
     return () => {
       stopCamera();
