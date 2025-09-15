@@ -22,6 +22,7 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
   const [loading, setLoading] = useState(false);
   const [pricing, setPricing] = useState<any>(null);
   const [formData, setFormData] = useState({
+    service_type: '',
     origin_address: '',
     destination_address: '',
     distance_km: '',
@@ -29,6 +30,8 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
     pickup_date: '',
     delivery_date: '',
     estimated_volume: '',
+    package_weight: '',
+    package_dimensions: '',
     additional_services: [] as string[],
     special_items: '',
     contact_phone: '',
@@ -44,15 +47,16 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
   ];
 
   const calculatePricing = async () => {
-    if (!formData.rooms || !formData.distance_km) return;
+    if (!formData.service_type || !formData.distance_km) return;
 
     try {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke('service-pricing', {
         body: {
-          service_type: 'MUDANCA',
+          service_type: formData.service_type,
           distance_km: parseFloat(formData.distance_km),
-          rooms: parseInt(formData.rooms),
+          rooms: formData.rooms ? parseInt(formData.rooms) : null,
+          package_weight: formData.package_weight ? parseFloat(formData.package_weight) : null,
           additional_services: formData.additional_services
         }
       });
@@ -113,21 +117,44 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
         return;
       }
 
-      // Create freight entry for mudança service
+      // Create freight entry for urban freight service
+      let cargoDescription = '';
+      let weight = 0;
+      
+      if (formData.service_type === 'MUDANCA' || formData.service_type === 'TRANSPORTE_MOVEIS') {
+        cargoDescription = `${formData.service_type === 'MUDANCA' ? 'Mudança' : 'Transporte de móveis'} - ${formData.rooms} cômodo(s)`;
+        weight = parseFloat(formData.estimated_volume) || 0;
+      } else {
+        cargoDescription = `${formData.service_type === 'FRETE_URBANO' ? 'Frete urbano' : 'Coleta e entrega'} - ${formData.package_weight}kg`;
+        weight = parseFloat(formData.package_weight) || 0;
+      }
+
+      const description = [
+        `Tipo: ${formData.service_type}`,
+        formData.rooms && `Cômodos: ${formData.rooms}`,
+        formData.estimated_volume && `Volume: ${formData.estimated_volume}m³`,
+        formData.package_weight && `Peso: ${formData.package_weight}kg`,
+        formData.package_dimensions && `Dimensões: ${formData.package_dimensions}`,
+        formData.special_items && `Itens especiais: ${formData.special_items}`,
+        `Contato: ${formData.contact_phone}`,
+        formData.additional_services.length > 0 && `Serviços adicionais: ${formData.additional_services.join(', ')}`,
+        formData.additional_info && `Info adicional: ${formData.additional_info}`
+      ].filter(Boolean).join('\n');
+
       const { error } = await supabase
         .from('freights')
         .insert({
           producer_id: profile.id,
-          service_type: 'MUDANCA',
-          cargo_type: `Mudança - ${formData.rooms} cômodo(s)`,
-          weight: parseFloat(formData.estimated_volume) || 0,
+          service_type: formData.service_type || 'FRETE_URBANO',
+          cargo_type: cargoDescription,
+          weight: weight,
           origin_address: formData.origin_address,
           destination_address: formData.destination_address,
           distance_km: parseFloat(formData.distance_km),
           pickup_date: formData.pickup_date,
           delivery_date: formData.delivery_date,
           price: pricing?.total_price || 0,
-          description: `Mudança residencial\n\nCômodos: ${formData.rooms}\nVolume estimado: ${formData.estimated_volume}m³\nItens especiais: ${formData.special_items}\nContato: ${formData.contact_phone}\nServiços adicionais: ${formData.additional_services.join(', ')}\n\nInfo adicional: ${formData.additional_info}`,
+          description: description,
           urgency: 'MEDIUM',
           status: 'OPEN'
         });
@@ -136,11 +163,12 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
 
       toast({
         title: "Solicitação Enviada!",
-        description: "Sua solicitação de mudança foi registrada. Em breve um transportador entrará em contato.",
+        description: "Sua solicitação foi registrada. Em breve um transportador entrará em contato.",
       });
 
       onClose();
       setFormData({
+        service_type: '',
         origin_address: '',
         destination_address: '',
         distance_km: '',
@@ -148,6 +176,8 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
         pickup_date: '',
         delivery_date: '',
         estimated_volume: '',
+        package_weight: '',
+        package_dimensions: '',
         additional_services: [],
         special_items: '',
         contact_phone: '',
@@ -172,7 +202,7 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Home className="h-5 w-5 text-accent" />
-            Solicitar Frete Urbano
+            Solicitar Frete Urbano ou Mudança
           </DialogTitle>
         </DialogHeader>
 
@@ -185,44 +215,107 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
                 <span className="font-semibold">Fretes Urbanos e Mudanças</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Serviços de frete urbano e mudanças com diversos tipos de veículos: carretas baú, F-400, Strada e carros pequenos. Preços regulamentados pela ANTT.
+                Serviços de frete urbano, mudanças e coleta/entrega de pequenos pacotes com diversos tipos de veículos: carretas baú, F-400, Strada e carros pequenos. Preços regulamentados pela ANTT.
               </p>
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="rooms">Número de Cômodos</Label>
-              <Select 
-                value={formData.rooms} 
-                onValueChange={(value) => setFormData({...formData, rooms: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Quantos cômodos?" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 cômodo (Kitnet)</SelectItem>
-                  <SelectItem value="2">2 cômodos</SelectItem>
-                  <SelectItem value="3">3 cômodos</SelectItem>
-                  <SelectItem value="4">4 cômodos</SelectItem>
-                  <SelectItem value="5">5 cômodos</SelectItem>
-                  <SelectItem value="6">6+ cômodos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Service Type Selection */}
+          <div className="space-y-2">
+            <Label>Tipo de Serviço</Label>
+            <Select 
+              value={formData.service_type} 
+              onValueChange={(value) => setFormData({...formData, service_type: value})}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo de serviço" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MUDANCA">Mudança Residencial/Comercial</SelectItem>
+                <SelectItem value="FRETE_URBANO">Frete Urbano (Pequenos Volumes)</SelectItem>
+                <SelectItem value="COLETA_ENTREGA">Coleta e Entrega de Pacotes</SelectItem>
+                <SelectItem value="TRANSPORTE_MOVEIS">Transporte de Móveis</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="distance_km">Distância (km)</Label>
-              <Input
-                id="distance_km"
-                type="number"
-                step="0.1"
-                min="0"
-                value={formData.distance_km}
-                onChange={(e) => setFormData({...formData, distance_km: e.target.value})}
-                placeholder="Ex: 25.0"
-              />
+          {/* Service-specific fields */}
+          {(formData.service_type === 'MUDANCA' || formData.service_type === 'TRANSPORTE_MOVEIS') && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="rooms">Número de Cômodos</Label>
+                <Select 
+                  value={formData.rooms} 
+                  onValueChange={(value) => setFormData({...formData, rooms: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Quantos cômodos?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 cômodo (Kitnet)</SelectItem>
+                    <SelectItem value="2">2 cômodos</SelectItem>
+                    <SelectItem value="3">3 cômodos</SelectItem>
+                    <SelectItem value="4">4 cômodos</SelectItem>
+                    <SelectItem value="5">5 cômodos</SelectItem>
+                    <SelectItem value="6">6+ cômodos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="estimated_volume">Volume Estimado (m³)</Label>
+                <Input
+                  id="estimated_volume"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={formData.estimated_volume}
+                  onChange={(e) => setFormData({...formData, estimated_volume: e.target.value})}
+                  placeholder="Ex: 15.0"
+                />
+              </div>
             </div>
+          )}
+
+          {(formData.service_type === 'FRETE_URBANO' || formData.service_type === 'COLETA_ENTREGA') && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="package_weight">Peso do Pacote (kg)</Label>
+                <Input
+                  id="package_weight"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={formData.package_weight}
+                  onChange={(e) => setFormData({...formData, package_weight: e.target.value})}
+                  placeholder="Ex: 5.0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="package_dimensions">Dimensões (LxAxC em cm)</Label>
+                <Input
+                  id="package_dimensions"
+                  value={formData.package_dimensions}
+                  onChange={(e) => setFormData({...formData, package_dimensions: e.target.value})}
+                  placeholder="Ex: 40x30x20"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="distance_km">Distância (km)</Label>
+            <Input
+              id="distance_km"
+              type="number"
+              step="0.1"
+              min="0"
+              value={formData.distance_km}
+              onChange={(e) => setFormData({...formData, distance_km: e.target.value})}
+              placeholder="Ex: 25.0"
+              required
+            />
           </div>
 
           <div className="space-y-4">
@@ -269,19 +362,6 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
                 value={formData.delivery_date}
                 onChange={(e) => setFormData({...formData, delivery_date: e.target.value})}
                 required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="estimated_volume">Volume Estimado (m³)</Label>
-              <Input
-                id="estimated_volume"
-                type="number"
-                step="0.1"
-                min="0"
-                value={formData.estimated_volume}
-                onChange={(e) => setFormData({...formData, estimated_volume: e.target.value})}
-                placeholder="Ex: 15.0"
               />
             </div>
           </div>
@@ -344,7 +424,7 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
           </div>
 
           {/* Pricing */}
-          {formData.rooms && formData.distance_km && (
+          {formData.service_type && formData.distance_km && (
             <Card className="bg-muted/50">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
@@ -395,8 +475,8 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading} className="gradient-primary text-primary-foreground">
-              {loading ? 'Enviando...' : 'Solicitar Frete Urbano'}
+            <Button type="submit" disabled={loading || !formData.service_type} className="gradient-primary text-primary-foreground">
+              {loading ? 'Enviando...' : 'Enviar Solicitação'}
             </Button>
           </div>
         </form>
