@@ -16,6 +16,7 @@ import {
   Clock,
   Navigation
 } from 'lucide-react';
+import { getCurrentPositionSafe, watchPositionSafe } from '@/utils/location';
 
 interface LocationTrackerProps {
   freightId?: string;
@@ -39,7 +40,7 @@ export const LocationTracker: React.FC<LocationTrackerProps> = ({
   const [isTracking, setIsTracking] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [locationEnabled, setLocationEnabled] = useState(false);
-  const [watchId, setWatchId] = useState<number | null>(null);
+  const [watchId, setWatchId] = useState<any>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -80,51 +81,27 @@ export const LocationTracker: React.FC<LocationTrackerProps> = ({
     }
   };
 
-  const getCurrentPosition = (): Promise<GeolocationPosition> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocalização não suportada pelo navegador'));
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        resolve,
-        reject,
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        }
-      );
-    });
+  const getCurrentPosition = async (): Promise<any> => {
+    const pos = await getCurrentPositionSafe();
+    return { coords: pos.coords } as any;
   };
 
   const startTracking = async () => {
-    if (!navigator.geolocation) {
-      setError('Geolocalização não suportada pelo navegador');
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
 
       // Obter posição inicial
       const position = await getCurrentPosition();
-      await updateLocation(position);
+      await updateLocation(position as any);
 
-      // Iniciar rastreamento contínuo
-      const id = navigator.geolocation.watchPosition(
-        updateLocation,
-        handleLocationError,
-        {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 30000
-        }
+      // Iniciar rastreamento contínuo usando Capacitor/Web fallback
+      const handle = watchPositionSafe(
+        (coords) => updateLocation({ coords } as any),
+        (err) => handleLocationError(err)
       );
 
-      setWatchId(id);
+      setWatchId(handle);
       toast.success('Rastreamento de localização iniciado');
 
     } catch (error) {
@@ -135,8 +112,12 @@ export const LocationTracker: React.FC<LocationTrackerProps> = ({
   };
 
   const stopTracking = () => {
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
+    if (watchId) {
+      if (typeof watchId.clear === 'function') {
+        watchId.clear();
+      } else {
+        try { navigator.geolocation.clearWatch(watchId as number); } catch {}
+      }
       setWatchId(null);
     }
   };

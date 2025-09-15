@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { checkPermissionSafe, requestPermissionSafe, getCurrentPositionSafe, watchPositionSafe } from '@/utils/location';
 
 interface LocationState {
   hasPermission: boolean;
@@ -22,112 +23,66 @@ export const useLocationPermission = (mandatory: boolean = true) => {
     checkLocationPermission();
   }, []);
 
-  const checkLocationPermission = () => {
-    if (!('geolocation' in navigator)) {
-      setLocationState(prev => ({ 
-        ...prev, 
-        error: 'Geolocalização não suportada' 
-      }));
-      return;
-    }
-
-    // Verificar se já tem permissão
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
+  const checkLocationPermission = async () => {
+    const granted = await checkPermissionSafe();
+    if (granted) {
+      try {
+        const pos = await getCurrentPositionSafe();
         setLocationState({
           hasPermission: true,
           isRequesting: false,
           error: null,
-          coords: position.coords
+          coords: pos.coords
         });
-      },
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          if (mandatory) {
-            setShowPermissionModal(true);
-          }
-          setLocationState(prev => ({
-            ...prev,
-            hasPermission: false,
-            error: 'Permissão de localização negada'
-          }));
-        }
-      },
-      { timeout: 5000, maximumAge: 300000 }
-    );
+      } catch (e) {
+        setLocationState(prev => ({ ...prev, hasPermission: true }));
+      }
+    } else {
+      if (mandatory) setShowPermissionModal(true);
+      setLocationState(prev => ({ ...prev, hasPermission: false }));
+    }
   };
 
   const requestLocation = async (): Promise<boolean> => {
     setLocationState(prev => ({ ...prev, isRequesting: true, error: null }));
 
-    return new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocationState({
-            hasPermission: true,
-            isRequesting: false,
-            error: null,
-            coords: position.coords
-          });
-          setShowPermissionModal(false);
-          resolve(true);
-        },
-        (error) => {
-          let errorMessage = 'Erro ao acessar localização';
-          
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = 'Permissão de localização negada';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Localização não disponível';
-              break;
-            case error.TIMEOUT:
-              errorMessage = 'Timeout ao solicitar localização';
-              break;
-          }
-          
-          setLocationState(prev => ({
-            ...prev,
-            isRequesting: false,
-            error: errorMessage,
-            hasPermission: false
-          }));
-          
-          if (mandatory) {
-            toast.error(errorMessage + '. A localização é obrigatória para usar o AgroRoute.');
-          }
-          
-          resolve(false);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000
-        }
-      );
-    });
+    try {
+      const granted = await requestPermissionSafe();
+      if (!granted) throw Object.assign(new Error('Permissão de localização negada'), { code: 1 });
+
+      const pos = await getCurrentPositionSafe();
+      setLocationState({
+        hasPermission: true,
+        isRequesting: false,
+        error: null,
+        coords: pos.coords
+      });
+      setShowPermissionModal(false);
+      return true;
+    } catch (error: any) {
+      let errorMessage = 'Erro ao acessar localização';
+      if (error?.code === 1) errorMessage = 'Permissão de localização negada';
+      setLocationState(prev => ({
+        ...prev,
+        isRequesting: false,
+        error: errorMessage,
+        hasPermission: false
+      }));
+      if (mandatory) toast.error(errorMessage + '. A localização é obrigatória para usar o AgroRoute.');
+      return false;
+    }
   };
 
   const watchLocation = (callback: (coords: GeolocationCoordinates) => void) => {
-    if (!locationState.hasPermission) return null;
-
-    return navigator.geolocation.watchPosition(
-      (position) => {
-        setLocationState(prev => ({ ...prev, coords: position.coords }));
-        callback(position.coords);
-      },
-      (error) => {
-        console.error('Location watch error:', error);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000 // 1 minuto
-      }
-    );
+    if (!locationState.hasPermission) return null as any;
+    const handle = watchPositionSafe((coords) => {
+      setLocationState(prev => ({ ...prev, coords }));
+      callback(coords);
+    }, (error) => {
+      console.error('Location watch error:', error);
+    });
+    return handle;
   };
-
   const hidePermissionModal = () => {
     if (!mandatory) {
       setShowPermissionModal(false);
