@@ -9,11 +9,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Settings, LogOut, User, Menu, Leaf, Star } from 'lucide-react';
+import { Bell, Settings, LogOut, User, Menu, Leaf, Star, ArrowLeftRight } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { SettingsModal } from '@/components/SettingsModal';
+import { AccountSwitcher } from '@/components/AccountSwitcher';
 
 interface User {
   name: string;
@@ -53,9 +54,11 @@ const Header: React.FC<HeaderProps> = ({
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
 
   const menuItems = [
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
+    { icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) },
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
     { 
       icon: Star, 
@@ -225,6 +228,18 @@ const Header: React.FC<HeaderProps> = ({
       <SettingsModal
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
+      />
+
+      <AccountSwitcher
+        isOpen={showAccountSwitcher}
+        onClose={() => setShowAccountSwitcher(false)}
+        currentProfile={userProfile ? {
+          id: userProfile.id,
+          role: userProfile.role,
+          full_name: userProfile.full_name,
+          status: userProfile.status,
+          profile_photo_url: userProfile.profile_photo_url
+        } : null}
       />
     </>
   );
