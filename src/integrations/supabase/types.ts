@@ -898,6 +898,7 @@ export type Database = {
           cnh_category: string | null
           cnh_expiry_date: string | null
           cnh_photo_url: string | null
+          cnh_url: string | null
           cnh_validation_status: string | null
           contact_phone: string | null
           cooperative: string | null
@@ -906,7 +907,9 @@ export type Database = {
           current_location_lat: number | null
           current_location_lng: number | null
           document: string | null
+          document_cpf_url: string | null
           document_photo_url: string | null
+          document_rg_url: string | null
           document_validation_status: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
@@ -938,7 +941,10 @@ export type Database = {
           truck_photo_url: string | null
           updated_at: string
           user_id: string
+          validated_at: string | null
+          validated_by: string | null
           validation_notes: string | null
+          validation_status: string | null
           vehicle_other_type: string | null
           vehicle_specifications: string | null
         }
@@ -950,6 +956,7 @@ export type Database = {
           cnh_category?: string | null
           cnh_expiry_date?: string | null
           cnh_photo_url?: string | null
+          cnh_url?: string | null
           cnh_validation_status?: string | null
           contact_phone?: string | null
           cooperative?: string | null
@@ -958,7 +965,9 @@ export type Database = {
           current_location_lat?: number | null
           current_location_lng?: number | null
           document?: string | null
+          document_cpf_url?: string | null
           document_photo_url?: string | null
+          document_rg_url?: string | null
           document_validation_status?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -990,7 +999,10 @@ export type Database = {
           truck_photo_url?: string | null
           updated_at?: string
           user_id: string
+          validated_at?: string | null
+          validated_by?: string | null
           validation_notes?: string | null
+          validation_status?: string | null
           vehicle_other_type?: string | null
           vehicle_specifications?: string | null
         }
@@ -1002,6 +1014,7 @@ export type Database = {
           cnh_category?: string | null
           cnh_expiry_date?: string | null
           cnh_photo_url?: string | null
+          cnh_url?: string | null
           cnh_validation_status?: string | null
           contact_phone?: string | null
           cooperative?: string | null
@@ -1010,7 +1023,9 @@ export type Database = {
           current_location_lat?: number | null
           current_location_lng?: number | null
           document?: string | null
+          document_cpf_url?: string | null
           document_photo_url?: string | null
+          document_rg_url?: string | null
           document_validation_status?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -1042,11 +1057,22 @@ export type Database = {
           truck_photo_url?: string | null
           updated_at?: string
           user_id?: string
+          validated_at?: string | null
+          validated_by?: string | null
           validation_notes?: string | null
+          validation_status?: string | null
           vehicle_other_type?: string | null
           vehicle_specifications?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       promotions: {
         Row: {

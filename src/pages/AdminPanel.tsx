@@ -8,7 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Users, Truck, Package, FileText, Eye, Search, LayoutDashboard, Building2, HelpCircle, UserPlus, Folder, TrendingUp, DollarSign, CreditCard, Menu } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Truck, Package, FileText, Eye, Search, LayoutDashboard, Building2, HelpCircle, UserPlus, Folder, TrendingUp, DollarSign, CreditCard, Menu, Building, Wrench } from 'lucide-react';
+import { AdminValidationPanel } from '@/components/AdminValidationPanel';
+import { AdminReportsPanel } from '@/components/AdminReportsPanel';
+import { AdminServiceProviderValidation } from '@/components/AdminServiceProviderValidation';
 
 interface Profile {
   id: string;
@@ -36,6 +39,7 @@ const sidebarItems = [
 const approvalItems = [
   { title: "Motoristas", icon: Truck, id: "drivers" },
   { title: "Passageiros", icon: Users, id: "passengers" },
+  { title: "Prestadores", icon: Wrench, id: "service-providers" },
 ];
 
 const moduleItems = [
@@ -48,8 +52,7 @@ const financialItems = [
   { title: "Contas Digitais", icon: CreditCard, id: "digital-accounts" },
 ];
 
-function AdminSidebar() {
-  const [activeItem, setActiveItem] = useState("drivers");
+function AdminSidebar({ activeItem, setActiveItem }: { activeItem: string; setActiveItem: (item: string) => void }) {
   const [openGroup, setOpenGroup] = useState("approvals");
 
   return (
@@ -156,6 +159,7 @@ const AdminPanel = () => {
   const [pendingUsers, setPendingUsers] = useState<Profile[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeItem, setActiveItem] = useState("drivers");
   
   // Filters
   const [nameFilter, setNameFilter] = useState('');
@@ -261,7 +265,7 @@ const AdminPanel = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
-        <AdminSidebar />
+        <AdminSidebar activeItem={activeItem} setActiveItem={setActiveItem} />
         
         <div className="flex-1 flex flex-col">
           {/* Header */}
@@ -276,151 +280,157 @@ const AdminPanel = () => {
 
           {/* Main Content */}
           <main className="flex-1 p-6">
-            <div className="space-y-6">
-              {/* Title */}
-              <div className="flex items-center gap-2 mb-6">
-                <h2 className="text-2xl font-semibold text-gray-800">Aprovações de Motoristas</h2>
-                <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                  {filteredUsers.filter(u => u.status === 'PENDING').length}
-                </div>
-              </div>
-
-              {/* Filters */}
-              <Card className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 mb-1 block">Nome</label>
-                    <Input
-                      placeholder="Digite para pesquisar"
-                      value={nameFilter}
-                      onChange={(e) => setNameFilter(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 mb-1 block">E-mail</label>
-                    <Input
-                      placeholder="Digite para pesquisar"
-                      value={emailFilter}
-                      onChange={(e) => setEmailFilter(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 mb-1 block">CPF</label>
-                    <Input
-                      placeholder="Digite para pesquisar"
-                      value={cpfFilter}
-                      onChange={(e) => setCpfFilter(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 mb-1 block">Status</label>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="PENDING">Pendente</SelectItem>
-                        <SelectItem value="APPROVED">Aprovado</SelectItem>
-                        <SelectItem value="REJECTED">Rejeitado</SelectItem>
-                      </SelectContent>
-                    </Select>
+            {activeItem === "drivers" && (
+              <div className="space-y-6">
+                {/* Title */}
+                <div className="flex items-center gap-2 mb-6">
+                  <h2 className="text-2xl font-semibold text-gray-800">Aprovações de Motoristas</h2>
+                  <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                    {filteredUsers.filter(u => u.status === 'PENDING').length}
                   </div>
                 </div>
-              </Card>
 
-              {/* Results Table */}
-              <Card>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader className="bg-gray-50">
-                      <TableRow>
-                        <TableHead className="font-medium text-gray-700">Nome</TableHead>
-                        <TableHead className="font-medium text-gray-700">CPF / NIF / CNPJ</TableHead>
-                        <TableHead className="font-medium text-gray-700">Telefone</TableHead>
-                        <TableHead className="font-medium text-gray-700">Status</TableHead>
-                        <TableHead className="font-medium text-gray-700">Data Cadastro</TableHead>
-                        <TableHead className="font-medium text-gray-700">Ação</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.length === 0 ? (
+                {/* Filters */}
+                <Card className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 mb-1 block">Nome</label>
+                      <Input
+                        placeholder="Digite para pesquisar"
+                        value={nameFilter}
+                        onChange={(e) => setNameFilter(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 mb-1 block">E-mail</label>
+                      <Input
+                        placeholder="Digite para pesquisar"
+                        value={emailFilter}
+                        onChange={(e) => setEmailFilter(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 mb-1 block">CPF</label>
+                      <Input
+                        placeholder="Digite para pesquisar"
+                        value={cpfFilter}
+                        onChange={(e) => setCpfFilter(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 mb-1 block">Status</label>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          <SelectItem value="PENDING">Pendente</SelectItem>
+                          <SelectItem value="APPROVED">Aprovado</SelectItem>
+                          <SelectItem value="REJECTED">Rejeitado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Results Table */}
+                <Card>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader className="bg-gray-50">
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                            Nenhum usuário encontrado com os filtros aplicados
-                          </TableCell>
+                          <TableHead className="font-medium text-gray-700">Nome</TableHead>
+                          <TableHead className="font-medium text-gray-700">CPF / NIF / CNPJ</TableHead>
+                          <TableHead className="font-medium text-gray-700">Telefone</TableHead>
+                          <TableHead className="font-medium text-gray-700">Status</TableHead>
+                          <TableHead className="font-medium text-gray-700">Data Cadastro</TableHead>
+                          <TableHead className="font-medium text-gray-700">Ação</TableHead>
                         </TableRow>
-                      ) : (
-                        filteredUsers.map((user) => (
-                          <TableRow key={user.id} className="hover:bg-gray-50">
-                            <TableCell className="font-medium text-blue-600">
-                              {user.full_name}
-                            </TableCell>
-                            <TableCell className="text-gray-600">
-                              {user.cpf_cnpj || '-'}
-                            </TableCell>
-                            <TableCell className="text-gray-600">
-                              {user.phone || '-'}
-                            </TableCell>
-                            <TableCell>
-                              {getStatusBadge(user.status)}
-                            </TableCell>
-                            <TableCell className="text-gray-600">
-                              {new Date(user.created_at).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                {user.status === 'PENDING' && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleUserApproval(user.id, true)}
-                                      className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700"
-                                    >
-                                      <CheckCircle className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => handleUserApproval(user.id, false)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <XCircle className="h-4 w-4" />
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                              Nenhum usuário encontrado com os filtros aplicados
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+                        ) : (
+                          filteredUsers.map((user) => (
+                            <TableRow key={user.id} className="hover:bg-gray-50">
+                              <TableCell className="font-medium text-blue-600">
+                                {user.full_name}
+                              </TableCell>
+                              <TableCell className="text-gray-600">
+                                {user.cpf_cnpj || '-'}
+                              </TableCell>
+                              <TableCell className="text-gray-600">
+                                {user.phone || '-'}
+                              </TableCell>
+                              <TableCell>
+                                {getStatusBadge(user.status)}
+                              </TableCell>
+                              <TableCell className="text-gray-600">
+                                {new Date(user.created_at).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  {user.status === 'PENDING' && (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleUserApproval(user.id, true)}
+                                        className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700"
+                                      >
+                                        <CheckCircle className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => handleUserApproval(user.id, false)}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <XCircle className="h-4 w-4" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
 
-              {/* Pagination Info */}
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <div>
-                  Items per page: 20
-                </div>
-                <div>
-                  1 – 1 of 1
+                {/* Pagination Info */}
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <div>
+                    Items per page: 20
+                  </div>
+                  <div>
+                    1 – 1 of 1
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {activeItem === "service-providers" && <AdminServiceProviderValidation />}
+            {activeItem === "passengers" && <AdminValidationPanel />}
+            {activeItem === "reports" && <AdminReportsPanel />}
           </main>
         </div>
       </div>

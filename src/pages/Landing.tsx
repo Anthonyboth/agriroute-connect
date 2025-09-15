@@ -413,6 +413,7 @@ const Landing = () => {
             <div>
               <h4 className="font-semibold text-foreground mb-4">Suporte</h4>
               <ul className="space-y-2 text-muted-foreground">
+                <li><a href="/cadastro-prestador" className="hover:text-foreground transition-smooth">Ser Prestador</a></li>
                 <li><a href="#contact" className="hover:text-foreground transition-smooth">Central de Ajuda</a></li>
                 <li><a href="mailto:anthony_pva@hotmail.com" className="hover:text-foreground transition-smooth">Contato</a></li>
                 <li><a href="/status" className="hover:text-foreground transition-smooth">Status</a></li>

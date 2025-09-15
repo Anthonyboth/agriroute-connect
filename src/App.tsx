@@ -10,6 +10,7 @@ import CompleteProfile from "./pages/CompleteProfile";
 import AdminPanel from "./pages/AdminPanel";
 import ProducerDashboard from "./pages/ProducerDashboard";
 import DriverDashboard from "./pages/DriverDashboard";
+import ServiceProviderRegistration from "./pages/ServiceProviderRegistration";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
@@ -104,6 +105,7 @@ const App = () => (
               } 
             />
             <Route path="/subscription" element={<Subscription />} />
+            <Route path="/cadastro-prestador" element={<ServiceProviderRegistration />} />
             <Route path="/sobre" element={<About />} />
             <Route path="/privacidade" element={<Privacy />} />
             <Route path="/termos" element={<Terms />} />
