@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { GuinchoModal } from './GuinchoModal';
 import { ServiceProviderRegistrationModal } from './ServiceProviderRegistrationModal';
+import { ServiceProvidersListing } from './ServiceProvidersListing';
 
 interface ServicesModalProps {
   isOpen: boolean;
@@ -72,17 +73,23 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
   onClose
 }) => {
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedServiceTitle, setSelectedServiceTitle] = useState<string>('');
   const [showGuincho, setShowGuincho] = useState(false);
   const [showRegistration, setShowRegistration] = useState(false);
+  const [showProvidersList, setShowProvidersList] = useState(false);
 
   const handleServiceSelect = (serviceId: string) => {
     if (serviceId === 'guincho') {
       setShowGuincho(true);
       onClose();
     } else {
-      setSelectedService(serviceId);
-      // Para outros serviços, por enquanto apenas mostra uma mensagem
-      // TODO: Implementar formulários específicos para cada serviço
+      const service = serviceTypes.find(s => s.id === serviceId);
+      if (service) {
+        setSelectedService(serviceId.toUpperCase());
+        setSelectedServiceTitle(service.title);
+        setShowProvidersList(true);
+        onClose();
+      }
     }
   };
 
@@ -164,6 +171,19 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
         isOpen={showRegistration}
         onClose={() => setShowRegistration(false)}
       />
+
+      {selectedService && (
+        <ServiceProvidersListing
+          isOpen={showProvidersList}
+          onClose={() => {
+            setShowProvidersList(false);
+            setSelectedService(null);
+            setSelectedServiceTitle('');
+          }}
+          serviceType={selectedService}
+          serviceTitle={selectedServiceTitle}
+        />
+      )}
     </>
   );
 };
