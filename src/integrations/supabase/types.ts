@@ -1915,6 +1915,18 @@ export type Database = {
           weight: number
         }[]
       }
+      get_platform_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avaliacao_media: number
+          fretes_entregues: number
+          motoristas: number
+          peso_total: number
+          produtores: number
+          total_fretes: number
+          total_usuarios: number
+        }[]
+      }
       get_provider_service_requests: {
         Args: { provider_profile_id: string }
         Returns: {

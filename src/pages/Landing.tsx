@@ -64,25 +64,36 @@ const Landing = () => {
 
   const fetchRealStats = async () => {
     try {
-      // Buscar estatísticas reais do banco de dados
-      const { data: statsData, error } = await supabase.rpc('get_platform_stats');
-      
-      if (error) {
-        console.error('Erro ao buscar estatísticas:', error);
-        return;
-      }
+      // Buscar estatísticas diretamente das tabelas
+      const [
+        { count: producersCount },
+        { count: driversCount },
+        { count: completedCount },
+        { data: weightData },
+        { count: totalUsersCount },
+        { data: ratingsData }
+      ] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'PRODUTOR'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'MOTORISTA'),
+        supabase.from('freights').select('*', { count: 'exact', head: true }).eq('status', 'DELIVERED'),
+        supabase.from('freights').select('weight').eq('status', 'DELIVERED'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('rating').not('rating', 'is', null).gt('rating', 0)
+      ]);
 
-      if (statsData && statsData.length > 0) {
-        const stats = statsData[0];
-        setRealStats({
-          totalProducers: stats.produtores || 0,
-          totalDrivers: stats.motoristas || 0,
-          totalWeight: Math.round(stats.peso_total || 0),
-          completedFreights: stats.fretes_entregues || 0,
-          totalUsers: stats.total_usuarios || 0,
-          averageRating: Math.round((stats.avaliacao_media || 0) * 10) / 10
-        });
-      }
+      const totalWeight = weightData?.reduce((sum, freight) => sum + (freight.weight || 0), 0) || 0;
+      const averageRating = ratingsData && ratingsData.length > 0 
+        ? ratingsData.reduce((sum, profile) => sum + (profile.rating || 0), 0) / ratingsData.length 
+        : 0;
+
+      setRealStats({
+        totalProducers: producersCount || 0,
+        totalDrivers: driversCount || 0,
+        totalWeight: Math.round(totalWeight),
+        completedFreights: completedCount || 0,
+        totalUsers: totalUsersCount || 0,
+        averageRating: Math.round(averageRating * 10) / 10
+      });
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error);
       // Em caso de erro, manter valores zerados
@@ -175,7 +186,7 @@ const Landing = () => {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => setGuestServiceModal({ isOpen: true, serviceType: 'GUINCHO' })}
+                onClick={() => setServicesModal(true)}
                 className="hidden lg:flex"
               >
                 Solicitar Serviço
@@ -418,9 +429,9 @@ const Landing = () => {
               <h4 className="font-semibold text-foreground mb-4">Plataforma</h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li><a href="/sobre" className="hover:text-foreground transition-smooth">Sobre nós</a></li>
-                <li><a href="#" className="hover:text-foreground transition-smooth" onClick={(e) => { e.preventDefault(); setHowItWorksModal({ isOpen: true }); }}>Como funciona</a></li>
+                <li><button onClick={() => setHowItWorksModal({ isOpen: true })} className="hover:text-foreground transition-smooth text-left">Como funciona</button></li>
                 <li><a href="/imprensa" className="hover:text-foreground transition-smooth">Imprensa</a></li>
-                <li><a href="#contact" className="hover:text-foreground transition-smooth">Carreiras</a></li>
+                <li><button onClick={() => setContactModal(true)} className="hover:text-foreground transition-smooth text-left">Carreiras</button></li>
               </ul>
             </div>
             
@@ -446,7 +457,12 @@ const Landing = () => {
           </div>
           
           <div className="border-t mt-12 pt-8 flex flex-col md:flex-row justify-between items-center text-muted-foreground">
-            <p>&copy; 2024 AgriRoute. Todos os direitos reservados.</p>
+            <p>
+              &copy; 2024 AgriRoute. Todos os direitos reservados. | 
+              <a href="/system-test" className="hover:text-foreground transition-smooth ml-1">
+                Verificação do Sistema
+              </a>
+            </p>
             <p className="text-xs mt-2 md:mt-0">
               Agronegócio representa 24.8% do PIB brasileiro
             </p>

@@ -21,6 +21,7 @@ import Status from "./pages/Status";
 import Press from "./pages/Press";
 import Subscription from "./pages/Subscription";
 import Plans from "./pages/Plans";
+import SystemTest from "./pages/SystemTest";
 import { useAuth } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
@@ -118,6 +119,7 @@ const App = () => (
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/status" element={<Status />} />
             <Route path="/imprensa" element={<Press />} />
+            <Route path="/system-test" element={<SystemTest />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
