@@ -193,7 +193,8 @@ const Landing = () => {
             conectando produtores e transportadores de forma inteligente.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-10">
+          {/* Main Action Buttons in 2x2 Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
             <Button 
               size="lg"
               onClick={() => handleGetStarted('PRODUTOR')}
@@ -212,24 +213,21 @@ const Landing = () => {
               Sou Motorista
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-          </div>
-
-          {/* Quick Service Buttons */}
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+            
             <Button 
               variant="outline"
               onClick={() => setServicesModal(true)}
-              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base px-5 py-3 rounded-lg"
+              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-lg px-8 py-6 rounded-xl"
             >
-              <Wrench className="mr-2 h-4 w-4" />
+              <Wrench className="mr-2 h-5 w-5" />
               Preciso de Guincho ou Serviços
             </Button>
             <Button 
               variant="outline"
               onClick={() => setMudancaModal(true)}
-              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base px-5 py-3 rounded-lg"
+              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-lg px-8 py-6 rounded-xl"
             >
-              <Home className="mr-2 h-4 w-4" />
+              <Home className="mr-2 h-5 w-5" />
               Preciso de Frete Urbano ou Mudança
             </Button>
           </div>
