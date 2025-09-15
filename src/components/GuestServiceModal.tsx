@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { User, MessageCircle, Mail, Truck, Home, Package } from 'lucide-react';
+import { LocationFillButton } from './LocationFillButton';
 
 
 interface GuestServiceModalProps {
@@ -34,7 +35,11 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
     destination: '',
     description: '',
     urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
-    preferredTime: ''
+    preferredTime: '',
+    origin_lat: undefined as number | undefined,
+    origin_lng: undefined as number | undefined,
+    destination_lat: undefined as number | undefined,
+    destination_lng: undefined as number | undefined
   });
 
   const serviceInfo = {
@@ -49,14 +54,15 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
       features: ['Atendimento 24h', 'Profissionais qualificados', 'Preços transparentes']
     },
     MUDANCA: {
-      title: 'Solicitar Mudança',
-      description: 'Mudança residencial ou comercial com segurança',
+      title: 'Solicitar Mudança ou Frete Urbano',
+      description: 'Mudança residencial, comercial ou frete urbano',
       icon: '📦',
       subServices: [
         { id: 'MUDANCA_RESIDENCIAL', name: 'Mudança Residencial', description: 'Casa ou apartamento', price: 'A partir de R$ 200' },
-        { id: 'MUDANCA_COMERCIAL', name: 'Mudança Comercial', description: 'Escritórios e lojas', price: 'A partir de R$ 300' }
+        { id: 'MUDANCA_COMERCIAL', name: 'Mudança Comercial', description: 'Escritórios e lojas', price: 'A partir de R$ 300' },
+        { id: 'FRETE_URBANO_SIMPLES', name: 'Frete Urbano', description: 'Transporte de objetos', price: 'A partir de R$ 50' }
       ],
-      features: ['Embalagem inclusa', 'Seguro opcional', 'Montagem/desmontagem']
+      features: ['Embalagem inclusa', 'Seguro opcional', 'Montagem/desmontagem', 'Entrega rápida']
     },
     FRETE_URBANO: {
       title: 'Solicitar Frete Urbano',
@@ -150,28 +156,56 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                     </div>
                   </div>
 
-                  {serviceType !== 'GUINCHO' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="origin">Origem *</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="origin">Origem *</Label>
+                      <div className="flex gap-2">
                         <Input
                           id="origin"
                           value={formData.origin}
                           onChange={(e) => handleInputChange('origin', e.target.value)}
                           required
+                          className="flex-1"
+                          placeholder={serviceType === 'GUINCHO' ? 'Onde está o veículo?' : 'Local de coleta'}
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="destination">Destino *</Label>
-                        <Input
-                          id="destination"
-                          value={formData.destination}
-                          onChange={(e) => handleInputChange('destination', e.target.value)}
-                          required
+                        <LocationFillButton
+                          onLocationFilled={(address, lat, lng) => {
+                            handleInputChange('origin', address);
+                            setFormData(prev => ({
+                              ...prev,
+                              origin_lat: lat,
+                              origin_lng: lng
+                            }));
+                          }}
                         />
                       </div>
                     </div>
-                  )}
+                    {serviceType !== 'GUINCHO' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="destination">Destino *</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="destination"
+                            value={formData.destination}
+                            onChange={(e) => handleInputChange('destination', e.target.value)}
+                            required
+                            className="flex-1"
+                            placeholder="Local de entrega"
+                          />
+                          <LocationFillButton
+                            onLocationFilled={(address, lat, lng) => {
+                              handleInputChange('destination', address);
+                              setFormData(prev => ({
+                                ...prev,
+                                destination_lat: lat,
+                                destination_lng: lng
+                              }));
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="description">Descrição *</Label>

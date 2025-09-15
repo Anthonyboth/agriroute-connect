@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Wrench, MapPin, Clock, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { LocationFillButton } from './LocationFillButton';
 
 interface GuinchoModalProps {
   isOpen: boolean;
@@ -29,7 +30,11 @@ export const GuinchoModal: React.FC<GuinchoModalProps> = ({ isOpen, onClose }) =
     problem_description: '',
     emergency: false,
     contact_phone: '',
-    additional_info: ''
+    additional_info: '',
+    origin_lat: undefined as number | undefined,
+    origin_lng: undefined as number | undefined,
+    destination_lat: undefined as number | undefined,
+    destination_lng: undefined as number | undefined
   });
 
   const vehicleTypes = [
@@ -136,7 +141,11 @@ export const GuinchoModal: React.FC<GuinchoModalProps> = ({ isOpen, onClose }) =
         problem_description: '',
         emergency: false,
         contact_phone: '',
-        additional_info: ''
+        additional_info: '',
+        origin_lat: undefined,
+        origin_lng: undefined,
+        destination_lat: undefined,
+        destination_lng: undefined
       });
       setPricing(null);
     } catch (error) {
@@ -212,24 +221,50 @@ export const GuinchoModal: React.FC<GuinchoModalProps> = ({ isOpen, onClose }) =
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="origin_address">Local de Retirada</Label>
-              <Input
-                id="origin_address"
-                value={formData.origin_address}
-                onChange={(e) => setFormData({...formData, origin_address: e.target.value})}
-                placeholder="Endereço completo onde está o veículo"
-                required
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="origin_address"
+                  value={formData.origin_address}
+                  onChange={(e) => setFormData({...formData, origin_address: e.target.value})}
+                  placeholder="Endereço completo onde está o veículo"
+                  required
+                  className="flex-1"
+                />
+                <LocationFillButton
+                  onLocationFilled={(address, lat, lng) => {
+                    setFormData({
+                      ...formData, 
+                      origin_address: address,
+                      origin_lat: lat,
+                      origin_lng: lng
+                    });
+                  }}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="destination_address">Local de Destino</Label>
-              <Input
-                id="destination_address"
-                value={formData.destination_address}
-                onChange={(e) => setFormData({...formData, destination_address: e.target.value})}
-                placeholder="Para onde levar o veículo"
-                required
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="destination_address"
+                  value={formData.destination_address}
+                  onChange={(e) => setFormData({...formData, destination_address: e.target.value})}
+                  placeholder="Para onde levar o veículo"
+                  required
+                  className="flex-1"
+                />
+                <LocationFillButton
+                  onLocationFilled={(address, lat, lng) => {
+                    setFormData({
+                      ...formData, 
+                      destination_address: address,
+                      destination_lat: lat,
+                      destination_lng: lng
+                    });
+                  }}
+                />
+              </div>
             </div>
           </div>
 

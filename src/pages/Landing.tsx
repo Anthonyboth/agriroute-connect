@@ -227,16 +227,16 @@ const Landing = () => {
             
             <Button 
               variant="outline"
-              onClick={() => setGuestServiceModal({ isOpen: true, serviceType: 'GUINCHO' })}
-              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-lg px-8 py-6 rounded-xl"
+              onClick={() => setServicesModal(true)}
+              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-lg px-8 py-6 rounded-xl shadow-elegant hover:scale-105 transition-bounce"
             >
               <Wrench className="mr-2 h-5 w-5" />
               Preciso de Guincho ou Serviços
             </Button>
             <Button 
               variant="outline"
-              onClick={() => setGuestServiceModal({ isOpen: true, serviceType: 'FRETE_URBANO' })}
-              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-lg px-8 py-6 rounded-xl"
+              onClick={() => setGuestServiceModal({ isOpen: true, serviceType: 'MUDANCA' })}
+              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-lg px-8 py-6 rounded-xl shadow-elegant hover:scale-105 transition-bounce"
             >
               <Home className="mr-2 h-5 w-5" />
               Preciso de Frete Urbano ou Mudança

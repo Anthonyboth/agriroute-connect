@@ -29,42 +29,42 @@ const serviceTypes = [
     title: 'Guincho',
     description: 'Reboque e transporte de veículos',
     icon: Truck,
-    color: 'text-red-500'
+    color: 'text-primary'
   },
   {
     id: 'mecanico',
     title: 'Mecânico',
     description: 'Reparos mecânicos em geral',
     icon: Settings,
-    color: 'text-blue-500'
+    color: 'text-secondary'
   },
   {
     id: 'borracheiro',
     title: 'Borracheiro',
     description: 'Troca e reparo de pneus',
     icon: Car,
-    color: 'text-green-500'
+    color: 'text-accent'
   },
   {
     id: 'eletricista',
     title: 'Eletricista Automotivo',
     description: 'Problemas elétricos e bateria',
     icon: Zap,
-    color: 'text-yellow-500'
+    color: 'text-warning'
   },
   {
     id: 'combustivel',
     title: 'Combustível',
     description: 'Entrega de combustível',
     icon: Fuel,
-    color: 'text-orange-500'
+    color: 'text-destructive'
   },
   {
     id: 'chaveiro',
     title: 'Chaveiro',
     description: 'Abertura de veículos travados',
     icon: Shield,
-    color: 'text-purple-500'
+    color: 'text-muted-foreground'
   }
 ];
 
@@ -118,14 +118,14 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
                   return (
                     <Card 
                       key={service.id}
-                      className="cursor-pointer hover:shadow-lg transition-shadow duration-200 border-2 hover:border-primary"
+                      className="cursor-pointer hover:shadow-glow transition-all duration-300 border-2 hover:border-primary hover:scale-105 group"
                       onClick={() => handleServiceSelect(service.id)}
                     >
                       <CardHeader className="text-center pb-2">
-                        <div className="flex justify-center mb-2">
-                          <IconComponent className={`h-8 w-8 ${service.color}`} />
+                        <div className="flex justify-center mb-3 p-3 rounded-full bg-gradient-to-br from-primary/10 to-secondary/10 group-hover:from-primary/20 group-hover:to-secondary/20 transition-all">
+                          <IconComponent className={`h-6 w-6 ${service.color} group-hover:scale-110 transition-transform`} />
                         </div>
-                        <CardTitle className="text-lg">{service.title}</CardTitle>
+                        <CardTitle className="text-lg group-hover:text-primary transition-colors">{service.title}</CardTitle>
                       </CardHeader>
                       <CardContent className="pt-0">
                         <CardDescription className="text-center text-sm">
@@ -141,16 +141,23 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
             {/* Divisor */}
             <div className="border-t pt-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <Hammer className="mr-2 h-5 w-5" />
+                <Hammer className="mr-2 h-5 w-5 text-primary" />
                 Quero ser Prestador de Serviços
               </h3>
-              <Card className="bg-gradient-to-r from-primary/10 to-secondary/10">
+              <Card className="gradient-subtle border-primary/20 shadow-card">
                 <CardContent className="p-6">
                   <div className="text-center space-y-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full gradient-primary mb-2">
+                      <Hammer className="h-8 w-8 text-primary-foreground" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-foreground">Seja um Prestador</h4>
                     <p className="text-muted-foreground">
                       Cadastre-se como prestador de serviços e comece a receber solicitações na sua região
                     </p>
-                    <Button onClick={handleBecomeProvider} className="w-full sm:w-auto">
+                    <Button 
+                      onClick={handleBecomeProvider} 
+                      className="gradient-primary text-primary-foreground shadow-glow hover:scale-105 transition-bounce"
+                    >
                       Cadastrar como Prestador
                     </Button>
                   </div>

@@ -22,6 +22,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { LocationFillButton } from './LocationFillButton';
 
 interface ServiceProvider {
   id: string;
@@ -315,13 +316,26 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                 {/* Localização */}
                 <div>
                   <Label htmlFor="location">Local do atendimento *</Label>
-                  <Input
-                    id="location"
-                    required
-                    value={formData.location}
-                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                    placeholder="Endereço completo onde precisa do serviço"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="location"
+                      required
+                      value={formData.location}
+                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                      placeholder="Endereço completo onde precisa do serviço"
+                      className="flex-1"
+                    />
+                    <LocationFillButton
+                      onLocationFilled={(address, lat, lng) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          location: address,
+                          locationLat: lat,
+                          locationLng: lng
+                        }));
+                      }}
+                    />
+                  </div>
                 </div>
 
                 {/* Informações do Veículo/Problema */}
