@@ -8,6 +8,7 @@ import MudancaModal from '@/components/MudancaModal';
 import GuestServiceModal from '@/components/GuestServiceModal';
 import HowItWorksModal from '@/components/HowItWorksModal';
 import { ServicesModal } from '@/components/ServicesModal';
+import { ContactModal } from '@/components/ContactModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail } from 'lucide-react';
 import heroImage from '@/assets/hero-logistics.jpg';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,11 +27,14 @@ const Landing = () => {
   const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' }>({
     isOpen: false,
   });
+  const [contactModal, setContactModal] = useState(false);
   const [realStats, setRealStats] = useState({
     totalProducers: 0,
     totalDrivers: 0,
     totalWeight: 0,
-    completedFreights: 0
+    completedFreights: 0,
+    totalUsers: 0,
+    averageRating: 0
   });
 
   const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA') => {
@@ -60,40 +64,36 @@ const Landing = () => {
 
   const fetchRealStats = async () => {
     try {
-      // Buscar número de produtores
-      const { count: producersCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'PRODUTOR');
+      // Buscar estatísticas reais do banco de dados
+      const { data: statsData, error } = await supabase.rpc('get_platform_stats');
+      
+      if (error) {
+        console.error('Erro ao buscar estatísticas:', error);
+        return;
+      }
 
-      // Buscar número de motoristas
-      const { count: driversCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'MOTORISTA');
-
-      // Buscar fretes entregues
-      const { count: completedCount } = await supabase
-        .from('freights')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'DELIVERED');
-
-      // Buscar peso total transportado (fretes entregues)
-      const { data: weightData } = await supabase
-        .from('freights')
-        .select('weight')
-        .eq('status', 'DELIVERED');
-
-      const totalWeight = weightData?.reduce((sum, freight) => sum + (freight.weight || 0), 0) || 0;
-
-      setRealStats({
-        totalProducers: producersCount || 0,
-        totalDrivers: driversCount || 0,
-        totalWeight: Math.round(totalWeight),
-        completedFreights: completedCount || 0
-      });
+      if (statsData && statsData.length > 0) {
+        const stats = statsData[0];
+        setRealStats({
+          totalProducers: stats.produtores || 0,
+          totalDrivers: stats.motoristas || 0,
+          totalWeight: Math.round(stats.peso_total || 0),
+          completedFreights: stats.fretes_entregues || 0,
+          totalUsers: stats.total_usuarios || 0,
+          averageRating: Math.round((stats.avaliacao_media || 0) * 10) / 10
+        });
+      }
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error);
+      // Em caso de erro, manter valores zerados
+      setRealStats({
+        totalProducers: 0,
+        totalDrivers: 0,
+        totalWeight: 0,
+        completedFreights: 0,
+        totalUsers: 0,
+        averageRating: 0
+      });
     }
   };
 
@@ -126,20 +126,20 @@ const Landing = () => {
 
   const stats = [
     { 
-      value: realStats.totalProducers > 0 ? `${realStats.totalProducers.toLocaleString()}+` : '10,000+', 
+      value: realStats.totalProducers > 0 ? `${realStats.totalProducers.toLocaleString()}` : '0', 
       label: 'Produtores Conectados' 
     },
     { 
-      value: realStats.totalDrivers > 0 ? `${realStats.totalDrivers.toLocaleString()}+` : '5,000+', 
+      value: realStats.totalDrivers > 0 ? `${realStats.totalDrivers.toLocaleString()}` : '0', 
       label: 'Motoristas Ativos' 
     },
     { 
-      value: realStats.totalWeight > 1000 ? `${Math.round(realStats.totalWeight / 1000).toLocaleString()}K+` : '1M+', 
+      value: realStats.totalWeight > 0 ? `${(realStats.totalWeight / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}k ton` : '0 ton', 
       label: 'Toneladas Transportadas' 
     },
     { 
-      value: realStats.completedFreights > 0 ? `${Math.round((realStats.completedFreights / Math.max(realStats.completedFreights + 10, 100)) * 100)}%` : '98%', 
-      label: 'Satisfação do Cliente' 
+      value: realStats.averageRating > 0 ? `${realStats.averageRating.toFixed(1)}★` : '0★', 
+      label: 'Avaliação Média' 
     }
   ];
 
@@ -152,17 +152,20 @@ const Landing = () => {
             <Leaf className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold text-foreground">AgriRoute</span>
           </div>
-          <nav className="hidden md:flex items-center space-x-6">
-            <a href="#features" className="text-muted-foreground hover:text-foreground transition-smooth">
-              Recursos
-            </a>
-            <a href="/sobre" className="text-muted-foreground hover:text-foreground transition-smooth">
-              Sobre
-            </a>
-            <a href="#contact" className="text-muted-foreground hover:text-foreground transition-smooth">
-              Contato
-            </a>
-          </nav>
+            <nav className="hidden md:flex items-center space-x-6">
+              <a href="#features" className="text-muted-foreground hover:text-foreground transition-smooth">
+                Recursos
+              </a>
+              <a href="/sobre" className="text-muted-foreground hover:text-foreground transition-smooth">
+                Sobre
+              </a>
+              <button 
+                onClick={() => setContactModal(true)}
+                className="text-muted-foreground hover:text-foreground transition-smooth"
+              >
+                Contato
+              </button>
+            </nav>
             <div className="flex items-center space-x-4">
               <Button variant="ghost" onClick={() => navigate('/auth')}>
                 Entrar
