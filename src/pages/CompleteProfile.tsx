@@ -481,23 +481,25 @@ const CompleteProfile = () => {
                             
                             if (uploadError) throw uploadError;
 
-                            const { data: { publicUrl } } = supabase.storage
+                            // URL assinada para visualização (bucket é privado)
+                            const { data: signedData, error: signedErr } = await supabase.storage
                               .from('profile-photos')
-                              .getPublicUrl(path);
+                              .createSignedUrl(path, 60 * 60 * 24); // 24h
+                            if (signedErr) throw signedErr;
 
-                            // Salvar na tabela identity_selfies
+                            // Salvar na tabela identity_selfies (mantemos o caminho do arquivo)
                             const { error: dbError } = await supabase
                               .from('identity_selfies')
                               .upsert({
                                 user_id: user.id,
-                                selfie_url: publicUrl,
+                                selfie_url: path,
                                 upload_method: uploadMethod,
                                 verification_status: 'PENDING'
-                              });
+                              }, { onConflict: 'user_id' });
 
                             if (dbError) throw dbError;
 
-                            setDocumentUrls(prev => ({ ...prev, selfie: publicUrl }));
+                            setDocumentUrls(prev => ({ ...prev, selfie: signedData?.signedUrl || '' }));
                             toast.success(`Selfie ${uploadMethod === 'CAMERA' ? 'capturada' : 'enviada da galeria'} com sucesso!`);
                             setShowSelfieModal(false);
                           } catch (err) {
