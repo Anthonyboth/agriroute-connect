@@ -6,6 +6,7 @@ import AuthModal from '@/components/AuthModal';
 import GuinchoModal from '@/components/GuinchoModal';
 import MudancaModal from '@/components/MudancaModal';
 import HowItWorksModal from '@/components/HowItWorksModal';
+import { ServicesModal } from '@/components/ServicesModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail } from 'lucide-react';
 import heroImage from '@/assets/hero-logistics.jpg';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,6 +18,7 @@ const Landing = () => {
   });
   const [guinchoModal, setGuinchoModal] = useState(false);
   const [mudancaModal, setMudancaModal] = useState(false);
+  const [servicesModal, setServicesModal] = useState(false);
   const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' }>({
     isOpen: false,
   });
@@ -216,11 +218,11 @@ const Landing = () => {
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <Button 
               variant="outline"
-              onClick={() => setGuinchoModal(true)}
+              onClick={() => setServicesModal(true)}
               className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base px-5 py-3 rounded-lg"
             >
               <Wrench className="mr-2 h-4 w-4" />
-              Preciso de Guincho
+              Preciso de Guincho ou Serviços
             </Button>
             <Button 
               variant="outline"
@@ -453,6 +455,11 @@ const Landing = () => {
       <MudancaModal
         isOpen={mudancaModal}
         onClose={() => setMudancaModal(false)}
+      />
+
+      <ServicesModal 
+        isOpen={servicesModal}
+        onClose={() => setServicesModal(false)}
       />
 
       {howItWorksModal.userType && (
