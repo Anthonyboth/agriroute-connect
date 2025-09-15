@@ -25,9 +25,13 @@ export const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = ({
 
       if (error) throw error;
 
-    } catch (error: any) {
+      const msg = String((error && (error as any).message) || error);
       console.error(`Erro no login com ${provider}:`, error);
-      toast.error(`Erro ao fazer login com ${provider}: ${error.message}`);
+      if (msg.includes('provider is not enabled') || msg.toLowerCase().includes('unsupported provider')) {
+        toast.error('Login social desabilitado no Supabase. Habilite o provedor e configure as credenciais em Authentication > Providers.');
+      } else {
+        toast.error(`Erro ao fazer login com ${provider}: ${msg}`);
+      }
     } finally {
       onLoadingChange?.(false);
     }

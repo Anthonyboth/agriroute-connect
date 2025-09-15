@@ -95,7 +95,12 @@ const Auth = () => {
       });
       
       if (error) {
-        toast.error(`Erro no login com ${provider}: ${error.message}`);
+        const msg = String((error as any)?.message || error);
+        if (msg.includes('provider is not enabled') || msg.toLowerCase().includes('unsupported provider')) {
+          toast.error('Login social desabilitado no Supabase. Habilite o Facebook em Authentication > Providers e configure Client ID/Secret e URLs.');
+        } else {
+          toast.error(`Erro no login com ${provider}: ${msg}`);
+        }
       }
     } catch (error) {
       toast.error(`Erro no login com ${provider}`);
