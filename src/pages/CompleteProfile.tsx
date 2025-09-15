@@ -208,6 +208,26 @@ const CompleteProfile = () => {
     }
   };
 
+  const ensureLocationEnabled = async (): Promise<boolean> => {
+    if (locationEnabled) return true;
+    if ('geolocation' in navigator) {
+      try {
+        const enabled = await new Promise<boolean>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            () => { resolve(true); },
+            () => resolve(false),
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+          );
+        });
+        if (enabled) setLocationEnabled(true);
+        return enabled;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  };
+
   const handleSaveAndContinue = async () => {
     if (!profile) return;
 
@@ -264,8 +284,11 @@ const CompleteProfile = () => {
     }
 
     if (!locationEnabled) {
-      toast.error('Ative a localização para continuar');
-      return;
+      const ok = await ensureLocationEnabled();
+      if (!ok) {
+        toast.error('Ative a localização para continuar');
+        return;
+      }
     }
 
     if (vehicles.length === 0) {
