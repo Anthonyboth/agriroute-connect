@@ -49,6 +49,7 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -108,47 +109,77 @@ export const useAuth = () => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      console.log('Fetching profile for user:', userId);
-      const { data: profileData, error } = await supabase
+      console.log('Fetching profiles for user:', userId);
+      const { data: profilesData, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
+        .eq('user_id', userId);
       
       if (error) {
-        console.error('Profile fetch error:', error);
+        console.error('Profiles fetch error:', error);
         setProfile(null);
-      } else if (profileData) {
-        console.log('Profile fetched successfully:', profileData);
-        setProfile(profileData);
+        setProfiles([]);
+      } else if (profilesData && profilesData.length > 0) {
+        console.log('Profiles fetched successfully:', profilesData);
+        setProfiles(profilesData);
+        
+        // Verificar se há um perfil específico salvo no localStorage
+        const savedProfileId = localStorage.getItem('current_profile_id');
+        let activeProfile = profilesData[0]; // Default para o primeiro perfil
+        
+        if (savedProfileId) {
+          const savedProfile = profilesData.find(p => p.id === savedProfileId);
+          if (savedProfile) {
+            activeProfile = savedProfile;
+          }
+        }
+        
+        setProfile(activeProfile);
+        console.log('Active profile set:', activeProfile);
       } else {
-        console.log('Profile not found, user may need to complete registration');
+        console.log('No profiles found, user may need to complete registration');
         setProfile(null);
+        setProfiles([]);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching profiles:', error);
       setProfile(null);
+      setProfiles([]);
     } finally {
       setLoading(false);
     }
   };
 
   const signOut = async () => {
+    // Limpar perfil salvo no logout
+    localStorage.removeItem('current_profile_id');
     await supabase.auth.signOut();
+  };
+
+  const switchProfile = (profileId: string) => {
+    const selectedProfile = profiles.find(p => p.id === profileId);
+    if (selectedProfile) {
+      setProfile(selectedProfile);
+      localStorage.setItem('current_profile_id', profileId);
+    }
   };
 
   const isAuthenticated = !!user;
   const isApproved = profile?.status === 'APPROVED';
   const isAdmin = profile?.role === 'ADMIN';
+  const hasMultipleProfiles = profiles.length > 1;
 
   return {
     user,
     session,
     profile,
+    profiles,
     loading,
     isAuthenticated,
     isApproved,
     isAdmin,
-    signOut
+    hasMultipleProfiles,
+    signOut,
+    switchProfile
   };
 };

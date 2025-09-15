@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Truck, Leaf, User, ArrowLeftRight, Lock, Loader2 } from 'lucide-react';
+import { Truck, Leaf, User, ArrowLeftRight, Lock, Loader2, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Profile {
@@ -23,12 +23,14 @@ interface AccountSwitcherProps {
   isOpen: boolean;
   onClose: () => void;
   currentProfile: Profile | null;
+  onCreateProfile?: () => void;
 }
 
 export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
   isOpen,
   onClose,
-  currentProfile
+  currentProfile,
+  onCreateProfile
 }) => {
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState('');
@@ -40,6 +42,7 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchUserProfiles();
+      setPassword(''); // Limpar senha ao abrir
     }
   }, [isOpen]);
 
@@ -231,10 +234,26 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
               </div>
             ) : (
               <Card className="p-4">
-                <div className="text-center text-muted-foreground">
-                  <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Não há outras contas disponíveis</p>
-                  <p className="text-xs mt-1">Você pode criar uma nova conta como {currentProfile?.role === 'MOTORISTA' ? 'Produtor' : 'Motorista'}</p>
+                <div className="text-center space-y-4">
+                  <User className="w-8 h-8 mx-auto opacity-50" />
+                  <div>
+                    <p className="text-sm font-medium mb-1">Não há outras contas disponíveis</p>
+                    <p className="text-xs text-muted-foreground">
+                      Você pode criar uma conta adicional como {currentProfile?.role === 'MOTORISTA' ? 'Produtor' : 'Motorista'}
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      onClose();
+                      onCreateProfile?.();
+                    }}
+                    className="w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Criar Conta {currentProfile?.role === 'MOTORISTA' ? 'de Produtor' : 'de Motorista'}
+                  </Button>
                 </div>
               </Card>
             )}

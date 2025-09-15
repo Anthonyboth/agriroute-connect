@@ -1870,6 +1870,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_additional_profile: {
+        Args: {
+          p_document?: string
+          p_full_name?: string
+          p_phone?: string
+          p_role: Database["public"]["Enums"]["user_role"]
+          p_user_id: string
+        }
+        Returns: string
+      }
       decrypt_sensitive_data: {
         Args: { encrypted_data: string; key?: string }
         Returns: string

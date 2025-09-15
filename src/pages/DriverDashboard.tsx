@@ -46,7 +46,7 @@ interface Proposal {
 }
 
 const DriverDashboard = () => {
-  const { profile } = useAuth();
+  const { profile, hasMultipleProfiles, signOut } = useAuth();
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
   const [activeTab, setActiveTab] = useState('available');

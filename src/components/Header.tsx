@@ -15,6 +15,7 @@ import { NotificationCenter } from '@/components/NotificationCenter';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { AccountSwitcher } from '@/components/AccountSwitcher';
+import { AddProfileModal } from '@/components/AddProfileModal';
 
 interface User {
   name: string;
@@ -55,6 +56,7 @@ const Header: React.FC<HeaderProps> = ({
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
+  const [showAddProfile, setShowAddProfile] = useState(false);
 
   const menuItems = [
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
@@ -233,6 +235,7 @@ const Header: React.FC<HeaderProps> = ({
       <AccountSwitcher
         isOpen={showAccountSwitcher}
         onClose={() => setShowAccountSwitcher(false)}
+        onCreateProfile={() => setShowAddProfile(true)}
         currentProfile={userProfile ? {
           id: userProfile.id,
           role: userProfile.role,
@@ -241,6 +244,18 @@ const Header: React.FC<HeaderProps> = ({
           profile_photo_url: userProfile.profile_photo_url
         } : null}
       />
+
+      {userProfile && (
+        <AddProfileModal
+          isOpen={showAddProfile}
+          onClose={() => setShowAddProfile(false)}
+          currentRole={userProfile.role}
+          onProfileAdded={() => {
+            // Recarregar dados do usuário
+            window.location.reload();
+          }}
+        />
+      )}
     </>
   );
 };

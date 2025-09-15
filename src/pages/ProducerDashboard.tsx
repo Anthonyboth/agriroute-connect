@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const ProducerDashboard = () => {
-  const { profile, signOut } = useAuth();
+  const { profile, hasMultipleProfiles, signOut } = useAuth();
   const [freights, setFreights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

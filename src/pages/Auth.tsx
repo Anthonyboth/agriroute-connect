@@ -37,47 +37,60 @@ const Auth = () => {
 
   const handleRedirectAfterAuth = async (userId: string) => {
     try {
-      const { data: profile } = await supabase
+      const { data: userProfiles } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', userId)
-        .single();
+        .eq('user_id', userId);
 
-      if (profile) {
-        // Check if profile is complete (has required documents)
-        const isProfileComplete = profile.selfie_url && profile.document_photo_url;
-        const isDriverComplete = profile.role !== 'MOTORISTA' || (
-          profile.cnh_photo_url && 
-          profile.truck_documents_url && 
-          profile.truck_photo_url && 
-          profile.license_plate_photo_url && 
-          profile.address_proof_url &&
-          profile.location_enabled
-        );
+      if (!userProfiles || userProfiles.length === 0) {
+        navigate('/complete-profile');
+        return;
+      }
 
-        if (!isProfileComplete || !isDriverComplete) {
-          navigate('/complete-profile');
-          return;
+      // Se tem múltiplos perfis, usar o salvo no localStorage ou o primeiro
+      let activeProfile = userProfiles[0];
+      const savedProfileId = localStorage.getItem('current_profile_id');
+      
+      if (savedProfileId && userProfiles.length > 1) {
+        const savedProfile = userProfiles.find(p => p.id === savedProfileId);
+        if (savedProfile) {
+          activeProfile = savedProfile;
         }
+      }
 
-        if (profile.status !== 'APPROVED') {
-          toast.info('Sua conta está pendente de aprovação');
-          return;
-        }
+      // Verificar se o perfil está completo
+      const isProfileComplete = activeProfile.selfie_url && activeProfile.document_photo_url;
+      const isDriverComplete = activeProfile.role !== 'MOTORISTA' || (
+        activeProfile.cnh_photo_url && 
+        activeProfile.truck_documents_url && 
+        activeProfile.truck_photo_url && 
+        activeProfile.license_plate_photo_url && 
+        activeProfile.address_proof_url &&
+        activeProfile.location_enabled
+      );
 
-        switch (profile.role) {
-          case 'ADMIN':
-            navigate('/admin');
-            break;
-          case 'MOTORISTA':
-            navigate('/dashboard/driver');
-            break;
-          case 'PRODUTOR':
-            navigate('/dashboard/producer');
-            break;
-          default:
-            navigate('/');
-        }
+      if (!isProfileComplete || !isDriverComplete) {
+        navigate('/complete-profile');
+        return;
+      }
+
+      if (activeProfile.status !== 'APPROVED') {
+        toast.info('Sua conta está pendente de aprovação');
+        return;
+      }
+
+      switch (activeProfile.role) {
+        case 'ADMIN':
+          navigate('/admin');
+          break;
+        case 'MOTORISTA':
+          navigate('/dashboard/driver');
+          break;
+        case 'PRODUTOR':
+          navigate('/dashboard/producer');
+          break;
+        default:
+          navigate('/');
       }
     } catch (error) {
       console.error('Error checking profile:', error);
