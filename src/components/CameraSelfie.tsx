@@ -15,22 +15,36 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
 
   const startCamera = useCallback(async () => {
     try {
+      setVideoReady(false);
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { 
+        video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          facingMode: 'user'
+          facingMode: { ideal: 'user' }
         },
         audio: false
       });
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = mediaStream;
         setStream(mediaStream);
         setIsStreaming(true);
+        
+        const onLoaded = () => {
+          setVideoReady(true);
+          // Ensure playback is started
+          video.play().catch(() => {});
+        };
+        if (video.readyState >= 2) {
+          onLoaded();
+        } else {
+          video.onloadedmetadata = onLoaded;
+        }
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
@@ -47,6 +61,10 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
   }, [stream]);
 
   const capturePhoto = useCallback(() => {
+    if (!videoReady) {
+      toast.message('Aguarde', { description: 'A câmera está carregando...' });
+      return;
+    }
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
       const video = videoRef.current;
@@ -56,15 +74,10 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
         try {
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
-          
-          // Draw the video frame to canvas
           context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-          
-          // Create image URL from canvas
           const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
           setCapturedImage(imageDataUrl);
           stopCamera();
-          
           console.log('Selfie captured successfully');
         } catch (error) {
           console.error('Error capturing photo:', error);
@@ -75,7 +88,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
         toast.error('Erro ao preparar câmera. Tente reiniciar.');
       }
     }
-  }, [stopCamera]);
+  }, [stopCamera, videoReady]);
 
   const retakePhoto = useCallback(() => {
     setCapturedImage(null);
@@ -85,17 +98,15 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
   const confirmPhoto = useCallback(() => {
     if (capturedImage) {
       try {
-        // Convert data URL to blob
-        fetch(capturedImage)
-          .then(res => res.blob())
-          .then(blob => {
-            console.log('Selfie converted to blob successfully');
-            onCapture(blob);
-          })
-          .catch(error => {
-            console.error('Error converting image to blob:', error);
-            toast.error('Erro ao processar foto. Tente novamente.');
-          });
+        // Convert data URL to blob without fetch for broader compatibility
+        const arr = capturedImage.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) u8arr[n] = bstr.charCodeAt(n);
+        const blob = new Blob([u8arr], { type: mime });
+        onCapture(blob);
       } catch (error) {
         console.error('Error confirming photo:', error);
         toast.error('Erro ao confirmar foto. Tente novamente.');
@@ -155,9 +166,9 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
         <div className="flex gap-2 justify-center">
           {isStreaming && (
             <>
-              <Button onClick={capturePhoto} size="lg" className="flex-1">
+              <Button onClick={capturePhoto} size="lg" className="flex-1" disabled={!videoReady} aria-disabled={!videoReady}>
                 <Camera className="mr-2 h-4 w-4" />
-                Capturar
+                {videoReady ? 'Capturar' : 'Carregando...'}
               </Button>
               {onCancel && (
                 <Button variant="outline" onClick={onCancel}>
