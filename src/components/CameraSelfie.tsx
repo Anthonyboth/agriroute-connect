@@ -52,18 +52,27 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
       const video = videoRef.current;
       const context = canvas.getContext('2d');
 
-      if (context) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0);
-
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const imageUrl = URL.createObjectURL(blob);
-            setCapturedImage(imageUrl);
-            stopCamera();
-          }
-        }, 'image/jpeg', 0.9);
+      if (context && video.videoWidth && video.videoHeight) {
+        try {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          
+          // Draw the video frame to canvas
+          context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+          
+          // Create image URL from canvas
+          const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          setCapturedImage(imageDataUrl);
+          stopCamera();
+          
+          console.log('Selfie captured successfully');
+        } catch (error) {
+          console.error('Error capturing photo:', error);
+          toast.error('Erro ao capturar foto. Tente novamente.');
+        }
+      } else {
+        console.error('Canvas context or video dimensions not available');
+        toast.error('Erro ao preparar câmera. Tente reiniciar.');
       }
     }
   }, [stopCamera]);
@@ -74,12 +83,23 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
   }, [startCamera]);
 
   const confirmPhoto = useCallback(() => {
-    if (capturedImage && canvasRef.current) {
-      canvasRef.current.toBlob((blob) => {
-        if (blob) {
-          onCapture(blob);
-        }
-      }, 'image/jpeg', 0.9);
+    if (capturedImage) {
+      try {
+        // Convert data URL to blob
+        fetch(capturedImage)
+          .then(res => res.blob())
+          .then(blob => {
+            console.log('Selfie converted to blob successfully');
+            onCapture(blob);
+          })
+          .catch(error => {
+            console.error('Error converting image to blob:', error);
+            toast.error('Erro ao processar foto. Tente novamente.');
+          });
+      } catch (error) {
+        console.error('Error confirming photo:', error);
+        toast.error('Erro ao confirmar foto. Tente novamente.');
+      }
     }
   }, [capturedImage, onCapture]);
 
