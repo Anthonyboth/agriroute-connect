@@ -250,14 +250,17 @@ const CompleteProfile = () => {
 
   // Validate step 3 requirements for drivers - additional docs and vehicles
   if (currentStep === 3 && profile.role === 'MOTORISTA') {
-    const missingDocs = [];
-    
-    if (!documentUrls.cnh) missingDocs.push('CNH');
-    if (!documentUrls.address_proof) missingDocs.push('Comprovante de residência');
-    
-    if (missingDocs.length > 0) {
-      toast.error(`Documentos faltando: ${missingDocs.join(', ')}`);
-      return;
+    // Se não há veículos cadastrados, exigir documentos
+    if (vehicles.length === 0) {
+      const missingDocs = [];
+      
+      if (!documentUrls.cnh) missingDocs.push('CNH');
+      if (!documentUrls.address_proof) missingDocs.push('Comprovante de residência');
+      
+      if (missingDocs.length > 0) {
+        toast.error(`Documentos faltando: ${missingDocs.join(', ')}`);
+        return;
+      }
     }
 
     if (!locationEnabled) {
