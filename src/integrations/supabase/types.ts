@@ -1403,6 +1403,174 @@ export type Database = {
         }
         Relationships: []
       }
+      urban_service_providers: {
+        Row: {
+          base_price: number | null
+          cnpj: string | null
+          company_name: string | null
+          created_at: string
+          emergency_service: boolean | null
+          equipment_description: string | null
+          id: string
+          insurance_coverage: number | null
+          license_number: string | null
+          price_per_kg: number | null
+          price_per_km: number | null
+          profile_id: string
+          service_area_cities: string[] | null
+          service_radius_km: number | null
+          service_types: string[]
+          specialties: string[] | null
+          updated_at: string
+          vehicle_capacity_kg: number | null
+          vehicle_capacity_m3: number | null
+          vehicle_types: string[] | null
+          work_hours_end: string | null
+          work_hours_start: string | null
+          works_holidays: boolean | null
+          works_weekends: boolean | null
+        }
+        Insert: {
+          base_price?: number | null
+          cnpj?: string | null
+          company_name?: string | null
+          created_at?: string
+          emergency_service?: boolean | null
+          equipment_description?: string | null
+          id?: string
+          insurance_coverage?: number | null
+          license_number?: string | null
+          price_per_kg?: number | null
+          price_per_km?: number | null
+          profile_id: string
+          service_area_cities?: string[] | null
+          service_radius_km?: number | null
+          service_types?: string[]
+          specialties?: string[] | null
+          updated_at?: string
+          vehicle_capacity_kg?: number | null
+          vehicle_capacity_m3?: number | null
+          vehicle_types?: string[] | null
+          work_hours_end?: string | null
+          work_hours_start?: string | null
+          works_holidays?: boolean | null
+          works_weekends?: boolean | null
+        }
+        Update: {
+          base_price?: number | null
+          cnpj?: string | null
+          company_name?: string | null
+          created_at?: string
+          emergency_service?: boolean | null
+          equipment_description?: string | null
+          id?: string
+          insurance_coverage?: number | null
+          license_number?: string | null
+          price_per_kg?: number | null
+          price_per_km?: number | null
+          profile_id?: string
+          service_area_cities?: string[] | null
+          service_radius_km?: number | null
+          service_types?: string[]
+          specialties?: string[] | null
+          updated_at?: string
+          vehicle_capacity_kg?: number | null
+          vehicle_capacity_m3?: number | null
+          vehicle_types?: string[] | null
+          work_hours_end?: string | null
+          work_hours_start?: string | null
+          works_holidays?: boolean | null
+          works_weekends?: boolean | null
+        }
+        Relationships: []
+      }
+      urban_service_requests: {
+        Row: {
+          accepted_at: string | null
+          additional_services: string[] | null
+          client_id: string
+          completed_at: string | null
+          contact_phone: string
+          created_at: string
+          delivery_date: string | null
+          destination_address: string
+          destination_lat: number | null
+          destination_lng: number | null
+          distance_km: number | null
+          estimated_volume: number | null
+          estimated_weight: number | null
+          id: string
+          notes: string | null
+          origin_address: string
+          origin_lat: number | null
+          origin_lng: number | null
+          package_dimensions: string | null
+          pickup_date: string
+          price: number | null
+          provider_id: string | null
+          service_type: string
+          special_items: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          additional_services?: string[] | null
+          client_id: string
+          completed_at?: string | null
+          contact_phone: string
+          created_at?: string
+          delivery_date?: string | null
+          destination_address: string
+          destination_lat?: number | null
+          destination_lng?: number | null
+          distance_km?: number | null
+          estimated_volume?: number | null
+          estimated_weight?: number | null
+          id?: string
+          notes?: string | null
+          origin_address: string
+          origin_lat?: number | null
+          origin_lng?: number | null
+          package_dimensions?: string | null
+          pickup_date: string
+          price?: number | null
+          provider_id?: string | null
+          service_type: string
+          special_items?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          additional_services?: string[] | null
+          client_id?: string
+          completed_at?: string | null
+          contact_phone?: string
+          created_at?: string
+          delivery_date?: string | null
+          destination_address?: string
+          destination_lat?: number | null
+          destination_lng?: number | null
+          distance_km?: number | null
+          estimated_volume?: number | null
+          estimated_weight?: number | null
+          id?: string
+          notes?: string | null
+          origin_address?: string
+          origin_lat?: number | null
+          origin_lng?: number | null
+          package_dimensions?: string | null
+          pickup_date?: string
+          price?: number | null
+          provider_id?: string | null
+          service_type?: string
+          special_items?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_loyalty: {
         Row: {
           completed_freights: number
