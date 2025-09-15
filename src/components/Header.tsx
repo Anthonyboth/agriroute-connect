@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Settings, LogOut, User, Menu, Leaf } from 'lucide-react';
+import { Bell, Settings, LogOut, User, Menu, Leaf, Star } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { UserProfileModal } from '@/components/UserProfileModal';
@@ -57,6 +57,11 @@ const Header: React.FC<HeaderProps> = ({
   const menuItems = [
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
+    { 
+      icon: Star, 
+      label: 'Planos & Assinatura', 
+      action: () => window.location.href = '/plans' 
+    },
   ];
 
   return (

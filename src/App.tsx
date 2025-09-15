@@ -20,6 +20,7 @@ import Cookies from "./pages/Cookies";
 import Status from "./pages/Status";
 import Press from "./pages/Press";
 import Subscription from "./pages/Subscription";
+import Plans from "./pages/Plans";
 import { useAuth } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
@@ -105,6 +106,11 @@ const App = () => (
               } 
             />
             <Route path="/subscription" element={<Subscription />} />
+            <Route path="/plans" element={
+              <ProtectedRoute requiresAuth>
+                <Plans />
+              </ProtectedRoute>
+            } />
             <Route path="/cadastro-prestador" element={<ServiceProviderRegistration />} />
             <Route path="/sobre" element={<About />} />
             <Route path="/privacidade" element={<Privacy />} />

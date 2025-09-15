@@ -45,10 +45,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     subscriptionEnd: null,
     loading: true,
   });
+  const [lastErrorTime, setLastErrorTime] = useState<number>(0);
 
   const checkSubscription = async () => {
     if (!user) {
-      setState(prev => ({ ...prev, loading: false }));
+      setState(prev => ({ ...prev, loading: false, subscriptionTier: 'FREE' }));
       return;
     }
 
@@ -67,8 +68,24 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
       });
     } catch (error) {
       console.error('Error checking subscription:', error);
-      setState(prev => ({ ...prev, loading: false }));
-      toast.error('Erro ao verificar assinatura');
+      setState(prev => ({ 
+        ...prev, 
+        loading: false,
+        subscriptionTier: 'FREE',
+        subscribed: false 
+      }));
+      
+      // Avoid multiple error toasts within 10 seconds
+      const now = Date.now();
+      if (now - lastErrorTime > 10000) {
+        setLastErrorTime(now);
+        toast.error('Erro ao verificar assinatura', {
+          action: {
+            label: 'Fechar',
+            onClick: () => {},
+          },
+        });
+      }
     }
   };
 
@@ -121,8 +138,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
     if (user) {
-      checkSubscription();
+      // Debounce subscription check to avoid multiple calls
+      timeoutId = setTimeout(() => {
+        checkSubscription();
+      }, 500);
     } else {
       setState({
         subscribed: false,
@@ -131,6 +153,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         loading: false,
       });
     }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [user]);
 
   return (
