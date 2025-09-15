@@ -1278,12 +1278,14 @@ export type Database = {
           completed_at: string | null
           contact_name: string | null
           contact_phone: string
+          contact_phone_encrypted: string | null
           created_at: string
           estimated_price: number | null
           final_price: number | null
           id: string
           is_emergency: boolean | null
           location_address: string
+          location_address_encrypted: string | null
           location_lat: number | null
           location_lng: number | null
           preferred_datetime: string | null
@@ -1309,12 +1311,14 @@ export type Database = {
           completed_at?: string | null
           contact_name?: string | null
           contact_phone: string
+          contact_phone_encrypted?: string | null
           created_at?: string
           estimated_price?: number | null
           final_price?: number | null
           id?: string
           is_emergency?: boolean | null
           location_address: string
+          location_address_encrypted?: string | null
           location_lat?: number | null
           location_lng?: number | null
           preferred_datetime?: string | null
@@ -1340,12 +1344,14 @@ export type Database = {
           completed_at?: string | null
           contact_name?: string | null
           contact_phone?: string
+          contact_phone_encrypted?: string | null
           created_at?: string
           estimated_price?: number | null
           final_price?: number | null
           id?: string
           is_emergency?: boolean | null
           location_address?: string
+          location_address_encrypted?: string | null
           location_lat?: number | null
           location_lng?: number | null
           preferred_datetime?: string | null
@@ -1917,6 +1923,15 @@ export type Database = {
           origin_address: string
           origin_lat: number
           origin_lng: number
+        }[]
+      }
+      get_secure_service_request_details: {
+        Args: { request_id: string }
+        Returns: {
+          contact_phone: string
+          location_address: string
+          location_lat: number
+          location_lng: number
         }[]
       }
       get_user_role: {
