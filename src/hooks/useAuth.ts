@@ -52,7 +52,7 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state change:', event, session?.user?.id);
@@ -69,8 +69,10 @@ export const useAuth = () => {
             return;
           }
 
-          // Fetch user profile without setTimeout
-          fetchProfile(session.user.id);
+          // Use setTimeout to prevent auth callback deadlock
+          setTimeout(() => {
+            fetchProfile(session.user.id);
+          }, 0);
         } else {
           setProfile(null);
           setLoading(false);
@@ -78,7 +80,7 @@ export const useAuth = () => {
       }
     );
 
-    // Check for existing session
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('Existing session check:', session?.user?.id);
       setSession(session);
@@ -94,7 +96,7 @@ export const useAuth = () => {
           return;
         }
 
-        // Fetch user profile without setTimeout  
+        // Fetch profile for existing session
         fetchProfile(session.user.id);
       } else {
         setLoading(false);

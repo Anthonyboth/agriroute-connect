@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import FreightCard from '@/components/FreightCard';
 import CreateFreightModal from '@/components/CreateFreightModal';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
+import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,6 +62,9 @@ const ProducerDashboard = () => {
       />
       
       <div className="container mx-auto px-4 py-8">
+        {/* Notificação de assinatura */}
+        <SubscriptionExpiryNotification />
+        
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Dashboard do Produtor</h1>
           <p className="text-muted-foreground">Gerencie seus fretes e acompanhe o desempenho</p>

@@ -23,23 +23,15 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session?.user) {
-          // Redirect based on user role after login
-          handleRedirectAfterAuth(session.user.id);
-        }
-      }
-    );
-
-    // Check for existing session
+    // Only check for existing session on mount, don't duplicate auth state changes
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        handleRedirectAfterAuth(session.user.id);
+        // Use setTimeout to prevent immediate redirect conflicts
+        setTimeout(() => {
+          handleRedirectAfterAuth(session.user.id);
+        }, 100);
       }
     });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   const handleRedirectAfterAuth = async (userId: string) => {

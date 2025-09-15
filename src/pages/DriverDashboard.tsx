@@ -12,6 +12,8 @@ import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager'
 import { SmartFreightMatcher } from '@/components/SmartFreightMatcher';
 import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
+import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
+import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -332,8 +334,22 @@ const DriverDashboard = () => {
             <TabsTrigger value="services" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Serviços</TabsTrigger>
             <TabsTrigger value="vehicles" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Meus Veículos</TabsTrigger>
           </TabsList>
+
+          {/* Notificação de assinatura */}
+          <SubscriptionExpiryNotification />
           
           <TabsContent value="available" className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Fretes Disponíveis com IA</h3>
+              <AdvancedFreightSearch
+                onSearch={(filters) => {
+                  console.log('Advanced search filters:', filters);
+                  // Apply advanced filters to freight search
+                  fetchAvailableFreights();
+                }}
+                userRole="MOTORISTA"
+              />
+            </div>
             <SmartFreightMatcher onFreightAction={handleFreightAction} />
           </TabsContent>
           <TabsContent value="scheduled">
