@@ -250,11 +250,13 @@ const CompleteProfile = () => {
 
   // Validate step 3 requirements for drivers - additional docs and vehicles
   if (currentStep === 3 && profile.role === 'MOTORISTA') {
-    const requiredDocs = ['cnh', 'truck_documents', 'truck_photo', 'license_plate', 'address_proof'];
-    const missingDocs = requiredDocs.filter(doc => !documentUrls[doc as keyof typeof documentUrls]);
+    const missingDocs = [];
+    
+    if (!documentUrls.cnh) missingDocs.push('CNH');
+    if (!documentUrls.address_proof) missingDocs.push('Comprovante de residência');
     
     if (missingDocs.length > 0) {
-      toast.error('Por favor, envie todos os documentos obrigatórios');
+      toast.error(`Documentos faltando: ${missingDocs.join(', ')}`);
       return;
     }
 
