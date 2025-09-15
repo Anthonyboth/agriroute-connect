@@ -8,9 +8,18 @@ import { Switch } from '@/components/ui/switch';
 import { Building2, Users, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface ProfileData {
+  is_transport_company?: boolean;
+  company_name?: string;
+  company_cnpj?: string;
+  fleet_size?: number;
+  company_description?: string;
+  [key: string]: any;
+}
+
 interface TransportCompanyFormProps {
-  profileData: any;
-  onProfileDataChange: (data: any) => void;
+  profileData: ProfileData;
+  onProfileDataChange: (data: ProfileData) => void;
 }
 
 export const TransportCompanyForm: React.FC<TransportCompanyFormProps> = ({

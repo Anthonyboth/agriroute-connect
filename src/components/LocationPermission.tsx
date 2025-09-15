@@ -29,7 +29,7 @@ export const LocationPermission: React.FC<LocationPermissionProps> = ({
         setLocationEnabled(enabled);
         onPermissionChange(enabled);
       } catch (error) {
-        console.log('Permission query not supported, checking directly');
+        // Try to get location permission directly
       }
     }
   };

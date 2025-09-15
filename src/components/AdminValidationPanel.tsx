@@ -127,7 +127,7 @@ export const AdminValidationPanel: React.FC = () => {
       if (historyError) throw historyError;
 
       // Atualizar o status específico do documento
-      const updateData: any = {
+      const updateData: Record<string, any> = {
         validation_notes: validationNotes
       };
 

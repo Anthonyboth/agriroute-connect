@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 
 const ProducerDashboard = () => {
   const { profile, signOut } = useAuth();
-  const [freights, setFreights] = useState([]);
+  const [freights, setFreights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

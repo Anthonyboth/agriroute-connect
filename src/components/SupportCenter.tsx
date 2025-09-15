@@ -40,11 +40,16 @@ export const SupportCenter = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const [newTicket, setNewTicket] = useState({
+  const [newTicket, setNewTicket] = useState<{
+    subject: string;
+    description: string;
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+    category: 'GENERAL' | 'TECHNICAL' | 'BILLING' | 'REPORT';
+  }>({
     subject: '',
     description: '',
-    priority: 'MEDIUM' as const,
-    category: 'GENERAL' as const
+    priority: 'MEDIUM',
+    category: 'GENERAL'
   });
 
   const statusColors = {
@@ -247,7 +252,7 @@ export const SupportCenter = () => {
                   <label className="text-sm font-medium">Categoria</label>
                   <Select 
                     value={newTicket.category} 
-                    onValueChange={(value) => setNewTicket(prev => ({ ...prev, category: value as any }))}
+                    onValueChange={(value: 'GENERAL' | 'TECHNICAL' | 'BILLING' | 'REPORT') => setNewTicket(prev => ({ ...prev, category: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -264,7 +269,7 @@ export const SupportCenter = () => {
                   <label className="text-sm font-medium">Prioridade</label>
                   <Select 
                     value={newTicket.priority} 
-                    onValueChange={(value) => setNewTicket(prev => ({ ...prev, priority: value as any }))}
+                    onValueChange={(value: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT') => setNewTicket(prev => ({ ...prev, priority: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />

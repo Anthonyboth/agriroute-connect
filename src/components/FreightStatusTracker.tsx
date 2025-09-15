@@ -98,7 +98,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       try {
         location = await getCurrentLocation();
       } catch (error) {
-        console.log('Não foi possível obter localização:', error);
+        // Silent location update - don't log errors
       }
 
       const { error } = await supabase

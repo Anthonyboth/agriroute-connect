@@ -52,16 +52,14 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
     setLoading(true);
     try {
-      // Create counter proposal record
+      // Create message about counter proposal instead of using non-existent table
       const { error } = await supabase
-        .from('proposal_counters')
+        .from('freight_messages')
         .insert({
-          original_proposal_id: originalProposal.id,
-          producer_id: profile.id,
-          counter_price: finalPrice,
-          original_price: originalProposal.proposed_price,
-          message: counterMessage.trim() || null,
-          status: 'PENDING'
+          freight_id: originalProposal.id, // using proposal ID as reference
+          sender_id: profile.id,
+          message: `CONTRA-PROPOSTA: R$ ${finalPrice.toLocaleString()}\n\nValor original: R$ ${freightPrice.toLocaleString()}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString()}\nMinha contra-proposta: R$ ${finalPrice.toLocaleString()}\n\n${counterMessage.trim() || 'Sem observações adicionais'}`,
+          message_type: 'COUNTER_PROPOSAL'
         });
 
       if (error) throw error;

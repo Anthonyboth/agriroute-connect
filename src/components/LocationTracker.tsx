@@ -178,7 +178,9 @@ export const LocationTracker: React.FC<LocationTrackerProps> = ({
           })
           .eq('id', freightId);
 
-        if (freightError) console.error('Erro ao atualizar localização do frete:', freightError);
+        if (freightError) {
+          console.error('Erro ao atualizar localização do frete:', freightError);
+        }
       }
 
       // Callback para componentes pais
