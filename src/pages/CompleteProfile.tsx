@@ -13,6 +13,7 @@ import DocumentUpload from '@/components/DocumentUpload';
 import LocationPermission from '@/components/LocationPermission';
 import GoogleMap from '@/components/GoogleMap';
 import { CameraSelfie } from '@/components/CameraSelfie';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AddressInput } from '@/components/AddressInput';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
 import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building } from 'lucide-react';
@@ -54,6 +55,7 @@ const CompleteProfile = () => {
     max_capacity_tons: 0,
     license_plate: '',
   });
+  const [showSelfieModal, setShowSelfieModal] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !profile) {
@@ -446,13 +448,54 @@ const CompleteProfile = () => {
                   <h3 className="text-lg font-semibold">Documentos Básicos</h3>
                 </div>
 
-                <CameraSelfie
-                  onCapture={(blob) => {
-                    // Upload blob to Supabase and set URL
-                    const url = URL.createObjectURL(blob);
-                    setDocumentUrls(prev => ({ ...prev, selfie: url }));
-                  }}
-                />
+                <div className="space-y-2">
+                  <Label>Selfie *</Label>
+                  {documentUrls.selfie && (
+                    <div className="flex items-center gap-2 text-green-600">
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Selfie capturada</span>
+                    </div>
+                  )}
+                  <Button onClick={() => setShowSelfieModal(true)} variant="secondary">
+                    Capturar Selfie
+                  </Button>
+
+                  <Dialog open={showSelfieModal} onOpenChange={setShowSelfieModal}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Capturar Selfie</DialogTitle>
+                      </DialogHeader>
+                      <CameraSelfie
+                        onCapture={async (blob) => {
+                          try {
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (!user) {
+                              toast.error('Faça login para enviar a selfie.');
+                              return;
+                            }
+                            const path = `${user.id}/selfie_${Date.now()}.jpg`;
+                            const { error: uploadError } = await supabase.storage
+                              .from('profile-photos')
+                              .upload(path, blob, { contentType: 'image/jpeg' });
+                            if (uploadError) throw uploadError;
+
+                            const { data: { publicUrl } } = supabase.storage
+                              .from('profile-photos')
+                              .getPublicUrl(path);
+
+                            setDocumentUrls(prev => ({ ...prev, selfie: publicUrl }));
+                            toast.success('Selfie enviada com sucesso!');
+                            setShowSelfieModal(false);
+                          } catch (err) {
+                            console.error('Erro ao enviar selfie:', err);
+                            toast.error('Erro ao enviar selfie. Tente novamente.');
+                          }
+                        }}
+                        onCancel={() => setShowSelfieModal(false)}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
 
                 <DocumentUpload
                   label="Foto do Documento (RG/CNH)"
