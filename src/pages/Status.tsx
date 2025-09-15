@@ -335,7 +335,9 @@ const Status = () => {
             Se você está enfrentando problemas não listados aqui, entre em contato com nosso suporte
           </p>
           <div className="space-y-2 text-sm text-muted-foreground mb-6">
-            <p><strong>Email:</strong> suporte@agriroute.com.br</p>
+            <p><strong>Email:</strong> anthony_pva@hotmail.com</p>
+            <p><strong>WhatsApp:</strong> 015 66 9 9942-6656</p>
+            <p><strong>Responsável:</strong> Anthony Both</p>
             <p><strong>Telefone:</strong> (11) 3000-0000</p>
             <p><strong>Chat:</strong> Disponível 24/7 na plataforma</p>
           </div>

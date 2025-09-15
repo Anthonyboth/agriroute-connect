@@ -6,7 +6,7 @@ import AuthModal from '@/components/AuthModal';
 import GuinchoModal from '@/components/GuinchoModal';
 import MudancaModal from '@/components/MudancaModal';
 import HowItWorksModal from '@/components/HowItWorksModal';
-import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home } from 'lucide-react';
+import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail } from 'lucide-react';
 import heroImage from '@/assets/hero-logistics.jpg';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -312,6 +312,75 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Contact Section */}
+      <section id="contact" className="py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+              Entre em Contato
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Fale conosco para suporte, parcerias ou dúvidas sobre nossa plataforma
+            </p>
+          </div>
+          
+          <div className="max-w-2xl mx-auto">
+            <Card className="shadow-card">
+              <CardContent className="p-8">
+                <div className="text-center space-y-6">
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-bold text-foreground">Anthony Both</h3>
+                    <p className="text-muted-foreground">Fundador & CEO do AgriRoute</p>
+                  </div>
+                  
+                  <div className="grid gap-4">
+                    <Button
+                      variant="outline"
+                      className="justify-start gap-3 h-auto p-4"
+                      onClick={() => {
+                        const phoneNumber = '5566999426656';
+                        const message = encodeURIComponent('Olá! Gostaria de saber mais sobre o AgriRoute.');
+                        window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+                      }}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 bg-green-500 rounded-full">
+                        <MessageCircle className="h-4 w-4 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">WhatsApp</p>
+                        <p className="text-sm text-muted-foreground">015 66 9 9942-6656</p>
+                      </div>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="justify-start gap-3 h-auto p-4"
+                      onClick={() => {
+                        window.open('mailto:anthony_pva@hotmail.com?subject=Contato AgriRoute', '_blank');
+                      }}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 bg-blue-500 rounded-full">
+                        <Mail className="h-4 w-4 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">E-mail</p>
+                        <p className="text-sm text-muted-foreground">anthony_pva@hotmail.com</p>
+                      </div>
+                    </Button>
+                  </div>
+                  
+                  <div className="text-center pt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Respondemos em até 24 horas úteis
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="bg-card border-t py-12">
         <div className="container mx-auto px-4">
@@ -335,19 +404,19 @@ const Landing = () => {
               <h4 className="font-semibold text-foreground mb-4">Plataforma</h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li><a href="/sobre" className="hover:text-foreground transition-smooth">Sobre nós</a></li>
-                <li><a href="#" className="hover:text-foreground transition-smooth">Como funciona</a></li>
+                <li><a href="#" className="hover:text-foreground transition-smooth" onClick={(e) => { e.preventDefault(); setHowItWorksModal({ isOpen: true }); }}>Como funciona</a></li>
                 <li><a href="/imprensa" className="hover:text-foreground transition-smooth">Imprensa</a></li>
-                <li><a href="#" className="hover:text-foreground transition-smooth">Carreiras</a></li>
+                <li><a href="#contact" className="hover:text-foreground transition-smooth">Carreiras</a></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold text-foreground mb-4">Suporte</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-smooth">Central de Ajuda</a></li>
-                <li><a href="#" className="hover:text-foreground transition-smooth">Contato</a></li>
+                <li><a href="#contact" className="hover:text-foreground transition-smooth">Central de Ajuda</a></li>
+                <li><a href="mailto:anthony_pva@hotmail.com" className="hover:text-foreground transition-smooth">Contato</a></li>
                 <li><a href="/status" className="hover:text-foreground transition-smooth">Status</a></li>
-                <li><a href="#" className="hover:text-foreground transition-smooth">WhatsApp</a></li>
+                <li><a href="https://wa.me/5566999426656" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-smooth">WhatsApp</a></li>
               </ul>
             </div>
             

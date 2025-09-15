@@ -62,6 +62,7 @@ export const ContactInfo: React.FC = () => {
           <Button
             variant="outline"
             className="justify-start gap-3 h-auto p-4"
+            onClick={() => window.open('tel:+5566999426656', '_self')}
           >
             <div className="flex items-center justify-center w-8 h-8 bg-gray-500 rounded-full">
               <Phone className="h-4 w-4 text-white" />

@@ -298,19 +298,22 @@ const Press = () => {
                   <p className="text-muted-foreground">Maria Silva - Gerente de Comunicação</p>
                 </div>
                 <div>
-                  <strong>Email:</strong>
-                  <p className="text-muted-foreground">imprensa@agriroute.com.br</p>
+                  <strong>Responsável:</strong>
+                  <p className="text-muted-foreground">Anthony Both - Fundador & CEO</p>
                 </div>
                 <div>
-                  <strong>Telefone:</strong>
-                  <p className="text-muted-foreground">(11) 3000-0000 - Ramal 100</p>
+                  <strong>Email:</strong>
+                  <p className="text-muted-foreground">anthony_pva@hotmail.com</p>
                 </div>
                 <div>
                   <strong>WhatsApp:</strong>
-                  <p className="text-muted-foreground">(11) 99999-0000</p>
+                  <p className="text-muted-foreground">015 66 9 9942-6656</p>
                 </div>
               </div>
-              <Button className="gradient-primary text-primary-foreground">
+              <Button 
+                className="gradient-primary text-primary-foreground"
+                onClick={() => window.open('mailto:anthony_pva@hotmail.com?subject=Contato Imprensa AgriRoute', '_blank')}
+              >
                 Entrar em Contato
               </Button>
             </CardContent>
