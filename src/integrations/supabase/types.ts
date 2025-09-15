@@ -914,6 +914,7 @@ export type Database = {
           farm_lat: number | null
           farm_lng: number | null
           farm_name: string | null
+          fixed_address: string | null
           full_name: string
           id: string
           invoice_number: string | null
@@ -965,6 +966,7 @@ export type Database = {
           farm_lat?: number | null
           farm_lng?: number | null
           farm_name?: string | null
+          fixed_address?: string | null
           full_name: string
           id?: string
           invoice_number?: string | null
@@ -1016,6 +1018,7 @@ export type Database = {
           farm_lat?: number | null
           farm_lng?: number | null
           farm_name?: string | null
+          fixed_address?: string | null
           full_name?: string
           id?: string
           invoice_number?: string | null
