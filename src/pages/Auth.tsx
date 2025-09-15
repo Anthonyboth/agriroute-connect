@@ -7,16 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Loader2, Mail } from 'lucide-react';
 import { validateDocument } from '@/utils/cpfValidator';
-import { SocialLoginButtons } from '@/components/SocialLoginButtons';
+
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
+  const [loginField, setLoginField] = useState('');
   const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<'PRODUTOR' | 'MOTORISTA'>('PRODUTOR');
   const [phone, setPhone] = useState('');
@@ -85,30 +85,6 @@ const Auth = () => {
     }
   };
 
-  const handleSocialLogin = async (provider: 'google' | 'facebook' | 'apple') => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/`,
-        }
-      });
-      
-      if (error) {
-        const msg = String((error as any)?.message || error);
-        if (msg.includes('provider is not enabled') || msg.toLowerCase().includes('unsupported provider')) {
-          toast.error('Login social desabilitado no Supabase. Habilite o Facebook em Authentication > Providers e configure Client ID/Secret e URLs.');
-        } else {
-          toast.error(`Erro no login com ${provider}: ${msg}`);
-        }
-      }
-    } catch (error) {
-      toast.error(`Erro no login com ${provider}`);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,14 +133,43 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      // Determinar se é email, CPF ou usuário
+      let signInData;
+      
+      if (loginField.includes('@')) {
+        // É um email
+        signInData = { email: loginField, password };
+      } else {
+        // É CPF ou usuário - buscar o email associado
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_id')
+          .or(`document.eq.${loginField},full_name.ilike.%${loginField}%`)
+          .single();
+
+        if (profileError || !profile) {
+          toast.error('Usuário ou CPF não encontrado');
+          setLoading(false);
+          return;
+        }
+
+        // Buscar o email do usuário
+        const { data: user, error: userError } = await supabase.auth.admin.getUserById(profile.user_id);
+        
+        if (userError || !user.user?.email) {
+          toast.error('Erro ao buscar dados do usuário');
+          setLoading(false);
+          return;
+        }
+
+        signInData = { email: user.user.email, password };
+      }
+
+      const { error } = await supabase.auth.signInWithPassword(signInData);
 
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          toast.error('Email ou senha incorretos');
+          toast.error('Credenciais inválidas');
         } else {
           toast.error(error.message);
         }
@@ -197,12 +202,12 @@ const Auth = () => {
             <TabsContent value="login">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="loginField">Email, CPF ou Nome de Usuário</Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="loginField"
+                    value={loginField}
+                    onChange={(e) => setLoginField(e.target.value)}
+                    placeholder="Digite seu email, CPF ou nome de usuário"
                     required
                   />
                 </div>
@@ -222,25 +227,10 @@ const Auth = () => {
                 </Button>
               </form>
 
-              {/* Social login abaixo do formulário */}
-              <div className="mt-6 space-y-4">
-                <div className="relative">
-                  <Separator />
-                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                    ou entre com redes sociais
-                  </span>
-                </div>
-                <SocialLoginButtons isLoading={loading} onLoadingChange={setLoading} />
-              </div>
             </TabsContent>
             
             <TabsContent value="register">
               <div className="space-y-4">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Ou preencha o formulário completo abaixo
-                  </p>
-                </div>
                 
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">

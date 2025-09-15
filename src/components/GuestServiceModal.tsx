@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { User, MessageCircle, Mail, Truck, Home, Package } from 'lucide-react';
-import { SocialLoginButtons } from '@/components/SocialLoginButtons';
+
 
 interface GuestServiceModalProps {
   isOpen: boolean;
@@ -204,11 +204,18 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
               <div className="text-center">
                 <h3 className="text-lg font-semibold mb-2">Crie sua conta rapidamente</h3>
                 <p className="text-muted-foreground text-sm">
-                  Login social para acesso rápido e descontos exclusivos
+                  Cadastre-se para ter acesso a descontos exclusivos
                 </p>
               </div>
 
-              <SocialLoginButtons />
+              <div className="text-center space-y-4">
+                <p className="text-muted-foreground">
+                  Para criar uma conta e ter acesso a descontos exclusivos,
+                </p>
+                <Button onClick={() => window.location.href = '/auth'} className="w-full">
+                  Ir para Cadastro/Login
+                </Button>
+              </div>
               
               <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
                 <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">
