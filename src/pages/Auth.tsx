@@ -207,7 +207,7 @@ const Auth = () => {
           </div>
           <CardTitle>AgriRoute Connect</CardTitle>
           <CardDescription>
-            Conectando produtores e transportadores
+            Conectando pessoas
           </CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">

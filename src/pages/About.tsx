@@ -12,7 +12,7 @@ const About = () => {
     {
       icon: Target,
       title: 'Missão',
-      description: 'Revolucionar o transporte agrícola brasileiro, conectando produtores e transportadores através de tecnologia inovadora, garantindo eficiência, transparência e segurança em toda a cadeia logística.'
+      description: 'Revolucionar o transporte agrícola brasileiro, conectando pessoas através de tecnologia inovadora, garantindo eficiência, transparência e segurança em toda a cadeia logística.'
     },
     {
       icon: Heart,

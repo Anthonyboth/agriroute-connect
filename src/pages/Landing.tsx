@@ -205,7 +205,7 @@ const Landing = () => {
           </h1>
           <p className="text-lg md:text-xl lg:text-2xl text-foreground/80 mb-12 max-w-3xl mx-auto font-medium px-4 leading-relaxed">
             A plataforma que revoluciona o transporte agrícola brasileiro, 
-            conectando produtores e transportadores de forma inteligente.
+            conectando pessoas de forma inteligente.
           </p>
           
           {/* Main Action Buttons - Centered Group */}
@@ -341,7 +341,7 @@ const Landing = () => {
                 <span className="text-2xl font-bold">AgriRoute</span>
               </div>
               <p className="text-muted-foreground mb-4">
-                Conectando produtores e transportadores no agronegócio brasileiro.
+                Conectando pessoas no agronegócio brasileiro.
               </p>
               <div className="flex space-x-4 text-sm text-muted-foreground">
                 <span>+5.000 usuários</span>
