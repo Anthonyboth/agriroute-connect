@@ -128,8 +128,9 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollButtons className="flex-1">
-          <form onSubmit={handleSubmit} className="space-y-8 pr-2">
+        <div className="flex-1 overflow-y-auto pr-2" id="scheduled-freight-content">
+          <ScrollButtons scrollAreaId="scheduled-freight-content">
+            <form onSubmit={handleSubmit} className="space-y-8">
               {/* Informações Básicas */}
               <div className="bg-card border rounded-lg p-6 space-y-6">
                 <h3 className="text-lg font-semibold text-foreground">Informações do Frete</h3>
@@ -415,7 +416,8 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                 </Button>
               </div>
           </form>
-        </ScrollButtons>
+          </ScrollButtons>
+        </div>
       </DialogContent>
     </Dialog>
   );
