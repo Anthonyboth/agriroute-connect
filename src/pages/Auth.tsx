@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Loader2, Mail } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
 import { validateDocument } from '@/utils/cpfValidator';
+import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
 
 
 const Auth = () => {
@@ -22,6 +23,7 @@ const Auth = () => {
   const [role, setRole] = useState<'PRODUTOR' | 'MOTORISTA' | 'PRESTADOR_SERVICOS'>('PRODUTOR');
   const [phone, setPhone] = useState('');
   const [document, setDocument] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -244,6 +246,16 @@ const Auth = () => {
                   Entrar
                 </Button>
               </form>
+              
+              <div className="text-center mt-4">
+                <Button
+                  variant="link"
+                  className="text-sm text-muted-foreground hover:text-primary"
+                  onClick={() => setShowForgotPassword(true)}
+                >
+                  Esqueci minha senha
+                </Button>
+              </div>
 
             </TabsContent>
             
@@ -335,6 +347,11 @@ const Auth = () => {
           </Tabs>
         </CardContent>
       </Card>
+      
+      <ForgotPasswordModal 
+        open={showForgotPassword} 
+        onOpenChange={setShowForgotPassword} 
+      />
     </div>
   );
 };
