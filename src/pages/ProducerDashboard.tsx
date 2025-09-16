@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Header from '@/components/Header';
 import FreightCard from '@/components/FreightCard';
 import CreateFreightModal from '@/components/CreateFreightModal';
-import FreightLimitTracker from '@/components/FreightLimitTracker';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -78,8 +77,7 @@ const ProducerDashboard = () => {
           </TabsList>
 
           <TabsContent value="fretes" className="space-y-6">
-            <div className="mb-6 space-y-4">
-              <FreightLimitTracker />
+            <div className="mb-6">
               <div className="flex justify-end">
                 <CreateFreightModal 
                   onFreightCreated={fetchFreights}

@@ -15,6 +15,7 @@ import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
 import { ServiceProviderDashboard } from '@/components/ServiceProviderDashboard';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
+import FreightLimitTracker from '@/components/FreightLimitTracker';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -325,6 +326,11 @@ const DriverDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* FreightLimitTracker for drivers */}
+        <div className="mb-8">
+          <FreightLimitTracker />
         </div>
 
         {/* Tabs */}

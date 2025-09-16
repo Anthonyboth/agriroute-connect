@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,29 +20,37 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
 
   const FREE_FREIGHT_LIMIT = 3;
 
-  useEffect(() => {
-    if (user) {
-      fetchFreightCount();
-    }
-  }, [user]);
-
-  const fetchFreightCount = async () => {
+  const fetchAcceptedFreightCount = useCallback(async () => {
     if (!user) return;
 
     try {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('role', 'MOTORISTA');
+
+      if (!profiles || profiles.length === 0) return;
+
+      // Count driver's accepted freights (limit applies to accepted, not created)
       const { count, error } = await supabase
         .from('freights')
         .select('*', { count: 'exact', head: true })
-        .eq('producer_id', user.id);
+        .eq('driver_id', profiles[0].id)
+        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'DELIVERED']);
 
       if (error) throw error;
       setFreightCount(count || 0);
     } catch (error) {
-      console.error('Error fetching freight count:', error);
+      console.error('Error fetching accepted freight count:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchAcceptedFreightCount();
+  }, [fetchAcceptedFreightCount]);
 
   const canCreateFreight = freightCount < FREE_FREIGHT_LIMIT;
   const remainingFreights = Math.max(0, FREE_FREIGHT_LIMIT - freightCount);
@@ -69,7 +77,7 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <Truck className="h-5 w-5" />
-            Fretes Gratuitos
+            Fretes Aceitos Gratuitos
           </CardTitle>
           <Badge variant="secondary" className="text-xs">
             {remainingFreights} restantes
@@ -98,7 +106,7 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
               </h4>
             </div>
             <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
-              Você utilizou todos os seus fretes gratuitos. Faça upgrade para continuar criando fretes.
+              Você utilizou todos os seus fretes gratuitos. Faça upgrade para continuar aceitando fretes.
             </p>
             <Button
               size="sm"
@@ -113,7 +121,7 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
         {remainingFreights > 0 && (
           <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
             <p className="text-sm text-green-800 dark:text-green-200">
-              🎉 Você ainda tem <strong>{remainingFreights}</strong> fretes gratuitos disponíveis!
+              🎉 Você ainda pode aceitar <strong>{remainingFreights}</strong> fretes gratuitos!
             </p>
           </div>
         )}

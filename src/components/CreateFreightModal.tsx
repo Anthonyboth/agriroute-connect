@@ -86,25 +86,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     setLoading(true);
 
     try {
-      // Check freight limit for free users
-      const { count: currentFreightCount } = await supabase
-        .from('freights')
-        .select('*', { count: 'exact', head: true })
-        .eq('producer_id', userProfile.id);
-
-      const FREE_FREIGHT_LIMIT = 3;
+      // Producers can create unlimited freights
       
-      if (currentFreightCount >= FREE_FREIGHT_LIMIT) {
-        toast.error('Você atingiu o limite de fretes gratuitos. Faça upgrade para continuar.', {
-          action: {
-            label: 'Ver Planos',
-            onClick: () => window.open('/subscription', '_blank'),
-          },
-        });
-        setLoading(false);
-        return;
-      }
-
       // Calculate distance (mock for now)
       const distance = await calculateDistance(formData.origin_address, formData.destination_address);
       const weight = parseFloat(formData.weight);
@@ -139,9 +122,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
 
       if (error) throw error;
 
-      toast.success('Frete criado com sucesso!', {
-        description: `Você ainda tem ${FREE_FREIGHT_LIMIT - (currentFreightCount + 1)} fretes gratuitos restantes.`
-      });
+      toast.success('Frete criado com sucesso!');
       setOpen(false);
       setFormData({
         cargo_type: '',
