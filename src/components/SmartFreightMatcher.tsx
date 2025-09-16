@@ -281,17 +281,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                   showActions={true}
                 />
                 
-                {/* Badges adicionais */}
-                <div className="absolute top-2 right-2 flex gap-1">
-                  {getServiceTypeBadge(freight.service_type || 'CARGA')}
-                </div>
-                
-                <div className="absolute top-2 left-2">
-                  <Badge variant="outline" className={getUrgencyColor(freight.urgency)}>
-                    {freight.urgency === 'HIGH' ? 'Urgente' : 
-                     freight.urgency === 'MEDIUM' ? 'Normal' : 'Flexível'}
-                  </Badge>
-                </div>
+                {/* badges removidos */}
               </div>
             ))}
           </div>
