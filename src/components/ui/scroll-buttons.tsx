@@ -63,12 +63,17 @@ export const ScrollButtons: React.FC<ScrollButtonsProps> = ({
 
   return (
     <div className={cn("relative", className)}>
-      <div ref={scrollRef} className="h-full overflow-y-auto">
-        {children}
-      </div>
+      {scrollAreaId ? (
+        // When an external scroll area is provided, don't create an inner scroll container
+        <>{children}</>
+      ) : (
+        <div ref={scrollRef} className="h-full overflow-y-auto">
+          {children}
+        </div>
+      )}
       
-      {/* Scroll Buttons */}
-      <div className="fixed right-6 top-1/2 transform -translate-y-1/2 flex flex-col gap-2 z-50 pointer-events-none">
+      {/* Scroll Buttons - confined to this container to avoid overlaying other screens */}
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-30 pointer-events-none">
         <div className="pointer-events-auto">
           {showScrollTop && (
             <Button
@@ -77,6 +82,7 @@ export const ScrollButtons: React.FC<ScrollButtonsProps> = ({
               variant="outline"
               className="h-10 w-10 p-0 bg-background/90 backdrop-blur-sm border shadow-lg hover:bg-background/95 hover:shadow-xl transition-all duration-200"
               title="Rolar para o topo"
+              aria-label="Rolar para o topo"
             >
               <ChevronUp className="h-5 w-5" />
             </Button>
@@ -91,6 +97,7 @@ export const ScrollButtons: React.FC<ScrollButtonsProps> = ({
               variant="outline"
               className="h-10 w-10 p-0 bg-background/90 backdrop-blur-sm border shadow-lg hover:bg-background/95 hover:shadow-xl transition-all duration-200"
               title="Rolar para baixo"
+              aria-label="Rolar para baixo"
             >
               <ChevronDown className="h-5 w-5" />
             </Button>
