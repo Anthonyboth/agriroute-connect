@@ -71,6 +71,33 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   return <>{children}</>;
 };
 
+const RedirectIfAuthed = () => {
+  const { isAuthenticated, profile, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  if (!isAuthenticated) return <Auth />;
+  let to = "/";
+  switch (profile?.role) {
+    case 'ADMIN':
+      to = '/admin';
+      break;
+    case 'MOTORISTA':
+      to = '/dashboard/driver';
+      break;
+    case 'PRODUTOR':
+      to = '/dashboard/producer';
+      break;
+    default:
+      to = '/dashboard/service-provider';
+  }
+  return <Navigate to={to} replace />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <SubscriptionProvider>
@@ -80,7 +107,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth" element={<RedirectIfAuthed />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route 
               path="/complete-profile" 
