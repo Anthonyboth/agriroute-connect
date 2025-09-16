@@ -87,19 +87,21 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-2">
-            {getServiceIcon()}
-            <h3 className="font-semibold text-foreground">
-              {getCargoTypeLabel(freight.cargo_type)}
-            </h3>
+        <div className="flex flex-col space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 flex-1 min-w-0">
+              {getServiceIcon()}
+              <h3 className="font-semibold text-foreground truncate">
+                {getCargoTypeLabel(freight.cargo_type)}
+              </h3>
+            </div>
+            <Badge variant={urgencyVariant} className="flex-shrink-0 ml-2">
+              {urgencyLabel}
+            </Badge>
           </div>
-          <div className="flex gap-2">
+          <div className="flex justify-start">
             <Badge variant="outline" className="text-xs">
               {getServiceLabel()}
-            </Badge>
-            <Badge variant={urgencyVariant}>
-              {urgencyLabel}
             </Badge>
           </div>
         </div>
