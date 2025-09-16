@@ -19,6 +19,8 @@ import Terms from "./pages/Terms";
 import Cookies from "./pages/Cookies";
 import Status from "./pages/Status";
 import Press from "./pages/Press";
+import Careers from "./pages/Careers";
+import Help from "./pages/Help";
 import Subscription from "./pages/Subscription";
 import Plans from "./pages/Plans";
 import SystemTest from "./pages/SystemTest";
@@ -119,6 +121,8 @@ const App = () => (
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/status" element={<Status />} />
             <Route path="/imprensa" element={<Press />} />
+            <Route path="/carreiras" element={<Careers />} />
+            <Route path="/ajuda" element={<Help />} />
             <Route path="/system-test" element={<SystemTest />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

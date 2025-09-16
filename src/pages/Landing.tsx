@@ -9,6 +9,7 @@ import GuestServiceModal from '@/components/GuestServiceModal';
 import HowItWorksModal from '@/components/HowItWorksModal';
 import { ServicesModal } from '@/components/ServicesModal';
 import { ContactModal } from '@/components/ContactModal';
+import ReportModal from '@/components/ReportModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail } from 'lucide-react';
 import heroImage from '@/assets/hero-logistics.jpg';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +29,7 @@ const Landing = () => {
     isOpen: false,
   });
   const [contactModal, setContactModal] = useState(false);
+  const [reportModal, setReportModal] = useState(false);
   const [realStats, setRealStats] = useState({
     totalProducers: 0,
     totalDrivers: 0,
@@ -351,7 +353,7 @@ const Landing = () => {
                 <li><a href="/sobre" className="hover:text-foreground transition-smooth">Sobre nós</a></li>
                 <li><button onClick={() => setHowItWorksModal({ isOpen: true })} className="hover:text-foreground transition-smooth text-left">Como funciona</button></li>
                 <li><a href="/imprensa" className="hover:text-foreground transition-smooth">Imprensa</a></li>
-                <li><button onClick={() => setContactModal(true)} className="hover:text-foreground transition-smooth text-left">Carreiras</button></li>
+                <li><a href="/carreiras" className="hover:text-foreground transition-smooth">Carreiras</a></li>
               </ul>
             </div>
             
@@ -359,8 +361,8 @@ const Landing = () => {
               <h4 className="font-semibold text-foreground mb-4">Suporte</h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li><a href="/cadastro-prestador" className="hover:text-foreground transition-smooth">Ser Prestador</a></li>
-                <li><a href="#contact" className="hover:text-foreground transition-smooth">Central de Ajuda</a></li>
-                <li><a href="mailto:anthony_pva@hotmail.com" className="hover:text-foreground transition-smooth">Contato</a></li>
+                <li><a href="/ajuda" className="hover:text-foreground transition-smooth">Central de Ajuda</a></li>
+                <li><button onClick={() => setContactModal(true)} className="hover:text-foreground transition-smooth text-left">Contato</button></li>
                 <li><a href="/status" className="hover:text-foreground transition-smooth">Status</a></li>
                 <li><a href="https://wa.me/5566999426656" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-smooth">WhatsApp</a></li>
               </ul>
@@ -372,6 +374,7 @@ const Landing = () => {
                 <li><a href="/privacidade" className="hover:text-foreground transition-smooth">Privacidade</a></li>
                 <li><a href="/termos" className="hover:text-foreground transition-smooth">Termos</a></li>
                 <li><a href="/cookies" className="hover:text-foreground transition-smooth">Cookies</a></li>
+                <li><button onClick={() => setReportModal(true)} className="hover:text-foreground transition-smooth text-left text-orange-600">Denunciar</button></li>
               </ul>
             </div>
           </div>
@@ -430,6 +433,10 @@ const Landing = () => {
           onProceed={handleProceedToDashboard}
         />
       )}
+      <ReportModal
+        isOpen={reportModal}
+        onClose={() => setReportModal(false)}
+      />
     </div>
   );
 };
