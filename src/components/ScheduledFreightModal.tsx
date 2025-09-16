@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollButtons } from '@/components/ui/scroll-buttons';
 import { CalendarIcon, Clock, MapPin, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -127,9 +128,8 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto pr-2">
-            <form onSubmit={handleSubmit} className="space-y-8">
+        <ScrollButtons className="flex-1">
+          <form onSubmit={handleSubmit} className="space-y-8 pr-2">
               {/* Informações Básicas */}
               <div className="bg-card border rounded-lg p-6 space-y-6">
                 <h3 className="text-lg font-semibold text-foreground">Informações do Frete</h3>
@@ -414,9 +414,8 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                   )}
                 </Button>
               </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </ScrollButtons>
       </DialogContent>
     </Dialog>
   );

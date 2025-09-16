@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectGroup } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { ScrollButtons } from '@/components/ui/scroll-buttons';
 import { toast } from 'sonner';
 import { Plus, Loader2 } from 'lucide-react';
 import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
@@ -159,7 +160,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
           Criar Novo Frete
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Criar Novo Frete</DialogTitle>
           <DialogDescription>
@@ -167,7 +168,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <ScrollButtons className="flex-1">
+          <form onSubmit={handleSubmit} className="space-y-4 pr-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cargo_type">Tipo de Carga *</Label>
@@ -398,7 +400,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
               Criar Frete
             </Button>
           </div>
-        </form>
+          </form>
+        </ScrollButtons>
       </DialogContent>
     </Dialog>
   );

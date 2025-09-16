@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { StarRating } from '@/components/StarRating';
 import { Textarea } from '@/components/ui/textarea';
+import { ScrollButtons } from '@/components/ui/scroll-buttons';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, User, MapPin, Phone, Mail, Calendar, Award } from 'lucide-react';
@@ -107,7 +108,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Avatar className="h-12 w-12">
@@ -133,7 +134,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ScrollButtons className="flex-1">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pr-2">
           {/* Coluna da esquerda - Informações básicas */}
           <div className="lg:col-span-2 space-y-6">
             <Card>
@@ -371,7 +373,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               </CardContent>
             </Card>
           </div>
-        </div>
+          </div>
+        </ScrollButtons>
       </DialogContent>
     </Dialog>
   );

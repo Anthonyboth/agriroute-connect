@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollButtons } from '@/components/ui/scroll-buttons';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -374,14 +375,15 @@ export const ServiceProviderRegistrationForm: React.FC<ServiceProviderRegistrati
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">
             Cadastro Completo de Prestador de Serviços
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
+        <ScrollButtons className="flex-1">
+          <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full pr-2">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="personal" className="flex items-center gap-2">
               <User className="h-4 w-4" />
@@ -984,7 +986,8 @@ export const ServiceProviderRegistrationForm: React.FC<ServiceProviderRegistrati
               </div>
             </div>
           </form>
-        </Tabs>
+          </Tabs>
+        </ScrollButtons>
       </DialogContent>
     </Dialog>
   );
