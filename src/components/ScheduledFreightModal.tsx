@@ -236,33 +236,35 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                   <div className="space-y-6">
                     <div className="space-y-3">
                       <Label className="text-base font-medium">Data Desejada *</Label>
-                      <Popover open={dateOpen} onOpenChange={setDateOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal h-12"
-                          >
-                            <CalendarIcon className="mr-3 h-5 w-5" />
-                            {scheduledDate ? (
-                              <span className="text-base">
-                                {format(scheduledDate, 'PPP', { locale: ptBR })}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">Selecione uma data</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 z-[70]" align="start" side="bottom">
-                          <Calendar
-                            mode="single"
-                            selected={scheduledDate}
-                            onSelect={(d) => { setScheduledDate(d); setDateOpen(false); }}
-                            disabled={(date) => date < minDate}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <div className="relative">
+                        <Button
+                          type="button"
+                          onClick={() => setDateOpen((v) => !v)}
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal h-12"
+                        >
+                          <CalendarIcon className="mr-3 h-5 w-5" />
+                          {scheduledDate ? (
+                            <span className="text-base">
+                              {format(scheduledDate, 'PPP', { locale: ptBR })}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">Selecione uma data</span>
+                          )}
+                        </Button>
+                        {dateOpen && (
+                          <div className="absolute left-0 top-full mt-2 z-[80] rounded-md border bg-popover p-2 shadow-md">
+                            <Calendar
+                              mode="single"
+                              selected={scheduledDate}
+                              onSelect={(d) => { setScheduledDate(d); setDateOpen(false); }}
+                              disabled={(date) => date < minDate}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Resumo da Data Selecionada */}
@@ -308,54 +310,54 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label className="font-medium">Data Mais Cedo</Label>
-                              <Popover open={startOpen} onOpenChange={setStartOpen}>
-                                <PopoverTrigger asChild>
-                                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateRangeStart ? (
-                                      format(dateRangeStart, 'dd/MM', { locale: ptBR })
-                                    ) : (
-                                      <span className="text-muted-foreground">Opcional</span>
-                                    )}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 z-[70]" align="start" side="bottom">
-                                  <Calendar
-                                    mode="single"
-                                    selected={dateRangeStart}
-                                    onSelect={(d) => { setDateRangeStart(d); setStartOpen(false); }}
-                                    disabled={(date) => date < minDate || (scheduledDate && date > scheduledDate)}
-                                    initialFocus
-                                    className="pointer-events-auto"
-                                  />
-                                </PopoverContent>
-                              </Popover>
+                              <div className="relative">
+                                <Button type="button" variant="outline" className="w-full justify-start text-left font-normal" onClick={() => setStartOpen((v) => !v)}>
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {dateRangeStart ? (
+                                    format(dateRangeStart, 'dd/MM', { locale: ptBR })
+                                  ) : (
+                                    <span className="text-muted-foreground">Opcional</span>
+                                  )}
+                                </Button>
+                                {startOpen && (
+                                  <div className="absolute left-0 top-full mt-2 z-[80] rounded-md border bg-popover p-2 shadow-md">
+                                    <Calendar
+                                      mode="single"
+                                      selected={dateRangeStart}
+                                      onSelect={(d) => { setDateRangeStart(d); setStartOpen(false); }}
+                                      disabled={(date) => date < minDate || (scheduledDate && date > scheduledDate)}
+                                      initialFocus
+                                      className="pointer-events-auto"
+                                    />
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
                             <div className="space-y-2">
                               <Label className="font-medium">Data Mais Tarde</Label>
-                              <Popover open={endOpen} onOpenChange={setEndOpen}>
-                                <PopoverTrigger asChild>
-                                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateRangeEnd ? (
-                                      format(dateRangeEnd, 'dd/MM', { locale: ptBR })
-                                    ) : (
-                                      <span className="text-muted-foreground">Opcional</span>
-                                    )}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 z-[70]" align="start" side="bottom">
-                                  <Calendar
-                                    mode="single"
-                                    selected={dateRangeEnd}
-                                    onSelect={(d) => { setDateRangeEnd(d); setEndOpen(false); }}
-                                    disabled={(date) => scheduledDate && date < scheduledDate}
-                                    initialFocus
-                                    className="pointer-events-auto"
-                                  />
-                                </PopoverContent>
-                              </Popover>
+                              <div className="relative">
+                                <Button type="button" variant="outline" className="w-full justify-start text-left font-normal" onClick={() => setEndOpen((v) => !v)}>
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {dateRangeEnd ? (
+                                    format(dateRangeEnd, 'dd/MM', { locale: ptBR })
+                                  ) : (
+                                    <span className="text-muted-foreground">Opcional</span>
+                                  )}
+                                </Button>
+                                {endOpen && (
+                                  <div className="absolute left-0 top-full mt-2 z-[80] rounded-md border bg-popover p-2 shadow-md">
+                                    <Calendar
+                                      mode="single"
+                                      selected={dateRangeEnd}
+                                      onSelect={(d) => { setDateRangeEnd(d); setEndOpen(false); }}
+                                      disabled={(date) => scheduledDate && date < scheduledDate}
+                                      initialFocus
+                                      className="pointer-events-auto"
+                                    />
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
