@@ -85,11 +85,13 @@ const Auth = () => {
         case 'PRODUTOR':
           navigate('/dashboard/producer');
           break;
-        case 'PRESTADOR_SERVICOS':
-          navigate('/dashboard/service-provider');
-          break;
         default:
-          navigate('/');
+          // Para PRESTADOR_SERVICOS ou outros tipos
+          if ((activeProfile.role as any) === 'PRESTADOR_SERVICOS') {
+            navigate('/dashboard/service-provider');
+          } else {
+            navigate('/');
+          }
       }
     } catch (error) {
       console.error('Error checking profile:', error);

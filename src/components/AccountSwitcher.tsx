@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface Profile {
   id: string;
-  role: 'MOTORISTA' | 'PRODUTOR' | 'ADMIN';
+  role: 'MOTORISTA' | 'PRODUTOR' | 'ADMIN' | 'PRESTADOR_SERVICOS';
   full_name: string;
   status: string;
   profile_photo_url?: string;

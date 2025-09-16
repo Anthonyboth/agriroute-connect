@@ -108,7 +108,7 @@ const CompleteProfile = () => {
       if (hasBasicRequirements && isDriverComplete) {
         // Allow access with basic requirements met, regardless of approval status
         const dashboardPath = profile.role === 'MOTORISTA' ? '/dashboard/driver' : 
-                             profile.role === 'PRESTADOR_SERVICOS' ? '/dashboard/service-provider' :
+                             (profile.role as any) === 'PRESTADOR_SERVICOS' ? '/dashboard/service-provider' :
                              '/dashboard/producer';
         navigate(dashboardPath);
       }
@@ -325,7 +325,7 @@ const CompleteProfile = () => {
         navigate('/dashboard/driver');
       } else if (profile.role === 'PRODUTOR') {
         navigate('/dashboard/producer');
-      } else if (profile.role === 'PRESTADOR_SERVICOS') {
+      } else if ((profile.role as any) === 'PRESTADOR_SERVICOS') {
         navigate('/dashboard/service-provider');
       } else {
         navigate('/');

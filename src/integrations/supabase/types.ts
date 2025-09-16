@@ -2043,7 +2043,7 @@ export type Database = {
         | "LOADED"
       payment_method: "PIX" | "BOLETO" | "CARTAO" | "DIRETO"
       urgency_level: "LOW" | "MEDIUM" | "HIGH"
-      user_role: "PRODUTOR" | "MOTORISTA" | "ADMIN"
+      user_role: "PRODUTOR" | "MOTORISTA" | "ADMIN" | "PRESTADOR_SERVICOS"
       user_status: "PENDING" | "APPROVED" | "REJECTED"
       vehicle_type:
         | "TRUCK"
@@ -2197,7 +2197,7 @@ export const Constants = {
       ],
       payment_method: ["PIX", "BOLETO", "CARTAO", "DIRETO"],
       urgency_level: ["LOW", "MEDIUM", "HIGH"],
-      user_role: ["PRODUTOR", "MOTORISTA", "ADMIN"],
+      user_role: ["PRODUTOR", "MOTORISTA", "ADMIN", "PRESTADOR_SERVICOS"],
       user_status: ["PENDING", "APPROVED", "REJECTED"],
       vehicle_type: [
         "TRUCK",
