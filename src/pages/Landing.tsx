@@ -408,6 +408,11 @@ const Landing = () => {
         initialTab={authModal.initialTab}
       />
 
+      <ContactModal
+        isOpen={contactModal}
+        onClose={() => setContactModal(false)}
+      />
+
       <GuestServiceModal
         isOpen={guestServiceModal.isOpen}
         onClose={() => setGuestServiceModal({ isOpen: false })}
