@@ -232,13 +232,6 @@ const Landing = () => {
             </div>
             <div className="mt-3 md:mt-4 flex flex-wrap justify-center gap-3 md:gap-4">
               <Button 
-                className="gradient-primary text-primary-foreground text-base md:text-lg px-6 md:px-8 py-5 rounded-full shadow-glow hover:scale-105 transition-bounce"
-                onClick={() => setGuinchoModal(true)}
-              >
-                <Truck className="mr-2 h-5 w-5" />
-                Chamar Guincho Agora
-              </Button>
-              <Button 
                 variant="outline"
                 onClick={() => setServicesModal(true)}
                 className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base md:text-lg px-6 md:px-8 py-5 rounded-full shadow-elegant hover:scale-105 transition-bounce"
