@@ -140,6 +140,45 @@ export type Database = {
         }
         Relationships: []
       }
+      driver_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          driver_id: string
+          freight_id: string
+          id: string
+          metadata: Json | null
+          processed_at: string | null
+          status: string
+          stripe_transfer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          driver_id: string
+          freight_id: string
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          status?: string
+          stripe_transfer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          driver_id?: string
+          freight_id?: string
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          status?: string
+          stripe_transfer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       emergency_events: {
         Row: {
           created_at: string
@@ -1400,35 +1439,41 @@ export type Database = {
       subscribers: {
         Row: {
           created_at: string
-          email: string
           id: string
           stripe_customer_id: string | null
           subscribed: boolean
-          subscription_end: string | null
+          subscription_end_date: string | null
+          subscription_id: string | null
           subscription_tier: string | null
+          tier: string | null
           updated_at: string
+          user_email: string
           user_id: string | null
         }
         Insert: {
           created_at?: string
-          email: string
           id?: string
           stripe_customer_id?: string | null
           subscribed?: boolean
-          subscription_end?: string | null
+          subscription_end_date?: string | null
+          subscription_id?: string | null
           subscription_tier?: string | null
+          tier?: string | null
           updated_at?: string
+          user_email: string
           user_id?: string | null
         }
         Update: {
           created_at?: string
-          email?: string
           id?: string
           stripe_customer_id?: string | null
           subscribed?: boolean
-          subscription_end?: string | null
+          subscription_end_date?: string | null
+          subscription_id?: string | null
           subscription_tier?: string | null
+          tier?: string | null
           updated_at?: string
+          user_email?: string
           user_id?: string | null
         }
         Relationships: []

@@ -87,11 +87,11 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({
       const { error } = await supabase
         .from('subscribers')
         .upsert({
-          user_id: profile.user_id,
-          email: profile.user_id + '@temp.com',
+          user_id: profile?.user_id,
+          user_email: profile?.user_id + '@temp.com',
           subscribed: true,
           subscription_tier: 'TRIAL',
-          subscription_end: trialEndDate.toISOString(),
+          subscription_end_date: trialEndDate.toISOString(),
         });
 
       if (error) throw error;
@@ -125,7 +125,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({
   const getRemainingTrialDays = () => {
     if (!subscription || subscription.subscription_tier !== 'TRIAL') return 0;
     
-    const endDate = new Date(subscription.subscription_end);
+    const endDate = new Date(subscription.subscription_end_date);
     const now = new Date();
     const diffTime = endDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));

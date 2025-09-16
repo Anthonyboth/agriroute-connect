@@ -38,13 +38,13 @@ export const SubscriptionExpiryNotification: React.FC = () => {
         setSubscriptionStatus({
           tier: subscriber.subscription_tier || 'FREE',
           status: subscriber.subscribed ? 'active' : 'inactive',
-          expires_at: subscriber.subscription_end,
-          subscription_end: subscriber.subscription_end
+          expires_at: subscriber.subscription_end_date,
+          subscription_end: subscriber.subscription_end_date
         });
 
         // Check if subscription is expired or expiring soon
-        if (subscriber.subscription_end && subscriber.subscription_tier !== 'FREE') {
-          const expiryDate = new Date(subscriber.subscription_end);
+        if (subscriber.subscription_end_date && subscriber.subscription_tier !== 'FREE') {
+          const expiryDate = new Date(subscriber.subscription_end_date);
           const now = new Date();
           const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
