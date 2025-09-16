@@ -100,17 +100,18 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/freight-advance-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/freight/${freight_id}`,
+      success_url: `https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/success?session_id={CHECKOUT_SESSION_ID}&type=freight_advance&freight_id=${freight_id}`,
+      cancel_url: `https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/cancel?type=freight_advance&freight_id=${freight_id}`,
       metadata: {
         freight_id: freight_id,
         advance_amount: calculatedAmount.toString(),
-        user_id: user.id
+        user_id: user.id,
+        type: "freight_advance"
       }
     });
 
     // Registrar o adiantamento no banco
-    const { error: advanceError } = await supabaseClient
+    const { data: advanceRecord, error: advanceError } = await supabaseClient
       .from("freight_advances")
       .insert({
         freight_id,
@@ -118,12 +119,22 @@ serve(async (req) => {
         amount: calculatedAmount,
         stripe_session_id: session.id,
         status: "PENDING"
-      });
+      })
+      .select()
+      .single();
 
-    if (advanceError) {
+    if (advanceError || !advanceRecord) {
       logStep("Error creating advance record", { error: advanceError });
       throw new Error("Failed to create advance record");
     }
+
+    // Update metadata with advance_id
+    await stripe.checkout.sessions.update(session.id, {
+      metadata: {
+        ...session.metadata,
+        advance_id: advanceRecord.id
+      }
+    });
 
     logStep("Advance session created successfully", { 
       sessionId: session.id, 

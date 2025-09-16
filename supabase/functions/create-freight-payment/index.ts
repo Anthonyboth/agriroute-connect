@@ -113,18 +113,19 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/freight-payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/freight/${freight_id}`,
+      success_url: `https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/success?session_id={CHECKOUT_SESSION_ID}&type=freight_payment&freight_id=${freight_id}`,
+      cancel_url: `https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/cancel?type=freight_payment&freight_id=${freight_id}`,
       metadata: {
         freight_id: freight_id,
         payment_amount: remainingAmount.toString(),
         payment_method: payment_method,
-        user_id: user.id
+        user_id: user.id,
+        type: "freight_payment"
       }
     });
 
     // Registrar o pagamento no banco
-    const { error: paymentError } = await supabaseClient
+    const { data: paymentRecord, error: paymentError } = await supabaseClient
       .from("freight_payments")
       .insert({
         freight_id,
@@ -133,12 +134,22 @@ serve(async (req) => {
         payment_method,
         stripe_session_id: session.id,
         status: "PENDING"
-      });
+      })
+      .select()
+      .single();
 
-    if (paymentError) {
+    if (paymentError || !paymentRecord) {
       logStep("Error creating payment record", { error: paymentError });
       throw new Error("Failed to create payment record");
     }
+
+    // Update metadata with payment_id
+    await stripe.checkout.sessions.update(session.id, {
+      metadata: {
+        ...session.metadata,
+        payment_id: paymentRecord.id
+      }
+    });
 
     logStep("Payment session created successfully", { 
       sessionId: session.id, 

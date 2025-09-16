@@ -24,6 +24,8 @@ import Help from "./pages/Help";
 import Subscription from "./pages/Subscription";
 import Plans from "./pages/Plans";
 import SystemTest from "./pages/SystemTest";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCancel from "./pages/PaymentCancel";
 import { useAuth } from "./hooks/useAuth";
 import { lazy, Suspense } from "react";
 const PressPage = lazy(() => import("./pages/Press"));
@@ -126,6 +128,8 @@ const App = () => (
             <Route path="/carreiras" element={<Careers />} />
             <Route path="/ajuda" element={<Help />} />
             <Route path="/system-test" element={<SystemTest />} />
+            <Route path="/payment/success" element={<PaymentSuccess />} />
+            <Route path="/payment/cancel" element={<PaymentCancel />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

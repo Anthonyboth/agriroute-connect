@@ -75,11 +75,12 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/`,
+      success_url: "https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/success?session_id={CHECKOUT_SESSION_ID}&type=subscription",
+      cancel_url: "https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/cancel?type=subscription",
       metadata: {
         user_id: user.id,
-        subscription_tier: tier
+        subscription_tier: tier,
+        type: "subscription"
       }
     });
 
