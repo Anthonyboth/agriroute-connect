@@ -144,7 +144,7 @@ export const ServiceProvidersListing: React.FC<ServiceProvidersListingProps> = (
       );
     }
 
-    if (cityFilter) {
+    if (cityFilter && cityFilter !== "all") {
       filtered = filtered.filter(provider =>
         provider.service_area_cities.some(c => 
           c.toLowerCase().includes(cityFilter.toLowerCase())
@@ -213,19 +213,19 @@ export const ServiceProvidersListing: React.FC<ServiceProvidersListingProps> = (
                   <SelectValue placeholder="Filtrar por cidade" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as cidades</SelectItem>
+                  <SelectItem value="all">Todas as cidades</SelectItem>
                   {allCities.map(city => (
                     <SelectItem key={city} value={city}>{city}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
-              <Select value={emergencyFilter === null ? '' : emergencyFilter.toString()} onValueChange={(value) => setEmergencyFilter(value === '' ? null : value === 'true')}>
+              <Select value={emergencyFilter === null ? 'all' : emergencyFilter.toString()} onValueChange={(value) => setEmergencyFilter(value === 'all' ? null : value === 'true')}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="Atendimento" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="true">Apenas emergência 24h</SelectItem>
                   <SelectItem value="false">Horário comercial</SelectItem>
                 </SelectContent>

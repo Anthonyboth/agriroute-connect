@@ -353,12 +353,12 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="vehicle_type_required">Tipo de Veículo Preferido</Label>
-              <Select value={formData.vehicle_type_required || ''} onValueChange={(value) => handleInputChange('vehicle_type_required', value)}>
+              <Select value={formData.vehicle_type_required || 'all'} onValueChange={(value) => handleInputChange('vehicle_type_required', value === 'all' ? '' : value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Qualquer" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Qualquer</SelectItem>
+                  <SelectItem value="all">Qualquer</SelectItem>
                   <SelectItem value="TRUCK">Truck</SelectItem>
                   <SelectItem value="BITREM">Bitrem</SelectItem>
                   <SelectItem value="RODOTREM">Rodotrem</SelectItem>

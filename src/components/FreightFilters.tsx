@@ -60,7 +60,7 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 {availableServiceTypes.includes('CARGA') && (
                   <SelectItem value="CARGA">Carga</SelectItem>
                 )}
@@ -85,7 +85,7 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
                 <SelectValue placeholder="Todos os tipos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os tipos</SelectItem>
+                <SelectItem value="all">Todos os tipos</SelectItem>
                 {CARGO_CATEGORIES.map((category) => (
                   <SelectGroup key={category.value}>
                     <SelectLabel className="font-semibold text-primary">
@@ -114,7 +114,7 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
                 <SelectValue placeholder="Qualquer" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Qualquer</SelectItem>
+                <SelectItem value="all">Qualquer</SelectItem>
                 <SelectItem value="TRUCK">Truck</SelectItem>
                 <SelectItem value="BITREM">Bitrem</SelectItem>
                 <SelectItem value="RODOTREM">Rodotrem</SelectItem>

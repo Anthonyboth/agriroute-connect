@@ -54,8 +54,8 @@ const DriverDashboard = () => {
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [filters, setFilters] = useState({
-    cargo_type: '',
-    service_type: '',
+    cargo_type: 'all',
+    service_type: 'all',
     min_weight: '',
     max_weight: '',
     max_distance: '',
@@ -63,7 +63,7 @@ const DriverDashboard = () => {
     max_price: '',
     origin_city: '',
     destination_city: '',
-    vehicle_type: '',
+    vehicle_type: 'all',
   });
 
   const handleFilterChange = (field: string, value: string) => {
@@ -72,8 +72,8 @@ const DriverDashboard = () => {
 
   const clearFilters = () => {
     setFilters({
-      cargo_type: '',
-      service_type: '',
+      cargo_type: 'all',
+      service_type: 'all',
       min_weight: '',
       max_weight: '',
       max_distance: '',
@@ -81,7 +81,7 @@ const DriverDashboard = () => {
       max_price: '',
       origin_city: '',
       destination_city: '',
-      vehicle_type: '',
+      vehicle_type: 'all',
     });
   };
   const [loading, setLoading] = useState(true);
