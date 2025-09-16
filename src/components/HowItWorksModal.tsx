@@ -97,117 +97,196 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
           </DialogDescription>
         </DialogHeader>
 
-        {/* Fluxograma Visual */}
+        {/* Fluxograma Visual Aprimorado */}
         <div className="my-8">
-          <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-center mb-6">
-              {isProducer ? '🔄 Fluxo do Produtor' : '🔄 Fluxo do Motorista'}
-            </h3>
-            <div className="flex flex-wrap justify-center items-center gap-4">
-              {steps.map((step, index) => (
+          <div className="relative bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 rounded-2xl p-8 border border-primary/10 shadow-elegant">
+            {/* Título com ícone */}
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                  {isProducer ? '🌾' : '🚛'}
+                </div>
+                <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  {isProducer ? 'Fluxo do Produtor' : 'Fluxo do Motorista'}
+                </h3>
+              </div>
+            </div>
+
+            {/* Fluxo principal - primeira linha (passos 1-4) */}
+            <div className="flex flex-wrap justify-center items-center gap-6 mb-8">
+              {steps.slice(0, 4).map((step, index) => (
                 <React.Fragment key={index}>
-                  <div className="flex flex-col items-center min-w-[120px] text-center">
-                    <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center mb-2">
-                      <step.icon className="h-6 w-6" />
+                  <div className="flex flex-col items-center min-w-[140px] text-center group animate-fade-in" 
+                       style={{ animationDelay: `${index * 100}ms` }}>
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary-light text-primary-foreground flex items-center justify-center mb-3 shadow-glow group-hover:scale-110 transition-transform duration-300">
+                        <step.icon className="h-8 w-8" />
+                      </div>
+                      <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-bold">
+                        {index + 1}
+                      </div>
                     </div>
-                    <p className="text-xs font-medium">{step.title}</p>
+                    <h4 className="text-sm font-semibold text-foreground mb-1">{step.title.replace(/^\d+\.\s/, '')}</h4>
+                    <p className="text-xs text-muted-foreground max-w-[120px]">{step.description}</p>
                   </div>
-                  {index < steps.length - 1 && (
-                    <div className="text-primary text-2xl">→</div>
+                  {index < 3 && (
+                    <div className="text-primary/60 text-3xl animate-pulse hidden sm:block">→</div>
                   )}
                 </React.Fragment>
               ))}
             </div>
+
+            {/* Seta para baixo */}
+            <div className="flex justify-center mb-8">
+              <div className="text-primary/60 text-4xl animate-bounce">↓</div>
+            </div>
+
+            {/* Fluxo secundário - segunda linha (passos 5-6) */}
+            <div className="flex justify-center items-center gap-6">
+              {steps.slice(4).map((step, index) => (
+                <React.Fragment key={index + 4}>
+                  <div className="flex flex-col items-center min-w-[140px] text-center group animate-fade-in" 
+                       style={{ animationDelay: `${(index + 4) * 100}ms` }}>
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent to-accent text-accent-foreground flex items-center justify-center mb-3 shadow-glow group-hover:scale-110 transition-transform duration-300">
+                        <step.icon className="h-8 w-8" />
+                      </div>
+                      <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+                        {index + 5}
+                      </div>
+                    </div>
+                    <h4 className="text-sm font-semibold text-foreground mb-1">{step.title.replace(/^\d+\.\s/, '')}</h4>
+                    <p className="text-xs text-muted-foreground max-w-[120px]">{step.description}</p>
+                  </div>
+                  {index < steps.slice(4).length - 1 && (
+                    <div className="text-accent/60 text-3xl animate-pulse hidden sm:block">→</div>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* Decoração de fundo */}
+            <div className="absolute top-4 right-4 w-20 h-20 bg-gradient-to-br from-primary/10 to-accent/10 rounded-full blur-xl"></div>
+            <div className="absolute bottom-4 left-4 w-16 h-16 bg-gradient-to-br from-accent/10 to-primary/10 rounded-full blur-xl"></div>
           </div>
         </div>
 
-        {/* Steps Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Steps Cards Detalhados */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {steps.map((step, index) => (
-            <Card key={index} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-lg">
-                  <div className="p-2 rounded-full bg-primary/10">
-                    <step.icon className="h-5 w-5 text-primary" />
+            <Card key={index} className="group hover:shadow-glow transition-all duration-300 hover:scale-[1.02] border-muted animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-4 text-lg">
+                  <div className="relative">
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20 transition-colors">
+                      <step.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xs font-bold">
+                      {index + 1}
+                    </div>
                   </div>
-                  {step.title}
+                  <span className="font-semibold">{step.title.replace(/^\d+\.\s/, '')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">{step.description}</p>
+                <p className="text-muted-foreground leading-relaxed">{step.description}</p>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Benefits Section */}
-        <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
-          <CardHeader>
-            <CardTitle className="text-center">
-              {isProducer ? '🌟 Vantagens para Produtores' : '🌟 Vantagens para Motoristas'}
+        {/* Benefits Section Aprimorada */}
+        <Card className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 border-primary/20 shadow-elegant">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary/10 to-transparent rounded-full blur-2xl"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-accent/10 to-transparent rounded-full blur-2xl"></div>
+          
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-center text-xl">
+              <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
+                <span className="text-2xl">{isProducer ? '🌟' : '⚡'}</span>
+                <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-bold">
+                  {isProducer ? 'Vantagens para Produtores' : 'Vantagens para Motoristas'}
+                </span>
+              </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {isProducer ? (
                 <>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
                     <div>
-                      <h4 className="font-medium">Economia de Tempo</h4>
-                      <p className="text-sm text-muted-foreground">Encontre transportadores rapidamente</p>
+                      <h4 className="font-semibold text-foreground mb-1">Economia de Tempo</h4>
+                      <p className="text-sm text-muted-foreground">Encontre transportadores rapidamente sem intermediários</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-accent/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
                     <div>
-                      <h4 className="font-medium">Preços Competitivos</h4>
-                      <p className="text-sm text-muted-foreground">Receba múltiplas propostas</p>
+                      <h4 className="font-semibold text-foreground mb-1">Preços Competitivos</h4>
+                      <p className="text-sm text-muted-foreground">Receba múltiplas propostas e escolha a melhor</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
                     <div>
-                      <h4 className="font-medium">Segurança Total</h4>
-                      <p className="text-sm text-muted-foreground">Motoristas validados e segurados</p>
+                      <h4 className="font-semibold text-foreground mb-1">Segurança Total</h4>
+                      <p className="text-sm text-muted-foreground">Motoristas validados e totalmente segurados</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-accent/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
                     <div>
-                      <h4 className="font-medium">Rastreamento</h4>
-                      <p className="text-sm text-muted-foreground">Acompanhe sua carga em tempo real</p>
+                      <h4 className="font-semibold text-foreground mb-1">Rastreamento Real</h4>
+                      <p className="text-sm text-muted-foreground">Monitore sua carga 24h por dia em tempo real</p>
                     </div>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
                     <div>
-                      <h4 className="font-medium">Mais Fretes</h4>
-                      <p className="text-sm text-muted-foreground">Acesso a rede nacional de produtores</p>
+                      <h4 className="font-semibold text-foreground mb-1">Mais Fretes</h4>
+                      <p className="text-sm text-muted-foreground">Acesso exclusivo à rede nacional de produtores</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-accent/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
                     <div>
-                      <h4 className="font-medium">Pagamento Garantido</h4>
-                      <p className="text-sm text-muted-foreground">Receba com segurança e rapidez</p>
+                      <h4 className="font-semibold text-foreground mb-1">Pagamento Garantido</h4>
+                      <p className="text-sm text-muted-foreground">Receba com total segurança e rapidez</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
                     <div>
-                      <h4 className="font-medium">Gestão Simples</h4>
-                      <p className="text-sm text-muted-foreground">Controle tudo pelo app</p>
+                      <h4 className="font-semibold text-foreground mb-1">Gestão Simples</h4>
+                      <p className="text-sm text-muted-foreground">Controle completo pelo aplicativo mobile</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-accent/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
                     <div>
-                      <h4 className="font-medium">Crescimento</h4>
-                      <p className="text-sm text-muted-foreground">Expanda seu negócio de transporte</p>
+                      <h4 className="font-semibold text-foreground mb-1">Crescimento Real</h4>
+                      <p className="text-sm text-muted-foreground">Expanda seu negócio de transporte nacional</p>
                     </div>
                   </div>
                 </>
@@ -216,14 +295,18 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
           </CardContent>
         </Card>
 
-        {/* Call to Action */}
-        <div className="flex justify-center pt-4">
+        {/* Call to Action Aprimorado */}
+        <div className="flex justify-center pt-6">
           <Button 
             size="lg" 
-            className="px-8 py-3"
+            className="px-12 py-4 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent text-primary-foreground rounded-full shadow-glow hover:shadow-xl hover:scale-105 transition-all duration-300"
             onClick={onProceed || onClose}
           >
+            <span className="mr-3">
+              {isProducer ? '🌾' : '🚛'}
+            </span>
             {isProducer ? 'Começar como Produtor' : 'Começar como Motorista'}
+            <span className="ml-3">→</span>
           </Button>
         </div>
       </DialogContent>
