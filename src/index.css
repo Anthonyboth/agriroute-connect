@@ -2,6 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global dropdown and popover z-index fixes */
+@layer components {
+  /* Ensure dropdowns are above other content */
+  [data-radix-select-content],
+  [data-radix-dropdown-menu-content],
+  [data-radix-popover-content],
+  [data-radix-dialog-content] {
+    z-index: 60 !important;
+  }
+  
+  /* Calendar specific fixes */
+  [data-radix-popover-content] .pointer-events-auto {
+    pointer-events: auto !important;
+  }
+  
+  /* Ensure proper stacking context for modals and overlays */
+  [data-radix-dialog-overlay] {
+    z-index: 50 !important;
+  }
+  
+  [data-radix-dialog-content] {
+    z-index: 51 !important;
+  }
+}
+
 /* AgriRoute Design System - Agricultural Freight Logistics Platform */
 
 @layer base {
