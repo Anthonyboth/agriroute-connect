@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Search, MessageCircle, Mail, Phone, FileText, Truck, Users, Shield, CreditCard, HelpCircle, Clock, CheckCircle } from 'lucide-react';
 
 const Help = () => {
@@ -348,7 +348,7 @@ const Help = () => {
                       Todos os sistemas operacionais
                     </h3>
                     <p className="text-green-700 dark:text-green-300 text-sm">
-                      Última verificação: há 2 minutos • <a href="/status" className="underline">Ver detalhes</a>
+                      Última verificação: há 2 minutos • <Link to="/status" className="underline">Ver detalhes</Link>
                     </p>
                   </div>
                 </div>

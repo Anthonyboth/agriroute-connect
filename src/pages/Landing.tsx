@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AuthModal from '@/components/AuthModal';
@@ -157,9 +157,9 @@ const Landing = () => {
               <a href="#features" className="text-muted-foreground hover:text-foreground transition-smooth">
                 Recursos
               </a>
-              <a href="/sobre" className="text-muted-foreground hover:text-foreground transition-smooth">
+              <Link to="/sobre" className="text-muted-foreground hover:text-foreground transition-smooth">
                 Sobre
-              </a>
+              </Link>
               <button 
                 onClick={() => setContactModal(true)}
                 className="text-muted-foreground hover:text-foreground transition-smooth"
@@ -353,20 +353,20 @@ const Landing = () => {
             <div>
               <h4 className="font-semibold text-foreground mb-4">Plataforma</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li><a href="/sobre" className="hover:text-foreground transition-smooth">Sobre nós</a></li>
+                <li><Link to="/sobre" className="hover:text-foreground transition-smooth">Sobre nós</Link></li>
                 <li><button onClick={() => setHowItWorksModal({ isOpen: true })} className="hover:text-foreground transition-smooth text-left">Como funciona</button></li>
-                <li><a href="/imprensa" className="hover:text-foreground transition-smooth">Imprensa</a></li>
-                <li><a href="/carreiras" className="hover:text-foreground transition-smooth">Carreiras</a></li>
+                <li><Link to="/imprensa" className="hover:text-foreground transition-smooth">Imprensa</Link></li>
+                <li><Link to="/carreiras" className="hover:text-foreground transition-smooth">Carreiras</Link></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold text-foreground mb-4">Suporte</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li><a href="/cadastro-prestador" className="hover:text-foreground transition-smooth">Ser Prestador</a></li>
-                <li><a href="/ajuda" className="hover:text-foreground transition-smooth">Central de Ajuda</a></li>
+                <li><Link to="/cadastro-prestador" className="hover:text-foreground transition-smooth">Ser Prestador</Link></li>
+                <li><Link to="/ajuda" className="hover:text-foreground transition-smooth">Central de Ajuda</Link></li>
                 <li><button onClick={() => setContactModal(true)} className="hover:text-foreground transition-smooth text-left">Contato</button></li>
-                <li><a href="/status" className="hover:text-foreground transition-smooth">Status</a></li>
+                <li><Link to="/status" className="hover:text-foreground transition-smooth">Status</Link></li>
                 <li><a href="https://wa.me/5566999426656" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-smooth">WhatsApp</a></li>
               </ul>
             </div>
@@ -374,9 +374,9 @@ const Landing = () => {
             <div>
               <h4 className="font-semibold text-foreground mb-4">Legal</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li><a href="/privacidade" className="hover:text-foreground transition-smooth">Privacidade</a></li>
-                <li><a href="/termos" className="hover:text-foreground transition-smooth">Termos</a></li>
-                <li><a href="/cookies" className="hover:text-foreground transition-smooth">Cookies</a></li>
+                <li><Link to="/privacidade" className="hover:text-foreground transition-smooth">Privacidade</Link></li>
+                <li><Link to="/termos" className="hover:text-foreground transition-smooth">Termos</Link></li>
+                <li><Link to="/cookies" className="hover:text-foreground transition-smooth">Cookies</Link></li>
                 <li><button onClick={() => setReportModal(true)} className="hover:text-foreground transition-smooth text-left text-muted-foreground">Denunciar</button></li>
               </ul>
             </div>
@@ -385,9 +385,9 @@ const Landing = () => {
           <div className="border-t mt-12 pt-8 flex flex-col md:flex-row justify-between items-center text-muted-foreground">
             <p>
               &copy; 2024 AgriRoute. Todos os direitos reservados. | 
-              <a href="/system-test" className="hover:text-foreground transition-smooth ml-1">
+              <Link to="/system-test" className="hover:text-foreground transition-smooth ml-1">
                 Verificação do Sistema
-              </a>
+              </Link>
             </p>
             <p className="text-xs mt-2 md:mt-0">
               Agronegócio representa 24.8% do PIB brasileiro
