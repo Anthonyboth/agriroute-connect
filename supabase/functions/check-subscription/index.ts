@@ -45,15 +45,16 @@ serve(async (req) => {
     
     if (customers.data.length === 0) {
       logStep("No customer found, updating free tier state");
-      await supabaseClient.from("subscribers").upsert({
-        email: user.email,
-        user_id: user.id,
-        stripe_customer_id: null,
-        subscribed: false,
-        subscription_tier: 'FREE',
-        subscription_end: null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'email' });
+    await supabaseClient.from("subscribers").upsert({
+      user_email: user.email,
+      user_id: user.id,
+      stripe_customer_id: null,
+      subscribed: false,
+      subscription_tier: 'FREE',
+      tier: 'FREE',
+      subscription_end_date: null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_email' });
       
       return new Response(JSON.stringify({ 
         subscribed: false, 
@@ -103,14 +104,15 @@ serve(async (req) => {
     }
 
     await supabaseClient.from("subscribers").upsert({
-      email: user.email,
+      user_email: user.email,
       user_id: user.id,
       stripe_customer_id: customerId,
       subscribed: hasActiveSub,
       subscription_tier: subscriptionTier,
-      subscription_end: subscriptionEnd,
+      tier: subscriptionTier,
+      subscription_end_date: subscriptionEnd,
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'email' });
+    }, { onConflict: 'user_email' });
 
     logStep("Updated database", { subscribed: hasActiveSub, subscriptionTier });
 
