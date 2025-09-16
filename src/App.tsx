@@ -18,13 +18,15 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Cookies from "./pages/Cookies";
 import Status from "./pages/Status";
-import Press from "./pages/Press";
+
 import Careers from "./pages/Careers";
 import Help from "./pages/Help";
 import Subscription from "./pages/Subscription";
 import Plans from "./pages/Plans";
 import SystemTest from "./pages/SystemTest";
 import { useAuth } from "./hooks/useAuth";
+import { lazy, Suspense } from "react";
+const PressPage = lazy(() => import("./pages/Press"));
 
 const queryClient = new QueryClient();
 
@@ -120,7 +122,7 @@ const App = () => (
             <Route path="/termos" element={<Terms />} />
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/status" element={<Status />} />
-            <Route path="/imprensa" element={<Press />} />
+            <Route path="/imprensa" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}><PressPage /></Suspense>} />
             <Route path="/carreiras" element={<Careers />} />
             <Route path="/ajuda" element={<Help />} />
             <Route path="/system-test" element={<SystemTest />} />
