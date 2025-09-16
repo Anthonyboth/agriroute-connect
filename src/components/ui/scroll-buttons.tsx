@@ -27,14 +27,18 @@ export const ScrollButtons: React.FC<ScrollButtonsProps> = ({
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = scrollElement;
-      setShowScrollTop(scrollTop > 100);
-      setShowScrollBottom(scrollTop < scrollHeight - clientHeight - 100);
+      setShowScrollTop(scrollTop > 150);
+      setShowScrollBottom(scrollTop < scrollHeight - clientHeight - 150);
     };
 
     scrollElement.addEventListener('scroll', handleScroll);
-    handleScroll(); // Check initial state
+    // Check initial state after a short delay to ensure content is rendered
+    const timer = setTimeout(handleScroll, 100);
 
-    return () => scrollElement.removeEventListener('scroll', handleScroll);
+    return () => {
+      scrollElement.removeEventListener('scroll', handleScroll);
+      clearTimeout(timer);
+    };
   }, [scrollAreaId]);
 
   const scrollToTop = () => {
@@ -64,28 +68,34 @@ export const ScrollButtons: React.FC<ScrollButtonsProps> = ({
       </div>
       
       {/* Scroll Buttons */}
-      <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col gap-2 z-10">
-        {showScrollTop && (
-          <Button
-            onClick={scrollToTop}
-            size="sm"
-            variant="outline"
-            className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm border shadow-md hover:bg-background/90"
-          >
-            <ChevronUp className="h-4 w-4" />
-          </Button>
-        )}
+      <div className="fixed right-6 top-1/2 transform -translate-y-1/2 flex flex-col gap-2 z-50 pointer-events-none">
+        <div className="pointer-events-auto">
+          {showScrollTop && (
+            <Button
+              onClick={scrollToTop}
+              size="sm"
+              variant="outline"
+              className="h-10 w-10 p-0 bg-background/90 backdrop-blur-sm border shadow-lg hover:bg-background/95 hover:shadow-xl transition-all duration-200"
+              title="Rolar para o topo"
+            >
+              <ChevronUp className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
         
-        {showScrollBottom && (
-          <Button
-            onClick={scrollToBottom}
-            size="sm"
-            variant="outline"
-            className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm border shadow-md hover:bg-background/90"
-          >
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        )}
+        <div className="pointer-events-auto">
+          {showScrollBottom && (
+            <Button
+              onClick={scrollToBottom}
+              size="sm"
+              variant="outline"
+              className="h-10 w-10 p-0 bg-background/90 backdrop-blur-sm border shadow-lg hover:bg-background/95 hover:shadow-xl transition-all duration-200"
+              title="Rolar para baixo"
+            >
+              <ChevronDown className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
