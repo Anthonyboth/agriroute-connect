@@ -35,8 +35,8 @@ const serviceTypes = [
     id: 'mecanico',
     title: 'Mecânico',
     description: 'Reparos mecânicos em geral',
-    icon: Settings,
-    color: 'text-secondary'
+    icon: Wrench,
+    color: 'text-primary'
   },
   {
     id: 'borracheiro',
