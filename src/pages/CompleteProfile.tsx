@@ -97,20 +97,19 @@ const CompleteProfile = () => {
         fetchVehicles();
       }
 
-      // Check if profile is already complete
-      const isProfileComplete = profile.selfie_url && profile.document_photo_url;
+      // Check if profile has minimum requirements for access
+      const hasBasicRequirements = profile.selfie_url && profile.document_photo_url;
       const isDriverComplete = profile.role !== 'MOTORISTA' || (
         profile.cnh_photo_url && 
-        profile.truck_documents_url && 
-        profile.truck_photo_url && 
-        profile.license_plate_photo_url && 
         profile.address_proof_url &&
         profile.location_enabled
       );
 
-      if (isProfileComplete && isDriverComplete) {
-        // Redirect to appropriate dashboard
-        const dashboardPath = profile.role === 'MOTORISTA' ? '/dashboard/driver' : '/dashboard/producer';
+      if (hasBasicRequirements && isDriverComplete) {
+        // Allow access with basic requirements met, regardless of approval status
+        const dashboardPath = profile.role === 'MOTORISTA' ? '/dashboard/driver' : 
+                             profile.role === 'PRESTADOR_SERVICOS' ? '/dashboard/service-provider' :
+                             '/dashboard/producer';
         navigate(dashboardPath);
       }
     }
@@ -258,52 +257,40 @@ const CompleteProfile = () => {
         toast.error('Por favor, envie sua selfie e foto do documento');
         return;
       }
-      if (profile.role === 'MOTORISTA') {
-        setCurrentStep(3);
-        return;
-      } else {
-        // Producer - finalize here
+      // For producers - allow access with basic requirements
+      if (profile.role === 'PRODUTOR' || profile.role === 'PRESTADOR_SERVICOS') {
         await finalizeProfile();
         return;
-      }
-    }
-
-  // Validate step 3 requirements for drivers - additional docs and vehicles
-  if (currentStep === 3 && profile.role === 'MOTORISTA') {
-    // Se não há veículos cadastrados, exigir documentos
-    if (vehicles.length === 0) {
-      const missingDocs = [];
-      
-      if (!documentUrls.cnh) missingDocs.push('CNH');
-      if (!documentUrls.address_proof) missingDocs.push('Comprovante de residência');
-      
-      if (missingDocs.length > 0) {
-        toast.error(`Documentos faltando: ${missingDocs.join(', ')}`);
+      } else {
+        // For drivers - continue to step 3
+        setCurrentStep(3);
         return;
       }
     }
 
-    if (!locationEnabled) {
-      const ok = await ensureLocationEnabled();
-      if (!ok) {
-        toast.error('Ative a localização para continuar');
-        return;
-      }
-    }
+   // Validate step 3 requirements for drivers - only essential docs
+   if (currentStep === 3 && profile.role === 'MOTORISTA') {
+     const missingDocs = [];
+     
+     if (!documentUrls.cnh) missingDocs.push('CNH');
+     if (!documentUrls.address_proof) missingDocs.push('Comprovante de residência');
+     
+     if (missingDocs.length > 0) {
+       toast.error(`Documentos faltando: ${missingDocs.join(', ')}`);
+       return;
+     }
 
-    if (vehicles.length === 0) {
-      toast.error('Cadastre pelo menos um veículo');
-      return;
-    }
+     if (!locationEnabled) {
+       const ok = await ensureLocationEnabled();
+       if (!ok) {
+         toast.error('Ative a localização para continuar');
+         return;
+       }
+     }
 
-    const vehiclesMissingDocs = vehicles.filter(v => !v.crlv_url || !v.vehicle_photo_url);
-    if (vehiclesMissingDocs.length > 0) {
-      toast.error('Para cada veículo, envie o CRLV e a foto do veículo.');
-      return;
-    }
-
-    await finalizeProfile();
-  }
+     // Allow access without requiring vehicles to be fully documented
+     await finalizeProfile();
+   }
   };
 
   const finalizeProfile = async () => {
@@ -331,13 +318,15 @@ const CompleteProfile = () => {
       // Trigger automatic approval process
       AutomaticApprovalService.triggerApprovalProcess(profile.id);
 
-      toast.success('Perfil completado com sucesso! Processando aprovação automática...');
+      toast.success('Perfil completado com sucesso! Você já pode acessar a plataforma.');
       
       // Redirect to appropriate dashboard
       if (profile.role === 'MOTORISTA') {
         navigate('/dashboard/driver');
       } else if (profile.role === 'PRODUTOR') {
         navigate('/dashboard/producer');
+      } else if (profile.role === 'PRESTADOR_SERVICOS') {
+        navigate('/dashboard/service-provider');
       } else {
         navigate('/');
       }

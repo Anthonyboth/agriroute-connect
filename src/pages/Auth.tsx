@@ -59,27 +59,22 @@ const Auth = () => {
         }
       }
 
-      // Verificar se o perfil está completo
-      const isProfileComplete = activeProfile.selfie_url && activeProfile.document_photo_url;
+      // Verificar se o perfil tem o mínimo necessário (email confirmado + fotos básicas)
+      const hasBasicRequirements = activeProfile.selfie_url && activeProfile.document_photo_url;
+      
+      // Para motoristas, verificar se tem documentos adicionais
       const isDriverComplete = activeProfile.role !== 'MOTORISTA' || (
         activeProfile.cnh_photo_url && 
-        activeProfile.truck_documents_url && 
-        activeProfile.truck_photo_url && 
-        activeProfile.license_plate_photo_url && 
         activeProfile.address_proof_url &&
         activeProfile.location_enabled
       );
 
-      if (!isProfileComplete || !isDriverComplete) {
+      if (!hasBasicRequirements || !isDriverComplete) {
         navigate('/complete-profile');
         return;
       }
 
-      if (activeProfile.status !== 'APPROVED') {
-        toast.info('Sua conta está pendente de aprovação');
-        return;
-      }
-
+      // Se tem os requisitos básicos, permitir acesso independente do status de aprovação
       switch (activeProfile.role) {
         case 'ADMIN':
           navigate('/admin');
@@ -89,6 +84,9 @@ const Auth = () => {
           break;
         case 'PRODUTOR':
           navigate('/dashboard/producer');
+          break;
+        case 'PRESTADOR_SERVICOS':
+          navigate('/dashboard/service-provider');
           break;
         default:
           navigate('/');
