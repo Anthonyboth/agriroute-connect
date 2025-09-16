@@ -77,55 +77,88 @@ export const GuinchoModal: React.FC<GuinchoModalProps> = ({ isOpen, onClose }) =
     e.preventDefault();
     if (loading) return;
 
+    // Validação básica
+    if (!formData.vehicle_type || !formData.origin_address || !formData.destination_address || !formData.contact_phone) {
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
-      // Get current user profile
+      // Check if user is authenticated
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Erro",
-          description: "Você precisa estar logado para solicitar guincho.",
-          variant: "destructive"
-        });
-        return;
-      }
+      
+      if (user) {
+        // User is authenticated - use existing freights table
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+        if (!profile) {
+          toast({
+            title: "Erro",
+            description: "Perfil não encontrado.",
+            variant: "destructive"
+          });
+          return;
+        }
 
-      if (!profile) {
-        toast({
-          title: "Erro",
-          description: "Perfil não encontrado.",
-          variant: "destructive"
-        });
-        return;
-      }
+        // Create freight entry for authenticated user
+        const { error } = await supabase
+          .from('freights')
+          .insert({
+            producer_id: profile.id,
+            service_type: 'GUINCHO',
+            cargo_type: `Guincho - ${vehicleTypes.find(v => v.value === formData.vehicle_type)?.label}`,
+            weight: 0, // Not applicable for guincho
+            origin_address: formData.origin_address,
+            destination_address: formData.destination_address,
+            distance_km: parseFloat(formData.distance_km),
+            pickup_date: new Date().toISOString().split('T')[0], // Today
+            delivery_date: new Date().toISOString().split('T')[0], // Same day service
+            price: pricing?.total_price || 0,
+            description: `${formData.problem_description}\n\nContato: ${formData.contact_phone}\n\nInfo adicional: ${formData.additional_info}`,
+            urgency: formData.emergency ? 'HIGH' : 'MEDIUM',
+            status: 'OPEN'
+          });
 
-      // Create freight entry for guincho service
-      const { error } = await supabase
-        .from('freights')
-        .insert({
-          producer_id: profile.id,
-          service_type: 'GUINCHO',
-          cargo_type: `Guincho - ${vehicleTypes.find(v => v.value === formData.vehicle_type)?.label}`,
-          weight: 0, // Not applicable for guincho
+        if (error) throw error;
+      } else {
+        // User is not authenticated - use guest_requests table
+        const guestPayload = {
+          vehicle_type: formData.vehicle_type,
           origin_address: formData.origin_address,
           destination_address: formData.destination_address,
-          distance_km: parseFloat(formData.distance_km),
-          pickup_date: new Date().toISOString().split('T')[0], // Today
-          delivery_date: new Date().toISOString().split('T')[0], // Same day service
-          price: pricing?.total_price || 0,
-          description: `${formData.problem_description}\n\nContato: ${formData.contact_phone}\n\nInfo adicional: ${formData.additional_info}`,
-          urgency: formData.emergency ? 'HIGH' : 'MEDIUM',
-          status: 'OPEN'
-        });
+          distance_km: formData.distance_km,
+          problem_description: formData.problem_description,
+          emergency: formData.emergency,
+          additional_info: formData.additional_info,
+          pricing: pricing,
+          origin_lat: formData.origin_lat,
+          origin_lng: formData.origin_lng,
+          destination_lat: formData.destination_lat,
+          destination_lng: formData.destination_lng
+        };
 
-      if (error) throw error;
+        const { error } = await supabase
+          .from('guest_requests')
+          .insert({
+            request_type: 'GUINCHO',
+            service_type: 'GUINCHO',
+            contact_phone: formData.contact_phone,
+            payload: guestPayload,
+            status: 'PENDING'
+          });
+
+        if (error) throw error;
+      }
 
       toast({
         title: "Solicitação Enviada!",

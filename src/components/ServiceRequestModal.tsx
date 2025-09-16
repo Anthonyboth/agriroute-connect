@@ -81,15 +81,7 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
-      toast({
-        title: "Erro",
-        description: "Você precisa estar logado para solicitar um serviço.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    // Validação básica
     if (!formData.location || !formData.problemDescription || !formData.contactPhone) {
       toast({
         title: "Erro",
@@ -102,69 +94,113 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     setLoading(true);
 
     try {
-      // Buscar o profile do usuário
-      const { data: userProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+      // Check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // User is authenticated - use existing service_requests table
+        const { data: userProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
 
-      if (profileError || !userProfile) {
-        throw new Error('Profile não encontrado');
-      }
+        if (profileError || !userProfile) {
+          throw new Error('Profile não encontrado');
+        }
 
-      // Criar a solicitação de serviço na nova tabela
-      const requestData = {
-        client_id: userProfile.id,
-        service_type: serviceType,
-        location_address: formData.location,
-        location_lat: formData.locationLat,
-        location_lng: formData.locationLng,
-        problem_description: formData.problemDescription,
-        vehicle_info: formData.vehicleInfo,
-        urgency: formData.urgency,
-        contact_phone: formData.contactPhone,
-        contact_name: formData.contactName,
-        preferred_datetime: formData.preferredDateTime ? new Date(formData.preferredDateTime).toISOString() : null,
-        additional_info: formData.additionalInfo,
-        is_emergency: formData.isEmergency,
-        estimated_price: provider.base_price || null,
-        status: 'PENDING'
-      };
+        // Criar a solicitação de serviço na tabela service_requests
+        const requestData = {
+          client_id: userProfile.id,
+          service_type: serviceType,
+          location_address: formData.location,
+          location_lat: formData.locationLat,
+          location_lng: formData.locationLng,
+          problem_description: formData.problemDescription,
+          vehicle_info: formData.vehicleInfo,
+          urgency: formData.urgency,
+          contact_phone: formData.contactPhone,
+          contact_name: formData.contactName,
+          preferred_datetime: formData.preferredDateTime ? new Date(formData.preferredDateTime).toISOString() : null,
+          additional_info: formData.additionalInfo,
+          is_emergency: formData.isEmergency,
+          estimated_price: provider.base_price || null,
+          status: 'PENDING'
+        };
 
-      const { data: serviceRequest, error: requestError } = await supabase
-        .from('service_requests')
-        .insert(requestData)
-        .select()
-        .single();
+        const { data: serviceRequest, error: requestError } = await supabase
+          .from('service_requests')
+          .insert(requestData)
+          .select()
+          .single();
 
-      if (requestError) throw requestError;
+        if (requestError) throw requestError;
 
-      // Enviar notificação para o prestador de serviços
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: provider.profile_id,
-          title: `Nova solicitação de ${serviceTitle}`,
-          message: `${formData.contactName || 'Cliente'} solicitou seus serviços em ${formData.location}`,
-          type: formData.isEmergency ? 'emergency' : 'service_request',
-          data: {
-            service_request_id: serviceRequest.id,
-            service_type: serviceType,
-            location: formData.location,
-            contact_phone: formData.contactPhone,
-            is_emergency: formData.isEmergency
-          }
+        // Enviar notificação para o prestador de serviços
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert({
+            user_id: provider.profile_id,
+            title: `Nova solicitação de ${serviceTitle}`,
+            message: `${formData.contactName || 'Cliente'} solicitou seus serviços em ${formData.location}`,
+            type: formData.isEmergency ? 'emergency' : 'service_request',
+            data: {
+              service_request_id: serviceRequest.id,
+              service_type: serviceType,
+              location: formData.location,
+              contact_phone: formData.contactPhone,
+              is_emergency: formData.isEmergency
+            }
+          });
+
+        if (notificationError) {
+          console.error('Erro ao enviar notificação:', notificationError);
+        }
+
+        toast({
+          title: "Solicitação enviada!",
+          description: `Sua solicitação foi enviada para ${provider.profiles.full_name}. Você será notificado quando o prestador responder.`,
         });
+      } else {
+        // User is not authenticated - use guest_requests table
+        const guestPayload = {
+          provider: {
+            id: provider.id,
+            profile_id: provider.profile_id,
+            full_name: provider.profiles.full_name
+          },
+          location: formData.location,
+          locationLat: formData.locationLat,
+          locationLng: formData.locationLng,
+          problemDescription: formData.problemDescription,
+          vehicleInfo: formData.vehicleInfo,
+          urgency: formData.urgency,
+          contactName: formData.contactName,
+          preferredDateTime: formData.preferredDateTime,
+          additionalInfo: formData.additionalInfo,
+          isEmergency: formData.isEmergency,
+          estimatedPrice: provider.base_price || null
+        };
 
-      if (notificationError) {
-        console.error('Erro ao enviar notificação:', notificationError);
+        const { error } = await supabase
+          .from('guest_requests')
+          .insert({
+            request_type: 'SERVICE',
+            service_type: serviceType,
+            provider_id: provider.profile_id,
+            contact_phone: formData.contactPhone,
+            contact_name: formData.contactName,
+            payload: guestPayload,
+            status: 'PENDING'
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Solicitação enviada!",
+          description: `Sua solicitação foi enviada para ${provider.profiles.full_name}. Em breve entrarão em contato.`,
+        });
       }
-
-      toast({
-        title: "Solicitação enviada!",
-        description: `Sua solicitação foi enviada para ${provider.profiles.full_name}. Você será notificado quando o prestador responder.`,
-      });
 
       onClose();
       

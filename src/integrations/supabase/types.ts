@@ -757,6 +757,42 @@ export type Database = {
           },
         ]
       }
+      guest_requests: {
+        Row: {
+          contact_name: string | null
+          contact_phone: string
+          created_at: string
+          id: string
+          payload: Json
+          provider_id: string | null
+          request_type: string
+          service_type: string | null
+          status: string
+        }
+        Insert: {
+          contact_name?: string | null
+          contact_phone: string
+          created_at?: string
+          id?: string
+          payload: Json
+          provider_id?: string | null
+          request_type: string
+          service_type?: string | null
+          status?: string
+        }
+        Update: {
+          contact_name?: string | null
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          provider_id?: string | null
+          request_type?: string
+          service_type?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       identity_selfies: {
         Row: {
           created_at: string
