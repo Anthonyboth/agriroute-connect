@@ -222,38 +222,40 @@ const DriverDashboard = () => {
       />
 
       {/* Hero Section */}
-      <section className="relative h-[300px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[320px] md:min-h-[360px] flex items-center justify-center overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${heroLogistics})` }}
         />
         <div className="absolute inset-0 bg-primary/80" />
-        <div className="relative z-10 text-center text-primary-foreground">
-          <h1 className="text-4xl font-bold mb-4">
-            Olá, {profile?.full_name || 'Motorista'}
-          </h1>
-          <p className="text-xl mb-6 opacity-90">
-            Sistema IA encontra fretes compatíveis com seus serviços automaticamente
-          </p>
-          <div className="flex gap-4">
-            <Button 
-              variant="default"
-              size="lg"
-              onClick={() => setActiveTab('available')}
-              className="bg-background text-primary hover:bg-background/90 font-semibold"
-            >
-              <Brain className="mr-2 h-5 w-5" />
-              Ver Fretes IA
-            </Button>
-            <Button 
-              variant="default"
-              size="lg"
-              onClick={() => setActiveTab('services')}
-              className="bg-background text-primary hover:bg-background/90 font-semibold"
-            >
-              <Settings className="mr-2 h-5 w-5" />
-              Configurar Serviços
-            </Button>
+        <div className="relative z-10 w-full">
+          <div className="container mx-auto px-4 text-center text-primary-foreground">
+            <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4">
+              Olá, {profile?.full_name || 'Motorista'}
+            </h1>
+            <p className="text-base md:text-xl mb-5 md:mb-6 opacity-90">
+              Sistema IA encontra fretes compatíveis com seus serviços automaticamente
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
+              <Button 
+                variant="default"
+                size="lg"
+                onClick={() => setActiveTab('available')}
+                className="bg-background text-primary hover:bg-background/90 font-semibold rounded-full px-6 md:px-8 py-5 md:py-6 shadow-elegant"
+              >
+                <Brain className="mr-2 h-5 w-5" />
+                Ver Fretes IA
+              </Button>
+              <Button 
+                variant="default"
+                size="lg"
+                onClick={() => setActiveTab('services')}
+                className="bg-background text-primary hover:bg-background/90 font-semibold rounded-full px-6 md:px-8 py-5 md:py-6 shadow-elegant"
+              >
+                <Settings className="mr-2 h-5 w-5" />
+                Configurar Serviços
+              </Button>
+            </div>
           </div>
         </div>
       </section>
