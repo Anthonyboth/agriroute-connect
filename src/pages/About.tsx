@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Leaf, Truck, Users, MapPin, Shield, Clock, Target, Heart, Award } from 'lucide-react';
+import PlatformStats from '@/components/PlatformStats';
 
 const About = () => {
   const navigate = useNavigate();
@@ -48,12 +49,7 @@ const About = () => {
     }
   ];
 
-  const stats = [
-    { value: '10,000+', label: 'Produtores Conectados' },
-    { value: '5,000+', label: 'Motoristas Ativos' },
-    { value: '1M+', label: 'Toneladas Transportadas' },
-    { value: '98%', label: 'Satisfação do Cliente' }
-  ];
+  // Estatísticas dinâmicas removidas daqui; usar componente compartilhado PlatformStats
 
   return (
     <div className="min-h-screen bg-background">
@@ -119,18 +115,7 @@ const About = () => {
               O impacto da AgriRoute no agronegócio brasileiro
             </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <Card key={index} className="text-center shadow-card">
-                <CardContent className="p-6">
-                  <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
-                    {stat.value}
-                  </div>
-                  <div className="text-muted-foreground">{stat.label}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <PlatformStats />
         </div>
       </section>
 

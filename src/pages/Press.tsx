@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Leaf, Newspaper, Download, ExternalLink, Users, Trophy, TrendingUp, Calendar } from 'lucide-react';
+import PlatformStats from '@/components/PlatformStats';
 
 const Press = () => {
   const navigate = useNavigate();
@@ -87,12 +88,7 @@ const Press = () => {
     }
   ];
 
-  const stats = [
-    { value: '10,000+', label: 'Produtores Cadastrados', icon: Users },
-    { value: '5,000+', label: 'Motoristas Ativos', icon: Users },
-    { value: '1M+', label: 'Toneladas Transportadas', icon: TrendingUp },
-    { value: '15', label: 'Estados Atendidos', icon: Trophy }
-  ];
+  // Estatísticas estáticas removidas; usando PlatformStats dinâmico
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -137,19 +133,7 @@ const Press = () => {
       {/* Stats Section */}
       <section className="py-12 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {stats.map((stat, index) => (
-              <Card key={index} className="text-center shadow-card">
-                <CardContent className="p-6">
-                  <stat.icon className="h-8 w-8 text-primary mx-auto mb-3" />
-                  <div className="text-2xl md:text-3xl font-bold text-primary mb-2">
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <PlatformStats />
         </div>
       </section>
 
