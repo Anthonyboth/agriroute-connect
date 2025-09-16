@@ -36,8 +36,8 @@ export const ContactInfo: React.FC = () => {
             className="justify-start gap-3 h-auto p-4"
             onClick={handleWhatsAppClick}
           >
-            <div className="flex items-center justify-center w-8 h-8 bg-green-500 rounded-full">
-              <MessageCircle className="h-4 w-4 text-white" />
+            <div className="flex items-center justify-center w-8 h-8 bg-success rounded-full">
+              <MessageCircle className="h-4 w-4 text-success-foreground" />
             </div>
             <div className="text-left">
               <p className="font-medium">WhatsApp</p>
@@ -50,8 +50,8 @@ export const ContactInfo: React.FC = () => {
             className="justify-start gap-3 h-auto p-4"
             onClick={handleEmailClick}
           >
-            <div className="flex items-center justify-center w-8 h-8 bg-blue-500 rounded-full">
-              <Mail className="h-4 w-4 text-white" />
+            <div className="flex items-center justify-center w-8 h-8 bg-accent rounded-full">
+              <Mail className="h-4 w-4 text-accent-foreground" />
             </div>
             <div className="text-left">
               <p className="font-medium">E-mail</p>
@@ -64,8 +64,8 @@ export const ContactInfo: React.FC = () => {
             className="justify-start gap-3 h-auto p-4"
             onClick={() => window.open('tel:+5566999426656', '_self')}
           >
-            <div className="flex items-center justify-center w-8 h-8 bg-gray-500 rounded-full">
-              <Phone className="h-4 w-4 text-white" />
+            <div className="flex items-center justify-center w-8 h-8 bg-muted rounded-full">
+              <Phone className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="text-left">
               <p className="font-medium">Telefone</p>

@@ -29,8 +29,8 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="shadow-card hover:shadow-glow transition-all">
               <CardContent className="p-6 text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full mb-4">
-                  <MessageCircle className="h-6 w-6 text-white" />
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-success rounded-full mb-4">
+                  <MessageCircle className="h-6 w-6 text-success-foreground" />
                 </div>
                 <h3 className="font-semibold mb-2">WhatsApp</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -50,8 +50,8 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
 
             <Card className="shadow-card hover:shadow-glow transition-all">
               <CardContent className="p-6 text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full mb-4">
-                  <Mail className="h-6 w-6 text-white" />
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-accent rounded-full mb-4">
+                  <Mail className="h-6 w-6 text-accent-foreground" />
                 </div>
                 <h3 className="font-semibold mb-2">E-mail</h3>
                 <p className="text-sm text-muted-foreground mb-4">

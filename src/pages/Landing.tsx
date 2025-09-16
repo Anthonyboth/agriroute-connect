@@ -369,7 +369,7 @@ const Landing = () => {
                       }}
                     >
                       <div className="flex items-center justify-center w-8 h-8 bg-green-500 rounded-full">
-                        <MessageCircle className="h-4 w-4 text-white" />
+                        <MessageCircle className="h-4 w-4 text-primary-foreground" />
                       </div>
                       <div className="text-left">
                         <p className="font-medium">WhatsApp</p>
@@ -385,7 +385,7 @@ const Landing = () => {
                       }}
                     >
                       <div className="flex items-center justify-center w-8 h-8 bg-blue-500 rounded-full">
-                        <Mail className="h-4 w-4 text-white" />
+                        <Mail className="h-4 w-4 text-primary-foreground" />
                       </div>
                       <div className="text-left">
                         <p className="font-medium">E-mail</p>

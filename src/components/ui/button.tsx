@@ -19,7 +19,7 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         // AgriRoute specific variants
-        hero: "gradient-hero text-white font-semibold shadow-glow hover:shadow-elegant transition-bounce border-0",
+        hero: "gradient-hero text-primary-foreground font-semibold shadow-glow hover:shadow-elegant transition-bounce border-0",
         success: "bg-success text-success-foreground hover:bg-success/90 transition-smooth",
         warning: "bg-warning text-warning-foreground hover:bg-warning/90 transition-smooth",
         gradient: "gradient-primary text-primary-foreground hover:shadow-card transition-smooth border-0",

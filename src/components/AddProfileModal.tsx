@@ -72,7 +72,7 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
           'Histórico de entregas',
           'Sistema de avaliações'
         ],
-        color: 'bg-blue-500'
+        color: 'bg-accent'
       };
     } else {
       return {
@@ -85,7 +85,7 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
           'Acompanhe entregas',
           'Avalie motoristas'
         ],
-        color: 'bg-green-500'
+        color: 'bg-success'
       };
     }
   };
@@ -114,7 +114,7 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-full text-white ${currentRoleInfo.color}`}>
+                <div className={`p-2 rounded-full text-primary-foreground ${currentRoleInfo.color}`}>
                   {currentRoleInfo.icon}
                 </div>
                 <div>
@@ -139,7 +139,7 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                  <div className={`p-2 rounded-full text-white ${targetRoleInfo.color}`}>
+                  <div className={`p-2 rounded-full text-primary-foreground ${targetRoleInfo.color}`}>
                     {targetRoleInfo.icon}
                   </div>
                   <div className="flex-1">

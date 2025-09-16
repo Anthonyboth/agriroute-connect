@@ -205,7 +205,7 @@ const Auth = () => {
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
           <Tabs defaultValue="login" className="space-y-6">
-            <TabsList className="mx-auto grid grid-cols-2 gap-2 w-full max-w-xs">
+            <TabsList className="mx-auto grid grid-cols-2 gap-1 w-full max-w-xs bg-muted rounded-lg p-1">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Cadastro</TabsTrigger>
             </TabsList>
@@ -234,7 +234,7 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full h-12" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Entrar
                 </Button>
@@ -306,7 +306,7 @@ const Auth = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full h-12" disabled={loading}>
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Cadastrar
                   </Button>
@@ -317,11 +317,11 @@ const Auth = () => {
             <div className="mt-6 text-center">
               <p className="text-xs text-muted-foreground">
                 Você também pode{' '}
-                <Button
-                  variant="link"
-                  className="p-0 h-auto text-xs"
-                  onClick={() => navigate('/')}
-                >
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto text-xs underline-offset-4 hover:underline"
+                      onClick={() => navigate('/')}
+                    >
                   solicitar serviços sem cadastro
                 </Button>
               </p>

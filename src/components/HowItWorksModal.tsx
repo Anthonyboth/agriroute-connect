@@ -107,7 +107,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
               {steps.map((step, index) => (
                 <React.Fragment key={index}>
                   <div className="flex flex-col items-center min-w-[120px] text-center">
-                    <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center mb-2">
+                    <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center mb-2">
                       <step.icon className="h-6 w-6" />
                     </div>
                     <p className="text-xs font-medium">{step.title}</p>

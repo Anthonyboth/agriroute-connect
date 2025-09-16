@@ -150,7 +150,7 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
   };
 
   const getRoleColor = (role: string) => {
-    return role === 'MOTORISTA' ? 'bg-blue-500' : 'bg-green-500';
+    return role === 'MOTORISTA' ? 'bg-accent' : 'bg-success';
   };
 
   const availableProfiles = profiles.filter(p => p.id !== currentProfile?.id);
@@ -177,7 +177,7 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full text-white ${getRoleColor(currentProfile.role)}`}>
+                  <div className={`p-2 rounded-full text-primary-foreground ${getRoleColor(currentProfile.role)}`}>
                     {getRoleIcon(currentProfile.role)}
                   </div>
                   <div className="flex-1">
@@ -211,7 +211,7 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
                   >
                     <CardContent className="p-3">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full text-white ${getRoleColor(profile.role)}`}>
+                        <div className={`p-2 rounded-full text-primary-foreground ${getRoleColor(profile.role)}`}>
                           {getRoleIcon(profile.role)}
                         </div>
                         <div className="flex-1">
@@ -221,7 +221,7 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
                               {getRoleLabel(profile.role)}
                             </Badge>
                             {profile.status === 'APPROVED' && (
-                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                              <Badge variant="secondary" className="text-xs bg-success/10 text-success">
                                 Aprovado
                               </Badge>
                             )}

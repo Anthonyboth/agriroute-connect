@@ -228,7 +228,7 @@ const DriverDashboard = () => {
           style={{ backgroundImage: `url(${heroLogistics})` }}
         />
         <div className="absolute inset-0 bg-primary/80" />
-        <div className="relative z-10 text-center text-white">
+        <div className="relative z-10 text-center text-primary-foreground">
           <h1 className="text-4xl font-bold mb-4">
             Olá, {profile?.full_name || 'Motorista'}
           </h1>
@@ -240,7 +240,7 @@ const DriverDashboard = () => {
               variant="default"
               size="lg"
               onClick={() => setActiveTab('available')}
-              className="bg-white text-primary hover:bg-white/90 font-semibold"
+              className="bg-background text-primary hover:bg-background/90 font-semibold"
             >
               <Brain className="mr-2 h-5 w-5" />
               Ver Fretes IA
@@ -249,7 +249,7 @@ const DriverDashboard = () => {
               variant="default"
               size="lg"
               onClick={() => setActiveTab('services')}
-              className="bg-white text-primary hover:bg-white/90 font-semibold"
+              className="bg-background text-primary hover:bg-background/90 font-semibold"
             >
               <Settings className="mr-2 h-5 w-5" />
               Configurar Serviços
