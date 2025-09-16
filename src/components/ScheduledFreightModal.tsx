@@ -119,7 +119,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
       <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader className="pb-4 shrink-0">
           <DialogTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
+            <CalendarIcon className="h-5 w-5 text-primary" />
             Agendar Frete Futuro
           </DialogTitle>
           <DialogDescription>
@@ -227,7 +227,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
               {/* Seção de Agendamento */}
               <div className="bg-card border rounded-lg p-6 space-y-6">
                 <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
+                  <CalendarIcon className="h-5 w-5 text-primary" />
                   Agendamento
                 </h3>
 
@@ -271,7 +271,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                     {scheduledDate && (
                       <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
                         <div className="text-center space-y-2">
-                          <Calendar className="h-8 w-8 text-primary mx-auto" />
+                          <CalendarIcon className="h-8 w-8 text-primary mx-auto" />
                           <div className="font-semibold text-primary text-lg">
                             {format(scheduledDate, 'dd/MM/yyyy', { locale: ptBR })}
                           </div>
