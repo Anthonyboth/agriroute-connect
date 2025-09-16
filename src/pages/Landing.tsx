@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AuthModal from '@/components/AuthModal';
-import GuinchoModal from '@/components/GuinchoModal';
 import MudancaModal from '@/components/MudancaModal';
 import GuestServiceModal from '@/components/GuestServiceModal';
 import HowItWorksModal from '@/components/HowItWorksModal';
@@ -19,7 +18,6 @@ const Landing = () => {
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; initialTab?: 'login' | 'signup' }>({
     isOpen: false,
   });
-  const [guinchoModal, setGuinchoModal] = useState(false);
   const [mudancaModal, setMudancaModal] = useState(false);
   const [guestServiceModal, setGuestServiceModal] = useState<{ isOpen: boolean; serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' }>({
     isOpen: false,
@@ -411,11 +409,6 @@ const Landing = () => {
         isOpen={guestServiceModal.isOpen}
         onClose={() => setGuestServiceModal({ isOpen: false })}
         serviceType={guestServiceModal.serviceType || 'GUINCHO'}
-      />
-
-      <GuinchoModal
-        isOpen={guinchoModal}
-        onClose={() => setGuinchoModal(false)}
       />
       
       <MudancaModal

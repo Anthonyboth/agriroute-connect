@@ -3,183 +3,210 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
+  Wrench, 
   MapPin, 
   Clock, 
-  Calendar, 
-  User,
-  Phone,
-  Mail,
-  AlertCircle,
-  Star
+  AlertTriangle, 
+  Car, 
+  Truck, 
+  Settings, 
+  Fuel, 
+  Zap, 
+  Shield,
+  Hammer,
+  Construction
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { LocationFillButton } from './LocationFillButton';
-
-interface ServiceProvider {
-  id: string;
-  profile_id: string;
-  service_type: string;
-  base_price?: number;
-  hourly_rate?: number;
-  emergency_service: boolean;
-  work_hours_start: string;
-  work_hours_end: string;
-  service_area_cities: string[];
-  specialties: string[];
-  profiles: {
-    full_name: string;
-    phone?: string;
-    profile_photo_url?: string;
-    rating?: number;
-    total_ratings?: number;
-  };
-}
 
 interface ServiceRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  provider: ServiceProvider;
   serviceType: string;
   serviceTitle: string;
 }
 
-export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
-  isOpen,
-  onClose,
-  provider,
-  serviceType,
-  serviceTitle
+const serviceIcons: Record<string, React.ComponentType<any>> = {
+  GUINCHO: Truck,
+  MECANICO: Settings,
+  BORRACHEIRO: Car,
+  ELETRICISTA_AUTOMOTIVO: Zap,
+  AUTO_ELETRICA: Zap,
+  COMBUSTIVEL: Fuel,
+  CHAVEIRO: Shield,
+  SOLDADOR: Wrench,
+  PINTURA: Settings,
+  VIDRACEIRO: Settings,
+  AR_CONDICIONADO: Settings,
+  FREIOS: Settings,
+  SUSPENSAO: Settings,
+  GUINDASTE: Construction
+};
+
+const vehicleTypes = [
+  { value: 'MOTO', label: 'Motocicleta', multiplier: 0.7 },
+  { value: 'CARRO', label: 'Carro de Passeio', multiplier: 1.0 },
+  { value: 'CAMINHAO', label: 'Caminhão', multiplier: 1.8 },
+  { value: 'ONIBUS', label: 'Ônibus', multiplier: 2.0 },
+  { value: 'CARRETA', label: 'Carreta/Bitrem', multiplier: 2.5 }
+];
+
+export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  serviceType, 
+  serviceTitle 
 }) => {
   const { toast } = useToast();
-  const { user } = useAuth();
-  
+  const [loading, setLoading] = useState(false);
+  const [pricing, setPricing] = useState<any>(null);
   const [formData, setFormData] = useState({
-    location: '',
-    locationLat: null as number | null,
-    locationLng: null as number | null,
-    problemDescription: '',
-    urgency: 'MEDIUM',
-    preferredDateTime: '',
-    contactPhone: '',
-    contactName: '',
-    additionalInfo: '',
-    isEmergency: false,
-    vehicleInfo: ''
+    vehicle_type: '',
+    origin_address: '',
+    destination_address: '',
+    distance_km: '',
+    problem_description: '',
+    emergency: false,
+    contact_phone: '',
+    contact_name: '',
+    additional_info: '',
+    origin_lat: undefined as number | undefined,
+    origin_lng: undefined as number | undefined,
+    destination_lat: undefined as number | undefined,
+    destination_lng: undefined as number | undefined
   });
 
-  const [loading, setLoading] = useState(false);
+  const calculatePricing = async () => {
+    if (serviceType === 'GUINCHO' && (!formData.vehicle_type || !formData.distance_km)) return;
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.functions.invoke('service-pricing', {
+        body: {
+          service_type: serviceType,
+          distance_km: parseFloat(formData.distance_km || '0'),
+          vehicle_type: formData.vehicle_type,
+          additional_services: formData.emergency ? ['EMERGENCY'] : []
+        }
+      });
+
+      if (error) throw error;
+      setPricing(data);
+    } catch (error) {
+      console.error('Error calculating pricing:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível calcular o preço. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    if (loading) return;
+
     // Validação básica
-    if (!formData.location || !formData.problemDescription || !formData.contactPhone) {
+    if (!formData.origin_address || !formData.contact_phone || !formData.problem_description) {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios.",
-        variant: "destructive",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
       });
       return;
     }
 
-    setLoading(true);
-
     try {
+      setLoading(true);
+
       // Check if user is authenticated
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        // User is authenticated - use existing service_requests table
-        const { data: userProfile, error: profileError } = await supabase
+        // User is authenticated - use existing freights table for GUINCHO or service_requests for others
+        const { data: profile } = await supabase
           .from('profiles')
           .select('id')
           .eq('user_id', user.id)
           .single();
 
-        if (profileError || !userProfile) {
-          throw new Error('Profile não encontrado');
-        }
-
-        // Criar a solicitação de serviço na tabela service_requests
-        const requestData = {
-          client_id: userProfile.id,
-          service_type: serviceType,
-          location_address: formData.location,
-          location_lat: formData.locationLat,
-          location_lng: formData.locationLng,
-          problem_description: formData.problemDescription,
-          vehicle_info: formData.vehicleInfo,
-          urgency: formData.urgency,
-          contact_phone: formData.contactPhone,
-          contact_name: formData.contactName,
-          preferred_datetime: formData.preferredDateTime ? new Date(formData.preferredDateTime).toISOString() : null,
-          additional_info: formData.additionalInfo,
-          is_emergency: formData.isEmergency,
-          estimated_price: provider.base_price || null,
-          status: 'PENDING'
-        };
-
-        const { data: serviceRequest, error: requestError } = await supabase
-          .from('service_requests')
-          .insert(requestData)
-          .select()
-          .single();
-
-        if (requestError) throw requestError;
-
-        // Enviar notificação para o prestador de serviços
-        const { error: notificationError } = await supabase
-          .from('notifications')
-          .insert({
-            user_id: provider.profile_id,
-            title: `Nova solicitação de ${serviceTitle}`,
-            message: `${formData.contactName || 'Cliente'} solicitou seus serviços em ${formData.location}`,
-            type: formData.isEmergency ? 'emergency' : 'service_request',
-            data: {
-              service_request_id: serviceRequest.id,
-              service_type: serviceType,
-              location: formData.location,
-              contact_phone: formData.contactPhone,
-              is_emergency: formData.isEmergency
-            }
+        if (!profile) {
+          toast({
+            title: "Erro",
+            description: "Perfil não encontrado.",
+            variant: "destructive"
           });
-
-        if (notificationError) {
-          console.error('Erro ao enviar notificação:', notificationError);
+          return;
         }
 
-        toast({
-          title: "Solicitação enviada!",
-          description: `Sua solicitação foi enviada para ${provider.profiles.full_name}. Você será notificado quando o prestador responder.`,
-        });
+        if (serviceType === 'GUINCHO') {
+          // Create freight entry for GUINCHO service
+          const { error } = await supabase
+            .from('freights')
+            .insert({
+              producer_id: profile.id,
+              service_type: 'GUINCHO',
+              cargo_type: `Guincho - ${vehicleTypes.find(v => v.value === formData.vehicle_type)?.label || 'Serviço'}`,
+              weight: 0,
+              origin_address: formData.origin_address,
+              destination_address: formData.destination_address || formData.origin_address,
+              distance_km: parseFloat(formData.distance_km || '0'),
+              pickup_date: new Date().toISOString().split('T')[0],
+              delivery_date: new Date().toISOString().split('T')[0],
+              price: pricing?.total_price || 0,
+              description: `${formData.problem_description}\n\nContato: ${formData.contact_phone}\n\nInfo adicional: ${formData.additional_info}`,
+              urgency: formData.emergency ? 'HIGH' : 'MEDIUM',
+              status: 'OPEN'
+            });
+
+          if (error) throw error;
+        } else {
+          // Create service request for other services
+          const { error } = await supabase
+            .from('service_requests')
+            .insert({
+              client_id: profile.id,
+              service_type: serviceType,
+              location_address: formData.origin_address,
+              location_lat: formData.origin_lat,
+              location_lng: formData.origin_lng,
+              problem_description: formData.problem_description,
+              vehicle_info: formData.vehicle_type ? vehicleTypes.find(v => v.value === formData.vehicle_type)?.label : '',
+              urgency: formData.emergency ? 'HIGH' : 'MEDIUM',
+              contact_phone: formData.contact_phone,
+              contact_name: formData.contact_name,
+              additional_info: formData.additional_info,
+              is_emergency: formData.emergency,
+              status: 'PENDING'
+            });
+
+          if (error) throw error;
+        }
       } else {
         // User is not authenticated - use guest_requests table
         const guestPayload = {
-          provider: {
-            id: provider.id,
-            profile_id: provider.profile_id,
-            full_name: provider.profiles.full_name
-          },
-          location: formData.location,
-          locationLat: formData.locationLat,
-          locationLng: formData.locationLng,
-          problemDescription: formData.problemDescription,
-          vehicleInfo: formData.vehicleInfo,
-          urgency: formData.urgency,
-          contactName: formData.contactName,
-          preferredDateTime: formData.preferredDateTime,
-          additionalInfo: formData.additionalInfo,
-          isEmergency: formData.isEmergency,
-          estimatedPrice: provider.base_price || null
+          vehicle_type: formData.vehicle_type,
+          origin_address: formData.origin_address,
+          destination_address: formData.destination_address,
+          distance_km: formData.distance_km,
+          problem_description: formData.problem_description,
+          emergency: formData.emergency,
+          additional_info: formData.additional_info,
+          contact_name: formData.contact_name,
+          pricing: pricing,
+          origin_lat: formData.origin_lat,
+          origin_lng: formData.origin_lng,
+          destination_lat: formData.destination_lat,
+          destination_lng: formData.destination_lng
         };
 
         const { error } = await supabase
@@ -187,286 +214,285 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
           .insert({
             request_type: 'SERVICE',
             service_type: serviceType,
-            provider_id: provider.profile_id,
-            contact_phone: formData.contactPhone,
-            contact_name: formData.contactName,
+            contact_phone: formData.contact_phone,
+            contact_name: formData.contact_name,
             payload: guestPayload,
             status: 'PENDING'
           });
 
         if (error) throw error;
-
-        toast({
-          title: "Solicitação enviada!",
-          description: `Sua solicitação foi enviada para ${provider.profiles.full_name}. Em breve entrarão em contato.`,
-        });
       }
 
-      onClose();
-      
-      // Reset form
-      setFormData({
-        location: '',
-        locationLat: null,
-        locationLng: null,
-        problemDescription: '',
-        urgency: 'MEDIUM',
-        preferredDateTime: '',
-        contactPhone: '',
-        contactName: '',
-        additionalInfo: '',
-        isEmergency: false,
-        vehicleInfo: ''
+      toast({
+        title: "Solicitação Enviada!",
+        description: `Sua solicitação de ${serviceTitle.toLowerCase()} foi registrada. Em breve um prestador entrará em contato.`,
       });
 
+      onClose();
+      setFormData({
+        vehicle_type: '',
+        origin_address: '',
+        destination_address: '',
+        distance_km: '',
+        problem_description: '',
+        emergency: false,
+        contact_phone: '',
+        contact_name: '',
+        additional_info: '',
+        origin_lat: undefined,
+        origin_lng: undefined,
+        destination_lat: undefined,
+        destination_lng: undefined
+      });
+      setPricing(null);
     } catch (error) {
-      console.error('Erro ao criar solicitação:', error);
+      console.error('Error creating service request:', error);
       toast({
         title: "Erro",
-        description: "Erro ao enviar solicitação. Tente novamente.",
-        variant: "destructive",
+        description: "Não foi possível enviar a solicitação. Tente novamente.",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const formatPrice = (price?: number) => {
-    if (!price) return 'Sob consulta';
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(price);
-  };
-
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 16);
-  };
+  const ServiceIcon = serviceIcons[serviceType] || Wrench;
+  const isGuincho = serviceType === 'GUINCHO';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl">
+          <DialogTitle className="flex items-center gap-2">
+            <ServiceIcon className="h-5 w-5 text-primary" />
             Solicitar {serviceTitle}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Informações do Prestador */}
-          <Card className="lg:col-span-1">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Prestador Selecionado</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={provider.profiles.profile_photo_url} />
-                  <AvatarFallback>
-                    <User className="h-6 w-6" />
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{provider.profiles.full_name}</p>
-                  {provider.profiles.rating && (
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm">
-                        {provider.profiles.rating.toFixed(1)} ({provider.profiles.total_ratings})
-                      </span>
-                    </div>
-                  )}
-                </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Emergency Alert */}
+          <Card className="border-warning/20 bg-warning/5">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-warning mb-2">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="font-semibold">Serviço de Emergência 24h</span>
               </div>
-
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>{provider.work_hours_start.slice(0, 5)} às {provider.work_hours_end.slice(0, 5)}</span>
-                </div>
-
-                {provider.emergency_service && (
-                  <Badge variant="destructive" className="text-xs">
-                    Atendimento 24h
-                  </Badge>
-                )}
-
-                <div className="border-t pt-2 mt-3">
-                  <p className="text-muted-foreground mb-1">Preços:</p>
-                  <p className="text-sm">Base: {formatPrice(provider.base_price)}</p>
-                  <p className="text-sm">Por hora: {formatPrice(provider.hourly_rate)}</p>
-                </div>
-
-                {provider.specialties.length > 0 && (
-                  <div className="border-t pt-2 mt-3">
-                    <p className="text-muted-foreground mb-1 text-xs">Especialidades:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {provider.specialties.slice(0, 3).map(specialty => (
-                        <Badge key={specialty} variant="outline" className="text-xs">
-                          {specialty}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <p className="text-sm text-muted-foreground">
+                {isGuincho 
+                  ? "Nossos guinchos operam 24 horas por dia. Serviços de emergência têm taxa adicional."
+                  : `Prestadores de ${serviceTitle.toLowerCase()} disponíveis 24h. Atendimento prioritário para emergências.`
+                }
+              </p>
             </CardContent>
           </Card>
 
-          {/* Formulário de Solicitação */}
-          <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Detalhes da Solicitação</CardTitle>
-                <CardDescription>
-                  Preencha os dados para solicitar o serviço
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Informações de Contato */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="contactName">Seu nome</Label>
-                    <Input
-                      id="contactName"
-                      value={formData.contactName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
-                      placeholder="Como devemos te chamar?"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="contactPhone">Telefone para contato *</Label>
-                    <Input
-                      id="contactPhone"
-                      type="tel"
-                      required
-                      value={formData.contactPhone}
-                      onChange={(e) => setFormData(prev => ({ ...prev, contactPhone: e.target.value }))}
-                      placeholder="(XX) XXXXX-XXXX"
-                    />
-                  </div>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Informações de contato */}
+            <div className="space-y-2">
+              <Label htmlFor="contact_name">Seu nome</Label>
+              <Input
+                id="contact_name"
+                value={formData.contact_name}
+                onChange={(e) => setFormData({...formData, contact_name: e.target.value})}
+                placeholder="Como devemos te chamar?"
+              />
+            </div>
 
-                {/* Localização */}
-                <div>
-                  <Label htmlFor="location">Local do atendimento *</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="location"
-                      required
-                      value={formData.location}
-                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="Endereço completo onde precisa do serviço"
-                      className="flex-1"
-                    />
-                    <LocationFillButton
-                      onLocationFilled={(address, lat, lng) => {
-                        setFormData(prev => ({
-                          ...prev,
-                          location: address,
-                          locationLat: lat,
-                          locationLng: lng
-                        }));
-                      }}
-                    />
-                  </div>
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact_phone">Telefone para contato *</Label>
+              <Input
+                id="contact_phone"
+                type="tel"
+                required
+                value={formData.contact_phone}
+                onChange={(e) => setFormData({...formData, contact_phone: e.target.value})}
+                placeholder="(XX) XXXXX-XXXX"
+              />
+            </div>
+          </div>
 
-                {/* Informações do Veículo/Problema */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="vehicleInfo">Informações do veículo</Label>
-                    <Input
-                      id="vehicleInfo"
-                      value={formData.vehicleInfo}
-                      onChange={(e) => setFormData(prev => ({ ...prev, vehicleInfo: e.target.value }))}
-                      placeholder="Ex: Caminhão Mercedes 1620, Carro Gol 2015"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="urgency">Urgência</Label>
-                    <Select value={formData.urgency} onValueChange={(value) => setFormData(prev => ({ ...prev, urgency: value }))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="LOW">Baixa - Pode aguardar</SelectItem>
-                        <SelectItem value="MEDIUM">Média - Dentro de algumas horas</SelectItem>
-                        <SelectItem value="HIGH">Alta - Preciso hoje</SelectItem>
-                        <SelectItem value="URGENT">Urgente - Preciso agora!</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+          {isGuincho && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="vehicle_type">Tipo de Veículo</Label>
+                <Select 
+                  value={formData.vehicle_type} 
+                  onValueChange={(value) => setFormData({...formData, vehicle_type: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo de veículo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vehicleTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                {/* Descrição do problema */}
-                <div>
-                  <Label htmlFor="problemDescription">Descrição do problema *</Label>
-                  <Textarea
-                    id="problemDescription"
-                    required
-                    value={formData.problemDescription}
-                    onChange={(e) => setFormData(prev => ({ ...prev, problemDescription: e.target.value }))}
-                    placeholder="Descreva detalhadamente o problema ou serviço necessário"
-                    rows={4}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="distance_km">Distância (km)</Label>
+                <Input
+                  id="distance_km"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={formData.distance_km}
+                  onChange={(e) => setFormData({...formData, distance_km: e.target.value})}
+                  placeholder="Ex: 15.5"
+                />
+              </div>
+            </div>
+          )}
 
-                {/* Data e hora preferida */}
-                <div>
-                  <Label htmlFor="preferredDateTime">Data e hora preferida</Label>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="origin_address">
+                {isGuincho ? "Local de Retirada *" : "Local do Atendimento *"}
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="origin_address"
+                  value={formData.origin_address}
+                  onChange={(e) => setFormData({...formData, origin_address: e.target.value})}
+                  placeholder={isGuincho ? "Endereço completo onde está o veículo" : "Endereço completo onde precisa do serviço"}
+                  required
+                  className="flex-1"
+                />
+                <LocationFillButton
+                  onLocationFilled={(address, lat, lng) => {
+                    setFormData({
+                      ...formData, 
+                      origin_address: address,
+                      origin_lat: lat,
+                      origin_lng: lng
+                    });
+                  }}
+                />
+              </div>
+            </div>
+
+            {isGuincho && (
+              <div className="space-y-2">
+                <Label htmlFor="destination_address">Local de Entrega</Label>
+                <div className="flex gap-2">
                   <Input
-                    id="preferredDateTime"
-                    type="datetime-local"
-                    value={formData.preferredDateTime}
-                    onChange={(e) => setFormData(prev => ({ ...prev, preferredDateTime: e.target.value }))}
-                    min={getCurrentDateTime()}
+                    id="destination_address"
+                    value={formData.destination_address}
+                    onChange={(e) => setFormData({...formData, destination_address: e.target.value})}
+                    placeholder="Para onde levar o veículo"
+                    className="flex-1"
+                  />
+                  <LocationFillButton
+                    onLocationFilled={(address, lat, lng) => {
+                      setFormData({
+                        ...formData, 
+                        destination_address: address,
+                        destination_lat: lat,
+                        destination_lng: lng
+                      });
+                    }}
                   />
                 </div>
+              </div>
+            )}
+          </div>
 
-                {/* Informações adicionais */}
-                <div>
-                  <Label htmlFor="additionalInfo">Informações adicionais</Label>
-                  <Textarea
-                    id="additionalInfo"
-                    value={formData.additionalInfo}
-                    onChange={(e) => setFormData(prev => ({ ...prev, additionalInfo: e.target.value }))}
-                    placeholder="Qualquer informação adicional que possa ajudar o prestador"
-                    rows={3}
-                  />
-                </div>
+          <div className="space-y-2">
+            <Label htmlFor="problem_description">
+              {isGuincho ? "Descrição do Problema *" : `Descrição do Problema ${serviceTitle} *`}
+            </Label>
+            <Textarea
+              id="problem_description"
+              required
+              value={formData.problem_description}
+              onChange={(e) => setFormData({...formData, problem_description: e.target.value})}
+              placeholder={
+                isGuincho 
+                  ? "Descreva o problema do veículo (pane, acidente, etc.)"
+                  : `Descreva detalhadamente o problema que precisa ser resolvido pelo(a) ${serviceTitle.toLowerCase()}`
+              }
+              rows={4}
+            />
+          </div>
 
-                {/* Emergência */}
-                {provider.emergency_service && (
-                  <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <Checkbox
-                      id="isEmergency"
-                      checked={formData.isEmergency}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isEmergency: !!checked }))}
-                    />
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                      <Label htmlFor="isEmergency" className="text-red-700">
-                        Esta é uma emergência (atendimento prioritário 24h)
-                      </Label>
+          <div className="space-y-2">
+            <Label htmlFor="additional_info">Informações Adicionais</Label>
+            <Textarea
+              id="additional_info"
+              value={formData.additional_info}
+              onChange={(e) => setFormData({...formData, additional_info: e.target.value})}
+              placeholder="Qualquer informação adicional que possa ajudar"
+              rows={3}
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="emergency"
+              checked={formData.emergency}
+              onCheckedChange={(checked) => setFormData({...formData, emergency: !!checked})}
+            />
+            <Label htmlFor="emergency" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Esta é uma emergência (atendimento prioritário)
+            </Label>
+          </div>
+
+          {isGuincho && formData.vehicle_type && formData.distance_km && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Cálculo de Preço</h3>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={calculatePricing}
+                  disabled={loading}
+                >
+                  {loading ? 'Calculando...' : 'Calcular'}
+                </Button>
+              </div>
+              
+              {pricing && (
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Preço base:</span>
+                        <span>R$ {pricing.base_price?.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Por km ({formData.distance_km}km):</span>
+                        <span>R$ {pricing.distance_price?.toFixed(2)}</span>
+                      </div>
+                      {formData.emergency && (
+                        <div className="flex justify-between text-warning">
+                          <span>Taxa emergência:</span>
+                          <span>R$ {pricing.emergency_fee?.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="border-t pt-2 flex justify-between font-semibold">
+                        <span>Total estimado:</span>
+                        <span>R$ {pricing.total_price?.toFixed(2)}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
 
-                <div className="flex gap-4 pt-4">
-                  <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? 'Enviando...' : 'Solicitar Serviço'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </form>
-        </div>
+          <div className="flex gap-4 pt-4">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? 'Enviando...' : `Solicitar ${serviceTitle}`}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

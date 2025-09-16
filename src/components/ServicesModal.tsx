@@ -15,9 +15,8 @@ import {
   Hammer,
   Construction
 } from 'lucide-react';
-import { GuinchoModal } from './GuinchoModal';
+import { ServiceRequestModal } from './ServiceRequestModal';
 import { ServiceProviderRegistrationForm } from './ServiceProviderRegistrationForm';
-import { ServiceProvidersListing } from './ServiceProvidersListing';
 
 interface ServicesModalProps {
   isOpen: boolean;
@@ -89,22 +88,16 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
 }) => {
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedServiceTitle, setSelectedServiceTitle] = useState<string>('');
-  const [showGuincho, setShowGuincho] = useState(false);
+  const [showServiceRequest, setShowServiceRequest] = useState(false);
   const [showRegistration, setShowRegistration] = useState(false);
-  const [showProvidersList, setShowProvidersList] = useState(false);
 
   const handleServiceSelect = (serviceId: string) => {
-    if (serviceId === 'guincho') {
-      setShowGuincho(true);
+    const service = serviceTypes.find(s => s.id === serviceId);
+    if (service) {
+      setSelectedService(serviceId.toUpperCase().replace('-', '_'));
+      setSelectedServiceTitle(service.title);
+      setShowServiceRequest(true);
       onClose();
-    } else {
-      const service = serviceTypes.find(s => s.id === serviceId);
-      if (service) {
-        setSelectedService(serviceId.toUpperCase());
-        setSelectedServiceTitle(service.title);
-        setShowProvidersList(true);
-        onClose();
-      }
     }
   };
 
@@ -183,22 +176,12 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Modals específicos */}
-      <GuinchoModal 
-        isOpen={showGuincho} 
-        onClose={() => setShowGuincho(false)} 
-      />
-
-      <ServiceProviderRegistrationForm 
-        isOpen={showRegistration}
-        onClose={() => setShowRegistration(false)}
-      />
-
+      {/* Modal de solicitação de serviço */}
       {selectedService && (
-        <ServiceProvidersListing
-          isOpen={showProvidersList}
+        <ServiceRequestModal
+          isOpen={showServiceRequest}
           onClose={() => {
-            setShowProvidersList(false);
+            setShowServiceRequest(false);
             setSelectedService(null);
             setSelectedServiceTitle('');
           }}
@@ -206,6 +189,12 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
           serviceTitle={selectedServiceTitle}
         />
       )}
+
+      {/* Modal de cadastro de prestador */}
+      <ServiceProviderRegistrationForm 
+        isOpen={showRegistration}
+        onClose={() => setShowRegistration(false)}
+      />
     </>
   );
 };
