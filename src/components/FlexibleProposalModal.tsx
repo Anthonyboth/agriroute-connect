@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarIcon, Clock, MapPin, Package, ArrowRight } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -23,6 +24,8 @@ interface FreightData {
   cargo_type: string;
   weight: number;
   price: number;
+  price_per_km?: number;
+  distance_km?: number;
   flexible_dates: boolean;
   date_range_start?: string;
   date_range_end?: string;
@@ -47,6 +50,8 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
   
   const [proposedDate, setProposedDate] = useState<Date>();
   const [proposedPrice, setProposedPrice] = useState('');
+  const [proposedPricePerKm, setProposedPricePerKm] = useState('');
+  const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM'>(freight?.price_per_km ? 'PER_KM' : 'FIXED');
   const [message, setMessage] = useState('');
   const [proposalType, setProposalType] = useState<'exact' | 'alternative'>('exact');
 
@@ -66,10 +71,14 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
       
       if (proposalType === 'exact') {
         // Proposta normal para data exata
+        const finalPrice = pricingType === 'FIXED' 
+          ? parseFloat(proposedPrice) || freight.price
+          : parseFloat(proposedPricePerKm) * (freight.distance_km || 0);
+
         const proposalData = {
           freight_id: freight.id,
           driver_id: profile.id,
-          proposed_price: parseFloat(proposedPrice) || freight.price,
+          proposed_price: finalPrice,
           message: message.trim() || null,
           delivery_estimate_days: 1
         };
@@ -82,13 +91,17 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
         toast.success('Proposta enviada com sucesso!');
       } else {
         // Proposta com data alternativa
+        const finalPrice = pricingType === 'FIXED' 
+          ? parseFloat(proposedPrice) || freight.price
+          : parseFloat(proposedPricePerKm) * (freight.distance_km || 0);
+
         const flexibleProposalData = {
           freight_id: freight.id,
           driver_id: profile.id,
           proposed_date: format(proposedDate, 'yyyy-MM-dd'),
           original_date: format(originalDate, 'yyyy-MM-dd'),
           days_difference: daysDifference,
-          proposed_price: parseFloat(proposedPrice) || freight.price,
+          proposed_price: finalPrice,
           message: message.trim() || null
         };
 
@@ -115,6 +128,8 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
   const resetForm = () => {
     setProposedDate(undefined);
     setProposedPrice('');
+    setProposedPricePerKm('');
+    setPricingType(freight?.price_per_km ? 'PER_KM' : 'FIXED');
     setMessage('');
     setProposalType('exact');
   };
@@ -264,20 +279,58 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
             </div>
           </div>
 
+          {/* Tipo de Cobrança */}
+          <div className="space-y-2">
+            <Label>Tipo de Cobrança</Label>
+            <Select value={pricingType} onValueChange={(value: 'FIXED' | 'PER_KM') => setPricingType(value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="FIXED">Valor Fixo</SelectItem>
+                <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Valor Proposto */}
           <div className="space-y-2">
-            <Label>Valor Proposto (R$)</Label>
-            <Input
-              type="number"
-              placeholder={`Valor original: R$ ${freight.price.toLocaleString()}`}
-              value={proposedPrice}
-              onChange={(e) => setProposedPrice(e.target.value)}
-              step="0.01"
-              min="1"
-            />
-            <p className="text-xs text-muted-foreground">
-              Deixe em branco para manter o valor original (R$ {freight.price.toLocaleString()})
-            </p>
+            <Label>{pricingType === 'FIXED' ? 'Valor Fixo (R$)' : 'Valor por KM (R$)'}</Label>
+            
+            {pricingType === 'FIXED' ? (
+              <Input
+                type="number"
+                placeholder={`Valor original: R$ ${freight.price.toLocaleString()}`}
+                value={proposedPrice}
+                onChange={(e) => setProposedPrice(e.target.value)}
+                step="0.01"
+                min="1"
+              />
+            ) : (
+              <Input
+                type="number"
+                placeholder={freight.price_per_km ? `Valor original: R$ ${freight.price_per_km.toLocaleString()}/km` : "8.50"}
+                value={proposedPricePerKm}
+                onChange={(e) => setProposedPricePerKm(e.target.value)}
+                step="0.01"
+                min="0.01"
+              />
+            )}
+
+            <div className="text-xs text-muted-foreground">
+              {pricingType === 'FIXED' ? (
+                `Deixe em branco para manter o valor original (R$ ${freight.price.toLocaleString()})`
+              ) : (
+                <>
+                  Distância estimada: {freight.distance_km || 0} km
+                  {proposedPricePerKm && (
+                    <div className="mt-1 font-medium">
+                      Total calculado: R$ {(parseFloat(proposedPricePerKm) * (freight.distance_km || 0)).toLocaleString()}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           {/* Mensagem */}
@@ -297,7 +350,13 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
               <h4 className="font-semibold mb-2">Resumo da Proposta</h4>
               <div className="space-y-1 text-sm">
                 <div>Data: {format(proposedDate, 'PPP', { locale: ptBR })}</div>
-                <div>Valor: R$ {(parseFloat(proposedPrice) || freight.price).toLocaleString()}</div>
+                <div>
+                  Valor: R$ {(pricingType === 'FIXED' 
+                    ? parseFloat(proposedPrice) || freight.price
+                    : parseFloat(proposedPricePerKm) * (freight.distance_km || 0) || freight.price
+                  ).toLocaleString()}
+                  {pricingType === 'PER_KM' && proposedPricePerKm && ` (R$ ${proposedPricePerKm}/km)`}
+                </div>
                 <div className="text-muted-foreground">{getDaysDifferenceText()}</div>
               </div>
             </div>

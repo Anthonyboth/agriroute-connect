@@ -26,6 +26,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     origin_address: '',
     destination_address: '',
     price: '',
+    price_per_km: '',
+    pricing_type: 'FIXED' as 'FIXED' | 'PER_KM',
     pickup_date: '',
     delivery_date: '',
     urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
@@ -121,7 +123,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         origin_address: formData.origin_address,
         destination_address: formData.destination_address,
         distance_km: distance,
-        price: parseFloat(formData.price),
+        price: formData.pricing_type === 'FIXED' ? parseFloat(formData.price) : parseFloat(formData.price_per_km) * distance,
+        price_per_km: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : null,
         minimum_antt_price: minimumAnttPrice,
         pickup_date: formData.pickup_date,
         delivery_date: formData.delivery_date,
@@ -146,6 +149,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         origin_address: '',
         destination_address: '',
         price: '',
+        price_per_km: '',
+        pricing_type: 'FIXED' as 'FIXED' | 'PER_KM',
         pickup_date: '',
         delivery_date: '',
         urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
@@ -289,20 +294,53 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
             </div>
           </div>
 
+          {/* Tipo de Cobrança */}
+          <div className="space-y-2">
+            <Label>Tipo de Cobrança</Label>
+            <Select value={formData.pricing_type} onValueChange={(value: 'FIXED' | 'PER_KM') => handleInputChange('pricing_type', value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="FIXED">Valor Fixo</SelectItem>
+                <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="price">Valor Oferecido (R$) *</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={(e) => handleInputChange('price', e.target.value)}
-                placeholder="5000.00"
-                required
-              />
-            </div>
+            {formData.pricing_type === 'FIXED' ? (
+              <div className="space-y-2">
+                <Label htmlFor="price">Valor Oferecido (R$) *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.price}
+                  onChange={(e) => handleInputChange('price', e.target.value)}
+                  placeholder="5000.00"
+                  required
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="price_per_km">Valor por KM (R$) *</Label>
+                <Input
+                  id="price_per_km"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.price_per_km}
+                  onChange={(e) => handleInputChange('price_per_km', e.target.value)}
+                  placeholder="8.50"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Valor será calculado automaticamente baseado na distância
+                </p>
+              </div>
+            )}
             
             <div className="space-y-2">
               <Label htmlFor="urgency">Urgência</Label>

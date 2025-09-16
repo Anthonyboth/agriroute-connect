@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { DollarSign, MessageCircle, Calendar } from 'lucide-react';
@@ -24,6 +25,8 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [proposalData, setProposalData] = useState({
     proposed_price: freight.price || 0,
+    proposed_price_per_km: '',
+    pricing_type: freight.price_per_km ? 'PER_KM' : 'FIXED' as 'FIXED' | 'PER_KM',
     message: '',
     justification: '',
     delivery_estimate_days: 1,
@@ -40,7 +43,9 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
         .insert({
           freight_id: freight.id,
           driver_id: driverProfile.id,
-          proposed_price: proposalData.proposed_price,
+          proposed_price: proposalData.pricing_type === 'FIXED' 
+            ? proposalData.proposed_price 
+            : parseFloat(proposalData.proposed_price_per_km) * (freight.distance_km || 0),
           message: proposalData.message,
           justification: proposalData.justification,
           delivery_estimate_days: proposalData.delivery_estimate_days,
@@ -56,6 +61,8 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
       setOpen(false);
       setProposalData({
         proposed_price: freight.price || 0,
+        proposed_price_per_km: '',
+        pricing_type: freight.price_per_km ? 'PER_KM' : 'FIXED' as 'FIXED' | 'PER_KM',
         message: '',
         justification: '',
         delivery_estimate_days: 1,
@@ -73,7 +80,11 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
     }
   };
 
-  const priceDifference = proposalData.proposed_price - freight.price;
+  const finalProposedPrice = proposalData.pricing_type === 'FIXED' 
+    ? proposalData.proposed_price 
+    : parseFloat(proposalData.proposed_price_per_km) * (freight.distance_km || 0);
+  
+  const priceDifference = finalProposedPrice - freight.price;
   const isCounterOffer = priceDifference !== 0;
 
   return (
@@ -98,28 +109,75 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Tipo de Cobrança */}
+          <div className="space-y-2">
+            <Label>Tipo de Cobrança</Label>
+            <Select value={proposalData.pricing_type} onValueChange={(value: 'FIXED' | 'PER_KM') => 
+              setProposalData(prev => ({ ...prev, pricing_type: value }))
+            }>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="FIXED">Valor Fixo</SelectItem>
+                <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Valor da Proposta */}
           <div className="space-y-2">
-            <Label htmlFor="proposed_price" className="flex items-center gap-2">
+            <Label className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
-              Valor da Proposta (R$)
+              {proposalData.pricing_type === 'FIXED' ? 'Valor Fixo (R$)' : 'Valor por KM (R$)'}
             </Label>
-            <Input
-              id="proposed_price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={proposalData.proposed_price}
-              onChange={(e) => setProposalData(prev => ({ 
-                ...prev, 
-                proposed_price: Number(e.target.value) 
-              }))}
-              required
-            />
+            
+            {proposalData.pricing_type === 'FIXED' ? (
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={proposalData.proposed_price}
+                onChange={(e) => setProposalData(prev => ({ 
+                  ...prev, 
+                  proposed_price: Number(e.target.value) 
+                }))}
+                required
+              />
+            ) : (
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={proposalData.proposed_price_per_km}
+                onChange={(e) => setProposalData(prev => ({ 
+                  ...prev, 
+                  proposed_price_per_km: e.target.value
+                }))}
+                placeholder="8.50"
+                required
+              />
+            )}
+            
             <div className="text-sm text-muted-foreground">
-              Valor original: R$ {freight.price.toLocaleString('pt-BR')}
+              {freight.price_per_km ? (
+                <>
+                  Valor original: R$ {freight.price_per_km.toLocaleString('pt-BR')}/km
+                  <br />
+                  Distância: {freight.distance_km} km
+                </>
+              ) : (
+                <>Valor original: R$ {freight.price.toLocaleString('pt-BR')}</>
+              )}
+              
+              {proposalData.pricing_type === 'PER_KM' && proposalData.proposed_price_per_km && (
+                <div className="mt-1 font-medium">
+                  Total calculado: R$ {(parseFloat(proposalData.proposed_price_per_km) * (freight.distance_km || 0)).toLocaleString('pt-BR')}
+                </div>
+              )}
+              
               {isCounterOffer && (
-                <span className={`block ${priceDifference > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                <span className={`block mt-1 ${priceDifference > 0 ? 'text-red-600' : 'text-green-600'}`}>
                   {priceDifference > 0 ? '+' : ''}R$ {priceDifference.toLocaleString('pt-BR')}
                 </span>
               )}
@@ -184,7 +242,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
           {/* Resumo da Proposta */}
           <div className="bg-muted p-3 rounded-lg space-y-1 text-sm">
             <h4 className="font-semibold">Resumo da Proposta:</h4>
-            <p>• Valor: R$ {proposalData.proposed_price.toLocaleString('pt-BR')}</p>
+            <p>• Valor: R$ {finalProposedPrice.toLocaleString('pt-BR')} {proposalData.pricing_type === 'PER_KM' ? `(R$ ${proposalData.proposed_price_per_km}/km)` : ''}</p>
             <p>• Prazo: {proposalData.delivery_estimate_days} dia{proposalData.delivery_estimate_days > 1 ? 's' : ''}</p>
             <p>• Distância: {freight.distance_km} km</p>
             <p>• Peso: {freight.weight >= 1000 ? `${(freight.weight / 1000).toFixed(1)}t` : `${freight.weight}kg`}</p>
