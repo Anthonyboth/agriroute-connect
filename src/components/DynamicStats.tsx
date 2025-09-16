@@ -38,39 +38,21 @@ export const DynamicStats: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      // Fetch total drivers
-      const { data: drivers, error: driversError } = await supabase
-        .from('profiles')
-        .select('id', { count: 'exact' })
-        .eq('role', 'MOTORISTA')
-        .eq('status', 'APPROVED');
+      // Use RPC function to bypass RLS and get accurate stats
+      const { data, error } = await supabase.rpc('get_public_stats');
 
-      // Fetch total producers
-      const { data: producers, error: producersError } = await supabase
-        .from('profiles')
-        .select('id', { count: 'exact' })
-        .eq('role', 'PRODUTOR')
-        .eq('status', 'APPROVED');
-
-      // Fetch total freights
-      const { data: freights, error: freightsError } = await supabase
-        .from('freights')
-        .select('id', { count: 'exact' });
-
-      // Fetch active freights
-      const { data: activeFreights, error: activeFreightsError } = await supabase
-        .from('freights')
-        .select('id', { count: 'exact' })
-        .in('status', ['OPEN', 'ACCEPTED', 'IN_TRANSIT']);
-
-      if (!driversError && !producersError && !freightsError && !activeFreightsError) {
+      if (!error && data && data.length > 0) {
+        const stats = data[0];
         setStats({
-          totalDrivers: drivers?.length || 0,
-          totalProducers: producers?.length || 0,
-          totalFreights: freights?.length || 0,
-          activeFreights: activeFreights?.length || 0,
+          totalDrivers: Number(stats.total_drivers) || 0,
+          totalProducers: Number(stats.total_producers) || 0,
+          totalFreights: Number(stats.total_freights) || 0,
+          activeFreights: Number(stats.active_freights) || 0,
           loading: false
         });
+      } else {
+        console.error('Error fetching stats:', error);
+        setStats(prev => ({ ...prev, loading: false }));
       }
     } catch (error) {
       console.error('Error fetching stats:', error);

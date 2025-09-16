@@ -1964,6 +1964,15 @@ export type Database = {
           status: string
         }[]
       }
+      get_public_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          active_freights: number
+          total_drivers: number
+          total_freights: number
+          total_producers: number
+        }[]
+      }
       get_scheduled_freights_by_location_and_date: {
         Args: { p_city: string; p_date: string; p_days_range?: number }
         Returns: {
