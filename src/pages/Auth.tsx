@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2, Mail } from 'lucide-react';
+import { BackButton } from '@/components/BackButton';
 import { validateDocument } from '@/utils/cpfValidator';
 
 
@@ -18,7 +19,7 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<'PRODUTOR' | 'MOTORISTA'>('PRODUTOR');
+  const [role, setRole] = useState<'PRODUTOR' | 'MOTORISTA' | 'PRESTADOR_SERVICOS'>('PRODUTOR');
   const [phone, setPhone] = useState('');
   const [document, setDocument] = useState('');
   const navigate = useNavigate();
@@ -198,6 +199,10 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background px-6 py-10 md:px-8 md:py-16">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center px-4 sm:px-6">
+          <div className="flex items-center justify-between mb-4">
+            <BackButton to="/" />
+            <div className="flex-1"></div>
+          </div>
           <CardTitle>AgriRoute Connect</CardTitle>
           <CardDescription>
             Conectando produtores e transportadores
@@ -296,13 +301,14 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role">Tipo de Usuário</Label>
-                    <Select value={role} onValueChange={(value: 'PRODUTOR' | 'MOTORISTA') => setRole(value)}>
+                    <Select value={role} onValueChange={(value: 'PRODUTOR' | 'MOTORISTA' | 'PRESTADOR_SERVICOS') => setRole(value)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="PRODUTOR">Produtor</SelectItem>
                         <SelectItem value="MOTORISTA">Motorista</SelectItem>
+                        <SelectItem value="PRESTADOR_SERVICOS">Prestador de Serviços</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
