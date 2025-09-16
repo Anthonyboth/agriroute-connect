@@ -327,14 +327,58 @@ const DriverDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6 bg-card">
-            <TabsTrigger value="available" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Fretes IA</TabsTrigger>
-            <TabsTrigger value="scheduled" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Agendados</TabsTrigger>
-            <TabsTrigger value="calendar" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Disponibilidade</TabsTrigger>
-            <TabsTrigger value="my-trips" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Propostas</TabsTrigger>
-            <TabsTrigger value="services" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Serviços</TabsTrigger>
-            <TabsTrigger value="vehicles" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Meus Veículos</TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto">
+            <TabsList className="inline-flex h-12 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
+              <TabsTrigger 
+                value="available" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Brain className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Fretes IA</span>
+                <span className="sm:hidden">IA</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="scheduled" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Clock className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Agendados</span>
+                <span className="sm:hidden">Agenda</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="calendar" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <MapPin className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Disponibilidade</span>
+                <span className="sm:hidden">Local</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="my-trips" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <CheckCircle className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Propostas</span>
+                <span className="sm:hidden">Props</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="services" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Settings className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Serviços</span>
+                <span className="sm:hidden">Serv</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="vehicles" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Truck className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Meus Veículos</span>
+                <span className="sm:hidden">Veíc</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Notificação de assinatura */}
           <SubscriptionExpiryNotification />
