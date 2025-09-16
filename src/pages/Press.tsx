@@ -172,7 +172,7 @@ const Press = () => {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <Badge variant={getCategoryColor(release.category)}>
+                        <Badge variant={getCategoryColor(release.category) as any}>
                           {release.category}
                         </Badge>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
