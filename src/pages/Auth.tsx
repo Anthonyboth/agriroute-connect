@@ -195,17 +195,17 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-6 py-10 md:px-8 md:py-16">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+        <CardHeader className="text-center px-4 sm:px-6">
           <CardTitle>AgriRoute Connect</CardTitle>
           <CardDescription>
             Conectando produtores e transportadores
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
+        <CardContent className="px-4 sm:px-6">
+          <Tabs defaultValue="login" className="space-y-6">
+            <TabsList className="mx-auto grid grid-cols-2 gap-2 w-full max-w-xs">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Cadastro</TabsTrigger>
             </TabsList>
