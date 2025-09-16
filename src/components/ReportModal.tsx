@@ -6,11 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { AlertTriangle, FileText, Upload, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -37,59 +35,18 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   reportedUserName
 }) => {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    reportedUserId: reportedUserId || '',
-    reportedUserName: reportedUserName || '',
+    email: '',
     category: '',
-    title: '',
-    description: '',
-    evidenceFiles: [] as File[]
+    description: ''
   });
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const validFiles = files.filter(file => {
-      const isValidType = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'].includes(file.type);
-      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
-      return isValidType && isValidSize;
-    });
-
-    if (validFiles.length < files.length) {
-      toast({
-        title: "Alguns arquivos foram ignorados",
-        description: "Apenas imagens (JPG, PNG) e PDFs até 5MB são aceitos.",
-        variant: "destructive",
-      });
-    }
-
-    setFormData(prev => ({
-      ...prev,
-      evidenceFiles: [...prev.evidenceFiles, ...validFiles].slice(0, 5) // Max 5 files
-    }));
-  };
-
-  const removeFile = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      evidenceFiles: prev.evidenceFiles.filter((_, i) => i !== index)
-    }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
-      toast({
-        title: "Erro",
-        description: "Você precisa estar logado para fazer uma denúncia.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.reportedUserId || !formData.category || !formData.title || !formData.description) {
+    if (!formData.email || !formData.category || !formData.description) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos obrigatórios.",
@@ -101,53 +58,31 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     setLoading(true);
 
     try {
-      // Upload evidence files if any
-      const evidenceUrls: string[] = [];
-      
-      for (const file of formData.evidenceFiles) {
-        const fileName = `${Date.now()}-${file.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('freight-attachments')
-          .upload(`reports/${fileName}`, file);
-
-        if (uploadError) throw uploadError;
-        
-        if (uploadData) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('freight-attachments')
-            .getPublicUrl(uploadData.path);
-          evidenceUrls.push(publicUrl);
-        }
-      }
-
       // Create the report
       const { error } = await supabase
         .from('user_reports')
         .insert({
-          reporter_id: user.id,
-          reported_user_id: formData.reportedUserId,
-          reported_user_name: formData.reportedUserName,
+          reporter_id: null, // Anonymous report
+          reported_user_id: reportedUserId || null,
+          reported_user_name: reportedUserName || 'Denúncia Anônima',
           category: formData.category,
-          title: formData.title,
-          description: formData.description,
-          evidence_urls: evidenceUrls
+          title: `Denúncia via formulário - ${formData.category}`,
+          description: `Email para contato: ${formData.email}\n\nDescrição: ${formData.description}`,
+          evidence_urls: []
         });
 
       if (error) throw error;
 
       toast({
         title: "Denúncia enviada",
-        description: "Sua denúncia foi recebida e será analisada pela nossa equipe.",
+        description: "Sua denúncia foi recebida e será analisada pela nossa equipe. Você receberá atualizações no email informado.",
       });
 
       // Reset form
       setFormData({
-        reportedUserId: '',
-        reportedUserName: '',
+        email: '',
         category: '',
-        title: '',
-        description: '',
-        evidenceFiles: []
+        description: ''
       });
 
       onClose();
@@ -163,8 +98,6 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       setLoading(false);
     }
   };
-
-  const selectedCategory = reportCategories.find(cat => cat.value === formData.category);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -187,34 +120,27 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                     Denúncias falsas são passíveis de punição
                   </p>
                   <p className="text-orange-700 dark:text-orange-300">
-                    Certifique-se de que está reportando uma situação real. Denúncias falsas podem resultar em suspensão da conta.
+                    Certifique-se de que está reportando uma situação real. Este formulário é anônimo - solicitamos apenas seu email para atualizações.
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* User Info */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="reportedUserId">ID do Usuário Reportado *</Label>
-              <Input
-                id="reportedUserId"
-                value={formData.reportedUserId}
-                onChange={(e) => setFormData(prev => ({ ...prev, reportedUserId: e.target.value }))}
-                placeholder="ID ou e-mail do usuário"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="reportedUserName">Nome do Usuário</Label>
-              <Input
-                id="reportedUserName"
-                value={formData.reportedUserName}
-                onChange={(e) => setFormData(prev => ({ ...prev, reportedUserName: e.target.value }))}
-                placeholder="Nome (se souber)"
-              />
-            </div>
+          {/* Email for updates */}
+          <div>
+            <Label htmlFor="email">Email para Notificações *</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="seu@email.com"
+              required
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Usado apenas para enviar atualizações sobre sua denúncia. Não será divulgado.
+            </p>
           </div>
 
           {/* Category */}
@@ -238,94 +164,22 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                 ))}
               </SelectContent>
             </Select>
-            {selectedCategory && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {selectedCategory.description}
-              </p>
-            )}
-          </div>
-
-          {/* Title */}
-          <div>
-            <Label htmlFor="title">Título da Denúncia *</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              placeholder="Resuma o problema em uma frase"
-              required
-            />
           </div>
 
           {/* Description */}
           <div>
-            <Label htmlFor="description">Descrição Detalhada *</Label>
+            <Label htmlFor="description">Descrição do Problema *</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Descreva detalhadamente o que aconteceu, quando, onde e como..."
-              rows={5}
+              placeholder="Descreva o que aconteceu de forma clara e objetiva..."
+              rows={6}
               required
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Seja específico e objetivo. Inclua datas, horários e locais quando relevante.
+              Seja específico. Inclua informações relevantes como datas, locais ou nomes de usuários envolvidos.
             </p>
-          </div>
-
-          {/* Evidence Upload */}
-          <div>
-            <Label htmlFor="evidence">Evidências (Opcional)</Label>
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-              <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground mb-4">
-                Anexe prints, fotos ou documentos que comprovem a irregularidade
-              </p>
-              <Input
-                type="file"
-                multiple
-                accept="image/*,.pdf"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="evidence"
-              />
-              <Label htmlFor="evidence" className="cursor-pointer">
-                <Button type="button" variant="outline" asChild>
-                  <span>Selecionar Arquivos</span>
-                </Button>
-              </Label>
-              <p className="text-xs text-muted-foreground mt-2">
-                Máximo 5 arquivos • JPG, PNG, PDF • Até 5MB cada
-              </p>
-            </div>
-
-            {/* Uploaded Files */}
-            {formData.evidenceFiles.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <Label>Arquivos Selecionados:</Label>
-                <div className="space-y-2">
-                  {formData.evidenceFiles.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        <span className="text-sm">{file.name}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {(file.size / 1024 / 1024).toFixed(1)}MB
-                        </Badge>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Actions */}

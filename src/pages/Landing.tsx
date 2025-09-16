@@ -377,7 +377,7 @@ const Landing = () => {
                 <li><a href="/privacidade" className="hover:text-foreground transition-smooth">Privacidade</a></li>
                 <li><a href="/termos" className="hover:text-foreground transition-smooth">Termos</a></li>
                 <li><a href="/cookies" className="hover:text-foreground transition-smooth">Cookies</a></li>
-                <li><button onClick={() => setReportModal(true)} className="hover:text-foreground transition-smooth text-left text-warning">Denunciar</button></li>
+                <li><button onClick={() => setReportModal(true)} className="hover:text-foreground transition-smooth text-left text-muted-foreground">Denunciar</button></li>
               </ul>
             </div>
           </div>
