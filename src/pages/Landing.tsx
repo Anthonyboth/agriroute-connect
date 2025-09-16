@@ -208,43 +208,46 @@ const Landing = () => {
             conectando produtores e transportadores de forma inteligente.
           </p>
           
-          {/* Main Action Buttons in 2x2 Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-4xl mx-auto px-4">
-            <Button 
-              size="lg"
-              onClick={() => handleGetStarted('PRODUTOR')}
-              className="gradient-primary text-primary-foreground text-lg px-8 py-6 rounded-xl shadow-glow hover:scale-105 transition-bounce"
-            >
-              <Users className="mr-2 h-5 w-5" />
-              Sou Produtor
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button 
-              size="lg"
-              onClick={() => handleGetStarted('MOTORISTA')}
-              className="bg-accent text-accent-foreground text-lg px-8 py-6 rounded-xl shadow-elegant hover:scale-105 transition-bounce"
-            >
-              <Truck className="mr-2 h-5 w-5" />
-              Sou Motorista
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            
-            <Button 
-              variant="outline"
-              onClick={() => setServicesModal(true)}
-              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-lg px-8 py-6 rounded-xl shadow-elegant hover:scale-105 transition-bounce"
-            >
-              <Wrench className="mr-2 h-5 w-5" />
-              Preciso de Guincho ou Serviços
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => setGuestServiceModal({ isOpen: true, serviceType: 'MUDANCA' })}
-              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-lg px-8 py-6 rounded-xl shadow-elegant hover:scale-105 transition-bounce"
-            >
-              <Home className="mr-2 h-5 w-5" />
-              Preciso de Frete Urbano ou Mudança
-            </Button>
+          {/* Main Action Buttons - Centered Group */}
+          <div className="max-w-3xl mx-auto px-4">
+            <div className="flex flex-wrap justify-center gap-3 md:gap-4">
+              <Button 
+                size="lg"
+                onClick={() => handleGetStarted('PRODUTOR')}
+                className="gradient-primary text-primary-foreground text-lg px-8 py-6 rounded-full shadow-glow hover:scale-105 transition-bounce"
+              >
+                <Users className="mr-2 h-5 w-5" />
+                Sou Produtor
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+              <Button 
+                size="lg"
+                onClick={() => handleGetStarted('MOTORISTA')}
+                className="bg-accent text-accent-foreground text-lg px-8 py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce"
+              >
+                <Truck className="mr-2 h-5 w-5" />
+                Sou Motorista
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
+            <div className="mt-3 md:mt-4 flex flex-wrap justify-center gap-3 md:gap-4">
+              <Button 
+                variant="outline"
+                onClick={() => setServicesModal(true)}
+                className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base md:text-lg px-6 md:px-8 py-5 rounded-full shadow-elegant hover:scale-105 transition-bounce"
+              >
+                <Wrench className="mr-2 h-5 w-5" />
+                Preciso de Guincho ou Serviços
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setGuestServiceModal({ isOpen: true, serviceType: 'MUDANCA' })}
+                className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base md:text-lg px-6 md:px-8 py-5 rounded-full shadow-elegant hover:scale-105 transition-bounce"
+              >
+                <Home className="mr-2 h-5 w-5" />
+                Preciso de Frete Urbano ou Mudança
+              </Button>
+            </div>
           </div>
         </div>
       </section>
@@ -374,7 +377,7 @@ const Landing = () => {
                 <li><a href="/privacidade" className="hover:text-foreground transition-smooth">Privacidade</a></li>
                 <li><a href="/termos" className="hover:text-foreground transition-smooth">Termos</a></li>
                 <li><a href="/cookies" className="hover:text-foreground transition-smooth">Cookies</a></li>
-                <li><button onClick={() => setReportModal(true)} className="hover:text-foreground transition-smooth text-left text-orange-600">Denunciar</button></li>
+                <li><button onClick={() => setReportModal(true)} className="hover:text-foreground transition-smooth text-left text-warning">Denunciar</button></li>
               </ul>
             </div>
           </div>
