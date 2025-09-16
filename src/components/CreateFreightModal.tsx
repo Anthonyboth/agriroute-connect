@@ -39,12 +39,20 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     payment_method: 'PIX'
   });
 
+  // Evitar travamentos: aplica timeout curto nas chamadas de edge functions
+  const withTimeoutAny = (promise: Promise<any>, ms = 1500): Promise<any> => {
+    return Promise.race([
+      promise,
+      new Promise((_resolve, reject) => setTimeout(() => reject(new Error('timeout')), ms)) as Promise<any>
+    ]) as Promise<any>;
+  };
+
   const calculateDistance = async (origin: string, destination: string): Promise<number> => {
     try {
-      const { data, error } = await supabase.functions.invoke('calculate-route', {
+      const invoke = supabase.functions.invoke('calculate-route', {
         body: { origin, destination }
       });
-      
+      const { data, error } = await withTimeoutAny(invoke, 1500);
       if (error) throw error;
       return data.distance_km;
     } catch (error) {
@@ -56,7 +64,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
 
   const calculateMinimumAnttPrice = async (cargoType: string, weight: number, distance: number, originState: string, destinationState: string): Promise<number> => {
     try {
-      const { data, error } = await supabase.functions.invoke('antt-freight-table', {
+      const invoke = supabase.functions.invoke('antt-freight-table', {
         body: { 
           cargo_type: cargoType.toLowerCase().replace(/\s+/g, '_'),
           weight_kg: weight,
@@ -65,7 +73,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
           destination_state: destinationState
         }
       });
-      
+      const { data, error } = await withTimeoutAny(invoke, 1500);
       if (error) throw error;
       return data.minimum_freight_value;
     } catch (error) {
