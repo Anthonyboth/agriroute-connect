@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectGroup } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Plus, Loader2 } from 'lucide-react';
@@ -180,7 +180,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                 </SelectTrigger>
                 <SelectContent>
                   {CARGO_CATEGORIES.map((category) => (
-                    <div key={category.value}>
+                    <SelectGroup key={category.value}>
                       <SelectLabel className="font-semibold text-primary">
                         {category.label}
                       </SelectLabel>
@@ -190,7 +190,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                         </SelectItem>
                       ))}
                       {category.value !== 'outros' && <Separator className="my-1" />}
-                    </div>
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>

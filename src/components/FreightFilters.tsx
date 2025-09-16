@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectGroup } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Filter, MapPin } from 'lucide-react';
 import { CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
@@ -87,7 +87,7 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
               <SelectContent>
                 <SelectItem value="">Todos os tipos</SelectItem>
                 {CARGO_CATEGORIES.map((category) => (
-                  <div key={category.value}>
+                  <SelectGroup key={category.value}>
                     <SelectLabel className="font-semibold text-primary">
                       {category.label}
                     </SelectLabel>
@@ -97,7 +97,7 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
                       </SelectItem>
                     ))}
                     {category.value !== 'outros' && <Separator className="my-1" />}
-                  </div>
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>
