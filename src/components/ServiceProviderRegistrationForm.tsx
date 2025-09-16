@@ -26,6 +26,7 @@ const serviceTypes = [
   { value: 'MECANICO', label: 'Mecânico', requiresCNH: false },
   { value: 'BORRACHEIRO', label: 'Borracheiro', requiresCNH: true },
   { value: 'ELETRICISTA_AUTOMOTIVO', label: 'Eletricista Automotivo', requiresCNH: false },
+  { value: 'AUTO_ELETRICA', label: 'Auto-Elétrica', requiresCNH: false },
   { value: 'COMBUSTIVEL', label: 'Entrega de Combustível', requiresCNH: true },
   { value: 'CHAVEIRO', label: 'Chaveiro', requiresCNH: true },
   { value: 'SOLDADOR', label: 'Soldador', requiresCNH: false },
@@ -39,12 +40,12 @@ const serviceTypes = [
 const specialtyOptions = [
   'Carros de passeio', 'Motocicletas', 'Caminhões', 'Carretas', 'Ônibus',
   'Tratores', 'Máquinas agrícolas', 'Veículos pesados', 'Sistema de freios',
-  'Sistema elétrico', 'Motor diesel', 'Motor flex', 'Transmissão manual',
+  'Sistema elétrico', 'Sistema de auto-elétrica', 'Motor diesel', 'Motor flex', 'Transmissão manual',
   'Transmissão automática', 'Sistema hidráulico'
 ];
 
 const certificationOptions = [
-  'SENAI - Mecânica Automotiva', 'SENAI - Eletricista Automotivo',
+  'SENAI - Mecânica Automotiva', 'SENAI - Eletricista Automotivo', 'SENAI - Auto-Elétrica',
   'Certificação ISO 9001', 'Curso Bosch', 'Certificação Volvo',
   'Certificação Scania', 'Certificação Mercedes-Benz', 'NR-20 (Combustíveis)',
   'NR-35 (Trabalho em Altura)', 'Bombeiro Civil'

@@ -23,6 +23,7 @@ const serviceTypes = [
   'MECANICO',
   'BORRACHEIRO', 
   'ELETRICISTA_AUTOMOTIVO',
+  'AUTO_ELETRICA',
   'COMBUSTIVEL',
   'CHAVEIRO',
   'SOLDADOR',
@@ -44,6 +45,7 @@ const specialtyOptions = [
   'Veículos pesados',
   'Sistema de freios',
   'Sistema elétrico',
+  'Sistema de auto-elétrica',
   'Motor diesel',
   'Motor flex',
   'Transmissão manual',
@@ -53,7 +55,8 @@ const specialtyOptions = [
 
 const certificationOptions = [
   'SENAI - Mecânica Automotiva',
-  'SENAI - Eletricista Automotivo', 
+  'SENAI - Eletricista Automotivo',
+  'SENAI - Auto-Elétrica',
   'Certificação ISO 9001',
   'Curso Bosch',
   'Certificação Volvo',

@@ -63,6 +63,7 @@ const serviceIcons: Record<string, React.ComponentType<any>> = {
   MECANICO: Settings,
   BORRACHEIRO: Car,
   ELETRICISTA_AUTOMOTIVO: Zap,
+  AUTO_ELETRICA: Zap,
   COMBUSTIVEL: Fuel,
   CHAVEIRO: Shield,
   SOLDADOR: Wrench,

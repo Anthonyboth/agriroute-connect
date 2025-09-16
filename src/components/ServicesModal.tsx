@@ -53,6 +53,13 @@ const serviceTypes = [
     color: 'text-warning'
   },
   {
+    id: 'auto-eletrica',
+    title: 'Auto-Elétrica',
+    description: 'Sistema elétrico completo de veículos',
+    icon: Zap,
+    color: 'text-info'
+  },
+  {
     id: 'combustivel',
     title: 'Combustível',
     description: 'Entrega de combustível',
