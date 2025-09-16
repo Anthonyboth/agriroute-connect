@@ -64,52 +64,40 @@ const Landing = () => {
 
   const fetchRealStats = async () => {
     try {
-      // Buscar estatísticas diretamente das tabelas
-      const [
-        { count: producersCount },
-        { count: driversCount },
-        { count: completedCount },
-        { data: weightData },
-        { count: totalUsersCount },
-        { data: ratingsData }
-      ] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'PRODUTOR'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'MOTORISTA'),
-        supabase.from('freights').select('*', { count: 'exact', head: true }).eq('status', 'DELIVERED'),
-        supabase.from('freights').select('weight').eq('status', 'DELIVERED'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('rating').not('rating', 'is', null).gt('rating', 0)
-      ]);
+      const { data, error } = await supabase.rpc('get_platform_stats');
+      if (error) throw error;
 
-      const totalWeight = weightData?.reduce((sum, freight) => sum + (freight.weight || 0), 0) || 0;
-      const averageRating = ratingsData && ratingsData.length > 0 
-        ? ratingsData.reduce((sum, profile) => sum + (profile.rating || 0), 0) / ratingsData.length 
-        : 0;
-
-      setRealStats({
-        totalProducers: producersCount || 0,
-        totalDrivers: driversCount || 0,
-        totalWeight: Math.round(totalWeight),
-        completedFreights: completedCount || 0,
-        totalUsers: totalUsersCount || 0,
-        averageRating: Math.round(averageRating * 10) / 10
-      });
+      if (data && data.length > 0) {
+        const row = data[0] as any;
+        setRealStats({
+          totalProducers: Number(row.produtores) || 0,
+          totalDrivers: Number(row.motoristas) || 0,
+          totalWeight: Math.round(Number(row.peso_total) || 0),
+          completedFreights: Number(row.fretes_entregues) || 0,
+          totalUsers: Number(row.total_usuarios) || 0,
+          averageRating: Math.round(((Number(row.avaliacao_media) || 0) * 10)) / 10,
+        });
+      }
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error);
-      // Em caso de erro, manter valores zerados
-      setRealStats({
-        totalProducers: 0,
-        totalDrivers: 0,
-        totalWeight: 0,
-        completedFreights: 0,
-        totalUsers: 0,
-        averageRating: 0
-      });
     }
   };
 
   useEffect(() => {
     fetchRealStats();
+
+    const interval = setInterval(fetchRealStats, 30000);
+
+    const channel = supabase
+      .channel('landing-stats')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchRealStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freights' }, () => fetchRealStats())
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const features = [
