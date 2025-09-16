@@ -206,20 +206,20 @@ const Landing = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/50 to-transparent" />
         </div>
         
-        <div className="relative z-10 container mx-auto px-4 text-center max-w-4xl">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+        <div className="relative z-10 container mx-auto px-6 md:px-8 text-center max-w-5xl">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight px-4">
             <span className="text-foreground">Conectando o Campo</span>
             <span className="block gradient-hero bg-clip-text text-transparent font-extrabold">
               ao Destino
             </span>
           </h1>
-          <p className="text-xl md:text-2xl text-foreground/80 mb-12 max-w-2xl mx-auto font-medium">
+          <p className="text-lg md:text-xl lg:text-2xl text-foreground/80 mb-12 max-w-3xl mx-auto font-medium px-4 leading-relaxed">
             A plataforma que revoluciona o transporte agrícola brasileiro, 
             conectando produtores e transportadores de forma inteligente.
           </p>
           
           {/* Main Action Buttons in 2x2 Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-4xl mx-auto px-4">
             <Button 
               size="lg"
               onClick={() => handleGetStarted('PRODUTOR')}
