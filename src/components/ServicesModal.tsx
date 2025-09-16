@@ -13,7 +13,8 @@ import {
   Zap,
   Shield,
   Hammer,
-  Construction
+  Construction,
+  MoreHorizontal
 } from 'lucide-react';
 import { ServiceRequestModal } from './ServiceRequestModal';
 import { ServiceProviderRegistrationForm } from './ServiceProviderRegistrationForm';
@@ -79,6 +80,13 @@ const serviceTypes = [
     description: 'Abertura de veículos travados',
     icon: Shield,
     color: 'text-muted-foreground'
+  },
+  {
+    id: 'outros',
+    title: 'Outros',
+    description: 'Outros tipos de serviços',
+    icon: MoreHorizontal,
+    color: 'text-secondary'
   }
 ];
 

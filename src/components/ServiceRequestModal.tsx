@@ -20,7 +20,8 @@ import {
   Zap, 
   Shield,
   Hammer,
-  Construction
+  Construction,
+  MoreHorizontal
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,7 +48,8 @@ const serviceIcons: Record<string, React.ComponentType<any>> = {
   AR_CONDICIONADO: Settings,
   FREIOS: Settings,
   SUSPENSAO: Settings,
-  GUINDASTE: Construction
+  GUINDASTE: Construction,
+  OUTROS: Wrench
 };
 
 const vehicleTypes = [
@@ -77,6 +79,7 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     contact_phone: '',
     contact_name: '',
     additional_info: '',
+    custom_service_description: '',
     origin_lat: undefined as number | undefined,
     origin_lng: undefined as number | undefined,
     destination_lat: undefined as number | undefined,
@@ -120,6 +123,16 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
       toast({
         title: "Erro",
         description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validação específica para "Outros"
+    if (serviceType === 'OUTROS' && !formData.custom_service_description) {
+      toast({
+        title: "Erro",
+        description: "Por favor, especifique o tipo de serviço personalizado.",
         variant: "destructive"
       });
       return;
@@ -171,15 +184,19 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
           if (error) throw error;
         } else {
           // Create service request for other services
+          const serviceDescription = serviceType === 'OUTROS' 
+            ? `${formData.custom_service_description}: ${formData.problem_description}`
+            : formData.problem_description;
+            
           const { error } = await supabase
             .from('service_requests')
             .insert({
               client_id: profile.id,
-              service_type: serviceType,
+              service_type: serviceType === 'OUTROS' ? formData.custom_service_description : serviceType,
               location_address: formData.origin_address,
               location_lat: formData.origin_lat,
               location_lng: formData.origin_lng,
-              problem_description: formData.problem_description,
+              problem_description: serviceDescription,
               vehicle_info: formData.vehicle_type ? vehicleTypes.find(v => v.value === formData.vehicle_type)?.label : '',
               urgency: formData.emergency ? 'HIGH' : 'MEDIUM',
               contact_phone: formData.contact_phone,
@@ -202,6 +219,7 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
           emergency: formData.emergency,
           additional_info: formData.additional_info,
           contact_name: formData.contact_name,
+          custom_service_description: formData.custom_service_description,
           pricing: pricing,
           origin_lat: formData.origin_lat,
           origin_lng: formData.origin_lng,
@@ -213,7 +231,7 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
           .from('guest_requests')
           .insert({
             request_type: 'SERVICE',
-            service_type: serviceType,
+            service_type: serviceType === 'OUTROS' ? formData.custom_service_description : serviceType,
             contact_phone: formData.contact_phone,
             contact_name: formData.contact_name,
             payload: guestPayload,
@@ -239,6 +257,7 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         contact_phone: '',
         contact_name: '',
         additional_info: '',
+        custom_service_description: '',
         origin_lat: undefined,
         origin_lng: undefined,
         destination_lat: undefined,
@@ -401,9 +420,22 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
             )}
           </div>
 
+          {serviceType === 'OUTROS' && (
+            <div className="space-y-2">
+              <Label htmlFor="custom_service_description">Tipo de Serviço Personalizado *</Label>
+              <Input
+                id="custom_service_description"
+                required
+                value={formData.custom_service_description}
+                onChange={(e) => setFormData({...formData, custom_service_description: e.target.value})}
+                placeholder="Ex: Troca de óleo, Alinhamento, Balanceamento, etc."
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="problem_description">
-              {isGuincho ? "Descrição do Problema *" : `Descrição do Problema ${serviceTitle} *`}
+              {isGuincho ? "Descrição do Problema *" : serviceType === 'OUTROS' ? "Descrição Detalhada do Serviço *" : `Descrição do Problema ${serviceTitle} *`}
             </Label>
             <Textarea
               id="problem_description"
@@ -413,7 +445,9 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
               placeholder={
                 isGuincho 
                   ? "Descreva o problema do veículo (pane, acidente, etc.)"
-                  : `Descreva detalhadamente o problema que precisa ser resolvido pelo(a) ${serviceTitle.toLowerCase()}`
+                  : serviceType === 'OUTROS'
+                    ? "Descreva detalhadamente o que precisa ser feito"
+                    : `Descreva detalhadamente o problema que precisa ser resolvido pelo(a) ${serviceTitle.toLowerCase()}`
               }
               rows={4}
             />
