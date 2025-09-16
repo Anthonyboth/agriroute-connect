@@ -43,6 +43,11 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
   const [dateRangeStart, setDateRangeStart] = useState<Date>();
   const [dateRangeEnd, setDateRangeEnd] = useState<Date>();
   const [serviceType, setServiceType] = useState('CARGA');
+  
+  // Controle explícito dos popovers do calendário para evitar abertura/acoplamento incorretos
+  const [dateOpen, setDateOpen] = useState(false);
+  const [startOpen, setStartOpen] = useState(false);
+  const [endOpen, setEndOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,7 +236,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                   <div className="space-y-6">
                     <div className="space-y-3">
                       <Label className="text-base font-medium">Data Desejada *</Label>
-                      <Popover>
+                      <Popover open={dateOpen} onOpenChange={setDateOpen}>
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
@@ -251,7 +256,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                           <Calendar
                             mode="single"
                             selected={scheduledDate}
-                            onSelect={setScheduledDate}
+                            onSelect={(d) => { setScheduledDate(d); setDateOpen(false); }}
                             disabled={(date) => date < minDate}
                             initialFocus
                             className="pointer-events-auto"
@@ -303,7 +308,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label className="font-medium">Data Mais Cedo</Label>
-                              <Popover>
+                              <Popover open={startOpen} onOpenChange={setStartOpen}>
                                 <PopoverTrigger asChild>
                                   <Button variant="outline" className="w-full justify-start text-left font-normal">
                                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -318,7 +323,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                                   <Calendar
                                     mode="single"
                                     selected={dateRangeStart}
-                                    onSelect={setDateRangeStart}
+                                    onSelect={(d) => { setDateRangeStart(d); setStartOpen(false); }}
                                     disabled={(date) => date < minDate || (scheduledDate && date > scheduledDate)}
                                     initialFocus
                                     className="pointer-events-auto"
@@ -329,7 +334,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
 
                             <div className="space-y-2">
                               <Label className="font-medium">Data Mais Tarde</Label>
-                              <Popover>
+                              <Popover open={endOpen} onOpenChange={setEndOpen}>
                                 <PopoverTrigger asChild>
                                   <Button variant="outline" className="w-full justify-start text-left font-normal">
                                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -344,7 +349,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                                   <Calendar
                                     mode="single"
                                     selected={dateRangeEnd}
-                                    onSelect={setDateRangeEnd}
+                                    onSelect={(d) => { setDateRangeEnd(d); setEndOpen(false); }}
                                     disabled={(date) => scheduledDate && date < scheduledDate}
                                     initialFocus
                                     className="pointer-events-auto"
