@@ -12,7 +12,8 @@ import {
   CircuitBoard,
   Zap,
   Shield,
-  Hammer
+  Hammer,
+  Construction
 } from 'lucide-react';
 import { GuinchoModal } from './GuinchoModal';
 import { ServiceProviderRegistrationForm } from './ServiceProviderRegistrationForm';
@@ -30,6 +31,13 @@ const serviceTypes = [
     description: 'Reboque e transporte de veículos',
     icon: Truck,
     color: 'text-primary'
+  },
+  {
+    id: 'guindaste',
+    title: 'Guindaste',
+    description: 'Elevação e movimentação de cargas pesadas',
+    icon: Construction,
+    color: 'text-warning'
   },
   {
     id: 'mecanico',
