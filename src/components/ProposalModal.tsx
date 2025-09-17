@@ -137,6 +137,8 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
             <Label>Tipo de Cobrança</Label>
             <Select value={proposalData.pricing_type} onValueChange={(value: 'FIXED' | 'PER_KM') => {
               // Evita travamento ao fechar o dropdown no mobile
+              const el = document.activeElement as HTMLElement | null;
+              el?.blur?.();
               setTimeout(() => setProposalData(prev => ({ ...prev, pricing_type: value })), 0);
             }}>
               <SelectTrigger>

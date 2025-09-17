@@ -185,7 +185,11 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-primary" />
@@ -319,7 +323,9 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
             <Select
               value={pricingType}
               onValueChange={(value: 'FIXED' | 'PER_KM') => {
-                // Defer state update to avoid layout thrash on mobile when closing dropdown
+                // Evita travamento no mobile: remove focus ativo e posterga atualização
+                const el = document.activeElement as HTMLElement | null;
+                el?.blur?.();
                 setTimeout(() => setPricingType(value), 0);
               }}
             >
