@@ -56,8 +56,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   const [estimatedTime, setEstimatedTime] = useState('');
   
   // Campos específicos para Mudança
-  const [propertyType, setPropertyType] = useState('APARTAMENTO');
-  const [rooms, setRooms] = useState('');
   const [hasElevator, setHasElevator] = useState('');
   const [helpers, setHelpers] = useState('');
   const [packaging, setPackaging] = useState(false);
@@ -138,8 +136,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
         proposalData = {
           ...proposalData,
           service_details: {
-            property_type: propertyType,
-            rooms: rooms,
             has_elevator: hasElevator,
             helpers: helpers,
             packaging: packaging
@@ -163,7 +159,7 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
         if (freight.service_type === 'GUINCHO') {
           messageContent = `ACEITE DO CHAMADO DE GUINCHO\n\nValor: R$ ${finalPrice.toLocaleString('pt-BR')}\nTempo estimado: ${estimatedTime || 'A definir'}\n\n${message || 'Aceito o chamado conforme solicitado.'}`;
         } else if (freight.service_type === 'MUDANCA') {
-          messageContent = `ORÇAMENTO DE MUDANÇA\n\nValor: R$ ${finalPrice.toLocaleString('pt-BR')}\nTipo: ${propertyType}\nCômodos: ${rooms || 'Não informado'}\nElevador: ${hasElevator || 'Não informado'}\nAjudantes: ${helpers || 'Não informado'}\nEmbalagem: ${packaging ? 'Incluso' : 'Não incluso'}\n\n${message || 'Orçamento conforme especificações.'}`;
+          messageContent = `ORÇAMENTO DE MUDANÇA\n\nValor: R$ ${finalPrice.toLocaleString('pt-BR')}\nElevador: ${hasElevator || 'Não informado'}\nAjudantes: ${helpers || 'Não informado'}\nEmbalagem: ${packaging ? 'Incluso' : 'Não incluso'}\n\n${message || 'Orçamento conforme especificações.'}`;
         } else {
           messageContent = `CONTRA-PROPOSTA: R$ ${finalPrice.toLocaleString('pt-BR')}\n\n${pricingType === 'PER_KM' ? `Valor por KM: R$ ${priceFloat.toLocaleString('pt-BR')}/km\n` : ''}${message || 'Proposta enviada.'}`;
         }
@@ -201,8 +197,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
     setMessage('');
     setUrgencyLevel('NORMAL');
     setEstimatedTime('');
-    setPropertyType('APARTAMENTO');
-    setRooms('');
     setHasElevator('');
     setHelpers('');
     setPackaging(false);
@@ -267,31 +261,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   const renderMudancaForm = () => (
     <>
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Tipo de Imóvel</Label>
-            <Select value={propertyType} onValueChange={setPropertyType}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="APARTAMENTO">Apartamento</SelectItem>
-                <SelectItem value="CASA">Casa</SelectItem>
-                <SelectItem value="KITNET">Kitnet</SelectItem>
-                <SelectItem value="COMERCIAL">Comercial</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Quantidade de Cômodos</Label>
-            <Input
-              placeholder="Ex: 3 quartos, 1 sala..."
-              value={rooms}
-              onChange={(e) => setRooms(e.target.value)}
-            />
-          </div>
-        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
