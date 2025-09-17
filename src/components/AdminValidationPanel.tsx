@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { getUserStatusLabel, getValidationStatusLabel } from '@/lib/freight-status';
 import { 
   User, 
   Car, 
@@ -230,18 +231,19 @@ export const AdminValidationPanel: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
+    const label = getUserStatusLabel(status) || getValidationStatusLabel(status);
     switch (status) {
       case 'PENDING':
-        return <Badge variant="outline" className="text-yellow-600"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>;
+        return <Badge variant="outline" className="text-yellow-600"><Clock className="w-3 h-3 mr-1" />{label}</Badge>;
       case 'VALIDATED':
       case 'APPROVED':
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Aprovado</Badge>;
+        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />{label}</Badge>;
       case 'REJECTED':
-        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejeitado</Badge>;
+        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />{label}</Badge>;
       case 'EXPIRED':
-        return <Badge variant="destructive"><AlertTriangle className="w-3 h-3 mr-1" />Vencido</Badge>;
+        return <Badge variant="destructive"><AlertTriangle className="w-3 h-3 mr-1" />{label}</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{label}</Badge>;
     }
   };
 

@@ -10,6 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { getFreightStatusLabel, getFreightStatusVariant, getProposalStatusLabel } from '@/lib/freight-status';
 import { ScheduledFreightModal } from './ScheduledFreightModal';
 import { FlexibleProposalModal } from './FlexibleProposalModal';
 import { ProposalCounterModal } from './ProposalCounterModal';
@@ -258,16 +259,8 @@ export const ScheduledFreightsManager: React.FC = () => {
   );
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return <Badge variant="secondary">Pendente</Badge>;
-      case 'ACCEPTED':
-        return <Badge variant="default">Aceita</Badge>;
-      case 'REJECTED':
-        return <Badge variant="destructive">Recusada</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+    // For proposals, use proposal status translations
+    return <Badge variant={getFreightStatusVariant(status)}>{getProposalStatusLabel(status)}</Badge>;
   };
 
   return (

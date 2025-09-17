@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 
 interface FreightDetailsProps {
   freightId: string;
@@ -70,19 +71,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap = {
-      'OPEN': { label: 'Aberto', variant: 'default' as const },
-      'IN_NEGOTIATION': { label: 'Em Negociação', variant: 'secondary' as const },
-      'ACCEPTED': { label: 'Aceito', variant: 'default' as const },
-      'LOADING': { label: 'Carregando', variant: 'secondary' as const },
-      'LOADED': { label: 'Carregado', variant: 'secondary' as const },
-      'IN_TRANSIT': { label: 'Em Trânsito', variant: 'secondary' as const },
-      'DELIVERED': { label: 'Entregue', variant: 'default' as const },
-      'CANCELLED': { label: 'Cancelado', variant: 'destructive' as const }
-    };
-    
-    const statusInfo = statusMap[status as keyof typeof statusMap] || { label: status, variant: 'secondary' as const };
-    return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
+    return <Badge variant={getFreightStatusVariant(status)}>{getFreightStatusLabel(status)}</Badge>;
   };
 
   const canRate = () => {
