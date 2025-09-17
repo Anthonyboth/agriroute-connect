@@ -25,6 +25,8 @@ interface CompatibleFreight {
   service_type: string;
   distance_km: number;
   minimum_antt_price: number;
+  required_trucks: number;
+  accepted_trucks: number;
   created_at: string;
 }
 
@@ -292,7 +294,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                     urgency: freight.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
                     status: 'OPEN' as const,
                     distance_km: freight.distance_km,
-                    minimum_antt_price: freight.minimum_antt_price
+                    minimum_antt_price: freight.minimum_antt_price,
+                    required_trucks: freight.required_trucks,
+                    accepted_trucks: freight.accepted_trucks
                   }}
                   onAction={(action) => handleFreightAction(freight.freight_id, action)}
                   showActions={true}

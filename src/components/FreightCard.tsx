@@ -115,6 +115,31 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Carretas Info */}
+        {(freight.required_trucks && freight.required_trucks > 1) && (
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center space-x-1 text-muted-foreground">
+              <Truck className="h-4 w-4" />
+              <span>Carretas:</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className={`font-medium ${isFullyBooked ? 'text-green-600' : 'text-primary'}`}>
+                {freight.accepted_trucks || 0}/{freight.required_trucks}
+              </span>
+              {isFullyBooked && (
+                <Badge variant="default" className="text-xs bg-green-500">
+                  Completo
+                </Badge>
+              )}
+              {!isFullyBooked && availableSlots > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {availableSlots} vaga{availableSlots > 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Peso/Info e Distância */}
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center space-x-1 text-muted-foreground">

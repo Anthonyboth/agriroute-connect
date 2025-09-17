@@ -117,14 +117,13 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         distance_km: distance,
         price: formData.pricing_type === 'FIXED' ? parseFloat(formData.price) : parseFloat(formData.price_per_km) * distance,
         price_per_km: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : null,
-        minimum_antt_price: minimumAnttPrice,
+        required_trucks: parseInt(formData.required_trucks),
+        accepted_trucks: 0,
         pickup_date: formData.pickup_date,
         delivery_date: formData.delivery_date,
         urgency: formData.urgency,
         description: formData.description || null,
-        status: 'OPEN' as const,
-        required_trucks: parseInt(formData.required_trucks),
-        accepted_trucks: 0
+        status: 'OPEN' as const
       };
 
       const { error } = await supabase
@@ -220,6 +219,23 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                 placeholder="1000"
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="required_trucks">Quantidade de Carretas *</Label>
+              <Input
+                id="required_trucks"
+                type="number"
+                min="1"
+                max="50"
+                value={formData.required_trucks}
+                onChange={(e) => handleInputChange('required_trucks', e.target.value)}
+                placeholder="1"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Número de carretas necessárias para este frete. Quando todas forem contratadas, o frete será automaticamente fechado.
+              </p>
             </div>
           </div>
 
