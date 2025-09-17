@@ -120,8 +120,11 @@ const RedirectIfAuthed = () => {
     case 'PRODUTOR':
       to = '/dashboard/producer';
       break;
-    default:
+    case 'PRESTADOR_SERVICOS':
       to = '/dashboard/service-provider';
+      break;
+    default:
+      to = '/';
   }
   return <Navigate to={to} replace />;
 };
