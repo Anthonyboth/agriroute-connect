@@ -75,16 +75,19 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         subscribed: false 
       }));
       
-      // Avoid multiple error toasts within 10 seconds
-      const now = Date.now();
-      if (now - lastErrorTime > 10000) {
-        setLastErrorTime(now);
-        toast.error('Erro ao verificar assinatura', {
-          action: {
-            label: 'Fechar',
-            onClick: () => {},
-          },
-        });
+      // Só notifica o usuário em erros de autenticação (401/403)
+      const status = (error as any)?.status ?? (error as any)?.context?.response?.status ?? null;
+      if (status === 401 || status === 403) {
+        const now = Date.now();
+        if (now - lastErrorTime > 10000) {
+          setLastErrorTime(now);
+          toast.error('Sua sessão expirou. Faça login novamente.', {
+            action: {
+              label: 'Fechar',
+              onClick: () => {},
+            },
+          });
+        }
       }
     }
   };
