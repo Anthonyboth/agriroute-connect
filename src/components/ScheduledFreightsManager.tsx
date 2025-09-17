@@ -127,7 +127,6 @@ export const ScheduledFreightsManager: React.FC = () => {
         let query = supabase
           .from('flexible_freight_proposals')
           .select('*')
-          .neq('status', 'REJECTED')
           .order('created_at', { ascending: false });
 
         if (profile.role === 'PRODUTOR') {
@@ -209,8 +208,10 @@ export const ScheduledFreightsManager: React.FC = () => {
 
       if (error) throw error;
 
+      // Remove a proposta rejeitada imediatamente do estado local
+      setFlexibleProposals(prev => prev.filter(proposal => proposal.id !== proposalId));
+
       toast.success('Proposta recusada');
-      fetchFlexibleProposals();
     } catch (error: any) {
       console.error('Erro ao recusar proposta:', error);
       toast.error('Erro ao recusar proposta');

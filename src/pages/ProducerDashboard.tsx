@@ -58,7 +58,6 @@ const ProducerDashboard = () => {
           driver:profiles!freight_proposals_driver_id_fkey(*)
         `)
         .eq('freight.producer_id', profile.id)
-        .neq('status', 'REJECTED')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -95,8 +94,10 @@ const ProducerDashboard = () => {
 
       if (error) throw error;
 
+      // Remove a proposta rejeitada imediatamente do estado local
+      setProposals(prev => prev.filter(proposal => proposal.id !== proposalId));
+      
       toast.success('Proposta rejeitada');
-      fetchProposals();
     } catch (error) {
       console.error('Error rejecting proposal:', error);
       toast.error('Erro ao rejeitar proposta');
