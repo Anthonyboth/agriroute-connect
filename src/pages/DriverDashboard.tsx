@@ -121,7 +121,15 @@ const DriverDashboard = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setMyProposals(data || []);
+      
+      // Filtrar propostas cujos fretes não estão cancelados ou entregues (exceto para o histórico)
+      const activeProposals = data?.filter(proposal => 
+        proposal.freight && 
+        !['DELIVERED', 'CANCELLED'].includes(proposal.freight.status) &&
+        proposal.status !== 'CANCELLED'
+      ) || [];
+      
+      setMyProposals(data || []); // Manter todos para o histórico
     } catch (error) {
       console.error('Error fetching proposals:', error);
       toast.error('Erro ao carregar suas propostas');
@@ -487,6 +495,14 @@ const DriverDashboard = () => {
                 <span className="hidden sm:inline">Meus Veículos</span>
                 <span className="sm:hidden">Veíc</span>
               </TabsTrigger>
+              <TabsTrigger 
+                value="historico" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <CheckCircle className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Histórico</span>
+                <span className="sm:hidden">Hist</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -537,10 +553,12 @@ const DriverDashboard = () => {
           </TabsContent>
 
           <TabsContent value="my-trips" className="space-y-4">
-            <h3 className="text-lg font-semibold">Minhas Propostas e Viagens</h3>
-            {myProposals.length > 0 ? (
+            <h3 className="text-lg font-semibold">Minhas Propostas Ativas</h3>
+            {myProposals.filter(p => p.freight && !['DELIVERED', 'CANCELLED'].includes(p.freight.status) && p.status !== 'CANCELLED').length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {myProposals.map((proposal) => (
+                {myProposals
+                  .filter(p => p.freight && !['DELIVERED', 'CANCELLED'].includes(p.freight.status) && p.status !== 'CANCELLED')
+                  .map((proposal) => (
                   proposal.freight && (
                     <div key={proposal.id} className="relative">
                        <FreightCard 
@@ -657,6 +675,78 @@ const DriverDashboard = () => {
 
           <TabsContent value="vehicles" className="space-y-4">
             <VehicleManager driverProfile={profile} />
+          </TabsContent>
+
+          <TabsContent value="historico" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Viagens Concluídas */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-green-600">Viagens Concluídas</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {myProposals.filter(p => p.freight?.status === 'DELIVERED').length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Nenhuma viagem concluída ainda.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {myProposals.filter(p => p.freight?.status === 'DELIVERED').map((proposal) => (
+                        <Card key={proposal.id} className="p-4">
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-start">
+                              <h4 className="font-semibold">{proposal.freight?.cargo_type}</h4>
+                              <Badge className="bg-green-100 text-green-800">Concluída</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {proposal.freight?.origin_address} → {proposal.freight?.destination_address}
+                            </p>
+                            <div className="flex justify-between text-sm">
+                              <span>Valor: R$ {proposal.proposed_price?.toLocaleString()}</span>
+                              <span>{proposal.freight?.distance_km} km</span>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Viagens Canceladas */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-red-600">Viagens Canceladas</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {myProposals.filter(p => p.freight?.status === 'CANCELLED' || p.status === 'CANCELLED').length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Nenhuma viagem cancelada.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {myProposals.filter(p => p.freight?.status === 'CANCELLED' || p.status === 'CANCELLED').map((proposal) => (
+                        <Card key={proposal.id} className="p-4">
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-start">
+                              <h4 className="font-semibold">{proposal.freight?.cargo_type}</h4>
+                              <Badge variant="destructive">Cancelada</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {proposal.freight?.origin_address} → {proposal.freight?.destination_address}
+                            </p>
+                            <div className="flex justify-between text-sm">
+                              <span>Valor: R$ {proposal.proposed_price?.toLocaleString()}</span>
+                              <span>{proposal.freight?.distance_km} km</span>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

@@ -81,6 +81,7 @@ export const ScheduledFreightsManager: React.FC = () => {
             producer:profiles!freights_producer_id_fkey(full_name)
           `)
           .eq('is_scheduled', true)
+          .not('status', 'in', '(DELIVERED,CANCELLED)')
           .order('scheduled_date', { ascending: true });
 
         if (profile.role === 'PRODUTOR') {
@@ -89,6 +90,7 @@ export const ScheduledFreightsManager: React.FC = () => {
           // Para motoristas, buscar fretes onde ele foi aceito pelo produtor
           query = query.eq('driver_id', profile.id);
         } else {
+          // Para outros papéis, mostrar apenas fretes abertos
           query = query.eq('status', 'OPEN');
         }
 
