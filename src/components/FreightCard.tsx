@@ -293,6 +293,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
           driver_name: 'Produtor'
         }}
         freightPrice={freight.price}
+        freightDistance={freight.distance_km || 0}
         onSuccess={() => {
           setProposalModalOpen(false);
           if (onAction) onAction('propose');

@@ -468,6 +468,7 @@ export const ScheduledFreightsManager: React.FC = () => {
         onClose={() => setCounterProposalModalOpen(false)}
         originalProposal={selectedProposal}
         freightPrice={selectedFreight?.price || 0}
+        freightDistance={selectedFreight?.distance_km || 0}
         onSuccess={() => {
           fetchFlexibleProposals();
           setCounterProposalModalOpen(false);

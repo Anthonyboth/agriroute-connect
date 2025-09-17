@@ -327,6 +327,7 @@ const ProducerDashboard = () => {
         onClose={() => setCounterProposalModalOpen(false)}
         originalProposal={selectedProposal}
         freightPrice={selectedProposal?.freight_price || 0}
+        freightDistance={selectedProposal?.freight_distance || 0}
         onSuccess={() => {
           fetchProposals();
           setCounterProposalModalOpen(false);
