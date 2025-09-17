@@ -242,21 +242,41 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
       {showActions && onAction && freight.status === 'OPEN' && !isFullyBooked && (
         <div className="px-6 pb-6">
           {freight.service_type === 'GUINCHO' ? (
-            <Button 
-              onClick={() => onAction('accept')}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-              size="sm"
-            >
-              Aceitar Chamado
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => onAction('accept')}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                size="sm"
+              >
+                Aceitar Chamado
+              </Button>
+              <Button 
+                onClick={() => setProposalModalOpen(true)}
+                className="flex-1"
+                size="sm"
+                variant="outline"
+              >
+                Contra proposta
+              </Button>
+            </div>
           ) : freight.service_type === 'MUDANCA' ? (
-            <Button 
-              onClick={() => setProposalModalOpen(true)}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-              size="sm"
-            >
-              Fazer Orçamento
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setProposalModalOpen(true)}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                size="sm"
+              >
+                Fazer Orçamento
+              </Button>
+              <Button 
+                onClick={() => setProposalModalOpen(true)}
+                className="flex-1"
+                size="sm"
+                variant="outline"
+              >
+                Contra proposta
+              </Button>
+            </div>
           ) : (
             <div className="flex gap-2">
               <Button 
