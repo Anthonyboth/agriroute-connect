@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FlexibleProposalModal } from './FlexibleProposalModal';
+import { ProposalCounterModal } from './ProposalCounterModal';
 import { Separator } from '@/components/ui/separator';
 import { 
   MapPin, 
@@ -256,7 +256,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
                 size="sm"
                 variant="secondary"
               >
-                Fazer Proposta
+                Fazer Contra-Proposta
               </Button>
             </div>
           ) : (
@@ -265,9 +265,9 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
               className="w-full"
               size="sm"
             >
-              {freight.service_type === 'GUINCHO' ? 'Aceitar Chamado' : 
-               freight.service_type === 'MUDANCA' ? 'Fazer Orçamento' : 
-               'Fazer Proposta'}
+               {freight.service_type === 'GUINCHO' ? 'Aceitar Chamado' : 
+                freight.service_type === 'MUDANCA' ? 'Fazer Orçamento' : 
+                'Fazer Contra-Proposta'}
             </Button>
           )}
         </div>
@@ -281,18 +281,18 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
         </div>
       )}
 
-      {/* Flexible Proposal Modal */}
-      <FlexibleProposalModal
+      {/* Counter Proposal Modal */}
+      <ProposalCounterModal
         isOpen={proposalModalOpen}
         onClose={() => setProposalModalOpen(false)}
-        freight={{
-          ...freight,
-          producer_name: 'Produtor',
-          scheduled_date: freight.pickup_date,
-          flexible_dates: true,
-          date_range_start: freight.pickup_date,
-          date_range_end: freight.delivery_date
+        originalProposal={{
+          id: freight.id,
+          freight_id: freight.id,
+          proposed_price: freight.price,
+          message: 'Proposta do produtor',
+          driver_name: 'Produtor'
         }}
+        freightPrice={freight.price}
         onSuccess={() => {
           setProposalModalOpen(false);
           if (onAction) onAction('propose');
