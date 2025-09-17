@@ -249,6 +249,7 @@ export const SecurityCompleteProfile: React.FC = () => {
                 value={formData.cpf_cnpj}
                 onChange={(e) => handleInputChange('cpf_cnpj', e.target.value)}
                 placeholder="Digite seu CPF ou CNPJ"
+                required
               />
             </div>
             

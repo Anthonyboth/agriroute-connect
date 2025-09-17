@@ -983,7 +983,7 @@ export type Database = {
           cnh_validation_status: string | null
           contact_phone: string | null
           cooperative: string | null
-          cpf_cnpj: string | null
+          cpf_cnpj: string
           created_at: string
           current_location_lat: number | null
           current_location_lng: number | null
@@ -1041,7 +1041,7 @@ export type Database = {
           cnh_validation_status?: string | null
           contact_phone?: string | null
           cooperative?: string | null
-          cpf_cnpj?: string | null
+          cpf_cnpj: string
           created_at?: string
           current_location_lat?: number | null
           current_location_lng?: number | null
@@ -1099,7 +1099,7 @@ export type Database = {
           cnh_validation_status?: string | null
           contact_phone?: string | null
           cooperative?: string | null
-          cpf_cnpj?: string | null
+          cpf_cnpj?: string
           created_at?: string
           current_location_lat?: number | null
           current_location_lng?: number | null
