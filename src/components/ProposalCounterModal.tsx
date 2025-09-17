@@ -47,11 +47,19 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
   const priceDifference = originalProposal.proposed_price - freightPrice;
   const isPriceIncrease = priceDifference > 0;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent | React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+
+    if (!profile) {
+      toast.error('É necessário estar autenticado.');
+      return;
+    }
     
     const priceValue = pricingType === 'FIXED' ? counterPrice : counterPricePerKm;
-    if (!profile || !priceValue) return;
+    if (!priceValue) {
+      toast.error('Informe um valor.');
+      return;
+    }
 
     const priceFloat = parseFloat(priceValue);
     if (isNaN(priceFloat) || priceFloat <= 0) {
@@ -59,11 +67,16 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
       return;
     }
 
+    if (pricingType === 'PER_KM') {
+      // Permitir envio mesmo sem distância conhecida; o total será estimado depois
+      // Nenhuma validação extra aqui além do valor por km positivo
+    }
+
     const finalPrice = pricingType === 'FIXED' ? priceFloat : priceFloat * freightDistance;
 
     setLoading(true);
     try {
-      // Buscar o frete para verificar se o usuário tem permissão
+      // Buscar o frete para verificar contexto
       const { data: freight, error: freightError } = await supabase
         .from('freights')
         .select('producer_id, driver_id')
@@ -75,15 +88,53 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
         throw new Error('Erro ao verificar permissões do frete');
       }
 
-      // Verificar se o usuário tem permissão (é produtor ou motorista do frete)
-      const hasPermission = freight.producer_id === profile.id || freight.driver_id === profile.id;
+      let hasPermission = freight.producer_id === profile.id || freight.driver_id === profile.id;
+
+      // Se for motorista e ainda não tiver permissão, garanta que exista uma proposta para permitir a negociação
+      if (!hasPermission && profile.role === 'MOTORISTA') {
+        const { data: existing, error: proposalCheckError } = await supabase
+          .from('freight_proposals')
+          .select('id')
+          .eq('freight_id', originalProposal.freight_id)
+          .eq('driver_id', profile.id)
+          .limit(1);
+
+        if (proposalCheckError) {
+          console.error('Erro ao verificar proposta existente:', proposalCheckError);
+          throw new Error('Erro ao verificar proposta existente');
+        }
+
+        const alreadyHasProposal = Array.isArray(existing) && existing.length > 0;
+
+        if (!alreadyHasProposal) {
+          const { error: createProposalError } = await supabase
+            .from('freight_proposals')
+            .insert({
+              freight_id: originalProposal.freight_id,
+              driver_id: profile.id,
+              proposed_price: finalPrice,
+              status: 'PENDING',
+              message: pricingType === 'PER_KM'
+                ? `Proposta por km: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total estimado: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)`
+                : 'Proposta enviada via contra-proposta.'
+            });
+
+          if (createProposalError) {
+            console.error('Erro ao criar proposta:', createProposalError);
+            throw new Error('Não foi possível registrar sua proposta');
+          }
+        }
+
+        hasPermission = true;
+      }
+
       if (!hasPermission) {
         throw new Error('Você não tem permissão para enviar mensagens neste frete');
       }
 
       const messageContent = pricingType === 'FIXED'
-        ? `CONTRA-PROPOSTA: R$ ${finalPrice.toLocaleString()}\n\nValor original: R$ ${freightPrice.toLocaleString()}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString()}\nMinha contra-proposta: R$ ${finalPrice.toLocaleString()}\n\n${counterMessage.trim() || 'Sem observações adicionais'}`
-        : `CONTRA-PROPOSTA POR KM: R$ ${priceFloat.toLocaleString()}/km\n\nValor original: R$ ${freightPrice.toLocaleString()}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString()}\nMinha contra-proposta: R$ ${priceFloat.toLocaleString()}/km (Total: R$ ${finalPrice.toLocaleString()} para ${freightDistance} km)\n\n${counterMessage.trim() || 'Sem observações adicionais'}`;
+        ? `CONTRA-PROPOSTA: R$ ${finalPrice.toLocaleString('pt-BR')}\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${finalPrice.toLocaleString('pt-BR')}\n\n${counterMessage.trim() || 'Sem observações adicionais'}`
+        : `CONTRA-PROPOSTA POR KM: R$ ${priceFloat.toLocaleString('pt-BR')}/km\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)\n\n${counterMessage.trim() || 'Sem observações adicionais'}`;
 
       const { error } = await supabase
         .from('freight_messages')
@@ -104,7 +155,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
     } catch (error: any) {
       console.error('Erro ao enviar contra-proposta:', error);
-      toast.error('Erro ao enviar contra-proposta: ' + error.message);
+      toast.error('Erro ao enviar contra-proposta: ' + (error.message || 'Tente novamente'));
     } finally {
       setLoading(false);
     }
@@ -265,7 +316,12 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
           </Button>
           <Button 
             type="submit" 
-            disabled={loading || (pricingType === 'FIXED' ? !counterPrice : !counterPricePerKm)} 
+            disabled={
+              loading || 
+              (pricingType === 'FIXED' 
+                ? !counterPrice 
+                : !counterPricePerKm || !freightDistance || freightDistance <= 0)
+            } 
             className="gradient-primary"
             size="sm"
             onClick={handleSubmit}
