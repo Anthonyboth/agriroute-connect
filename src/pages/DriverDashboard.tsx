@@ -47,6 +47,11 @@ interface Proposal {
   proposed_price: number;
   status: string; // Allow all database status values
   freight?: Freight;
+  driver?: {
+    id: string;
+    full_name: string;
+    phone: string;
+  };
 }
 
 const DriverDashboard = () => {
@@ -108,34 +113,51 @@ const DriverDashboard = () => {
     }
   };
 
-  // Buscar propostas do motorista
+  // Buscar propostas do motorista ou propostas para fretes do produtor
   const fetchMyProposals = async () => {
     if (!profile?.id) return;
 
     try {
-      const { data, error } = await supabase
-        .from('freight_proposals')
-        .select(`
-          *,
-          freight:freights(*)
-        `)
-        .eq('driver_id', profile.id)
-        .neq('status', 'REJECTED')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      let data;
       
-      // Filtrar propostas cujos fretes não estão cancelados ou entregues (exceto para o histórico)
-      const activeProposals = data?.filter(proposal => 
-        proposal.freight && 
-        !['DELIVERED', 'CANCELLED'].includes(proposal.freight.status) &&
-        proposal.status !== 'CANCELLED'
-      ) || [];
+      if (profile.role === 'MOTORISTA') {
+        // Para motoristas: buscar propostas que ele fez
+        const { data: proposalData, error } = await supabase
+          .from('freight_proposals')
+          .select(`
+            *,
+            freight:freights(*)
+          `)
+          .eq('driver_id', profile.id)
+          .neq('status', 'REJECTED')
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
+        data = proposalData;
+      } else if (profile.role === 'PRODUTOR') {
+        // Para produtores: buscar propostas feitas para seus fretes
+        const { data: proposalData, error } = await supabase
+          .from('freight_proposals')
+          .select(`
+            *,
+            freight:freights(*),
+            driver:profiles!freight_proposals_driver_id_fkey(full_name, phone, id)
+          `)
+          .eq('freight.producer_id', profile.id)
+          .neq('status', 'REJECTED')
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
+        data = proposalData;
+      } else {
+        return;
+      }
       
-      setMyProposals(data || []); // Manter todos para o histórico
+      console.log('Proposals loaded:', data);
+      setMyProposals(data || []);
     } catch (error) {
       console.error('Error fetching proposals:', error);
-      toast.error('Erro ao carregar suas propostas');
+      toast.error('Erro ao carregar propostas');
     }
   };
 
@@ -192,18 +214,39 @@ const DriverDashboard = () => {
     }
   };
 
-  // Verificar se o usuário tem perfil de motorista
-  useEffect(() => {
-    if (profile && profile.role !== 'MOTORISTA') {
-      // Se o usuário não é motorista, redirecionar para o dashboard apropriado
-      if (profile.role === 'PRODUTOR') {
-        navigate('/dashboard/producer');
-      } else {
-        navigate('/');
-      }
-      return;
+  const handleAcceptProposal = async (proposalId: string) => {
+    try {
+      const { error } = await supabase
+        .from('freight_proposals')
+        .update({ status: 'ACCEPTED' })
+        .eq('id', proposalId);
+
+      if (error) throw error;
+
+      toast.success('Proposta aceita com sucesso!');
+      fetchMyProposals();
+    } catch (error) {
+      console.error('Error accepting proposal:', error);
+      toast.error('Erro ao aceitar proposta');
     }
-  }, [profile, navigate]);
+  };
+
+  const handleRejectProposal = async (proposalId: string) => {
+    try {
+      const { error } = await supabase
+        .from('freight_proposals')
+        .update({ status: 'REJECTED' })
+        .eq('id', proposalId);
+
+      if (error) throw error;
+
+      toast.success('Proposta rejeitada');
+      fetchMyProposals();
+    } catch (error) {
+      console.error('Error rejecting proposal:', error);
+      toast.error('Erro ao rejeitar proposta');
+    }
+  };
 
   // Carregar dados
   useEffect(() => {
@@ -213,7 +256,7 @@ const DriverDashboard = () => {
       setLoading(false);
     };
 
-    if (profile && profile.role === 'MOTORISTA') {
+    if (profile) {
       loadData();
     }
   }, [profile]);
@@ -577,7 +620,9 @@ const DriverDashboard = () => {
           </TabsContent>
 
           <TabsContent value="my-trips" className="space-y-4">
-            <h3 className="text-lg font-semibold">Minhas Propostas Ativas</h3>
+            <h3 className="text-lg font-semibold">
+              {profile?.role === 'MOTORISTA' ? 'Minhas Propostas Ativas' : 'Propostas Recebidas'}
+            </h3>
             {myProposals.filter(p => p.freight && !['DELIVERED', 'CANCELLED'].includes(p.freight.status) && p.status !== 'CANCELLED').length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {myProposals
@@ -611,7 +656,16 @@ const DriverDashboard = () => {
                           Proposta: R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
                         </span>
                       </div>
-                      {proposal.status === 'ACCEPTED' && (
+                      
+                      {/* Mostrar informações do motorista para produtores */}
+                      {profile?.role === 'PRODUTOR' && proposal.driver && (
+                        <div className="mt-2 p-2 bg-muted rounded">
+                          <p className="text-sm font-medium">{proposal.driver.full_name}</p>
+                          <p className="text-xs text-muted-foreground">{proposal.driver.phone}</p>
+                        </div>
+                      )}
+
+                      {proposal.status === 'ACCEPTED' && profile?.role === 'MOTORISTA' && (
                         <Button 
                           className="w-full mt-2" 
                           size="sm"
@@ -623,15 +677,38 @@ const DriverDashboard = () => {
                           Gerenciar Frete
                         </Button>
                       )}
+                      
                       {proposal.status === 'PENDING' && (
-                        <Button 
-                          variant="destructive" 
-                          className="w-full mt-2" 
-                          size="sm"
-                          onClick={() => handleFreightAction(proposal.freight!.id, 'cancel')}
-                        >
-                          Cancelar Proposta
-                        </Button>
+                        <div className="flex gap-2 mt-2">
+                          {profile?.role === 'PRODUTOR' ? (
+                            <>
+                              <Button 
+                                className="flex-1" 
+                                size="sm"
+                                onClick={() => handleAcceptProposal(proposal.id)}
+                              >
+                                Aceitar
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="flex-1" 
+                                size="sm"
+                                onClick={() => handleRejectProposal(proposal.id)}
+                              >
+                                Rejeitar
+                              </Button>
+                            </>
+                          ) : (
+                            <Button 
+                              variant="destructive" 
+                              className="w-full" 
+                              size="sm"
+                              onClick={() => handleFreightAction(proposal.freight!.id, 'cancel')}
+                            >
+                              Cancelar Proposta
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                   )
@@ -639,7 +716,10 @@ const DriverDashboard = () => {
               </div>
             ) : (
               <p className="text-muted-foreground text-center py-8">
-                Você ainda não fez propostas para fretes
+                {profile?.role === 'MOTORISTA' ? 
+                  'Você ainda não fez propostas para fretes' :
+                  'Nenhuma proposta recebida ainda'
+                }
               </p>
             )}
           </TabsContent>
