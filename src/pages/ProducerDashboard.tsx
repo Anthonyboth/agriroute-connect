@@ -104,10 +104,12 @@ const ProducerDashboard = () => {
 
   const openCounterProposalModal = (proposal: any) => {
     setSelectedProposal({
-      id: proposal.freight?.id,
+      id: proposal.id,
+      freight_id: proposal.freight?.id,
       proposed_price: proposal.proposed_price,
       message: proposal.message,
-      driver_name: proposal.driver?.full_name || 'Motorista'
+      driver_name: proposal.driver?.full_name || 'Motorista',
+      freight_price: proposal.freight?.price
     });
     setCounterProposalModalOpen(true);
   };
@@ -296,7 +298,7 @@ const ProducerDashboard = () => {
         isOpen={counterProposalModalOpen}
         onClose={() => setCounterProposalModalOpen(false)}
         originalProposal={selectedProposal}
-        freightPrice={selectedProposal?.freight?.price || 0}
+        freightPrice={selectedProposal?.freight_price || 0}
         onSuccess={() => {
           fetchProposals();
           setCounterProposalModalOpen(false);

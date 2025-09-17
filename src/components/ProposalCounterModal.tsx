@@ -15,6 +15,7 @@ interface ProposalCounterModalProps {
   onClose: () => void;
   originalProposal: {
     id: string;
+    freight_id: string;
     proposed_price: number;
     message?: string;
     driver_name: string;
@@ -56,7 +57,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
       const { error } = await supabase
         .from('freight_messages')
         .insert({
-          freight_id: originalProposal.id, // using proposal ID as reference
+          freight_id: originalProposal.freight_id, // using correct freight ID
           sender_id: profile.id,
           message: `CONTRA-PROPOSTA: R$ ${finalPrice.toLocaleString()}\n\nValor original: R$ ${freightPrice.toLocaleString()}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString()}\nMinha contra-proposta: R$ ${finalPrice.toLocaleString()}\n\n${counterMessage.trim() || 'Sem observações adicionais'}`,
           message_type: 'COUNTER_PROPOSAL'
