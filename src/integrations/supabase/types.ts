@@ -606,6 +606,7 @@ export type Database = {
       }
       freights: {
         Row: {
+          accepted_trucks: number
           cargo_type: string
           commission_amount: number | null
           commission_rate: number | null
@@ -639,6 +640,7 @@ export type Database = {
           price: number
           price_per_km: number | null
           producer_id: string
+          required_trucks: number
           scheduled_date: string | null
           service_type: string | null
           status: Database["public"]["Enums"]["freight_status"]
@@ -651,6 +653,7 @@ export type Database = {
           weight: number
         }
         Insert: {
+          accepted_trucks?: number
           cargo_type: string
           commission_amount?: number | null
           commission_rate?: number | null
@@ -684,6 +687,7 @@ export type Database = {
           price: number
           price_per_km?: number | null
           producer_id: string
+          required_trucks?: number
           scheduled_date?: string | null
           service_type?: string | null
           status?: Database["public"]["Enums"]["freight_status"]
@@ -696,6 +700,7 @@ export type Database = {
           weight: number
         }
         Update: {
+          accepted_trucks?: number
           cargo_type?: string
           commission_amount?: number | null
           commission_rate?: number | null
@@ -729,6 +734,7 @@ export type Database = {
           price?: number
           price_per_km?: number | null
           producer_id?: string
+          required_trucks?: number
           scheduled_date?: string | null
           service_type?: string | null
           status?: Database["public"]["Enums"]["freight_status"]
