@@ -11,6 +11,7 @@ import CompleteProfile from "./pages/CompleteProfile";
 import AdminPanel from "./pages/AdminPanel";
 import ProducerDashboard from "./pages/ProducerDashboard";
 import DriverDashboard from "./pages/DriverDashboard";
+import ServiceProviderDashboard from "./pages/ServiceProviderDashboard";
 import ServiceProviderRegistration from "./pages/ServiceProviderRegistration";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -143,6 +144,14 @@ const App = () => (
               element={
                 <ProtectedRoute requiresAuth requiresApproval>
                   <DriverDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/service-provider" 
+              element={
+                <ProtectedRoute requiresAuth requiresApproval>
+                  <ServiceProviderDashboard />
                 </ProtectedRoute>
               } 
             />
