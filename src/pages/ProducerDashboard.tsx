@@ -102,6 +102,23 @@ const ProducerDashboard = () => {
     }
   };
 
+  const handleCancelProposal = async (proposalId: string) => {
+    try {
+      const { error } = await supabase
+        .from('freight_proposals')
+        .update({ status: 'CANCELLED' })
+        .eq('id', proposalId);
+
+      if (error) throw error;
+
+      toast.success('Proposta cancelada');
+      fetchProposals();
+    } catch (error) {
+      console.error('Error cancelling proposal:', error);
+      toast.error('Erro ao cancelar proposta');
+    }
+  };
+
   const openCounterProposalModal = (proposal: any) => {
     setSelectedProposal({
       id: proposal.id,
@@ -276,6 +293,17 @@ const ProducerDashboard = () => {
                                 onClick={() => handleRejectProposal(proposal.id)}
                               >
                                 Rejeitar
+                              </Button>
+                            </div>
+                          )}
+                          {proposal.status === 'ACCEPTED' && (
+                            <div className="flex gap-2 pt-2">
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => handleCancelProposal(proposal.id)}
+                              >
+                                Cancelar Aceite
                               </Button>
                             </div>
                           )}

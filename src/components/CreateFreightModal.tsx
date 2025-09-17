@@ -111,7 +111,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
       const freightData = {
         producer_id: userProfile.id,
         cargo_type: formData.cargo_type,
-        weight: weight,
+        weight: weight * 1000, // Convert to kg for database storage
         origin_address: formData.origin_address,
         destination_address: formData.destination_address,
         distance_km: distance,
@@ -208,17 +208,20 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="weight">Peso (kg) *</Label>
+              <Label htmlFor="weight">Peso (Toneladas) *</Label>
               <Input
                 id="weight"
                 type="number"
                 step="0.01"
-                min="1"
+                min="0.01"
                 value={formData.weight}
                 onChange={(e) => handleInputChange('weight', e.target.value)}
-                placeholder="1000"
+                placeholder="1.5"
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Peso em toneladas (ex: 1.5 para 1500kg)
+              </p>
             </div>
 
             <div className="space-y-2">

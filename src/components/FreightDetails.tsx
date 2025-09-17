@@ -152,7 +152,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <span className="text-muted-foreground">Peso:</span>
-            <p className="font-medium">{freight.weight >= 1000 ? `${(freight.weight / 1000).toFixed(1)}t` : `${freight.weight}kg`}</p>
+            <p className="font-medium">{(freight.weight / 1000).toFixed(1)}t</p>
           </div>
           <div>
             <span className="text-muted-foreground">Distância:</span>

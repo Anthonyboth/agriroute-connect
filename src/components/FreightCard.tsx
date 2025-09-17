@@ -156,7 +156,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
             ) : (
               <>
                 <Package className="h-4 w-4" />
-                <span>{freight.weight >= 1000 ? `${(freight.weight / 1000).toFixed(1)}t` : `${freight.weight}kg`}</span>
+                <span>{(freight.weight / 1000).toFixed(1)}t</span>
               </>
             )}
           </div>

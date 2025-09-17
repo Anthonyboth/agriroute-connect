@@ -221,10 +221,26 @@ const DriverDashboard = () => {
     // Implementar menu lateral se necessário
   };
 
-  const handleFreightAction = async (freightId: string, action: 'propose' | 'accept' | 'complete') => {
+  const handleFreightAction = async (freightId: string, action: 'propose' | 'accept' | 'complete' | 'cancel') => {
     if (!profile?.id) return;
 
     try {
+      if (action === 'cancel') {
+        // Cancelar proposta/aceite
+        const { error } = await supabase
+          .from('freight_proposals')
+          .update({ status: 'CANCELLED' })
+          .eq('freight_id', freightId)
+          .eq('driver_id', profile.id)
+          .eq('status', 'PENDING');
+
+        if (error) throw error;
+        
+        toast.success('Proposta cancelada com sucesso!');
+        fetchMyProposals();
+        return;
+      }
+
       if (action === 'propose' || action === 'accept') {
         // Criar uma proposta para o frete ("aceitar" envia proposta com valor original)
         const freight = availableFreights.find(f => f.id === freightId);
@@ -549,6 +565,16 @@ const DriverDashboard = () => {
                           }}
                         >
                           Gerenciar Frete
+                        </Button>
+                      )}
+                      {proposal.status === 'PENDING' && (
+                        <Button 
+                          variant="destructive" 
+                          className="w-full mt-2" 
+                          size="sm"
+                          onClick={() => handleFreightAction(proposal.freight!.id, 'cancel')}
+                        >
+                          Cancelar Proposta
                         </Button>
                       )}
                     </div>
