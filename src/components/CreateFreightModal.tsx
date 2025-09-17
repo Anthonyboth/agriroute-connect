@@ -68,7 +68,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
       const invoke = supabase.functions.invoke('antt-freight-table', {
         body: { 
           cargo_type: cargoType.toLowerCase().replace(/\s+/g, '_'),
-          weight_kg: weight,
+          weight_kg: weight * 1000, // Convert tons to kg for ANTT calculation
           distance_km: distance,
           origin_state: originState,
           destination_state: destinationState

@@ -28,7 +28,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     cargo_type: freight?.cargo_type || '',
-    weight: freight?.weight || '',
+    weight: freight?.weight ? (freight.weight / 1000).toString() : '', // Convert kg from DB to tons for display
     origin_address: freight?.origin_address || '',
     destination_address: freight?.destination_address || '',
     pickup_date: freight?.pickup_date ? new Date(freight.pickup_date) : new Date(),
@@ -49,7 +49,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
         .from('freights')
         .update({
           cargo_type: formData.cargo_type,
-          weight: Number(formData.weight),
+          weight: Number(formData.weight) * 1000, // Convert tons to kg for database
           origin_address: formData.origin_address,
           destination_address: formData.destination_address,
           pickup_date: formData.pickup_date.toISOString().split('T')[0],
@@ -106,14 +106,20 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
             </div>
 
             <div>
-              <Label htmlFor="weight">Peso (kg)</Label>
+              <Label htmlFor="weight">Peso (Toneladas)</Label>
               <Input
                 id="weight"
                 type="number"
+                step="0.01"
+                min="0.01"
                 value={formData.weight}
                 onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                placeholder="1.5"
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Peso em toneladas (ex: 1.5 para 1500kg)
+              </p>
             </div>
           </div>
 

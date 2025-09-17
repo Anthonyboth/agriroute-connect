@@ -268,7 +268,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
             <p>• Valor: R$ {finalProposedPrice.toLocaleString('pt-BR')} {proposalData.pricing_type === 'PER_KM' ? `(R$ ${proposalData.proposed_price_per_km}/km)` : ''}</p>
             <p>• Prazo: {proposalData.delivery_estimate_days} dia{proposalData.delivery_estimate_days > 1 ? 's' : ''}</p>
             <p>• Distância: {freight.distance_km} km</p>
-            <p>• Peso: {freight.weight >= 1000 ? `${(freight.weight / 1000).toFixed(1)}t` : `${freight.weight}kg`}</p>
+            <p>• Peso: {(freight.weight / 1000).toFixed(1)}t</p>
           </div>
 
           <div className="flex gap-2 pt-4">

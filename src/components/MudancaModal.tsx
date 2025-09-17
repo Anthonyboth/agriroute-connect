@@ -130,15 +130,15 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
         cargoDescription = `${formData.service_type === 'MUDANCA' ? 'Mudança' : 'Transporte de móveis'} - ${formData.rooms} cômodo(s)`;
         weight = parseFloat(formData.estimated_volume) || 0;
       } else {
-        cargoDescription = `${formData.service_type === 'FRETE_URBANO' ? 'Frete urbano' : 'Coleta e entrega'} - ${formData.package_weight}kg`;
-        weight = parseFloat(formData.package_weight) || 0;
+        cargoDescription = `${formData.service_type === 'FRETE_URBANO' ? 'Frete urbano' : 'Coleta e entrega'} - ${formData.package_weight}t`;
+        weight = (parseFloat(formData.package_weight) || 0) * 1000; // Convert tons to kg for database
       }
 
       const description = [
         `Tipo: ${formData.service_type}`,
         formData.rooms && `Cômodos: ${formData.rooms}`,
         formData.estimated_volume && `Volume: ${formData.estimated_volume}m³`,
-        formData.package_weight && `Peso: ${formData.package_weight}kg`,
+        formData.package_weight && `Peso: ${formData.package_weight}t`,
         formData.package_dimensions && `Dimensões: ${formData.package_dimensions}`,
         formData.special_items && `Itens especiais: ${formData.special_items}`,
         `Contato: ${formData.contact_phone}`,
@@ -289,16 +289,19 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
           {(formData.service_type === 'FRETE_URBANO' || formData.service_type === 'COLETA_ENTREGA') && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="package_weight">Peso do Pacote (kg)</Label>
+                <Label htmlFor="package_weight">Peso do Pacote (Toneladas)</Label>
                 <Input
                   id="package_weight"
                   type="number"
-                  step="0.1"
+                  step="0.01"
                   min="0"
                   value={formData.package_weight}
                   onChange={(e) => setFormData({...formData, package_weight: e.target.value})}
-                  placeholder="Ex: 5.0"
+                  placeholder="Ex: 0.05 (50kg)"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Peso em toneladas (ex: 0.05 para 50kg)
+                </p>
               </div>
 
               <div className="space-y-2">
