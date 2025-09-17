@@ -376,8 +376,8 @@ export const ScheduledFreightsManager: React.FC = () => {
                         )}
 
                         <div className="flex justify-between items-center pt-2">
-                          <Badge className={`status-${freight.status.toLowerCase()}`}>
-                            {freight.status}
+                          <Badge variant={getFreightStatusVariant(freight.status)}>
+                            {getFreightStatusLabel(freight.status)}
                           </Badge>
                           
                           {profile?.role === 'MOTORISTA' && freight.status === 'OPEN' && (
