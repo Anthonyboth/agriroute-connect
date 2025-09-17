@@ -71,24 +71,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
       const daysDifference = differenceInDays(proposedDate, originalDate);
       
       if (proposalType === 'exact') {
-        // Proposta normal para data exata
-        // Verificar se já existe uma proposta para este frete
-        const { data: existingProposal, error: checkError } = await supabase
-          .from('freight_proposals')
-          .select('id')
-          .eq('freight_id', freight.id)
-          .eq('driver_id', profile.id)
-          .single();
-
-        if (checkError && checkError.code !== 'PGRST116') {
-          throw checkError;
-        }
-
-        if (existingProposal) {
-          toast.error('Você já fez uma proposta para este frete');
-          return;
-        }
-
+        // Usar upsert para evitar erro de constraint única
         const finalPrice = pricingType === 'FIXED' 
           ? parseFloat(proposedPrice) || freight.price
           : parseFloat(proposedPricePerKm) * (freight.distance_km || 0);
@@ -103,7 +86,9 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
 
         const { error } = await supabase
           .from('freight_proposals')
-          .insert([proposalData]);
+          .upsert([proposalData], {
+            onConflict: 'freight_id,driver_id'
+          });
 
         if (error) throw error;
         toast.success('Proposta enviada com sucesso!');

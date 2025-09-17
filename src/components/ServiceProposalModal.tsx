@@ -150,9 +150,12 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
         };
       }
 
+      // Usar upsert para evitar erro de constraint única
       const { error } = await supabase
         .from('freight_proposals')
-        .insert(proposalData);
+        .upsert(proposalData, {
+          onConflict: 'freight_id,driver_id'
+        });
 
       if (error) throw error;
 

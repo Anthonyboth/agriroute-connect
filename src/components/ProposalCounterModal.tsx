@@ -96,43 +96,29 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
         let hasPermission = freight.producer_id === profile.id || freight.driver_id === profile.id;
 
-        // Se for motorista e ainda não tiver permissão, garanta que exista uma proposta para permitir a negociação
-        if (!hasPermission && profile.role === 'MOTORISTA') {
-          const { data: existing, error: proposalCheckError } = await supabase
-            .from('freight_proposals')
-            .select('id')
-            .eq('freight_id', originalProposal.freight_id)
-            .eq('driver_id', profile.id)
-            .limit(1);
+         // Se for motorista, criar ou atualizar proposta automaticamente
+         if (profile.role === 'MOTORISTA') {
+           const { error: createProposalError } = await supabase
+             .from('freight_proposals')
+             .upsert({
+               freight_id: originalProposal.freight_id,
+               driver_id: profile.id,
+               proposed_price: finalPrice,
+               status: 'PENDING',
+               message: pricingType === 'PER_KM'
+                 ? `Proposta por km: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total estimado: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)`
+                 : 'Proposta enviada via contra-proposta.'
+             }, {
+               onConflict: 'freight_id,driver_id'
+             });
 
-          if (proposalCheckError) {
-            console.error('Erro ao verificar proposta existente:', proposalCheckError);
-            throw new Error('Erro ao verificar proposta existente');
-          }
+           if (createProposalError) {
+             console.error('Erro ao criar proposta:', createProposalError);
+             throw new Error('Não foi possível registrar sua proposta');
+           }
 
-          const alreadyHasProposal = Array.isArray(existing) && existing.length > 0;
-
-          if (!alreadyHasProposal) {
-            const { error: createProposalError } = await supabase
-              .from('freight_proposals')
-              .insert({
-                freight_id: originalProposal.freight_id,
-                driver_id: profile.id,
-                proposed_price: finalPrice,
-                status: 'PENDING',
-                message: pricingType === 'PER_KM'
-                  ? `Proposta por km: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total estimado: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)`
-                  : 'Proposta enviada via contra-proposta.'
-              });
-
-            if (createProposalError) {
-              console.error('Erro ao criar proposta:', createProposalError);
-              throw new Error('Não foi possível registrar sua proposta');
-            }
-          }
-
-          hasPermission = true;
-        }
+           hasPermission = true;
+         }
 
         if (!hasPermission) {
           throw new Error('Você não tem permissão para enviar mensagens neste frete');

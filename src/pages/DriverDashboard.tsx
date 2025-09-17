@@ -243,44 +243,20 @@ const DriverDashboard = () => {
       }
 
       if (action === 'propose' || action === 'accept') {
-        // Criar uma proposta para o frete ("aceitar" envia proposta com valor original)
+        // Usar upsert para evitar erro de constraint única
         const freight = availableFreights.find(f => f.id === freightId);
         if (!freight) return;
 
-        // Verificar se já existe uma proposta para este frete
-        const { data: existingProposal, error: checkError } = await supabase
-          .from('freight_proposals')
-          .select('id')
-          .eq('freight_id', freightId)
-          .eq('driver_id', profile.id)
-          .maybeSingle();
-
-        if (checkError) throw checkError;
-
-        if (existingProposal) {
-          // Diferenciar mensagem baseada no tipo de serviço e ação
-          if (action === 'accept') {
-            if (freight.service_type === 'GUINCHO') {
-              toast.error('Você já aceitou este chamado de guincho');
-            } else if (freight.service_type === 'MUDANCA') {
-              toast.error('Você já enviou um orçamento para esta mudança');
-            } else {
-              toast.error('Você já aceitou este frete');
-            }
-          } else {
-            toast.error('Você já fez uma proposta para este frete');
-          }
-          return;
-        }
-
         const { error } = await supabase
           .from('freight_proposals')
-          .insert({
+          .upsert({
             freight_id: freightId,
             driver_id: profile.id,
             proposed_price: freight.price,
             status: 'PENDING',
             message: action === 'accept' ? 'Aceito o frete pelo valor anunciado.' : null,
+          }, {
+            onConflict: 'freight_id,driver_id'
           });
 
         if (error) throw error;

@@ -38,30 +38,10 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
 
     setLoading(true);
     try {
-      // Verificar se já existe uma proposta para este frete
-      const { data: existingProposal, error: checkError } = await supabase
-        .from('freight_proposals')
-        .select('id')
-        .eq('freight_id', freight.id)
-        .eq('driver_id', driverProfile.id)
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
-
-      if (existingProposal) {
-        toast({
-          title: "Proposta já enviada",
-          description: "Você já fez uma proposta para este frete.",
-          variant: "destructive",
-        });
-        return;
-      }
-
+      // Usar upsert para evitar erro de constraint única
       const { error } = await supabase
         .from('freight_proposals')
-        .insert({
+        .upsert({
           freight_id: freight.id,
           driver_id: driverProfile.id,
           proposed_price: proposalData.pricing_type === 'FIXED' 
@@ -70,6 +50,8 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
           message: proposalData.message,
           justification: proposalData.justification,
           delivery_estimate_days: proposalData.delivery_estimate_days,
+        }, {
+          onConflict: 'freight_id,driver_id'
         });
 
       if (error) throw error;
