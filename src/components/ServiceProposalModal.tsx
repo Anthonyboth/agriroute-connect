@@ -248,7 +248,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
             onChange={(e) => setProposedPrice(e.target.value)}
             step="0.01"
             min="1"
-            required
           />
         </div>
 
@@ -340,7 +339,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
             onChange={(e) => setProposedPrice(e.target.value)}
             step="0.01"
             min="1"
-            required
           />
         </div>
 
@@ -399,7 +397,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
               onChange={(e) => setPricePerKm(e.target.value)}
               step="0.01"
               min="0.01"
-              required
             />
           ) : (
             <Input
@@ -409,7 +406,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
               onChange={(e) => setProposedPrice(e.target.value)}
               step="0.01"
               min="1"
-              required
             />
           )}
           {pricingType === 'PER_KM' && freight.distance_km && pricePerKm && (
