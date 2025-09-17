@@ -230,6 +230,23 @@ const DriverDashboard = () => {
         const freight = availableFreights.find(f => f.id === freightId);
         if (!freight) return;
 
+        // Verificar se já existe uma proposta para este frete
+        const { data: existingProposal, error: checkError } = await supabase
+          .from('freight_proposals')
+          .select('id')
+          .eq('freight_id', freightId)
+          .eq('driver_id', profile.id)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          throw checkError;
+        }
+
+        if (existingProposal) {
+          toast.error('Você já fez uma proposta para este frete');
+          return;
+        }
+
         const { error } = await supabase
           .from('freight_proposals')
           .insert({
@@ -244,9 +261,9 @@ const DriverDashboard = () => {
         toast.success('Proposta enviada com sucesso!');
         fetchMyProposals(); // Atualizar lista
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error handling freight action:', error);
-      toast.error('Erro ao processar ação');
+      toast.error('Erro ao processar ação: ' + (error.message || 'Tente novamente'));
     }
   };
 

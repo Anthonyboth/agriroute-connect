@@ -71,6 +71,23 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
       
       if (proposalType === 'exact') {
         // Proposta normal para data exata
+        // Verificar se já existe uma proposta para este frete
+        const { data: existingProposal, error: checkError } = await supabase
+          .from('freight_proposals')
+          .select('id')
+          .eq('freight_id', freight.id)
+          .eq('driver_id', profile.id)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          throw checkError;
+        }
+
+        if (existingProposal) {
+          toast.error('Você já fez uma proposta para este frete');
+          return;
+        }
+
         const finalPrice = pricingType === 'FIXED' 
           ? parseFloat(proposedPrice) || freight.price
           : parseFloat(proposedPricePerKm) * (freight.distance_km || 0);
@@ -91,6 +108,23 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
         toast.success('Proposta enviada com sucesso!');
       } else {
         // Proposta com data alternativa
+        // Verificar se já existe uma proposta flexível para este frete
+        const { data: existingFlexibleProposal, error: checkFlexibleError } = await supabase
+          .from('flexible_freight_proposals')
+          .select('id')
+          .eq('freight_id', freight.id)
+          .eq('driver_id', profile.id)
+          .single();
+
+        if (checkFlexibleError && checkFlexibleError.code !== 'PGRST116') {
+          throw checkFlexibleError;
+        }
+
+        if (existingFlexibleProposal) {
+          toast.error('Você já fez uma proposta flexível para este frete');
+          return;
+        }
+
         const finalPrice = pricingType === 'FIXED' 
           ? parseFloat(proposedPrice) || freight.price
           : parseFloat(proposedPricePerKm) * (freight.distance_km || 0);
@@ -119,7 +153,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
 
     } catch (error: any) {
       console.error('Erro ao enviar proposta:', error);
-      toast.error('Erro ao enviar proposta: ' + error.message);
+      toast.error('Erro ao processar ação: ' + (error.message || 'Tente novamente'));
     } finally {
       setLoading(false);
     }

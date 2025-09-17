@@ -38,6 +38,27 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
 
     setLoading(true);
     try {
+      // Verificar se já existe uma proposta para este frete
+      const { data: existingProposal, error: checkError } = await supabase
+        .from('freight_proposals')
+        .select('id')
+        .eq('freight_id', freight.id)
+        .eq('driver_id', driverProfile.id)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingProposal) {
+        toast({
+          title: "Proposta já enviada",
+          description: "Você já fez uma proposta para este frete.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('freight_proposals')
         .insert({
