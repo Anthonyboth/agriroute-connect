@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import FreightCard from '@/components/FreightCard';
 import CreateFreightModal from '@/components/CreateFreightModal';
+import { EditFreightModal } from '@/components/EditFreightModal';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import { ProposalCounterModal } from '@/components/ProposalCounterModal';
@@ -20,6 +21,8 @@ const ProducerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [counterProposalModalOpen, setCounterProposalModalOpen] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState<any>(null);
+  const [editFreightModalOpen, setEditFreightModalOpen] = useState(false);
+  const [selectedFreight, setSelectedFreight] = useState<any>(null);
 
   useEffect(() => {
     if (profile) {
@@ -136,6 +139,30 @@ const ProducerDashboard = () => {
     setCounterProposalModalOpen(true);
   };
 
+  const handleFreightAction = async (action: 'edit' | 'cancel', freight: any) => {
+    if (action === 'edit') {
+      setSelectedFreight(freight);
+      setEditFreightModalOpen(true);
+    } else if (action === 'cancel') {
+      if (window.confirm('Tem certeza que deseja cancelar este frete?')) {
+        try {
+          const { error } = await supabase
+            .from('freights')
+            .update({ status: 'CANCELLED' })
+            .eq('id', freight.id);
+
+          if (error) throw error;
+
+          toast.success('Frete cancelado com sucesso!');
+          fetchFreights();
+        } catch (error) {
+          console.error('Error cancelling freight:', error);
+          toast.error('Erro ao cancelar frete');
+        }
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -214,7 +241,8 @@ const ProducerDashboard = () => {
                           required_trucks: freight.required_trucks || 1,
                           accepted_trucks: freight.accepted_trucks || 0
                         }}
-                        onAction={() => {}}
+                        showProducerActions={true}
+                        onAction={(action) => handleFreightAction(action as 'edit' | 'cancel', freight)}
                       />
                     ))}
                   </div>
@@ -326,6 +354,16 @@ const ProducerDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <EditFreightModal
+        isOpen={editFreightModalOpen}
+        onClose={() => setEditFreightModalOpen(false)}
+        freight={selectedFreight}
+        onSuccess={() => {
+          fetchFreights();
+          setEditFreightModalOpen(false);
+        }}
+      />
 
       <ProposalCounterModal
         isOpen={counterProposalModalOpen}

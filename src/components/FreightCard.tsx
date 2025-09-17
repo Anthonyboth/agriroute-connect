@@ -15,7 +15,9 @@ import {
   FileText,
   ArrowRight,
   Wrench,
-  Home 
+  Home,
+  Edit,
+  X
 } from 'lucide-react';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 
@@ -37,11 +39,12 @@ interface FreightCardProps {
     required_trucks?: number;
     accepted_trucks?: number;
   };
-  onAction?: (action: 'propose' | 'accept' | 'complete') => void;
+  onAction?: (action: 'propose' | 'accept' | 'complete' | 'edit' | 'cancel') => void;
   showActions?: boolean;
+  showProducerActions?: boolean;
 }
 
-export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, showActions = false }) => {
+export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, showActions = false, showProducerActions = false }) => {
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   
   // Verificar se o frete está com vagas completas
@@ -304,6 +307,34 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
           <Button disabled className="w-full" size="sm" variant="secondary">
             Frete Completo - Sem Vagas
           </Button>
+        </div>
+      )}
+
+      {/* Producer Actions */}
+      {showProducerActions && onAction && (
+        <div className="px-6 pb-6">
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => onAction('edit')}
+              className="flex-1"
+              size="sm"
+              variant="outline"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
+            {freight.status === 'OPEN' && (
+              <Button 
+                onClick={() => onAction('cancel')}
+                className="flex-1"
+                size="sm"
+                variant="destructive"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancelar
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
