@@ -422,7 +422,7 @@ export const ScheduledFreightsManager: React.FC = () => {
                               variant="secondary"
                               onClick={() => openCounterProposalModal(proposal)}
                             >
-                              Contra Proposta
+                              Contra proposta
                             </Button>
                             <Button 
                               size="sm" 

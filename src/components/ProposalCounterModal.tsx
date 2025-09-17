@@ -40,7 +40,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
   const [counterPrice, setCounterPrice] = useState('');
   const [counterPricePerKm, setCounterPricePerKm] = useState('');
   const [counterMessage, setCounterMessage] = useState('');
-  const [pricingSelectOpen, setPricingSelectOpen] = useState(false);
+  
 
   if (!originalProposal) return null;
 
@@ -162,19 +162,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             {/* Pricing Type */}
             <div className="space-y-2">
               <Label>Tipo de Cobrança</Label>
-              <Select
-                open={pricingSelectOpen}
-                onOpenChange={setPricingSelectOpen}
-                value={pricingType}
-                onValueChange={(value: 'FIXED' | 'PER_KM') => {
-                  const el = document.activeElement as HTMLElement | null;
-                  el?.blur?.();
-                  setTimeout(() => {
-                    setPricingType(value);
-                    setPricingSelectOpen(false);
-                  }, 0);
-                }}
-              >
+              <Select value={pricingType} onValueChange={(value: 'FIXED' | 'PER_KM') => setPricingType(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo de cobrança" />
                 </SelectTrigger>
@@ -189,7 +177,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             <div className="space-y-2">
               <Label>{pricingType === 'FIXED' ? 'Sua Contra-Proposta (R$) *' : 'Valor por KM (R$) *'}</Label>
               
-              <div className={pricingType === 'FIXED' ? 'block' : 'hidden'}>
+              {pricingType === 'FIXED' ? (
                 <Input
                   type="number"
                   placeholder="Digite o valor da sua contra-proposta"
@@ -197,13 +185,9 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                   onChange={(e) => setCounterPrice(e.target.value)}
                   step="0.01"
                   min="1"
-                  required={pricingType === 'FIXED'}
-                  disabled={pricingType !== 'FIXED'}
-                  aria-hidden={pricingType !== 'FIXED'}
+                  required
                 />
-              </div>
-              
-              <div className={pricingType === 'PER_KM' ? 'block' : 'hidden'}>
+              ) : (
                 <Input
                   type="number"
                   placeholder="Digite o valor por km"
@@ -211,11 +195,9 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                   onChange={(e) => setCounterPricePerKm(e.target.value)}
                   step="0.01"
                   min="0.01"
-                  required={pricingType === 'PER_KM'}
-                  disabled={pricingType !== 'PER_KM'}
-                  aria-hidden={pricingType !== 'PER_KM'}
+                  required
                 />
-              </div>
+              )}
 
               <div className="text-xs text-muted-foreground">
                 {pricingType === 'FIXED' ? (
