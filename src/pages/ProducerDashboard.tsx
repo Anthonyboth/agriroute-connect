@@ -74,15 +74,30 @@ const ProducerDashboard = () => {
 
   const handleAcceptProposal = async (proposalId: string) => {
     try {
-      const { error } = await supabase
+      // Aceita a proposta e obtém o freight_id e driver_id atualizados
+      const { data: updatedRows, error } = await supabase
         .from('freight_proposals')
         .update({ status: 'ACCEPTED' })
-        .eq('id', proposalId);
+        .eq('id', proposalId)
+        .select('freight_id, driver_id')
+        .single();
 
       if (error) throw error;
 
+      // Atualiza o status do frete para tirar da lista de disponíveis do motorista
+      if (updatedRows?.freight_id) {
+        const { error: freightError } = await supabase
+          .from('freights')
+          .update({ status: 'IN_NEGOTIATION' })
+          .eq('id', updatedRows.freight_id)
+          .eq('producer_id', profile?.id || '');
+        if (freightError) throw freightError;
+      }
+
       // Remove a proposta aceita imediatamente do estado local
       setProposals(prev => prev.filter(proposal => proposal.id !== proposalId));
+      // Atualiza lista de fretes para refletir o novo status
+      fetchFreights();
       
       toast.success('Proposta aceita com sucesso!');
     } catch (error) {

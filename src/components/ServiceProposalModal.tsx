@@ -114,6 +114,22 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
     try {
       const finalPrice = pricingType === 'PER_KM' ? priceFloat * (freight.distance_km || 0) : priceFloat;
       
+      // Evitar sobrescrever proposta já processada
+      const { data: existing, error: existingError } = await supabase
+        .from('freight_proposals')
+        .select('status')
+        .eq('freight_id', freight.id)
+        .eq('driver_id', profile.id)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (existing && existing.status !== 'PENDING') {
+        toast.info('Sua proposta já foi processada pelo produtor.');
+        onClose();
+        onSuccess?.();
+        resetForm();
+        return;
+      }
+      
       // Criar proposta específica baseada no tipo de serviço
       let proposalData: any = {
         freight_id: freight.id,

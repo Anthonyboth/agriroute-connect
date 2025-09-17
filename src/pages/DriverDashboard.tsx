@@ -244,6 +244,20 @@ const DriverDashboard = () => {
       }
 
       if (action === 'propose' || action === 'accept') {
+        // Verifica se já existe uma proposta processada para evitar voltar para PENDING
+        const { data: existing, error: existingError } = await supabase
+          .from('freight_proposals')
+          .select('status')
+          .eq('freight_id', freightId)
+          .eq('driver_id', profile.id)
+          .maybeSingle();
+
+        if (existingError) throw existingError;
+        if (existing && existing.status !== 'PENDING') {
+          toast.info('Sua proposta já foi processada pelo produtor.');
+          return;
+        }
+
         // Usar upsert para evitar erro de constraint única
         const freight = availableFreights.find(f => f.id === freightId);
         if (!freight) return;

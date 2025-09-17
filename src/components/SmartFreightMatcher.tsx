@@ -78,6 +78,19 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         const freight = compatibleFreights.find(f => f.freight_id === freightId);
         if (!freight) return;
 
+        // Evitar reabrir proposta já processada
+        const { data: existing, error: existingError } = await supabase
+          .from('freight_proposals')
+          .select('status')
+          .eq('freight_id', freightId)
+          .eq('driver_id', profile.id)
+          .maybeSingle();
+        if (existingError) throw existingError;
+        if (existing && existing.status !== 'PENDING') {
+          toast.info('Sua proposta já foi processada pelo produtor.');
+          return;
+        }
+
         // Usar upsert para evitar erro de constraint única
         const { error } = await supabase
           .from('freight_proposals')
