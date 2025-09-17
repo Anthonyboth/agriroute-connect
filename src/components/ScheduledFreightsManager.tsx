@@ -67,22 +67,31 @@ export const ScheduledFreightsManager: React.FC = () => {
 
     setLoading(true);
     try {
-      let query = supabase
-        .from('freights')
-        .select(`
-          *,
-          producer:profiles!freights_producer_id_fkey(full_name)
-        `)
-        .eq('is_scheduled', true)
-        .order('scheduled_date', { ascending: true });
+      // Adicionar timeout para evitar travamentos
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout na busca de fretes')), 8000)
+      );
 
-      if (profile.role === 'PRODUTOR') {
-        query = query.eq('producer_id', profile.id);
-      } else {
-        query = query.eq('status', 'OPEN');
-      }
+      const fetchPromise = (async () => {
+        let query = supabase
+          .from('freights')
+          .select(`
+            *,
+            producer:profiles!freights_producer_id_fkey(full_name)
+          `)
+          .eq('is_scheduled', true)
+          .order('scheduled_date', { ascending: true });
 
-      const { data, error } = await query;
+        if (profile.role === 'PRODUTOR') {
+          query = query.eq('producer_id', profile.id);
+        } else {
+          query = query.eq('status', 'OPEN');
+        }
+
+        return await query;
+      })();
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (error) throw error;
 
@@ -95,6 +104,8 @@ export const ScheduledFreightsManager: React.FC = () => {
     } catch (error) {
       console.error('Erro ao buscar fretes agendados:', error);
       toast.error('Erro ao carregar fretes');
+      // Definir array vazio em caso de erro
+      setScheduledFreights([]);
     } finally {
       setLoading(false);
     }
@@ -104,37 +115,67 @@ export const ScheduledFreightsManager: React.FC = () => {
     if (!profile) return;
 
     try {
-      let query = supabase
-        .from('flexible_freight_proposals')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Adicionar timeout
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout na busca de propostas')), 8000)
+      );
 
-      if (profile.role === 'PRODUTOR') {
-        // Produtores veem propostas para seus fretes
-        query = query.in('freight_id', scheduledFreights.map(f => f.id));
-      } else {
-        // Motoristas veem suas próprias propostas
-        query = query.eq('driver_id', profile.id);
-      }
+      const fetchPromise = (async () => {
+        let query = supabase
+          .from('flexible_freight_proposals')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      const { data: proposalsData, error } = await query;
+        if (profile.role === 'PRODUTOR') {
+          // Só buscar se tiver fretes agendados para evitar consultas desnecessárias
+          if (scheduledFreights.length === 0) {
+            return { data: [], error: null };
+          }
+          query = query.in('freight_id', scheduledFreights.map(f => f.id));
+        } else {
+          query = query.eq('driver_id', profile.id);
+        }
+
+        return await query;
+      })();
+
+      const { data: proposalsData, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
       if (error) throw error;
 
-      // Buscar dados dos motoristas separadamente
-      const driverIds = proposalsData?.map(p => p.driver_id).filter(Boolean) || [];
-      const { data: driversData } = await supabase
+      if (!proposalsData || proposalsData.length === 0) {
+        setFlexibleProposals([]);
+        return;
+      }
+
+      // Buscar dados dos motoristas separadamente com timeout
+      const driverIds = proposalsData.map(p => p.driver_id).filter(Boolean);
+      if (driverIds.length === 0) {
+        setFlexibleProposals(proposalsData.map(proposal => ({
+          ...proposal,
+          driver_name: 'Nome não disponível'
+        })));
+        return;
+      }
+
+      const driversPromise = supabase
         .from('profiles')
         .select('id, full_name')
         .in('id', driverIds);
 
-      const formattedData = proposalsData?.map(proposal => ({
+      const { data: driversData } = await Promise.race([
+        driversPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout motoristas')), 5000))
+      ]) as any;
+
+      const formattedData = proposalsData.map(proposal => ({
         ...proposal,
-        driver_name: driversData?.find(d => d.id === proposal.driver_id)?.full_name
-      })) || [];
+        driver_name: driversData?.find(d => d.id === proposal.driver_id)?.full_name || 'Nome não disponível'
+      }));
 
       setFlexibleProposals(formattedData);
     } catch (error) {
       console.error('Erro ao buscar propostas flexíveis:', error);
+      setFlexibleProposals([]);
     }
   };
 

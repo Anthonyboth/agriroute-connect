@@ -142,11 +142,20 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       if (!profile) return;
 
-      // Buscar estatísticas das solicitações
-      const { data: requestStats, error: statsError } = await supabase
+      // Buscar estatísticas das solicitações com timeout
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout')), 5000)
+      );
+
+      const fetchPromise = supabase
         .from('service_requests')
         .select('status, final_price')
         .eq('provider_id', profile.id);
+
+      const { data: requestStats, error: statsError } = await Promise.race([
+        fetchPromise,
+        timeoutPromise
+      ]) as any;
 
       if (statsError) throw statsError;
 
@@ -166,6 +175,15 @@ export const ServiceProviderDashboard: React.FC = () => {
       });
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error);
+      // Definir stats padrão em caso de erro
+      setStats({
+        total_requests: 0,
+        pending_requests: 0,
+        accepted_requests: 0,
+        completed_requests: 0,
+        average_rating: 0,
+        total_earnings: 0
+      });
     }
   };
 

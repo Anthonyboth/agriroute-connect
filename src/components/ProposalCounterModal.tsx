@@ -76,76 +76,87 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
     setLoading(true);
     try {
-      // Buscar o frete para verificar contexto
-      const { data: freight, error: freightError } = await supabase
-        .from('freights')
-        .select('producer_id, driver_id')
-        .eq('id', originalProposal.freight_id)
-        .single();
+      // Timeout para evitar travamentos
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout na operação')), 10000)
+      );
 
-      if (freightError) {
-        console.error('Erro ao buscar frete:', freightError);
-        throw new Error('Erro ao verificar permissões do frete');
-      }
+      const operationPromise = (async () => {
+        // Buscar o frete para verificar contexto
+        const { data: freight, error: freightError } = await supabase
+          .from('freights')
+          .select('producer_id, driver_id')
+          .eq('id', originalProposal.freight_id)
+          .single();
 
-      let hasPermission = freight.producer_id === profile.id || freight.driver_id === profile.id;
-
-      // Se for motorista e ainda não tiver permissão, garanta que exista uma proposta para permitir a negociação
-      if (!hasPermission && profile.role === 'MOTORISTA') {
-        const { data: existing, error: proposalCheckError } = await supabase
-          .from('freight_proposals')
-          .select('id')
-          .eq('freight_id', originalProposal.freight_id)
-          .eq('driver_id', profile.id)
-          .limit(1);
-
-        if (proposalCheckError) {
-          console.error('Erro ao verificar proposta existente:', proposalCheckError);
-          throw new Error('Erro ao verificar proposta existente');
+        if (freightError) {
+          console.error('Erro ao buscar frete:', freightError);
+          throw new Error('Erro ao verificar permissões do frete');
         }
 
-        const alreadyHasProposal = Array.isArray(existing) && existing.length > 0;
+        let hasPermission = freight.producer_id === profile.id || freight.driver_id === profile.id;
 
-        if (!alreadyHasProposal) {
-          const { error: createProposalError } = await supabase
+        // Se for motorista e ainda não tiver permissão, garanta que exista uma proposta para permitir a negociação
+        if (!hasPermission && profile.role === 'MOTORISTA') {
+          const { data: existing, error: proposalCheckError } = await supabase
             .from('freight_proposals')
-            .insert({
-              freight_id: originalProposal.freight_id,
-              driver_id: profile.id,
-              proposed_price: finalPrice,
-              status: 'PENDING',
-              message: pricingType === 'PER_KM'
-                ? `Proposta por km: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total estimado: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)`
-                : 'Proposta enviada via contra-proposta.'
-            });
+            .select('id')
+            .eq('freight_id', originalProposal.freight_id)
+            .eq('driver_id', profile.id)
+            .limit(1);
 
-          if (createProposalError) {
-            console.error('Erro ao criar proposta:', createProposalError);
-            throw new Error('Não foi possível registrar sua proposta');
+          if (proposalCheckError) {
+            console.error('Erro ao verificar proposta existente:', proposalCheckError);
+            throw new Error('Erro ao verificar proposta existente');
           }
+
+          const alreadyHasProposal = Array.isArray(existing) && existing.length > 0;
+
+          if (!alreadyHasProposal) {
+            const { error: createProposalError } = await supabase
+              .from('freight_proposals')
+              .insert({
+                freight_id: originalProposal.freight_id,
+                driver_id: profile.id,
+                proposed_price: finalPrice,
+                status: 'PENDING',
+                message: pricingType === 'PER_KM'
+                  ? `Proposta por km: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total estimado: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)`
+                  : 'Proposta enviada via contra-proposta.'
+              });
+
+            if (createProposalError) {
+              console.error('Erro ao criar proposta:', createProposalError);
+              throw new Error('Não foi possível registrar sua proposta');
+            }
+          }
+
+          hasPermission = true;
         }
 
-        hasPermission = true;
-      }
+        if (!hasPermission) {
+          throw new Error('Você não tem permissão para enviar mensagens neste frete');
+        }
 
-      if (!hasPermission) {
-        throw new Error('Você não tem permissão para enviar mensagens neste frete');
-      }
+        const messageContent = pricingType === 'FIXED'
+          ? `CONTRA-PROPOSTA: R$ ${finalPrice.toLocaleString('pt-BR')}\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${finalPrice.toLocaleString('pt-BR')}\n\n${counterMessage.trim() || 'Sem observações adicionais'}`
+          : `CONTRA-PROPOSTA POR KM: R$ ${priceFloat.toLocaleString('pt-BR')}/km\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)\n\n${counterMessage.trim() || 'Sem observações adicionais'}`;
 
-      const messageContent = pricingType === 'FIXED'
-        ? `CONTRA-PROPOSTA: R$ ${finalPrice.toLocaleString('pt-BR')}\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${finalPrice.toLocaleString('pt-BR')}\n\n${counterMessage.trim() || 'Sem observações adicionais'}`
-        : `CONTRA-PROPOSTA POR KM: R$ ${priceFloat.toLocaleString('pt-BR')}/km\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)\n\n${counterMessage.trim() || 'Sem observações adicionais'}`;
+        const { error } = await supabase
+          .from('freight_messages')
+          .insert({
+            freight_id: originalProposal.freight_id,
+            sender_id: profile.id,
+            message: messageContent,
+            message_type: 'COUNTER_PROPOSAL'
+          });
 
-      const { error } = await supabase
-        .from('freight_messages')
-        .insert({
-          freight_id: originalProposal.freight_id,
-          sender_id: profile.id,
-          message: messageContent,
-          message_type: 'COUNTER_PROPOSAL'
-        });
+        if (error) throw error;
 
-      if (error) throw error;
+        return true;
+      })();
+
+      await Promise.race([operationPromise, timeoutPromise]);
 
       toast.success('Contra-proposta enviada com sucesso!');
       
