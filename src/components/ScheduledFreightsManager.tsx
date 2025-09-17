@@ -84,6 +84,9 @@ export const ScheduledFreightsManager: React.FC = () => {
 
         if (profile.role === 'PRODUTOR') {
           query = query.eq('producer_id', profile.id);
+        } else if (profile.role === 'MOTORISTA') {
+          // Para motoristas, buscar fretes onde ele foi aceito pelo produtor
+          query = query.eq('driver_id', profile.id);
         } else {
           query = query.eq('status', 'OPEN');
         }
