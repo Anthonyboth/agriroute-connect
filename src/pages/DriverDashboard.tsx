@@ -225,8 +225,8 @@ const DriverDashboard = () => {
     if (!profile?.id) return;
 
     try {
-      if (action === 'propose') {
-        // Criar uma proposta para o frete
+      if (action === 'propose' || action === 'accept') {
+        // Criar uma proposta para o frete ("aceitar" envia proposta com valor original)
         const freight = availableFreights.find(f => f.id === freightId);
         if (!freight) return;
 
@@ -236,11 +236,9 @@ const DriverDashboard = () => {
           .select('id')
           .eq('freight_id', freightId)
           .eq('driver_id', profile.id)
-          .single();
+          .maybeSingle();
 
-        if (checkError && checkError.code !== 'PGRST116') {
-          throw checkError;
-        }
+        if (checkError) throw checkError;
 
         if (existingProposal) {
           toast.error('Você já fez uma proposta para este frete');
@@ -252,13 +250,14 @@ const DriverDashboard = () => {
           .insert({
             freight_id: freightId,
             driver_id: profile.id,
-            proposed_price: freight.price, // Por enquanto aceita o preço oferecido
-            status: 'PENDING'
+            proposed_price: freight.price,
+            status: 'PENDING',
+            message: action === 'accept' ? 'Aceito o frete pelo valor anunciado.' : null,
           });
 
         if (error) throw error;
         
-        toast.success('Proposta enviada com sucesso!');
+        toast.success(action === 'accept' ? 'Solicitação para aceitar o frete enviada!' : 'Proposta enviada com sucesso!');
         fetchMyProposals(); // Atualizar lista
       }
     } catch (error: any) {

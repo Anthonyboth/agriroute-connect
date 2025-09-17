@@ -241,21 +241,35 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
 
       {showActions && onAction && freight.status === 'OPEN' && !isFullyBooked && (
         <div className="px-6 pb-6">
-          <Button 
-            onClick={() => {
-              if (freight.service_type === 'CARGA') {
-                setProposalModalOpen(true);
-              } else {
-                onAction('propose');
-              }
-            }}
-            className="w-full"
-            size="sm"
-          >
-            {freight.service_type === 'GUINCHO' ? 'Aceitar Chamado' : 
-             freight.service_type === 'MUDANCA' ? 'Fazer Orçamento' : 
-             'Fazer Proposta'}
-          </Button>
+          {(freight.service_type === 'CARGA' || !freight.service_type) ? (
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => onAction('accept')}
+                className="flex-1"
+                size="sm"
+              >
+                Aceitar Frete
+              </Button>
+              <Button 
+                onClick={() => setProposalModalOpen(true)}
+                className="flex-1"
+                size="sm"
+                variant="secondary"
+              >
+                Fazer Proposta
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              onClick={() => onAction('propose')}
+              className="w-full"
+              size="sm"
+            >
+              {freight.service_type === 'GUINCHO' ? 'Aceitar Chamado' : 
+               freight.service_type === 'MUDANCA' ? 'Fazer Orçamento' : 
+               'Fazer Proposta'}
+            </Button>
+          )}
         </div>
       )}
 

@@ -73,7 +73,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   const handleFreightAction = async (freightId: string, action: string) => {
     if (onFreightAction) {
       onFreightAction(freightId, action);
-    } else if (action === 'propose' && profile?.id) {
+    } else if ((action === 'propose' || action === 'accept') && profile?.id) {
       try {
         const freight = compatibleFreights.find(f => f.freight_id === freightId);
         if (!freight) return;
@@ -84,11 +84,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           .select('id')
           .eq('freight_id', freightId)
           .eq('driver_id', profile.id)
-          .single();
+          .maybeSingle();
 
-        if (checkError && checkError.code !== 'PGRST116') {
-          throw checkError;
-        }
+        if (checkError) throw checkError;
 
         if (existingProposal) {
           toast.error('Você já fez uma proposta para este frete');
@@ -101,12 +99,13 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             freight_id: freightId,
             driver_id: profile.id,
             proposed_price: freight.price,
-            status: 'PENDING'
+            status: 'PENDING',
+            message: action === 'accept' ? 'Aceito o frete pelo valor anunciado.' : null,
           });
 
         if (error) throw error;
         
-        toast.success('Proposta enviada com sucesso!');
+        toast.success(action === 'accept' ? 'Solicitação para aceitar o frete enviada!' : 'Proposta enviada com sucesso!');
         fetchCompatibleFreights(); // Atualizar lista
       } catch (error: any) {
         console.error('Erro ao enviar proposta:', error);
@@ -284,7 +283,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                 <FreightCard
                   freight={{
                     id: freight.freight_id,
-                    cargo_type: getCargoTypeLabel(freight.cargo_type),
+                    cargo_type: freight.cargo_type,
                     weight: freight.weight,
                     origin_address: freight.origin_address,
                     destination_address: freight.destination_address,
@@ -296,7 +295,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                     distance_km: freight.distance_km,
                     minimum_antt_price: freight.minimum_antt_price,
                     required_trucks: freight.required_trucks,
-                    accepted_trucks: freight.accepted_trucks
+                    accepted_trucks: freight.accepted_trucks,
+                    service_type: freight.service_type as 'CARGA' | 'GUINCHO' | 'MUDANCA',
                   }}
                   onAction={(action) => handleFreightAction(freight.freight_id, action)}
                   showActions={true}
