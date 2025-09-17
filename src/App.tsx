@@ -40,7 +40,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   requiresApproval?: boolean;
   adminOnly?: boolean;
 }) => {
-  const { isAuthenticated, isApproved, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isApproved, isAdmin, loading, profile } = useAuth();
 
   if (loading) {
     return (
@@ -67,6 +67,33 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
 
   if (adminOnly && !isAdmin) {
     return <Navigate to="/" replace />;
+  }
+
+  // Verificar se usuário está na página correta baseado no seu papel
+  if (isAuthenticated && profile) {
+    const currentPath = window.location.pathname;
+    let correctPath = "";
+    
+    switch (profile.role) {
+      case 'ADMIN':
+        correctPath = '/admin';
+        break;
+      case 'MOTORISTA':
+        correctPath = '/dashboard/driver';
+        break;
+      case 'PRODUTOR':
+        correctPath = '/dashboard/producer';
+        break;
+      case 'PRESTADOR_SERVICOS':
+        correctPath = '/dashboard/service-provider';
+        break;
+    }
+    
+    // Se está na página errada, redirecionar
+    if (correctPath && currentPath !== correctPath && 
+        (currentPath.includes('/dashboard/') || currentPath.includes('/admin'))) {
+      return <Navigate to={correctPath} replace />;
+    }
   }
 
   return <>{children}</>;
