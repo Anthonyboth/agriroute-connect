@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { ScheduledFreightModal } from './ScheduledFreightModal';
 import { FlexibleProposalModal } from './FlexibleProposalModal';
+import { ProposalCounterModal } from './ProposalCounterModal';
 
 interface ScheduledFreight {
   id: string;
@@ -50,7 +51,9 @@ export const ScheduledFreightsManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
+  const [counterProposalModalOpen, setCounterProposalModalOpen] = useState(false);
   const [selectedFreight, setSelectedFreight] = useState<any>(null);
+  const [selectedProposal, setSelectedProposal] = useState<any>(null);
 
   useEffect(() => {
     if (profile) {
@@ -185,6 +188,20 @@ export const ScheduledFreightsManager: React.FC = () => {
       description: freight.description
     });
     setProposalModalOpen(true);
+  };
+
+  const openCounterProposalModal = (proposal: any) => {
+    setSelectedProposal({
+      id: proposal.freight_id, // ID do frete
+      proposed_price: proposal.proposed_price || 0,
+      message: proposal.message,
+      driver_name: proposal.driver_name || 'Motorista'
+    });
+    
+    // Encontrar o frete original para pegar o preço
+    const originalFreight = scheduledFreights.find(f => f.id === proposal.freight_id);
+    setSelectedFreight(originalFreight);
+    setCounterProposalModalOpen(true);
   };
 
   const filteredFreights = scheduledFreights.filter(freight =>
@@ -402,6 +419,13 @@ export const ScheduledFreightsManager: React.FC = () => {
                             </Button>
                             <Button 
                               size="sm" 
+                              variant="secondary"
+                              onClick={() => openCounterProposalModal(proposal)}
+                            >
+                              Contra Proposta
+                            </Button>
+                            <Button 
+                              size="sm" 
                               variant="outline"
                               onClick={() => handleRejectProposal(proposal.id)}
                             >
@@ -436,6 +460,17 @@ export const ScheduledFreightsManager: React.FC = () => {
         onSuccess={() => {
           fetchFlexibleProposals();
           setProposalModalOpen(false);
+        }}
+      />
+
+      <ProposalCounterModal
+        isOpen={counterProposalModalOpen}
+        onClose={() => setCounterProposalModalOpen(false)}
+        originalProposal={selectedProposal}
+        freightPrice={selectedFreight?.price || 0}
+        onSuccess={() => {
+          fetchFlexibleProposals();
+          setCounterProposalModalOpen(false);
         }}
       />
     </div>
