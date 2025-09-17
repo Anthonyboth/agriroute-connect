@@ -35,6 +35,7 @@ interface Freight {
   status: string; // Allow all database status values
   distance_km: number;
   minimum_antt_price: number;
+  service_type?: string;
 }
 
 interface Proposal {
@@ -257,7 +258,18 @@ const DriverDashboard = () => {
         if (checkError) throw checkError;
 
         if (existingProposal) {
-          toast.error('Você já fez uma proposta para este frete');
+          // Diferenciar mensagem baseada no tipo de serviço e ação
+          if (action === 'accept') {
+            if (freight.service_type === 'GUINCHO') {
+              toast.error('Você já aceitou este chamado de guincho');
+            } else if (freight.service_type === 'MUDANCA') {
+              toast.error('Você já enviou um orçamento para esta mudança');
+            } else {
+              toast.error('Você já aceitou este frete');
+            }
+          } else {
+            toast.error('Você já fez uma proposta para este frete');
+          }
           return;
         }
 
@@ -273,7 +285,13 @@ const DriverDashboard = () => {
 
         if (error) throw error;
         
-        toast.success(action === 'accept' ? 'Solicitação para aceitar o frete enviada!' : 'Proposta enviada com sucesso!');
+        toast.success(
+          action === 'accept' ? 
+            (freight.service_type === 'GUINCHO' ? 'Chamado aceito com sucesso!' :
+             freight.service_type === 'MUDANCA' ? 'Orçamento enviado com sucesso!' :
+             'Frete aceito com sucesso!') :
+            'Proposta enviada com sucesso!'
+        );
         fetchMyProposals(); // Atualizar lista
       }
     } catch (error: any) {
@@ -534,11 +552,16 @@ const DriverDashboard = () => {
                 {myProposals.map((proposal) => (
                   proposal.freight && (
                     <div key={proposal.id} className="relative">
-                      <FreightCard 
-                        freight={{
-                          ...proposal.freight,
-                          status: proposal.freight.status as 'OPEN' | 'IN_TRANSIT' | 'DELIVERED'
-                        }}
+                       <FreightCard 
+                         freight={{
+                           ...proposal.freight,
+                           status: proposal.freight.status as 'OPEN' | 'IN_TRANSIT' | 'DELIVERED',
+                           service_type: (proposal.freight.service_type === 'GUINCHO' || 
+                                        proposal.freight.service_type === 'MUDANCA' || 
+                                        proposal.freight.service_type === 'CARGA') 
+                                       ? proposal.freight.service_type as 'GUINCHO' | 'MUDANCA' | 'CARGA'
+                                       : undefined
+                         }}
                         showActions={false}
                       />
                       <div className="mt-2 flex justify-between items-center">
