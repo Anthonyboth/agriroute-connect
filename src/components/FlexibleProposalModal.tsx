@@ -316,7 +316,13 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
           {/* Tipo de Cobrança */}
           <div className="space-y-2">
             <Label>Tipo de Cobrança</Label>
-            <Select value={pricingType} onValueChange={(value: 'FIXED' | 'PER_KM') => setPricingType(value)}>
+            <Select
+              value={pricingType}
+              onValueChange={(value: 'FIXED' | 'PER_KM') => {
+                // Defer state update to avoid layout thrash on mobile when closing dropdown
+                setTimeout(() => setPricingType(value), 0);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo de cobrança" />
               </SelectTrigger>
@@ -331,7 +337,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
           <div className="space-y-2">
             <Label>{pricingType === 'FIXED' ? 'Valor Fixo (R$)' : 'Valor por KM (R$)'}</Label>
             
-            {pricingType === 'FIXED' ? (
+            <div className={pricingType === 'FIXED' ? 'block' : 'hidden'}>
               <Input
                 type="number"
                 placeholder={`Valor original: R$ ${freight.price.toLocaleString()}`}
@@ -339,8 +345,10 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
                 onChange={(e) => setProposedPrice(e.target.value)}
                 step="0.01"
                 min="1"
+                inputMode="decimal"
               />
-            ) : (
+            </div>
+            <div className={pricingType === 'PER_KM' ? 'block' : 'hidden'}>
               <Input
                 type="number"
                 placeholder={freight.price_per_km ? `Valor original: R$ ${freight.price_per_km.toLocaleString()}/km` : "8.50"}
@@ -348,8 +356,9 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
                 onChange={(e) => setProposedPricePerKm(e.target.value)}
                 step="0.01"
                 min="0.01"
+                inputMode="decimal"
               />
-            )}
+            </div>
 
             <div className="text-xs text-muted-foreground">
               {pricingType === 'FIXED' ? (
