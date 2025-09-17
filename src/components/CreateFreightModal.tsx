@@ -36,7 +36,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     vehicle_type_required: '',
     pickup_observations: '',
     delivery_observations: '',
-    payment_method: 'PIX'
+    payment_method: 'PIX',
+    required_trucks: '1'
   });
 
   // Evitar travamentos: aplica timeout curto nas chamadas de edge functions
@@ -121,7 +122,9 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         delivery_date: formData.delivery_date,
         urgency: formData.urgency,
         description: formData.description || null,
-        status: 'OPEN' as const
+        status: 'OPEN' as const,
+        required_trucks: parseInt(formData.required_trucks),
+        accepted_trucks: 0
       };
 
       const { error } = await supabase
@@ -148,7 +151,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         vehicle_type_required: '',
         pickup_observations: '',
         delivery_observations: '',
-        payment_method: 'PIX'
+        payment_method: 'PIX',
+        required_trucks: '1'
       });
       onFreightCreated();
     } catch (error) {
@@ -343,6 +347,23 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                   <SelectItem value="HIGH">Alta</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="required_trucks">Quantidade de Carretas *</Label>
+              <Input
+                id="required_trucks"
+                type="number"
+                min="1"
+                max="10"
+                value={formData.required_trucks}
+                onChange={(e) => handleInputChange('required_trucks', e.target.value)}
+                placeholder="1"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Número de carretas necessárias para este frete
+              </p>
             </div>
           </div>
 

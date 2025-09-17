@@ -34,6 +34,8 @@ interface FreightCardProps {
     distance_km: number;
     minimum_antt_price: number;
     service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA';
+    required_trucks?: number;
+    accepted_trucks?: number;
   };
   onAction?: (action: 'propose' | 'accept' | 'complete') => void;
   showActions?: boolean;
@@ -41,6 +43,11 @@ interface FreightCardProps {
 
 export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, showActions = false }) => {
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
+  
+  // Verificar se o frete está com vagas completas
+  const isFullyBooked = (freight.required_trucks || 1) <= (freight.accepted_trucks || 0);
+  const availableSlots = (freight.required_trucks || 1) - (freight.accepted_trucks || 0);
+  
   const getUrgencyVariant = (urgency: string) => {
     switch (urgency) {
       case 'HIGH': return 'destructive';
@@ -170,6 +177,30 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
             </p>
           </div>
         </div>
+
+        {/* Informações de carretas */}
+        {(freight.required_trucks || 1) > 1 && (
+          <div className="mt-4 p-3 bg-secondary/20 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Truck className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Carretas</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium">
+                  {freight.accepted_trucks || 0}/{freight.required_trucks || 1}
+                </span>
+                {isFullyBooked ? (
+                  <Badge variant="destructive" className="text-xs">Completo</Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-xs">
+                    {availableSlots} vaga{availableSlots !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
 
       <CardFooter className="pt-4">
@@ -183,7 +214,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
         </div>
       </CardFooter>
 
-      {showActions && onAction && freight.status === 'OPEN' && (
+      {showActions && onAction && freight.status === 'OPEN' && !isFullyBooked && (
         <div className="px-6 pb-6">
           <Button 
             onClick={() => {
@@ -199,6 +230,14 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
             {freight.service_type === 'GUINCHO' ? 'Aceitar Chamado' : 
              freight.service_type === 'MUDANCA' ? 'Fazer Orçamento' : 
              'Fazer Proposta'}
+          </Button>
+        </div>
+      )}
+
+      {showActions && isFullyBooked && (
+        <div className="px-6 pb-6">
+          <Button disabled className="w-full" size="sm" variant="secondary">
+            Frete Completo - Sem Vagas
           </Button>
         </div>
       )}
