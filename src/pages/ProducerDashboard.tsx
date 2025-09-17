@@ -74,29 +74,28 @@ const ProducerDashboard = () => {
 
   const handleAcceptProposal = async (proposalId: string) => {
     try {
-      // Aceita a proposta e obtém o freight_id e driver_id atualizados
-      const { data: updatedRows, error } = await supabase
+      // Busca a proposta no estado atual para obter o freight_id sem precisar de select().single()
+      const proposal = proposals.find(p => p.id === proposalId);
+
+      // Atualiza o status da proposta
+      const { error: proposalError } = await supabase
         .from('freight_proposals')
         .update({ status: 'ACCEPTED' })
-        .eq('id', proposalId)
-        .select('freight_id, driver_id')
-        .single();
+        .eq('id', proposalId);
+      if (proposalError) throw proposalError;
 
-      if (error) throw error;
-
-      // Atualiza o status do frete para tirar da lista de disponíveis do motorista
-      if (updatedRows?.freight_id) {
+      // Atualiza o status do frete para não aparecer mais para motoristas
+      if (proposal?.freight?.id) {
         const { error: freightError } = await supabase
           .from('freights')
           .update({ status: 'IN_NEGOTIATION' })
-          .eq('id', updatedRows.freight_id)
+          .eq('id', proposal.freight.id)
           .eq('producer_id', profile?.id || '');
         if (freightError) throw freightError;
       }
 
-      // Remove a proposta aceita imediatamente do estado local
+      // Remove a proposta aceita imediatamente do estado local e atualiza lista de fretes
       setProposals(prev => prev.filter(proposal => proposal.id !== proposalId));
-      // Atualiza lista de fretes para refletir o novo status
       fetchFreights();
       
       toast.success('Proposta aceita com sucesso!');
