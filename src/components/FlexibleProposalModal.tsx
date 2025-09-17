@@ -54,6 +54,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
   const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM'>(freight?.price_per_km ? 'PER_KM' : 'FIXED');
   const [message, setMessage] = useState('');
   const [proposalType, setProposalType] = useState<'exact' | 'alternative'>('exact');
+  const [pricingSelectOpen, setPricingSelectOpen] = useState(false);
 
   if (!freight) return null;
 
@@ -321,12 +322,16 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
           <div className="space-y-2">
             <Label>Tipo de Cobrança</Label>
             <Select
+              open={pricingSelectOpen}
+              onOpenChange={setPricingSelectOpen}
               value={pricingType}
               onValueChange={(value: 'FIXED' | 'PER_KM') => {
-                // Evita travamento no mobile: remove focus ativo e posterga atualização
                 const el = document.activeElement as HTMLElement | null;
                 el?.blur?.();
-                setTimeout(() => setPricingType(value), 0);
+                setTimeout(() => {
+                  setPricingType(value);
+                  setPricingSelectOpen(false);
+                }, 0);
               }}
             >
               <SelectTrigger>
@@ -352,6 +357,8 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
                 step="0.01"
                 min="1"
                 inputMode="decimal"
+                disabled={pricingType !== 'FIXED'}
+                aria-hidden={pricingType !== 'FIXED'}
               />
             </div>
             <div className={pricingType === 'PER_KM' ? 'block' : 'hidden'}>
@@ -363,6 +370,8 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
                 step="0.01"
                 min="0.01"
                 inputMode="decimal"
+                disabled={pricingType !== 'PER_KM'}
+                aria-hidden={pricingType !== 'PER_KM'}
               />
             </div>
 

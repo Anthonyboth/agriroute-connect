@@ -346,7 +346,7 @@ export const ScheduledFreightsManager: React.FC = () => {
                               onClick={() => openProposalModal(freight)}
                               className="gradient-primary"
                             >
-                              Fazer Proposta
+                              Contra proposta
                             </Button>
                           )}
                         </div>

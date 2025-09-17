@@ -256,7 +256,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
                 size="sm"
                 variant="secondary"
               >
-                Fazer Contra-Proposta
+                Contra proposta
               </Button>
             </div>
           ) : (
