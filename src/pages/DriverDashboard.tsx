@@ -46,8 +46,10 @@ interface Proposal {
   driver_id: string;
   proposed_price: number;
   status: string; // Allow all database status values
+  created_at: string;
+  message?: string;
   freight?: Freight;
-  driver?: {
+  producer?: {
     id: string;
     full_name: string;
     phone: string;
@@ -113,51 +115,28 @@ const DriverDashboard = () => {
     }
   };
 
-  // Buscar propostas do motorista ou propostas para fretes do produtor
+  // Buscar propostas do motorista
   const fetchMyProposals = async () => {
     if (!profile?.id) return;
 
     try {
-      let data;
+      const { data, error } = await supabase
+        .from('freight_proposals')
+        .select(`
+          *,
+          freight:freights(*),
+          producer:profiles!inner(full_name, phone, id)
+        `)
+        .eq('driver_id', profile.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
       
-      if (profile.role === 'MOTORISTA') {
-        // Para motoristas: buscar propostas que ele fez
-        const { data: proposalData, error } = await supabase
-          .from('freight_proposals')
-          .select(`
-            *,
-            freight:freights(*)
-          `)
-          .eq('driver_id', profile.id)
-          .neq('status', 'REJECTED')
-          .order('created_at', { ascending: false });
-          
-        if (error) throw error;
-        data = proposalData;
-      } else if (profile.role === 'PRODUTOR') {
-        // Para produtores: buscar propostas feitas para seus fretes
-        const { data: proposalData, error } = await supabase
-          .from('freight_proposals')
-          .select(`
-            *,
-            freight:freights(*),
-            driver:profiles!freight_proposals_driver_id_fkey(full_name, phone, id)
-          `)
-          .eq('freight.producer_id', profile.id)
-          .neq('status', 'REJECTED')
-          .order('created_at', { ascending: false });
-          
-        if (error) throw error;
-        data = proposalData;
-      } else {
-        return;
-      }
-      
-      console.log('Proposals loaded:', data);
+      console.log('Proposals loaded for driver:', data);
       setMyProposals(data || []);
     } catch (error) {
       console.error('Error fetching proposals:', error);
-      toast.error('Erro ao carregar propostas');
+      toast.error('Erro ao carregar suas propostas');
     }
   };
 
@@ -620,14 +599,10 @@ const DriverDashboard = () => {
           </TabsContent>
 
           <TabsContent value="my-trips" className="space-y-4">
-            <h3 className="text-lg font-semibold">
-              {profile?.role === 'MOTORISTA' ? 'Minhas Propostas Ativas' : 'Propostas Recebidas'}
-            </h3>
-            {myProposals.filter(p => p.freight && !['DELIVERED', 'CANCELLED'].includes(p.freight.status) && p.status !== 'CANCELLED').length > 0 ? (
+            <h3 className="text-lg font-semibold">Minhas Propostas Enviadas</h3>
+            {myProposals.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {myProposals
-                  .filter(p => p.freight && !['DELIVERED', 'CANCELLED'].includes(p.freight.status) && p.status !== 'CANCELLED')
-                  .map((proposal) => (
+                {myProposals.map((proposal) => (
                   proposal.freight && (
                     <div key={proposal.id} className="relative">
                        <FreightCard 
@@ -642,30 +617,52 @@ const DriverDashboard = () => {
                          }}
                         showActions={false}
                       />
-                      <div className="mt-2 flex justify-between items-center">
-                        <Badge 
-                          variant={
-                            proposal.status === 'ACCEPTED' ? 'default' :
-                            proposal.status === 'PENDING' ? 'secondary' : 'destructive'
-                          }
-                        >
-                          {proposal.status === 'ACCEPTED' ? 'Aceita' :
-                           proposal.status === 'PENDING' ? 'Pendente' : 'Rejeitada'}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          Proposta: R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
-                        </span>
-                      </div>
                       
-                      {/* Mostrar informações do motorista para produtores */}
-                      {profile?.role === 'PRODUTOR' && proposal.driver && (
-                        <div className="mt-2 p-2 bg-muted rounded">
-                          <p className="text-sm font-medium">{proposal.driver.full_name}</p>
-                          <p className="text-xs text-muted-foreground">{proposal.driver.phone}</p>
+                      {/* Informações da proposta */}
+                      <div className="mt-2 p-3 bg-card border rounded-lg space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Sua Proposta:</span>
+                          <span className="text-sm font-semibold">
+                            R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
+                          </span>
                         </div>
-                      )}
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Status:</span>
+                          <Badge 
+                            variant={
+                              proposal.status === 'ACCEPTED' ? 'default' :
+                              proposal.status === 'PENDING' ? 'secondary' : 'destructive'
+                            }
+                          >
+                            {proposal.status === 'ACCEPTED' ? 'Aceita pelo Produtor' :
+                             proposal.status === 'PENDING' ? 'Aguardando Resposta' : 
+                             proposal.status === 'REJECTED' ? 'Rejeitada pelo Produtor' :
+                             proposal.status === 'CANCELLED' ? 'Cancelada por Você' : proposal.status}
+                          </Badge>
+                        </div>
 
-                      {proposal.status === 'ACCEPTED' && profile?.role === 'MOTORISTA' && (
+                        {/* Informações do produtor */}
+                        {proposal.producer && (
+                          <div className="pt-2 border-t">
+                            <p className="text-xs text-muted-foreground">Produtor:</p>
+                            <p className="text-sm font-medium">{proposal.producer.full_name}</p>
+                            {proposal.producer.phone && (
+                              <p className="text-xs text-muted-foreground">{proposal.producer.phone}</p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Data da proposta */}
+                        <div className="pt-1">
+                          <p className="text-xs text-muted-foreground">
+                            Enviada em: {new Date(proposal.created_at).toLocaleDateString('pt-BR')} às {new Date(proposal.created_at).toLocaleTimeString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Ações baseadas no status */}
+                      {proposal.status === 'ACCEPTED' && (
                         <Button 
                           className="w-full mt-2" 
                           size="sm"
@@ -679,35 +676,21 @@ const DriverDashboard = () => {
                       )}
                       
                       {proposal.status === 'PENDING' && (
-                        <div className="flex gap-2 mt-2">
-                          {profile?.role === 'PRODUTOR' ? (
-                            <>
-                              <Button 
-                                className="flex-1" 
-                                size="sm"
-                                onClick={() => handleAcceptProposal(proposal.id)}
-                              >
-                                Aceitar
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                className="flex-1" 
-                                size="sm"
-                                onClick={() => handleRejectProposal(proposal.id)}
-                              >
-                                Rejeitar
-                              </Button>
-                            </>
-                          ) : (
-                            <Button 
-                              variant="destructive" 
-                              className="w-full" 
-                              size="sm"
-                              onClick={() => handleFreightAction(proposal.freight!.id, 'cancel')}
-                            >
-                              Cancelar Proposta
-                            </Button>
-                          )}
+                        <Button 
+                          variant="outline" 
+                          className="w-full mt-2" 
+                          size="sm"
+                          onClick={() => handleFreightAction(proposal.freight!.id, 'cancel')}
+                        >
+                          Cancelar Proposta
+                        </Button>
+                      )}
+
+                      {proposal.status === 'REJECTED' && (
+                        <div className="mt-2">
+                          <p className="text-xs text-center text-muted-foreground">
+                            Proposta rejeitada. Você pode fazer uma nova proposta.
+                          </p>
                         </div>
                       )}
                     </div>
@@ -716,10 +699,7 @@ const DriverDashboard = () => {
               </div>
             ) : (
               <p className="text-muted-foreground text-center py-8">
-                {profile?.role === 'MOTORISTA' ? 
-                  'Você ainda não fez propostas para fretes' :
-                  'Nenhuma proposta recebida ainda'
-                }
+                Você ainda não enviou propostas para fretes
               </p>
             )}
           </TabsContent>
