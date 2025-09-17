@@ -156,7 +156,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
             ) : (
               <>
                 <Package className="h-4 w-4" />
-                <span>{(freight.weight / 1000).toFixed(1)}t</span>
+                <span>{((freight.weight || 0) / 1000).toFixed(1)}t</span>
               </>
             )}
           </div>
@@ -231,9 +231,9 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
       <CardFooter className="pt-4">
         <div className="flex items-center justify-between w-full">
           <div className="text-right">
-            <p className="font-semibold text-lg">R$ {freight.price.toLocaleString('pt-BR')}</p>
+            <p className="font-semibold text-lg">R$ {(freight.price || 0).toLocaleString('pt-BR')}</p>
             <p className="text-sm text-muted-foreground">
-              Min. ANTT: R$ {freight.minimum_antt_price.toLocaleString('pt-BR')}
+              Min. ANTT: R$ {(freight.minimum_antt_price || 0).toLocaleString('pt-BR')}
             </p>
           </div>
         </div>
