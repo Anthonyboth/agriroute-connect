@@ -318,7 +318,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
             <Label>Tipo de Cobrança</Label>
             <Select value={pricingType} onValueChange={(value: 'FIXED' | 'PER_KM') => setPricingType(value)}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Selecione o tipo de cobrança" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="FIXED">Valor Fixo</SelectItem>
