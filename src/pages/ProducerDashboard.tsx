@@ -197,6 +197,7 @@ const ProducerDashboard = () => {
   const openFreights = freights.filter(f => f.status === 'OPEN').length;
   const activeFreights = freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).length;
   const completedFreights = freights.filter(f => f.status === 'DELIVERED').length;
+  const cancelledFreights = freights.filter(f => f.status === 'CANCELLED').length;
   const totalValue = freights.reduce((sum, f) => sum + f.price, 0);
 
   return (
@@ -218,10 +219,11 @@ const ProducerDashboard = () => {
         </div>
 
         <Tabs defaultValue="fretes" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="fretes">Fretes Imediatos</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="fretes">Fretes Ativos</TabsTrigger>
             <TabsTrigger value="propostas">Propostas Recebidas</TabsTrigger>
             <TabsTrigger value="agendados">Fretes Agendados</TabsTrigger>
+            <TabsTrigger value="historico">Histórico</TabsTrigger>
           </TabsList>
 
           <TabsContent value="fretes" className="space-y-6">
@@ -236,16 +238,16 @@ const ProducerDashboard = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Meus Fretes</CardTitle>
+                <CardTitle>Meus Fretes Ativos</CardTitle>
               </CardHeader>
               <CardContent>
-                {freights.length === 0 ? (
+                {freights.filter(f => !['DELIVERED', 'CANCELLED'].includes(f.status)).length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground">Nenhum frete cadastrado ainda.</p>
+                    <p className="text-muted-foreground">Nenhum frete ativo no momento.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {freights.map((freight) => (
+                    {freights.filter(f => !['DELIVERED', 'CANCELLED'].includes(f.status)).map((freight) => (
                       <FreightCard
                         key={freight.id}
                         freight={{
@@ -373,6 +375,90 @@ const ProducerDashboard = () => {
 
           <TabsContent value="agendados">
             <ScheduledFreightsManager />
+          </TabsContent>
+
+          <TabsContent value="historico" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Fretes Concluídos */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-green-600">Fretes Concluídos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {freights.filter(f => f.status === 'DELIVERED').length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Nenhum frete concluído ainda.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {freights.filter(f => f.status === 'DELIVERED').map((freight) => (
+                        <FreightCard
+                          key={freight.id}
+                          freight={{
+                            id: freight.id,
+                            cargo_type: freight.cargo_type,
+                            weight: freight.weight,
+                            distance_km: freight.distance_km,
+                            origin_address: freight.origin_address,
+                            destination_address: freight.destination_address,
+                            price: freight.price,
+                            status: freight.status,
+                            pickup_date: freight.pickup_date,
+                            delivery_date: freight.delivery_date,
+                            urgency: freight.urgency,
+                            minimum_antt_price: freight.minimum_antt_price || 0,
+                            required_trucks: freight.required_trucks || 1,
+                            accepted_trucks: freight.accepted_trucks || 0
+                          }}
+                          showProducerActions={false}
+                          onAction={() => {}}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Fretes Cancelados */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-red-600">Fretes Cancelados</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {freights.filter(f => f.status === 'CANCELLED').length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Nenhum frete cancelado.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {freights.filter(f => f.status === 'CANCELLED').map((freight) => (
+                        <FreightCard
+                          key={freight.id}
+                          freight={{
+                            id: freight.id,
+                            cargo_type: freight.cargo_type,
+                            weight: freight.weight,
+                            distance_km: freight.distance_km,
+                            origin_address: freight.origin_address,
+                            destination_address: freight.destination_address,
+                            price: freight.price,
+                            status: freight.status,
+                            pickup_date: freight.pickup_date,
+                            delivery_date: freight.delivery_date,
+                            urgency: freight.urgency,
+                            minimum_antt_price: freight.minimum_antt_price || 0,
+                            required_trucks: freight.required_trucks || 1,
+                            accepted_trucks: freight.accepted_trucks || 0
+                          }}
+                          showProducerActions={false}
+                          onAction={() => {}}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

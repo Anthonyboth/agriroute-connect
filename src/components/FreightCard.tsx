@@ -317,7 +317,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
       )}
 
       {/* Producer Actions */}
-      {showProducerActions && onAction && (
+      {showProducerActions && onAction && freight.status !== 'CANCELLED' && (
         <div className="px-6 pb-6">
           <div className="flex gap-2">
             <Button 
@@ -340,6 +340,17 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
                 Cancelar
               </Button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Mensagem para fretes cancelados */}
+      {showProducerActions && freight.status === 'CANCELLED' && (
+        <div className="px-6 pb-6">
+          <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">
+              Fretes cancelados não podem ser editados
+            </p>
           </div>
         </div>
       )}
