@@ -123,26 +123,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
         message: message
       };
 
-      // Adicionar dados específicos do serviço
-      if (freight.service_type === 'GUINCHO') {
-        proposalData = {
-          ...proposalData,
-          service_details: {
-            urgency_level: urgencyLevel,
-            estimated_time: estimatedTime
-          }
-        };
-      } else if (freight.service_type === 'MUDANCA') {
-        proposalData = {
-          ...proposalData,
-          service_details: {
-            has_elevator: hasElevator,
-            helpers: helpers,
-            packaging: packaging
-          }
-        };
-      }
-
       // Usar upsert para evitar erro de constraint única
       const { error } = await supabase
         .from('freight_proposals')
