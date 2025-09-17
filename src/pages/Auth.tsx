@@ -43,8 +43,15 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
+    // Validate required fields
+    if (!document.trim()) {
+      toast.error('CPF/CNPJ é obrigatório para o cadastro.');
+      setLoading(false);
+      return;
+    }
+
     // Validate CPF/CNPJ
-    if (document && !validateDocument(document)) {
+    if (!validateDocument(document)) {
       toast.error('CPF/CNPJ inválido. Verifique os dados informados.');
       setLoading(false);
       return;
@@ -240,12 +247,13 @@ const Auth = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="document">CPF/CNPJ</Label>
+                    <Label htmlFor="document">CPF/CNPJ *</Label>
                     <Input
                       id="document"
                       value={document}
                       onChange={(e) => setDocument(e.target.value)}
-                      placeholder="000.000.000-00"
+                      placeholder="000.000.000-00 ou 00.000.000/0001-00"
+                      required
                     />
                   </div>
                   <div className="space-y-2">

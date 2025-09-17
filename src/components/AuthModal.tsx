@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Eye, EyeOff, Truck, Users, Leaf } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { validateDocument } from '@/utils/cpfValidator';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -75,6 +76,26 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!signupForm.document.trim()) {
+      toast({
+        title: "CPF/CNPJ obrigatório",
+        description: "Por favor, preencha o CPF/CNPJ para continuar o cadastro.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate CPF/CNPJ format
+    if (!validateDocument(signupForm.document)) {
+      toast({
+        title: "CPF/CNPJ inválido",
+        description: "Verifique o formato do CPF/CNPJ informado.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (signupForm.name && signupForm.email && signupForm.password) {
       toast({
@@ -238,14 +259,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
                 
                 <div className="space-y-2">
                   <Label htmlFor="document">
-                    {userType === 'PRODUTOR' ? 'CPF/CNPJ' : 'CPF'}
+                    {userType === 'PRODUTOR' ? 'CPF/CNPJ *' : 'CPF *'}
                   </Label>
                   <Input
                     id="document"
                     type="text"
-                    placeholder={userType === 'PRODUTOR' ? '000.000.000-00' : '000.000.000-00'}
+                    placeholder={userType === 'PRODUTOR' ? '000.000.000-00 ou 00.000.000/0001-00' : '000.000.000-00'}
                     value={signupForm.document}
                     onChange={(e) => setSignupForm(prev => ({ ...prev, document: e.target.value }))}
+                    required
                   />
                 </div>
               </div>
