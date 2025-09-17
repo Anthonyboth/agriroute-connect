@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ProposalCounterModal } from './ProposalCounterModal';
+import { ServiceProposalModal } from './ServiceProposalModal';
 import { Separator } from '@/components/ui/separator';
 import { 
   MapPin, 
@@ -241,11 +241,27 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
 
       {showActions && onAction && freight.status === 'OPEN' && !isFullyBooked && (
         <div className="px-6 pb-6">
-          {(freight.service_type === 'CARGA' || !freight.service_type) ? (
+          {freight.service_type === 'GUINCHO' ? (
+            <Button 
+              onClick={() => onAction('accept')}
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              size="sm"
+            >
+              Aceitar Chamado
+            </Button>
+          ) : freight.service_type === 'MUDANCA' ? (
+            <Button 
+              onClick={() => setProposalModalOpen(true)}
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              size="sm"
+            >
+              Fazer Orçamento
+            </Button>
+          ) : (
             <div className="flex gap-2">
               <Button 
                 onClick={() => onAction('accept')}
-                className="flex-1"
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                 size="sm"
               >
                 Aceitar Frete
@@ -254,21 +270,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
                 onClick={() => setProposalModalOpen(true)}
                 className="flex-1"
                 size="sm"
-                variant="secondary"
+                variant="outline"
               >
                 Contra proposta
               </Button>
             </div>
-          ) : (
-            <Button 
-              onClick={() => onAction('propose')}
-              className="w-full"
-              size="sm"
-            >
-               {freight.service_type === 'GUINCHO' ? 'Aceitar Chamado' : 
-                freight.service_type === 'MUDANCA' ? 'Fazer Orçamento' : 
-                'Fazer Contra-Proposta'}
-            </Button>
           )}
         </div>
       )}
@@ -281,19 +287,17 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
         </div>
       )}
 
-      {/* Counter Proposal Modal */}
-      <ProposalCounterModal
+      {/* Service Proposal Modal */}
+      <ServiceProposalModal
         isOpen={proposalModalOpen}
         onClose={() => setProposalModalOpen(false)}
-        originalProposal={{
+        freight={freight}
+        originalProposal={freight.service_type === 'CARGA' || !freight.service_type ? {
           id: freight.id,
-          freight_id: freight.id,
           proposed_price: freight.price,
           message: 'Proposta do produtor',
           driver_name: 'Produtor'
-        }}
-        freightPrice={freight.price}
-        freightDistance={freight.distance_km || 0}
+        } : undefined}
         onSuccess={() => {
           setProposalModalOpen(false);
           if (onAction) onAction('propose');
