@@ -9,6 +9,7 @@ import { EditFreightModal } from '@/components/EditFreightModal';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import { ProposalCounterModal } from '@/components/ProposalCounterModal';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +25,8 @@ const ProducerDashboard = () => {
   const [selectedProposal, setSelectedProposal] = useState<any>(null);
   const [editFreightModalOpen, setEditFreightModalOpen] = useState(false);
   const [selectedFreight, setSelectedFreight] = useState<any>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [freightToCancel, setFreightToCancel] = useState<any>(null);
 
   useEffect(() => {
     if (profile) {
@@ -159,22 +162,27 @@ const ProducerDashboard = () => {
       setSelectedFreight(freight);
       setEditFreightModalOpen(true);
     } else if (action === 'cancel') {
-      if (window.confirm('Tem certeza que deseja cancelar este frete?')) {
-        try {
-          const { error } = await supabase
-            .from('freights')
-            .update({ status: 'CANCELLED' })
-            .eq('id', freight.id);
+      setFreightToCancel(freight);
+      setConfirmDialogOpen(true);
+    }
+  };
 
-          if (error) throw error;
+  const confirmCancelFreight = async () => {
+    if (!freightToCancel) return;
+    
+    try {
+      const { error } = await supabase
+        .from('freights')
+        .update({ status: 'CANCELLED' })
+        .eq('id', freightToCancel.id);
 
-          toast.success('Frete cancelado com sucesso!');
-          fetchFreights();
-        } catch (error) {
-          console.error('Error cancelling freight:', error);
-          toast.error('Erro ao cancelar frete');
-        }
-      }
+      if (error) throw error;
+
+      toast.success('Frete cancelado com sucesso!');
+      fetchFreights();
+    } catch (error) {
+      console.error('Error cancelling freight:', error);
+      toast.error('Erro ao cancelar frete');
     }
   };
 
@@ -389,6 +397,17 @@ const ProducerDashboard = () => {
           fetchProposals();
           setCounterProposalModalOpen(false);
         }}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDialogOpen}
+        onClose={() => setConfirmDialogOpen(false)}
+        onConfirm={confirmCancelFreight}
+        title="Cancelar Frete"
+        description="Tem certeza que deseja cancelar este frete? Esta ação não pode ser desfeita."
+        confirmText="Sim, cancelar"
+        cancelText="Não, manter"
+        variant="destructive"
       />
     </div>
   );

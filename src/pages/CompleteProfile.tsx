@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,6 +56,8 @@ const CompleteProfile = () => {
     max_capacity_tons: 0,
     license_plate: '',
   });
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState<string | null>(null);
   const [showSelfieModal, setShowSelfieModal] = useState(false);
 
   useEffect(() => {
@@ -157,20 +160,24 @@ const CompleteProfile = () => {
 
   const deleteVehicle = async (vehicleId: string) => {
     if (!profile) return;
-    const confirmed = window.confirm('Tem certeza que deseja remover este veículo?');
-    if (!confirmed) return;
+    setVehicleToDelete(vehicleId);
+    setConfirmDialogOpen(true);
+  };
+
+  const confirmDeleteVehicle = async () => {
+    if (!profile || !vehicleToDelete) return;
 
     const { error } = await supabase
       .from('vehicles')
       .delete()
-      .eq('id', vehicleId)
+      .eq('id', vehicleToDelete)
       .eq('driver_id', profile.id);
 
     if (error) {
       toast.error('Erro ao remover veículo: ' + error.message);
     } else {
       toast.success('Veículo removido com sucesso');
-      setVehicles(prev => prev.filter(v => v.id !== vehicleId));
+      setVehicles(prev => prev.filter(v => v.id !== vehicleToDelete));
     }
   };
 
@@ -818,6 +825,17 @@ const CompleteProfile = () => {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialogOpen}
+        onClose={() => setConfirmDialogOpen(false)}
+        onConfirm={confirmDeleteVehicle}
+        title="Remover Veículo"
+        description="Tem certeza que deseja remover este veículo? Esta ação não pode ser desfeita."
+        confirmText="Sim, remover"
+        cancelText="Cancelar"
+        variant="destructive"
+      />
     </div>
   );
 };
