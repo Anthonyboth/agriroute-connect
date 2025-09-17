@@ -186,7 +186,9 @@ const ProducerDashboard = () => {
                           pickup_date: freight.pickup_date,
                           delivery_date: freight.delivery_date,
                           urgency: freight.urgency,
-                          minimum_antt_price: freight.minimum_antt_price || 0
+                          minimum_antt_price: freight.minimum_antt_price || 0,
+                          required_trucks: freight.required_trucks || 1,
+                          accepted_trucks: freight.accepted_trucks || 0
                         }}
                         onAction={() => {}}
                       />

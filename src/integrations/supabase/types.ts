@@ -2040,6 +2040,7 @@ export type Database = {
       get_compatible_freights_for_driver: {
         Args: { p_driver_id: string }
         Returns: {
+          accepted_trucks: number
           cargo_type: string
           created_at: string
           delivery_date: string
@@ -2050,6 +2051,7 @@ export type Database = {
           origin_address: string
           pickup_date: string
           price: number
+          required_trucks: number
           service_type: string
           status: string
           urgency: string
