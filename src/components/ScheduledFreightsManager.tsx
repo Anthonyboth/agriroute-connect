@@ -127,6 +127,7 @@ export const ScheduledFreightsManager: React.FC = () => {
         let query = supabase
           .from('flexible_freight_proposals')
           .select('*')
+          .neq('status', 'REJECTED')
           .order('created_at', { ascending: false });
 
         if (profile.role === 'PRODUTOR') {

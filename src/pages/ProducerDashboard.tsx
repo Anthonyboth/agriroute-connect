@@ -58,6 +58,7 @@ const ProducerDashboard = () => {
           driver:profiles!freight_proposals_driver_id_fkey(*)
         `)
         .eq('freight.producer_id', profile.id)
+        .neq('status', 'REJECTED')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

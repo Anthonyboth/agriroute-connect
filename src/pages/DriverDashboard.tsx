@@ -117,6 +117,7 @@ const DriverDashboard = () => {
           freight:freights(*)
         `)
         .eq('driver_id', profile.id)
+        .neq('status', 'REJECTED')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
