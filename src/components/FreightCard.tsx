@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ServiceProposalModal } from './ServiceProposalModal';
 import { Separator } from '@/components/ui/separator';
+import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { 
   MapPin, 
   Package, 
@@ -32,7 +33,7 @@ interface FreightCardProps {
     delivery_date: string;
     price: number;
     urgency: 'LOW' | 'MEDIUM' | 'HIGH';
-    status: 'OPEN' | 'IN_TRANSIT' | 'DELIVERED';
+    status: 'OPEN' | 'IN_TRANSIT' | 'DELIVERED' | 'IN_NEGOTIATION' | 'ACCEPTED' | 'CANCELLED';
     distance_km: number;
     minimum_antt_price: number;
     service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA';
@@ -105,9 +106,14 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
                 {getCargoTypeLabel(freight.cargo_type)}
               </h3>
             </div>
-            <Badge variant={urgencyVariant} className="flex-shrink-0 ml-2">
-              {urgencyLabel}
-            </Badge>
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <Badge variant={urgencyVariant} className="ml-2">
+                {urgencyLabel}
+              </Badge>
+              <Badge variant={getFreightStatusVariant(freight.status)} className="text-xs">
+                {getFreightStatusLabel(freight.status)}
+              </Badge>
+            </div>
           </div>
           <div className="flex justify-start">
             <Badge variant="outline" className="text-xs">
