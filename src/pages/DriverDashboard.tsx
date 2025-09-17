@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +51,7 @@ interface Proposal {
 
 const DriverDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
+  const navigate = useNavigate();
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
   const [counterOffers, setCounterOffers] = useState<any[]>([]);
@@ -190,6 +192,19 @@ const DriverDashboard = () => {
     }
   };
 
+  // Verificar se o usuário tem perfil de motorista
+  useEffect(() => {
+    if (profile && profile.role !== 'MOTORISTA') {
+      // Se o usuário não é motorista, redirecionar para o dashboard apropriado
+      if (profile.role === 'PRODUTOR') {
+        navigate('/dashboard/producer');
+      } else {
+        navigate('/');
+      }
+      return;
+    }
+  }, [profile, navigate]);
+
   // Carregar dados
   useEffect(() => {
     const loadData = async () => {
@@ -198,7 +213,7 @@ const DriverDashboard = () => {
       setLoading(false);
     };
 
-    if (profile) {
+    if (profile && profile.role === 'MOTORISTA') {
       loadData();
     }
   }, [profile]);
