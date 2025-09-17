@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import FreightCard from '@/components/FreightCard';
 import CreateFreightModal from '@/components/CreateFreightModal';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
+import { ProposalCounterModal } from '@/components/ProposalCounterModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,11 +16,15 @@ import { toast } from 'sonner';
 const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
   const [freights, setFreights] = useState<any[]>([]);
+  const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [counterProposalModalOpen, setCounterProposalModalOpen] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState<any>(null);
 
   useEffect(() => {
     if (profile) {
       fetchFreights();
+      fetchProposals();
     }
   }, [profile]);
 
@@ -37,6 +44,72 @@ const ProducerDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchProposals = async () => {
+    if (!profile?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('freight_proposals')
+        .select(`
+          *,
+          freight:freights(*),
+          driver:profiles!freight_proposals_driver_id_fkey(*)
+        `)
+        .eq('freight.producer_id', profile.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProposals(data || []);
+    } catch (error) {
+      console.error('Error fetching proposals:', error);
+      toast.error('Erro ao carregar propostas');
+    }
+  };
+
+  const handleAcceptProposal = async (proposalId: string) => {
+    try {
+      const { error } = await supabase
+        .from('freight_proposals')
+        .update({ status: 'ACCEPTED' })
+        .eq('id', proposalId);
+
+      if (error) throw error;
+
+      toast.success('Proposta aceita com sucesso!');
+      fetchProposals();
+    } catch (error) {
+      console.error('Error accepting proposal:', error);
+      toast.error('Erro ao aceitar proposta');
+    }
+  };
+
+  const handleRejectProposal = async (proposalId: string) => {
+    try {
+      const { error } = await supabase
+        .from('freight_proposals')
+        .update({ status: 'REJECTED' })
+        .eq('id', proposalId);
+
+      if (error) throw error;
+
+      toast.success('Proposta rejeitada');
+      fetchProposals();
+    } catch (error) {
+      console.error('Error rejecting proposal:', error);
+      toast.error('Erro ao rejeitar proposta');
+    }
+  };
+
+  const openCounterProposalModal = (proposal: any) => {
+    setSelectedProposal({
+      id: proposal.freight?.id,
+      proposed_price: proposal.proposed_price,
+      message: proposal.message,
+      driver_name: proposal.driver?.full_name || 'Motorista'
+    });
+    setCounterProposalModalOpen(true);
   };
 
   if (loading) {
@@ -71,8 +144,9 @@ const ProducerDashboard = () => {
         </div>
 
         <Tabs defaultValue="fretes" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="fretes">Fretes Imediatos</TabsTrigger>
+            <TabsTrigger value="propostas">Propostas Recebidas</TabsTrigger>
             <TabsTrigger value="agendados">Fretes Agendados</TabsTrigger>
           </TabsList>
 
@@ -123,11 +197,109 @@ const ProducerDashboard = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="propostas" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Propostas Recebidas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {proposals.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Nenhuma proposta recebida ainda.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {proposals.map((proposal) => (
+                      <Card key={proposal.id} className="p-4">
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-semibold">
+                                Proposta de {proposal.driver?.full_name || 'Motorista'}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                Frete: {proposal.freight?.cargo_type} - {proposal.freight?.origin_address} → {proposal.freight?.destination_address}
+                              </p>
+                            </div>
+                            <Badge 
+                              variant={
+                                proposal.status === 'ACCEPTED' ? 'default' :
+                                proposal.status === 'PENDING' ? 'secondary' : 'destructive'
+                              }
+                            >
+                              {proposal.status === 'ACCEPTED' ? 'Aceita' :
+                               proposal.status === 'PENDING' ? 'Pendente' : 'Rejeitada'}
+                            </Badge>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="font-medium">Valor original:</p>
+                              <p>R$ {proposal.freight?.price?.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Valor proposto:</p>
+                              <p>R$ {proposal.proposed_price?.toLocaleString()}</p>
+                            </div>
+                          </div>
+
+                          {proposal.message && (
+                            <div className="border-t pt-3">
+                              <p className="font-medium text-sm">Mensagem:</p>
+                              <p className="text-sm text-muted-foreground">{proposal.message}</p>
+                            </div>
+                          )}
+
+                          {proposal.status === 'PENDING' && (
+                            <div className="flex gap-2 pt-2">
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleAcceptProposal(proposal.id)}
+                                className="gradient-primary"
+                              >
+                                Aceitar
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="secondary"
+                                onClick={() => openCounterProposalModal(proposal)}
+                              >
+                                Contra Proposta
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleRejectProposal(proposal.id)}
+                              >
+                                Rejeitar
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="agendados">
             <ScheduledFreightsManager />
           </TabsContent>
         </Tabs>
       </div>
+
+      <ProposalCounterModal
+        isOpen={counterProposalModalOpen}
+        onClose={() => setCounterProposalModalOpen(false)}
+        originalProposal={selectedProposal}
+        freightPrice={selectedProposal?.freight?.price || 0}
+        onSuccess={() => {
+          fetchProposals();
+          setCounterProposalModalOpen(false);
+        }}
+      />
     </div>
   );
 };

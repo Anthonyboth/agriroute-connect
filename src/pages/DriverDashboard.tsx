@@ -50,6 +50,7 @@ const DriverDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
+  const [counterOffers, setCounterOffers] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('available');
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -125,6 +126,59 @@ const DriverDashboard = () => {
     }
   };
 
+  // Buscar contra-ofertas dos produtores
+  const fetchCounterOffers = async () => {
+    if (!profile?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('freight_messages')
+        .select(`
+          *,
+          freight:freights(*),
+          sender:profiles!freight_messages_sender_id_fkey(*)
+        `)
+        .eq('message_type', 'COUNTER_PROPOSAL')
+        .in('freight_id', myProposals.map(p => p.freight_id))
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCounterOffers(data || []);
+    } catch (error) {
+      console.error('Error fetching counter offers:', error);
+    }
+  };
+
+  const handleAcceptCounterOffer = async (messageId: string, freightId: string) => {
+    try {
+      // Marcar a mensagem como lida/aceita
+      const { error: messageError } = await supabase
+        .from('freight_messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('id', messageId);
+
+      if (messageError) throw messageError;
+
+      // Aceitar o frete com o novo valor
+      const { error: freightError } = await supabase
+        .from('freights')
+        .update({ 
+          status: 'ACCEPTED',
+          driver_id: profile?.id 
+        })
+        .eq('id', freightId);
+
+      if (freightError) throw freightError;
+
+      toast.success('Contra-proposta aceita com sucesso!');
+      fetchCounterOffers();
+      fetchMyProposals();
+    } catch (error) {
+      console.error('Error accepting counter offer:', error);
+      toast.error('Erro ao aceitar contra-proposta');
+    }
+  };
+
   // Carregar dados
   useEffect(() => {
     const loadData = async () => {
@@ -137,6 +191,13 @@ const DriverDashboard = () => {
       loadData();
     }
   }, [profile]);
+
+  // Carregar contra-ofertas quando as propostas mudarem
+  useEffect(() => {
+    if (myProposals.length > 0) {
+      fetchCounterOffers();
+    }
+  }, [myProposals]);
 
   // Calcular estatísticas
   const acceptedProposals = myProposals.filter(p => p.status === 'ACCEPTED');
@@ -481,6 +542,59 @@ const DriverDashboard = () => {
             ) : (
               <p className="text-muted-foreground text-center py-8">
                 Você ainda não fez propostas para fretes
+              </p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="counter-offers" className="space-y-4">
+            <h3 className="text-lg font-semibold">Contra-ofertas Recebidas</h3>
+            {counterOffers.length > 0 ? (
+              <div className="space-y-4">
+                {counterOffers.map((offer) => (
+                  <Card key={offer.id} className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold">
+                            Contra-proposta de {offer.sender?.full_name || 'Produtor'}
+                          </h4>
+                          <p className="text-sm text-muted-foreground">
+                            {offer.freight?.cargo_type} - {offer.freight?.origin_address} → {offer.freight?.destination_address}
+                          </p>
+                        </div>
+                        <Badge variant={offer.read_at ? 'default' : 'secondary'}>
+                          {offer.read_at ? 'Processada' : 'Nova'}
+                        </Badge>
+                      </div>
+
+                      <div className="bg-secondary/30 p-3 rounded-lg">
+                        <p className="text-sm whitespace-pre-line">{offer.message}</p>
+                      </div>
+
+                      {!offer.read_at && (
+                        <div className="flex gap-2 pt-2">
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleAcceptCounterOffer(offer.id, offer.freight_id)}
+                            className="gradient-primary"
+                          >
+                            Aceitar Contra-proposta
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                          >
+                            Rejeitar
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">
+                Você não tem contra-ofertas pendentes
               </p>
             )}
           </TabsContent>
