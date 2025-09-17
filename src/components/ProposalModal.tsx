@@ -120,7 +120,11 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="max-w-md">
+      <DialogContent
+        className="max-w-md"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
