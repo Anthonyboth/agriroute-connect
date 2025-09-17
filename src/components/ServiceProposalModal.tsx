@@ -51,8 +51,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   const [message, setMessage] = useState('');
   
   // Campos específicos para Guincho
-  const [problemDescription, setProblemDescription] = useState('');
-  const [vehicleInfo, setVehicleInfo] = useState('');
   const [urgencyLevel, setUrgencyLevel] = useState('NORMAL');
   const [estimatedTime, setEstimatedTime] = useState('');
   
@@ -131,8 +129,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
         proposalData = {
           ...proposalData,
           service_details: {
-            problem_description: problemDescription,
-            vehicle_info: vehicleInfo,
             urgency_level: urgencyLevel,
             estimated_time: estimatedTime
           }
@@ -202,8 +198,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   const resetForm = () => {
     setProposedPrice('');
     setMessage('');
-    setProblemDescription('');
-    setVehicleInfo('');
     setUrgencyLevel('NORMAL');
     setEstimatedTime('');
     setPropertyType('APARTAMENTO');
@@ -218,25 +212,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   const renderGuinchoForm = () => (
     <>
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>Descrição do Problema *</Label>
-          <Textarea
-            placeholder="Descreva o problema do veículo ou situação..."
-            value={problemDescription}
-            onChange={(e) => setProblemDescription(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Informações do Veículo</Label>
-          <Input
-            placeholder="Ex: Fiat Uno 2010, travado na estrada..."
-            value={vehicleInfo}
-            onChange={(e) => setVehicleInfo(e.target.value)}
-          />
-        </div>
-
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Urgência</Label>
