@@ -124,8 +124,7 @@ const DriverDashboard = () => {
         .from('freight_proposals')
         .select(`
           *,
-          freight:freights(*),
-          producer:profiles!inner(full_name, phone, id)
+          freight:freights(*)
         `)
         .eq('driver_id', profile.id)
         .order('created_at', { ascending: false });
