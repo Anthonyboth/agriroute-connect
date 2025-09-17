@@ -69,30 +69,22 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
     return <Navigate to="/" replace />;
   }
 
-  // Verificar se usuário está na página correta baseado no seu papel
+  // Simplify role-based redirection - only redirect if explicitly on wrong dashboard
   if (isAuthenticated && profile) {
     const currentPath = window.location.pathname;
-    let correctPath = "";
     
-    switch (profile.role) {
-      case 'ADMIN':
-        correctPath = '/admin';
-        break;
-      case 'MOTORISTA':
-        correctPath = '/dashboard/driver';
-        break;
-      case 'PRODUTOR':
-        correctPath = '/dashboard/producer';
-        break;
-      case 'PRESTADOR_SERVICOS':
-        correctPath = '/dashboard/service-provider';
-        break;
+    // Only redirect if user is on a specific dashboard that doesn't match their role
+    if (currentPath === '/dashboard/producer' && profile.role !== 'PRODUTOR') {
+      return <Navigate to={profile.role === 'MOTORISTA' ? '/dashboard/driver' : profile.role === 'ADMIN' ? '/admin' : '/dashboard/service-provider'} replace />;
     }
-    
-    // Se está na página errada, redirecionar
-    if (correctPath && currentPath !== correctPath && 
-        (currentPath.includes('/dashboard/') || currentPath.includes('/admin'))) {
-      return <Navigate to={correctPath} replace />;
+    if (currentPath === '/dashboard/driver' && profile.role !== 'MOTORISTA') {
+      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : profile.role === 'ADMIN' ? '/admin' : '/dashboard/service-provider'} replace />;
+    }
+    if (currentPath === '/admin' && profile.role !== 'ADMIN') {
+      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver'} replace />;
+    }
+    if (currentPath === '/dashboard/service-provider' && profile.role !== 'PRESTADOR_SERVICOS') {
+      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : profile.role === 'MOTORISTA' ? '/dashboard/driver' : '/admin'} replace />;
     }
   }
 
@@ -101,6 +93,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
 
 const RedirectIfAuthed = () => {
   const { isAuthenticated, profile, loading } = useAuth();
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -108,7 +101,18 @@ const RedirectIfAuthed = () => {
       </div>
     );
   }
+  
   if (!isAuthenticated) return <Auth />;
+  
+  // Wait for profile to be loaded before redirecting
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
   let to = "/";
   switch (profile?.role) {
     case 'ADMIN':
@@ -126,6 +130,7 @@ const RedirectIfAuthed = () => {
     default:
       to = '/';
   }
+  
   return <Navigate to={to} replace />;
 };
 

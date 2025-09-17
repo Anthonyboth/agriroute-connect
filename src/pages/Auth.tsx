@@ -27,80 +27,17 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Only check for existing session on mount, don't duplicate auth state changes
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Remove automatic redirect from auth page - let RedirectIfAuthed handle it
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        // Use setTimeout to prevent immediate redirect conflicts
-        setTimeout(() => {
-          handleRedirectAfterAuth(session.user.id);
-        }, 100);
+        // Just log, don't redirect from here
+        console.log('User already authenticated, RedirectIfAuthed will handle redirect');
       }
-    });
+    };
+    
+    checkSession();
   }, []);
-
-  const handleRedirectAfterAuth = async (userId: string) => {
-    try {
-      const { data: userProfiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (!userProfiles || userProfiles.length === 0) {
-        navigate('/complete-profile');
-        return;
-      }
-
-      // Se tem múltiplos perfis, usar o salvo no localStorage ou o primeiro
-      let activeProfile = userProfiles[0];
-      const savedProfileId = localStorage.getItem('current_profile_id');
-      
-      if (savedProfileId && userProfiles.length > 1) {
-        const savedProfile = userProfiles.find(p => p.id === savedProfileId);
-        if (savedProfile) {
-          activeProfile = savedProfile;
-        }
-      }
-
-      // Verificar se o perfil tem o mínimo necessário (email confirmado + fotos básicas)
-      const hasBasicRequirements = activeProfile.selfie_url && activeProfile.document_photo_url;
-      
-      // Para motoristas, verificar se tem documentos adicionais
-      const isDriverComplete = activeProfile.role !== 'MOTORISTA' || (
-        activeProfile.cnh_photo_url && 
-        activeProfile.address_proof_url &&
-        activeProfile.location_enabled
-      );
-
-      if (!hasBasicRequirements || !isDriverComplete) {
-        navigate('/complete-profile');
-        return;
-      }
-
-      // Se tem os requisitos básicos, permitir acesso independente do status de aprovação
-      switch (activeProfile.role) {
-        case 'ADMIN':
-          navigate('/admin');
-          break;
-        case 'MOTORISTA':
-          navigate('/dashboard/driver');
-          break;
-        case 'PRODUTOR':
-          navigate('/dashboard/producer');
-          break;
-        default:
-          // Para PRESTADOR_SERVICOS ou outros tipos
-          if ((activeProfile.role as any) === 'PRESTADOR_SERVICOS') {
-            navigate('/dashboard/service-provider');
-          } else {
-            navigate('/');
-          }
-      }
-    } catch (error) {
-      console.error('Error checking profile:', error);
-      navigate('/');
-    }
-  };
-
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
