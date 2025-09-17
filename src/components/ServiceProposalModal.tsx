@@ -45,6 +45,7 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
 }) => {
   const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const formId = 'service-proposal-form';
   
   // Campos comuns
   const [proposedPrice, setProposedPrice] = useState('');
@@ -432,7 +433,7 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
@@ -464,7 +465,7 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form id={formId} onSubmit={handleSubmit} className="space-y-4">
             {freight.service_type === 'GUINCHO' && renderGuinchoForm()}
             {freight.service_type === 'MUDANCA' && renderMudancaForm()}
             {(!freight.service_type || freight.service_type === 'CARGA') && renderCargaForm()}
@@ -477,8 +478,9 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
             Cancelar
           </Button>
           <Button 
-            onClick={handleSubmit}
-            disabled={loading || !proposedPrice && !pricePerKm} 
+            type="submit"
+            form={formId}
+            disabled={loading}
             className="bg-green-600 hover:bg-green-700 text-white"
           >
             {loading ? 'Enviando...' : 
