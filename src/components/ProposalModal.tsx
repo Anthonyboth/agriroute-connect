@@ -101,12 +101,14 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
     }
   };
 
-  const finalProposedPrice = proposalData.pricing_type === 'FIXED' 
-    ? proposalData.proposed_price 
-    : parseFloat(proposalData.proposed_price_per_km) * (freight.distance_km || 0);
+  const perKm = parseFloat(proposalData.proposed_price_per_km || '0');
+  const distance = Number(freight.distance_km ?? 0);
+  const finalProposedPrice = proposalData.pricing_type === 'FIXED'
+    ? Number(proposalData.proposed_price || 0)
+    : (Number.isFinite(perKm) ? perKm * distance : 0);
   
-  const priceDifference = finalProposedPrice - freight.price;
-  const isCounterOffer = priceDifference !== 0;
+  const priceDifference = Number(finalProposedPrice) - Number(freight.price || 0);
+  const isCounterOffer = Number.isFinite(priceDifference) && priceDifference !== 0;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -153,33 +155,44 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
               <DollarSign className="h-4 w-4" />
               {proposalData.pricing_type === 'FIXED' ? 'Valor Fixo (R$)' : 'Valor por KM (R$)'}
             </Label>
-            
-            {proposalData.pricing_type === 'FIXED' ? (
+
+            {/* Mantemos ambos os inputs montados para evitar travamentos ao trocar o tipo */}
+            <div className="space-y-2">
+              {/* Input de valor fixo */}
               <Input
                 type="number"
                 step="0.01"
                 min="0"
                 value={proposalData.proposed_price}
-                onChange={(e) => setProposalData(prev => ({ 
-                  ...prev, 
-                  proposed_price: Number(e.target.value) 
+                onChange={(e) => setProposalData(prev => ({
+                  ...prev,
+                  proposed_price: Number(e.target.value)
                 }))}
-                required
+                required={proposalData.pricing_type === 'FIXED'}
+                disabled={proposalData.pricing_type !== 'FIXED'}
+                aria-hidden={proposalData.pricing_type !== 'FIXED'}
+                className={proposalData.pricing_type === 'FIXED' ? '' : 'hidden'}
               />
-            ) : (
+
+              {/* Input de valor por KM */}
               <Input
                 type="number"
                 step="0.01"
                 min="0"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 value={proposalData.proposed_price_per_km}
-                onChange={(e) => setProposalData(prev => ({ 
-                  ...prev, 
+                onChange={(e) => setProposalData(prev => ({
+                  ...prev,
                   proposed_price_per_km: e.target.value
                 }))}
                 placeholder="8.50"
-                required
+                required={proposalData.pricing_type === 'PER_KM'}
+                disabled={proposalData.pricing_type !== 'PER_KM'}
+                aria-hidden={proposalData.pricing_type !== 'PER_KM'}
+                className={proposalData.pricing_type === 'PER_KM' ? '' : 'hidden'}
               />
-            )}
+            </div>
             
             <div className="text-sm text-muted-foreground">
               {freight.price_per_km ? (
@@ -194,12 +207,12 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
               
               {proposalData.pricing_type === 'PER_KM' && proposalData.proposed_price_per_km && (
                 <div className="mt-1 font-medium">
-                  Total calculado: R$ {(parseFloat(proposalData.proposed_price_per_km) * (freight.distance_km || 0)).toLocaleString('pt-BR')}
+                  Total calculado: R$ {(parseFloat(proposalData.proposed_price_per_km || '0') * (freight.distance_km || 0)).toLocaleString('pt-BR')}
                 </div>
               )}
               
               {isCounterOffer && (
-                <span className={`block mt-1 ${priceDifference > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                <span className={`block mt-1 ${priceDifference > 0 ? 'text-destructive' : 'text-green-600'}`}>
                   {priceDifference > 0 ? '+' : ''}R$ {priceDifference.toLocaleString('pt-BR')}
                 </span>
               )}
