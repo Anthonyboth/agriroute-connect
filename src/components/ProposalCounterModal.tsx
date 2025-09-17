@@ -119,29 +119,29 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-primary" />
+            <DollarSign className="h-4 w-4 text-primary" />
             Fazer Contra-Proposta
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             Negocie um valor intermediário com o motorista {originalProposal.driver_name}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
           {/* Current Proposal Summary */}
-          <div className="bg-secondary/30 p-4 rounded-lg space-y-3">
-            <h3 className="font-semibold">Proposta Atual</h3>
+          <div className="bg-secondary/30 p-3 rounded-lg space-y-2">
+            <h3 className="font-semibold text-sm">Proposta Atual</h3>
             
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Valor original:</span>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Valor original:</span>
               <span className="font-medium">R$ {freightPrice.toLocaleString()}</span>
             </div>
             
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Proposta do motorista:</span>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Proposta do motorista:</span>
               <div className="flex items-center gap-2">
                 <span className="font-medium">R$ {originalProposal.proposed_price.toLocaleString()}</span>
                 <Badge variant={isPriceIncrease ? 'destructive' : 'default'} className="text-xs">
@@ -152,18 +152,18 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
             {originalProposal.message && (
               <div className="pt-2 border-t">
-                <p className="text-sm text-muted-foreground">Justificativa:</p>
-                <p className="text-sm">{originalProposal.message}</p>
+                <p className="text-xs text-muted-foreground">Justificativa:</p>
+                <p className="text-xs">{originalProposal.message}</p>
               </div>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {/* Pricing Type */}
-            <div className="space-y-2">
-              <Label>Tipo de Cobrança</Label>
+            <div className="space-y-1">
+              <Label className="text-sm">Tipo de Cobrança</Label>
               <Select value={pricingType} onValueChange={(value: 'FIXED' | 'PER_KM') => setPricingType(value)}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Selecione o tipo de cobrança" />
                 </SelectTrigger>
                 <SelectContent>
@@ -174,8 +174,8 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             </div>
 
             {/* Counter Offer */}
-            <div className="space-y-2">
-              <Label>{pricingType === 'FIXED' ? 'Sua Contra-Proposta (R$) *' : 'Valor por KM (R$) *'}</Label>
+            <div className="space-y-1">
+              <Label className="text-sm">{pricingType === 'FIXED' ? 'Sua Contra-Proposta (R$) *' : 'Valor por KM (R$) *'}</Label>
               
               {pricingType === 'FIXED' ? (
                 <Input
@@ -186,6 +186,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                   step="0.01"
                   min="1"
                   required
+                  className="h-9"
                 />
               ) : (
                 <Input
@@ -196,6 +197,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                   step="0.01"
                   min="0.01"
                   required
+                  className="h-9"
                 />
               )}
 
@@ -216,22 +218,23 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             </div>
 
             {/* Counter Message */}
-            <div className="space-y-2">
-              <Label>Justificativa da Contra-Proposta</Label>
+            <div className="space-y-1">
+              <Label className="text-sm">Justificativa da Contra-Proposta</Label>
               <Textarea
                 placeholder="Ex: Posso pagar R$ 300 a mais considerando o pedágio, mas não os R$ 550 solicitados..."
                 value={counterMessage}
                 onChange={(e) => setCounterMessage(e.target.value)}
-                rows={3}
+                rows={2}
+                className="text-sm resize-none"
               />
             </div>
 
             {/* Price Comparison */}
             {((pricingType === 'FIXED' && counterPrice && !isNaN(parseFloat(counterPrice))) || 
               (pricingType === 'PER_KM' && counterPricePerKm && !isNaN(parseFloat(counterPricePerKm)))) && (
-              <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                <h4 className="font-semibold mb-2 text-sm">Comparação de Valores</h4>
-                <div className="space-y-1 text-sm">
+              <div className="p-2 bg-primary/5 rounded-lg border border-primary/20">
+                <h4 className="font-semibold mb-1 text-sm">Comparação de Valores</h4>
+                <div className="space-y-1 text-xs">
                   <div className="flex items-center justify-between">
                     <span>Valor original:</span>
                     <span>R$ {freightPrice.toLocaleString()}</span>
@@ -252,21 +255,23 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                 </div>
               </div>
             )}
-
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={loading || (pricingType === 'FIXED' ? !counterPrice : !counterPricePerKm)} 
-                className="gradient-primary"
-              >
-                {loading ? 'Enviando...' : 'Enviar Contra-Proposta'}
-              </Button>
-            </div>
           </form>
+        </div>
+
+        {/* Action Buttons - Fixed at bottom */}
+        <div className="flex justify-end gap-2 pt-3 border-t flex-shrink-0">
+          <Button type="button" variant="outline" onClick={onClose} disabled={loading} size="sm">
+            Cancelar
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={loading || (pricingType === 'FIXED' ? !counterPrice : !counterPricePerKm)} 
+            className="gradient-primary"
+            size="sm"
+            onClick={handleSubmit}
+          >
+            {loading ? 'Enviando...' : 'Enviar Contra-Proposta'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
