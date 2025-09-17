@@ -58,7 +58,7 @@ const ProducerDashboard = () => {
           driver:profiles!freight_proposals_driver_id_fkey(*)
         `)
         .eq('freight.producer_id', profile.id)
-        .neq('status', 'REJECTED')
+        .eq('status', 'PENDING')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -78,8 +78,10 @@ const ProducerDashboard = () => {
 
       if (error) throw error;
 
+      // Remove a proposta aceita imediatamente do estado local
+      setProposals(prev => prev.filter(proposal => proposal.id !== proposalId));
+      
       toast.success('Proposta aceita com sucesso!');
-      fetchProposals();
     } catch (error) {
       console.error('Error accepting proposal:', error);
       toast.error('Erro ao aceitar proposta');
