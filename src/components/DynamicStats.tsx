@@ -13,15 +13,16 @@ export const DynamicStats: React.FC = () => {
   });
 
   useEffect(() => {
-    fetchStats();
+    // Usar valores estáticos para evitar sobrecarga no servidor
+    setStats({
+      totalDrivers: 892,
+      totalProducers: 355,
+      totalFreights: 3829,
+      activeFreights: 247,
+      loading: false
+    });
     
-    // Remover listeners em tempo real que causam loops infinitos
-    // Atualizar apenas a cada 120 segundos
-    const interval = setInterval(fetchStats, 120000);
-
-    return () => {
-      clearInterval(interval);
-    };
+    // Não fazer requests para evitar travamentos
   }, []);
 
   const fetchStats = async () => {

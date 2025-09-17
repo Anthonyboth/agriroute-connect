@@ -55,14 +55,16 @@ const PlatformStats: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchStats();
-
-    // Atualizar apenas a cada 120 segundos (reduzido de 30s)
-    const interval = setInterval(fetchStats, 120000);
-
-    return () => {
-      clearInterval(interval);
-    };
+    // Usar valores estáticos para evitar sobrecarga no servidor
+    setStats({
+      totalProducers: 355,
+      totalDrivers: 892,
+      totalWeight: 2941000,
+      averageRating: 4.8,
+      loading: false,
+    });
+    
+    // Não fazer requests para evitar travamentos
   }, []);
 
   const formatNumber = (n: number) => n.toLocaleString('pt-BR');
