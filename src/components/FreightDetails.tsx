@@ -19,12 +19,14 @@ interface FreightDetailsProps {
   freightId: string;
   currentUserProfile: any;
   onClose: () => void;
+  onFreightWithdraw?: (freight: any) => void;
 }
 
 export const FreightDetails: React.FC<FreightDetailsProps> = ({
   freightId,
   currentUserProfile,
-  onClose
+  onClose,
+  onFreightWithdraw
 }) => {
   const { toast } = useToast();
   const [freight, setFreight] = useState<any>(null);
@@ -273,12 +275,12 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       </div>
 
       {/* Payment Actions */}
-      {(canRequestAdvance || canMakePayment) && (
+      {(canRequestAdvance || canMakePayment || (isDriver && freight?.status === 'ACCEPTED')) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Pagamentos
+              {(canRequestAdvance || canMakePayment) ? 'Pagamentos' : 'Ações do Frete'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -315,6 +317,20 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                 </Button>
               )}
             </div>
+
+            {/* Botão de desistir do frete para motoristas */}
+            {isDriver && freight?.status === 'ACCEPTED' && onFreightWithdraw && (
+              <div className="pt-4 border-t">
+                <Button 
+                  onClick={() => onFreightWithdraw(freight)}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-destructive hover:text-destructive hover:bg-destructive/5"
+                >
+                  Desistir do Frete (Taxa R$ 20)
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

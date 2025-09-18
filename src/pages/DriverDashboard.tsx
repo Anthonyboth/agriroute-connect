@@ -487,6 +487,11 @@ const DriverDashboard = () => {
           setShowDetails(false);
           setSelectedFreightId(null);
         }}
+        onFreightWithdraw={(freight) => {
+          handleFreightWithdrawal(freight);
+          setShowDetails(false);
+          setSelectedFreightId(null);
+        }}
       />
     );
   }
@@ -808,41 +813,28 @@ const DriverDashboard = () => {
 
                       {/* Botões de Ação */}
                       {freight.status === 'ACCEPTED' && (
-                        <div className="space-y-4">
-                          <div className="flex gap-3">
-                            <Button 
-                              size="default" 
-                              className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
-                              onClick={() => {
-                                setSelectedFreightForCheckin(freight.id);
-                                setShowCheckinModal(true);
-                              }}
-                            >
-                              Check-in
-                            </Button>
-                            <Button 
-                              size="default" 
-                              variant="outline"
-                              className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                              onClick={() => {
-                                setSelectedFreightId(freight.id);
-                                setShowDetails(true);
-                              }}
-                            >
-                              Detalhes
-                            </Button>
-                          </div>
-                          
-                          <div className="flex justify-end">
-                            <Button 
-                              size="sm" 
-                              variant="ghost"
-                              className="text-muted-foreground hover:text-destructive hover:bg-destructive/5 text-xs"
-                              onClick={() => handleFreightWithdrawal(freight)}
-                            >
-                              Desistir do Frete (Taxa R$ 20)
-                            </Button>
-                          </div>
+                        <div className="flex gap-3">
+                          <Button 
+                            size="default" 
+                            className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
+                            onClick={() => {
+                              setSelectedFreightForCheckin(freight.id);
+                              setShowCheckinModal(true);
+                            }}
+                          >
+                            Check-in
+                          </Button>
+                          <Button 
+                            size="default" 
+                            variant="outline"
+                            className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                            onClick={() => {
+                              setSelectedFreightId(freight.id);
+                              setShowDetails(true);
+                            }}
+                          >
+                            Detalhes
+                          </Button>
                         </div>
                       )}
 
