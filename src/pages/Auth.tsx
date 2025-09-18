@@ -24,6 +24,7 @@ const Auth = () => {
   const [phone, setPhone] = useState('');
   const [document, setDocument] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -91,6 +92,7 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setShowResendConfirmation(false); // Reset state
 
     try {
       // Determinar se é email, CPF ou usuário
@@ -132,6 +134,7 @@ const Auth = () => {
         if (msg.includes('Invalid login credentials')) {
           toast.error('Credenciais inválidas');
         } else if (msg.toLowerCase().includes('email not confirmed')) {
+          setShowResendConfirmation(true);
           toast.error('Email não confirmado. Clique em "Reenviar e-mail de confirmação" abaixo.');
         } else {
           toast.error(msg);
@@ -233,15 +236,17 @@ const Auth = () => {
                 >
                   Esqueci minha senha
                 </Button>
-                <div>
-                  <Button
-                    variant="link"
-                    className="text-xs text-muted-foreground hover:text-primary underline underline-offset-4"
-                    onClick={handleResendConfirmation}
-                  >
-                    Reenviar e-mail de confirmação
-                  </Button>
-                </div>
+                {showResendConfirmation && (
+                  <div>
+                    <Button
+                      variant="link"
+                      className="text-xs text-muted-foreground hover:text-primary underline underline-offset-4"
+                      onClick={handleResendConfirmation}
+                    >
+                      Reenviar e-mail de confirmação
+                    </Button>
+                  </div>
+                )}
               </div>
 
             </TabsContent>
