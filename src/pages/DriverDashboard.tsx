@@ -135,6 +135,8 @@ const DriverDashboard = () => {
     if (!profile?.id) return;
 
     try {
+      console.log('Fetching proposals for driver ID:', profile.id);
+      
       const { data, error } = await supabase
         .from('freight_proposals')
         .select(`
@@ -154,7 +156,7 @@ const DriverDashboard = () => {
 
       if (error) throw error;
       
-      console.log('Proposals loaded for driver:', data);
+      console.log('Proposals loaded for driver:', data?.length || 0, data);
       setMyProposals(data || []);
     } catch (error) {
       console.error('Error fetching proposals:', error);
@@ -167,15 +169,19 @@ const DriverDashboard = () => {
     if (!profile?.id) return;
 
     try {
-      // 1) Fretes já vinculados ao motorista
+      console.log('Fetching ongoing freights for driver ID:', profile.id);
+      
+      // 1) Fretes já vinculados ao motorista - incluir todos os status ativos
       const { data: directFreights, error: freightsError } = await supabase
         .from('freights')
         .select('*')
         .eq('driver_id', profile.id)
-        .in('status', ['ACCEPTED', 'IN_TRANSIT'])
+        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
         .order('updated_at', { ascending: false });
 
       if (freightsError) throw freightsError;
+
+      console.log('Direct freights found:', directFreights?.length || 0, directFreights);
 
       let merged: Freight[] = directFreights || [];
 
@@ -184,6 +190,7 @@ const DriverDashboard = () => {
         .from('freight_proposals')
         .select(`
           freight_id,
+          status,
           freight:freights(*)
         `)
         .eq('driver_id', profile.id)
@@ -191,15 +198,17 @@ const DriverDashboard = () => {
 
       if (acceptedErr) throw acceptedErr;
 
+      console.log('Accepted proposals found:', acceptedProposals?.length || 0, acceptedProposals);
+
       // Adicionar fretes de propostas aceitas que não estão em directFreights
       const acceptedFreights = (acceptedProposals || [])
         .map(p => p.freight)
-        .filter(f => f && ['ACCEPTED', 'IN_TRANSIT'].includes(String(f.status)))
+        .filter(f => f && ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'].includes(String(f.status)))
         .filter(f => !merged.some(existing => existing.id === f.id));
 
       merged = [...merged, ...acceptedFreights];
 
-      console.log('Ongoing freights loaded:', merged);
+      console.log('Final ongoing freights merged:', merged.length, merged);
       setOngoingFreights(merged);
     } catch (error) {
       console.error('Error fetching ongoing freights:', error);
