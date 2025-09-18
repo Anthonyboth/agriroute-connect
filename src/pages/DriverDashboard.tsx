@@ -17,6 +17,8 @@ import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
 import { ServiceProviderDashboard } from '@/components/ServiceProviderDashboard';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import FreightLimitTracker from '@/components/FreightLimitTracker';
+import FreightCheckinModal from '@/components/FreightCheckinModal';
+import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -65,6 +67,8 @@ const DriverDashboard = () => {
   const [activeTab, setActiveTab] = useState('available');
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showCheckinModal, setShowCheckinModal] = useState(false);
+  const [selectedFreightForCheckin, setSelectedFreightForCheckin] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     cargo_type: 'all',
     service_type: 'all',
@@ -669,17 +673,39 @@ const DriverDashboard = () => {
                       </div>
                       
                       {freight.status === 'ACCEPTED' && (
-                        <div className="mt-3 pt-2 border-t">
-                          <Button 
-                            size="sm" 
-                            className="w-full"
-                            onClick={() => {
-                              // Iniciar processo de coleta/tracking
-                              toast.success('Funcionalidade de tracking será implementada em breve');
-                            }}
-                          >
-                            Iniciar Coleta
-                          </Button>
+                        <div className="mt-3 pt-2 border-t space-y-2">
+                          <div className="flex gap-1">
+                            <Button 
+                              size="sm" 
+                              className="flex-1 text-xs"
+                              onClick={() => {
+                                setSelectedFreightForCheckin(freight.id);
+                                setShowCheckinModal(true);
+                              }}
+                            >
+                              Check-in
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="flex-1 text-xs"
+                              onClick={() => {
+                                setSelectedFreightId(freight.id);
+                                setShowDetails(true);
+                              }}
+                            >
+                              Detalhes
+                            </Button>
+                          </div>
+                          
+                          {/* Componente de visualização de check-ins */}
+                          <div className="mt-2">
+                            <FreightCheckinsViewer 
+                              freightId={freight.id}
+                              currentUserProfile={profile}
+                              onRefresh={fetchOngoingFreights}
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1031,6 +1057,24 @@ const DriverDashboard = () => {
 
         </Tabs>
       </div>
+      
+      {/* Modal de Check-in */}
+      {selectedFreightForCheckin && (
+        <FreightCheckinModal
+          isOpen={showCheckinModal}
+          onClose={() => {
+            setShowCheckinModal(false);
+            setSelectedFreightForCheckin(null);
+          }}
+          freightId={selectedFreightForCheckin}
+          currentUserProfile={profile}
+          onCheckinCreated={() => {
+            fetchOngoingFreights();
+            setShowCheckinModal(false);
+            setSelectedFreightForCheckin(null);
+          }}
+        />
+      )}
     </div>
   );
 };
