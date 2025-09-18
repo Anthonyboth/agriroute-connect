@@ -124,7 +124,7 @@ const DriverDashboard = () => {
     }
   };
 
-  // Buscar propostas do motorista
+  // Buscar propostas do motorista (apenas PENDING e REJECTED)
   const fetchMyProposals = async () => {
     if (!profile?.id) return;
 
@@ -136,6 +136,7 @@ const DriverDashboard = () => {
           freight:freights(*)
         `)
         .eq('driver_id', profile.id)
+        .in('status', ['PENDING', 'REJECTED'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -148,12 +149,12 @@ const DriverDashboard = () => {
     }
   };
 
-  // Buscar fretes em andamento (aceitos pelo motorista)
+  // Buscar fretes em andamento (apenas fretes aceitos pelo motorista)
   const fetchOngoingFreights = async () => {
     if (!profile?.id) return;
 
     try {
-      // 1) Fretes já vinculados ao motorista (fonte principal)
+      // Buscar apenas fretes onde o motorista é o driver_id e status é ACCEPTED ou IN_TRANSIT
       const { data: directFreights, error: freightsError } = await supabase
         .from('freights')
         .select('*')
@@ -163,37 +164,7 @@ const DriverDashboard = () => {
 
       if (freightsError) throw freightsError;
 
-      let merged: Freight[] = directFreights || [];
-
-      // 2) Fallback: propostas ACEITAS do motorista (cobre casos antigos sem sincronização)
-      const { data: acceptedProposals, error: acceptedErr } = await supabase
-        .from('freight_proposals')
-        .select('freight_id')
-        .eq('driver_id', profile.id)
-        .eq('status', 'ACCEPTED');
-
-      if (acceptedErr) throw acceptedErr;
-
-      const acceptedIds = (acceptedProposals || []).map(p => p.freight_id);
-      const missingIds = acceptedIds.filter(
-        (id) => !merged.some((f) => f.id === id)
-      );
-
-      if (missingIds.length > 0) {
-        const { data: missingFreights, error: missingErr } = await supabase
-          .from('freights')
-          .select('*')
-          .in('id', missingIds);
-        if (missingErr) throw missingErr;
-
-        // filtra apenas status relevantes
-        const relevant = (missingFreights || []).filter((f) =>
-          ['ACCEPTED', 'IN_TRANSIT'].includes(String(f.status))
-        );
-        merged = [...merged, ...relevant];
-      }
-
-      setOngoingFreights(merged);
+      setOngoingFreights(directFreights || []);
     } catch (error) {
       console.error('Error fetching ongoing freights:', error);
       toast.error('Erro ao carregar fretes em andamento');
@@ -965,20 +936,7 @@ const DriverDashboard = () => {
                         </div>
                       </div>
 
-                      {/* Ações baseadas no status */}
-                      {proposal.status === 'ACCEPTED' && (
-                        <Button 
-                          className="w-full mt-4 gradient-primary hover:shadow-lg transition-all duration-300" 
-                          size="sm"
-                          onClick={() => {
-                            setSelectedFreightId(proposal.freight!.id);
-                            setShowDetails(true);
-                          }}
-                        >
-                          Gerenciar Frete
-                        </Button>
-                      )}
-                      
+                      {/* Ações baseadas no status - removidas para propostas aceitas */}
                       {proposal.status === 'PENDING' && (
                         <Button 
                           variant="outline" 
@@ -993,7 +951,7 @@ const DriverDashboard = () => {
                       {proposal.status === 'REJECTED' && (
                         <div className="mt-4 p-3 bg-muted/40 rounded-lg border border-border/40">
                           <p className="text-xs text-center text-muted-foreground">
-                            Proposta rejeitada. Você pode fazer uma nova proposta.
+                            Proposta rejeitada. Você pode fazer uma nova proposta se desejar.
                           </p>
                         </div>
                       )}

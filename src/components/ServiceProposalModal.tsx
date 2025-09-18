@@ -114,7 +114,7 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
     try {
       const finalPrice = pricingType === 'PER_KM' ? priceFloat * (freight.distance_km || 0) : priceFloat;
       
-      // Evitar sobrescrever proposta já processada
+      // Evitar múltiplas propostas para o mesmo frete
       const { data: existingProposal, error: checkError } = await supabase
         .from('freight_proposals')
         .select('status')
@@ -122,15 +122,23 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
         .eq('driver_id', profile.id)
         .maybeSingle();
       if (checkError) throw checkError;
-      if (existingProposal && existingProposal.status !== 'PENDING') {
-        toast.info('Sua proposta já foi processada pelo produtor.');
-        onClose();
-        onSuccess?.();
-        resetForm();
-        return;
+      
+      if (existingProposal) {
+        if (existingProposal.status === 'PENDING') {
+          toast.info('Você já enviou uma proposta para este frete.');
+          onClose();
+          return;
+        }
+        if (existingProposal.status === 'ACCEPTED') {
+          toast.info('Sua proposta já foi aceita pelo produtor.');
+          onClose();
+          onSuccess?.();
+          resetForm();
+          return;
+        }
       }
       
-      // Criar proposta específica baseada no tipo de serviço
+      // Criar nova proposta (apenas se não existir PENDING)
       let proposalData: any = {
         freight_id: freight.id,
         driver_id: profile.id,
@@ -139,12 +147,10 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
         message: message
       };
 
-      // Usar upsert para evitar erro de constraint única
+      // Inserir nova proposta
       const { error } = await supabase
         .from('freight_proposals')
-        .upsert(proposalData, {
-          onConflict: 'freight_id,driver_id'
-        });
+        .insert(proposalData);
 
       if (error) throw error;
 
