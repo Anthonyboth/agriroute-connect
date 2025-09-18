@@ -243,6 +243,44 @@ export type Database = {
           },
         ]
       }
+      evidence_files: {
+        Row: {
+          file_name: string | null
+          file_size: number | null
+          file_url: string
+          id: string
+          incident_id: string
+          mime_type: string | null
+          uploaded_at: string
+        }
+        Insert: {
+          file_name?: string | null
+          file_size?: number | null
+          file_url: string
+          id?: string
+          incident_id: string
+          mime_type?: string | null
+          uploaded_at?: string
+        }
+        Update: {
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          incident_id?: string
+          mime_type?: string | null
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_files_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flexible_freight_proposals: {
         Row: {
           created_at: string
@@ -641,10 +679,15 @@ export type Database = {
           price_per_km: number | null
           producer_id: string
           required_trucks: number
+          route_waypoints: Json | null
           scheduled_date: string | null
           service_type: string | null
           status: Database["public"]["Enums"]["freight_status"]
           toll_cost: number | null
+          tracking_ended_at: string | null
+          tracking_required: boolean | null
+          tracking_started_at: string | null
+          tracking_status: string | null
           updated_at: string
           urgency: Database["public"]["Enums"]["urgency_level"]
           vehicle_type_required:
@@ -688,10 +731,15 @@ export type Database = {
           price_per_km?: number | null
           producer_id: string
           required_trucks?: number
+          route_waypoints?: Json | null
           scheduled_date?: string | null
           service_type?: string | null
           status?: Database["public"]["Enums"]["freight_status"]
           toll_cost?: number | null
+          tracking_ended_at?: string | null
+          tracking_required?: boolean | null
+          tracking_started_at?: string | null
+          tracking_status?: string | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["urgency_level"]
           vehicle_type_required?:
@@ -735,10 +783,15 @@ export type Database = {
           price_per_km?: number | null
           producer_id?: string
           required_trucks?: number
+          route_waypoints?: Json | null
           scheduled_date?: string | null
           service_type?: string | null
           status?: Database["public"]["Enums"]["freight_status"]
           toll_cost?: number | null
+          tracking_ended_at?: string | null
+          tracking_required?: boolean | null
+          tracking_started_at?: string | null
+          tracking_status?: string | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["urgency_level"]
           vehicle_type_required?:
@@ -837,6 +890,68 @@ export type Database = {
           verified_by?: string | null
         }
         Relationships: []
+      }
+      incident_logs: {
+        Row: {
+          auto_generated: boolean | null
+          created_at: string
+          description: string | null
+          evidence_data: Json | null
+          freight_id: string
+          id: string
+          incident_type: string
+          last_known_lat: number | null
+          last_known_lng: number | null
+          operator_id: string | null
+          reported_to_authorities_at: string | null
+          severity: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_generated?: boolean | null
+          created_at?: string
+          description?: string | null
+          evidence_data?: Json | null
+          freight_id: string
+          id?: string
+          incident_type: string
+          last_known_lat?: number | null
+          last_known_lng?: number | null
+          operator_id?: string | null
+          reported_to_authorities_at?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_generated?: boolean | null
+          created_at?: string
+          description?: string | null
+          evidence_data?: Json | null
+          freight_id?: string
+          id?: string
+          incident_type?: string
+          last_known_lat?: number | null
+          last_known_lng?: number | null
+          operator_id?: string | null
+          reported_to_authorities_at?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_logs_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       loyalty_points: {
         Row: {
@@ -1593,6 +1708,124 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      tracking_consents: {
+        Row: {
+          consent_given: boolean
+          consent_text: string
+          created_at: string
+          freight_id: string
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          consent_given?: boolean
+          consent_text: string
+          created_at?: string
+          freight_id: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          consent_given?: boolean
+          consent_text?: string
+          created_at?: string
+          freight_id?: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_consents_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      trip_locations: {
+        Row: {
+          accuracy: number | null
+          created_at: string
+          freight_id: string
+          heading: number | null
+          id: string
+          lat: number
+          lng: number
+          source: string | null
+          speed: number | null
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          created_at?: string
+          freight_id: string
+          heading?: number | null
+          id?: string
+          lat: number
+          lng: number
+          source?: string | null
+          speed?: number | null
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          created_at?: string
+          freight_id?: string
+          heading?: number | null
+          id?: string
+          lat?: number
+          lng?: number
+          source?: string | null
+          speed?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_locations_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       urban_service_providers: {
         Row: {
