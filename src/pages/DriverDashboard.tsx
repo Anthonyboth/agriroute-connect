@@ -20,7 +20,7 @@ import FreightLimitTracker from '@/components/FreightLimitTracker';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign } from 'lucide-react';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 interface Freight {
@@ -801,9 +801,69 @@ const DriverDashboard = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-center py-8">
-                Você ainda não enviou propostas para fretes
-              </p>
+              <div className="text-center py-12 space-y-6">
+                <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-10 w-10 text-muted-foreground" />
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold text-foreground">
+                    Comece Enviando Propostas
+                  </h3>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    Suas propostas enviadas aparecerão aqui. Explore os fretes disponíveis e envie propostas para começar a trabalhar.
+                  </p>
+                </div>
+
+                {/* Cards informativos */}
+                <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto mt-8">
+                  <Card className="p-4">
+                    <div className="text-center space-y-2">
+                      <Brain className="h-8 w-8 text-primary mx-auto" />
+                      <h4 className="font-medium">IA Inteligente</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Nossa IA encontra fretes compatíveis com seu perfil automaticamente
+                      </p>
+                    </div>
+                  </Card>
+                  
+                  <Card className="p-4">
+                    <div className="text-center space-y-2">
+                      <DollarSign className="h-8 w-8 text-green-500 mx-auto" />
+                      <h4 className="font-medium">Melhores Preços</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Valores baseados na tabela ANTT para garantir preços justos
+                      </p>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Estatísticas motivacionais */}
+                <div className="bg-muted/50 rounded-lg p-6 max-w-md mx-auto">
+                  <h4 className="font-semibold mb-3">💡 Dica de Sucesso</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Motoristas que enviam pelo menos 3 propostas por semana têm 
+                    <span className="font-semibold text-primary"> 85% mais chances</span> de fechar negócios.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button 
+                    onClick={() => setActiveTab('available')}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <Brain className="mr-2 h-4 w-4" />
+                    Ver Fretes IA
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setActiveTab('services')}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Configurar Perfil
+                  </Button>
+                </div>
+              </div>
             )}
           </TabsContent>
 
