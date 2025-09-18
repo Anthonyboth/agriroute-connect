@@ -20,7 +20,6 @@ import FreightLimitTracker from '@/components/FreightLimitTracker';
 import FreightCheckinModal from '@/components/FreightCheckinModal';
 import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
 import FreightWithdrawalModal from '@/components/FreightWithdrawalModal';
-import { FreightAdvanceModal } from '@/components/FreightAdvanceModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -81,8 +80,6 @@ const DriverDashboard = () => {
   const [selectedFreightForCheckin, setSelectedFreightForCheckin] = useState<string | null>(null);
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<Freight | null>(null);
-  const [showAdvanceModal, setShowAdvanceModal] = useState(false);
-  const [advanceFreight, setAdvanceFreight] = useState<{ id: string; price: number } | null>(null);
   const [filters, setFilters] = useState({
     cargo_type: 'all',
     service_type: 'all',
@@ -860,11 +857,11 @@ const DriverDashboard = () => {
                       </div>
 
                       {/* Botões de Ação */}
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex gap-3">
                         {(freight.status === 'ACCEPTED' || freight.status === 'LOADING') && (
                           <Button 
                             size="default" 
-                            className="flex-1 min-w-[140px] gradient-primary hover:shadow-lg transition-all duration-300"
+                            className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
                             onClick={() => {
                               setSelectedFreightForCheckin(freight.id);
                               setShowCheckinModal(true);
@@ -876,7 +873,7 @@ const DriverDashboard = () => {
                         <Button 
                           size="default" 
                           variant="outline"
-                          className="flex-1 min-w-[160px] border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                          className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
                           onClick={() => {
                             setSelectedFreightId(freight.id);
                             setShowDetails(true);
@@ -884,32 +881,6 @@ const DriverDashboard = () => {
                         >
                           Detalhes e Chat
                         </Button>
-                        {freight.price ? (
-                          <Button 
-                            size="default"
-                            variant="secondary"
-                            className="flex-1 min-w-[180px]"
-                            onClick={() => {
-                              setAdvanceFreight({ id: freight.id, price: freight.price });
-                              setShowAdvanceModal(true);
-                            }}
-                          >
-                            Solicitar Adiantamento
-                          </Button>
-                        ) : null}
-                        {freight.status === 'ACCEPTED' && (
-                          <Button 
-                            size="default"
-                            variant="destructive"
-                            className="flex-1 min-w-[140px]"
-                            onClick={() => {
-                              setSelectedFreightForWithdrawal(freight);
-                              setShowWithdrawalModal(true);
-                            }}
-                          >
-                            Desistir
-                          </Button>
-                        )}
                       </div>
 
                       {/* Check-ins do Frete */}
@@ -1333,19 +1304,6 @@ const DriverDashboard = () => {
           price: selectedFreightForWithdrawal.price
         } : undefined}
       />
-
-      {/* Modal de Adiantamento */}
-      {advanceFreight && (
-        <FreightAdvanceModal
-          isOpen={showAdvanceModal}
-          onClose={() => {
-            setShowAdvanceModal(false);
-            setAdvanceFreight(null);
-          }}
-          freightId={advanceFreight.id}
-          freightPrice={advanceFreight.price}
-        />
-      )}
     </div>
   );
 };
