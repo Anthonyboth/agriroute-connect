@@ -12,7 +12,6 @@ import { Loader2, Mail } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
 import { validateDocument } from '@/utils/cpfValidator';
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
-import TestEmailFunction from '@/components/TestEmailFunction';
 
 
 const Auth = () => {
@@ -293,11 +292,6 @@ const Auth = () => {
           </Tabs>
         </CardContent>
       </Card>
-      
-      {/* Componente temporário para testar email */}
-      <div className="mt-4">
-        <TestEmailFunction />
-      </div>
       
       <ForgotPasswordModal 
         open={showForgotPassword} 
