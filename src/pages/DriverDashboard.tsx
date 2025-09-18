@@ -19,6 +19,7 @@ import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryN
 import FreightLimitTracker from '@/components/FreightLimitTracker';
 import FreightCheckinModal from '@/components/FreightCheckinModal';
 import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
+import FreightWithdrawalModal from '@/components/FreightWithdrawalModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -71,6 +72,8 @@ const DriverDashboard = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
   const [selectedFreightForCheckin, setSelectedFreightForCheckin] = useState<string | null>(null);
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+  const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<Freight | null>(null);
   const [filters, setFilters] = useState({
     cargo_type: 'all',
     service_type: 'all',
@@ -397,19 +400,17 @@ const DriverDashboard = () => {
     }
   };
 
-  const handleFreightWithdrawal = async (freightId: string) => {
-    if (!profile?.id) return;
+  const handleFreightWithdrawal = (freight: Freight) => {
+    setSelectedFreightForWithdrawal(freight);
+    setShowWithdrawalModal(true);
+  };
 
-    // Confirmação da desistência com aviso da taxa
-    const confirmed = window.confirm(
-      'Tem certeza que deseja desistir deste frete?\n\n' +
-      '⚠️ ATENÇÃO: Será cobrada uma taxa de R$ 20,00 pela desistência.\n\n' +
-      'Esta ação não pode ser desfeita e o frete ficará disponível para outros motoristas.'
-    );
-
-    if (!confirmed) return;
+  const confirmFreightWithdrawal = async () => {
+    if (!profile?.id || !selectedFreightForWithdrawal) return;
 
     try {
+      const freightId = selectedFreightForWithdrawal.id;
+
       // Atualizar o frete para voltar ao status OPEN
       const { error: freightError } = await supabase
         .from('freights')
@@ -830,7 +831,7 @@ const DriverDashboard = () => {
                             size="sm" 
                             variant="destructive"
                             className="w-full"
-                            onClick={() => handleFreightWithdrawal(freight.id)}
+                            onClick={() => handleFreightWithdrawal(freight)}
                           >
                             Desistir do Frete (Taxa R$ 20)
                           </Button>
@@ -1210,6 +1211,22 @@ const DriverDashboard = () => {
           }}
         />
       )}
+
+      {/* Modal de Desistência */}
+      <FreightWithdrawalModal
+        isOpen={showWithdrawalModal}
+        onClose={() => {
+          setShowWithdrawalModal(false);
+          setSelectedFreightForWithdrawal(null);
+        }}
+        onConfirm={confirmFreightWithdrawal}
+        freightInfo={selectedFreightForWithdrawal ? {
+          cargo_type: selectedFreightForWithdrawal.cargo_type,
+          origin_address: selectedFreightForWithdrawal.origin_address,
+          destination_address: selectedFreightForWithdrawal.destination_address,
+          price: selectedFreightForWithdrawal.price
+        } : undefined}
+      />
     </div>
   );
 };
