@@ -124,15 +124,17 @@ export function useFreightTracking(freightId: string | null, enabled: boolean = 
 
   // Função para lidar com perda de sinal
   const handleSignalLoss = useCallback(async () => {
-    if (!freightId) return;
+    if (!freightId || !trackingState.isActive) return;
 
     setTrackingState(prev => ({ ...prev, signalLost: true }));
     
-    // Notificar motorista
-    toast.error(
-      "Rastreamento interrompido. Ative a localização em até 30s para evitar suspensão e notificação ao embarcador.",
-      { duration: 30000 }
-    );
+    // Notificar motorista uma única vez
+    if (!trackingState.signalLost) {
+      toast.error(
+        "Rastreamento interrompido. Ative a localização em até 30s para evitar suspensão e notificação ao embarcador.",
+        { duration: 30000 }
+      );
+    }
 
     // Criar incidente automático
     try {
@@ -158,7 +160,7 @@ export function useFreightTracking(freightId: string | null, enabled: boolean = 
     } catch (error) {
       console.error('Erro ao reportar perda de sinal:', error);
     }
-  }, [freightId, settings.signalLossThreshold]);
+  }, [freightId, settings.signalLossThreshold, trackingState.isActive, trackingState.signalLost]);
 
   // Iniciar rastreamento
   const startTracking = useCallback(async () => {
@@ -222,7 +224,7 @@ export function useFreightTracking(freightId: string | null, enabled: boolean = 
       signalLossTimerRef.current = null;
     }
 
-    if (freightId) {
+    if (freightId && trackingState.isActive) {
       try {
         await supabase
           .from('freights')
@@ -241,22 +243,16 @@ export function useFreightTracking(freightId: string | null, enabled: boolean = 
       isActive: false,
       signalLost: false
     }));
-
-    toast.info("Rastreamento desativado");
-  }, [freightId]);
+  }, [freightId, trackingState.isActive]);
 
   // Efeito para controlar o rastreamento
   useEffect(() => {
-    if (enabled && freightId && hasPermission) {
+    if (enabled && freightId && hasPermission && !trackingState.isActive) {
       startTracking();
-    } else if (!enabled) {
+    } else if (!enabled && trackingState.isActive) {
       stopTracking();
     }
-
-    return () => {
-      stopTracking();
-    };
-  }, [enabled, freightId, hasPermission, startTracking, stopTracking]);
+  }, [enabled, freightId, hasPermission, trackingState.isActive]);
 
   // Cleanup ao desmontar
   useEffect(() => {
