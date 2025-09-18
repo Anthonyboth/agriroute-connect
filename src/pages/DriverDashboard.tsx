@@ -22,7 +22,9 @@ import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { getCargoTypeLabel } from '@/lib/cargo-types';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 interface Freight {
@@ -635,81 +637,134 @@ const DriverDashboard = () => {
             </div>
             
             {ongoingFreights.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-6 md:grid-cols-2">
                 {ongoingFreights.map((freight) => (
-                  <div key={freight.id} className="relative">
-                    <FreightCard 
-                      freight={{
-                        ...freight,
-                        status: freight.status as 'OPEN' | 'IN_TRANSIT' | 'DELIVERED',
-                        service_type: (freight.service_type === 'GUINCHO' || 
-                                     freight.service_type === 'MUDANCA' || 
-                                     freight.service_type === 'CARGA') 
-                                    ? freight.service_type as 'GUINCHO' | 'MUDANCA' | 'CARGA'
-                                    : undefined
-                      }}
-                      showActions={false}
-                    />
-                    
-                    {/* Status do frete */}
-                    <div className="mt-2 p-3 bg-card border rounded-lg">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium">Status:</span>
-                        <Badge variant={freight.status === 'ACCEPTED' ? 'secondary' : 'default'}>
-                          {freight.status === 'ACCEPTED' ? 'Aguardando Carregamento' : 'Em Trânsito'}
-                        </Badge>
+                  <Card key={freight.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Package className="h-5 w-5 text-primary" />
+                          <h3 className="font-semibold text-foreground">
+                            {getCargoTypeLabel(freight.cargo_type)}
+                          </h3>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant={freight.status === 'ACCEPTED' ? 'secondary' : 'default'}>
+                            {freight.status === 'ACCEPTED' ? 'Aceito' : 'Normal'}
+                          </Badge>
+                          <Badge variant={freight.status === 'ACCEPTED' ? 'secondary' : 'default'}>
+                            {freight.status === 'ACCEPTED' ? 'Aguardando Carregamento' : 'Em Trânsito'}
+                          </Badge>
+                        </div>
                       </div>
-                      
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm">Valor Acordado:</span>
-                        <span className="text-sm font-semibold text-primary">
-                          R$ {freight.price?.toLocaleString('pt-BR')}
-                        </span>
+                    </CardHeader>
+
+                    <CardContent className="space-y-4">
+                      {/* Peso e Distância */}
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center space-x-1 text-muted-foreground">
+                          <Package className="h-4 w-4" />
+                          <span>{((freight.weight || 0) / 1000).toFixed(1)}t</span>
+                        </div>
+                        <div className="flex items-center space-x-1 text-muted-foreground">
+                          <MapPin className="h-4 w-4" />
+                          <span>{freight.distance_km} km</span>
+                        </div>
                       </div>
-                      
-                      <div className="flex justify-between items-center text-xs text-muted-foreground">
-                        <span>Coleta: {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}</span>
-                        <span>Entrega: {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}</span>
+
+                      {/* Origem e Destino */}
+                      <div className="space-y-2">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Origem</p>
+                          <p className="text-sm text-muted-foreground truncate">{freight.origin_address}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Destino</p>
+                          <p className="text-sm text-muted-foreground truncate">{freight.destination_address}</p>
+                        </div>
                       </div>
-                      
+
+                      {/* Datas */}
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-1 text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>Coleta</span>
+                          </div>
+                          <p className="font-medium text-foreground">
+                            {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-1 text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>Entrega</span>
+                          </div>
+                          <p className="font-medium text-foreground">
+                            {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Status e Valor */}
+                      <div className="bg-secondary/20 p-3 rounded-lg space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Status:</span>
+                          <Badge variant={freight.status === 'ACCEPTED' ? 'secondary' : 'default'}>
+                            {freight.status === 'ACCEPTED' ? 'Aguardando Carregamento' : 'Em Trânsito'}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Valor Acordado:</span>
+                          <span className="text-lg font-bold text-primary">
+                            R$ {freight.price?.toLocaleString('pt-BR')}
+                          </span>
+                        </div>
+                        
+                        <div className="text-xs text-muted-foreground text-center pt-1 border-t">
+                          Min. ANTT: R$ {freight.minimum_antt_price?.toLocaleString('pt-BR')}
+                        </div>
+                      </div>
+
+                      {/* Botões de Ação */}
                       {freight.status === 'ACCEPTED' && (
-                        <div className="mt-3 pt-2 border-t space-y-2">
-                          <div className="flex gap-1">
-                            <Button 
-                              size="sm" 
-                              className="flex-1 text-xs"
-                              onClick={() => {
-                                setSelectedFreightForCheckin(freight.id);
-                                setShowCheckinModal(true);
-                              }}
-                            >
-                              Check-in
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="flex-1 text-xs"
-                              onClick={() => {
-                                setSelectedFreightId(freight.id);
-                                setShowDetails(true);
-                              }}
-                            >
-                              Detalhes
-                            </Button>
-                          </div>
-                          
-                          {/* Componente de visualização de check-ins */}
-                          <div className="mt-2">
-                            <FreightCheckinsViewer 
-                              freightId={freight.id}
-                              currentUserProfile={profile}
-                              onRefresh={fetchOngoingFreights}
-                            />
-                          </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="flex-1"
+                            onClick={() => {
+                              setSelectedFreightForCheckin(freight.id);
+                              setShowCheckinModal(true);
+                            }}
+                          >
+                            Check-in
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                              setSelectedFreightId(freight.id);
+                              setShowDetails(true);
+                            }}
+                          >
+                            Detalhes
+                          </Button>
                         </div>
                       )}
-                    </div>
-                  </div>
+
+                      {/* Check-ins do Frete */}
+                      <FreightCheckinsViewer 
+                        freightId={freight.id}
+                        currentUserProfile={profile}
+                        onRefresh={fetchOngoingFreights}
+                      />
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             ) : (
