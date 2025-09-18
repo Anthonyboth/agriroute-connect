@@ -71,7 +71,7 @@ const PlatformStats: React.FC = () => {
   const formatWeight = (kg: number) => {
     if (kg <= 0) return '0 ton';
     // Keep the same UX used na landing: exibir em "k ton"
-    return `${(kg / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}k ton`;
+    return `${Math.round(kg / 1000).toLocaleString('pt-BR')}k ton`;
   };
 
   if (stats.loading) {
