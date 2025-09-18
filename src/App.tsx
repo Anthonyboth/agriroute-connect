@@ -7,6 +7,7 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import ConfirmEmail from "./pages/ConfirmEmail";
 import CompleteProfile from "./pages/CompleteProfile";
 import AdminPanel from "./pages/AdminPanel";
 import ProducerDashboard from "./pages/ProducerDashboard";
@@ -150,6 +151,7 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<RedirectIfAuthed />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/confirm-email" element={<ConfirmEmail />} />
             <Route 
               path="/complete-profile" 
               element={

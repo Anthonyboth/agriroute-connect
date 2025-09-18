@@ -37,7 +37,7 @@ export const ForgotPasswordModal = ({ open, onOpenChange }: ForgotPasswordModalP
         toast.error('Erro ao enviar email de recuperação. Tente novamente.');
       } else {
         setEmailSent(true);
-        toast.success('Email de recuperação enviado! Verifique sua caixa de entrada.');
+        toast.success('Email de recuperação enviado! Verifique sua caixa de entrada e pasta de spam.');
       }
     } catch (error) {
       console.error('Erro inesperado:', error);
@@ -79,10 +79,10 @@ export const ForgotPasswordModal = ({ open, onOpenChange }: ForgotPasswordModalP
               <p className="text-sm text-muted-foreground">
                 Um e-mail foi enviado para <strong>{email}</strong>
               </p>
-              <p className="text-sm text-muted-foreground">
-                Clique no link no e-mail para redefinir sua senha. Se não encontrar o e-mail, 
-                verifique sua pasta de spam.
-              </p>
+            <p className="text-sm text-muted-foreground">
+              Clique no link no e-mail para redefinir sua senha. Se não encontrar o e-mail, 
+              verifique sua pasta de spam ou lixo eletrônico. O link é válido por 24 horas.
+            </p>
             </div>
             <div className="flex justify-center">
               <Button onClick={handleClose} className="w-full max-w-xs">

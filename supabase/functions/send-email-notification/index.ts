@@ -153,31 +153,33 @@ serve(async (req) => {
     // - Resend
     // - SendGrid
     // - Amazon SES
-    // For demonstration, we'll use a mock service
 
-    const emailServiceUrl = Deno.env.get('EMAIL_SERVICE_URL');
-    const emailApiKey = Deno.env.get('EMAIL_API_KEY') || Deno.env.get('RESEND_API_KEY');
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
 
-    if (!emailServiceUrl || !emailApiKey) {
-      console.log('Email service not configured, email would be sent to:', to);
+    if (!resendApiKey) {
+      console.log('RESEND_API_KEY not configured, email would be sent to:', to);
       console.log('Subject:', subject);
       console.log('Content:', message);
       
       // Store as notification instead
       try {
         // Get user by email to store notification
-        const { data: profiles } = await supabaseClient
-          .from('profiles')
-          .select('id')
-          .eq('user_id', (await supabaseClient.auth.admin.getUserByEmail(to)).data.user?.id);
+        const { data: authUser } = await supabaseClient.auth.admin.getUserByEmail(to);
+        
+        if (authUser.user) {
+          const { data: profiles } = await supabaseClient
+            .from('profiles')
+            .select('id')
+            .eq('user_id', authUser.user.id);
 
-        if (profiles && profiles.length > 0) {
-          await supabaseClient.rpc('send_notification', {
-            p_user_id: profiles[0].id,
-            p_title: subject,
-            p_message: message,
-            p_type: 'info'
-          });
+          if (profiles && profiles.length > 0) {
+            await supabaseClient.rpc('send_notification', {
+              p_user_id: profiles[0].id,
+              p_title: subject,
+              p_message: message,
+              p_type: 'info'
+            });
+          }
         }
       } catch (error) {
         console.log('Could not store as notification:', error.message);
@@ -185,22 +187,22 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({ 
         success: true, 
-        message: 'Email service not configured - notification stored instead' 
+        message: 'RESEND_API_KEY not configured - notification stored instead' 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
     }
 
-    // Example using Resend API
+    // Send email using Resend API
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${emailApiKey}`,
+        'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'AgriRoute <noreply@agriroute.com>',
+        from: 'AgriRoute <noreply@resend.dev>',
         to: [to],
         subject: subject,
         html: htmlContent,
