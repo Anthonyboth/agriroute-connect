@@ -131,7 +131,7 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
         weight = parseFloat(formData.estimated_volume) || 0;
       } else {
         cargoDescription = `${formData.service_type === 'FRETE_URBANO' ? 'Frete urbano' : 'Coleta e entrega'} - ${formData.package_weight}t`;
-        weight = (parseFloat(formData.package_weight) || 0) * 1000; // Convert tons to kg for database
+        weight = (parseFloat(formData.package_weight) || 0) * 1000; // Convert tonnes to kg for database
       }
 
       const description = [
@@ -297,10 +297,10 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
                   min="0"
                   value={formData.package_weight}
                   onChange={(e) => setFormData({...formData, package_weight: e.target.value})}
-                  placeholder="Ex: 0.05 (50kg)"
+                  placeholder="Ex: 0.05 (0.05t)"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Peso em toneladas (ex: 0.05 para 50kg)
+                  Peso em toneladas (ex: 0.05 para 0.05t)
                 </p>
               </div>
 

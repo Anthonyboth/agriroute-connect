@@ -68,7 +68,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
       const invoke = supabase.functions.invoke('antt-freight-table', {
         body: { 
           cargo_type: cargoType.toLowerCase().replace(/\s+/g, '_'),
-          weight_kg: weight * 1000, // Convert tons to kg for ANTT calculation
+          weight_kg: weight * 1000, // Convert tonnes to kg for ANTT calculation
           distance_km: distance,
           origin_state: originState,
           destination_state: destinationState
@@ -111,7 +111,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
       const freightData = {
         producer_id: userProfile.id,
         cargo_type: formData.cargo_type,
-        weight: weight * 1000, // Convert to kg for database storage
+        weight: weight * 1000, // Convert tonnes to kg for database storage
         origin_address: formData.origin_address,
         destination_address: formData.destination_address,
         distance_km: distance,
@@ -220,7 +220,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Peso em toneladas (ex: 1.5 para 1500kg)
+                Peso em toneladas (ex: 1.5 para 1.5t)
               </p>
             </div>
 

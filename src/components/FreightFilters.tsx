@@ -131,7 +131,7 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
 
           {/* Peso Mínimo */}
           <div className="space-y-2">
-            <Label>Peso Mínimo (kg)</Label>
+            <Label>Peso Mínimo (t)</Label>
             <Input
               type="number"
               placeholder="0"
@@ -142,7 +142,7 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
 
           {/* Peso Máximo */}
           <div className="space-y-2">
-            <Label>Peso Máximo (kg)</Label>
+            <Label>Peso Máximo (t)</Label>
             <Input
               type="number"
               placeholder="Sem limite"

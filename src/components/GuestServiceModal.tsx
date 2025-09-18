@@ -69,7 +69,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
       description: 'Transporte rápido dentro da cidade',
       icon: '🚚',
       subServices: [
-        { id: 'FRETE_MOTO', name: 'Frete de Moto', description: 'Entregas até 20kg', price: 'A partir de R$ 15' },
+        { id: 'FRETE_MOTO', name: 'Frete de Moto', description: 'Entregas até 0.02t', price: 'A partir de R$ 15' },
         { id: 'FRETE_VAN', name: 'Frete de Van', description: 'Cargas até 1 tonelada', price: 'A partir de R$ 45' }
       ],
       features: ['Entrega rápida', 'Rastreamento', 'Carga protegida']
