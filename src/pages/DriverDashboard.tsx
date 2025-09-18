@@ -160,26 +160,38 @@ const DriverDashboard = () => {
     }
   }, [profile?.id]);
 
-  // Buscar fretes em andamento - otimizado com consulta única
+  // Buscar fretes em andamento - baseado em propostas aceitas
   const fetchOngoingFreights = useCallback(async () => {
     if (!profile?.id) return;
 
     try {
-      // Consulta única otimizada combinando fretes diretos e propostas aceitas
+      // Buscar propostas aceitas do motorista
+      const { data: acceptedProposals, error: proposalsError } = await supabase
+        .from('freight_proposals')
+        .select('freight_id')
+        .eq('driver_id', profile.id)
+        .eq('status', 'ACCEPTED');
+
+      if (proposalsError) throw proposalsError;
+
+      if (!acceptedProposals || acceptedProposals.length === 0) {
+        setOngoingFreights([]);
+        return;
+      }
+
+      const freightIds = acceptedProposals.map(p => p.freight_id);
+
+      // Buscar os fretes correspondentes
       const { data, error } = await supabase
         .from('freights')
-        .select(`
-          *,
-          freight_proposals!inner(status)
-        `)
-        .or(`driver_id.eq.${profile.id},freight_proposals.driver_id.eq.${profile.id}`)
-        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
-        .order('updated_at', { ascending: false })
-        .limit(50);
+        .select('*')
+        .in('id', freightIds)
+        .order('updated_at', { ascending: false });
 
       if (error) throw error;
       setOngoingFreights(data || []);
     } catch (error) {
+      console.error('Error fetching ongoing freights:', error);
       toast.error('Erro ao carregar fretes em andamento');
     }
   }, [profile?.id]);
