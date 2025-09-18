@@ -93,14 +93,14 @@ export function FreightPaymentModal({
           <div className="space-y-3">
             <div className="bg-muted/20 p-4 rounded-lg">
               <p className="text-sm text-muted-foreground">Valor total do frete</p>
-              <p className="text-lg font-semibold">R$ {(freightPrice / 100).toFixed(2)}</p>
+              <p className="text-lg font-semibold">R$ {freightPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </div>
 
             {advancesTotal > 0 && (
               <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                 <p className="text-sm text-green-600 dark:text-green-400">Adiantamentos pagos</p>
                 <p className="text-lg font-semibold text-green-700 dark:text-green-300">
-                  - R$ {(advancesTotal / 100).toFixed(2)}
+                  - R$ {advancesTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
             )}
@@ -108,7 +108,7 @@ export function FreightPaymentModal({
             <div className="bg-primary/10 p-4 rounded-lg">
               <p className="text-sm text-muted-foreground">Valor a pagar</p>
               <p className="text-xl font-bold text-primary">
-                R$ {(remainingAmount / 100).toFixed(2)}
+                R$ {remainingAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
           </div>
@@ -148,7 +148,7 @@ export function FreightPaymentModal({
               className="flex-1"
             >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Pagar R$ {(remainingAmount / 100).toFixed(2)}
+              Pagar R$ {remainingAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Button>
           </div>
         </div>

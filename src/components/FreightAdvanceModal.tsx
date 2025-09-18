@@ -27,7 +27,7 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
     try {
       const payload = advanceType === "percentage" 
         ? { freight_id: freightId, advance_percentage: percentage[0] }
-        : { freight_id: freightId, advance_amount: Math.round(parseFloat(customAmount) * 100) };
+        : { freight_id: freightId, advance_amount: Math.round(parseFloat(customAmount)) };
 
       const { data, error } = await supabase.functions.invoke('create-freight-advance', {
         body: payload
@@ -50,7 +50,7 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
 
   const calculatedAmount = advanceType === "percentage" 
     ? (freightPrice * percentage[0]) / 100
-    : parseFloat(customAmount) * 100 || 0;
+    : parseFloat(customAmount) || 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -65,7 +65,7 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
         <div className="space-y-6">
           <div className="bg-muted/20 p-4 rounded-lg">
             <p className="text-sm text-muted-foreground">Valor total do frete</p>
-            <p className="text-xl font-semibold">R$ {(freightPrice / 100).toFixed(2)}</p>
+            <p className="text-xl font-semibold">R$ {freightPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
 
           <div className="space-y-4">
@@ -112,10 +112,10 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
                 placeholder="0,00"
                 value={customAmount}
                 onChange={(e) => setCustomAmount(e.target.value)}
-                max={freightPrice / 100 * 0.5}
+                max={freightPrice * 0.5}
               />
               <p className="text-sm text-muted-foreground">
-                Máximo: R$ {(freightPrice / 100 * 0.5).toFixed(2)}
+                Máximo: R$ {(freightPrice * 0.5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
           )}
@@ -124,7 +124,7 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
             <div className="bg-primary/10 p-4 rounded-lg">
               <p className="text-sm text-muted-foreground">Valor do adiantamento</p>
               <p className="text-xl font-semibold text-primary">
-                R$ {(calculatedAmount / 100).toFixed(2)}
+                R$ {calculatedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
           )}

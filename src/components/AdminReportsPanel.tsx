@@ -90,9 +90,9 @@ Motoristas Ativos: ${report.active_drivers}
 Produtores Ativos: ${report.active_producers}
 
 Financeiro:
-Receita Total: R$ ${(report.total_revenue / 100).toFixed(2)}
-Comissão Earned: R$ ${(report.commission_earned / 100).toFixed(2)}
-Valor Médio por Frete: R$ ${(report.average_freight_value / 100).toFixed(2)}
+Receita Total: R$ ${report.total_revenue?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}
+Comissão Earned: R$ ${report.commission_earned?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}
+Valor Médio por Frete: R$ ${report.average_freight_value?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}
     `.trim();
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -216,7 +216,7 @@ Valor Médio por Frete: R$ ${(report.average_freight_value / 100).toFixed(2)}
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Receita</p>
-                        <p className="font-semibold">R$ {(report.total_revenue / 100).toFixed(2)}</p>
+                        <p className="font-semibold">R$ {report.total_revenue?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}</p>
                       </div>
                     </div>
                     
@@ -224,7 +224,7 @@ Valor Médio por Frete: R$ ${(report.average_freight_value / 100).toFixed(2)}
                       <TrendingUp className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Comissão</p>
-                        <p className="font-semibold">R$ {(report.commission_earned / 100).toFixed(2)}</p>
+                        <p className="font-semibold">R$ {report.commission_earned?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}</p>
                       </div>
                     </div>
                   </div>
