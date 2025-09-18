@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "npm:resend@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -155,6 +156,7 @@ serve(async (req) => {
     // - Amazon SES
 
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const resend = new Resend(resendApiKey);
 
     if (!resendApiKey) {
       console.log('RESEND_API_KEY not configured, email would be sent to:', to);
@@ -194,28 +196,20 @@ serve(async (req) => {
       });
     }
 
-    // Send email using Resend API
-    const emailResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'AgriRoute <noreply@resend.dev>',
-        to: [to],
-        subject: subject,
-        html: htmlContent,
-      }),
+    // Send email using Resend
+    const { error } = await resend.emails.send({
+      from: 'AgriRoute <noreply@resend.dev>',
+      to: [to],
+      subject: subject,
+      html: htmlContent,
     });
 
-    if (!emailResponse.ok) {
-      const errorData = await emailResponse.text();
-      throw new Error(`Email service error: ${errorData}`);
+    if (error) {
+      throw new Error(`Email service error: ${error.message}`);
     }
 
-    const result = await emailResponse.json();
-    console.log('Email sent successfully:', result);
+    console.log('Email sent successfully');
+    const result = { id: 'sent-via-resend' };
 
     // Log email sent
     await supabaseClient
