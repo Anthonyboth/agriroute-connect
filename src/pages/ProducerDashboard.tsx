@@ -355,8 +355,7 @@ const ProducerDashboard = () => {
                                 freightId={freight.id}
                                 currentUserProfile={profile}
                               />
-                            </div>
-                            </div>
+                             </div>
 
                             {/* Painel de Rastreamento */}
                             <div className="border rounded-lg p-4 bg-gradient-to-br from-accent/5 to-accent/2">
@@ -397,10 +396,6 @@ const ProducerDashboard = () => {
                       </div>
                     ))}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
                 )}
               </CardContent>
             </Card>
