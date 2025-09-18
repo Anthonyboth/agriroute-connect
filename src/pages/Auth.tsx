@@ -168,7 +168,13 @@ const Auth = () => {
       });
 
       if (error) {
-        toast.error(error.message || 'Não foi possível reenviar o email.');
+        const msg = error.message || '';
+        if (msg.includes('For security purposes, you can only request this after')) {
+          const seconds = msg.match(/(\d+) seconds?/)?.[1] || '60';
+          toast.error(`Por segurança, você só pode solicitar novamente após ${seconds} segundos.`);
+        } else {
+          toast.error('Não foi possível reenviar o email.');
+        }
         return;
       }
 
