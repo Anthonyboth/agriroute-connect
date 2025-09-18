@@ -11,10 +11,14 @@ import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryN
 import { ProposalCounterModal } from '@/components/ProposalCounterModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FreightStatusTracker } from '@/components/FreightStatusTracker';
+import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
+import { FreightTrackingPanel } from '@/components/FreightTrackingPanel';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { getProposalStatusLabel } from '@/lib/freight-status';
+import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-status';
 import { toast } from 'sonner';
+import { MapPin, Truck, Clock, Eye } from 'lucide-react';
 
 const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
@@ -27,6 +31,7 @@ const ProducerDashboard = () => {
   const [selectedFreight, setSelectedFreight] = useState<any>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [freightToCancel, setFreightToCancel] = useState<any>(null);
+  const [selectedTrackingFreight, setSelectedTrackingFreight] = useState<any>(null);
 
   useEffect(() => {
     if (profile) {
@@ -288,29 +293,94 @@ const ProducerDashboard = () => {
                     <p className="text-muted-foreground">Nenhum frete em andamento no momento.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
-                      <FreightCard
-                        key={freight.id}
-                        freight={{
-                          id: freight.id,
-                          cargo_type: freight.cargo_type,
-                          weight: freight.weight,
-                          distance_km: freight.distance_km,
-                          origin_address: freight.origin_address,
-                          destination_address: freight.destination_address,
-                          price: freight.price,
-                          status: freight.status,
-                          pickup_date: freight.pickup_date,
-                          delivery_date: freight.delivery_date,
-                          urgency: freight.urgency,
-                          minimum_antt_price: freight.minimum_antt_price || 0,
-                          required_trucks: freight.required_trucks || 1,
-                          accepted_trucks: freight.accepted_trucks || 0
-                        }}
-                        showProducerActions={false}
-                        onAction={() => {}}
-                      />
+                      <Card key={freight.id} className="border-l-4 border-l-primary">
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-semibold">{freight.cargo_type}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {freight.origin_address} → {freight.destination_address}
+                              </p>
+                              <div className="flex items-center gap-4 mt-2">
+                                <div className="flex items-center gap-1">
+                                  <Truck className="h-4 w-4" />
+                                  <span className="text-sm">{freight.weight}kg</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="h-4 w-4" />
+                                  <span className="text-sm">{freight.distance_km}km</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-4 w-4" />
+                                  <span className="text-sm">
+                                    {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant={freight.status === 'IN_TRANSIT' ? 'default' : 'secondary'}>
+                                {getFreightStatusLabel(freight.status)}
+                              </Badge>
+                              <p className="font-semibold mt-2">R$ {freight.price.toLocaleString()}</p>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        
+                        <CardContent className="space-y-4">
+                          {/* Rastreamento de Status */}
+                          <div className="border rounded-lg p-4">
+                            <h4 className="font-medium mb-3">Status do Frete</h4>
+                            <FreightStatusTracker 
+                              freightId={freight.id}
+                              currentStatus={freight.status}
+                              currentUserProfile={profile}
+                              isDriver={false}
+                            />
+                          </div>
+
+                          {/* Check-ins */}
+                          <div className="border rounded-lg p-4">
+                            <h4 className="font-medium mb-3">Check-ins do Frete</h4>
+                            <FreightCheckinsViewer 
+                              freightId={freight.id}
+                              currentUserProfile={profile}
+                            />
+                          </div>
+
+                          {/* Painel de Rastreamento */}
+                          <div className="border rounded-lg p-4">
+                            <h4 className="font-medium mb-3">Rastreamento em Tempo Real</h4>
+                            <FreightTrackingPanel 
+                              freightId={freight.id}
+                              isDriver={false}
+                            />
+                          </div>
+
+                          {/* Botões de Ação */}
+                          <div className="flex gap-2 pt-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => setSelectedTrackingFreight(freight)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver Detalhes
+                            </Button>
+                            {freight.status === 'IN_NEGOTIATION' && (
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => handleFreightAction('cancel', freight)}
+                              >
+                                Cancelar Frete
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
                 )}
