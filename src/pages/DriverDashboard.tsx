@@ -20,7 +20,7 @@ import FreightLimitTracker from '@/components/FreightLimitTracker';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play } from 'lucide-react';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 interface Freight {
@@ -61,6 +61,7 @@ const DriverDashboard = () => {
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
   const [counterOffers, setCounterOffers] = useState<any[]>([]);
+  const [ongoingFreights, setOngoingFreights] = useState<Freight[]>([]);
   const [activeTab, setActiveTab] = useState('available');
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -138,7 +139,25 @@ const DriverDashboard = () => {
     }
   };
 
-  // Buscar contra-ofertas dos produtores
+  // Buscar fretes em andamento (aceitos pelo motorista)
+  const fetchOngoingFreights = async () => {
+    if (!profile?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('freights')
+        .select('*')
+        .eq('driver_id', profile.id)
+        .in('status', ['ACCEPTED', 'IN_TRANSIT'])
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      setOngoingFreights(data || []);
+    } catch (error) {
+      console.error('Error fetching ongoing freights:', error);
+      toast.error('Erro ao carregar fretes em andamento');
+    }
+  };
   const fetchCounterOffers = async () => {
     if (!profile?.id) return;
 
@@ -229,7 +248,11 @@ const DriverDashboard = () => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchAvailableFreights(), fetchMyProposals()]);
+      await Promise.all([
+        fetchAvailableFreights(), 
+        fetchMyProposals(), 
+        fetchOngoingFreights()
+      ]);
       setLoading(false);
     };
 
@@ -492,6 +515,14 @@ const DriverDashboard = () => {
                 <span className="sm:hidden">IA</span>
               </TabsTrigger>
               <TabsTrigger 
+                value="ongoing" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Play className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Em Andamento</span>
+                <span className="sm:hidden">Ativo</span>
+              </TabsTrigger>
+              <TabsTrigger 
                 value="scheduled" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
@@ -559,6 +590,88 @@ const DriverDashboard = () => {
             </div>
             <SmartFreightMatcher onFreightAction={handleFreightAction} />
           </TabsContent>
+
+          <TabsContent value="ongoing" className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Fretes em Andamento</h3>
+              <Badge variant="secondary">{ongoingFreights.length} ativo(s)</Badge>
+            </div>
+            
+            {ongoingFreights.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {ongoingFreights.map((freight) => (
+                  <div key={freight.id} className="relative">
+                    <FreightCard 
+                      freight={{
+                        ...freight,
+                        status: freight.status as 'OPEN' | 'IN_TRANSIT' | 'DELIVERED',
+                        service_type: (freight.service_type === 'GUINCHO' || 
+                                     freight.service_type === 'MUDANCA' || 
+                                     freight.service_type === 'CARGA') 
+                                    ? freight.service_type as 'GUINCHO' | 'MUDANCA' | 'CARGA'
+                                    : undefined
+                      }}
+                      showActions={false}
+                    />
+                    
+                    {/* Status do frete */}
+                    <div className="mt-2 p-3 bg-card border rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium">Status:</span>
+                        <Badge variant={freight.status === 'ACCEPTED' ? 'secondary' : 'default'}>
+                          {freight.status === 'ACCEPTED' ? 'Aguardando Carregamento' : 'Em Trânsito'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm">Valor Acordado:</span>
+                        <span className="text-sm font-semibold text-primary">
+                          R$ {freight.price?.toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center text-xs text-muted-foreground">
+                        <span>Coleta: {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}</span>
+                        <span>Entrega: {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}</span>
+                      </div>
+                      
+                      {freight.status === 'ACCEPTED' && (
+                        <div className="mt-3 pt-2 border-t">
+                          <Button 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => {
+                              // Iniciar processo de coleta/tracking
+                              toast.success('Funcionalidade de tracking será implementada em breve');
+                            }}
+                          >
+                            Iniciar Coleta
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Play className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                  Nenhum frete em andamento
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Quando você aceitar um frete ou ele for aceito pelo produtor, aparecerá aqui
+                </p>
+                <Button 
+                  onClick={() => setActiveTab('available')}
+                  className="mt-2"
+                >
+                  Ver Fretes Disponíveis
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
           <TabsContent value="scheduled">
             <ScheduledFreightsManager />
           </TabsContent>
