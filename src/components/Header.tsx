@@ -250,8 +250,8 @@ const Header: React.FC<HeaderProps> = ({
           onClose={() => setShowAddProfile(false)}
           currentRole={userProfile.role}
           onProfileAdded={() => {
-            // Recarregar dados do usuário
-            window.location.reload();
+            setShowAddProfile(false);
+            setShowAccountSwitcher(false);
           }}
         />
       )}

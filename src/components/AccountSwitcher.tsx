@@ -127,11 +127,6 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
       
       onClose();
       
-      // Recarregar a página para atualizar o contexto
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-      
     } catch (error) {
       console.error('Error switching account:', error);
       toast.error('Erro ao alternar conta');
