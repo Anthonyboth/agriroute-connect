@@ -319,7 +319,8 @@ const DriverDashboard = () => {
   };
 
   const handleMenuClick = () => {
-    // Implementar menu lateral se necessário
+    // Menu lateral funcionalidade futura
+    console.log('Menu clicked');
   };
 
   const handleFreightAction = async (freightId: string, action: 'propose' | 'accept' | 'complete' | 'cancel') => {
