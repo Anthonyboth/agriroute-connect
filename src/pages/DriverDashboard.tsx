@@ -508,8 +508,8 @@ const DriverDashboard = () => {
         userProfile={profile}
       />
 
-      {/* Hero Section */}
-      <section className="relative min-h-[320px] md:min-h-[360px] flex items-center justify-center overflow-hidden">
+      {/* Hero Section Compacto */}
+      <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${heroLogistics})` }}
@@ -517,90 +517,90 @@ const DriverDashboard = () => {
         <div className="absolute inset-0 bg-primary/80" />
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">
-            <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-              Olá, {profile?.full_name || 'Motorista'}
+            <h1 className="text-xl md:text-2xl font-bold mb-2">
+              Olá, {profile?.full_name?.split(' ')[0] || 'Motorista'}
             </h1>
-            <p className="text-base md:text-xl mb-5 md:mb-6 opacity-90">
-              Sistema IA encontra fretes compatíveis com seus serviços automaticamente
+            <p className="text-sm md:text-base mb-4 opacity-90">
+              Sistema IA encontra fretes para você
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
               <Button 
                 variant="default"
-                size="lg"
+                size="sm"
                 onClick={() => setActiveTab('available')}
-                className="bg-background text-primary hover:bg-background/90 font-semibold rounded-full px-6 md:px-8 py-5 md:py-6 shadow-elegant"
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
               >
-                <Brain className="mr-2 h-5 w-5" />
+                <Brain className="mr-1 h-4 w-4" />
                 Ver Fretes IA
               </Button>
               <Button 
                 variant="default"
-                size="lg"
+                size="sm"
                 onClick={() => setActiveTab('services')}
-                className="bg-background text-primary hover:bg-background/90 font-semibold rounded-full px-6 md:px-8 py-5 md:py-6 shadow-elegant"
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
               >
-                <Settings className="mr-2 h-5 w-5" />
-                Configurar Serviços
+                <Settings className="mr-1 h-4 w-4" />
+                Configurar
               </Button>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="container max-w-7xl mx-auto py-8 px-4">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
+      <div className="container max-w-7xl mx-auto py-4 px-4">
+        {/* Stats Cards Compactos */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
               <div className="flex items-center">
-                <MapPin className="h-8 w-8 text-primary" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Fretes Disponíveis
+                <MapPin className="h-6 w-6 text-primary flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">
+                    Disponíveis
                   </p>
-                  <p className="text-2xl font-bold">{statistics.availableCount}</p>
+                  <p className="text-lg font-bold">{statistics.availableCount}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
               <div className="flex items-center">
-                <Clock className="h-8 w-8 text-orange-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Viagens Ativas
+                <Clock className="h-6 w-6 text-orange-500 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">
+                    Ativas
                   </p>
-                  <p className="text-2xl font-bold">{statistics.activeTrips}</p>
+                  <p className="text-lg font-bold">{statistics.activeTrips}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
               <div className="flex items-center">
-                <CheckCircle className="h-8 w-8 text-green-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Concluídas
+                <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">
+                    Completas
                   </p>
-                  <p className="text-2xl font-bold">{statistics.completedTrips}</p>
+                  <p className="text-lg font-bold">{statistics.completedTrips}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
               <div className="flex items-center">
-                <TrendingUp className="h-8 w-8 text-blue-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Ganhos Totais
+                <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">
+                    Ganhos
                   </p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-sm font-bold">
                     {new Intl.NumberFormat('pt-BR', { 
                       style: 'currency', 
                       currency: 'BRL',
@@ -614,76 +614,76 @@ const DriverDashboard = () => {
           </Card>
         </div>
 
-        {/* FreightLimitTracker for drivers */}
-        <div className="mb-8">
+        {/* FreightLimitTracker compacto */}
+        <div className="mb-4">
           <FreightLimitTracker />
         </div>
 
-        {/* Tabs */}
+        {/* Tabs Compactas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="w-full overflow-x-auto">
-            <TabsList className="inline-flex h-12 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
+          <div className="w-full overflow-x-auto pb-2">
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
               <TabsTrigger 
                 value="available" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <Brain className="h-4 w-4 mr-1 md:mr-2" />
+                <Brain className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Fretes IA</span>
                 <span className="sm:hidden">IA</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="ongoing" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <Play className="h-4 w-4 mr-1 md:mr-2" />
+                <Play className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Em Andamento</span>
                 <span className="sm:hidden">Ativo</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="scheduled" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <Clock className="h-4 w-4 mr-1 md:mr-2" />
+                <Clock className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Agendados</span>
                 <span className="sm:hidden">Agenda</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="calendar" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <MapPin className="h-4 w-4 mr-1 md:mr-2" />
+                <MapPin className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Disponibilidade</span>
                 <span className="sm:hidden">Local</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="my-trips" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <CheckCircle className="h-4 w-4 mr-1 md:mr-2" />
+                <CheckCircle className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Propostas</span>
                 <span className="sm:hidden">Props</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="services" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <Settings className="h-4 w-4 mr-1 md:mr-2" />
+                <Settings className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Serviços</span>
                 <span className="sm:hidden">Serv</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="vehicles" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <Truck className="h-4 w-4 mr-1 md:mr-2" />
+                <Truck className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Meus Veículos</span>
                 <span className="sm:hidden">Veíc</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="historico" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <CheckCircle className="h-4 w-4 mr-1 md:mr-2" />
+                <CheckCircle className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Histórico</span>
                 <span className="sm:hidden">Hist</span>
               </TabsTrigger>
@@ -737,118 +737,105 @@ const DriverDashboard = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="ongoing" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Fretes em Andamento</h3>
-              <Badge variant="secondary">{ongoingFreights.length} ativo(s)</Badge>
+          <TabsContent value="ongoing" className="space-y-3">
+            <div className="flex flex-col space-y-2 mb-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-base font-semibold">Em Andamento</h3>
+                <Badge variant="secondary" className="text-xs">{ongoingFreights.length}</Badge>
+              </div>
             </div>
             
             {ongoingFreights.length > 0 ? (
-              <div className="grid gap-8 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+              <div className="space-y-4">
                 {ongoingFreights.map((freight) => (
-                  <Card key={freight.id} className="hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border border-border/60">
-                    <CardHeader className="pb-4">
+                  <Card key={freight.id} className="shadow-sm border border-border/50">
+                    <CardHeader className="pb-3 px-4 pt-4">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <Package className="h-5 w-5 text-primary" />
-                          <h3 className="font-semibold text-foreground text-lg">
+                        <div className="flex items-center space-x-2">
+                          <Package className="h-4 w-4 text-primary" />
+                          <h3 className="font-medium text-foreground text-sm">
                             {getCargoTypeLabel(freight.cargo_type)}
                           </h3>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={freight.status === 'ACCEPTED' ? 'secondary' : 'default'} className="text-xs font-medium">
-                            {freight.status === 'ACCEPTED' ? 'Aceito' : 'Normal'}
-                          </Badge>
-                          <Badge variant={freight.status === 'ACCEPTED' ? 'default' : 'secondary'} className="text-xs font-medium bg-primary text-primary-foreground">
-                            {freight.status === 'ACCEPTED' ? 'A caminho da coleta' : 'Em Trânsito'}
-                          </Badge>
-                        </div>
+                        <Badge variant="default" className="text-xs bg-primary text-primary-foreground px-2 py-1">
+                          {freight.status === 'ACCEPTED' ? 'Aceito' : 'Ativo'}
+                        </Badge>
                       </div>
                     </CardHeader>
 
-                    <CardContent className="space-y-5">
-                      {/* Peso e Distância */}
-                      <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
-                        <div className="flex items-center space-x-2 text-muted-foreground">
-                          <Package className="h-4 w-4" />
-                          <span className="text-sm font-medium">{((freight.weight || 0) / 1000).toFixed(1)}t</span>
+                    <CardContent className="space-y-3 px-4 pb-4">
+                      {/* Informações Compactas */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center space-x-1 text-muted-foreground bg-muted/30 p-2 rounded">
+                          <Package className="h-3 w-3" />
+                          <span>{((freight.weight || 0) / 1000).toFixed(1)}t</span>
                         </div>
-                        <div className="flex items-center space-x-2 text-muted-foreground">
-                          <MapPin className="h-4 w-4" />
-                          <span className="text-sm font-medium">{freight.distance_km} km</span>
+                        <div className="flex items-center space-x-1 text-muted-foreground bg-muted/30 p-2 rounded">
+                          <MapPin className="h-3 w-3" />
+                          <span>{freight.distance_km} km</span>
                         </div>
                       </div>
 
-                      {/* Origem e Destino */}
-                      <div className="space-y-4">
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                            <MapPin className="h-3 w-3 text-primary" />
-                            Origem
-                          </p>
-                          <p className="text-sm text-muted-foreground pl-5 truncate">{freight.origin_address}</p>
+                      {/* Origem e Destino Compactos */}
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-start space-x-2">
+                          <MapPin className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground">De:</p>
+                            <p className="text-muted-foreground truncate">{freight.origin_address}</p>
+                          </div>
                         </div>
                         
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                            <MapPin className="h-3 w-3 text-accent" />
-                            Destino
-                          </p>
-                          <p className="text-sm text-muted-foreground pl-5 truncate">{freight.destination_address}</p>
+                        <div className="flex items-start space-x-2">
+                          <MapPin className="h-3 w-3 text-accent mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground">Para:</p>
+                            <p className="text-muted-foreground truncate">{freight.destination_address}</p>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Datas */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2 p-3 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-lg border border-border/40">
-                          <div className="flex items-center space-x-2 text-muted-foreground">
-                            <Calendar className="h-4 w-4 text-primary" />
-                            <span className="text-xs font-medium">Coleta</span>
+                      {/* Datas Compactas */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2 bg-gradient-to-br from-secondary/20 to-secondary/10 rounded border border-border/30">
+                          <div className="flex items-center space-x-1 text-muted-foreground mb-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>Coleta</span>
                           </div>
-                          <p className="font-semibold text-foreground text-sm">
-                            {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
+                          <p className="font-medium text-foreground">
+                            {new Date(freight.pickup_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                           </p>
                         </div>
-                        <div className="space-y-2 p-3 bg-gradient-to-br from-accent/20 to-accent/5 rounded-lg border border-border/40">
-                          <div className="flex items-center space-x-2 text-muted-foreground">
-                            <Calendar className="h-4 w-4 text-accent" />
-                            <span className="text-xs font-medium">Entrega</span>
+                        <div className="p-2 bg-gradient-to-br from-accent/15 to-accent/5 rounded border border-border/30">
+                          <div className="flex items-center space-x-1 text-muted-foreground mb-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>Entrega</span>
                           </div>
-                          <p className="font-semibold text-foreground text-sm">
-                            {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}
+                          <p className="font-medium text-foreground">
+                            {new Date(freight.delivery_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                           </p>
                         </div>
                       </div>
 
-                      <Separator className="bg-border/60" />
-
-                      {/* Status e Valor */}
-                      <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-4 rounded-lg border border-border/50 space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-semibold">Status:</span>
-                          <Badge variant={freight.status === 'ACCEPTED' ? 'default' : 'secondary'} className="bg-primary text-primary-foreground">
-                            {freight.status === 'ACCEPTED' ? 'A caminho da coleta' : 'Em Trânsito'}
-                          </Badge>
-                        </div>
-                        
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">Valor Acordado:</span>
-                          <span className="text-xl font-bold text-primary">
+                      {/* Valor e Status */}
+                      <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-3 rounded-lg border border-border/40">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-xs text-muted-foreground">Valor:</span>
+                          <span className="text-sm font-bold text-primary">
                             R$ {freight.price?.toLocaleString('pt-BR')}
                           </span>
                         </div>
-                        
-                        <div className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
+                        <div className="text-xs text-muted-foreground text-center">
                           Min. ANTT: R$ {freight.minimum_antt_price?.toLocaleString('pt-BR')}
                         </div>
                       </div>
 
-                      {/* Botões de Ação */}
-                      <div className="flex gap-3">
+                      {/* Botões Compactos */}
+                      <div className="flex gap-2">
                         {(freight.status === 'ACCEPTED' || freight.status === 'LOADING') && (
                           <Button 
-                            size="default" 
-                            className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
+                            size="sm" 
+                            className="flex-1 h-8 text-xs bg-primary hover:bg-primary/90"
                             onClick={() => {
                               setSelectedFreightForCheckin(freight.id);
                               setShowCheckinModal(true);
@@ -858,24 +845,26 @@ const DriverDashboard = () => {
                           </Button>
                         )}
                         <Button 
-                          size="default" 
+                          size="sm" 
                           variant="outline"
-                          className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                          className="flex-1 h-8 text-xs border-primary/30 hover:bg-primary/5"
                           onClick={() => {
                             setSelectedFreightId(freight.id);
                             setShowDetails(true);
                           }}
                         >
-                          Detalhes e Chat
+                          Detalhes
                         </Button>
                       </div>
 
-                      {/* Check-ins do Frete */}
-                      <FreightCheckinsViewer 
-                        freightId={freight.id}
-                        currentUserProfile={profile}
-                        onRefresh={fetchOngoingFreights}
-                      />
+                      {/* Check-ins Compactos */}
+                      <div className="border-t border-border/30 pt-2">
+                        <FreightCheckinsViewer 
+                          freightId={freight.id}
+                          currentUserProfile={profile}
+                          onRefresh={fetchOngoingFreights}
+                        />
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
