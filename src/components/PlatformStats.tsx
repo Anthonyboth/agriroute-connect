@@ -70,9 +70,9 @@ const PlatformStats: React.FC = () => {
   const formatNumber = (n: number) => n.toLocaleString('pt-BR');
   const formatWeight = (kg: number) => {
     if (kg <= 0) return '0 ton';
-    // Keep the same UX used na landing: exibir em "k ton"
-    const toneladas = Math.round(kg / 1000);
-    return `${toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}k ton`;
+    // Convert to millions of kg, then to thousands of tons (k ton)
+    const millionsKg = kg / 1000000;
+    return `${millionsKg.toFixed(1)}k ton`;
   };
 
   if (stats.loading) {
