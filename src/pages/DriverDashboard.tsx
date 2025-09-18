@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -113,30 +113,28 @@ const DriverDashboard = () => {
   };
   const [loading, setLoading] = useState(true);
 
-  // Buscar fretes disponíveis
-  const fetchAvailableFreights = async () => {
+  // Buscar fretes disponíveis - otimizado
+  const fetchAvailableFreights = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('freights')
         .select('*')
         .eq('status', 'OPEN')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50); // Limitar para melhor performance
 
       if (error) throw error;
       setAvailableFreights(data || []);
     } catch (error) {
-      console.error('Error fetching freights:', error);
       toast.error('Erro ao carregar fretes disponíveis');
     }
-  };
+  }, []);
 
-  // Buscar propostas do motorista (incluir todas para visibilidade completa)
-  const fetchMyProposals = async () => {
+  // Buscar propostas do motorista - otimizado
+  const fetchMyProposals = useCallback(async () => {
     if (!profile?.id) return;
 
     try {
-      console.log('Fetching proposals for driver ID:', profile.id);
-      
       const { data, error } = await supabase
         .from('freight_proposals')
         .select(`
@@ -152,71 +150,41 @@ const DriverDashboard = () => {
           )
         `)
         .eq('driver_id', profile.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100); // Limitar consulta
 
       if (error) throw error;
-      
-      console.log('Proposals loaded for driver:', data?.length || 0, data);
       setMyProposals(data || []);
     } catch (error) {
-      console.error('Error fetching proposals:', error);
       toast.error('Erro ao carregar suas propostas');
     }
-  };
+  }, [profile?.id]);
 
-  // Buscar fretes em andamento (fonte híbrida para garantir visibilidade)
-  const fetchOngoingFreights = async () => {
+  // Buscar fretes em andamento - otimizado com consulta única
+  const fetchOngoingFreights = useCallback(async () => {
     if (!profile?.id) return;
 
     try {
-      console.log('Fetching ongoing freights for driver ID:', profile.id);
-      
-      // 1) Fretes já vinculados ao motorista - incluir todos os status ativos
-      const { data: directFreights, error: freightsError } = await supabase
+      // Consulta única otimizada combinando fretes diretos e propostas aceitas
+      const { data, error } = await supabase
         .from('freights')
-        .select('*')
-        .eq('driver_id', profile.id)
-        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
-        .order('updated_at', { ascending: false });
-
-      if (freightsError) throw freightsError;
-
-      console.log('Direct freights found:', directFreights?.length || 0, directFreights);
-
-      let merged: Freight[] = directFreights || [];
-
-      // 2) Fretes de propostas aceitas (caso driver_id não esteja sincronizado)
-      const { data: acceptedProposals, error: acceptedErr } = await supabase
-        .from('freight_proposals')
         .select(`
-          freight_id,
-          status,
-          freight:freights(*)
+          *,
+          freight_proposals!inner(status)
         `)
-        .eq('driver_id', profile.id)
-        .eq('status', 'ACCEPTED');
+        .or(`driver_id.eq.${profile.id},freight_proposals.driver_id.eq.${profile.id}`)
+        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
+        .order('updated_at', { ascending: false })
+        .limit(50);
 
-      if (acceptedErr) throw acceptedErr;
-
-      console.log('Accepted proposals found:', acceptedProposals?.length || 0, acceptedProposals);
-
-      // Adicionar fretes de propostas aceitas que não estão em directFreights
-      const acceptedFreights = (acceptedProposals || [])
-        .map(p => p.freight)
-        .filter(f => f && ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'].includes(String(f.status)))
-        .filter(f => !merged.some(existing => existing.id === f.id));
-
-      merged = [...merged, ...acceptedFreights];
-
-      console.log('Final ongoing freights merged:', merged.length, merged);
-      setOngoingFreights(merged);
+      if (error) throw error;
+      setOngoingFreights(data || []);
     } catch (error) {
-      console.error('Error fetching ongoing freights:', error);
       toast.error('Erro ao carregar fretes em andamento');
     }
-  };
-  const fetchCounterOffers = async () => {
-    if (!profile?.id) return;
+  }, [profile?.id]);
+  const fetchCounterOffers = useCallback(async () => {
+    if (!profile?.id || myProposals.length === 0) return;
 
     try {
       const { data, error } = await supabase
@@ -228,14 +196,15 @@ const DriverDashboard = () => {
         `)
         .eq('message_type', 'COUNTER_PROPOSAL')
         .in('freight_id', myProposals.map(p => p.freight_id))
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(20);
 
       if (error) throw error;
       setCounterOffers(data || []);
     } catch (error) {
-      console.error('Error fetching counter offers:', error);
+      // Silenciar erro para não poluir UI
     }
-  };
+  }, [profile?.id, myProposals]);
 
   const handleAcceptCounterOffer = async (messageId: string, freightId: string) => {
     try {
@@ -301,9 +270,11 @@ const DriverDashboard = () => {
     }
   };
 
-  // Carregar dados
+  // Carregar dados - otimizado
   useEffect(() => {
     const loadData = async () => {
+      if (!profile?.id) return;
+      
       setLoading(true);
       await Promise.all([
         fetchAvailableFreights(), 
@@ -313,26 +284,30 @@ const DriverDashboard = () => {
       setLoading(false);
     };
 
-    if (profile) {
-      loadData();
-    }
-  }, [profile]);
+    loadData();
+  }, [profile?.id, fetchAvailableFreights, fetchMyProposals, fetchOngoingFreights]);
 
-  // Carregar contra-ofertas quando as propostas mudarem
+  // Carregar contra-ofertas - debounced para evitar chamadas excessivas
   useEffect(() => {
-    if (myProposals.length > 0) {
+    const timeoutId = setTimeout(() => {
       fetchCounterOffers();
-    }
-  }, [myProposals]);
+    }, 500);
 
-  // Calcular estatísticas
-  const acceptedProposals = myProposals.filter(p => p.status === 'ACCEPTED');
-  const activeTrips = acceptedProposals.filter(p => p.freight?.status === 'IN_TRANSIT').length;
-  const completedTrips = acceptedProposals.filter(p => p.freight?.status === 'DELIVERED').length;
-  const availableCount = availableFreights.length;
-  const totalEarnings = acceptedProposals
-    .filter(p => p.freight?.status === 'DELIVERED')
-    .reduce((sum, proposal) => sum + (proposal.proposed_price || 0), 0);
+    return () => clearTimeout(timeoutId);
+  }, [fetchCounterOffers]);
+
+  // Calcular estatísticas - memoizado para performance
+  const statistics = useMemo(() => {
+    const acceptedProposals = myProposals.filter(p => p.status === 'ACCEPTED');
+    return {
+      activeTrips: acceptedProposals.filter(p => p.freight?.status === 'IN_TRANSIT').length,
+      completedTrips: acceptedProposals.filter(p => p.freight?.status === 'DELIVERED').length,
+      availableCount: availableFreights.length,
+      totalEarnings: acceptedProposals
+        .filter(p => p.freight?.status === 'DELIVERED')
+        .reduce((sum, proposal) => sum + (proposal.proposed_price || 0), 0)
+    };
+  }, [myProposals, availableFreights]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -571,7 +546,7 @@ const DriverDashboard = () => {
                   <p className="text-sm font-medium text-muted-foreground">
                     Fretes Disponíveis
                   </p>
-                  <p className="text-2xl font-bold">{availableCount}</p>
+                  <p className="text-2xl font-bold">{statistics.availableCount}</p>
                 </div>
               </div>
             </CardContent>
@@ -585,7 +560,7 @@ const DriverDashboard = () => {
                   <p className="text-sm font-medium text-muted-foreground">
                     Viagens Ativas
                   </p>
-                  <p className="text-2xl font-bold">{activeTrips}</p>
+                  <p className="text-2xl font-bold">{statistics.activeTrips}</p>
                 </div>
               </div>
             </CardContent>
@@ -599,7 +574,7 @@ const DriverDashboard = () => {
                   <p className="text-sm font-medium text-muted-foreground">
                     Concluídas
                   </p>
-                  <p className="text-2xl font-bold">{completedTrips}</p>
+                  <p className="text-2xl font-bold">{statistics.completedTrips}</p>
                 </div>
               </div>
             </CardContent>
@@ -619,7 +594,7 @@ const DriverDashboard = () => {
                       currency: 'BRL',
                       notation: 'compact',
                       maximumFractionDigits: 0
-                    }).format(totalEarnings)}
+                    }).format(statistics.totalEarnings)}
                   </p>
                 </div>
               </div>
