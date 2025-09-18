@@ -287,10 +287,10 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             {totalAdvances > 0 && (
               <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
                 <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                  Adiantamentos pagos: R$ {(totalAdvances / 100).toFixed(2)}
+                  Adiantamentos pagos: R$ {totalAdvances.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-sm text-green-600 dark:text-green-400">
-                  Valor restante: R$ {(remainingAmount / 100).toFixed(2)}
+                  Valor restante: R$ {remainingAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
             )}
