@@ -70,9 +70,9 @@ const PlatformStats: React.FC = () => {
   const formatNumber = (n: number) => n.toLocaleString('pt-BR');
   const formatWeight = (kg: number) => {
     if (kg <= 0) return '0 ton';
-    // Convert to millions of kg, then to thousands of tons (k ton)
-    const millionsKg = kg / 1000000;
-    return `${millionsKg.toFixed(1)}k ton`;
+    // Exibir valor inteiro em "k ton" (milhares de toneladas) sem casas decimais
+    const thousandsOfTons = Math.round(kg / 1000); // 1k ton = 1.000 toneladas
+    return `${thousandsOfTons.toLocaleString('pt-BR', { maximumFractionDigits: 0, minimumFractionDigits: 0 })}k ton`;
   };
 
   if (stats.loading) {
