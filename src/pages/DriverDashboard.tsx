@@ -397,6 +397,75 @@ const DriverDashboard = () => {
     }
   };
 
+  const handleFreightWithdrawal = async (freightId: string) => {
+    if (!profile?.id) return;
+
+    // Confirmação da desistência com aviso da taxa
+    const confirmed = window.confirm(
+      'Tem certeza que deseja desistir deste frete?\n\n' +
+      '⚠️ ATENÇÃO: Será cobrada uma taxa de R$ 20,00 pela desistência.\n\n' +
+      'Esta ação não pode ser desfeita e o frete ficará disponível para outros motoristas.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Atualizar o frete para voltar ao status OPEN
+      const { error: freightError } = await supabase
+        .from('freights')
+        .update({ 
+          status: 'OPEN',
+          driver_id: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', freightId)
+        .eq('driver_id', profile.id);
+
+      if (freightError) throw freightError;
+
+      // Atualizar a proposta para cancelada
+      const { error: proposalError } = await supabase
+        .from('freight_proposals')
+        .update({ 
+          status: 'CANCELLED',
+          updated_at: new Date().toISOString()
+        })
+        .eq('freight_id', freightId)
+        .eq('driver_id', profile.id);
+
+      if (proposalError) throw proposalError;
+
+      // Registrar a taxa de desistência (futuramente pode ser integrada com sistema de pagamento)
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: profile.id,
+          title: 'Taxa de Desistência',
+          message: 'Foi aplicada uma taxa de R$ 20,00 pela desistência do frete. O valor será descontado do próximo pagamento.',
+          type: 'warning',
+          data: {
+            freight_id: freightId,
+            fee_amount: 20.00,
+            fee_type: 'withdrawal'
+          }
+        });
+
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
+      }
+
+      toast.success('Desistência processada. Taxa de R$ 20 será cobrada.');
+      
+      // Atualizar as listas
+      fetchOngoingFreights();
+      fetchMyProposals();
+      
+    } catch (error: any) {
+      console.error('Error processing freight withdrawal:', error);
+      toast.error('Erro ao processar desistência: ' + (error.message || 'Tente novamente'));
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -732,27 +801,38 @@ const DriverDashboard = () => {
 
                       {/* Botões de Ação */}
                       {freight.status === 'ACCEPTED' && (
-                        <div className="flex gap-2">
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              className="flex-1"
+                              onClick={() => {
+                                setSelectedFreightForCheckin(freight.id);
+                                setShowCheckinModal(true);
+                              }}
+                            >
+                              Check-in
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => {
+                                setSelectedFreightId(freight.id);
+                                setShowDetails(true);
+                              }}
+                            >
+                              Detalhes
+                            </Button>
+                          </div>
+                          
                           <Button 
                             size="sm" 
-                            className="flex-1"
-                            onClick={() => {
-                              setSelectedFreightForCheckin(freight.id);
-                              setShowCheckinModal(true);
-                            }}
+                            variant="destructive"
+                            className="w-full"
+                            onClick={() => handleFreightWithdrawal(freight.id)}
                           >
-                            Check-in
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="flex-1"
-                            onClick={() => {
-                              setSelectedFreightId(freight.id);
-                              setShowDetails(true);
-                            }}
-                          >
-                            Detalhes
+                            Desistir do Frete (Taxa R$ 20)
                           </Button>
                         </div>
                       )}
