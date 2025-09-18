@@ -56,16 +56,9 @@ const serviceTypes = [
   {
     id: 'eletricista',
     title: 'Eletricista Automotivo',
-    description: 'Problemas elétricos e bateria',
-    icon: Zap,
-    color: 'text-warning'
-  },
-  {
-    id: 'auto-eletrica',
-    title: 'Auto-Elétrica',
     description: 'Sistema elétrico completo de veículos',
     icon: Zap,
-    color: 'text-info'
+    color: 'text-warning'
   },
   {
     id: 'combustivel',

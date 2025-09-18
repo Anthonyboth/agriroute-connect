@@ -56,7 +56,6 @@ const specialtyOptions = [
 const certificationOptions = [
   'SENAI - Mecânica Automotiva',
   'SENAI - Eletricista Automotivo',
-  'SENAI - Auto-Elétrica',
   'Certificação ISO 9001',
   'Curso Bosch',
   'Certificação Volvo',
