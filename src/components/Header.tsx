@@ -64,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({
   const menuItems = [
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
     { icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) },
-    { icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) },
+    ...(user.role !== 'PRODUTOR' ? [{ icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) }] : []),
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
   ];
 
