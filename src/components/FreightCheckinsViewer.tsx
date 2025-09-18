@@ -80,7 +80,7 @@ const FreightCheckinsViewer: React.FC<FreightCheckinsViewerProps> = ({
 
   const getCheckinTypeLabel = (type: string) => {
     const types: Record<string, string> = {
-      'LOADING': 'Carregamento',
+      'LOADING': 'A caminho da coleta',
       'UNLOADING': 'Descarregamento',
       'IN_TRANSIT': 'Em Trajeto',
       'DELAY': 'Atraso/Problema',

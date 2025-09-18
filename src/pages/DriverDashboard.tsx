@@ -723,7 +723,7 @@ const DriverDashboard = () => {
                             {freight.status === 'ACCEPTED' ? 'Aceito' : 'Normal'}
                           </Badge>
                           <Badge variant={freight.status === 'ACCEPTED' ? 'secondary' : 'default'}>
-                            {freight.status === 'ACCEPTED' ? 'Aguardando Carregamento' : 'Em Trânsito'}
+                            {freight.status === 'ACCEPTED' ? 'A caminho da coleta' : 'Em Trânsito'}
                           </Badge>
                         </div>
                       </div>
@@ -784,7 +784,7 @@ const DriverDashboard = () => {
                         <div className="flex justify-between items-center">
                           <span className="text-sm font-medium">Status:</span>
                           <Badge variant={freight.status === 'ACCEPTED' ? 'secondary' : 'default'}>
-                            {freight.status === 'ACCEPTED' ? 'Aguardando Carregamento' : 'Em Trânsito'}
+                            {freight.status === 'ACCEPTED' ? 'A caminho da coleta' : 'Em Trânsito'}
                           </Badge>
                         </div>
                         

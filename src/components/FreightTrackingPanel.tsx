@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useFreightTracking } from "@/hooks/useFreightTracking";
 import { TrackingConsentModal } from "./TrackingConsentModal";
+import { ProducerTrackingView } from "./ProducerTrackingView";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -303,15 +304,7 @@ export function FreightTrackingPanel({
 
           {/* Visualização para Produtores */}
           {!isDriver && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <Eye className="h-4 w-4 text-blue-600" />
-                <span className="font-medium text-blue-800">Monitoramento do Frete</span>
-              </div>
-              <p className="text-sm text-blue-700">
-                Você pode acompanhar a localização do seu frete em tempo real quando o rastreamento estiver ativo.
-              </p>
-            </div>
+            <ProducerTrackingView freightId={freightId} />
           )}
 
           {/* Erro de Rastreamento */}

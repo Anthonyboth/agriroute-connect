@@ -30,7 +30,7 @@ const FreightCheckinModal: React.FC<FreightCheckinModalProps> = ({
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
 
   const checkinTypes = [
-    { value: 'LOADING', label: 'Carregamento', requiresCounterpart: true },
+    { value: 'LOADING', label: 'A caminho da coleta', requiresCounterpart: true },
     { value: 'UNLOADING', label: 'Descarregamento', requiresCounterpart: true },
     { value: 'IN_TRANSIT', label: 'Durante o Trajeto', requiresCounterpart: false },
     { value: 'DELAY', label: 'Atraso/Problema', requiresCounterpart: false },

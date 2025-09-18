@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 
 const STATUS_FLOW = [
   { key: 'ACCEPTED', label: 'Aceito', icon: CheckCircle },
-  { key: 'LOADING', label: 'Carregando', icon: Package },
+  { key: 'LOADING', label: 'A caminho da coleta', icon: Package },
   { key: 'LOADED', label: 'Carregado', icon: Truck },
   { key: 'IN_TRANSIT', label: 'Em Trânsito', icon: Navigation },
   { key: 'DELIVERED', label: 'Entregue', icon: MapPin }
