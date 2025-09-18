@@ -707,106 +707,112 @@ const DriverDashboard = () => {
             </div>
             
             {ongoingFreights.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-8 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
                 {ongoingFreights.map((freight) => (
-                  <Card key={freight.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="pb-3">
+                  <Card key={freight.id} className="hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border border-border/60">
+                    <CardHeader className="pb-4">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-3">
                           <Package className="h-5 w-5 text-primary" />
-                          <h3 className="font-semibold text-foreground">
+                          <h3 className="font-semibold text-foreground text-lg">
                             {getCargoTypeLabel(freight.cargo_type)}
                           </h3>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Badge variant={freight.status === 'ACCEPTED' ? 'secondary' : 'default'}>
+                          <Badge variant={freight.status === 'ACCEPTED' ? 'secondary' : 'default'} className="text-xs font-medium">
                             {freight.status === 'ACCEPTED' ? 'Aceito' : 'Normal'}
                           </Badge>
-                          <Badge variant={freight.status === 'ACCEPTED' ? 'secondary' : 'default'}>
+                          <Badge variant={freight.status === 'ACCEPTED' ? 'default' : 'secondary'} className="text-xs font-medium bg-primary text-primary-foreground">
                             {freight.status === 'ACCEPTED' ? 'A caminho da coleta' : 'Em Trânsito'}
                           </Badge>
                         </div>
                       </div>
                     </CardHeader>
 
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-5">
                       {/* Peso e Distância */}
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center space-x-1 text-muted-foreground">
+                      <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+                        <div className="flex items-center space-x-2 text-muted-foreground">
                           <Package className="h-4 w-4" />
-                          <span>{((freight.weight || 0) / 1000).toFixed(1)}t</span>
+                          <span className="text-sm font-medium">{((freight.weight || 0) / 1000).toFixed(1)}t</span>
                         </div>
-                        <div className="flex items-center space-x-1 text-muted-foreground">
+                        <div className="flex items-center space-x-2 text-muted-foreground">
                           <MapPin className="h-4 w-4" />
-                          <span>{freight.distance_km} km</span>
+                          <span className="text-sm font-medium">{freight.distance_km} km</span>
                         </div>
                       </div>
 
                       {/* Origem e Destino */}
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">Origem</p>
-                          <p className="text-sm text-muted-foreground truncate">{freight.origin_address}</p>
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <MapPin className="h-3 w-3 text-primary" />
+                            Origem
+                          </p>
+                          <p className="text-sm text-muted-foreground pl-5 truncate">{freight.origin_address}</p>
                         </div>
                         
-                        <div>
-                          <p className="text-sm font-medium text-foreground">Destino</p>
-                          <p className="text-sm text-muted-foreground truncate">{freight.destination_address}</p>
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <MapPin className="h-3 w-3 text-accent" />
+                            Destino
+                          </p>
+                          <p className="text-sm text-muted-foreground pl-5 truncate">{freight.destination_address}</p>
                         </div>
                       </div>
 
                       {/* Datas */}
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-1 text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>Coleta</span>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2 p-3 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-lg border border-border/40">
+                          <div className="flex items-center space-x-2 text-muted-foreground">
+                            <Calendar className="h-4 w-4 text-primary" />
+                            <span className="text-xs font-medium">Coleta</span>
                           </div>
-                          <p className="font-medium text-foreground">
+                          <p className="font-semibold text-foreground text-sm">
                             {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-1 text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>Entrega</span>
+                        <div className="space-y-2 p-3 bg-gradient-to-br from-accent/20 to-accent/5 rounded-lg border border-border/40">
+                          <div className="flex items-center space-x-2 text-muted-foreground">
+                            <Calendar className="h-4 w-4 text-accent" />
+                            <span className="text-xs font-medium">Entrega</span>
                           </div>
-                          <p className="font-medium text-foreground">
+                          <p className="font-semibold text-foreground text-sm">
                             {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
                       </div>
 
-                      <Separator />
+                      <Separator className="bg-border/60" />
 
                       {/* Status e Valor */}
-                      <div className="bg-secondary/20 p-3 rounded-lg space-y-2">
+                      <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-4 rounded-lg border border-border/50 space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">Status:</span>
-                          <Badge variant={freight.status === 'ACCEPTED' ? 'secondary' : 'default'}>
+                          <span className="text-sm font-semibold">Status:</span>
+                          <Badge variant={freight.status === 'ACCEPTED' ? 'default' : 'secondary'} className="bg-primary text-primary-foreground">
                             {freight.status === 'ACCEPTED' ? 'A caminho da coleta' : 'Em Trânsito'}
                           </Badge>
                         </div>
                         
                         <div className="flex justify-between items-center">
-                          <span className="text-sm">Valor Acordado:</span>
-                          <span className="text-lg font-bold text-primary">
+                          <span className="text-sm font-medium">Valor Acordado:</span>
+                          <span className="text-xl font-bold text-primary">
                             R$ {freight.price?.toLocaleString('pt-BR')}
                           </span>
                         </div>
                         
-                        <div className="text-xs text-muted-foreground text-center pt-1 border-t">
+                        <div className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
                           Min. ANTT: R$ {freight.minimum_antt_price?.toLocaleString('pt-BR')}
                         </div>
                       </div>
 
                       {/* Botões de Ação */}
                       {freight.status === 'ACCEPTED' && (
-                        <div className="space-y-2">
-                          <div className="flex gap-2">
+                        <div className="space-y-3">
+                          <div className="flex gap-3">
                             <Button 
                               size="sm" 
-                              className="flex-1"
+                              className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
                               onClick={() => {
                                 setSelectedFreightForCheckin(freight.id);
                                 setShowCheckinModal(true);
@@ -817,7 +823,7 @@ const DriverDashboard = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              className="flex-1"
+                              className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
                               onClick={() => {
                                 setSelectedFreightId(freight.id);
                                 setShowDetails(true);
@@ -830,7 +836,7 @@ const DriverDashboard = () => {
                           <Button 
                             size="sm" 
                             variant="destructive"
-                            className="w-full"
+                            className="w-full hover:shadow-lg transition-all duration-300"
                             onClick={() => handleFreightWithdrawal(freight)}
                           >
                             Desistir do Frete (Taxa R$ 20)
@@ -896,10 +902,15 @@ const DriverDashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="my-trips" className="space-y-4">
-            <h3 className="text-lg font-semibold">Minhas Propostas Enviadas</h3>
+          <TabsContent value="my-trips" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-semibold">Minhas Propostas Enviadas</h3>
+              <Badge variant="secondary" className="text-sm font-medium">
+                {myProposals.length} proposta{myProposals.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
             {myProposals.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-8 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
                 {myProposals.map((proposal) => (
                   proposal.freight && (
                     <div key={proposal.id} className="relative">
@@ -917,21 +928,22 @@ const DriverDashboard = () => {
                       />
                       
                       {/* Informações da proposta */}
-                      <div className="mt-2 p-3 bg-card border rounded-lg space-y-2">
+                      <div className="mt-4 p-4 bg-gradient-to-r from-card to-secondary/10 border rounded-lg shadow-sm space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">Sua Proposta:</span>
-                          <span className="text-sm font-semibold">
+                          <span className="text-sm font-semibold">Sua Proposta:</span>
+                          <span className="text-lg font-bold text-primary">
                             R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
                           </span>
                         </div>
                         
                         <div className="flex justify-between items-center">
-                          <span className="text-sm">Status:</span>
+                          <span className="text-sm font-medium">Status:</span>
                           <Badge 
                             variant={
                               proposal.status === 'ACCEPTED' ? 'default' :
                               proposal.status === 'PENDING' ? 'secondary' : 'destructive'
                             }
+                            className="font-medium"
                           >
                             {proposal.status === 'ACCEPTED' ? 'Aceita pelo Produtor' :
                              proposal.status === 'PENDING' ? 'Aguardando Resposta' : 
@@ -942,17 +954,17 @@ const DriverDashboard = () => {
 
                         {/* Informações do produtor */}
                         {proposal.producer && (
-                          <div className="pt-2 border-t">
-                            <p className="text-xs text-muted-foreground">Produtor:</p>
-                            <p className="text-sm font-medium">{proposal.producer.full_name}</p>
+                          <div className="pt-3 border-t border-border/40">
+                            <p className="text-xs text-muted-foreground font-medium mb-1">Produtor:</p>
+                            <p className="text-sm font-semibold">{proposal.producer.full_name}</p>
                             {proposal.producer.phone && (
-                              <p className="text-xs text-muted-foreground">{proposal.producer.phone}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{proposal.producer.phone}</p>
                             )}
                           </div>
                         )}
 
                         {/* Data da proposta */}
-                        <div className="pt-1">
+                        <div className="pt-2 border-t border-border/40">
                           <p className="text-xs text-muted-foreground">
                             Enviada em: {new Date(proposal.created_at).toLocaleDateString('pt-BR')} às {new Date(proposal.created_at).toLocaleTimeString('pt-BR')}
                           </p>
@@ -962,7 +974,7 @@ const DriverDashboard = () => {
                       {/* Ações baseadas no status */}
                       {proposal.status === 'ACCEPTED' && (
                         <Button 
-                          className="w-full mt-2" 
+                          className="w-full mt-4 gradient-primary hover:shadow-lg transition-all duration-300" 
                           size="sm"
                           onClick={() => {
                             setSelectedFreightId(proposal.freight!.id);
@@ -976,7 +988,7 @@ const DriverDashboard = () => {
                       {proposal.status === 'PENDING' && (
                         <Button 
                           variant="outline" 
-                          className="w-full mt-2" 
+                          className="w-full mt-4 border-2 border-destructive/20 hover:border-destructive/40 hover:bg-destructive/5" 
                           size="sm"
                           onClick={() => handleFreightAction(proposal.freight!.id, 'cancel')}
                         >
@@ -985,7 +997,7 @@ const DriverDashboard = () => {
                       )}
 
                       {proposal.status === 'REJECTED' && (
-                        <div className="mt-2">
+                        <div className="mt-4 p-3 bg-muted/40 rounded-lg border border-border/40">
                           <p className="text-xs text-center text-muted-foreground">
                             Proposta rejeitada. Você pode fazer uma nova proposta.
                           </p>

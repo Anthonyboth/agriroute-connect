@@ -206,7 +206,7 @@ const ProducerDashboard = () => {
   const totalValue = freights.reduce((sum, f) => sum + f.price, 0);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/5 to-background">
       <Header 
         user={{ name: profile?.full_name || 'Usuário', role: (profile?.role as 'PRODUTOR' | 'MOTORISTA') || 'PRODUTOR' }}
         onLogout={signOut}
@@ -214,7 +214,7 @@ const ProducerDashboard = () => {
         userProfile={profile}
       />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Notificação de assinatura */}
         <SubscriptionExpiryNotification />
         
@@ -252,7 +252,7 @@ const ProducerDashboard = () => {
                     <p className="text-muted-foreground">Nenhum frete ativo no momento.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="grid gap-8 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
                     {freights.filter(f => f.status === 'OPEN').map((freight) => (
                       <FreightCard
                         key={freight.id}
@@ -293,96 +293,114 @@ const ProducerDashboard = () => {
                     <p className="text-muted-foreground">Nenhum frete em andamento no momento.</p>
                   </div>
                 ) : (
-                  <div className="space-y-6">
+                  <div className="grid gap-8 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
                     {freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
-                      <Card key={freight.id} className="border-l-4 border-l-primary">
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-semibold">{freight.cargo_type}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {freight.origin_address} → {freight.destination_address}
-                              </p>
-                              <div className="flex items-center gap-4 mt-2">
-                                <div className="flex items-center gap-1">
-                                  <Truck className="h-4 w-4" />
-                                  <span className="text-sm">{(freight.weight / 1000).toFixed(1)}t</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="h-4 w-4" />
-                                  <span className="text-sm">{freight.distance_km}km</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-4 w-4" />
-                                  <span className="text-sm">
-                                    {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
-                                  </span>
+                      <div key={freight.id} className="space-y-4">
+                        <Card className="border-l-4 border-l-primary hover:shadow-lg transition-all duration-300">
+                          <CardHeader className="pb-4">
+                            <div className="flex justify-between items-start">
+                              <div className="space-y-2">
+                                <h3 className="font-semibold text-lg">{freight.cargo_type}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {freight.origin_address} → {freight.destination_address}
+                                </p>
+                                <div className="flex items-center gap-4 mt-3">
+                                  <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
+                                    <Truck className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-medium">{(freight.weight / 1000).toFixed(1)}t</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
+                                    <MapPin className="h-4 w-4 text-accent" />
+                                    <span className="text-sm font-medium">{freight.distance_km}km</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
+                                    <Clock className="h-4 w-4 text-warning" />
+                                    <span className="text-sm font-medium">
+                                      {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
+                              <div className="text-right space-y-2">
+                                <Badge variant={freight.status === 'IN_TRANSIT' ? 'default' : 'secondary'} className="font-medium">
+                                  {getFreightStatusLabel(freight.status)}
+                                </Badge>
+                                <p className="font-bold text-xl text-primary">R$ {freight.price.toLocaleString()}</p>
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <Badge variant={freight.status === 'IN_TRANSIT' ? 'default' : 'secondary'}>
-                                {getFreightStatusLabel(freight.status)}
-                              </Badge>
-                              <p className="font-semibold mt-2">R$ {freight.price.toLocaleString()}</p>
+                          </CardHeader>
+                          
+                          <CardContent className="space-y-6">
+                            {/* Rastreamento de Status */}
+                            <div className="border rounded-lg p-4 bg-gradient-to-br from-secondary/20 to-secondary/5">
+                              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                <Eye className="h-4 w-4" />
+                                Status do Frete
+                              </h4>
+                              <FreightStatusTracker 
+                                freightId={freight.id}
+                                currentStatus={freight.status}
+                                currentUserProfile={profile}
+                                isDriver={false}
+                              />
                             </div>
-                          </div>
-                        </CardHeader>
-                        
-                        <CardContent className="space-y-4">
-                          {/* Rastreamento de Status */}
-                          <div className="border rounded-lg p-4">
-                            <h4 className="font-medium mb-3">Status do Frete</h4>
-                            <FreightStatusTracker 
-                              freightId={freight.id}
-                              currentStatus={freight.status}
-                              currentUserProfile={profile}
-                              isDriver={false}
-                            />
-                          </div>
 
-                          {/* Check-ins */}
-                          <div className="border rounded-lg p-4">
-                            <h4 className="font-medium mb-3">Check-ins do Frete</h4>
-                            <FreightCheckinsViewer 
-                              freightId={freight.id}
-                              currentUserProfile={profile}
-                            />
-                          </div>
+                            {/* Check-ins */}
+                            <div className="border rounded-lg p-4 bg-gradient-to-br from-primary/5 to-primary/2">
+                              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                <MapPin className="h-4 w-4" />
+                                Check-ins do Frete
+                              </h4>
+                              <FreightCheckinsViewer 
+                                freightId={freight.id}
+                                currentUserProfile={profile}
+                              />
+                            </div>
+                            </div>
 
-                          {/* Painel de Rastreamento */}
-                          <div className="border rounded-lg p-4">
-                            <h4 className="font-medium mb-3">Rastreamento em Tempo Real</h4>
-                            <FreightTrackingPanel 
-                              freightId={freight.id}
-                              isDriver={false}
-                            />
-                          </div>
+                            {/* Painel de Rastreamento */}
+                            <div className="border rounded-lg p-4 bg-gradient-to-br from-accent/5 to-accent/2">
+                              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                <Eye className="h-4 w-4" />
+                                Rastreamento em Tempo Real
+                              </h4>
+                              <FreightTrackingPanel 
+                                freightId={freight.id}
+                                isDriver={false}
+                              />
+                            </div>
 
-                          {/* Botões de Ação */}
-                          <div className="flex gap-2 pt-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => setSelectedTrackingFreight(freight)}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              Ver Detalhes
-                            </Button>
-                            {freight.status === 'IN_NEGOTIATION' && (
+                            {/* Botões de Ação */}
+                            <div className="flex gap-3 pt-2">
                               <Button 
                                 size="sm" 
-                                variant="destructive"
-                                onClick={() => handleFreightAction('cancel', freight)}
+                                variant="outline"
+                                className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                                onClick={() => setSelectedTrackingFreight(freight)}
                               >
-                                Cancelar Frete
+                                <Eye className="h-4 w-4 mr-2" />
+                                Ver Detalhes
                               </Button>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
+                              {freight.status === 'IN_NEGOTIATION' && (
+                                <Button 
+                                  size="sm" 
+                                  variant="destructive"
+                                  className="flex-1 hover:shadow-lg transition-all duration-300"
+                                  onClick={() => handleFreightAction('cancel', freight)}
+                                >
+                                  Cancelar Frete
+                                </Button>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
                     ))}
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
                 )}
               </CardContent>
             </Card>
