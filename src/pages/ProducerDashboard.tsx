@@ -219,8 +219,9 @@ const ProducerDashboard = () => {
         </div>
 
         <Tabs defaultValue="fretes" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="fretes">Fretes Ativos</TabsTrigger>
+            <TabsTrigger value="andamento">Fretes em Andamento</TabsTrigger>
             <TabsTrigger value="propostas">Propostas Recebidas</TabsTrigger>
             <TabsTrigger value="agendados">Fretes Agendados</TabsTrigger>
             <TabsTrigger value="historico">Histórico</TabsTrigger>
@@ -241,13 +242,13 @@ const ProducerDashboard = () => {
                 <CardTitle>Meus Fretes Ativos</CardTitle>
               </CardHeader>
               <CardContent>
-                {freights.filter(f => !['DELIVERED', 'CANCELLED'].includes(f.status)).length === 0 ? (
+                {freights.filter(f => f.status === 'OPEN').length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">Nenhum frete ativo no momento.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {freights.filter(f => !['DELIVERED', 'CANCELLED'].includes(f.status)).map((freight) => (
+                    {freights.filter(f => f.status === 'OPEN').map((freight) => (
                       <FreightCard
                         key={freight.id}
                         freight={{
@@ -268,6 +269,47 @@ const ProducerDashboard = () => {
                         }}
                         showProducerActions={true}
                         onAction={(action) => handleFreightAction(action as 'edit' | 'cancel', freight)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="andamento" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Fretes em Andamento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Nenhum frete em andamento no momento.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
+                      <FreightCard
+                        key={freight.id}
+                        freight={{
+                          id: freight.id,
+                          cargo_type: freight.cargo_type,
+                          weight: freight.weight,
+                          distance_km: freight.distance_km,
+                          origin_address: freight.origin_address,
+                          destination_address: freight.destination_address,
+                          price: freight.price,
+                          status: freight.status,
+                          pickup_date: freight.pickup_date,
+                          delivery_date: freight.delivery_date,
+                          urgency: freight.urgency,
+                          minimum_antt_price: freight.minimum_antt_price || 0,
+                          required_trucks: freight.required_trucks || 1,
+                          accepted_trucks: freight.accepted_trucks || 0
+                        }}
+                        showProducerActions={false}
+                        onAction={() => {}}
                       />
                     ))}
                   </div>
