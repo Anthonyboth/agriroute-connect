@@ -42,6 +42,12 @@ interface Freight {
   distance_km: number;
   minimum_antt_price: number;
   service_type?: string;
+  producer?: {
+    id: string;
+    full_name: string;
+    contact_phone?: string;
+    role: string;
+  };
 }
 
 interface Proposal {
@@ -124,7 +130,7 @@ const DriverDashboard = () => {
     }
   };
 
-  // Buscar propostas do motorista (apenas PENDING e REJECTED)
+  // Buscar propostas do motorista (incluir todas para visibilidade completa)
   const fetchMyProposals = async () => {
     if (!profile?.id) return;
 
@@ -133,10 +139,17 @@ const DriverDashboard = () => {
         .from('freight_proposals')
         .select(`
           *,
-          freight:freights(*)
+          freight:freights(
+            *,
+            producer:profiles!producer_id(
+              id,
+              full_name,
+              contact_phone,
+              role
+            )
+          )
         `)
         .eq('driver_id', profile.id)
-        .in('status', ['PENDING', 'REJECTED'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -149,12 +162,12 @@ const DriverDashboard = () => {
     }
   };
 
-  // Buscar fretes em andamento (apenas fretes aceitos pelo motorista)
+  // Buscar fretes em andamento (fonte híbrida para garantir visibilidade)
   const fetchOngoingFreights = async () => {
     if (!profile?.id) return;
 
     try {
-      // Buscar apenas fretes onde o motorista é o driver_id e status é ACCEPTED ou IN_TRANSIT
+      // 1) Fretes já vinculados ao motorista
       const { data: directFreights, error: freightsError } = await supabase
         .from('freights')
         .select('*')
@@ -164,7 +177,30 @@ const DriverDashboard = () => {
 
       if (freightsError) throw freightsError;
 
-      setOngoingFreights(directFreights || []);
+      let merged: Freight[] = directFreights || [];
+
+      // 2) Fretes de propostas aceitas (caso driver_id não esteja sincronizado)
+      const { data: acceptedProposals, error: acceptedErr } = await supabase
+        .from('freight_proposals')
+        .select(`
+          freight_id,
+          freight:freights(*)
+        `)
+        .eq('driver_id', profile.id)
+        .eq('status', 'ACCEPTED');
+
+      if (acceptedErr) throw acceptedErr;
+
+      // Adicionar fretes de propostas aceitas que não estão em directFreights
+      const acceptedFreights = (acceptedProposals || [])
+        .map(p => p.freight)
+        .filter(f => f && ['ACCEPTED', 'IN_TRANSIT'].includes(String(f.status)))
+        .filter(f => !merged.some(existing => existing.id === f.id));
+
+      merged = [...merged, ...acceptedFreights];
+
+      console.log('Ongoing freights loaded:', merged);
+      setOngoingFreights(merged);
     } catch (error) {
       console.error('Error fetching ongoing freights:', error);
       toast.error('Erro ao carregar fretes em andamento');
@@ -917,13 +953,44 @@ const DriverDashboard = () => {
                           </Badge>
                         </div>
 
+                        {/* Preço do frete vs proposta */}
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Valor Original:</span>
+                          <span className="text-sm font-semibold">
+                            R$ {proposal.freight?.price?.toLocaleString('pt-BR')}
+                          </span>
+                        </div>
+
+                        {/* Diferença de preço */}
+                        {proposal.freight?.price && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">Diferença:</span>
+                            <span className={`text-sm font-semibold ${
+                              proposal.proposed_price > proposal.freight.price ? 'text-red-600' : 
+                              proposal.proposed_price < proposal.freight.price ? 'text-green-600' : 'text-muted-foreground'
+                            }`}>
+                              {proposal.proposed_price > proposal.freight.price ? '+' : 
+                               proposal.proposed_price < proposal.freight.price ? '-' : ''}
+                              R$ {Math.abs(proposal.proposed_price - proposal.freight.price).toLocaleString('pt-BR')}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Mensagem da proposta */}
+                        {proposal.message && (
+                          <div className="pt-2 border-t border-border/40">
+                            <p className="text-xs text-muted-foreground font-medium mb-1">Sua mensagem:</p>
+                            <p className="text-sm bg-muted/30 p-2 rounded italic">&quot;{proposal.message}&quot;</p>
+                          </div>
+                        )}
+
                         {/* Informações do produtor */}
-                        {proposal.producer && (
+                        {proposal.freight?.producer && (
                           <div className="pt-3 border-t border-border/40">
                             <p className="text-xs text-muted-foreground font-medium mb-1">Produtor:</p>
-                            <p className="text-sm font-semibold">{proposal.producer.full_name}</p>
-                            {proposal.producer.phone && (
-                              <p className="text-xs text-muted-foreground mt-1">{proposal.producer.phone}</p>
+                            <p className="text-sm font-semibold">{proposal.freight.producer.full_name}</p>
+                            {proposal.freight.producer.contact_phone && (
+                              <p className="text-xs text-muted-foreground mt-1">{proposal.freight.producer.contact_phone}</p>
                             )}
                           </div>
                         )}
@@ -936,7 +1003,15 @@ const DriverDashboard = () => {
                         </div>
                       </div>
 
-                      {/* Ações baseadas no status - removidas para propostas aceitas */}
+                      {/* Ações baseadas no status */}
+                      {proposal.status === 'ACCEPTED' && (
+                        <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                          <p className="text-sm text-center text-green-700 dark:text-green-300 font-medium">
+                            ✅ Proposta aceita! Verifique a aba "Em Andamento"
+                          </p>
+                        </div>
+                      )}
+                      
                       {proposal.status === 'PENDING' && (
                         <Button 
                           variant="outline" 
