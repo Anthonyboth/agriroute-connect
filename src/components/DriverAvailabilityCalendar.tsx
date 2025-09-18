@@ -303,7 +303,7 @@ export const DriverAvailabilityCalendar: React.FC = () => {
                             <div className="flex justify-between items-start">
                               <div>
                                 <p className="font-medium">{freight.producer_name}</p>
-                                <p className="text-sm text-muted-foreground">{freight.cargo_type} - {freight.weight}t</p>
+                                <p className="text-sm text-muted-foreground">{freight.cargo_type} - {(freight.weight / 1000).toFixed(1)}t</p>
                               </div>
                               <Badge variant="secondary">R$ {freight.price.toLocaleString()}</Badge>
                             </div>

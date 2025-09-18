@@ -81,7 +81,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
       console.error('Error calculating ANTT price:', error);
       // Fallback para cálculo local
       const baseRate = 2.5;
-      const weightFactor = weight > 20000 ? 1.2 : 1.0;
+      const weightFactor = weight > 20 ? 1.2 : 1.0; // Use tonnes instead of kg
       return Math.round(distance * baseRate * weightFactor);
     }
   };

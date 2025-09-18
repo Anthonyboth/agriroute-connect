@@ -259,7 +259,7 @@ const ProducerDashboard = () => {
                         freight={{
                           id: freight.id,
                           cargo_type: freight.cargo_type,
-                          weight: freight.weight,
+                          weight: (freight.weight / 1000), // Convert kg to tonnes
                           distance_km: freight.distance_km,
                           origin_address: freight.origin_address,
                           destination_address: freight.destination_address,
@@ -306,7 +306,7 @@ const ProducerDashboard = () => {
                               <div className="flex items-center gap-4 mt-2">
                                 <div className="flex items-center gap-1">
                                   <Truck className="h-4 w-4" />
-                                  <span className="text-sm">{freight.weight}kg</span>
+                                  <span className="text-sm">{(freight.weight / 1000).toFixed(1)}t</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <MapPin className="h-4 w-4" />
@@ -509,7 +509,7 @@ const ProducerDashboard = () => {
                           freight={{
                             id: freight.id,
                             cargo_type: freight.cargo_type,
-                            weight: freight.weight,
+                            weight: (freight.weight / 1000), // Convert kg to tonnes
                             distance_km: freight.distance_km,
                             origin_address: freight.origin_address,
                             destination_address: freight.destination_address,
@@ -549,7 +549,7 @@ const ProducerDashboard = () => {
                           freight={{
                             id: freight.id,
                             cargo_type: freight.cargo_type,
-                            weight: freight.weight,
+                            weight: (freight.weight / 1000), // Convert kg to tonnes
                             distance_km: freight.distance_km,
                             origin_address: freight.origin_address,
                             destination_address: freight.destination_address,

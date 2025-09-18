@@ -192,7 +192,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
             <div>
               <h3 className="font-semibold">{freight.producer_name}</h3>
               <p className="text-sm text-muted-foreground">
-                {freight.cargo_type} - {freight.weight}t
+                {freight.cargo_type} - {(freight.weight / 1000).toFixed(1)}t
               </p>
             </div>
             <Badge variant="secondary" className="text-lg px-3">

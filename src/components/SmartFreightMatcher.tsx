@@ -279,7 +279,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                   freight={{
                     id: freight.freight_id,
                     cargo_type: freight.cargo_type,
-                    weight: freight.weight,
+                    weight: (freight.weight / 1000), // Convert kg to tonnes
                     origin_address: freight.origin_address,
                     destination_address: freight.destination_address,
                     pickup_date: freight.pickup_date,

@@ -58,7 +58,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
     try {
       const freightData = {
         producer_id: profile.id,
-        weight: parseFloat(weight),
+        weight: parseFloat(weight) * 1000, // Convert tonnes to kg for database
         origin_address: originAddress,
         destination_address: destinationAddress,
         cargo_type: cargoType,

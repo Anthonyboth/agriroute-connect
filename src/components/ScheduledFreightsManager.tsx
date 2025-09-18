@@ -230,7 +230,7 @@ export const ScheduledFreightsManager: React.FC = () => {
       destination_address: freight.destination_address,
       scheduled_date: freight.scheduled_date,
       cargo_type: freight.cargo_type,
-      weight: freight.weight,
+      weight: (freight.weight / 1000), // Convert kg to tonnes for display
       price: freight.price,
       flexible_dates: freight.flexible_dates,
       date_range_start: freight.date_range_start,
@@ -340,7 +340,7 @@ export const ScheduledFreightsManager: React.FC = () => {
                             {freight.producer_name && (
                               <p className="font-semibold text-lg">{freight.producer_name}</p>
                             )}
-                            <p className="text-muted-foreground">{freight.cargo_type} - {freight.weight}t</p>
+                            <p className="text-muted-foreground">{freight.cargo_type} - {(freight.weight / 1000).toFixed(1)}t</p>
                           </div>
                           <Badge variant="secondary" className="text-lg px-3 py-1">
                             R$ {freight.price.toLocaleString()}
