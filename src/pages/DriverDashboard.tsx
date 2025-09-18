@@ -16,12 +16,11 @@ import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
 import { ServiceProviderDashboard } from '@/components/ServiceProviderDashboard';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
-import SubscriptionPlans from '@/components/SubscriptionPlans';
 import FreightLimitTracker from '@/components/FreightLimitTracker';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, CreditCard } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings } from 'lucide-react';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 interface Freight {
@@ -540,14 +539,6 @@ const DriverDashboard = () => {
                 <span className="hidden sm:inline">Histórico</span>
                 <span className="sm:hidden">Hist</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="planos" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                <CreditCard className="h-4 w-4 mr-1 md:mr-2" />
-                <span className="hidden sm:inline">Planos</span>
-                <span className="sm:hidden">Plan</span>
-              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -832,9 +823,6 @@ const DriverDashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="planos" className="space-y-4">
-            <SubscriptionPlans />
-          </TabsContent>
         </Tabs>
       </div>
     </div>

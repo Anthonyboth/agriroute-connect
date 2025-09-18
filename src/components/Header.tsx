@@ -9,13 +9,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight } from 'lucide-react';
+import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { AccountSwitcher } from '@/components/AccountSwitcher';
 import { AddProfileModal } from '@/components/AddProfileModal';
+import SubscriptionPlans from '@/components/SubscriptionPlans';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface User {
   name: string;
@@ -57,10 +59,12 @@ const Header: React.FC<HeaderProps> = ({
   const [showSettings, setShowSettings] = useState(false);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   const [showAddProfile, setShowAddProfile] = useState(false);
+  const [showPlanos, setShowPlanos] = useState(false);
 
   const menuItems = [
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
     { icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) },
+    { icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) },
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
   ];
 
@@ -251,6 +255,18 @@ const Header: React.FC<HeaderProps> = ({
           }}
         />
       )}
+
+      <Dialog open={showPlanos} onOpenChange={setShowPlanos}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Planos de Assinatura
+            </DialogTitle>
+          </DialogHeader>
+          <SubscriptionPlans />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

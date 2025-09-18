@@ -19,7 +19,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import SubscriptionPlans from '@/components/SubscriptionPlans';
 
 interface ServiceRequest {
   id: string;
@@ -377,7 +376,6 @@ export const ServiceProviderDashboard: React.FC = () => {
               <TabsTrigger value="accepted">Aceitas ({stats.accepted_requests})</TabsTrigger>
               <TabsTrigger value="completed">Concluídas</TabsTrigger>
               <TabsTrigger value="all">Todas</TabsTrigger>
-              <TabsTrigger value="planos">Planos</TabsTrigger>
             </TabsList>
 
             <TabsContent value={activeTab} className="mt-6">
@@ -518,10 +516,6 @@ export const ServiceProviderDashboard: React.FC = () => {
                   ))}
                 </div>
               )}
-            </TabsContent>
-
-            <TabsContent value="planos" className="space-y-4">
-              <SubscriptionPlans />
             </TabsContent>
           </Tabs>
         </CardContent>
