@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,6 +14,7 @@ interface FreightCheckinModalProps {
   freightId: string;
   currentUserProfile: any;
   onCheckinCreated?: () => void;
+  initialType?: string;
 }
 
 const FreightCheckinModal: React.FC<FreightCheckinModalProps> = ({
@@ -21,13 +22,21 @@ const FreightCheckinModal: React.FC<FreightCheckinModalProps> = ({
   onClose,
   freightId,
   currentUserProfile,
-  onCheckinCreated
+  onCheckinCreated,
+  initialType
 }) => {
   const [checkinType, setCheckinType] = useState<string>('');
   const [observations, setObservations] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
-  const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
+const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
+
+  // Preseleciona o tipo de check-in quando aberto por atalho
+  useEffect(() => {
+    if (isOpen && initialType) {
+      setCheckinType(initialType);
+    }
+  }, [isOpen, initialType]);
 
   const checkinTypes = [
     { value: 'LOADING', label: 'A caminho da coleta', requiresCounterpart: true },

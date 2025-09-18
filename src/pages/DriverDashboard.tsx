@@ -76,10 +76,11 @@ const DriverDashboard = () => {
   const [activeTab, setActiveTab] = useState('available');
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [showCheckinModal, setShowCheckinModal] = useState(false);
-  const [selectedFreightForCheckin, setSelectedFreightForCheckin] = useState<string | null>(null);
-  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
-  const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<Freight | null>(null);
+const [showCheckinModal, setShowCheckinModal] = useState(false);
+const [selectedFreightForCheckin, setSelectedFreightForCheckin] = useState<string | null>(null);
+const [initialCheckinType, setInitialCheckinType] = useState<string | null>(null);
+const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<Freight | null>(null);
   const [filters, setFilters] = useState({
     cargo_type: 'all',
     service_type: 'all',
@@ -830,32 +831,76 @@ const DriverDashboard = () => {
                         </div>
                       </div>
 
-                      {/* Botões Compactos */}
-                      <div className="flex gap-2">
-                        {(freight.status === 'ACCEPTED' || freight.status === 'LOADING') && (
-                          <Button 
-                            size="sm" 
-                            className="flex-1 h-8 text-xs bg-primary hover:bg-primary/90"
-                            onClick={() => {
-                              setSelectedFreightForCheckin(freight.id);
-                              setShowCheckinModal(true);
-                            }}
-                          >
-                            Check-in
-                          </Button>
-                        )}
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="flex-1 h-8 text-xs border-primary/30 hover:bg-primary/5"
-                          onClick={() => {
-                            setSelectedFreightId(freight.id);
-                            setShowDetails(true);
-                          }}
-                        >
-                          Detalhes
-                        </Button>
-                      </div>
+{/* Botões Compactos */}
+<div className="space-y-2">
+  <div className="flex gap-2">
+    {(freight.status === 'ACCEPTED' || freight.status === 'LOADING' || freight.status === 'IN_TRANSIT') && (
+      <Button 
+        size="sm" 
+        className="flex-1 h-8 text-xs bg-primary hover:bg-primary/90"
+        onClick={() => {
+          setInitialCheckinType(null);
+          setSelectedFreightForCheckin(freight.id);
+          setShowCheckinModal(true);
+        }}
+      >
+        Check-in
+      </Button>
+    )}
+    <Button 
+      size="sm" 
+      variant="outline"
+      className="flex-1 h-8 text-xs border-primary/30 hover:bg-primary/5"
+      onClick={() => {
+        setSelectedFreightId(freight.id);
+        setShowDetails(true);
+      }}
+    >
+      Detalhes
+    </Button>
+  </div>
+
+  {(freight.status === 'ACCEPTED' || freight.status === 'IN_TRANSIT') && (
+    <div className="grid grid-cols-3 gap-2">
+      <Button 
+        size="sm" 
+        variant="outline" 
+        className="h-8 text-[11px]"
+        onClick={() => {
+          setInitialCheckinType('LOADING');
+          setSelectedFreightForCheckin(freight.id);
+          setShowCheckinModal(true);
+        }}
+      >
+        Coleta
+      </Button>
+      <Button 
+        size="sm" 
+        variant="outline" 
+        className="h-8 text-[11px]"
+        onClick={() => {
+          setInitialCheckinType('IN_TRANSIT');
+          setSelectedFreightForCheckin(freight.id);
+          setShowCheckinModal(true);
+        }}
+      >
+        Trajeto
+      </Button>
+      <Button 
+        size="sm" 
+        variant="outline" 
+        className="h-8 text-[11px]"
+        onClick={() => {
+          setInitialCheckinType('UNLOADING');
+          setSelectedFreightForCheckin(freight.id);
+          setShowCheckinModal(true);
+        }}
+      >
+        Descarga
+      </Button>
+    </div>
+  )}
+</div>
 
                       {/* Check-ins Compactos */}
                       <div className="border-t border-border/30 pt-2">
@@ -1249,20 +1294,23 @@ const DriverDashboard = () => {
       
       {/* Modal de Check-in */}
       {selectedFreightForCheckin && (
-        <FreightCheckinModal
-          isOpen={showCheckinModal}
-          onClose={() => {
-            setShowCheckinModal(false);
-            setSelectedFreightForCheckin(null);
-          }}
-          freightId={selectedFreightForCheckin}
-          currentUserProfile={profile}
-          onCheckinCreated={() => {
-            fetchOngoingFreights();
-            setShowCheckinModal(false);
-            setSelectedFreightForCheckin(null);
-          }}
-        />
+<FreightCheckinModal
+  isOpen={showCheckinModal}
+  onClose={() => {
+    setShowCheckinModal(false);
+    setSelectedFreightForCheckin(null);
+    setInitialCheckinType(null);
+  }}
+  freightId={selectedFreightForCheckin}
+  currentUserProfile={profile}
+  initialType={initialCheckinType || undefined}
+  onCheckinCreated={() => {
+    fetchOngoingFreights();
+    setShowCheckinModal(false);
+    setSelectedFreightForCheckin(null);
+    setInitialCheckinType(null);
+  }}
+/>
       )}
 
       {/* Modal de Desistência */}
