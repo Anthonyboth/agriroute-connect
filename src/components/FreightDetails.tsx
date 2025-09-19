@@ -7,6 +7,7 @@ import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileTe
 import { FreightChat } from './FreightChat';
 import { FreightStatusTracker } from './FreightStatusTracker';
 import { FreightRatingModal } from './FreightRatingModal';
+import { AutoRatingModal } from './AutoRatingModal';
 import { FreightAdvanceModal } from './FreightAdvanceModal';
 import { FreightPaymentModal } from './FreightPaymentModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +16,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { getUrgencyLabel } from '@/lib/urgency-labels';
+import { useAutoRating } from '@/hooks/useAutoRating';
 
 interface FreightDetailsProps {
   freightId: string;
@@ -93,9 +95,42 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const canRequestAdvance = isDriver && (freight?.status === 'ACCEPTED' || freight?.status === 'LOADING' || freight?.status === 'IN_TRANSIT') && totalAdvances < (freight?.price * 0.5);
   const canMakePayment = isFreightProducer && freight?.status === 'DELIVERED' && remainingAmount > 0;
 
+  // Hook para avaliação automática quando frete é finalizado
+  const { 
+    showRatingModal: showAutoRatingModal, 
+    userToRate: autoUserToRate, 
+    closeRatingModal: closeAutoRatingModal 
+  } = useAutoRating({
+    freightId,
+    freightStatus: freight?.status || '',
+    currentUserProfile,
+    freight
+  });
+
   useEffect(() => {
     fetchFreightDetails();
   }, [freightId]);
+
+  // Listener para notificação de avaliação automática
+  useEffect(() => {
+    const handleRatingNotification = (event: any) => {
+      const { userName, userRole } = event.detail;
+      const roleText = userRole === 'MOTORISTA' ? 'motorista' : 'produtor';
+      toast.success(
+        `Frete finalizado! Que tal avaliar ${roleText} ${userName}?`, 
+        {
+          description: "Sua avaliação ajuda a melhorar a qualidade da plataforma.",
+          duration: 4000
+        }
+      );
+    };
+
+    window.addEventListener('showRatingNotification', handleRatingNotification);
+    
+    return () => {
+      window.removeEventListener('showRatingNotification', handleRatingNotification);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -679,6 +714,17 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           freightId={freightId}
           freightPrice={freight?.price || 0}
           advancesTotal={totalAdvances}
+        />
+      )}
+
+      {/* Modal de Avaliação Automática */}
+      {showAutoRatingModal && autoUserToRate && (
+        <AutoRatingModal
+          isOpen={showAutoRatingModal}
+          onClose={closeAutoRatingModal}
+          freightId={freightId}
+          userToRate={autoUserToRate}
+          currentUserProfile={currentUserProfile}
         />
       )}
     </div>
