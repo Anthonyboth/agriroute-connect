@@ -496,42 +496,32 @@ const ProducerDashboard = () => {
                     </CardHeader>
                     
                     <CardContent className="space-y-6">
-                      {/* Rastreamento de Status */}
-                      <div className="border rounded-lg p-4 bg-gradient-to-br from-secondary/20 to-secondary/5">
-                        <h4 className="font-semibold mb-3 flex items-center gap-2">
-                          <Eye className="h-4 w-4" />
-                          Status do Frete
-                        </h4>
-                        <FreightStatusTracker 
-                          freightId={freight.id}
-                          currentStatus={freight.status}
-                          currentUserProfile={profile}
-                          isDriver={false}
-                        />
-                      </div>
-
-                      {/* Check-ins */}
-                      <div className="border rounded-lg p-4 bg-gradient-to-br from-primary/5 to-primary/2">
-                        <h4 className="font-semibold mb-3 flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          Check-ins do Frete
-                        </h4>
-                        <FreightCheckinsViewer 
-                          freightId={freight.id}
-                          currentUserProfile={profile}
-                        />
-                       </div>
-
-                      {/* Painel de Rastreamento */}
-                      <div className="border rounded-lg p-4 bg-gradient-to-br from-accent/5 to-accent/2">
-                        <h4 className="font-semibold mb-3 flex items-center gap-2">
-                          <Eye className="h-4 w-4" />
-                          Rastreamento em Tempo Real
-                        </h4>
-                        <FreightTrackingPanel 
-                          freightId={freight.id}
-                          isDriver={false}
-                        />
+                      {/* Informações básicas */}
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="font-medium">Motorista:</p>
+                          <p className="text-muted-foreground">
+                            {freight.driver_profiles?.full_name || 'Aguardando aceite'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Telefone:</p>
+                          <p className="text-muted-foreground">
+                            {freight.driver_profiles?.contact_phone || '-'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Data de Coleta:</p>
+                          <p className="text-muted-foreground">
+                            {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Data de Entrega:</p>
+                          <p className="text-muted-foreground">
+                            {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
                       </div>
 
                       {/* Botões de Ação */}
