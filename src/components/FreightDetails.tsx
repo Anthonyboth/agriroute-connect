@@ -57,7 +57,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         .from('freight_advances')
         .select('*')
         .eq('freight_id', freightId)
-        .eq('status', 'COMPLETED');
+        .order('requested_at', { ascending: false });
       
       setAdvances(advancesData || []);
     } catch (error: any) {
