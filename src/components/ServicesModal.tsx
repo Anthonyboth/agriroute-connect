@@ -14,7 +14,7 @@ import {
   Shield,
   Hammer,
   Construction,
-  MoreHorizontal
+  Grid3X3
 } from 'lucide-react';
 import { ServiceRequestModal } from './ServiceRequestModal';
 import { ServiceProviderRegistrationForm } from './ServiceProviderRegistrationForm';
@@ -78,8 +78,8 @@ const serviceTypes = [
     id: 'outros',
     title: 'Outros',
     description: 'Outros tipos de serviços',
-    icon: MoreHorizontal,
-    color: 'text-secondary'
+    icon: Grid3X3,
+    color: 'text-primary'
   }
 ];
 
