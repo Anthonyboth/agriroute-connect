@@ -469,6 +469,7 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
               id="emergency"
               checked={formData.emergency}
               onCheckedChange={(checked) => setFormData({...formData, emergency: !!checked})}
+              className="h-4 w-4 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
             />
             <Label htmlFor="emergency" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Esta é uma emergência (atendimento prioritário)
