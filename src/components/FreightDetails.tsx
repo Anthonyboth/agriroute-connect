@@ -87,7 +87,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const isParticipant = freight?.producer?.id === currentUserProfile?.id || freight?.driver?.id === currentUserProfile?.id;
   const isFreightProducer = freight?.producer?.id === currentUserProfile?.id;
   
-  const totalAdvances = advances.reduce((sum, advance) => sum + (advance.approved_amount || 0), 0);
+  const totalAdvances = advances.reduce((sum, advance) => sum + ((advance.approved_amount || 0) / 100), 0);
   const remainingAmount = freight?.price - totalAdvances;
   
   const canRequestAdvance = isDriver && (freight?.status === 'ACCEPTED' || freight?.status === 'LOADING' || freight?.status === 'IN_TRANSIT') && totalAdvances < (freight?.price * 0.5);
@@ -359,7 +359,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                       <div>
                         <p className="font-medium text-sm">Adiantamento solicitado</p>
                         <p className="text-lg font-bold text-orange-600">
-                          R$ {((advance.requested_amount || 0) / 100).toLocaleString('pt-BR', { 
+                          R$ {(advance.requested_amount || 0).toLocaleString('pt-BR', { 
                             minimumFractionDigits: 2, 
                             maximumFractionDigits: 2 
                           })}
@@ -403,7 +403,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="font-medium text-sm">
-                          R$ {((advance.approved_amount || advance.requested_amount || 0) / 100).toLocaleString('pt-BR', { 
+                          R$ {(advance.approved_amount || advance.requested_amount || 0).toLocaleString('pt-BR', { 
                             minimumFractionDigits: 2, 
                             maximumFractionDigits: 2 
                           })}
