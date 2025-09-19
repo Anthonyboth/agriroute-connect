@@ -134,6 +134,9 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </CardTitle>
             <div className="flex items-center gap-2">
               {getStatusBadge(freight.status)}
+              <Button variant="outline" onClick={onClose}>
+                Fechar
+              </Button>
             </div>
           </div>
         </CardHeader>

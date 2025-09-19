@@ -778,8 +778,8 @@ const ProducerDashboard = () => {
         variant="destructive"
       />
 
-      <Dialog open={!!selectedFreightDetails} onOpenChange={() => setSelectedFreightDetails(null)}>
-        <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto">
+      <Dialog open={!!selectedFreightDetails} onOpenChange={() => {}}>
+        <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto" hideCloseButton>
           {selectedFreightDetails && (
             <FreightDetails
               freightId={selectedFreightDetails.id}
