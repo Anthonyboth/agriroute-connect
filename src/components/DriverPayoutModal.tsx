@@ -84,14 +84,14 @@ export function DriverPayoutModal({ isOpen, onClose, availableBalance, driverId 
     setIsLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('driver_payout_requests')
-        .insert({
+      // Usar edge function para criar solicitação de saque
+      const { data, error } = await supabase.functions.invoke('create-payout-request', {
+        body: {
           driver_id: driverId,
           amount: requestedAmount,
-          pix_key: pixKey,
-          status: 'PENDING'
-        });
+          pix_key: pixKey
+        }
+      });
 
       if (error) throw error;
 

@@ -60,12 +60,10 @@ export function DriverPayouts({ driverId }: DriverPayoutsProps) {
     try {
       setLoading(true);
 
-      // Buscar solicitações de saque
-      const { data: requests, error: requestsError } = await supabase
-        .from('driver_payout_requests')
-        .select('*')
-        .eq('driver_id', driverId)
-        .order('created_at', { ascending: false });
+      // Buscar solicitações de saque via edge function
+      const { data: requestsData, error: requestsError } = await supabase.functions.invoke('get-payout-requests', {
+        body: { driver_id: driverId }
+      });
 
       if (requestsError) throw requestsError;
 
@@ -85,8 +83,15 @@ export function DriverPayouts({ driverId }: DriverPayoutsProps) {
 
       if (payoutsError) throw payoutsError;
 
-      setPayoutRequests(requests || []);
-      setAvailablePayouts(payouts || []);
+      setPayoutRequests(requestsData?.requests || []);
+      setAvailablePayouts(payouts?.map((p: any) => ({
+        id: p.id,
+        amount: p.amount,
+        freight_id: p.freight_id,
+        status: p.status,
+        created_at: p.created_at,
+        freight: p.freights
+      })) || []);
     } catch (error) {
       console.error('Erro ao carregar dados de pagamentos:', error);
       toast.error('Erro ao carregar informações de pagamentos');

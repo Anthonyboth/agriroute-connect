@@ -63,6 +63,12 @@ verify_jwt = false
 [functions.process-driver-payout]
 verify_jwt = true
 
+[functions.create-payout-request]
+verify_jwt = true
+
+[functions.get-payout-requests]
+verify_jwt = true
+
 [functions.send-auth-email]
 verify_jwt = false
 

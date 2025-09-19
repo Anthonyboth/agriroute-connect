@@ -15,6 +15,7 @@ import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
 import { ServiceProviderDashboard } from '@/components/ServiceProviderDashboard';
+import { DriverPayouts } from '@/components/DriverPayouts';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import FreightLimitTracker from '@/components/FreightLimitTracker';
 import FreightCheckinModal from '@/components/FreightCheckinModal';
@@ -1275,26 +1276,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           </TabsContent>
 
           <TabsContent value="advances" className="space-y-4">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Adiantamentos de Fretes</h3>
-                <p className="text-muted-foreground mb-4">
-                  Gerencie seus adiantamentos de pagamentos de fretes aceitos.
-                </p>
-                {/* Lista de adiantamentos será implementada aqui */}
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-center text-muted-foreground">
-                      <Banknote className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Nenhum adiantamento solicitado ainda.</p>
-                      <p className="text-sm mt-2">
-                        Aceite um frete para poder solicitar adiantamentos.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+            <DriverPayouts driverId={profile?.id || ''} />
           </TabsContent>
 
           <TabsContent value="historico" className="mt-6">
