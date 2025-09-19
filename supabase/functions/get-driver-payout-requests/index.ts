@@ -88,16 +88,23 @@ serve(async (req) => {
       }
     }
 
-    // Combine payout data with freight details
+    // Combine payout data with freight details and convert amounts from cents to reais
     const payoutsWithFreights = availablePayouts?.map(payout => ({
       ...payout,
+      amount: payout.amount / 100, // Convert from cents to reais
       freight: freightDetails.find(f => f.id === payout.freight_id)
+    })) || []
+
+    // Convert payout request amounts from cents to reais
+    const requestsInReais = payoutRequests?.map(request => ({
+      ...request,
+      amount: request.amount / 100 // Convert from cents to reais  
     })) || []
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        requests: payoutRequests || [],
+        requests: requestsInReais,
         available_payouts: payoutsWithFreights
       }),
       { 

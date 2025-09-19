@@ -419,7 +419,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                             ? 'text-red-600' 
                             : 'text-orange-600'
                         }`}>
-                          R$ {(advance.requested_amount || 0).toLocaleString('pt-BR', { 
+                          R$ {((advance.requested_amount || 0) / 100).toLocaleString('pt-BR', { 
                             minimumFractionDigits: 2, 
                             maximumFractionDigits: 2 
                           })}
@@ -530,7 +530,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="font-medium text-sm">
-                          R$ {(advance.approved_amount || advance.requested_amount || 0).toLocaleString('pt-BR', { 
+                          R$ {((advance.approved_amount || advance.requested_amount || 0) / 100).toLocaleString('pt-BR', { 
                             minimumFractionDigits: 2, 
                             maximumFractionDigits: 2 
                           })}
