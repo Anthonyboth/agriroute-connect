@@ -141,15 +141,15 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
             Solicitar Adiantamento
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5">
+        <div className="flex-1 overflow-y-auto px-1 space-y-5 max-h-[calc(90vh-140px)]">
           {/* Status das Solicitações Pendentes */}
           {pendingCount > 0 && (
             <div className={`p-4 rounded-xl border-l-4 ${
@@ -292,23 +292,24 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
             </div>
           )}
 
-          {/* Botões de Ação */}
-          <div className="flex gap-4 pt-4 border-t border-slate-200">
-            <Button variant="outline" onClick={onClose} className="flex-1 h-12 text-base font-semibold">
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleCreateAdvance} 
-              disabled={isLoading || calculatedAmount === 0 || hasRequestedRecently || !!duplicateWarning || pendingCount >= 3}
-              className="flex-1 h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:text-gray-600"
-            >
-              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {hasRequestedRecently ? "Aguarde..." : 
-               duplicateWarning ? "Valor já solicitado" :
-               pendingCount >= 3 ? "Limite atingido" :
-               "Solicitar Adiantamento"}
-            </Button>
-          </div>
+        </div>
+
+        {/* Botões de Ação - fixos na parte inferior */}
+        <div className="flex-shrink-0 flex gap-4 pt-4 border-t border-slate-200 bg-white">
+          <Button variant="outline" onClick={onClose} className="flex-1 h-12 text-base font-semibold">
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleCreateAdvance} 
+            disabled={isLoading || calculatedAmount === 0 || hasRequestedRecently || !!duplicateWarning || pendingCount >= 3}
+            className="flex-1 h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:text-gray-600"
+          >
+            {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {hasRequestedRecently ? "Aguarde..." : 
+             duplicateWarning ? "Valor já solicitado" :
+             pendingCount >= 3 ? "Limite atingido" :
+             "Solicitar Adiantamento"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
