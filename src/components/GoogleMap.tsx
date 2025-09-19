@@ -10,13 +10,15 @@ interface GoogleMapProps {
     title: string;
     info?: string;
   }>;
+  onClick?: (lat: number, lng: number) => void;
 }
 
 const GoogleMap: React.FC<GoogleMapProps> = ({
   center = { lat: -14.235, lng: -51.925 }, // Centro do Brasil
   zoom = 5,
   className = "w-full h-[400px]",
-  markers = []
+  markers = [],
+  onClick
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
@@ -39,6 +41,17 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
             zoom,
             mapId: "DEMO_MAP_ID",
           });
+
+          // Adicionar listener de click se fornecido
+          if (onClick) {
+            map.current.addListener('click', (event: google.maps.MapMouseEvent) => {
+              if (event.latLng) {
+                const lat = event.latLng.lat();
+                const lng = event.latLng.lng();
+                onClick(lat, lng);
+              }
+            });
+          }
 
           // Adicionar marcadores
           markers.forEach((marker) => {

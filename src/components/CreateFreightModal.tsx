@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Plus, Loader2 } from 'lucide-react';
 import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
 import { LocationFillButton } from './LocationFillButton';
+import { AddressButton } from './AddressButton';
 
 interface CreateFreightModalProps {
   onFreightCreated: () => void;
@@ -242,43 +243,31 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="origin_address">Endereço de Origem *</Label>
-            <div className="flex gap-2">
-              <Input
-                id="origin_address"
-                value={formData.origin_address}
-                onChange={(e) => handleInputChange('origin_address', e.target.value)}
-                placeholder="Rua, Cidade, Estado"
-                required
-                className="flex-1"
-              />
-              <LocationFillButton
-                onLocationFilled={(address) => {
-                  handleInputChange('origin_address', address);
-                }}
-              />
-            </div>
-          </div>
+          <AddressButton
+            label="Endereço de Origem"
+            value={formData.origin_address}
+            onAddressChange={(address, lat, lng) => {
+              handleInputChange('origin_address', address);
+              if (lat && lng) {
+                handleInputChange('origin_lat', lat.toString());
+                handleInputChange('origin_lng', lng.toString());
+              }
+            }}
+            required
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="destination_address">Endereço de Destino *</Label>
-            <div className="flex gap-2">
-              <Input
-                id="destination_address"
-                value={formData.destination_address}
-                onChange={(e) => handleInputChange('destination_address', e.target.value)}
-                placeholder="Rua, Cidade, Estado"
-                required
-                className="flex-1"
-              />
-              <LocationFillButton
-                onLocationFilled={(address) => {
-                  handleInputChange('destination_address', address);
-                }}
-              />
-            </div>
-          </div>
+          <AddressButton
+            label="Endereço de Destino"
+            value={formData.destination_address}
+            onAddressChange={(address, lat, lng) => {
+              handleInputChange('destination_address', address);
+              if (lat && lng) {
+                handleInputChange('destination_lat', lat.toString());
+                handleInputChange('destination_lng', lng.toString());
+              }
+            }}
+            required
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">

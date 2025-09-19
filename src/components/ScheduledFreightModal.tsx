@@ -10,6 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollButtons } from '@/components/ui/scroll-buttons';
 import { CalendarIcon, Clock, MapPin, Package } from 'lucide-react';
+import { AddressButton } from './AddressButton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -152,33 +153,19 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
 
                 {/* Endereços */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label>Endereço de Origem *</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Cidade, Estado - CEP"
-                        value={originAddress}
-                        onChange={(e) => setOriginAddress(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Endereço de Destino *</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Cidade, Estado - CEP"
-                        value={destinationAddress}
-                        onChange={(e) => setDestinationAddress(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
+                  <AddressButton
+                    label="Endereço de Origem"
+                    value={originAddress}
+                    onAddressChange={(address) => setOriginAddress(address)}
+                    required
+                  />
+                  
+                  <AddressButton
+                    label="Endereço de Destino"
+                    value={destinationAddress}
+                    onAddressChange={(address) => setDestinationAddress(address)}
+                    required
+                  />
                 </div>
 
                 {/* Cargo, Peso e Valor */}

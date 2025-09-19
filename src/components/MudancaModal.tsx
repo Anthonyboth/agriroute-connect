@@ -12,6 +12,7 @@ import { Home, Package, Truck, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LocationFillButton } from './LocationFillButton';
+import { AddressButton } from './AddressButton';
 
 interface MudancaModalProps {
   isOpen: boolean;
@@ -331,53 +332,33 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="origin_address">Endereço de Origem</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="origin_address"
-                  value={formData.origin_address}
-                  onChange={(e) => setFormData({...formData, origin_address: e.target.value})}
-                  placeholder="Endereço completo de onde sair"
-                  required
-                  className="flex-1"
-                />
-                <LocationFillButton
-                  onLocationFilled={(address, lat, lng) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      origin_address: address,
-                      origin_lat: lat,
-                      origin_lng: lng
-                    }));
-                  }}
-                />
-              </div>
-            </div>
+            <AddressButton
+              label="Endereço de Origem"
+              value={formData.origin_address}
+              onAddressChange={(address, lat, lng) => {
+                setFormData(prev => ({
+                  ...prev,
+                  origin_address: address,
+                  origin_lat: lat,
+                  origin_lng: lng
+                }));
+              }}
+              required
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="destination_address">Endereço de Destino</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="destination_address"
-                  value={formData.destination_address}
-                  onChange={(e) => setFormData({...formData, destination_address: e.target.value})}
-                  placeholder="Para onde vai a mudança"
-                  required
-                  className="flex-1"
-                />
-                <LocationFillButton
-                  onLocationFilled={(address, lat, lng) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      destination_address: address,
-                      destination_lat: lat,
-                      destination_lng: lng
-                    }));
-                  }}
-                />
-              </div>
-            </div>
+            <AddressButton
+              label="Endereço de Destino"
+              value={formData.destination_address}
+              onAddressChange={(address, lat, lng) => {
+                setFormData(prev => ({
+                  ...prev,
+                  destination_address: address,
+                  destination_lat: lat,
+                  destination_lng: lng
+                }));
+              }}
+              required
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

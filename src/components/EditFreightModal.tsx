@@ -8,6 +8,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarIcon } from 'lucide-react';
+import { AddressButton } from './AddressButton';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -123,25 +124,33 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="origin_address">Endereço de Origem</Label>
-            <Input
-              id="origin_address"
-              value={formData.origin_address}
-              onChange={(e) => setFormData({ ...formData, origin_address: e.target.value })}
-              required
-            />
-          </div>
+          <AddressButton
+            label="Endereço de Origem"
+            value={formData.origin_address}
+            onAddressChange={(address, lat, lng) => {
+              setFormData(prev => ({
+                ...prev,
+                origin_address: address,
+                origin_lat: lat,
+                origin_lng: lng
+              }));
+            }}
+            required
+          />
 
-          <div>
-            <Label htmlFor="destination_address">Endereço de Destino</Label>
-            <Input
-              id="destination_address"
-              value={formData.destination_address}
-              onChange={(e) => setFormData({ ...formData, destination_address: e.target.value })}
-              required
-            />
-          </div>
+          <AddressButton
+            label="Endereço de Destino"
+            value={formData.destination_address}
+            onAddressChange={(address, lat, lng) => {
+              setFormData(prev => ({
+                ...prev,
+                destination_address: address,
+                destination_lat: lat,
+                destination_lng: lng
+              }));
+            }}
+            required
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <div>
