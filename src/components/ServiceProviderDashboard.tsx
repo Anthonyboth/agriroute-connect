@@ -192,15 +192,39 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
-      const { error } = await supabase
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile) return;
+
+      // Primeiro, tentar atualizar na tabela service_requests
+      const { data: serviceRequestData, error: serviceError } = await supabase
         .from('service_requests')
         .update({ 
           status: 'ACCEPTED',
+          provider_id: profile.id,
           accepted_at: new Date().toISOString()
         })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .select();
 
-      if (error) throw error;
+      // Se não encontrou na tabela service_requests, tentar na guest_requests
+      if (!serviceRequestData || serviceRequestData.length === 0) {
+        const { error: guestError } = await supabase
+          .from('guest_requests')
+          .update({ 
+            status: 'ACCEPTED',
+            provider_id: profile.id
+          })
+          .eq('id', requestId);
+
+        if (guestError) throw guestError;
+      } else if (serviceError) {
+        throw serviceError;
+      }
 
       toast({
         title: "Solicitação aceita!",
@@ -221,15 +245,29 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   const handleCompleteRequest = async (requestId: string) => {
     try {
-      const { error } = await supabase
+      // Primeiro, tentar atualizar na tabela service_requests
+      const { data: serviceRequestData, error: serviceError } = await supabase
         .from('service_requests')
         .update({ 
           status: 'COMPLETED',
           completed_at: new Date().toISOString()
         })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .select();
 
-      if (error) throw error;
+      // Se não encontrou na tabela service_requests, tentar na guest_requests
+      if (!serviceRequestData || serviceRequestData.length === 0) {
+        const { error: guestError } = await supabase
+          .from('guest_requests')
+          .update({ 
+            status: 'COMPLETED'
+          })
+          .eq('id', requestId);
+
+        if (guestError) throw guestError;
+      } else if (serviceError) {
+        throw serviceError;
+      }
 
       toast({
         title: "Serviço concluído!",
