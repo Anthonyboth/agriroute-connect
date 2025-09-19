@@ -64,15 +64,15 @@ serve(async (req) => {
       throw new Error("Only the assigned driver can request advances");
     }
 
-    // Calcular o valor do adiantamento em centavos (como o preço está no banco)
+    // Calcular o valor do adiantamento em centavos
     const calculatedAmount = advance_amount 
       ? Math.round(advance_amount * 100) // Converter de reais para centavos
-      : Math.round((freight.price * advance_percentage) / 100); // Já em centavos
+      : Math.round(freight.price * advance_percentage); // freight.price já em reais, resultado em centavos
     
     logStep("Calculated advance amount", { 
       calculatedAmount, 
       freightPrice: freight.price, 
-      freightPriceInReais: freight.price / 100,
+      freightPriceInReais: freight.price,
       advancePercentage: advance_percentage,
       advanceInReais: calculatedAmount / 100
     });
