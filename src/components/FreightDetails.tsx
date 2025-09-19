@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell } from 'lucide-react';
+import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X } from 'lucide-react';
 import { FreightChat } from './FreightChat';
 import { FreightStatusTracker } from './FreightStatusTracker';
 import { FreightRatingModal } from './FreightRatingModal';
@@ -368,38 +368,78 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                           Solicitado em {new Date(advance.requested_at).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
-                      <Button
-                        onClick={async (e) => {
-                          e.currentTarget.disabled = true; // Prevent multiple clicks
-                          try {
-                            const { data, error } = await supabase.functions.invoke('approve-freight-advance', {
-                              body: { advance_id: advance.id }
-                            });
-                            if (error) {
-                              if (error.message?.includes('no longer pending') || error.message?.includes('já foi processad')) {
-                                toast.error("Esta solicitação já foi processada");
-                                fetchFreightDetails(); // Refresh data
-                              } else {
-                                throw error;
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={async (e) => {
+                            e.currentTarget.disabled = true; // Prevent multiple clicks
+                            try {
+                              const { data, error } = await supabase.functions.invoke('approve-freight-advance', {
+                                body: { advance_id: advance.id }
+                              });
+                              if (error) {
+                                if (error.message?.includes('no longer pending') || error.message?.includes('já foi processad')) {
+                                  toast.error("Esta solicitação já foi processada");
+                                  fetchFreightDetails(); // Refresh data
+                                } else {
+                                  throw error;
+                                }
+                                return;
                               }
-                              return;
+                              window.open(data.url, '_blank');
+                              toast.success("Redirecionando para pagamento do adiantamento");
+                              fetchFreightDetails(); // Refresh data
+                            } catch (error) {
+                              console.error('Error approving advance:', error);
+                              toast.error("Erro ao processar pagamento do adiantamento");
+                            } finally {
+                              e.currentTarget.disabled = false; // Re-enable after request
                             }
-                            window.open(data.url, '_blank');
-                            toast.success("Redirecionando para pagamento do adiantamento");
-                            fetchFreightDetails(); // Refresh data
-                          } catch (error) {
-                            console.error('Error approving advance:', error);
-                            toast.error("Erro ao processar pagamento do adiantamento");
-                          } finally {
-                            e.currentTarget.disabled = false; // Re-enable after request
-                          }
-                        }}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        size="sm"
-                      >
-                        <CreditCard className="h-3 w-3 mr-1" />
-                        Pagar
-                      </Button>
+                          }}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          size="sm"
+                        >
+                          <CreditCard className="h-3 w-3 mr-1" />
+                          Pagar
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={async (e) => {
+                            e.currentTarget.disabled = true; // Prevent multiple clicks
+                            try {
+                              const reason = window.prompt("Motivo da rejeição (opcional):");
+                              if (reason === null) return; // User cancelled
+                              
+                              const { error } = await supabase.functions.invoke('reject-freight-advance', {
+                                body: { 
+                                  advance_id: advance.id,
+                                  rejection_reason: reason?.trim() || undefined
+                                }
+                              });
+                              
+                              if (error) {
+                                if (error.message?.includes('já foi processad')) {
+                                  toast.error("Esta solicitação já foi processada");
+                                } else {
+                                  throw error;
+                                }
+                                return;
+                              }
+                              
+                              toast.success("Adiantamento rejeitado com sucesso");
+                              fetchFreightDetails(); // Refresh data
+                            } catch (error) {
+                              console.error('Error rejecting advance:', error);
+                              toast.error("Erro ao rejeitar adiantamento");
+                            } finally {
+                              e.currentTarget.disabled = false; // Re-enable after request
+                            }
+                          }}
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Recusar
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}

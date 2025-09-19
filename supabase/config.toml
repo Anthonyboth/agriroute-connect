@@ -30,6 +30,9 @@ enabled = true
 [functions.approve-freight-advance]
 verify_jwt = true
 
+[functions.reject-freight-advance]
+verify_jwt = true
+
 [functions.create-checkout]
 verify_jwt = true
 
