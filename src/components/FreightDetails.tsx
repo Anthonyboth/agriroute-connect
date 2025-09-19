@@ -301,16 +301,22 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                 size="sm"
                 className="border-orange-300 text-orange-700 hover:bg-orange-100"
                 onClick={() => {
-                  // Scroll para a seção de pagamentos onde ficam as solicitações
-                  const element = document.getElementById('payment-section');
-                  if (element) {
-                    element.scrollIntoView({ behavior: 'smooth' });
-                  } else {
-                    // Fallback - scroll para próxima seção
-                    const paymentCard = document.querySelector('[data-payment-card]');
-                    if (paymentCard) {
-                      paymentCard.scrollIntoView({ behavior: 'smooth' });
-                    }
+                  // Tenta ir direto para a lista de solicitações
+                  const requests = document.getElementById('advance-requests');
+                  if (requests) {
+                    requests.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return;
+                  }
+                  // Fallback: cartão de pagamentos
+                  const paymentSection = document.getElementById('payment-section');
+                  if (paymentSection) {
+                    paymentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return;
+                  }
+                  // Último fallback: seletor por atributo
+                  const paymentCard = document.querySelector('[data-payment-card]');
+                  if (paymentCard instanceof HTMLElement) {
+                    paymentCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }
                 }}
               >
@@ -322,7 +328,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       )}
 
       {/* Payment Actions */}
-      {(canRequestAdvance || canMakePayment || (isDriver && freight?.status === 'ACCEPTED')) && (
+      {(canRequestAdvance || canMakePayment || (isDriver && freight?.status === 'ACCEPTED') || (isProducer && advances && advances.filter(advance => advance.status === 'PENDING').length > 0)) && (
         <Card id="payment-section" data-payment-card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
