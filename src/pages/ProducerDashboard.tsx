@@ -15,6 +15,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FreightStatusTracker } from '@/components/FreightStatusTracker';
 import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
 import { FreightTrackingPanel } from '@/components/FreightTrackingPanel';
+import { FreightDetails } from '@/components/FreightDetails';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-status';
@@ -37,6 +38,7 @@ const ProducerDashboard = () => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [freightToCancel, setFreightToCancel] = useState<any>(null);
   const [selectedTrackingFreight, setSelectedTrackingFreight] = useState<any>(null);
+  const [selectedFreightDetails, setSelectedFreightDetails] = useState<any>(null);
 
   // Buscar fretes - otimizado
   const fetchFreights = useCallback(async () => {
@@ -537,7 +539,9 @@ const ProducerDashboard = () => {
                           size="sm" 
                           variant="outline"
                           className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                          onClick={() => setSelectedTrackingFreight(freight)}
+                          onClick={() => {
+                            setSelectedFreightDetails(freight);
+                          }}
                         >
                           <Eye className="h-4 w-4 mr-2" />
                           Ver Detalhes
@@ -782,6 +786,16 @@ const ProducerDashboard = () => {
         cancelText="Não, manter"
         variant="destructive"
       />
+
+      {selectedFreightDetails && (
+        <FreightDetails
+          freightId={selectedFreightDetails.id}
+          currentUserProfile={profile}
+          onClose={() => {
+            setSelectedFreightDetails(null);
+          }}
+        />
+      )}
     </div>
   );
 };
