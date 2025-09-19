@@ -65,9 +65,16 @@ serve(async (req) => {
     }
 
     // Calcular o valor do adiantamento
+    // freight.price está em centavos, então calculamos a porcentagem e mantemos em centavos
     const calculatedAmount = advance_amount || Math.round((freight.price * advance_percentage) / 100);
     
-    logStep("Calculated advance amount", { calculatedAmount, freightPrice: freight.price });
+    logStep("Calculated advance amount", { 
+      calculatedAmount, 
+      freightPrice: freight.price, 
+      freightPriceInReais: freight.price / 100,
+      advancePercentage: advance_percentage,
+      advanceInReais: calculatedAmount / 100
+    });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
       apiVersion: "2023-10-16" 
