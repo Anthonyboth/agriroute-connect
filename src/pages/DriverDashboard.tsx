@@ -24,7 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import heroLogistics from '@/assets/hero-logistics.jpg';
@@ -814,6 +814,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 <span className="sm:hidden">Veíc</span>
               </TabsTrigger>
               <TabsTrigger 
+                value="advances" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Banknote className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Adiantamentos</span>
+                <span className="sm:hidden">Adv</span>
+              </TabsTrigger>
+              <TabsTrigger 
                 value="historico" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
@@ -1264,6 +1272,29 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           <TabsContent value="vehicles" className="space-y-4">
             <VehicleManager driverProfile={profile} />
+          </TabsContent>
+
+          <TabsContent value="advances" className="space-y-4">
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Adiantamentos de Fretes</h3>
+                <p className="text-muted-foreground mb-4">
+                  Gerencie seus adiantamentos de pagamentos de fretes aceitos.
+                </p>
+                {/* Lista de adiantamentos será implementada aqui */}
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="text-center text-muted-foreground">
+                      <Banknote className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhum adiantamento solicitado ainda.</p>
+                      <p className="text-sm mt-2">
+                        Aceite um frete para poder solicitar adiantamentos.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="historico" className="mt-6">
