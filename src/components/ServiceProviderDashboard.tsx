@@ -20,7 +20,9 @@ import {
   AlertCircle,
   Calendar,
   Filter,
-  Settings
+  Settings,
+  Sparkles,
+  Wrench
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -71,10 +73,12 @@ export const ServiceProviderDashboard: React.FC = () => {
     average_rating: 0,
     total_earnings: 0
   });
-   const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
    const [activeTab, setActiveTab] = useState('pending');
    const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
    const [showRegionModal, setShowRegionModal] = useState(false);
+   const [showSpecialtiesModal, setShowSpecialtiesModal] = useState(false);
+   const [showAIServicesModal, setShowAIServicesModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -405,6 +409,45 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Banner IA */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-green-500 to-green-600 p-8 text-white">
+        <div className="relative z-10">
+          <h1 className="text-2xl font-bold mb-2">
+            Olá, {user?.user_metadata?.full_name || 'Prestador'}
+          </h1>
+          <p className="text-green-100 mb-6">
+            Sistema IA encontra serviços para você
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button 
+              variant="secondary" 
+              className="bg-white text-green-600 hover:bg-green-50"
+              onClick={() => setShowAIServicesModal(true)}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Ver Serviços IA
+            </Button>
+            <Button 
+              variant="secondary" 
+              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+              onClick={() => setShowRegionModal(true)}
+            >
+              <MapPin className="h-4 w-4 mr-2" />
+              Configurar Região
+            </Button>
+            <Button 
+              variant="secondary" 
+              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+              onClick={() => setShowSpecialtiesModal(true)}
+            >
+              <Wrench className="h-4 w-4 mr-2" />
+              Configurar
+            </Button>
+          </div>
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-transparent"></div>
+      </div>
+
       {/* Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -474,20 +517,65 @@ export const ServiceProviderDashboard: React.FC = () => {
                 Gerencie suas solicitações de serviços
               </CardDescription>
             </div>
-            <Dialog.Root open={showRegionModal} onOpenChange={setShowRegionModal}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Configurar Região
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl">
-                <DialogHeader>
-                  <DialogTitle>Configurar Região de Atendimento</DialogTitle>
-                </DialogHeader>
-                <ServiceRegionSelector onClose={() => setShowRegionModal(false)} />
-              </DialogContent>
-            </Dialog.Root>
+            <div className="flex gap-2">
+              <Dialog.Root open={showRegionModal} onOpenChange={setShowRegionModal}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Configurar Região
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Configurar Região de Atendimento</DialogTitle>
+                  </DialogHeader>
+                  <ServiceRegionSelector onClose={() => setShowRegionModal(false)} />
+                </DialogContent>
+              </Dialog.Root>
+
+              <Dialog.Root open={showSpecialtiesModal} onOpenChange={setShowSpecialtiesModal}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Wrench className="h-4 w-4 mr-2" />
+                    Especialidades
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Configurar Especialidades</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Selecione seus tipos de serviços especializados para receber solicitações mais relevantes.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {serviceTypes.slice(1).map((service) => (
+                        <Button
+                          key={service.value}
+                          variant="outline"
+                          className="justify-start"
+                          onClick={() => {
+                            // TODO: Implementar seleção de especialidades
+                            toast({
+                              title: "Especialidade selecionada",
+                              description: `${service.label} adicionado às suas especialidades.`,
+                            });
+                          }}
+                        >
+                          <Wrench className="h-4 w-4 mr-2" />
+                          {service.label}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex justify-end pt-4">
+                      <Button onClick={() => setShowSpecialtiesModal(false)}>
+                        Salvar Configurações
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog.Root>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -688,6 +776,30 @@ export const ServiceProviderDashboard: React.FC = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Modal Ver Serviços IA */}
+      <Dialog.Root open={showAIServicesModal} onOpenChange={setShowAIServicesModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Serviços IA - Em Breve</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center py-8">
+              <Sparkles className="h-16 w-16 text-green-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Sistema IA em Desenvolvimento</h3>
+              <p className="text-muted-foreground">
+                Nossa inteligência artificial estará disponível em breve para encontrar automaticamente 
+                os melhores serviços para você com base no seu perfil e localização.
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setShowAIServicesModal(false)}>
+                Entendi
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog.Root>
     </div>
   );
 };
