@@ -82,12 +82,12 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
 
   return (
     <Card className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border border-border/60">
-      <CardHeader className="pb-4">
-        <div className="flex flex-col space-y-3">
+      <CardHeader className="pb-2">
+        <div className="flex flex-col space-y-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3 flex-1 min-w-0">
+            <div className="flex items-center space-x-2 flex-1 min-w-0">
               {getServiceIcon()}
-              <h3 className="font-semibold text-foreground truncate text-lg">
+              <h3 className="font-semibold text-foreground truncate text-base">
                 {getCargoTypeLabel(freight.cargo_type)}
               </h3>
             </div>
@@ -100,24 +100,34 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
               </Badge>
             </div>
           </div>
-          <div className="flex justify-start">
+          <div className="flex justify-between items-center">
             <Badge variant="outline" className="text-xs bg-secondary/30">
               {getServiceLabel()}
             </Badge>
+            <div className="flex items-center space-x-3 text-xs">
+              {freight.service_type === 'GUINCHO' ? (
+                <span className="text-muted-foreground">Reboque</span>
+              ) : freight.service_type === 'MUDANCA' ? (
+                <span className="text-muted-foreground">Residencial</span>
+              ) : (
+                <span className="text-muted-foreground">{((freight.weight || 0) / 1000).toFixed(1)}t</span>
+              )}
+              <span className="text-muted-foreground">{freight.distance_km} km</span>
+            </div>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-3">
         {/* Carretas Info */}
         {(freight.required_trucks && freight.required_trucks > 1) && (
-          <div className="flex items-center justify-between p-3 bg-secondary/20 rounded-lg border border-border/40">
+          <div className="flex items-center justify-between p-2 bg-secondary/20 rounded-lg border border-border/40">
             <div className="flex items-center space-x-2 text-muted-foreground">
-              <Truck className="h-4 w-4" />
-              <span className="text-sm font-medium">Carretas:</span>
+              <Truck className="h-3 w-3" />
+              <span className="text-xs font-medium">Carretas:</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className={`font-semibold ${isFullyBooked ? 'text-success' : 'text-primary'}`}>
+              <span className={`font-semibold text-sm ${isFullyBooked ? 'text-success' : 'text-primary'}`}>
                 {freight.accepted_trucks || 0}/{freight.required_trucks}
               </span>
               {isFullyBooked ? (
@@ -133,86 +143,58 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
           </div>
         )}
 
-        {/* Peso/Info e Distância */}
-        <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
-          <div className="flex items-center space-x-2 text-muted-foreground">
-            {freight.service_type === 'GUINCHO' ? (
-              <>
-                <Wrench className="h-4 w-4" />
-                <span className="text-sm font-medium">Reboque</span>
-              </>
-            ) : freight.service_type === 'MUDANCA' ? (
-              <>
-                <Home className="h-4 w-4" />
-                <span className="text-sm font-medium">Residencial</span>
-              </>
-            ) : (
-              <>
-                <Package className="h-4 w-4" />
-                <span className="text-sm font-medium">{((freight.weight || 0) / 1000).toFixed(1)}t</span>
-              </>
-            )}
-          </div>
-          <div className="flex items-center space-x-2 text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-            <span className="text-sm font-medium">{freight.distance_km} km</span>
-          </div>
-        </div>
-
         {/* Origem e Destino */}
-        <div className="space-y-4">
+        <div className="space-y-2">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <p className="text-xs font-semibold text-foreground flex items-center gap-1">
               <MapPin className="h-3 w-3 text-primary" />
               Origem
             </p>
-            <p className="text-sm text-muted-foreground pl-5">{freight.origin_address}</p>
+            <p className="text-xs text-muted-foreground pl-4 line-clamp-1">{freight.origin_address}</p>
           </div>
           
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <p className="text-xs font-semibold text-foreground flex items-center gap-1">
               <ArrowRight className="h-3 w-3 text-accent" />
               Destino
             </p>
-            <p className="text-sm text-muted-foreground pl-5">{freight.destination_address}</p>
+            <p className="text-xs text-muted-foreground pl-4 line-clamp-1">{freight.destination_address}</p>
           </div>
         </div>
 
-        <Separator className="bg-border/60" />
-
         {/* Datas */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2 p-3 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-lg border border-border/40">
-            <div className="flex items-center space-x-2 text-muted-foreground">
-              <Calendar className="h-4 w-4 text-primary" />
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1 p-2 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-lg border border-border/40">
+            <div className="flex items-center space-x-1 text-muted-foreground">
+              <Calendar className="h-3 w-3 text-primary" />
               <span className="text-xs font-medium">Coleta</span>
             </div>
-            <p className="font-semibold text-foreground text-sm">
+            <p className="font-semibold text-foreground text-xs">
               {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
             </p>
           </div>
-          <div className="space-y-2 p-3 bg-gradient-to-br from-accent/20 to-accent/5 rounded-lg border border-border/40">
-            <div className="flex items-center space-x-2 text-muted-foreground">
-              <Calendar className="h-4 w-4 text-accent" />
+          <div className="space-y-1 p-2 bg-gradient-to-br from-accent/20 to-accent/5 rounded-lg border border-border/40">
+            <div className="flex items-center space-x-1 text-muted-foreground">
+              <Calendar className="h-3 w-3 text-accent" />
               <span className="text-xs font-medium">Entrega</span>
             </div>
-            <p className="font-semibold text-foreground text-sm">
+            <p className="font-semibold text-foreground text-xs">
               {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}
             </p>
           </div>
         </div>
       </CardContent>
 
-      <CardFooter className="pt-6 pb-4">
-        <div className="flex items-center justify-between w-full p-4 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border border-border/50">
+      <CardFooter className="pt-3 pb-3">
+        <div className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border border-border/50">
           <div className="text-left">
-            <p className="font-bold text-2xl text-primary">R$ {(freight.price || 0).toLocaleString('pt-BR')}</p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="font-bold text-xl text-primary">R$ {(freight.price || 0).toLocaleString('pt-BR')}</p>
+            <p className="text-xs text-muted-foreground">
               Min. ANTT: R$ {(freight.minimum_antt_price || 0).toLocaleString('pt-BR')}
             </p>
           </div>
           <div className="text-right">
-            <DollarSign className="h-8 w-8 text-accent ml-auto" />
+            <DollarSign className="h-6 w-6 text-accent ml-auto" />
           </div>
         </div>
       </CardFooter>
