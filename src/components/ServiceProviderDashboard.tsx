@@ -287,12 +287,12 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   const serviceTypes = [
     { value: 'all', label: 'Todos os Serviços' },
-    { value: 'BORRACHEIRO', label: 'Borracheiro' },
-    { value: 'CHAVEIRO', label: 'Chaveiro' },
-    { value: 'AUTO_ELETRICA', label: 'Auto Elétrica' },
-    { value: 'MECANICO', label: 'Mecânico' },
-    { value: 'COMBUSTIVEL', label: 'Combustível' },
     { value: 'GUINCHO', label: 'Guincho' },
+    { value: 'MECANICO', label: 'Mecânico' },
+    { value: 'BORRACHEIRO', label: 'Borracheiro' },
+    { value: 'AUTO_ELETRICA', label: 'Auto Elétrica' },
+    { value: 'CHAVEIRO', label: 'Chaveiro' },
+    { value: 'COMBUSTIVEL', label: 'Combustível' },
     { value: 'PINTURA', label: 'Pintura' },
     { value: 'AR_CONDICIONADO', label: 'Ar Condicionado' }
   ];
