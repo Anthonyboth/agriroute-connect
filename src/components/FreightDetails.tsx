@@ -90,7 +90,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const isParticipant = freight?.producer?.id === currentUserProfile?.id || freight?.driver?.id === currentUserProfile?.id;
   const isFreightProducer = freight?.producer?.id === currentUserProfile?.id;
   
-  const totalAdvances = advances.reduce((sum, advance) => sum + advance.amount, 0);
+  const totalAdvances = advances.reduce((sum, advance) => sum + (advance.approved_amount || 0), 0);
   const remainingAmount = freight?.price - totalAdvances;
   
   const canRequestAdvance = isDriver && (freight?.status === 'ACCEPTED' || freight?.status === 'LOADING' || freight?.status === 'IN_TRANSIT') && totalAdvances < (freight?.price * 0.5);

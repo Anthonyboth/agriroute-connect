@@ -104,7 +104,7 @@ serve(async (req) => {
       cancel_url: `https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/cancel?type=freight_advance&freight_id=${freight_id}`,
       metadata: {
         freight_id: freight_id,
-        advance_amount: calculatedAmount.toString(),
+        requested_amount: calculatedAmount.toString(),
         user_id: user.id,
         type: "freight_advance"
       }
@@ -115,10 +115,11 @@ serve(async (req) => {
       .from("freight_advances")
       .insert({
         freight_id,
-        requester_id: profile.id,
-        amount: calculatedAmount,
-        stripe_session_id: session.id,
-        status: "PENDING"
+        driver_id: profile.id,
+        requested_amount: calculatedAmount,
+        stripe_payment_intent_id: session.id,
+        status: "PENDING",
+        requested_at: new Date().toISOString()
       })
       .select()
       .single();
