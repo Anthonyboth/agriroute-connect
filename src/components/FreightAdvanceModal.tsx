@@ -21,10 +21,33 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
   const [percentage, setPercentage] = useState([30]);
   const [customAmount, setCustomAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [hasRequestedRecently, setHasRequestedRecently] = useState(false);
 
   const handleCreateAdvance = async () => {
+    if (hasRequestedRecently) {
+      toast.error("Aguarde um momento antes de fazer nova solicitação");
+      return;
+    }
+
     setIsLoading(true);
+    setHasRequestedRecently(true);
+    
     try {
+      // Verificar se já existe uma solicitação pendente recente (últimos 30 segundos)
+      const { data: recentAdvances, error: checkError } = await supabase
+        .from('freight_advances')
+        .select('*')
+        .eq('freight_id', freightId)
+        .eq('status', 'PENDING')
+        .gte('requested_at', new Date(Date.now() - 30000).toISOString());
+
+      if (checkError) throw checkError;
+
+      if (recentAdvances && recentAdvances.length > 0) {
+        toast.error("Você já tem uma solicitação pendente recente!");
+        return;
+      }
+
       const payload = advanceType === "percentage" 
         ? { freight_id: freightId, advance_percentage: percentage[0] }
         : { freight_id: freightId, advance_amount: parseFloat(customAmount) };
@@ -37,9 +60,13 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
 
       toast.success("Solicitação de adiantamento enviada ao produtor!");
       onClose();
+      
+      // Reset após 30 segundos
+      setTimeout(() => setHasRequestedRecently(false), 30000);
     } catch (error) {
       console.error('Error creating advance:', error);
       toast.error(error instanceof Error ? error.message : "Erro ao criar adiantamento");
+      setHasRequestedRecently(false);
     } finally {
       setIsLoading(false);
     }
@@ -132,11 +159,11 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
             </Button>
             <Button 
               onClick={handleCreateAdvance} 
-              disabled={isLoading || calculatedAmount === 0}
+              disabled={isLoading || calculatedAmount === 0 || hasRequestedRecently}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white"
             >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Solicitar Adiantamento
+              {hasRequestedRecently ? "Aguarde..." : "Solicitar Adiantamento"}
             </Button>
           </div>
         </div>
