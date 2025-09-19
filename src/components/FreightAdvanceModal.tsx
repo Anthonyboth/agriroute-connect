@@ -149,124 +149,158 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Status das Solicitações Pendentes - Mais Visível */}
+        <div className="space-y-5">
+          {/* Status das Solicitações Pendentes */}
           {pendingCount > 0 && (
-            <div className={`p-4 rounded-lg border-2 ${
+            <div className={`p-4 rounded-xl border-l-4 ${
               pendingCount >= 3 
-                ? 'border-red-300 bg-red-50' 
-                : 'border-amber-300 bg-amber-50'
+                ? 'border-l-red-500 bg-red-50/80' 
+                : 'border-l-amber-500 bg-amber-50/80'
             }`}>
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className={`h-5 w-5 ${
+              <div className="flex items-start gap-3">
+                <AlertTriangle className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
                   pendingCount >= 3 ? 'text-red-600' : 'text-amber-600'
                 }`} />
-                <p className={`font-semibold ${
-                  pendingCount >= 3 ? 'text-red-800' : 'text-amber-800'
-                }`}>
-                  {pendingCount >= 3 ? 'Limite de Solicitações Atingido' : 'Solicitações Pendentes'}
-                </p>
+                <div>
+                  <p className={`font-semibold mb-1 ${
+                    pendingCount >= 3 ? 'text-red-800' : 'text-amber-800'
+                  }`}>
+                    {pendingCount >= 3 ? 'Limite de Solicitações Atingido' : 'Solicitações Pendentes'}
+                  </p>
+                  <p className={`text-sm leading-relaxed ${
+                    pendingCount >= 3 ? 'text-red-700' : 'text-amber-700'
+                  }`}>
+                    {pendingCount >= 3 
+                      ? `Você já tem ${pendingCount} solicitações pendentes. Aguarde a aprovação ou rejeição das anteriores antes de fazer uma nova solicitação.`
+                      : `Você tem ${pendingCount} solicitação(ões) aguardando aprovação para este frete.`
+                    }
+                  </p>
+                </div>
               </div>
-              <p className={`text-sm ${
-                pendingCount >= 3 ? 'text-red-700' : 'text-amber-700'
-              }`}>
-                {pendingCount >= 3 
-                  ? `Você já tem o máximo de ${pendingCount} solicitações pendentes para este frete. Aguarde a aprovação ou rejeição das anteriores antes de fazer uma nova solicitação.`
-                  : `Você tem ${pendingCount} solicitação(ões) pendente(s) para este frete.`
-                }
-              </p>
             </div>
           )}
 
-          <div className="bg-muted/20 p-4 rounded-lg">
-            <p className="text-sm text-muted-foreground">Valor total do frete</p>
-            <p className="text-xl font-semibold">R$ {freightPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          {/* Valor do Frete */}
+          <div className="bg-gradient-to-r from-slate-50 to-slate-100 p-5 rounded-xl border border-slate-200">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-slate-600 mb-1">Valor total do frete</p>
+                <p className="text-2xl font-bold text-slate-900">
+                  R$ {freightPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              <DollarSign className="h-8 w-8 text-slate-400" />
+            </div>
           </div>
 
-          {/* Só mostra o formulário se não atingiu o limite */}
+          {/* Formulário de Adiantamento */}
           {pendingCount < 3 && (
-            <>
-              <div className="space-y-4">
-                <Label>Tipo de adiantamento</Label>
+            <div className="space-y-5">
+              {/* Tipo de Adiantamento */}
+              <div className="bg-white p-5 rounded-xl border border-slate-200">
+                <Label className="text-base font-semibold text-slate-700 mb-4 block">Tipo de adiantamento</Label>
                 <RadioGroup value={advanceType} onValueChange={(value) => setAdvanceType(value as "percentage" | "amount")}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="percentage" id="percentage" />
-                    <Label htmlFor="percentage" className="flex items-center gap-2">
-                      <Percent className="h-4 w-4" />
-                      Porcentagem
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="amount" id="amount" />
-                    <Label htmlFor="amount" className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" />
-                      Valor fixo
-                    </Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+                      <RadioGroupItem value="percentage" id="percentage" />
+                      <Label htmlFor="percentage" className="flex items-center gap-2 cursor-pointer">
+                        <Percent className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Porcentagem</span>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+                      <RadioGroupItem value="amount" id="amount" />
+                      <Label htmlFor="amount" className="flex items-center gap-2 cursor-pointer">
+                        <DollarSign className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Valor fixo</span>
+                      </Label>
+                    </div>
                   </div>
                 </RadioGroup>
               </div>
 
-              {advanceType === "percentage" ? (
-                <div className="space-y-4">
-                  <Label>Porcentagem do adiantamento: {percentage[0]}%</Label>
-                  <Slider
-                    value={percentage}
-                    onValueChange={setPercentage}
-                    max={50}
-                    min={10}
-                    step={5}
-                    className="w-full"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Máximo permitido: 50% do valor total
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label htmlFor="customAmount">Valor do adiantamento (R$)</Label>
-                  <Input
-                    id="customAmount"
-                    type="number"
-                    placeholder="0,00"
-                    value={customAmount}
-                    onChange={(e) => setCustomAmount(e.target.value)}
-                    max={freightPrice * 0.5}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Máximo: R$ {(freightPrice * 0.5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                </div>
-              )}
+              {/* Configuração do Valor */}
+              <div className="bg-white p-5 rounded-xl border border-slate-200">
+                {advanceType === "percentage" ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-base font-semibold text-slate-700">Porcentagem do adiantamento</Label>
+                      <span className="text-lg font-bold text-primary">{percentage[0]}%</span>
+                    </div>
+                    <Slider
+                      value={percentage}
+                      onValueChange={setPercentage}
+                      max={50}
+                      min={10}
+                      step={5}
+                      className="w-full"
+                    />
+                    <p className="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg">
+                      <strong>Máximo permitido:</strong> 50% do valor total
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <Label htmlFor="customAmount" className="text-base font-semibold text-slate-700 block">Valor do adiantamento (R$)</Label>
+                    <Input
+                      id="customAmount"
+                      type="number"
+                      placeholder="0,00"
+                      value={customAmount}
+                      onChange={(e) => setCustomAmount(e.target.value)}
+                      max={freightPrice * 0.5}
+                      className="text-lg font-semibold"
+                    />
+                    <p className="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg">
+                      <strong>Máximo:</strong> R$ {(freightPrice * 0.5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                )}
+              </div>
 
+              {/* Valor Calculado */}
               {calculatedAmount > 0 && (
-                <div className="bg-primary/10 p-4 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Valor do adiantamento</p>
-                  <p className="text-xl font-semibold text-primary">
-                    R$ {calculatedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
+                <div className="bg-gradient-to-r from-green-50 to-green-100 p-5 rounded-xl border border-green-200">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-medium text-green-700 mb-1">Valor do adiantamento</p>
+                      <p className="text-3xl font-bold text-green-800">
+                        R$ {calculatedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="bg-green-600 rounded-full p-3">
+                      <DollarSign className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Avisos de validação */}
+              {/* Avisos de Validação */}
               {duplicateWarning && (
-                <Alert className="border-orange-200 bg-orange-50">
-                  <AlertTriangle className="h-4 w-4 text-orange-600" />
-                  <AlertDescription className="text-orange-800">
-                    {duplicateWarning} Tente um valor diferente ou aguarde.
-                  </AlertDescription>
-                </Alert>
+                <div className="border-l-4 border-l-orange-500 bg-orange-50/80 p-4 rounded-r-xl">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-orange-800 mb-1">Valor já solicitado</p>
+                      <p className="text-sm text-orange-700 leading-relaxed">
+                        {duplicateWarning} Tente um valor diferente ou aguarde.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
-            </>
+            </div>
           )}
 
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={onClose} className="flex-1">
+          {/* Botões de Ação */}
+          <div className="flex gap-4 pt-4 border-t border-slate-200">
+            <Button variant="outline" onClick={onClose} className="flex-1 h-12 text-base font-semibold">
               Cancelar
             </Button>
             <Button 
               onClick={handleCreateAdvance} 
               disabled={isLoading || calculatedAmount === 0 || hasRequestedRecently || !!duplicateWarning || pendingCount >= 3}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400"
+              className="flex-1 h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:text-gray-600"
             >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {hasRequestedRecently ? "Aguarde..." : 
