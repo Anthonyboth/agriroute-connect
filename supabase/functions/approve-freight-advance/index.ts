@@ -97,7 +97,7 @@ serve(async (req) => {
     logStep("Creating Stripe session", { 
       advanceId: advance.id,
       amount: advance.requested_amount,
-      amountInReais: advance.requested_amount / 100
+      amountInReais: advance.requested_amount
     });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
@@ -125,7 +125,7 @@ serve(async (req) => {
               name: `Adiantamento de Frete - ${advance.freight_id.substring(0, 8)}`,
               description: `Pagamento de adiantamento para o motorista`
             },
-            unit_amount: advance.requested_amount, // Já está em centavos
+            unit_amount: Math.round(advance.requested_amount * 100), // Converter reais para centavos para Stripe
           },
           quantity: 1,
         },
@@ -159,7 +159,7 @@ serve(async (req) => {
     logStep("Advance payment session created successfully", { 
       sessionId: session.id, 
       amount: advance.requested_amount,
-      amountInReais: advance.requested_amount / 100
+      amountInReais: advance.requested_amount
     });
 
     // Enviar notificação para o motorista sobre aprovação do adiantamento
@@ -168,7 +168,7 @@ serve(async (req) => {
         body: {
           user_id: advance.driver_id,
           title: 'Adiantamento Aprovado',
-          message: `Seu adiantamento de R$ ${(advance.requested_amount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} foi aprovado! O valor será creditado em sua conta em breve.`,
+          message: `Seu adiantamento de R$ ${advance.requested_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} foi aprovado! O valor será creditado em sua conta em breve.`,
           type: 'advance_approved',
           data: {
             advance_id: advance_id,

@@ -45,7 +45,7 @@ serve(async (req) => {
     // Verify webhook signature
     let event: Stripe.Event
     try {
-      event = stripe.webhooks.constructEvent(body, signature, stripeWebhookSecret)
+      event = await stripe.webhooks.constructEventAsync(body, signature, stripeWebhookSecret)
       logStep('Webhook verified', { type: event.type, id: event.id })
     } catch (err) {
       logStep('Webhook signature verification failed', { error: err.message })
@@ -89,8 +89,9 @@ serve(async (req) => {
           const { error: advanceError } = await supabase
             .from('freight_advances')
             .update({ 
-              status: 'COMPLETED',
-              stripe_payment_id: session.payment_intent,
+              status: 'PAID',
+              stripe_payment_intent_id: session.payment_intent,
+              paid_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             })
             .eq('id', advanceId)

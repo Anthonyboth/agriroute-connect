@@ -83,11 +83,11 @@ serve(async (req) => {
     // Verificar se já existe adiantamento para calcular valor restante
     const { data: advances } = await supabaseClient
       .from("freight_advances")
-      .select("amount")
+      .select("requested_amount")
       .eq("freight_id", freight_id)
-      .eq("status", "COMPLETED");
+      .eq("status", "PAID");
 
-    const totalAdvances = advances?.reduce((sum, advance) => sum + advance.amount, 0) || 0;
+    const totalAdvances = advances?.reduce((sum, advance) => sum + advance.requested_amount, 0) || 0;
     const remainingAmount = freight.price - totalAdvances;
 
     if (remainingAmount <= 0) {
@@ -104,10 +104,10 @@ serve(async (req) => {
             product_data: { 
               name: `Pagamento de Frete - ${freight.id.substring(0, 8)}`,
               description: totalAdvances > 0 ? 
-                `Valor restante após adiantamentos de R$ ${(totalAdvances / 100).toFixed(2)}` :
+                `Valor restante após adiantamentos de R$ ${totalAdvances.toFixed(2)}` :
                 `Pagamento completo do frete`
             },
-            unit_amount: remainingAmount,
+            unit_amount: Math.round(remainingAmount * 100), // Converter reais para centavos para Stripe
           },
           quantity: 1,
         },
