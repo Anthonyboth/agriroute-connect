@@ -93,7 +93,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const totalAdvances = advances.reduce((sum, advance) => sum + advance.amount, 0);
   const remainingAmount = freight?.price - totalAdvances;
   
-  const canRequestAdvance = isDriver && freight?.status === 'ACCEPTED' && totalAdvances < (freight?.price * 0.5);
+  const canRequestAdvance = isDriver && (freight?.status === 'ACCEPTED' || freight?.status === 'LOADING' || freight?.status === 'IN_TRANSIT') && totalAdvances < (freight?.price * 0.5);
   const canMakePayment = isFreightProducer && freight?.status === 'DELIVERED' && remainingAmount > 0;
 
   useEffect(() => {
@@ -319,7 +319,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </div>
 
             {/* Botão de desistir do frete para motoristas */}
-            {isDriver && freight?.status === 'ACCEPTED' && onFreightWithdraw && (
+            {isDriver && (freight?.status === 'ACCEPTED' || freight?.status === 'LOADING') && onFreightWithdraw && (
               <div className="pt-4 border-t">
                 <Button 
                   onClick={() => onFreightWithdraw(freight)}

@@ -8,6 +8,8 @@ export const getFreightStatusLabel = (status: string): string => {
       return 'Em Negociação';
     case 'ACCEPTED':
       return 'Aceito';
+    case 'LOADING':
+      return 'Coletando';
     case 'IN_TRANSIT':
       return 'Em Transporte';
     case 'DELIVERED':
@@ -33,6 +35,8 @@ export const getFreightStatusVariant = (status: string): 'default' | 'secondary'
       return 'secondary';
     case 'ACCEPTED':
       return 'default';
+    case 'LOADING':
+      return 'secondary';
     case 'IN_TRANSIT':
       return 'secondary';
     case 'DELIVERED':
