@@ -28,7 +28,7 @@ const PlatformStats: React.FC = () => {
         setStats({
           totalProducers: Number(row.produtores) || 355,
           totalDrivers: Number(row.motoristas) || 892,
-          totalWeight: Math.round(Number(row.peso_total) || 2900),
+          totalWeight: Math.round(Number(row.peso_total) || 29),
           averageRating: Math.round(((Number(row.avaliacao_media) || 4.8) * 10)) / 10,
           loading: false,
         });
@@ -37,7 +37,7 @@ const PlatformStats: React.FC = () => {
         setStats({
           totalProducers: 355,
           totalDrivers: 892,
-          totalWeight: 2900,
+          totalWeight: 29,
           averageRating: 4.8,
           loading: false,
         });
@@ -47,7 +47,7 @@ const PlatformStats: React.FC = () => {
       setStats({
         totalProducers: 355,
         totalDrivers: 892,
-        totalWeight: 2900,
+        totalWeight: 29,
         averageRating: 4.8,
         loading: false,
       });
@@ -59,7 +59,7 @@ const PlatformStats: React.FC = () => {
     setStats({
       totalProducers: 355,
       totalDrivers: 892,
-      totalWeight: 2900,
+      totalWeight: 29,
       averageRating: 4.8,
       loading: false,
     });
