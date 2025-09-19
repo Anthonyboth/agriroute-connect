@@ -721,7 +721,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                   <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
                   <div className="ml-2 min-w-0">
                     <p className="text-xs font-medium text-muted-foreground truncate">
-                      Ganhos
+                      Saldo
                     </p>
                     <p className="text-sm font-bold">
                       {showEarnings 
