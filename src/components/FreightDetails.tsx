@@ -369,17 +369,29 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                         </p>
                       </div>
                       <Button
-                        onClick={async () => {
+                        onClick={async (e) => {
+                          e.currentTarget.disabled = true; // Prevent multiple clicks
                           try {
                             const { data, error } = await supabase.functions.invoke('approve-freight-advance', {
                               body: { advance_id: advance.id }
                             });
-                            if (error) throw error;
+                            if (error) {
+                              if (error.message?.includes('no longer pending') || error.message?.includes('já foi processad')) {
+                                toast.error("Esta solicitação já foi processada");
+                                fetchFreightDetails(); // Refresh data
+                              } else {
+                                throw error;
+                              }
+                              return;
+                            }
                             window.open(data.url, '_blank');
                             toast.success("Redirecionando para pagamento do adiantamento");
+                            fetchFreightDetails(); // Refresh data
                           } catch (error) {
                             console.error('Error approving advance:', error);
                             toast.error("Erro ao processar pagamento do adiantamento");
+                          } finally {
+                            e.currentTarget.disabled = false; // Re-enable after request
                           }
                         }}
                         className="bg-green-600 hover:bg-green-700 text-white"

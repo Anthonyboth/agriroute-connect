@@ -73,7 +73,25 @@ serve(async (req) => {
     }
 
     if (advance.status !== "PENDING") {
-      throw new Error("Advance request is no longer pending");
+      if (advance.status === "APPROVED" && advance.stripe_payment_intent_id) {
+        // Se já foi aprovado e tem sessão de pagamento, retorna a URL existente
+        try {
+          const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
+            apiVersion: "2023-10-16" 
+          });
+          const session = await stripe.checkout.sessions.retrieve(advance.stripe_payment_intent_id);
+          if (session.url) {
+            logStep("Returning existing payment session", { sessionId: session.id });
+            return new Response(JSON.stringify({ url: session.url }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            });
+          }
+        } catch (stripeError) {
+          logStep("Could not retrieve existing session", { error: stripeError });
+        }
+      }
+      throw new Error("Esta solicitação de adiantamento já foi processada");
     }
 
     logStep("Creating Stripe session", { 
