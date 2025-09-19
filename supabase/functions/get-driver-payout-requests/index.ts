@@ -65,14 +65,7 @@ serve(async (req) => {
     // Get available payouts from completed freights
     const { data: availablePayouts, error: payoutsError } = await supabase
       .from('driver_payouts')
-      .select(`
-        *,
-        freights:freight_id (
-          cargo_type,
-          origin_address,
-          destination_address
-        )
-      `)
+      .select('*')
       .eq('driver_id', driver_id)
       .order('created_at', { ascending: false })
 
@@ -80,11 +73,32 @@ serve(async (req) => {
       throw payoutsError
     }
 
+    // Get freight details for available payouts
+    const freightIds = availablePayouts?.map(p => p.freight_id).filter(Boolean) || []
+    let freightDetails = []
+    
+    if (freightIds.length > 0) {
+      const { data: freights, error: freightsError } = await supabase
+        .from('freights')
+        .select('id, cargo_type, origin_address, destination_address')
+        .in('id', freightIds)
+      
+      if (!freightsError) {
+        freightDetails = freights || []
+      }
+    }
+
+    // Combine payout data with freight details
+    const payoutsWithFreights = availablePayouts?.map(payout => ({
+      ...payout,
+      freight: freightDetails.find(f => f.id === payout.freight_id)
+    })) || []
+
     return new Response(
       JSON.stringify({ 
         success: true,
         requests: payoutRequests || [],
-        available_payouts: availablePayouts || []
+        available_payouts: payoutsWithFreights
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
