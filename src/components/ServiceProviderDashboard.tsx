@@ -293,13 +293,8 @@ export const ServiceProviderDashboard: React.FC = () => {
     { value: 'MECANICO', label: 'Mecânico' },
     { value: 'COMBUSTIVEL', label: 'Combustível' },
     { value: 'GUINCHO', label: 'Guincho' },
-    { value: 'ELETRICISTA_AUTOMOTIVO', label: 'Eletricista Automotivo' },
-    { value: 'SOLDADOR', label: 'Soldador' },
     { value: 'PINTURA', label: 'Pintura' },
-    { value: 'VIDRACEIRO', label: 'Vidraceiro' },
-    { value: 'AR_CONDICIONADO', label: 'Ar Condicionado' },
-    { value: 'FREIOS', label: 'Freios' },
-    { value: 'SUSPENSAO', label: 'Suspensão' }
+    { value: 'AR_CONDICIONADO', label: 'Ar Condicionado' }
   ];
 
   // Função para calcular o tempo restante até expirar (72 horas)
