@@ -22,7 +22,14 @@ import {
   Filter,
   Settings,
   Sparkles,
-  Wrench
+  Wrench,
+  Truck,
+  Circle,
+  Zap,
+  Key,
+  Droplets,
+  Paintbrush2,
+  Snowflake
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -334,15 +341,15 @@ export const ServiceProviderDashboard: React.FC = () => {
   };
 
   const serviceTypes = [
-    { value: 'all', label: 'Todos os Serviços' },
-    { value: 'GUINCHO', label: 'Guincho' },
-    { value: 'MECANICO', label: 'Mecânico' },
-    { value: 'BORRACHEIRO', label: 'Borracheiro' },
-    { value: 'AUTO_ELETRICA', label: 'Auto Elétrica' },
-    { value: 'CHAVEIRO', label: 'Chaveiro' },
-    { value: 'COMBUSTIVEL', label: 'Combustível' },
-    { value: 'PINTURA', label: 'Pintura' },
-    { value: 'AR_CONDICIONADO', label: 'Ar Condicionado' }
+    { value: 'all', label: 'Todos os Serviços', icon: null },
+    { value: 'GUINCHO', label: 'Guincho', icon: Truck },
+    { value: 'MECANICO', label: 'Mecânico', icon: Wrench },
+    { value: 'BORRACHEIRO', label: 'Borracheiro', icon: Circle },
+    { value: 'AUTO_ELETRICA', label: 'Auto Elétrica', icon: Zap },
+    { value: 'CHAVEIRO', label: 'Chaveiro', icon: Key },
+    { value: 'COMBUSTIVEL', label: 'Combustível', icon: Droplets },
+    { value: 'PINTURA', label: 'Pintura', icon: Paintbrush2 },
+    { value: 'AR_CONDICIONADO', label: 'Ar Condicionado', icon: Snowflake }
   ];
 
   // Função para calcular o tempo restante até expirar (72 horas)
@@ -549,23 +556,26 @@ export const ServiceProviderDashboard: React.FC = () => {
                       Selecione seus tipos de serviços especializados para receber solicitações mais relevantes.
                     </p>
                     <div className="grid grid-cols-2 gap-3">
-                      {serviceTypes.slice(1).map((service) => (
-                        <Button
-                          key={service.value}
-                          variant="outline"
-                          className="justify-start"
-                          onClick={() => {
-                            // TODO: Implementar seleção de especialidades
-                            toast({
-                              title: "Especialidade selecionada",
-                              description: `${service.label} adicionado às suas especialidades.`,
-                            });
-                          }}
-                        >
-                          <Wrench className="h-4 w-4 mr-2" />
-                          {service.label}
-                        </Button>
-                      ))}
+                      {serviceTypes.slice(1).map((service) => {
+                        const IconComponent = service.icon;
+                        return (
+                          <Button
+                            key={service.value}
+                            variant="outline"
+                            className="justify-start"
+                            onClick={() => {
+                              // TODO: Implementar seleção de especialidades
+                              toast({
+                                title: "Especialidade selecionada",
+                                description: `${service.label} adicionado às suas especialidades.`,
+                              });
+                            }}
+                          >
+                            {IconComponent && <IconComponent className="h-4 w-4 mr-2" />}
+                            {service.label}
+                          </Button>
+                        );
+                      })}
                     </div>
                     <div className="flex justify-end pt-4">
                       <Button onClick={() => setShowSpecialtiesModal(false)}>
