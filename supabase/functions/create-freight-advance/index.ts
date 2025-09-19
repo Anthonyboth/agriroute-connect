@@ -116,6 +116,7 @@ serve(async (req) => {
       .insert({
         freight_id,
         driver_id: profile.id,
+        producer_id: freight.producer_id,
         requested_amount: calculatedAmount,
         stripe_payment_intent_id: session.id,
         status: "PENDING",
