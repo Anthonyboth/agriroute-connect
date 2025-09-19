@@ -10,7 +10,7 @@ import { FreightRatingModal } from './FreightRatingModal';
 import { FreightAdvanceModal } from './FreightAdvanceModal';
 import { FreightPaymentModal } from './FreightPaymentModal';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
@@ -28,7 +28,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   onClose,
   onFreightWithdraw
 }) => {
-  const { toast } = useToast();
+  // No toast initialization needed - using sonner directly
   const [freight, setFreight] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
@@ -62,11 +62,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       setAdvances(advancesData || []);
     } catch (error: any) {
       console.error('Erro ao carregar detalhes do frete:', error);
-      toast({
-        title: "Erro ao carregar frete",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao carregar frete: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -292,6 +288,86 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                 <p className="text-sm text-green-600 dark:text-green-400">
                   Valor restante: R$ {remainingAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
+              </div>
+            )}
+
+            {/* Pending Advance Requests for Producers */}
+            {isProducer && advances && advances.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm">Solicitações de Adiantamento</h4>
+                {advances.filter(advance => advance.status === 'PENDING').map((advance) => (
+                  <div key={advance.id} className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">Adiantamento solicitado</p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          R$ {((advance.requested_amount || 0) / 100).toLocaleString('pt-BR', { 
+                            minimumFractionDigits: 2, 
+                            maximumFractionDigits: 2 
+                          })}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Solicitado em {new Date(advance.requested_at).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const { data, error } = await supabase.functions.invoke('approve-freight-advance', {
+                              body: { advance_id: advance.id }
+                            });
+                            if (error) throw error;
+                            window.open(data.url, '_blank');
+                            toast.success("Redirecionando para pagamento do adiantamento");
+                          } catch (error) {
+                            console.error('Error approving advance:', error);
+                            toast.error("Erro ao processar pagamento do adiantamento");
+                          }
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        size="sm"
+                      >
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Pagar Adiantamento
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Advance History */}
+            {advances && advances.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm">Histórico de Adiantamentos</h4>
+                {advances.filter(advance => advance.status !== 'PENDING').map((advance) => (
+                  <div key={advance.id} className="bg-muted/20 p-3 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">
+                          R$ {((advance.approved_amount || advance.requested_amount || 0) / 100).toLocaleString('pt-BR', { 
+                            minimumFractionDigits: 2, 
+                            maximumFractionDigits: 2 
+                          })}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {advance.status === 'APPROVED' ? 'Aprovado' : 
+                           advance.status === 'PAID' ? 'Pago' : 
+                           advance.status === 'REJECTED' ? 'Rejeitado' : advance.status}
+                        </p>
+                      </div>
+                      <Badge variant={
+                        advance.status === 'PAID' ? 'default' : 
+                        advance.status === 'APPROVED' ? 'secondary' : 
+                        'destructive'
+                      }>
+                        {advance.status === 'PAID' ? 'Pago' : 
+                         advance.status === 'APPROVED' ? 'Aprovado' : 
+                         advance.status === 'REJECTED' ? 'Rejeitado' : advance.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
             

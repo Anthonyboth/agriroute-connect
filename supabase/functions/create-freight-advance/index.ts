@@ -53,20 +53,21 @@ serve(async (req) => {
       throw new Error("Freight not found");
     }
 
-    // Verificar se o usuário tem permissão (é o produtor ou motorista do frete)
+    // Verificar se o usuário é o motorista do frete
     const { data: profile } = await supabaseClient
       .from("profiles")
       .select("id")
       .eq("user_id", user.id)
       .single();
 
-    if (!profile || (profile.id !== freight.producer_id && profile.id !== freight.driver_id)) {
-      throw new Error("Unauthorized to create advance for this freight");
+    if (!profile || profile.id !== freight.driver_id) {
+      throw new Error("Only the assigned driver can request advances");
     }
 
-    // Calcular o valor do adiantamento
-    // freight.price está em centavos, então calculamos a porcentagem e mantemos em centavos
-    const calculatedAmount = advance_amount || Math.round((freight.price * advance_percentage) / 100);
+    // Calcular o valor do adiantamento em centavos (como o preço está no banco)
+    const calculatedAmount = advance_amount 
+      ? Math.round(advance_amount * 100) // Converter de reais para centavos
+      : Math.round((freight.price * advance_percentage) / 100); // Já em centavos
     
     logStep("Calculated advance amount", { 
       calculatedAmount, 
@@ -76,48 +77,7 @@ serve(async (req) => {
       advanceInReais: calculatedAmount / 100
     });
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
-      apiVersion: "2023-10-16" 
-    });
-
-    // Buscar ou criar cliente Stripe
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-    } else {
-      const customer = await stripe.customers.create({ email: user.email });
-      customerId = customer.id;
-    }
-
-    // Criar sessão de checkout para o adiantamento
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      line_items: [
-        {
-          price_data: {
-            currency: "brl",
-            product_data: { 
-              name: `Adiantamento de Frete - ${freight.id.substring(0, 8)}`,
-              description: `Adiantamento para o frete no valor de R$ ${(freight.price / 100).toFixed(2)}`
-            },
-            unit_amount: calculatedAmount,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      success_url: `https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/success?session_id={CHECKOUT_SESSION_ID}&type=freight_advance&freight_id=${freight_id}`,
-      cancel_url: `https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/cancel?type=freight_advance&freight_id=${freight_id}`,
-      metadata: {
-        freight_id: freight_id,
-        requested_amount: calculatedAmount.toString(),
-        user_id: user.id,
-        type: "freight_advance"
-      }
-    });
-
-    // Registrar o adiantamento no banco
+    // Registrar apenas a solicitação no banco (sem criar sessão Stripe ainda)
     const { data: advanceRecord, error: advanceError } = await supabaseClient
       .from("freight_advances")
       .insert({
@@ -125,7 +85,6 @@ serve(async (req) => {
         driver_id: profile.id,
         producer_id: freight.producer_id,
         requested_amount: calculatedAmount,
-        stripe_payment_intent_id: session.id,
         status: "PENDING",
         requested_at: new Date().toISOString()
       })
@@ -137,14 +96,18 @@ serve(async (req) => {
       throw new Error("Failed to create advance record");
     }
 
-    // Note: advance_id will be linked via stripe_payment_intent_id when payment is processed
-
-    logStep("Advance session created successfully", { 
-      sessionId: session.id, 
-      amount: calculatedAmount 
+    logStep("Advance request created successfully", { 
+      advanceId: advanceRecord.id,
+      amount: calculatedAmount,
+      amountInReais: calculatedAmount / 100
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    return new Response(JSON.stringify({ 
+      success: true,
+      message: "Solicitação de adiantamento enviada ao produtor",
+      advance_id: advanceRecord.id,
+      requested_amount: calculatedAmount / 100 // Retornar em reais para o frontend
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

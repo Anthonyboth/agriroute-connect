@@ -27,7 +27,7 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
     try {
       const payload = advanceType === "percentage" 
         ? { freight_id: freightId, advance_percentage: percentage[0] }
-        : { freight_id: freightId, advance_amount: Math.round(parseFloat(customAmount)) };
+        : { freight_id: freightId, advance_amount: parseFloat(customAmount) };
 
       const { data, error } = await supabase.functions.invoke('create-freight-advance', {
         body: payload
@@ -35,10 +35,7 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
 
       if (error) throw error;
 
-      // Abrir Stripe checkout em nova aba
-      window.open(data.url, '_blank');
-      
-      toast.success("Redirecionando para pagamento do adiantamento");
+      toast.success("Solicitação de adiantamento enviada ao produtor!");
       onClose();
     } catch (error) {
       console.error('Error creating advance:', error);
