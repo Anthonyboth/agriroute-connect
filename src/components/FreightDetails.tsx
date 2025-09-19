@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { getUrgencyLabel } from '@/lib/urgency-labels';
+import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { useAutoRating } from '@/hooks/useAutoRating';
 
 interface FreightDetailsProps {
@@ -162,7 +163,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Package className="h-4 w-4" />
-              Frete: {freight.cargo_type}
+              Frete: {getCargoTypeLabel(freight.cargo_type)}
             </CardTitle>
             <div className="flex items-center gap-2">
               {getStatusBadge(freight.status)}
