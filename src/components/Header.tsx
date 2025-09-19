@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 
 interface User {
   name: string;
-  role: 'PRODUTOR' | 'MOTORISTA';
+  role: 'PRODUTOR' | 'MOTORISTA' | 'PRESTADOR';
   avatar?: string;
 }
 
@@ -47,11 +47,15 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const getRoleBadge = (role: string) => {
-    return role === 'PRODUTOR' ? 'Produtor' : 'Motorista';
+    if (role === 'PRODUTOR') return 'Produtor';
+    if (role === 'PRESTADOR') return 'Prestador de Serviço';
+    return 'Motorista';
   };
 
   const getRoleColor = (role: string) => {
-    return role === 'PRODUTOR' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent';
+    if (role === 'PRODUTOR') return 'bg-primary/10 text-primary';
+    if (role === 'PRESTADOR') return 'bg-secondary/10 text-secondary';
+    return 'bg-accent/10 text-accent';
   };
 
   const [showProfile, setShowProfile] = useState(false);

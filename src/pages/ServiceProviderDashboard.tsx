@@ -26,7 +26,7 @@ const ServiceProviderDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header 
-        user={{ name: profile?.full_name || 'Prestador de Serviços', role: 'MOTORISTA' }}
+        user={{ name: profile?.full_name || 'Prestador de Serviços', role: 'PRESTADOR' }}
         onMenuClick={handleMenuClick}
         onLogout={handleLogout}
         userProfile={profile}
