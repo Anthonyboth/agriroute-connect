@@ -16,6 +16,7 @@ import { FreightStatusTracker } from '@/components/FreightStatusTracker';
 import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
 import { FreightTrackingPanel } from '@/components/FreightTrackingPanel';
 import { FreightDetails } from '@/components/FreightDetails';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-status';
@@ -787,15 +788,19 @@ const ProducerDashboard = () => {
         variant="destructive"
       />
 
-      {selectedFreightDetails && (
-        <FreightDetails
-          freightId={selectedFreightDetails.id}
-          currentUserProfile={profile}
-          onClose={() => {
-            setSelectedFreightDetails(null);
-          }}
-        />
-      )}
+      <Dialog open={!!selectedFreightDetails} onOpenChange={() => setSelectedFreightDetails(null)}>
+        <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto">
+          {selectedFreightDetails && (
+            <FreightDetails
+              freightId={selectedFreightDetails.id}
+              currentUserProfile={profile}
+              onClose={() => {
+                setSelectedFreightDetails(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
