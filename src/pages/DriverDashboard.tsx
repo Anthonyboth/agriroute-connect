@@ -1001,47 +1001,6 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       Detalhes
     </Button>
   </div>
-
-  {(freight.status === 'ACCEPTED' || freight.status === 'IN_TRANSIT') && (
-    <div className="grid grid-cols-3 gap-2">
-      <Button 
-        size="sm" 
-        variant="outline" 
-        className="h-8 text-[11px]"
-        onClick={() => {
-          setInitialCheckinType('LOADING');
-          setSelectedFreightForCheckin(freight.id);
-          setShowCheckinModal(true);
-        }}
-      >
-        Coleta
-      </Button>
-      <Button 
-        size="sm" 
-        variant="outline" 
-        className="h-8 text-[11px]"
-        onClick={() => {
-          setInitialCheckinType('IN_TRANSIT');
-          setSelectedFreightForCheckin(freight.id);
-          setShowCheckinModal(true);
-        }}
-      >
-        Trajeto
-      </Button>
-      <Button 
-        size="sm" 
-        variant="outline" 
-        className="h-8 text-[11px]"
-        onClick={() => {
-          setInitialCheckinType('UNLOADING');
-          setSelectedFreightForCheckin(freight.id);
-          setShowCheckinModal(true);
-        }}
-      >
-        Descarga
-      </Button>
-    </div>
-  )}
 </div>
 
                       {/* Check-ins Compactos */}
