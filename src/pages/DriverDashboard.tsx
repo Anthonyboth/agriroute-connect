@@ -23,7 +23,7 @@ import FreightWithdrawalModal from '@/components/FreightWithdrawalModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import heroLogistics from '@/assets/hero-logistics.jpg';
@@ -178,6 +178,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
       if (!acceptedProposals || acceptedProposals.length === 0) {
         setOngoingFreights([]);
+        setFreightCheckins({});
         return;
       }
 
@@ -192,6 +193,24 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
       if (error) throw error;
       setOngoingFreights(data || []);
+
+      // Verificar checkins para cada frete após definir a função
+      if (data && data.length > 0) {
+        // Verificar checkins de forma assíncrona para cada frete
+        data.forEach(async (freight) => {
+          try {
+            const { count } = await (supabase as any)
+              .from('freight_checkins')
+              .select('*', { count: 'exact', head: true })
+              .eq('freight_id', freight.id)
+              .eq('user_id', profile.id);
+            
+            setFreightCheckins(prev => ({ ...prev, [freight.id]: count || 0 }));
+          } catch (error) {
+            console.error('Error checking freight checkins for freight:', freight.id, error);
+          }
+        });
+      }
     } catch (error) {
       console.error('Error fetching ongoing freights:', error);
       toast.error('Erro ao carregar fretes em andamento');
@@ -286,6 +305,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
   // Estado para contar check-ins
   const [totalCheckins, setTotalCheckins] = useState(0);
+  const [freightCheckins, setFreightCheckins] = useState<Record<string, number>>({});
 
   // Função para buscar total de check-ins do motorista
   const fetchDriverCheckins = useCallback(async () => {
@@ -302,6 +322,29 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     } catch (error) {
       console.error('Error fetching checkins count:', error);
       setTotalCheckins(0);
+    }
+  }, [profile?.id]);
+
+  // Função para verificar se existe checkin para um frete específico
+  const checkFreightCheckins = useCallback(async (freightId: string) => {
+    if (!profile?.id) return false;
+    
+    try {
+      // Usar any para contornar problema de tipos do Supabase
+      const { count, error } = await (supabase as any)
+        .from('freight_checkins')
+        .select('*', { count: 'exact', head: true })
+        .eq('freight_id', freightId)
+        .eq('user_id', profile.id);
+      
+      if (error) throw error;
+      
+      const hasCheckins = (count || 0) > 0;
+      setFreightCheckins(prev => ({ ...prev, [freightId]: count || 0 }));
+      return hasCheckins;
+    } catch (error) {
+      console.error('Error checking freight checkins:', error);
+      return false;
     }
   }, [profile?.id]);
 
@@ -492,6 +535,56 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     } catch (error: any) {
       console.error('Error processing freight withdrawal:', error);
       toast.error('Erro ao processar desistência: ' + (error.message || 'Tente novamente'));
+    }
+  };
+
+  // Função para cancelar frete aceito (antes do primeiro checkin)
+  const handleFreightCancel = async (freightId: string) => {
+    if (!profile?.id) return;
+    
+    try {
+      // Verificar se há checkins para este frete
+      const hasCheckins = await checkFreightCheckins(freightId);
+      
+      if (hasCheckins) {
+        toast.error('Não é possível cancelar o frete após o primeiro check-in.');
+        return;
+      }
+
+      // Atualizar o status do frete para OPEN (disponível novamente)
+      const { error: freightError } = await supabase
+        .from('freights')
+        .update({ 
+          status: 'OPEN',
+          driver_id: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', freightId)
+        .eq('driver_id', profile.id);
+
+      if (freightError) throw freightError;
+
+      // Atualizar a proposta para cancelada
+      const { error: proposalError } = await supabase
+        .from('freight_proposals')
+        .update({ 
+          status: 'CANCELLED',
+          updated_at: new Date().toISOString()
+        })
+        .eq('freight_id', freightId)
+        .eq('driver_id', profile.id);
+
+      if (proposalError) throw proposalError;
+
+      toast.success('Frete cancelado com sucesso! O frete está novamente disponível para outros motoristas.');
+      
+      // Atualizar as listas
+      fetchOngoingFreights();
+      fetchMyProposals();
+      
+    } catch (error: any) {
+      console.error('Error canceling freight:', error);
+      toast.error('Erro ao cancelar frete: ' + (error.message || 'Tente novamente'));
     }
   };
 
@@ -871,6 +964,18 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 {/* Botões Compactos */}
 <div className="space-y-2">
   <div className="flex gap-2">
+    {/* Botão Cancelar Frete - Só aparece se não há checkins */}
+    {(freight.status === 'ACCEPTED') && (freightCheckins[freight.id] === 0 || freightCheckins[freight.id] === undefined) && (
+      <Button 
+        size="sm" 
+        variant="destructive"
+        className="flex-1 h-8 text-xs"
+        onClick={() => handleFreightCancel(freight.id)}
+      >
+        Cancelar Frete
+      </Button>
+    )}
+    
     {(freight.status === 'ACCEPTED' || freight.status === 'LOADING' || freight.status === 'IN_TRANSIT') && (
       <Button 
         size="sm" 
