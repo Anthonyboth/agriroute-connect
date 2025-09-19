@@ -39,7 +39,6 @@ const ProducerDashboard = () => {
   const [selectedProposal, setSelectedProposal] = useState<any>(null);
   const [editFreightModalOpen, setEditFreightModalOpen] = useState(false);
   const [selectedFreight, setSelectedFreight] = useState<any>(null);
-  const [pendingAdvances, setPendingAdvances] = useState<any[]>([]);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [freightToCancel, setFreightToCancel] = useState<any>(null);
   const [selectedTrackingFreight, setSelectedTrackingFreight] = useState<any>(null);
@@ -90,29 +89,6 @@ const ProducerDashboard = () => {
     }
   }, [profile?.id]);
 
-  // Buscar adiantamentos pendentes
-  const fetchPendingAdvances = useCallback(async () => {
-    if (!profile?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('freight_advances')
-        .select(`
-          *,
-          freight:freights!inner(id, cargo_type, origin_address, destination_address),
-          driver:profiles!freight_advances_driver_id_fkey(full_name, contact_phone)
-        `)
-        .eq('producer_id', profile.id)
-        .eq('status', 'PENDING')
-        .order('requested_at', { ascending: false });
-
-      if (error) throw error;
-      setPendingAdvances(data || []);
-    } catch (error) {
-      console.error('Error fetching pending advances:', error);
-    }
-  }, [profile?.id]);
-
   // Carregar dados - otimizado
   useEffect(() => {
     const loadData = async () => {
@@ -121,14 +97,13 @@ const ProducerDashboard = () => {
       setLoading(true);
       await Promise.all([
         fetchFreights(), 
-        fetchProposals(),
-        fetchPendingAdvances()
+        fetchProposals()
       ]);
       setLoading(false);
     };
 
     loadData();
-  }, [profile?.id, fetchFreights, fetchProposals, fetchPendingAdvances]);
+  }, [profile?.id, fetchFreights, fetchProposals]);
 
   const handleAcceptProposal = async (proposalId: string) => {
     try {
@@ -418,19 +393,6 @@ const ProducerDashboard = () => {
                 <CheckCircle className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Histórico</span>
                 <span className="sm:hidden">Hist</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="advances" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                <DollarSign className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Adiantamentos</span>
-                <span className="sm:hidden">Adiant</span>
-                {pendingAdvances.length > 0 && (
-                  <Badge className="ml-1 h-4 w-4 p-0 text-xs bg-destructive text-destructive-foreground">
-                    {pendingAdvances.length}
-                  </Badge>
-                )}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -785,88 +747,6 @@ const ProducerDashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="advances" className="space-y-4">
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-primary" />
-                    Solicitações de Adiantamento
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {pendingAdvances.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">Nenhuma solicitação de adiantamento pendente.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {pendingAdvances.map((advance) => (
-                        <div key={advance.id} className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h4 className="font-medium">{advance.freight?.cargo_type || 'Frete'}</h4>
-                                <Badge variant="outline" className="text-xs">
-                                  {advance.driver?.full_name || 'Motorista'}
-                                </Badge>
-                              </div>
-                              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mb-1">
-                                R$ {((advance.requested_amount || 0) / 100).toLocaleString('pt-BR', { 
-                                  minimumFractionDigits: 2, 
-                                  maximumFractionDigits: 2 
-                                })}
-                              </p>
-                              <p className="text-sm text-muted-foreground mb-2">
-                                Solicitado em {new Date(advance.requested_at).toLocaleDateString('pt-BR')}
-                              </p>
-                              <div className="text-sm text-muted-foreground">
-                                <p>Origem: {advance.freight?.origin_address?.split(',').slice(-2).join(',') || 'N/A'}</p>
-                                <p>Destino: {advance.freight?.destination_address?.split(',').slice(-2).join(',') || 'N/A'}</p>
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                              <Button
-                                onClick={async () => {
-                                  try {
-                                    const { data, error } = await supabase.functions.invoke('approve-freight-advance', {
-                                      body: { advance_id: advance.id }
-                                    });
-                                    if (error) throw error;
-                                    window.open(data.url, '_blank');
-                                    toast.success("Redirecionando para pagamento do adiantamento");
-                                    fetchPendingAdvances(); // Atualizar lista
-                                  } catch (error) {
-                                    console.error('Error approving advance:', error);
-                                    toast.error("Erro ao processar pagamento do adiantamento");
-                                  }
-                                }}
-                                className="bg-green-600 hover:bg-green-700 text-white"
-                                size="sm"
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Aprovar e Pagar
-                              </Button>
-                              {advance.driver?.contact_phone && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => window.open(`tel:${advance.driver.contact_phone}`, '_blank')}
-                                >
-                                  <Phone className="h-4 w-4 mr-2" />
-                                  Ligar
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
 
