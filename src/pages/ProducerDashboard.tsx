@@ -1,29 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
-import FreightCard from '@/components/FreightCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FreightCard } from '@/components/FreightCard';
 import CreateFreightModal from '@/components/CreateFreightModal';
 import { EditFreightModal } from '@/components/EditFreightModal';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import { ProposalCounterModal } from '@/components/ProposalCounterModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FreightStatusTracker } from '@/components/FreightStatusTracker';
 import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
 import { FreightTrackingPanel } from '@/components/FreightTrackingPanel';
-import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-status';
 import { toast } from 'sonner';
-import { MapPin, Truck, Clock, Eye } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import heroLogistics from '@/assets/hero-logistics.jpg';
 
 const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
+  const navigate = useNavigate();
   const [freights, setFreights] = useState<any[]>([]);
   const [proposals, setProposals] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('open');
   const [loading, setLoading] = useState(true);
   const [counterProposalModalOpen, setCounterProposalModalOpen] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState<any>(null);
@@ -33,32 +38,28 @@ const ProducerDashboard = () => {
   const [freightToCancel, setFreightToCancel] = useState<any>(null);
   const [selectedTrackingFreight, setSelectedTrackingFreight] = useState<any>(null);
 
-  useEffect(() => {
-    if (profile) {
-      fetchFreights();
-      fetchProposals();
-    }
-  }, [profile]);
+  // Buscar fretes - otimizado
+  const fetchFreights = useCallback(async () => {
+    if (!profile?.id) return;
 
-  const fetchFreights = async () => {
     try {
       const { data, error } = await supabase
         .from('freights')
         .select('*')
-        .eq('producer_id', profile?.id)
-        .order('created_at', { ascending: false });
+        .eq('producer_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
       setFreights(data || []);
     } catch (error) {
       console.error('Error fetching freights:', error);
       toast.error('Erro ao carregar fretes');
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [profile?.id]);
 
-  const fetchProposals = async () => {
+  // Buscar propostas - otimizado
+  const fetchProposals = useCallback(async () => {
     if (!profile?.id) return;
 
     try {
@@ -71,7 +72,8 @@ const ProducerDashboard = () => {
         `)
         .eq('freight.producer_id', profile.id)
         .eq('status', 'PENDING')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
       setProposals(data || []);
@@ -79,7 +81,23 @@ const ProducerDashboard = () => {
       console.error('Error fetching proposals:', error);
       toast.error('Erro ao carregar propostas');
     }
-  };
+  }, [profile?.id]);
+
+  // Carregar dados - otimizado
+  useEffect(() => {
+    const loadData = async () => {
+      if (!profile?.id) return;
+
+      setLoading(true);
+      await Promise.all([
+        fetchFreights(), 
+        fetchProposals()
+      ]);
+      setLoading(false);
+    };
+
+    loadData();
+  }, [profile?.id, fetchFreights, fetchProposals]);
 
   const handleAcceptProposal = async (proposalId: string) => {
     try {
@@ -191,318 +209,483 @@ const ProducerDashboard = () => {
     }
   };
 
+  // Estatísticas calculadas - memoizadas
+  const statistics = useMemo(() => {
+    return {
+      openFreights: freights.filter(f => f.status === 'OPEN').length,
+      activeFreights: freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).length,
+      completedFreights: freights.filter(f => f.status === 'DELIVERED').length,
+      totalValue: freights.reduce((sum, f) => sum + f.price, 0),
+      pendingProposals: proposals.length
+    };
+  }, [freights, proposals]);
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Erro ao fazer logout');
+    } else {
+      navigate('/auth');
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/5 to-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  const openFreights = freights.filter(f => f.status === 'OPEN').length;
-  const activeFreights = freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).length;
-  const completedFreights = freights.filter(f => f.status === 'DELIVERED').length;
-  const cancelledFreights = freights.filter(f => f.status === 'CANCELLED').length;
-  const totalValue = freights.reduce((sum, f) => sum + f.price, 0);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/5 to-background">
       <Header 
         user={{ name: profile?.full_name || 'Usuário', role: (profile?.role as 'PRODUTOR' | 'MOTORISTA') || 'PRODUTOR' }}
-        onLogout={signOut}
+        onLogout={handleLogout}
         onMenuClick={() => {}}
         userProfile={profile}
       />
       
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Notificação de assinatura */}
-        <SubscriptionExpiryNotification />
-        
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Dashboard do Produtor</h1>
-          <p className="text-muted-foreground">Gerencie seus fretes e acompanhe o desempenho</p>
+      {/* Hero Section Compacta */}
+      <section 
+        className="relative py-8 bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-white overflow-hidden"
+        style={{
+          backgroundImage: `linear-gradient(rgba(34, 197, 94, 0.9), rgba(34, 197, 94, 0.95)), url(${heroLogistics})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary/60 backdrop-blur-sm"></div>
+        <div className="relative container mx-auto px-4 max-w-7xl">
+          <div className="text-center space-y-3">
+            <h1 className="text-2xl md:text-3xl font-bold">
+              Dashboard do Produtor
+            </h1>
+            <p className="text-primary-foreground/90 max-w-xl mx-auto text-sm md:text-base">
+              Gerencie seus fretes, acompanhe propostas e monitore o desempenho
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+              <CreateFreightModal 
+                onFreightCreated={fetchFreights}
+                userProfile={profile}
+              />
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveTab('proposals')}
+                className="bg-background/10 text-white border-white/30 hover:bg-white/20 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+              >
+                <Users className="mr-1 h-4 w-4" />
+                Ver Propostas
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="container max-w-7xl mx-auto py-4 px-4">
+        {/* Stats Cards Compactos */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center">
+                <Package className="h-6 w-6 text-blue-500 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">
+                    Abertos
+                  </p>
+                  <p className="text-lg font-bold">{statistics.openFreights}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center">
+                <Play className="h-6 w-6 text-orange-500 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">
+                    Andamento
+                  </p>
+                  <p className="text-lg font-bold">{statistics.activeFreights}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center">
+                <Users className="h-6 w-6 text-purple-500 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">
+                    Propostas
+                  </p>
+                  <p className="text-lg font-bold">{statistics.pendingProposals}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center">
+                <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">
+                    Completos
+                  </p>
+                  <p className="text-lg font-bold">{statistics.completedFreights}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center">
+                <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">
+                    Valor Total
+                  </p>
+                  <p className="text-sm font-bold">
+                    {new Intl.NumberFormat('pt-BR', { 
+                      style: 'currency', 
+                      currency: 'BRL',
+                      notation: 'compact',
+                      maximumFractionDigits: 0
+                    }).format(statistics.totalValue)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <Tabs defaultValue="fretes" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="fretes">Fretes Ativos</TabsTrigger>
-            <TabsTrigger value="andamento">Fretes em Andamento</TabsTrigger>
-            <TabsTrigger value="propostas">Propostas Recebidas</TabsTrigger>
-            <TabsTrigger value="agendados">Fretes Agendados</TabsTrigger>
-            <TabsTrigger value="historico">Histórico</TabsTrigger>
-          </TabsList>
+        {/* Tabs Compactas */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="w-full overflow-x-auto pb-2">
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
+              <TabsTrigger 
+                value="open" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Package className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Fretes Abertos</span>
+                <span className="sm:hidden">Abertos</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="ongoing" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Play className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Em Andamento</span>
+                <span className="sm:hidden">Ativo</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="proposals" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Users className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Propostas</span>
+                <span className="sm:hidden">Props</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="scheduled" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Calendar className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Agendados</span>
+                <span className="sm:hidden">Agenda</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="history" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Histórico</span>
+                <span className="sm:hidden">Hist</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="fretes" className="space-y-6">
-            <div className="mb-6">
-              <div className="flex justify-end">
-                <CreateFreightModal 
-                  onFreightCreated={fetchFreights}
-                  userProfile={profile}
-                />
-              </div>
+          {/* Notificação de assinatura */}
+          <SubscriptionExpiryNotification />
+
+          <TabsContent value="open" className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Fretes Abertos</h3>
             </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Meus Fretes Ativos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {freights.filter(f => f.status === 'OPEN').length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">Nenhum frete ativo no momento.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-8 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-                    {freights.filter(f => f.status === 'OPEN').map((freight) => (
-                      <FreightCard
-                        key={freight.id}
-                        freight={{
-                          id: freight.id,
-                          cargo_type: freight.cargo_type,
-                          weight: (freight.weight / 1000), // Convert kg to tonnes
-                          distance_km: freight.distance_km,
-                          origin_address: freight.origin_address,
-                          destination_address: freight.destination_address,
-                          price: freight.price,
-                          status: freight.status,
-                          pickup_date: freight.pickup_date,
-                          delivery_date: freight.delivery_date,
-                          urgency: freight.urgency,
-                          minimum_antt_price: freight.minimum_antt_price || 0,
-                          required_trucks: freight.required_trucks || 1,
-                          accepted_trucks: freight.accepted_trucks || 0
-                        }}
-                        showProducerActions={true}
-                        onAction={(action) => handleFreightAction(action as 'edit' | 'cancel', freight)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            
+            {freights.filter(f => f.status === 'OPEN').length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">Nenhum frete aberto</h3>
+                  <p className="text-muted-foreground mb-6 max-w-sm">
+                    Você não possui fretes abertos no momento. Crie um novo frete para começar.
+                  </p>
+                  <CreateFreightModal 
+                    onFreightCreated={fetchFreights}
+                    userProfile={profile}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+                {freights.filter(f => f.status === 'OPEN').map((freight) => (
+                  <FreightCard
+                    key={freight.id}
+                    freight={{
+                      id: freight.id,
+                      cargo_type: freight.cargo_type,
+                      weight: (freight.weight / 1000),
+                      distance_km: freight.distance_km,
+                      origin_address: freight.origin_address,
+                      destination_address: freight.destination_address,
+                      price: freight.price,
+                      status: freight.status as 'OPEN' | 'IN_TRANSIT' | 'DELIVERED' | 'ACCEPTED' | 'IN_NEGOTIATION' | 'CANCELLED',
+                      pickup_date: freight.pickup_date,
+                      delivery_date: freight.delivery_date,
+                      urgency: freight.urgency,
+                      minimum_antt_price: freight.minimum_antt_price || 0,
+                      required_trucks: freight.required_trucks || 1,
+                      accepted_trucks: freight.accepted_trucks || 0
+                    }}
+                    showProducerActions={true}
+                    onAction={(action) => handleFreightAction(action as 'edit' | 'cancel', freight)}
+                  />
+                ))}
+              </div>
+            )}
           </TabsContent>
 
-          <TabsContent value="andamento" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Fretes em Andamento</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">Nenhum frete em andamento no momento.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-8 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-                    {freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
-                      <div key={freight.id} className="space-y-4">
-                        <Card className="border-l-4 border-l-primary hover:shadow-lg transition-all duration-300">
-                          <CardHeader className="pb-4">
-                            <div className="flex justify-between items-start">
-                              <div className="space-y-2">
-                                <h3 className="font-semibold text-lg">{freight.cargo_type}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                  {freight.origin_address} → {freight.destination_address}
-                                </p>
-                                <div className="flex items-center gap-4 mt-3">
-                                  <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
-                                    <Truck className="h-4 w-4 text-primary" />
-                                    <span className="text-sm font-medium">{(freight.weight / 1000).toFixed(1)}t</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
-                                    <MapPin className="h-4 w-4 text-accent" />
-                                    <span className="text-sm font-medium">{freight.distance_km}km</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
-                                    <Clock className="h-4 w-4 text-warning" />
-                                    <span className="text-sm font-medium">
-                                      {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="text-right space-y-2">
-                                <Badge variant={freight.status === 'IN_TRANSIT' ? 'default' : 'secondary'} className="font-medium">
-                                  {getFreightStatusLabel(freight.status)}
-                                </Badge>
-                                <p className="font-bold text-xl text-primary">R$ {freight.price.toLocaleString()}</p>
-                              </div>
+          <TabsContent value="ongoing" className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Fretes em Andamento</h3>
+            </div>
+            
+            {freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <Play className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">Nenhum frete em andamento</h3>
+                  <p className="text-muted-foreground mb-6 max-w-sm">
+                    Você não possui fretes em andamento no momento.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">{freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
+                  <Card key={freight.id} className="border-l-4 border-l-primary hover:shadow-lg transition-all duration-300">
+                    <CardHeader className="pb-4">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                          <h3 className="font-semibold text-lg">{freight.cargo_type}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {freight.origin_address} → {freight.destination_address}
+                          </p>
+                          <div className="flex items-center gap-4 mt-3">
+                            <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
+                              <Truck className="h-4 w-4 text-primary" />
+                              <span className="text-sm font-medium">{(freight.weight / 1000).toFixed(1)}t</span>
                             </div>
-                          </CardHeader>
-                          
-                          <CardContent className="space-y-6">
-                            {/* Rastreamento de Status */}
-                            <div className="border rounded-lg p-4 bg-gradient-to-br from-secondary/20 to-secondary/5">
-                              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                                <Eye className="h-4 w-4" />
-                                Status do Frete
-                              </h4>
-                              <FreightStatusTracker 
-                                freightId={freight.id}
-                                currentStatus={freight.status}
-                                currentUserProfile={profile}
-                                isDriver={false}
-                              />
+                            <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
+                              <MapPin className="h-4 w-4 text-accent" />
+                              <span className="text-sm font-medium">{freight.distance_km}km</span>
                             </div>
-
-                            {/* Check-ins */}
-                            <div className="border rounded-lg p-4 bg-gradient-to-br from-primary/5 to-primary/2">
-                              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                                <MapPin className="h-4 w-4" />
-                                Check-ins do Frete
-                              </h4>
-                              <FreightCheckinsViewer 
-                                freightId={freight.id}
-                                currentUserProfile={profile}
-                              />
-                             </div>
-
-                            {/* Painel de Rastreamento */}
-                            <div className="border rounded-lg p-4 bg-gradient-to-br from-accent/5 to-accent/2">
-                              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                                <Eye className="h-4 w-4" />
-                                Rastreamento em Tempo Real
-                              </h4>
-                              <FreightTrackingPanel 
-                                freightId={freight.id}
-                                isDriver={false}
-                              />
-                            </div>
-
-                            {/* Botões de Ação */}
-                            <div className="flex gap-3 pt-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                                onClick={() => setSelectedTrackingFreight(freight)}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                Ver Detalhes
-                              </Button>
-                              {freight.status === 'IN_NEGOTIATION' && (
-                                <Button 
-                                  size="sm" 
-                                  variant="destructive"
-                                  className="flex-1 hover:shadow-lg transition-all duration-300"
-                                  onClick={() => handleFreightAction('cancel', freight)}
-                                >
-                                  Cancelar Frete
-                                </Button>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="propostas" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Propostas Recebidas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {proposals.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">Nenhuma proposta recebida ainda.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {proposals.map((proposal) => (
-                      <Card key={proposal.id} className="p-4">
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-semibold">
-                                Proposta de {proposal.driver?.full_name || 'Motorista'}
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                Frete: {proposal.freight?.cargo_type} - {proposal.freight?.origin_address} → {proposal.freight?.destination_address}
-                              </p>
-                            </div>
-                            <Badge 
-                              variant={
-                                proposal.status === 'ACCEPTED' ? 'default' :
-                                proposal.status === 'PENDING' ? 'secondary' : 'destructive'
-                              }
-                            >
-                              {getProposalStatusLabel(proposal.status)}
-                            </Badge>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="font-medium">Valor original:</p>
-                              <p>R$ {proposal.freight?.price?.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="font-medium">Valor proposto:</p>
-                              <p>R$ {proposal.proposed_price?.toLocaleString()}</p>
+                            <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
+                              <Clock className="h-4 w-4 text-warning" />
+                              <span className="text-sm font-medium">
+                                {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
+                              </span>
                             </div>
                           </div>
-
-                          {proposal.message && (
-                            <div className="border-t pt-3">
-                              <p className="font-medium text-sm">Mensagem:</p>
-                              <p className="text-sm text-muted-foreground">{proposal.message}</p>
-                            </div>
-                          )}
-
-                          {proposal.status === 'PENDING' && (
-                            <div className="flex gap-2 pt-2">
-                              <Button 
-                                size="sm" 
-                                onClick={() => handleAcceptProposal(proposal.id)}
-                                className="gradient-primary"
-                              >
-                                Aceitar
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="secondary"
-                                onClick={() => openCounterProposalModal(proposal)}
-                              >
-                                Contra Proposta
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleRejectProposal(proposal.id)}
-                              >
-                                Rejeitar
-                              </Button>
-                            </div>
-                          )}
-                          {proposal.status === 'ACCEPTED' && (
-                            <div className="flex gap-2 pt-2">
-                              <Button 
-                                size="sm" 
-                                variant="destructive"
-                                onClick={() => handleCancelProposal(proposal.id)}
-                              >
-                                Cancelar Aceite
-                              </Button>
-                            </div>
-                          )}
                         </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                        <div className="text-right space-y-2">
+                          <Badge variant={freight.status === 'IN_TRANSIT' ? 'default' : 'secondary'} className="font-medium">
+                            {getFreightStatusLabel(freight.status)}
+                          </Badge>
+                          <p className="font-bold text-xl text-primary">R$ {freight.price.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-6">
+                      {/* Rastreamento de Status */}
+                      <div className="border rounded-lg p-4 bg-gradient-to-br from-secondary/20 to-secondary/5">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2">
+                          <Eye className="h-4 w-4" />
+                          Status do Frete
+                        </h4>
+                        <FreightStatusTracker 
+                          freightId={freight.id}
+                          currentStatus={freight.status}
+                          currentUserProfile={profile}
+                          isDriver={false}
+                        />
+                      </div>
+
+                      {/* Check-ins */}
+                      <div className="border rounded-lg p-4 bg-gradient-to-br from-primary/5 to-primary/2">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          Check-ins do Frete
+                        </h4>
+                        <FreightCheckinsViewer 
+                          freightId={freight.id}
+                          currentUserProfile={profile}
+                        />
+                       </div>
+
+                      {/* Painel de Rastreamento */}
+                      <div className="border rounded-lg p-4 bg-gradient-to-br from-accent/5 to-accent/2">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2">
+                          <Eye className="h-4 w-4" />
+                          Rastreamento em Tempo Real
+                        </h4>
+                        <FreightTrackingPanel 
+                          freightId={freight.id}
+                          isDriver={false}
+                        />
+                      </div>
+
+                      {/* Botões de Ação */}
+                      <div className="flex gap-3 pt-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                          onClick={() => setSelectedTrackingFreight(freight)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Detalhes
+                        </Button>
+                        {freight.status === 'IN_NEGOTIATION' && (
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            className="flex-1 hover:shadow-lg transition-all duration-300"
+                            onClick={() => handleFreightAction('cancel', freight)}
+                          >
+                            Cancelar Frete
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
-          <TabsContent value="agendados">
+          <TabsContent value="proposals" className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Propostas Recebidas</h3>
+            </div>
+            
+            {proposals.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">Nenhuma proposta recebida</h3>
+                  <p className="text-muted-foreground mb-6 max-w-sm">
+                    Ainda não há propostas para seus fretes. Aguarde os motoristas interessados.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {proposals.map((proposal) => (
+                  <Card key={proposal.id} className="p-4">
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold">
+                            Proposta de {proposal.driver?.full_name || 'Motorista'}
+                          </h4>
+                          <p className="text-sm text-muted-foreground">
+                            Frete: {proposal.freight?.cargo_type} - {proposal.freight?.origin_address} → {proposal.freight?.destination_address}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant={
+                            proposal.status === 'ACCEPTED' ? 'default' :
+                            proposal.status === 'PENDING' ? 'secondary' : 'destructive'
+                          }
+                        >
+                          {getProposalStatusLabel(proposal.status)}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="font-medium">Valor original:</p>
+                          <p>R$ {proposal.freight?.price?.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Valor proposto:</p>
+                          <p>R$ {proposal.proposed_price?.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      {proposal.message && (
+                        <div className="border-t pt-3">
+                          <p className="font-medium text-sm">Mensagem:</p>
+                          <p className="text-sm text-muted-foreground">{proposal.message}</p>
+                        </div>
+                      )}
+
+                      {proposal.status === 'PENDING' && (
+                        <div className="flex gap-2 pt-2">
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleAcceptProposal(proposal.id)}
+                            className="gradient-primary"
+                          >
+                            Aceitar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="secondary"
+                            onClick={() => openCounterProposalModal(proposal)}
+                          >
+                            Contra Proposta
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleRejectProposal(proposal.id)}
+                          >
+                            Rejeitar
+                          </Button>
+                        </div>
+                      )}
+                      {proposal.status === 'ACCEPTED' && (
+                        <div className="flex gap-2 pt-2">
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleCancelProposal(proposal.id)}
+                          >
+                            Cancelar Aceite
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="scheduled">
             <ScheduledFreightsManager />
           </TabsContent>
 
-          <TabsContent value="historico" className="space-y-6">
+          <TabsContent value="history" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Fretes Concluídos */}
               <Card>
