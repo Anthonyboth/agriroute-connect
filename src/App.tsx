@@ -1,9 +1,11 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { supabase } from "@/integrations/supabase/client";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -53,11 +55,27 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   }
 
   if (requiresApproval && !isApproved) {
+    const handleGoHome = () => {
+      // Fazer logout e ir para página inicial
+      supabase.auth.signOut();
+    };
+
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Conta Pendente</h2>
-          <p className="text-muted-foreground">Aguarde aprovação do administrador</p>
+      <div className="min-h-screen flex items-center justify-center bg-background px-6">
+        <div className="text-center space-y-6 max-w-md">
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold">Conta Pendente</h2>
+            <p className="text-muted-foreground">Aguarde aprovação do administrador</p>
+          </div>
+          <div className="space-y-3">
+            <Button 
+              onClick={handleGoHome}
+              variant="outline"
+              className="w-full"
+            >
+              Voltar à Página Inicial
+            </Button>
+          </div>
         </div>
       </div>
     );
