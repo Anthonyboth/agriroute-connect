@@ -77,6 +77,48 @@ serve(async (req) => {
       advanceInReais: calculatedAmount / 100
     });
 
+    // Verificar solicitações duplicadas (mesmo valor nas últimas 2 horas)
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const { data: recentAdvances, error: checkError } = await supabaseClient
+      .from("freight_advances")
+      .select("id, requested_amount, requested_at")
+      .eq("freight_id", freight_id)
+      .eq("driver_id", profile.id)
+      .eq("requested_amount", calculatedAmount)
+      .gte("requested_at", twoHoursAgo)
+      .neq("status", "REJECTED");
+
+    if (checkError) {
+      logStep("Error checking for duplicate advances", { error: checkError });
+      throw new Error("Erro ao verificar solicitações anteriores");
+    }
+
+    if (recentAdvances && recentAdvances.length > 0) {
+      logStep("Duplicate advance request detected", { 
+        existingAdvances: recentAdvances.length,
+        duplicateAmount: calculatedAmount / 100
+      });
+      throw new Error("Você já solicitou um adiantamento com este valor recentemente. Aguarde 2 horas para solicitar novamente com o mesmo valor.");
+    }
+
+    // Verificar limite de solicitações pendentes (máximo 3 por frete)
+    const { data: pendingAdvances, error: pendingError } = await supabaseClient
+      .from("freight_advances")
+      .select("id")
+      .eq("freight_id", freight_id)
+      .eq("driver_id", profile.id)
+      .eq("status", "PENDING");
+
+    if (pendingError) {
+      logStep("Error checking pending advances", { error: pendingError });
+      throw new Error("Erro ao verificar solicitações pendentes");
+    }
+
+    if (pendingAdvances && pendingAdvances.length >= 3) {
+      logStep("Too many pending advances", { pendingCount: pendingAdvances.length });
+      throw new Error("Você já tem o máximo de 3 solicitações pendentes para este frete. Aguarde a aprovação ou rejeição das anteriores.");
+    }
+
     // Registrar apenas a solicitação no banco (sem criar sessão Stripe ainda)
     const { data: advanceRecord, error: advanceError } = await supabaseClient
       .from("freight_advances")
