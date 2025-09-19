@@ -23,7 +23,7 @@ import FreightWithdrawalModal from '@/components/FreightWithdrawalModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import heroLogistics from '@/assets/hero-logistics.jpg';
@@ -76,6 +76,7 @@ const DriverDashboard = () => {
   const [activeTab, setActiveTab] = useState('available');
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showEarnings, setShowEarnings] = useState(true);
 const [showCheckinModal, setShowCheckinModal] = useState(false);
 const [selectedFreightForCheckin, setSelectedFreightForCheckin] = useState<string | null>(null);
 const [initialCheckinType, setInitialCheckinType] = useState<string | null>(null);
@@ -618,21 +619,34 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           <Card className="shadow-sm">
             <CardContent className="p-3">
-              <div className="flex items-center">
-                <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">
-                    Ganhos
-                  </p>
-                  <p className="text-sm font-bold">
-                    {new Intl.NumberFormat('pt-BR', { 
-                      style: 'currency', 
-                      currency: 'BRL',
-                      notation: 'compact',
-                      maximumFractionDigits: 0
-                    }).format(statistics.totalEarnings)}
-                  </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">
+                      Ganhos
+                    </p>
+                    <p className="text-sm font-bold">
+                      {showEarnings 
+                        ? new Intl.NumberFormat('pt-BR', { 
+                            style: 'currency', 
+                            currency: 'BRL',
+                            notation: 'compact',
+                            maximumFractionDigits: 0
+                          }).format(statistics.totalEarnings)
+                        : '****'
+                      }
+                    </p>
+                  </div>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowEarnings(!showEarnings)}
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                >
+                  {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                </Button>
               </div>
             </CardContent>
           </Card>

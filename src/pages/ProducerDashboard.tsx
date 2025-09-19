@@ -285,7 +285,7 @@ const ProducerDashboard = () => {
 
       <div className="container max-w-7xl mx-auto py-4 px-4">
         {/* Stats Cards Compactos */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <Card className="shadow-sm">
             <CardContent className="p-3">
               <div className="flex items-center">
@@ -337,27 +337,6 @@ const ProducerDashboard = () => {
                     Completos
                   </p>
                   <p className="text-lg font-bold">{statistics.completedFreights}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center">
-                <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">
-                    Valor Total
-                  </p>
-                  <p className="text-sm font-bold">
-                    {new Intl.NumberFormat('pt-BR', { 
-                      style: 'currency', 
-                      currency: 'BRL',
-                      notation: 'compact',
-                      maximumFractionDigits: 0
-                    }).format(statistics.totalValue)}
-                  </p>
                 </div>
               </div>
             </CardContent>
