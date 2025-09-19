@@ -77,7 +77,7 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <Truck className="h-5 w-5" />
-            Fretes Aceitos Gratuitos
+            Fretes Gratuitos por Cadastro
           </CardTitle>
           <Badge variant="secondary" className="text-xs">
             {remainingFreights} restantes
@@ -106,7 +106,7 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
               </h4>
             </div>
             <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
-              Você utilizou todos os seus fretes gratuitos. Faça upgrade para continuar aceitando fretes.
+              Você utilizou seus 3 fretes gratuitos do cadastro. Faça upgrade para continuar aceitando fretes.
             </p>
             <Button
               size="sm"
@@ -121,7 +121,7 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
         {remainingFreights > 0 && (
           <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
             <p className="text-sm text-green-800 dark:text-green-200">
-              🎉 Você ainda pode aceitar <strong>{remainingFreights}</strong> fretes gratuitos!
+              🎉 Você ainda pode aceitar <strong>{remainingFreights}</strong> fretes gratuitos do seu cadastro!
             </p>
           </div>
         )}

@@ -283,6 +283,27 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     }
   };
 
+  // Estado para contar check-ins
+  const [totalCheckins, setTotalCheckins] = useState(0);
+
+  // Função para buscar total de check-ins do motorista
+  const fetchDriverCheckins = useCallback(async () => {
+    if (!profile?.id) return;
+    
+    try {
+      const { count, error } = await supabase
+        .from('freight_checkins' as any)
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', profile.id);
+      
+      if (error) throw error;
+      setTotalCheckins(count || 0);
+    } catch (error) {
+      console.error('Error fetching checkins count:', error);
+      setTotalCheckins(0);
+    }
+  }, [profile?.id]);
+
   // Carregar dados - otimizado
   useEffect(() => {
     const loadData = async () => {
@@ -292,13 +313,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       await Promise.all([
         fetchAvailableFreights(), 
         fetchMyProposals(), 
-        fetchOngoingFreights()
+        fetchOngoingFreights(),
+        fetchDriverCheckins()
       ]);
       setLoading(false);
     };
 
     loadData();
-  }, [profile?.id, fetchAvailableFreights, fetchMyProposals, fetchOngoingFreights]);
+  }, [profile?.id, fetchAvailableFreights, fetchMyProposals, fetchOngoingFreights, fetchDriverCheckins]);
 
   // Carregar contra-ofertas - debounced para evitar chamadas excessivas
   useEffect(() => {
@@ -318,9 +340,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       availableCount: availableFreights.length,
       totalEarnings: acceptedProposals
         .filter(p => p.freight?.status === 'DELIVERED')
-        .reduce((sum, proposal) => sum + (proposal.proposed_price || 0), 0)
+        .reduce((sum, proposal) => sum + (proposal.proposed_price || 0), 0),
+      totalCheckins: totalCheckins
     };
-  }, [myProposals, availableFreights]);
+  }, [myProposals, availableFreights, totalCheckins]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -585,9 +608,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
                 <div className="ml-2 min-w-0">
                   <p className="text-xs font-medium text-muted-foreground truncate">
-                    Completas
+                    Check-ins
                   </p>
-                  <p className="text-lg font-bold">{statistics.completedTrips}</p>
+                  <p className="text-lg font-bold">{statistics.totalCheckins}</p>
                 </div>
               </div>
             </CardContent>
