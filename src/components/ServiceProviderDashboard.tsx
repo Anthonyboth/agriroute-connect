@@ -6,7 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import * as Dialog from '@radix-ui/react-dialog';
+import { DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   MapPin, 
   Clock, 
@@ -473,7 +474,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                 Gerencie suas solicitações de serviços
               </CardDescription>
             </div>
-            <Dialog open={showRegionModal} onOpenChange={setShowRegionModal}>
+            <Dialog.Root open={showRegionModal} onOpenChange={setShowRegionModal}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Settings className="h-4 w-4 mr-2" />
@@ -486,7 +487,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                 </DialogHeader>
                 <ServiceRegionSelector onClose={() => setShowRegionModal(false)} />
               </DialogContent>
-            </Dialog>
+            </Dialog.Root>
           </div>
         </CardHeader>
         <CardContent>
