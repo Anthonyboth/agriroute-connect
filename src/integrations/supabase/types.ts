@@ -2380,6 +2380,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_expired_requests: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       confirm_checkin_as_counterpart: {
         Args: { p_checkin_id: string; p_observations?: string }
         Returns: boolean

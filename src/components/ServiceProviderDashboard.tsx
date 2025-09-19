@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   MapPin, 
   Clock, 
@@ -14,7 +15,8 @@ import {
   MessageSquare,
   Star,
   AlertCircle,
-  Calendar
+  Calendar,
+  Filter
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -66,6 +68,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
+  const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
 
   useEffect(() => {
     if (user) {
@@ -282,14 +285,38 @@ export const ServiceProviderDashboard: React.FC = () => {
     }
   };
 
+  const serviceTypes = [
+    { value: 'all', label: 'Todos os Serviços' },
+    { value: 'BORRACHEIRO', label: 'Borracheiro' },
+    { value: 'CHAVEIRO', label: 'Chaveiro' },
+    { value: 'AUTO_ELETRICA', label: 'Auto Elétrica' },
+    { value: 'MECANICO', label: 'Mecânico' },
+    { value: 'COMBUSTIVEL', label: 'Combustível' },
+    { value: 'GUINCHO', label: 'Guincho' },
+    { value: 'ELETRICISTA_AUTOMOTIVO', label: 'Eletricista Automotivo' },
+    { value: 'SOLDADOR', label: 'Soldador' },
+    { value: 'PINTURA', label: 'Pintura' },
+    { value: 'VIDRACEIRO', label: 'Vidraceiro' },
+    { value: 'AR_CONDICIONADO', label: 'Ar Condicionado' },
+    { value: 'FREIOS', label: 'Freios' },
+    { value: 'SUSPENSAO', label: 'Suspensão' }
+  ];
+
   const filteredRequests = requests.filter(request => {
+    // Filtro por status
+    let statusMatch = false;
     switch (activeTab) {
-      case 'pending': return request.status === 'PENDING';
-      case 'accepted': return request.status === 'ACCEPTED';
-      case 'completed': return request.status === 'COMPLETED';
-      case 'all': return true;
-      default: return true;
+      case 'pending': statusMatch = request.status === 'PENDING'; break;
+      case 'accepted': statusMatch = request.status === 'ACCEPTED'; break;
+      case 'completed': statusMatch = request.status === 'COMPLETED'; break;
+      case 'all': statusMatch = true; break;
+      default: statusMatch = true;
     }
+    
+    // Filtro por tipo de serviço
+    const serviceMatch = serviceTypeFilter === 'all' || request.service_type === serviceTypeFilter;
+    
+    return statusMatch && serviceMatch;
   });
 
   if (loading) {
@@ -370,6 +397,23 @@ export const ServiceProviderDashboard: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Filtro por Tipo de Serviço */}
+          <div className="mb-4 flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={serviceTypeFilter} onValueChange={setServiceTypeFilter}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Filtrar por tipo de serviço" />
+              </SelectTrigger>
+              <SelectContent>
+                {serviceTypes.map((serviceType) => (
+                  <SelectItem key={serviceType.value} value={serviceType.value}>
+                    {serviceType.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="pending">Pendentes ({stats.pending_requests})</TabsTrigger>
