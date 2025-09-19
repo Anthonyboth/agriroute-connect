@@ -275,32 +275,57 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
 
       {/* Advance Request Notifications */}
       {isProducer && advances && advances.filter(advance => advance.status === 'PENDING').length > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
+        <Card className={`border-2 ${
+          freight.metadata?.advance_payment_required 
+            ? 'border-red-300 bg-red-50 ring-2 ring-red-200' 
+            : 'border-orange-200 bg-orange-50'
+        }`}>
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <Bell className="h-4 w-4 text-orange-600" />
+                  <Bell className={`h-4 w-4 ${
+                    freight.metadata?.advance_payment_required 
+                      ? 'text-red-600' 
+                      : 'text-orange-600'
+                  }`} />
                   <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive text-destructive-foreground rounded-full text-xs flex items-center justify-center">
                     {advances.filter(advance => advance.status === 'PENDING').length}
                   </span>
                 </div>
                 <div>
-                  <p className="font-medium text-orange-800 text-sm">
-                    {advances.filter(advance => advance.status === 'PENDING').length === 1 
-                      ? 'Nova solicitação de adiantamento' 
-                      : `${advances.filter(advance => advance.status === 'PENDING').length} solicitações de adiantamento`
+                  <p className={`font-medium text-sm ${
+                    freight.metadata?.advance_payment_required 
+                      ? 'text-red-800' 
+                      : 'text-orange-800'
+                  }`}>
+                    {freight.metadata?.advance_payment_required 
+                      ? '🚨 PAGAMENTO OBRIGATÓRIO' 
+                      : (advances.filter(advance => advance.status === 'PENDING').length === 1 
+                        ? 'Nova solicitação de adiantamento' 
+                        : `${advances.filter(advance => advance.status === 'PENDING').length} solicitações de adiantamento`
+                      )
                     }
                   </p>
-                  <p className="text-xs text-orange-600">
-                    O motorista solicitou adiantamento para este frete
+                  <p className={`text-xs ${
+                    freight.metadata?.advance_payment_required 
+                      ? 'text-red-600' 
+                      : 'text-orange-600'
+                  }`}>
+                    {freight.metadata?.advance_payment_required 
+                      ? 'Você deve aprovar pelo menos um adiantamento'
+                      : 'O motorista solicitou adiantamento para este frete'
+                    }
                   </p>
                 </div>
               </div>
               <Button
-                variant="outline"
+                variant={freight.metadata?.advance_payment_required ? "destructive" : "outline"}
                 size="sm"
-                className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                className={`${freight.metadata?.advance_payment_required 
+                  ? "bg-red-600 hover:bg-red-700 ring-2 ring-red-300" 
+                  : "border-orange-300 text-orange-700 hover:bg-orange-100"
+                }`}
                 onClick={() => {
                   // Tenta ir direto para a lista de solicitações
                   const requests = document.getElementById('advance-requests');
@@ -321,7 +346,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                   }
                 }}
               >
-                Ver Solicitações
+                {freight.metadata?.advance_payment_required ? 'PAGAR AGORA' : 'Ver Solicitações'}
               </Button>
             </div>
           </CardContent>
@@ -349,16 +374,51 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               </div>
             )}
 
+            {/* Mandatory Advance Payment Alert */}
+            {freight.metadata?.advance_payment_required && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <Bell className="h-5 w-5 text-red-400" />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">
+                      Pagamento de Adiantamento Obrigatório
+                    </h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      <p>
+                        Sua carga foi carregada e há solicitações de adiantamento pendentes. 
+                        Você deve aprovar pelo menos uma solicitação antes de prosseguir com o frete.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Pending Advance Requests for Producers */}
             {isProducer && advances && advances.filter(advance => advance.status === 'PENDING').length > 0 && (
               <div className="space-y-2" id="advance-requests">
                 <h4 className="font-medium text-xs">Solicitações de Adiantamento</h4>
                 {advances.filter(advance => advance.status === 'PENDING').map((advance) => (
-                  <div key={advance.id} className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <div key={advance.id} className={`${
+                    freight.metadata?.advance_payment_required 
+                      ? 'bg-red-50 border-red-300 ring-2 ring-red-200' 
+                      : 'bg-orange-50 border-orange-200'
+                  } border rounded-lg p-3`}>
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-medium text-sm">Adiantamento solicitado</p>
-                        <p className="text-lg font-bold text-orange-600">
+                        <p className="font-medium text-sm">
+                          {freight.metadata?.advance_payment_required 
+                            ? '🚨 Adiantamento solicitado (OBRIGATÓRIO)' 
+                            : 'Adiantamento solicitado'
+                          }
+                        </p>
+                        <p className={`text-lg font-bold ${
+                          freight.metadata?.advance_payment_required 
+                            ? 'text-red-600' 
+                            : 'text-orange-600'
+                        }`}>
                           R$ {(advance.requested_amount || 0).toLocaleString('pt-BR', { 
                             minimumFractionDigits: 2, 
                             maximumFractionDigits: 2 
@@ -386,7 +446,11 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                                 return;
                               }
                               window.open(data.url, '_blank');
-                              toast.success("Redirecionando para pagamento do adiantamento");
+                              if (freight.metadata?.advance_payment_required) {
+                                toast.success("Redirecionando para pagamento obrigatório do adiantamento");
+                              } else {
+                                toast.success("Redirecionando para pagamento do adiantamento");
+                              }
                               fetchFreightDetails(); // Refresh data
                             } catch (error) {
                               console.error('Error approving advance:', error);
@@ -395,16 +459,26 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                               e.currentTarget.disabled = false; // Re-enable after request
                             }
                           }}
-                          className="bg-green-600 hover:bg-green-700 text-white"
+                          className={`${
+                            freight.metadata?.advance_payment_required 
+                              ? 'bg-red-600 hover:bg-red-700 ring-2 ring-red-300' 
+                              : 'bg-green-600 hover:bg-green-700'
+                          } text-white`}
                           size="sm"
                         >
                           <CreditCard className="h-3 w-3 mr-1" />
-                          Pagar
+                          {freight.metadata?.advance_payment_required ? 'PAGAR AGORA' : 'Pagar'}
                         </Button>
                         <Button
                           variant="destructive"
                           size="sm"
+                          disabled={!!freight.metadata?.advance_payment_required}
                           onClick={async (e) => {
+                            if (freight.metadata?.advance_payment_required) {
+                              toast.error("Você deve aprovar pelo menos um adiantamento antes de recusar outros.");
+                              return;
+                            }
+                            
                             e.currentTarget.disabled = true; // Prevent multiple clicks
                             try {
                               const reason = window.prompt("Motivo da rejeição (opcional):");
@@ -435,6 +509,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                               e.currentTarget.disabled = false; // Re-enable after request
                             }
                           }}
+                          title={freight.metadata?.advance_payment_required ? "Você deve aprovar pelo menos um adiantamento primeiro" : "Recusar adiantamento"}
                         >
                           <X className="h-3 w-3 mr-1" />
                           Recusar
