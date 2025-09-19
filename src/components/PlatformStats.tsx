@@ -69,10 +69,10 @@ const PlatformStats: React.FC = () => {
 
   const formatNumber = (n: number) => n.toLocaleString('pt-BR');
   const formatWeight = (kg: number) => {
-    if (kg <= 0) return '0 t';
-    // Converter para formato 3k t (milhões de kg para k toneladas)
-    const millionsKg = kg / 1000000;
-    return `${Math.round(millionsKg)}k t`;
+    if (kg <= 0) return '0k ton';
+    // Converter para formato em milhares de toneladas
+    const thousandTons = kg / 1000000; // kg para milhões = k toneladas
+    return `${Math.round(thousandTons).toLocaleString('pt-BR')}k ton`;
   };
 
   if (stats.loading) {
