@@ -27,6 +27,8 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
@@ -85,6 +87,7 @@ const [selectedFreightForCheckin, setSelectedFreightForCheckin] = useState<strin
 const [initialCheckinType, setInitialCheckinType] = useState<string | null>(null);
 const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
 const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<Freight | null>(null);
+const [showRegionModal, setShowRegionModal] = useState(false);
   const [filters, setFilters] = useState({
     cargo_type: 'all',
     service_type: 'all',
@@ -655,6 +658,26 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 <Brain className="mr-1 h-4 w-4" />
                 Ver Fretes IA
               </Button>
+              
+              <Dialog open={showRegionModal} onOpenChange={setShowRegionModal}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                  >
+                    <MapPin className="mr-1 h-4 w-4" />
+                    Configurar Região
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Configurar Região de Atendimento</DialogTitle>
+                  </DialogHeader>
+                  <ServiceRegionSelector onClose={() => setShowRegionModal(false)} />
+                </DialogContent>
+              </Dialog>
+              
               <Button 
                 variant="default"
                 size="sm"

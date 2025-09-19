@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   MapPin, 
   Clock, 
@@ -16,11 +18,13 @@ import {
   Star,
   AlertCircle,
   Calendar,
-  Filter
+  Filter,
+  Settings
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
 
 interface ServiceRequest {
   id: string;
@@ -69,6 +73,7 @@ export const ServiceProviderDashboard: React.FC = () => {
    const [loading, setLoading] = useState(true);
    const [activeTab, setActiveTab] = useState('pending');
    const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
+   const [showRegionModal, setShowRegionModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -461,10 +466,28 @@ export const ServiceProviderDashboard: React.FC = () => {
       {/* Lista de Solicitações */}
       <Card>
         <CardHeader>
-          <CardTitle>Solicitações de Serviço</CardTitle>
-          <CardDescription>
-            Gerencie suas solicitações de serviços
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Solicitações de Serviço</CardTitle>
+              <CardDescription>
+                Gerencie suas solicitações de serviços
+              </CardDescription>
+            </div>
+            <Dialog open={showRegionModal} onOpenChange={setShowRegionModal}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Configurar Região
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle>Configurar Região de Atendimento</DialogTitle>
+                </DialogHeader>
+                <ServiceRegionSelector onClose={() => setShowRegionModal(false)} />
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           {/* Filtro por Tipo de Serviço */}

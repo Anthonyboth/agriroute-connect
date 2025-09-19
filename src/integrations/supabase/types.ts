@@ -1266,6 +1266,10 @@ export type Database = {
           rntrc_validation_status: string | null
           role: Database["public"]["Enums"]["user_role"]
           selfie_url: string | null
+          service_cities: string[] | null
+          service_radius_km: number | null
+          service_regions: string[] | null
+          service_states: string[] | null
           service_types: string[] | null
           status: Database["public"]["Enums"]["user_status"]
           total_ratings: number | null
@@ -1324,6 +1328,10 @@ export type Database = {
           rntrc_validation_status?: string | null
           role: Database["public"]["Enums"]["user_role"]
           selfie_url?: string | null
+          service_cities?: string[] | null
+          service_radius_km?: number | null
+          service_regions?: string[] | null
+          service_states?: string[] | null
           service_types?: string[] | null
           status?: Database["public"]["Enums"]["user_status"]
           total_ratings?: number | null
@@ -1382,6 +1390,10 @@ export type Database = {
           rntrc_validation_status?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           selfie_url?: string | null
+          service_cities?: string[] | null
+          service_radius_km?: number | null
+          service_regions?: string[] | null
+          service_states?: string[] | null
           service_types?: string[] | null
           status?: Database["public"]["Enums"]["user_status"]
           total_ratings?: number | null
