@@ -71,7 +71,7 @@ const Landing = () => {
         setRealStats({
           totalProducers: Number(row.produtores) || 355,
           totalDrivers: Number(row.motoristas) || 892,
-          totalWeight: Math.round(Number(row.peso_total) || 29000),
+          totalWeight: Math.round(Number(row.peso_total) || 2900),
           completedFreights: Number(row.fretes_entregues) || 2900,
           totalUsers: Number(row.total_usuarios) || 1247,
           averageRating: Math.round(((Number(row.avaliacao_media) || 4.8) * 10)) / 10,
@@ -81,7 +81,7 @@ const Landing = () => {
         setRealStats({
           totalProducers: 355,
           totalDrivers: 892,
-          totalWeight: 29000,
+          totalWeight: 2900,
           completedFreights: 2900,
           totalUsers: 1247,
           averageRating: 4.8,
@@ -92,7 +92,7 @@ const Landing = () => {
       setRealStats({
         totalProducers: 355,
         totalDrivers: 892,
-        totalWeight: 29000,
+        totalWeight: 2900,
         completedFreights: 2900,
         totalUsers: 1247,
         averageRating: 4.8,
@@ -144,7 +144,7 @@ const Landing = () => {
       label: 'Motoristas Ativos' 
     },
     { 
-      value: realStats.totalWeight > 0 ? `${(realStats.totalWeight).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}k ton` : '0 ton', 
+      value: realStats.totalWeight > 0 ? `${(realStats.totalWeight / 1000).toFixed(1)}k ton` : '0 ton', 
       label: 'Toneladas Transportadas' 
     },
     { 

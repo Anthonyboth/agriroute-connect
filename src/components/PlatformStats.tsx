@@ -28,7 +28,7 @@ const PlatformStats: React.FC = () => {
         setStats({
           totalProducers: Number(row.produtores) || 355,
           totalDrivers: Number(row.motoristas) || 892,
-          totalWeight: Math.round(Number(row.peso_total) || 29000),
+          totalWeight: Math.round(Number(row.peso_total) || 2900),
           averageRating: Math.round(((Number(row.avaliacao_media) || 4.8) * 10)) / 10,
           loading: false,
         });
@@ -37,7 +37,7 @@ const PlatformStats: React.FC = () => {
         setStats({
           totalProducers: 355,
           totalDrivers: 892,
-          totalWeight: 29000,
+          totalWeight: 2900,
           averageRating: 4.8,
           loading: false,
         });
@@ -47,7 +47,7 @@ const PlatformStats: React.FC = () => {
       setStats({
         totalProducers: 355,
         totalDrivers: 892,
-        totalWeight: 29000,
+        totalWeight: 2900,
         averageRating: 4.8,
         loading: false,
       });
@@ -59,7 +59,7 @@ const PlatformStats: React.FC = () => {
     setStats({
       totalProducers: 355,
       totalDrivers: 892,
-      totalWeight: 29000,
+      totalWeight: 2900,
       averageRating: 4.8,
       loading: false,
     });
@@ -72,7 +72,7 @@ const PlatformStats: React.FC = () => {
     if (kg <= 0) return '0k ton';
     // Converter para formato k ton (dividir por 1000 para remover os milhares)
     const kTons = kg / 1000;
-    return `${kTons.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}k ton`;
+    return `${kTons.toFixed(1)}k ton`;
   };
 
   if (stats.loading) {
