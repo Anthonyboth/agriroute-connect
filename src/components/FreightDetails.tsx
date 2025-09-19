@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign } from 'lucide-react';
+import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell } from 'lucide-react';
 import { FreightChat } from './FreightChat';
 import { FreightStatusTracker } from './FreightStatusTracker';
 import { FreightRatingModal } from './FreightRatingModal';
@@ -270,6 +270,48 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         )}
       </div>
 
+      {/* Advance Request Notifications */}
+      {isProducer && advances && advances.filter(advance => advance.status === 'PENDING').length > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Bell className="h-5 w-5 text-orange-600" />
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground rounded-full text-xs flex items-center justify-center">
+                    {advances.filter(advance => advance.status === 'PENDING').length}
+                  </span>
+                </div>
+                <div>
+                  <p className="font-medium text-orange-800">
+                    {advances.filter(advance => advance.status === 'PENDING').length === 1 
+                      ? 'Nova solicitação de adiantamento' 
+                      : `${advances.filter(advance => advance.status === 'PENDING').length} solicitações de adiantamento`
+                    }
+                  </p>
+                  <p className="text-sm text-orange-600">
+                    O motorista solicitou adiantamento para este frete
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                onClick={() => {
+                  const element = document.getElementById('advance-requests');
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
+              >
+                Ver Solicitações
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Payment Actions */}
       {(canRequestAdvance || canMakePayment || (isDriver && freight?.status === 'ACCEPTED')) && (
         <Card>
@@ -293,7 +335,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
 
             {/* Pending Advance Requests for Producers */}
             {isProducer && advances && advances.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-3" id="advance-requests">
                 <h4 className="font-medium text-sm">Solicitações de Adiantamento</h4>
                 {advances.filter(advance => advance.status === 'PENDING').map((advance) => (
                   <div key={advance.id} className="bg-orange-50 border border-orange-200 rounded-lg p-4">
