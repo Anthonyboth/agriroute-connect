@@ -215,8 +215,8 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                   <SelectValue placeholder="Selecione o tipo de cobrança" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="FIXED">Valor Fixo</SelectItem>
                   <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
+                  <SelectItem value="FIXED">Valor Fixo</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -303,8 +303,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="FIXED">Valor Fixo</SelectItem>
                 <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
+                <SelectItem value="FIXED">Valor Fixo</SelectItem>
               </SelectContent>
             </Select>
           </div>
