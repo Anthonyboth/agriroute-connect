@@ -66,9 +66,9 @@ export const ServiceProviderDashboard: React.FC = () => {
     average_rating: 0,
     total_earnings: 0
   });
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pending');
-  const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
+   const [loading, setLoading] = useState(true);
+   const [activeTab, setActiveTab] = useState('pending');
+   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
 
   useEffect(() => {
     if (user) {
@@ -302,6 +302,43 @@ export const ServiceProviderDashboard: React.FC = () => {
     { value: 'SUSPENSAO', label: 'Suspensão' }
   ];
 
+  // Função para calcular o tempo restante até expirar (72 horas)
+  const getExpirationInfo = (createdAt: string) => {
+    const createdDate = new Date(createdAt);
+    const expirationDate = new Date(createdDate.getTime() + 72 * 60 * 60 * 1000); // 72 horas
+    const now = new Date();
+    const timeLeft = expirationDate.getTime() - now.getTime();
+    
+    if (timeLeft <= 0) {
+      return { expired: true, text: 'Expirada', color: 'destructive' as const };
+    }
+    
+    const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+    const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hoursLeft < 6) {
+      return { 
+        expired: false, 
+        text: `${hoursLeft}h ${minutesLeft}m restantes`, 
+        color: 'destructive' as const 
+      };
+    } else if (hoursLeft < 24) {
+      return { 
+        expired: false, 
+        text: `${hoursLeft}h restantes`, 
+        color: 'default' as const 
+      };
+    } else {
+      const daysLeft = Math.floor(hoursLeft / 24);
+      const remainingHours = hoursLeft % 24;
+      return { 
+        expired: false, 
+        text: `${daysLeft}d ${remainingHours}h restantes`, 
+        color: 'secondary' as const 
+      };
+    }
+  };
+
   const filteredRequests = requests.filter(request => {
     // Filtro por status
     let statusMatch = false;
@@ -450,20 +487,27 @@ export const ServiceProviderDashboard: React.FC = () => {
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={getUrgencyColor(request.urgency)}>
-                              {request.urgency}
-                            </Badge>
-                            <Badge variant={getStatusColor(request.status)}>
-                              {request.status}
-                            </Badge>
-                            {request.is_emergency && (
-                              <Badge variant="destructive">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                EMERGÊNCIA
-                              </Badge>
-                            )}
-                          </div>
+                           <div className="flex items-center gap-2 flex-wrap">
+                             <Badge variant={getUrgencyColor(request.urgency)}>
+                               {request.urgency}
+                             </Badge>
+                             <Badge variant={getStatusColor(request.status)}>
+                               {request.status}
+                             </Badge>
+                             {request.is_emergency && (
+                               <Badge variant="destructive">
+                                 <AlertCircle className="h-3 w-3 mr-1" />
+                                 EMERGÊNCIA
+                               </Badge>
+                             )}
+                             {/* Indicador de tempo restante para solicitações pendentes */}
+                             {request.status === 'PENDING' && (
+                               <Badge variant={getExpirationInfo(request.created_at).color} className="text-xs">
+                                 <Clock className="h-3 w-3 mr-1" />
+                                 {getExpirationInfo(request.created_at).text}
+                               </Badge>
+                             )}
+                           </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
