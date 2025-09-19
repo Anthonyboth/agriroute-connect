@@ -747,6 +747,7 @@ export type Database = {
           id: string
           is_scheduled: boolean | null
           last_location_update: string | null
+          metadata: Json | null
           minimum_antt_price: number | null
           origin_address: string
           origin_lat: number | null
@@ -799,6 +800,7 @@ export type Database = {
           id?: string
           is_scheduled?: boolean | null
           last_location_update?: string | null
+          metadata?: Json | null
           minimum_antt_price?: number | null
           origin_address: string
           origin_lat?: number | null
@@ -851,6 +853,7 @@ export type Database = {
           id?: string
           is_scheduled?: boolean | null
           last_location_update?: string | null
+          metadata?: Json | null
           minimum_antt_price?: number | null
           origin_address?: string
           origin_lat?: number | null
