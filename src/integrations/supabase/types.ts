@@ -433,6 +433,85 @@ export type Database = {
           },
         ]
       }
+      freight_checkins: {
+        Row: {
+          checkin_type: string
+          counterpart_confirmed_at: string | null
+          counterpart_confirmed_by: string | null
+          created_at: string
+          freight_id: string
+          id: string
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
+          metadata: Json | null
+          observations: string | null
+          photos: string[] | null
+          requires_counterpart_confirmation: boolean | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          checkin_type: string
+          counterpart_confirmed_at?: string | null
+          counterpart_confirmed_by?: string | null
+          created_at?: string
+          freight_id: string
+          id?: string
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          metadata?: Json | null
+          observations?: string | null
+          photos?: string[] | null
+          requires_counterpart_confirmation?: boolean | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          checkin_type?: string
+          counterpart_confirmed_at?: string | null
+          counterpart_confirmed_by?: string | null
+          created_at?: string
+          freight_id?: string
+          id?: string
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          metadata?: Json | null
+          observations?: string | null
+          photos?: string[] | null
+          requires_counterpart_confirmation?: boolean | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_checkins_counterpart_confirmed_by_fkey"
+            columns: ["counterpart_confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_checkins_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_checkins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_messages: {
         Row: {
           created_at: string
@@ -2243,6 +2322,10 @@ export type Database = {
       check_low_ratings: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      confirm_checkin_as_counterpart: {
+        Args: { p_checkin_id: string; p_observations?: string }
+        Returns: boolean
       }
       create_additional_profile: {
         Args: {

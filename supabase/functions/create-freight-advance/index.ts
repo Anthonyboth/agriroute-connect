@@ -130,13 +130,7 @@ serve(async (req) => {
       throw new Error("Failed to create advance record");
     }
 
-    // Update metadata with advance_id
-    await stripe.checkout.sessions.update(session.id, {
-      metadata: {
-        ...session.metadata,
-        advance_id: advanceRecord.id
-      }
-    });
+    // Note: advance_id will be linked via stripe_payment_intent_id when payment is processed
 
     logStep("Advance session created successfully", { 
       sessionId: session.id, 
