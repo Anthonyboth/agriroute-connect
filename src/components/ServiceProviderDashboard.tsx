@@ -550,13 +550,15 @@ export const ServiceProviderDashboard: React.FC = () => {
                               {request.service_type.replace(/_/g, ' ')}
                             </p>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium mb-1">Local:</p>
-                            <p className="text-sm text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {request.location_address}
-                            </p>
-                          </div>
+                           <div>
+                             <p className="text-sm font-medium mb-1">Local:</p>
+                             <p className="text-sm text-muted-foreground flex items-center gap-1">
+                               <MapPin className="h-3 w-3" />
+                               {request.status === 'ACCEPTED' || request.status === 'COMPLETED' 
+                                 ? request.location_address 
+                                 : 'Endereço disponível após aceitar'}
+                             </p>
+                           </div>
                           {request.vehicle_info && (
                             <div>
                               <p className="text-sm font-medium mb-1">Veículo:</p>
@@ -579,30 +581,51 @@ export const ServiceProviderDashboard: React.FC = () => {
                           <p className="text-sm text-muted-foreground">{request.problem_description}</p>
                         </div>
 
-                        {request.additional_info && (
-                          <div className="mb-4">
-                            <p className="text-sm font-medium mb-1">Informações adicionais:</p>
-                            <p className="text-sm text-muted-foreground">{request.additional_info}</p>
-                          </div>
-                        )}
+                         {request.additional_info && (
+                           <div className="mb-4">
+                             <p className="text-sm font-medium mb-1">Informações adicionais:</p>
+                             <p className="text-sm text-muted-foreground">{request.additional_info}</p>
+                           </div>
+                         )}
 
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const phone = request.contact_phone.replace(/\D/g, '');
-                                const message = encodeURIComponent(
-                                  `Olá ${request.contact_name || request.profiles.full_name}! Sou prestador de serviços do AgriRoute e recebi sua solicitação de ${request.service_type.replace(/_/g, ' ').toLowerCase()}. Vamos conversar sobre os detalhes?`
-                                );
-                                window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
-                              }}
-                            >
-                              <Phone className="h-4 w-4 mr-2" />
-                              Ligar/WhatsApp
-                            </Button>
-                          </div>
+                         {request.status === 'PENDING' && (
+                           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                             <p className="text-xs text-blue-700">
+                               <AlertCircle className="h-3 w-3 inline mr-1" />
+                               Os dados de contato e endereço completo ficam disponíveis após aceitar a solicitação.
+                             </p>
+                           </div>
+                         )}
+
+                         <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-4">
+                             {request.status === 'ACCEPTED' || request.status === 'COMPLETED' ? (
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => {
+                                   const phone = request.contact_phone.replace(/\D/g, '');
+                                   const message = encodeURIComponent(
+                                     `Olá ${request.contact_name || request.profiles.full_name}! Sou prestador de serviços do AgriRoute e recebi sua solicitação de ${request.service_type.replace(/_/g, ' ').toLowerCase()}. Vamos conversar sobre os detalhes?`
+                                   );
+                                   window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+                                 }}
+                               >
+                                 <Phone className="h-4 w-4 mr-2" />
+                                 Ligar/WhatsApp
+                               </Button>
+                             ) : (
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 disabled
+                                 className="opacity-50"
+                               >
+                                 <Phone className="h-4 w-4 mr-2" />
+                                 Contato disponível após aceitar
+                               </Button>
+                             )}
+                           </div>
 
                            <div className="flex gap-2">
                              {request.status === 'PENDING' && (
