@@ -150,98 +150,113 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Status das Solicitações Pendentes - Mais Visível */}
+          {pendingCount > 0 && (
+            <div className={`p-4 rounded-lg border-2 ${
+              pendingCount >= 3 
+                ? 'border-red-300 bg-red-50' 
+                : 'border-amber-300 bg-amber-50'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className={`h-5 w-5 ${
+                  pendingCount >= 3 ? 'text-red-600' : 'text-amber-600'
+                }`} />
+                <p className={`font-semibold ${
+                  pendingCount >= 3 ? 'text-red-800' : 'text-amber-800'
+                }`}>
+                  {pendingCount >= 3 ? 'Limite de Solicitações Atingido' : 'Solicitações Pendentes'}
+                </p>
+              </div>
+              <p className={`text-sm ${
+                pendingCount >= 3 ? 'text-red-700' : 'text-amber-700'
+              }`}>
+                {pendingCount >= 3 
+                  ? `Você já tem o máximo de ${pendingCount} solicitações pendentes para este frete. Aguarde a aprovação ou rejeição das anteriores antes de fazer uma nova solicitação.`
+                  : `Você tem ${pendingCount} solicitação(ões) pendente(s) para este frete.`
+                }
+              </p>
+            </div>
+          )}
+
           <div className="bg-muted/20 p-4 rounded-lg">
             <p className="text-sm text-muted-foreground">Valor total do frete</p>
             <p className="text-xl font-semibold">R$ {freightPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
 
-          <div className="space-y-4">
-            <Label>Tipo de adiantamento</Label>
-            <RadioGroup value={advanceType} onValueChange={(value) => setAdvanceType(value as "percentage" | "amount")}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="percentage" id="percentage" />
-                <Label htmlFor="percentage" className="flex items-center gap-2">
-                  <Percent className="h-4 w-4" />
-                  Porcentagem
-                </Label>
+          {/* Só mostra o formulário se não atingiu o limite */}
+          {pendingCount < 3 && (
+            <>
+              <div className="space-y-4">
+                <Label>Tipo de adiantamento</Label>
+                <RadioGroup value={advanceType} onValueChange={(value) => setAdvanceType(value as "percentage" | "amount")}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="percentage" id="percentage" />
+                    <Label htmlFor="percentage" className="flex items-center gap-2">
+                      <Percent className="h-4 w-4" />
+                      Porcentagem
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="amount" id="amount" />
+                    <Label htmlFor="amount" className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Valor fixo
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="amount" id="amount" />
-                <Label htmlFor="amount" className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Valor fixo
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
 
-          {advanceType === "percentage" ? (
-            <div className="space-y-4">
-              <Label>Porcentagem do adiantamento: {percentage[0]}%</Label>
-              <Slider
-                value={percentage}
-                onValueChange={setPercentage}
-                max={50}
-                min={10}
-                step={5}
-                className="w-full"
-              />
-              <p className="text-sm text-muted-foreground">
-                Máximo permitido: 50% do valor total
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="customAmount">Valor do adiantamento (R$)</Label>
-              <Input
-                id="customAmount"
-                type="number"
-                placeholder="0,00"
-                value={customAmount}
-                onChange={(e) => setCustomAmount(e.target.value)}
-                max={freightPrice * 0.5}
-              />
-              <p className="text-sm text-muted-foreground">
-                Máximo: R$ {(freightPrice * 0.5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-            </div>
-          )}
+              {advanceType === "percentage" ? (
+                <div className="space-y-4">
+                  <Label>Porcentagem do adiantamento: {percentage[0]}%</Label>
+                  <Slider
+                    value={percentage}
+                    onValueChange={setPercentage}
+                    max={50}
+                    min={10}
+                    step={5}
+                    className="w-full"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Máximo permitido: 50% do valor total
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="customAmount">Valor do adiantamento (R$)</Label>
+                  <Input
+                    id="customAmount"
+                    type="number"
+                    placeholder="0,00"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    max={freightPrice * 0.5}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Máximo: R$ {(freightPrice * 0.5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+              )}
 
-          {calculatedAmount > 0 && (
-            <div className="bg-primary/10 p-4 rounded-lg">
-              <p className="text-sm text-muted-foreground">Valor do adiantamento</p>
-              <p className="text-xl font-semibold text-primary">
-                R$ {calculatedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-            </div>
-          )}
+              {calculatedAmount > 0 && (
+                <div className="bg-primary/10 p-4 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Valor do adiantamento</p>
+                  <p className="text-xl font-semibold text-primary">
+                    R$ {calculatedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+              )}
 
-          {/* Avisos de validação */}
-          {duplicateWarning && (
-            <Alert className="border-orange-200 bg-orange-50">
-              <AlertTriangle className="h-4 w-4 text-orange-600" />
-              <AlertDescription className="text-orange-800">
-                {duplicateWarning} Tente um valor diferente ou aguarde.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {pendingCount >= 3 && (
-            <Alert className="border-red-200 bg-red-50">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
-                Você já tem {pendingCount} solicitações pendentes para este frete. Aguarde a aprovação ou rejeição das anteriores.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {pendingCount > 0 && pendingCount < 3 && (
-            <Alert className="border-blue-200 bg-blue-50">
-              <AlertTriangle className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
-                Você tem {pendingCount} solicitação(ões) pendente(s) para este frete.
-              </AlertDescription>
-            </Alert>
+              {/* Avisos de validação */}
+              {duplicateWarning && (
+                <Alert className="border-orange-200 bg-orange-50">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="text-orange-800">
+                    {duplicateWarning} Tente um valor diferente ou aguarde.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </>
           )}
 
           <div className="flex gap-3">
