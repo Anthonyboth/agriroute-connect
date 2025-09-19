@@ -258,7 +258,7 @@ export const ServiceRegionSelector: React.FC<ServiceRegionSelectorProps> = ({ on
             />
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Distância máxima que você está disposto a atender (em quilômetros)
+            Distância máxima para visualizar solicitações de fretes (em quilômetros)
           </p>
         </div>
 
