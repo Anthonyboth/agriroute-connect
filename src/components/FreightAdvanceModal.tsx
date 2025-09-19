@@ -136,7 +136,7 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
             <Button 
               onClick={handleCreateAdvance} 
               disabled={isLoading || calculatedAmount === 0}
-              className="flex-1"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
             >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Solicitar Adiantamento

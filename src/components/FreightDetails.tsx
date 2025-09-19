@@ -299,8 +299,8 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               {canRequestAdvance && (
                 <Button 
                   onClick={() => setAdvanceModalOpen(true)}
-                  variant="outline"
-                  className="flex-1"
+                  variant="default"
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                 >
                   <DollarSign className="h-4 w-4 mr-2" />
                   Solicitar Adiantamento
