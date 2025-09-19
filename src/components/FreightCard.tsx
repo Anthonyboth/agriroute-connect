@@ -21,6 +21,7 @@ import {
   X
 } from 'lucide-react';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
+import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
 
 interface FreightCardProps {
   freight: {
@@ -52,22 +53,6 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
   const isFullyBooked = (freight.required_trucks || 1) <= (freight.accepted_trucks || 0);
   const availableSlots = (freight.required_trucks || 1) - (freight.accepted_trucks || 0);
   
-  const getUrgencyVariant = (urgency: string) => {
-    switch (urgency) {
-      case 'HIGH': return 'destructive';
-      case 'LOW': return 'secondary';
-      default: return 'default';
-    }
-  };
-
-  const getUrgencyLabel = (urgency: string) => {
-    switch (urgency) {
-      case 'HIGH': return 'Alta';
-      case 'LOW': return 'Baixa';
-      default: return 'Normal';
-    }
-  };
-
   const urgencyVariant = getUrgencyVariant(freight.urgency);
   const urgencyLabel = getUrgencyLabel(freight.urgency);
 

@@ -20,6 +20,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-status';
+import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
 import { toast } from 'sonner';
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';

@@ -224,7 +224,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="LOW">Baixa</SelectItem>
-                  <SelectItem value="MEDIUM">Normal</SelectItem>
+                  <SelectItem value="MEDIUM">Média</SelectItem>
                   <SelectItem value="HIGH">Alta</SelectItem>
                 </SelectContent>
               </Select>
