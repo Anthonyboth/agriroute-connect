@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
+import { getUrgencyLabel } from '@/lib/urgency-labels';
 
 interface FreightDetailsProps {
   freightId: string;
@@ -152,7 +153,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </div>
             <div>
               <span className="text-muted-foreground text-xs">Urgência:</span>
-              <p className="font-medium">{freight.urgency}</p>
+              <p className="font-medium">{getUrgencyLabel(freight.urgency)}</p>
             </div>
           </div>
         </CardContent>
