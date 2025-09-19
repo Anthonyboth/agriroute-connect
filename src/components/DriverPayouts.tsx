@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { DriverPayoutModal } from './DriverPayoutModal';
 import { supabase } from '@/integrations/supabase/client';
 import { Banknote, TrendingUp, Clock, CheckCircle, AlertTriangle, Plus, Eye, EyeOff } from 'lucide-react';
@@ -16,7 +15,7 @@ interface PayoutRequest {
   id: string;
   amount: number;
   pix_key: string;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'REJECTED';
+  status: string;
   created_at: string;
   processed_at?: string;
   rejection_reason?: string;
@@ -26,7 +25,7 @@ interface AvailablePayout {
   id: string;
   amount: number;
   freight_id: string;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED';
+  status: string;
   created_at: string;
   freight?: {
     cargo_type: string;
@@ -60,38 +59,15 @@ export function DriverPayouts({ driverId }: DriverPayoutsProps) {
     try {
       setLoading(true);
 
-      // Buscar solicitações de saque via edge function
-      const { data: requestsData, error: requestsError } = await supabase.functions.invoke('get-payout-requests', {
+      // Buscar dados usando edge function
+      const { data: response, error } = await supabase.functions.invoke('get-driver-payout-requests', {
         body: { driver_id: driverId }
       });
 
-      if (requestsError) throw requestsError;
+      if (error) throw error;
 
-      // Buscar payouts disponíveis
-      const { data: payouts, error: payoutsError } = await supabase
-        .from('driver_payouts')
-        .select(`
-          *,
-          freights:freight_id (
-            cargo_type,
-            origin_address,
-            destination_address
-          )
-        `)
-        .eq('driver_id', driverId)
-        .order('created_at', { ascending: false });
-
-      if (payoutsError) throw payoutsError;
-
-      setPayoutRequests(requestsData?.requests || []);
-      setAvailablePayouts(payouts?.map((p: any) => ({
-        id: p.id,
-        amount: p.amount,
-        freight_id: p.freight_id,
-        status: p.status,
-        created_at: p.created_at,
-        freight: p.freights
-      })) || []);
+      setPayoutRequests(response?.requests || []);
+      setAvailablePayouts(response?.available_payouts || []);
     } catch (error) {
       console.error('Erro ao carregar dados de pagamentos:', error);
       toast.error('Erro ao carregar informações de pagamentos');
@@ -110,11 +86,11 @@ export function DriverPayouts({ driverId }: DriverPayoutsProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pendente</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pendente</Badge>;
       case 'PROCESSING':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Processando</Badge>;
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Processando</Badge>;
       case 'COMPLETED':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800">Concluído</Badge>;
+        return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Concluído</Badge>;
       case 'REJECTED':
         return <Badge variant="destructive">Rejeitado</Badge>;
       default:
@@ -143,12 +119,14 @@ export function DriverPayouts({ driverId }: DriverPayoutsProps) {
       return `${user.slice(0, 3)}***@${domain}`;
     }
     
-    if (pixKey.length === 11) { // CPF
-      return `***.***.***-${pixKey.slice(-2)}`;
+    const cleanKey = pixKey.replace(/[^\d]/g, '');
+    
+    if (cleanKey.length === 11) { // CPF
+      return `***.***.***-${cleanKey.slice(-2)}`;
     }
     
-    if (pixKey.length === 14) { // CNPJ
-      return `**.***.***/****-${pixKey.slice(-2)}`;
+    if (cleanKey.length === 14) { // CNPJ
+      return `**.***.***/****-${cleanKey.slice(-2)}`;
     }
     
     return `${pixKey.slice(0, 4)}***${pixKey.slice(-4)}`;
@@ -313,7 +291,7 @@ export function DriverPayouts({ driverId }: DriverPayoutsProps) {
                       <span className="font-medium">
                         R$ {payout.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">Disponível</Badge>
+                      <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Disponível</Badge>
                     </div>
                     {payout.freight && (
                       <p className="text-sm text-muted-foreground mt-1">

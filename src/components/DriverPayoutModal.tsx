@@ -85,7 +85,7 @@ export function DriverPayoutModal({ isOpen, onClose, availableBalance, driverId 
 
     try {
       // Usar edge function para criar solicitação de saque
-      const { data, error } = await supabase.functions.invoke('create-payout-request', {
+      const { data, error } = await supabase.functions.invoke('request-driver-payout', {
         body: {
           driver_id: driverId,
           amount: requestedAmount,
