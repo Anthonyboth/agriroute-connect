@@ -81,7 +81,7 @@ export const ScheduledFreightsManager: React.FC = () => {
             producer:profiles!freights_producer_id_fkey(full_name)
           `)
           .eq('is_scheduled', true)
-          .not('status', 'in', '(DELIVERED,CANCELLED)')
+          .eq('status', 'OPEN')
           .order('scheduled_date', { ascending: true });
 
         if (profile.role === 'PRODUTOR') {
