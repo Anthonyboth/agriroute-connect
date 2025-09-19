@@ -1,24 +1,41 @@
 import React from 'react';
 import { ServiceProviderDashboard as ServiceDashboard } from '@/components/ServiceProviderDashboard';
-import { ResponsiveLayout } from '@/components/ResponsiveLayout';
+import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
+import { useNotifications } from '@/hooks/useNotifications';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const ServiceProviderDashboard = () => {
   const { profile, signOut } = useAuth();
+  const { unreadCount } = useNotifications();
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Erro ao fazer logout');
+    } else {
+      toast.success('Logout realizado com sucesso');
+    }
+  };
+
+  const handleMenuClick = () => {
+    console.log('Menu clicked');
+  };
   
   return (
-    <ResponsiveLayout>
-      <header className="flex items-center justify-between p-4 border-b">
-        <h1 className="text-2xl font-bold">Painel de Prestador de Serviços</h1>
-        <button 
-          onClick={signOut} 
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-        >
-          Sair
-        </button>
-      </header>
-      <ServiceDashboard />
-    </ResponsiveLayout>
+    <div className="min-h-screen bg-background">
+      <Header 
+        user={{ name: profile?.full_name || 'Prestador de Serviços', role: 'MOTORISTA' }}
+        onMenuClick={handleMenuClick}
+        onLogout={handleLogout}
+        userProfile={profile}
+        notifications={unreadCount}
+      />
+      <div className="container mx-auto py-6 px-4">
+        <ServiceDashboard />
+      </div>
+    </div>
   );
 };
 
