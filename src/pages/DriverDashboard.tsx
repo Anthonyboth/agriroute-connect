@@ -1028,7 +1028,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               </Badge>
             </div>
             {myProposals.length > 0 ? (
-              <div className="grid gap-8 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
                 {myProposals.map((proposal) => (
                   proposal.freight && (
                     <div key={proposal.id} className="relative">
@@ -1045,44 +1045,32 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                         showActions={false}
                       />
                       
-                      {/* Informações da proposta */}
-                      <div className="mt-4 p-4 bg-gradient-to-r from-card to-secondary/10 border rounded-lg shadow-sm space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-semibold">Sua Proposta:</span>
+                      {/* Informações compactas da proposta */}
+                      <div className="mt-3 p-3 bg-gradient-to-r from-card to-secondary/10 border rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Sua Proposta:</span>
                           <span className="text-lg font-bold text-primary">
                             R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
                           </span>
                         </div>
                         
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">Status:</span>
                           <Badge 
                             variant={
                               proposal.status === 'ACCEPTED' ? 'default' :
                               proposal.status === 'PENDING' ? 'secondary' : 'destructive'
                             }
-                            className="font-medium"
+                            className="text-xs"
                           >
-                            {proposal.status === 'ACCEPTED' ? 'Aceita pelo Produtor' :
-                             proposal.status === 'PENDING' ? 'Aguardando Resposta' : 
-                             proposal.status === 'REJECTED' ? 'Rejeitada pelo Produtor' :
-                             proposal.status === 'CANCELLED' ? 'Cancelada por Você' : proposal.status}
+                            {proposal.status === 'ACCEPTED' ? 'Aceita' :
+                             proposal.status === 'PENDING' ? 'Aguardando' : 
+                             proposal.status === 'REJECTED' ? 'Rejeitada' :
+                             proposal.status === 'CANCELLED' ? 'Cancelada' : proposal.status}
                           </Badge>
-                        </div>
-
-                        {/* Preço do frete vs proposta */}
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">Valor Original:</span>
-                          <span className="text-sm font-semibold">
-                            R$ {proposal.freight?.price?.toLocaleString('pt-BR')}
-                          </span>
-                        </div>
-
-                        {/* Diferença de preço */}
-                        {proposal.freight?.price && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium">Diferença:</span>
-                            <span className={`text-sm font-semibold ${
+                          
+                          {/* Diferença de preço compacta */}
+                          {proposal.freight?.price && (
+                            <span className={`text-xs font-medium ${
                               proposal.proposed_price > proposal.freight.price ? 'text-red-600' : 
                               proposal.proposed_price < proposal.freight.price ? 'text-green-600' : 'text-muted-foreground'
                             }`}>
@@ -1090,33 +1078,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                                proposal.proposed_price < proposal.freight.price ? '-' : ''}
                               R$ {Math.abs(proposal.proposed_price - proposal.freight.price).toLocaleString('pt-BR')}
                             </span>
-                          </div>
-                        )}
-
-                        {/* Mensagem da proposta */}
-                        {proposal.message && (
-                          <div className="pt-2 border-t border-border/40">
-                            <p className="text-xs text-muted-foreground font-medium mb-1">Sua mensagem:</p>
-                            <p className="text-sm bg-muted/30 p-2 rounded italic">&quot;{proposal.message}&quot;</p>
-                          </div>
-                        )}
-
-                        {/* Informações do produtor */}
-                        {proposal.freight?.producer && (
-                          <div className="pt-3 border-t border-border/40">
-                            <p className="text-xs text-muted-foreground font-medium mb-1">Produtor:</p>
-                            <p className="text-sm font-semibold">{proposal.freight.producer.full_name}</p>
-                            {proposal.freight.producer.contact_phone && (
-                              <p className="text-xs text-muted-foreground mt-1">{proposal.freight.producer.contact_phone}</p>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Data da proposta */}
-                        <div className="pt-2 border-t border-border/40">
-                          <p className="text-xs text-muted-foreground">
-                            Enviada em: {new Date(proposal.created_at).toLocaleDateString('pt-BR')} às {new Date(proposal.created_at).toLocaleTimeString('pt-BR')}
-                          </p>
+                          )}
                         </div>
                       </div>
 
