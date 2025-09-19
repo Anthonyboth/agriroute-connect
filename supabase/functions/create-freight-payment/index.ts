@@ -88,9 +88,10 @@ serve(async (req) => {
       .eq("status", "PAID");
 
     const totalAdvances = advances?.reduce((sum, advance) => sum + advance.requested_amount, 0) || 0;
-    const remainingAmount = freight.price - totalAdvances;
+    const remainingAmountCents = (freight.price * 100) - totalAdvances; // Converter freight.price para centavos e subtrair adiantamentos
+    const remainingAmountReais = remainingAmountCents / 100;
 
-    if (remainingAmount <= 0) {
+    if (remainingAmountCents <= 0) {
       throw new Error("Freight already fully paid");
     }
 
@@ -104,10 +105,10 @@ serve(async (req) => {
             product_data: { 
               name: `Pagamento de Frete - ${freight.id.substring(0, 8)}`,
               description: totalAdvances > 0 ? 
-                `Valor restante após adiantamentos de R$ ${totalAdvances.toFixed(2)}` :
+                `Valor restante após adiantamentos de R$ ${(totalAdvances / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` :
                 `Pagamento completo do frete`
             },
-            unit_amount: Math.round(remainingAmount * 100), // Converter reais para centavos para Stripe
+            unit_amount: Math.round(remainingAmountCents), // Valor já em centavos
           },
           quantity: 1,
         },
@@ -117,23 +118,25 @@ serve(async (req) => {
       cancel_url: `https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/cancel?type=freight_payment&freight_id=${freight_id}`,
       metadata: {
         freight_id: freight_id,
-        payment_amount: remainingAmount.toString(),
+        payment_amount: remainingAmountCents.toString(), // Armazenar em centavos
         payment_method: payment_method,
         user_id: user.id,
         type: "freight_payment"
       }
     });
 
-    // Registrar o pagamento no banco
+    // Registrar o pagamento no banco (em centavos para consistência)
     const { data: paymentRecord, error: paymentError } = await supabaseClient
       .from("freight_payments")
       .insert({
         freight_id,
         payer_id: profile.id,
-        amount: remainingAmount,
+        receiver_id: freight.driver_id,
+        amount: remainingAmountCents, // Armazenar em centavos
         payment_method,
+        payment_type: "FREIGHT_PAYMENT",
         stripe_session_id: session.id,
-        status: "PENDING"
+        status: "PENDING" // Aguardar confirmação do webhook
       })
       .select()
       .single();
@@ -153,7 +156,7 @@ serve(async (req) => {
 
     logStep("Payment session created successfully", { 
       sessionId: session.id, 
-      amount: remainingAmount 
+      amount: remainingAmountReais 
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

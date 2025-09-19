@@ -8,7 +8,8 @@ const corsHeaders = {
 }
 
 const logStep = (step: string, details?: any) => {
-  console.log(`[Stripe Webhook] ${step}`, details ? JSON.stringify(details) : '')
+  const timestamp = new Date().toISOString()
+  console.log(`[${timestamp}] [Stripe Webhook] ${step}`, details ? JSON.stringify(details) : '')
 }
 
 serve(async (req) => {
@@ -80,12 +81,33 @@ serve(async (req) => {
           }
 
           logStep('Subscription updated successfully', { email: session.customer_email, tier })
-        } else if (session.metadata?.type === 'freight_advance') {
-          // Handle freight advance payment
+        } else if (session.metadata?.type === 'freight_advance_payment') {
+          // Handle freight advance payment - VALIDAÇÃO MELHORADA
           const freightId = session.metadata.freight_id
           const advanceId = session.metadata.advance_id
+          
+          logStep('Processing freight advance payment', { freightId, advanceId, sessionId: session.id })
 
-          // Update advance status
+          // Verificar se o adiantamento existe e está no status correto
+          const { data: advance, error: fetchError } = await supabase
+            .from('freight_advances')
+            .select('*, freights(producer_id)')
+            .eq('id', advanceId)
+            .eq('status', 'APPROVED')
+            .single()
+
+          if (fetchError || !advance) {
+            logStep('Freight advance not found or invalid status', { advanceId, error: fetchError })
+            throw new Error('Invalid advance or advance already processed')
+          }
+
+          // Verificar se o pagamento foi realmente bem-sucedido no Stripe
+          if (session.payment_status !== 'paid') {
+            logStep('Payment not completed in Stripe', { sessionId: session.id, paymentStatus: session.payment_status })
+            throw new Error('Payment not completed')
+          }
+
+          // Atualizar status do adiantamento para PAID
           const { error: advanceError } = await supabase
             .from('freight_advances')
             .update({ 
@@ -95,34 +117,79 @@ serve(async (req) => {
               updated_at: new Date().toISOString()
             })
             .eq('id', advanceId)
+            .eq('status', 'APPROVED') // Double-check status
 
           if (advanceError) {
             logStep('Error updating freight advance', { error: advanceError })
             throw advanceError
           }
 
-          logStep('Freight advance completed', { freightId, advanceId })
+          // Enviar notificação para o motorista
+          try {
+            await supabase.functions.invoke('send-notification', {
+              body: {
+                user_id: advance.driver_id,
+                title: 'Adiantamento Confirmado!',
+                message: `Seu adiantamento de R$ ${((advance.requested_amount || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} foi confirmado pelo Stripe e será processado em breve.`,
+                type: 'advance_paid',
+                data: {
+                  advance_id: advanceId,
+                  freight_id: freightId,
+                  amount: (advance.requested_amount || 0) / 100
+                }
+              }
+            });
+            logStep('Driver notification sent for advance payment')
+          } catch (notificationError) {
+            logStep('Warning: Could not send driver notification', { error: notificationError })
+          }
+
+          logStep('Freight advance payment confirmed', { freightId, advanceId })
+          
         } else if (session.metadata?.type === 'freight_payment') {
-          // Handle freight payment
+          // Handle freight payment - VALIDAÇÃO MELHORADA
           const freightId = session.metadata.freight_id
           const paymentId = session.metadata.payment_id
+          
+          logStep('Processing freight payment', { freightId, paymentId, sessionId: session.id })
 
-          // Update payment status
+          // Verificar se o pagamento existe e está no status correto
+          const { data: payment, error: fetchError } = await supabase
+            .from('freight_payments')
+            .select('*, freights(driver_id)')
+            .eq('id', paymentId)
+            .eq('status', 'PENDING')
+            .single()
+
+          if (fetchError || !payment) {
+            logStep('Freight payment not found or invalid status', { paymentId, error: fetchError })
+            throw new Error('Invalid payment or payment already processed')
+          }
+
+          // Verificar se o pagamento foi realmente bem-sucedido no Stripe
+          if (session.payment_status !== 'paid') {
+            logStep('Payment not completed in Stripe', { sessionId: session.id, paymentStatus: session.payment_status })
+            throw new Error('Payment not completed')
+          }
+
+          // Atualizar status do pagamento
           const { error: paymentError } = await supabase
             .from('freight_payments')
             .update({ 
               status: 'COMPLETED',
-              stripe_payment_id: session.payment_intent,
+              stripe_payment_intent_id: session.payment_intent,
+              completed_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             })
             .eq('id', paymentId)
+            .eq('status', 'PENDING') // Double-check status
 
           if (paymentError) {
             logStep('Error updating freight payment', { error: paymentError })
             throw paymentError
           }
 
-          // Update freight status to DELIVERED if payment is complete
+          // Atualizar status do frete para DELIVERED
           const { error: freightError } = await supabase
             .from('freights')
             .update({ 
@@ -136,7 +203,66 @@ serve(async (req) => {
             throw freightError
           }
 
-          logStep('Freight payment completed and freight marked as delivered', { freightId, paymentId })
+          // Enviar notificações
+          try {
+            // Notificação para o motorista
+            await supabase.functions.invoke('send-notification', {
+              body: {
+                user_id: payment.freights.driver_id,
+                title: 'Pagamento Confirmado!',
+                message: `O pagamento do frete de R$ ${(payment.amount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} foi confirmado. O valor será processado em breve.`,
+                type: 'payment_confirmed',
+                data: {
+                  payment_id: paymentId,
+                  freight_id: freightId,
+                  amount: payment.amount / 100
+                }
+              }
+            });
+            logStep('Driver notification sent for payment confirmation')
+          } catch (notificationError) {
+            logStep('Warning: Could not send driver notification', { error: notificationError })
+          }
+
+          logStep('Freight payment confirmed and freight delivered', { freightId, paymentId })
+        }
+        break
+      }
+
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        logStep('Payment intent succeeded', { paymentIntentId: paymentIntent.id, metadata: paymentIntent.metadata })
+        
+        // Log adicional para auditoria
+        if (paymentIntent.metadata?.freight_id) {
+          logStep('Payment intent success logged for freight', { 
+            freightId: paymentIntent.metadata.freight_id,
+            amount: paymentIntent.amount,
+            currency: paymentIntent.currency
+          })
+        }
+        break
+      }
+
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        logStep('Payment intent failed', { paymentIntentId: paymentIntent.id, metadata: paymentIntent.metadata })
+        
+        // Reverter status se necessário
+        if (paymentIntent.metadata?.advance_id) {
+          const { error } = await supabase
+            .from('freight_advances')
+            .update({ 
+              status: 'APPROVED', // Voltar para aprovado
+              updated_at: new Date().toISOString()
+            })
+            .eq('stripe_payment_intent_id', paymentIntent.id)
+            
+          if (error) {
+            logStep('Error reverting advance status', { error })
+          } else {
+            logStep('Advance status reverted due to payment failure')
+          }
         }
         break
       }

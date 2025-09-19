@@ -138,16 +138,17 @@ serve(async (req) => {
         freight_id: advance.freight_id,
         requested_amount: advance.requested_amount.toString(),
         producer_id: profile.id,
-        type: "freight_advance_payment"
+        type: "freight_advance_payment" // Importante: mudar o type para bater com o webhook
       }
     });
 
-    // Atualizar o adiantamento com o stripe_payment_intent_id
+    // Atualizar o adiantamento com o stripe_payment_intent_id mas manter status APPROVED
+    // Só mudará para PAID após confirmação do webhook
     const { error: updateError } = await supabaseClient
       .from("freight_advances")
       .update({
         stripe_payment_intent_id: session.id,
-        status: "APPROVED"
+        status: "APPROVED" // Manter como APPROVED até confirmação do Stripe
       })
       .eq("id", advance_id);
 

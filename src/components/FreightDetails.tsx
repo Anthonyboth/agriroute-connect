@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X } from 'lucide-react';
+import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw } from 'lucide-react';
 import { FreightChat } from './FreightChat';
 import { FreightStatusTracker } from './FreightStatusTracker';
 import { FreightRatingModal } from './FreightRatingModal';

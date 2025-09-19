@@ -74,3 +74,21 @@ verify_jwt = false
 
 [functions.send-notification]
 verify_jwt = false
+
+[functions.verify-payment-status]
+verify_jwt = true
+
+[functions.get-driver-payout-requests]
+verify_jwt = true
+
+[functions.request-driver-payout]
+verify_jwt = true
+
+[functions.send-whatsapp]
+verify_jwt = false
+
+[functions.send-email-notification]
+verify_jwt = false
+
+[functions.tracking-service]
+verify_jwt = false
