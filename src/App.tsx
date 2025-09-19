@@ -29,8 +29,9 @@ import Plans from "./pages/Plans";
 import SystemTest from "./pages/SystemTest";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancel from "./pages/PaymentCancel";
+import React, { lazy, Suspense } from 'react';
 import { useAuth } from "./hooks/useAuth";
-import { lazy, Suspense } from "react";
+import { ComponentLoader } from '@/components/LazyComponents';
 const PressPage = lazy(() => import("./pages/Press"));
 
 const queryClient = new QueryClient();
@@ -44,11 +45,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   const { isAuthenticated, isApproved, isAdmin, loading, profile } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <ComponentLoader />;
   }
 
   if (requiresAuth && !isAuthenticated) {
@@ -96,22 +93,14 @@ const RedirectIfAuthed = () => {
   const { isAuthenticated, profile, loading } = useAuth();
   
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <ComponentLoader />;
   }
   
   if (!isAuthenticated) return <Auth />;
   
   // Wait for profile to be loaded before redirecting
   if (!profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <ComponentLoader />;
   }
   
   let to = "/";
@@ -204,7 +193,7 @@ const App = () => (
             <Route path="/termos" element={<Terms />} />
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/status" element={<Status />} />
-            <Route path="/imprensa" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}><PressPage /></Suspense>} />
+            <Route path="/imprensa" element={<Suspense fallback={<ComponentLoader />}><PressPage /></Suspense>} />
             <Route path="/carreiras" element={<Careers />} />
             <Route path="/ajuda" element={<Help />} />
             <Route path="/system-test" element={<SystemTest />} />
