@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bell, Check, CheckCheck, Info, AlertTriangle, TrendingUp, Truck } from 'lucide-react';
+import { Bell, Check, CheckCheck, Info, AlertTriangle, TrendingUp, Truck, DollarSign, CreditCard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -85,6 +85,29 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   };
 
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'advance_request':
+        return <DollarSign className="h-5 w-5 text-blue-600" />;
+      case 'advance_approved':
+        return <CheckCheck className="h-5 w-5 text-green-600" />;
+      case 'freight_created':
+        return <Truck className="h-5 w-5 text-orange-600" />;
+      case 'freight_accepted':
+        return <Check className="h-5 w-5 text-green-600" />;
+      case 'payment_completed':
+        return <CreditCard className="h-5 w-5 text-emerald-600" />;
+      case 'warning':
+        return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
+      case 'success':
+        return <Check className="h-5 w-5 text-green-600" />;
+      case 'error':
+        return <AlertTriangle className="h-5 w-5 text-red-600" />;
+      default:
+        return <Info className="h-5 w-5 text-blue-600" />;
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -141,8 +164,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className="mt-1 text-primary">
-                        <Info className="h-5 w-5" />
+                      <div className="mt-1">
+                        {getNotificationIcon(notification.type)}
                       </div>
                       
                       <div className="flex-1 min-w-0">

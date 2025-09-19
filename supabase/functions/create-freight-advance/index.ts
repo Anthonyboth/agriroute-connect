@@ -45,7 +45,7 @@ serve(async (req) => {
     // Verificar se o frete existe e pertence ao usuário
     const { data: freight, error: freightError } = await supabaseClient
       .from("freights")
-      .select("id, price, producer_id, driver_id")
+      .select("id, price, producer_id, driver_id, cargo_type")
       .eq("id", freight_id)
       .single();
 
@@ -101,6 +101,27 @@ serve(async (req) => {
       amount: calculatedAmount,
       amountInReais: calculatedAmount / 100
     });
+
+    // Enviar notificação para o produtor
+    try {
+      await supabaseClient.functions.invoke('send-notification', {
+        body: {
+          user_id: freight.producer_id,
+          title: 'Nova Solicitação de Adiantamento',
+          message: `O motorista solicitou um adiantamento de R$ ${(calculatedAmount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} para o frete de ${freight.cargo_type}`,
+          type: 'advance_request',
+          data: {
+            advance_id: advanceRecord.id,
+            freight_id: freight_id,
+            amount: calculatedAmount
+          }
+        }
+      });
+      logStep("Notification sent to producer successfully");
+    } catch (notificationError) {
+      logStep("Warning: Could not send notification to producer", { error: notificationError });
+      // Não falhar se a notificação não for enviada
+    }
 
     return new Response(JSON.stringify({ 
       success: true,

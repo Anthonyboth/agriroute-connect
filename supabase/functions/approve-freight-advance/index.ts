@@ -144,6 +144,27 @@ serve(async (req) => {
       amountInReais: advance.requested_amount / 100
     });
 
+    // Enviar notificação para o motorista sobre aprovação do adiantamento
+    try {
+      await supabaseClient.functions.invoke('send-notification', {
+        body: {
+          user_id: advance.driver_id,
+          title: 'Adiantamento Aprovado',
+          message: `Seu adiantamento de R$ ${(advance.requested_amount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} foi aprovado! Complete o pagamento para receber o valor.`,
+          type: 'advance_approved',
+          data: {
+            advance_id: advance_id,
+            amount: advance.requested_amount,
+            checkout_url: session.url
+          }
+        }
+      });
+      logStep("Notification sent to driver successfully");
+    } catch (notificationError) {
+      logStep("Warning: Could not send notification to driver", { error: notificationError });
+      // Não falhar se a notificação não for enviada
+    }
+
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

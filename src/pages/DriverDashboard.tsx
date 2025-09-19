@@ -22,6 +22,7 @@ import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
 import FreightWithdrawalModal from '@/components/FreightWithdrawalModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -68,6 +69,7 @@ interface Proposal {
 
 const DriverDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
@@ -624,6 +626,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         onMenuClick={handleMenuClick}
         onLogout={handleLogout}
         userProfile={profile}
+        notifications={unreadCount}
       />
 
       {/* Hero Section Compacto */}

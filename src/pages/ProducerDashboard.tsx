@@ -19,6 +19,7 @@ import { FreightDetails } from '@/components/FreightDetails';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useNotifications } from '@/hooks/useNotifications';
 import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
 import { toast } from 'sonner';
@@ -28,6 +29,7 @@ import heroLogistics from '@/assets/hero-logistics.jpg';
 
 const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [freights, setFreights] = useState<any[]>([]);
   const [proposals, setProposals] = useState<any[]>([]);
@@ -248,6 +250,7 @@ const ProducerDashboard = () => {
         onLogout={handleLogout}
         onMenuClick={() => {}}
         userProfile={profile}
+        notifications={unreadCount}
       />
       
       {/* Hero Section Compacta */}
