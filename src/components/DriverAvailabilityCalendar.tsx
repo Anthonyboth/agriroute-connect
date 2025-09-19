@@ -335,6 +335,68 @@ export const DriverAvailabilityCalendar: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Lista de Disponibilidades Marcadas */}
+      {availabilities.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Minhas Disponibilidades</CardTitle>
+            <CardDescription>
+              Datas que você marcou como disponível
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {availabilities.map((availability) => (
+                <div 
+                  key={availability.id}
+                  className="p-4 border rounded-lg space-y-2 hover:bg-secondary/30 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">
+                      {format(new Date(availability.available_date), 'PPP', { locale: ptBR })}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openEditModal(availability)}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteAvailability(availability.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <MapPin className="h-3 w-3" />
+                    <span>{availability.city}, {availability.state}</span>
+                  </div>
+                  
+                  {availability.notes && (
+                    <p className="text-sm text-muted-foreground">
+                      {availability.notes}
+                    </p>
+                  )}
+                  
+                  {availability.available_until_date && (
+                    <div className="text-xs text-muted-foreground">
+                      Até: {format(new Date(availability.available_until_date), 'PPP', { locale: ptBR })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Modal de Disponibilidade */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent>
