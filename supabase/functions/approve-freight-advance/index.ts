@@ -168,7 +168,7 @@ serve(async (req) => {
         body: {
           user_id: advance.driver_id,
           title: 'Adiantamento Aprovado',
-          message: `Seu adiantamento de R$ ${(advance.requested_amount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} foi aprovado! Complete o pagamento para receber o valor.`,
+          message: `Seu adiantamento de R$ ${(advance.requested_amount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} foi aprovado! O valor será creditado em sua conta em breve.`,
           type: 'advance_approved',
           data: {
             advance_id: advance_id,
