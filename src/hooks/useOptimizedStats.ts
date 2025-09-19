@@ -18,7 +18,7 @@ const FALLBACK_STATS: OptimizedStats = {
   averageRating: 4.8,
   activeDrivers: 892,
   activeProducers: 355,
-  completedFreights: 2941,
+  completedFreights: 2900,
   loading: false,
   error: null
 };

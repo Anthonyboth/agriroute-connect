@@ -71,8 +71,8 @@ const Landing = () => {
         setRealStats({
           totalProducers: Number(row.produtores) || 355,
           totalDrivers: Number(row.motoristas) || 892,
-          totalWeight: Math.round(Number(row.peso_total) || 2941000),
-          completedFreights: Number(row.fretes_entregues) || 2941,
+          totalWeight: Math.round(Number(row.peso_total) || 2900000),
+          completedFreights: Number(row.fretes_entregues) || 2900,
           totalUsers: Number(row.total_usuarios) || 1247,
           averageRating: Math.round(((Number(row.avaliacao_media) || 4.8) * 10)) / 10,
         });
@@ -81,8 +81,8 @@ const Landing = () => {
         setRealStats({
           totalProducers: 355,
           totalDrivers: 892,
-          totalWeight: 2941000,
-          completedFreights: 2941,
+          totalWeight: 2900000,
+          completedFreights: 2900,
           totalUsers: 1247,
           averageRating: 4.8,
         });
@@ -92,8 +92,8 @@ const Landing = () => {
       setRealStats({
         totalProducers: 355,
         totalDrivers: 892,
-        totalWeight: 2941000,
-        completedFreights: 2941,
+        totalWeight: 2900000,
+        completedFreights: 2900,
         totalUsers: 1247,
         averageRating: 4.8,
       });
