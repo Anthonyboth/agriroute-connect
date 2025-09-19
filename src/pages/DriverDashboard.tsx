@@ -879,9 +879,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             {ongoingFreights.length > 0 ? (
               <div className="space-y-4">
                 {ongoingFreights.map((freight) => (
-                  <Card key={freight.id} className="shadow-sm border border-border/50">
-                    <CardHeader className="pb-3 px-4 pt-4">
-                      <div className="flex items-center justify-between">
+                  <Card key={freight.id} className="shadow-sm border border-border/50 hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      {/* Header com tipo de carga e status */}
+                      <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
                           <Package className="h-4 w-4 text-primary" />
                           <h3 className="font-medium text-foreground text-sm">
@@ -892,125 +893,69 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                           {freight.status === 'ACCEPTED' ? 'Aceito' : 'Ativo'}
                         </Badge>
                       </div>
-                    </CardHeader>
 
-                    <CardContent className="space-y-3 px-4 pb-4">
-                      {/* Informações Compactas */}
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="flex items-center space-x-1 text-muted-foreground bg-muted/30 p-2 rounded">
-                          <Package className="h-3 w-3" />
-                          <span>{((freight.weight || 0) / 1000).toFixed(1)}t</span>
+                      {/* Origem e Destino simplificados - apenas cidades */}
+                      <div className="space-y-2 text-sm mb-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">De:</span>
+                          <span className="font-medium truncate max-w-[200px]">
+                            {freight.origin_address.split(',').slice(-2).join(',').trim()}
+                          </span>
                         </div>
-                        <div className="flex items-center space-x-1 text-muted-foreground bg-muted/30 p-2 rounded">
-                          <MapPin className="h-3 w-3" />
-                          <span>{freight.distance_km} km</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Para:</span>
+                          <span className="font-medium truncate max-w-[200px]">
+                            {freight.destination_address.split(',').slice(-2).join(',').trim()}
+                          </span>
                         </div>
                       </div>
 
-                      {/* Origem e Destino Compactos */}
-                      <div className="space-y-2 text-xs">
-                        <div className="flex items-start space-x-2">
-                          <MapPin className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground">De:</p>
-                            <p className="text-muted-foreground truncate">{freight.origin_address}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start space-x-2">
-                          <MapPin className="h-3 w-3 text-accent mt-0.5 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground">Para:</p>
-                            <p className="text-muted-foreground truncate">{freight.destination_address}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Datas Compactas */}
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="p-2 bg-gradient-to-br from-secondary/20 to-secondary/10 rounded border border-border/30">
-                          <div className="flex items-center space-x-1 text-muted-foreground mb-1">
-                            <Calendar className="h-3 w-3" />
-                            <span>Coleta</span>
-                          </div>
-                          <p className="font-medium text-foreground">
-                            {new Date(freight.pickup_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                          </p>
-                        </div>
-                        <div className="p-2 bg-gradient-to-br from-accent/15 to-accent/5 rounded border border-border/30">
-                          <div className="flex items-center space-x-1 text-muted-foreground mb-1">
-                            <Calendar className="h-3 w-3" />
-                            <span>Entrega</span>
-                          </div>
-                          <p className="font-medium text-foreground">
-                            {new Date(freight.delivery_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Valor e Status */}
-                      <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-3 rounded-lg border border-border/40">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-xs text-muted-foreground">Valor:</span>
-                          <span className="text-sm font-bold text-primary">
+                      {/* Valor em destaque */}
+                      <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-3 rounded-lg border border-border/20 mb-3">
+                        <div className="text-center">
+                          <span className="text-lg font-bold text-primary">
                             R$ {freight.price?.toLocaleString('pt-BR')}
                           </span>
                         </div>
-                        <div className="text-xs text-muted-foreground text-center">
-                          Min. ANTT: R$ {freight.minimum_antt_price?.toLocaleString('pt-BR')}
+                      </div>
+
+                      {/* Botões de ação simplificados */}
+                      <div className="flex gap-2">
+                        {(freight.status === 'ACCEPTED' || freight.status === 'LOADING' || freight.status === 'IN_TRANSIT') && (
+                          <Button 
+                            size="sm" 
+                            className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => {
+                              setInitialCheckinType(null);
+                              setSelectedFreightForCheckin(freight.id);
+                              setShowCheckinModal(true);
+                            }}
+                          >
+                            Check-in
+                          </Button>
+                        )}
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="flex-1 h-8 text-xs border-primary/30 hover:bg-primary/5"
+                          onClick={() => {
+                            setSelectedFreightId(freight.id);
+                            setShowDetails(true);
+                          }}
+                        >
+                          Ver Detalhes
+                        </Button>
+                      </div>
+
+                      {/* Check-ins counter - apenas contador simples */}
+                      {freightCheckins[freight.id] > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border/30">
+                          <div className="flex items-center justify-center text-xs text-muted-foreground">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            {freightCheckins[freight.id]} check-in{freightCheckins[freight.id] !== 1 ? 's' : ''} realizado{freightCheckins[freight.id] !== 1 ? 's' : ''}
+                          </div>
                         </div>
-                      </div>
-
-{/* Botões Compactos */}
-<div className="space-y-2">
-  <div className="flex gap-2">
-    {/* Botão Cancelar Frete - Só aparece se não há checkins */}
-    {(freight.status === 'ACCEPTED') && (freightCheckins[freight.id] === 0 || freightCheckins[freight.id] === undefined) && (
-      <Button 
-        size="sm" 
-        variant="destructive"
-        className="flex-1 h-8 text-xs"
-        onClick={() => handleFreightCancel(freight.id)}
-      >
-        Cancelar Frete
-      </Button>
-    )}
-    
-    {(freight.status === 'ACCEPTED' || freight.status === 'LOADING' || freight.status === 'IN_TRANSIT') && (
-      <Button 
-        size="sm" 
-        className="flex-1 h-8 text-xs bg-primary hover:bg-primary/90"
-        onClick={() => {
-          setInitialCheckinType(null);
-          setSelectedFreightForCheckin(freight.id);
-          setShowCheckinModal(true);
-        }}
-      >
-        Check-in
-      </Button>
-    )}
-    <Button 
-      size="sm" 
-      variant="outline"
-      className="flex-1 h-8 text-xs border-primary/30 hover:bg-primary/5"
-      onClick={() => {
-        setSelectedFreightId(freight.id);
-        setShowDetails(true);
-      }}
-    >
-      Detalhes
-    </Button>
-  </div>
-</div>
-
-                      {/* Check-ins Compactos */}
-                      <div className="border-t border-border/30 pt-2">
-                        <FreightCheckinsViewer 
-                          freightId={freight.id}
-                          currentUserProfile={profile}
-                          onRefresh={fetchOngoingFreights}
-                        />
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
