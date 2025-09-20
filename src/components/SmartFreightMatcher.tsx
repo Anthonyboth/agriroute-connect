@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getCargoTypeLabel } from '@/lib/cargo-types';
+import { getCargoTypeLabel, CARGO_TYPES, CARGO_CATEGORIES } from '@/lib/cargo-types';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FreightCard } from '@/components/FreightCard';
-import { Brain, Filter, RefreshCw, Search, Zap } from 'lucide-react';
+import { Brain, Filter, RefreshCw, Search, Zap, Package, Truck, Wrench } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -41,8 +41,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [urgencyFilter, setUrgencyFilter] = useState('all');
-  const [serviceTypeFilter, setServiceTypeFilter] = useState('all');
 
   useEffect(() => {
     if (profile?.id) {
@@ -115,30 +113,59 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     }
   };
 
-  // Filtrar fretes baseado nos critérios
+  // Filtrar fretes baseado apenas na busca (compatibilidade já é filtrada automaticamente pelo backend)
   const filteredFreights = compatibleFreights.filter(freight => {
+    if (!searchTerm) return true;
+    
     const matchesSearch = 
       freight.cargo_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
       freight.origin_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
       freight.destination_address.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesUrgency = urgencyFilter === 'all' || freight.urgency === urgencyFilter;
-    const matchesServiceType = serviceTypeFilter === 'all' || freight.service_type === serviceTypeFilter;
-
-    return matchesSearch && matchesUrgency && matchesServiceType;
+    return matchesSearch;
   });
 
   const getServiceTypeBadge = (serviceType: string) => {
     switch (serviceType) {
       case 'CARGA':
-        return <Badge className="bg-primary/10 text-primary border-primary/20">Rural</Badge>;
+        return (
+          <Badge className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
+            <Package className="h-3 w-3" />
+            Rural
+          </Badge>
+        );
       case 'MUDANCA':
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Mudança</Badge>;
+        return (
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200 flex items-center gap-1">
+            <Truck className="h-3 w-3" />
+            Mudança
+          </Badge>
+        );
       case 'GUINCHO':
-        return <Badge className="bg-orange-100 text-orange-800 border-orange-200">Guincho</Badge>;
+        return (
+          <Badge className="bg-orange-100 text-orange-800 border-orange-200 flex items-center gap-1">
+            <Wrench className="h-3 w-3" />
+            Guincho
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">{serviceType}</Badge>;
     }
+  };
+
+  // Agrupar tipos de carga por categoria para melhor visualização
+  const getCargosByServiceType = (serviceTypes: string[]) => {
+    if (!serviceTypes || serviceTypes.length === 0) return [];
+    
+    const relevantCargos = CARGO_TYPES.filter(cargo => {
+      if (serviceTypes.includes('CARGA') && cargo.category === 'rural') return true;
+      if (serviceTypes.includes('CARGA') && cargo.category === 'carga_viva') return true;
+      if (serviceTypes.includes('MUDANCA') && cargo.category === 'outros') return true;
+      if (serviceTypes.includes('GUINCHO') && cargo.category === 'outros') return true;
+      return false;
+    });
+    
+    return relevantCargos;
   };
 
   const getUrgencyColor = (urgency: string) => {
@@ -176,51 +203,39 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           {profile?.service_types && (
             <div className="bg-secondary/30 p-4 rounded-lg mb-6">
               <h4 className="font-semibold mb-2">Seus Tipos de Serviço Ativos:</h4>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mb-4">
                 {profile.service_types.map((serviceType: string) => (
                   <div key={serviceType}>
                     {getServiceTypeBadge(serviceType)}
                   </div>
                 ))}
               </div>
+              
+              {/* Tipos de Produtos Compatíveis */}
+              <div className="border-t pt-4">
+                <h5 className="font-medium mb-3 text-sm text-muted-foreground">Tipos de Produtos que Você Transporta:</h5>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {getCargosByServiceType(profile.service_types).map((cargo) => (
+                    <div key={cargo.value} className="text-xs p-2 bg-background rounded border">
+                      {cargo.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Filtros */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="relative">
+          {/* Barra de Busca Simplificada */}
+          <div className="flex gap-4 mb-6">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por origem, destino ou carga..."
+                placeholder="Buscar por origem, destino ou tipo de carga..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
-
-            <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Urgência" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as urgências</SelectItem>
-                <SelectItem value="HIGH">Alta</SelectItem>
-                <SelectItem value="MEDIUM">Média</SelectItem>
-                <SelectItem value="LOW">Baixa</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={serviceTypeFilter} onValueChange={setServiceTypeFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Tipo de Serviço" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="CARGA">Rural</SelectItem>
-                <SelectItem value="MUDANCA">Frete Urbano</SelectItem>
-                <SelectItem value="GUINCHO">Guincho</SelectItem>
-              </SelectContent>
-            </Select>
 
             <Button
               variant="outline"
@@ -234,7 +249,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           </div>
 
           {/* Estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="text-center p-4 bg-primary/5 rounded-lg">
               <div className="text-2xl font-bold text-primary">{filteredFreights.length}</div>
               <div className="text-sm text-muted-foreground">Fretes Compatíveis</div>
@@ -242,6 +257,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             <div className="text-center p-4 bg-secondary/30 rounded-lg">
               <div className="text-2xl font-bold">{filteredFreights.filter(f => f.urgency === 'HIGH').length}</div>
               <div className="text-sm text-muted-foreground">Alta Urgência</div>
+            </div>
+            <div className="text-center p-4 bg-accent/10 rounded-lg">
+              <div className="text-2xl font-bold text-accent-foreground">
+                {profile?.service_types ? getCargosByServiceType(profile.service_types).length : 0}
+              </div>
+              <div className="text-sm text-muted-foreground">Tipos de Carga</div>
             </div>
           </div>
         </CardContent>
