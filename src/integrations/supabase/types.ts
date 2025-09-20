@@ -1645,6 +1645,36 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_notification_limits: {
+        Row: {
+          created_at: string | null
+          id: string
+          max_notifications_per_hour: number | null
+          notification_count: number | null
+          provider_id: string
+          updated_at: string | null
+          window_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          max_notifications_per_hour?: number | null
+          notification_count?: number | null
+          provider_id: string
+          updated_at?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          max_notifications_per_hour?: number | null
+          notification_count?: number | null
+          provider_id?: string
+          updated_at?: string | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       ratings: {
         Row: {
           comment: string | null
@@ -1779,6 +1809,112 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      service_matches: {
+        Row: {
+          created_at: string | null
+          distance_m: number | null
+          id: string
+          match_score: number | null
+          match_type: string
+          notified_at: string | null
+          provider_area_id: string
+          provider_id: string
+          service_compatibility_score: number | null
+          service_request_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          distance_m?: number | null
+          id?: string
+          match_score?: number | null
+          match_type: string
+          notified_at?: string | null
+          provider_area_id: string
+          provider_id: string
+          service_compatibility_score?: number | null
+          service_request_id: string
+        }
+        Update: {
+          created_at?: string | null
+          distance_m?: number | null
+          id?: string
+          match_score?: number | null
+          match_type?: string
+          notified_at?: string | null
+          provider_area_id?: string
+          provider_id?: string
+          service_compatibility_score?: number | null
+          service_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_matches_provider_area_id_fkey"
+            columns: ["provider_area_id"]
+            isOneToOne: false
+            referencedRelation: "service_provider_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_provider_areas: {
+        Row: {
+          city_name: string
+          created_at: string | null
+          geom: unknown | null
+          id: string
+          is_active: boolean | null
+          lat: number
+          lng: number
+          provider_id: string
+          radius_km: number
+          radius_m: number | null
+          service_area: unknown | null
+          service_types: string[] | null
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city_name: string
+          created_at?: string | null
+          geom?: unknown | null
+          id?: string
+          is_active?: boolean | null
+          lat: number
+          lng: number
+          provider_id: string
+          radius_km?: number
+          radius_m?: number | null
+          service_area?: unknown | null
+          service_types?: string[] | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city_name?: string
+          created_at?: string | null
+          geom?: unknown | null
+          id?: string
+          is_active?: boolean | null
+          lat?: number
+          lng?: number
+          provider_id?: string
+          radius_km?: number
+          radius_m?: number | null
+          service_area?: unknown | null
+          service_types?: string[] | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_service_provider_areas_provider"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_providers: {
         Row: {
@@ -2859,6 +2995,10 @@ export type Database = {
         Args: { p_driver_id: string }
         Returns: boolean
       }
+      can_notify_provider: {
+        Args: { p_provider_id: string }
+        Returns: boolean
+      }
       check_expired_documents: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -2934,6 +3074,22 @@ export type Database = {
           match_type: string
         }[]
       }
+      execute_service_matching: {
+        Args: {
+          p_request_lat: number
+          p_request_lng: number
+          p_service_request_id: string
+          p_service_type?: string
+        }
+        Returns: {
+          distance_m: number
+          match_score: number
+          match_type: string
+          provider_area_id: string
+          provider_id: string
+          service_compatibility_score: number
+        }[]
+      }
       find_drivers_by_origin: {
         Args: { freight_uuid: string }
         Returns: {
@@ -2952,6 +3108,34 @@ export type Database = {
           driver_area_id: string
           driver_id: string
           radius_km: number
+        }[]
+      }
+      find_providers_by_location: {
+        Args: { request_id: string; request_lat: number; request_lng: number }
+        Returns: {
+          city_name: string
+          distance_m: number
+          provider_area_id: string
+          provider_id: string
+          radius_km: number
+          service_types: string[]
+        }[]
+      }
+      find_providers_by_service_and_location: {
+        Args: {
+          request_id: string
+          request_lat: number
+          request_lng: number
+          required_service_type: string
+        }
+        Returns: {
+          city_name: string
+          distance_m: number
+          provider_area_id: string
+          provider_id: string
+          radius_km: number
+          service_match: boolean
+          service_types: string[]
         }[]
       }
       generate_admin_report: {

@@ -29,12 +29,14 @@ import {
   Key,
   Droplets,
   Paintbrush2,
-  Snowflake
+  Snowflake,
+  Target
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
+import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
 
 interface ServiceRequest {
   id: string;
@@ -81,11 +83,12 @@ export const ServiceProviderDashboard: React.FC = () => {
     total_earnings: 0
   });
   const [loading, setLoading] = useState(true);
-   const [activeTab, setActiveTab] = useState('pending');
-   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
-   const [showRegionModal, setShowRegionModal] = useState(false);
-   const [showSpecialtiesModal, setShowSpecialtiesModal] = useState(false);
-   const [showAIServicesModal, setShowAIServicesModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('pending');
+  const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
+  const [showRegionModal, setShowRegionModal] = useState(false);
+  const [showSpecialtiesModal, setShowSpecialtiesModal] = useState(false);
+  const [showAIServicesModal, setShowAIServicesModal] = useState(false);
+  const [showSpatialAreasModal, setShowSpatialAreasModal] = useState(false);
 
   const getProviderProfileId = () => {
     if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
@@ -437,6 +440,14 @@ export const ServiceProviderDashboard: React.FC = () => {
             <Button 
               variant="secondary" 
               className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+              onClick={() => setShowSpatialAreasModal(true)}
+            >
+              <Target className="h-4 w-4 mr-2" />
+              Áreas Inteligentes
+            </Button>
+            <Button 
+              variant="secondary" 
+              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
               onClick={() => setShowRegionModal(true)}
             >
               <MapPin className="h-4 w-4 mr-2" />
@@ -448,7 +459,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               onClick={() => setShowSpecialtiesModal(true)}
             >
               <Wrench className="h-4 w-4 mr-2" />
-              Configurar
+              Especialidades
             </Button>
           </div>
         </div>
@@ -805,6 +816,33 @@ export const ServiceProviderDashboard: React.FC = () => {
             <div className="flex justify-end">
               <Button onClick={() => setShowAIServicesModal(false)}>
                 Entendi
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog.Root>
+
+      {/* Modal Áreas Espaciais Inteligentes */}
+      <Dialog.Root open={showSpatialAreasModal} onOpenChange={setShowSpatialAreasModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Áreas de Atendimento Inteligentes
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">
+                <Target className="h-4 w-4 inline mr-2" />
+                Sistema avançado com matching espacial por GPS. Configure múltiplas bases operacionais 
+                com raios específicos para receber apenas solicitações relevantes da sua região.
+              </p>
+            </div>
+            <ServiceProviderAreasManager />
+            <div className="flex justify-end pt-4">
+              <Button onClick={() => setShowSpatialAreasModal(false)}>
+                Fechar
               </Button>
             </div>
           </div>
