@@ -237,7 +237,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           </div>
 
           {/* Estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="text-center p-4 bg-primary/5 rounded-lg">
               <div className="text-2xl font-bold text-primary">{filteredFreights.length}</div>
               <div className="text-sm text-muted-foreground">Fretes Compatíveis</div>
@@ -245,12 +245,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             <div className="text-center p-4 bg-secondary/30 rounded-lg">
               <div className="text-2xl font-bold">{filteredFreights.filter(f => f.urgency === 'HIGH').length}</div>
               <div className="text-sm text-muted-foreground">Alta Urgência</div>
-            </div>
-            <div className="text-center p-4 bg-accent/10 rounded-lg">
-              <div className="text-2xl font-bold text-accent-foreground">
-                {profile?.service_types ? getCargosByServiceType(profile.service_types).length : 0}
-              </div>
-              <div className="text-sm text-muted-foreground">Tipos de Carga</div>
             </div>
           </div>
         </CardContent>
