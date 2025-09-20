@@ -289,65 +289,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               <div className="text-sm text-muted-foreground">Alta Urgência</div>
             </div>
           </div>
-
-          {/* Lista de Tipos de Carga */}
-          <div className="mb-6">
-            <h4 className="font-semibold mb-4 text-center">Tipos de Carga Disponíveis</h4>
-            
-            {/* Carga Rural */}
-            <div className="mb-4">
-              <h5 className="text-sm font-medium text-primary mb-2 flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                Carga Rural
-              </h5>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {getCargoTypesByCategory('rural').map((cargo) => (
-                  <div
-                    key={cargo.value}
-                    className="text-xs bg-primary/5 text-primary px-2 py-1 rounded border border-primary/20 text-center"
-                  >
-                    {cargo.label}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Carga Viva */}
-            <div className="mb-4">
-              <h5 className="text-sm font-medium text-blue-600 mb-2 flex items-center gap-2">
-                <Truck className="h-4 w-4" />
-                Carga Viva
-              </h5>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {getCargoTypesByCategory('carga_viva').map((cargo) => (
-                  <div
-                    key={cargo.value}
-                    className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200 text-center"
-                  >
-                    {cargo.label}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Outros */}
-            <div className="mb-4">
-              <h5 className="text-sm font-medium text-gray-600 mb-2 flex items-center gap-2">
-                <Wrench className="h-4 w-4" />
-                Outros
-              </h5>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {getCargoTypesByCategory('outros').map((cargo) => (
-                  <div
-                    key={cargo.value}
-                    className="text-xs bg-gray-50 text-gray-700 px-2 py-1 rounded border border-gray-200 text-center"
-                  >
-                    {cargo.label}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
