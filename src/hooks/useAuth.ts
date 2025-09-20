@@ -157,16 +157,41 @@ export const useAuth = () => {
       console.log('Starting logout process...');
       // Limpar perfil salvo no logout
       localStorage.removeItem('current_profile_id');
-      console.log('Calling supabase.auth.signOut()...');
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Logout error:', error);
-        throw error;
+
+      // Verificar sessão atual antes de deslogar
+      const { data } = await supabase.auth.getSession();
+      const hasSession = !!data.session;
+      console.log('Current session exists:', hasSession);
+
+      if (!hasSession) {
+        console.log('No active session. Clearing local auth state.');
+        await supabase.auth.signOut({ scope: 'local' });
+      } else {
+        console.log('Signing out globally...');
+        const { error } = await supabase.auth.signOut({ scope: 'global' });
+        if (error) {
+          console.error('Logout error (global). Falling back to local signout:', error);
+          await supabase.auth.signOut({ scope: 'local' });
+        }
       }
+
+      // Garantir limpeza do estado local
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      setProfiles([]);
       console.log('Logout successful');
     } catch (error) {
       console.error('Error during logout:', error);
-      throw error;
+      // Último recurso: limpar localmente para não travar o usuário
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {}
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      setProfiles([]);
+      // Não relança erro para evitar bloquear o fluxo do usuário
     }
   };
 
