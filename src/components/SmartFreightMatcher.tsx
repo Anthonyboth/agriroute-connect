@@ -41,7 +41,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCargoType, setSelectedCargoType] = useState<string>('');
+  const [selectedCargoType, setSelectedCargoType] = useState<string>('all');
 
   useEffect(() => {
     if (profile?.id) {
@@ -121,7 +121,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       freight.origin_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
       freight.destination_address.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesCargoType = !selectedCargoType || freight.cargo_type === selectedCargoType;
+    const matchesCargoType = selectedCargoType === 'all' || freight.cargo_type === selectedCargoType;
 
     return matchesSearch && matchesCargoType;
   });
@@ -245,7 +245,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                   <SelectValue placeholder="Selecione o tipo de carga" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os tipos</SelectItem>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
                   
                   <SelectGroup>
                     <SelectLabel className="text-primary font-medium">Carga Rural</SelectLabel>
