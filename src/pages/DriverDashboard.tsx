@@ -149,7 +149,27 @@ const [showRegionModal, setShowRegionModal] = useState(false);
 
       if (error) throw error;
 
-      const freights = (data?.freights as any[]) || [];
+      const matches = (data?.matches as any[]) || [];
+      const distanceByFreight: Record<string, number> = {};
+      for (const m of matches) {
+        if (m.freight_id && typeof m.distance_m === 'number') {
+          distanceByFreight[m.freight_id] = m.distance_m;
+        }
+      }
+
+      const freights = ((data?.freights as any[]) || []).map((f: any) => ({
+        ...f,
+        distance_km: distanceByFreight[f.id]
+          ? Math.round(distanceByFreight[f.id] / 10) / 100
+          : undefined,
+      }));
+
+      freights.sort((a: any, b: any) => {
+        const da = distanceByFreight[a.id] ?? Number.POSITIVE_INFINITY;
+        const db = distanceByFreight[b.id] ?? Number.POSITIVE_INFINITY;
+        return da - db;
+      });
+
       setAvailableFreights(freights);
     } catch (error) {
       console.error('Error fetching available freights (smart match):', error);
@@ -163,26 +183,28 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
     try {
-      const { data, error } = await supabase
-        .from('freight_proposals')
-        .select(`
-          *,
-          freight:freights(
-            *,
-            producer:profiles!producer_id(
-              id,
-              full_name,
-              contact_phone,
-              role
-            )
-          )
-        `)
-        .eq('driver_id', profile.id)
-        .order('created_at', { ascending: false })
-        .limit(100); // Limitar consulta
-
+      const { data, error } = await (supabase as any).functions.invoke('driver-proposals');
       if (error) throw error;
-      setMyProposals(data || []);
+
+      const proposals = (data?.proposals as any[]) || [];
+      const ongoing = (data?.ongoingFreights as any[]) || [];
+      setMyProposals(proposals);
+      setOngoingFreights(ongoing);
+
+      if (ongoing.length > 0) {
+        ongoing.forEach(async (freight: any) => {
+          try {
+            const { count } = await (supabase as any)
+              .from('freight_checkins')
+              .select('*', { count: 'exact', head: true })
+              .eq('freight_id', freight.id)
+              .eq('user_id', profile.id);
+            setFreightCheckins(prev => ({ ...prev, [freight.id]: count || 0 }));
+          } catch (err) {
+            console.error('Error checking freight checkins for freight:', freight.id, err);
+          }
+        });
+      }
     } catch (error) {
       console.error('Error fetching proposals:', error);
       toast.error('Erro ao carregar suas propostas');
@@ -195,47 +217,29 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
     try {
-      // Buscar propostas aceitas do motorista
-      const { data: acceptedProposals, error: proposalsError } = await supabase
-        .from('freight_proposals')
-        .select('freight_id')
-        .eq('driver_id', profile.id)
-        .eq('status', 'ACCEPTED');
-
-      if (proposalsError) throw proposalsError;
-
-      if (!acceptedProposals || acceptedProposals.length === 0) {
-        setOngoingFreights([]);
-        setFreightCheckins({});
-        return;
-      }
-
-      const freightIds = acceptedProposals.map(p => p.freight_id);
-
-      // Buscar os fretes correspondentes
+      // Buscar fretes vinculados ao motorista diretamente (evita políticas com recursão)
       const { data, error } = await supabase
         .from('freights')
         .select('*')
-        .in('id', freightIds)
-        .order('updated_at', { ascending: false });
+        .eq('driver_id', profile.id)
+        .order('updated_at', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
       setOngoingFreights(data || []);
 
-      // Verificar checkins para cada frete após definir a função
+      // Verificar checkins para cada frete
       if (data && data.length > 0) {
-        // Verificar checkins de forma assíncrona para cada frete
         data.forEach(async (freight) => {
           try {
             const { count } = await (supabase as any)
               .from('freight_checkins')
               .select('*', { count: 'exact', head: true })
-              .eq('freight_id', freight.id)
+              .eq('freight_id', (freight as any).id)
               .eq('user_id', profile.id);
-            
-            setFreightCheckins(prev => ({ ...prev, [freight.id]: count || 0 }));
+            setFreightCheckins(prev => ({ ...prev, [(freight as any).id]: count || 0 }));
           } catch (error) {
-            console.error('Error checking freight checkins for freight:', freight.id, error);
+            console.error('Error checking freight checkins for freight:', (freight as any).id, error);
           }
         });
       }
