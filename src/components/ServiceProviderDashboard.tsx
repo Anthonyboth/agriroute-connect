@@ -70,7 +70,7 @@ interface ServiceProviderStats {
 
 export const ServiceProviderDashboard: React.FC = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile, profiles } = useAuth();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [stats, setStats] = useState<ServiceProviderStats>({
     total_requests: 0,
@@ -87,29 +87,31 @@ export const ServiceProviderDashboard: React.FC = () => {
    const [showSpecialtiesModal, setShowSpecialtiesModal] = useState(false);
    const [showAIServicesModal, setShowAIServicesModal] = useState(false);
 
+  const getProviderProfileId = () => {
+    if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
+    const alt = (profiles || []).find((p: any) => p.role === 'PRESTADOR_SERVICOS');
+    return alt?.id as string | undefined;
+  };
+
   useEffect(() => {
     if (user) {
       fetchServiceRequests();
       fetchStats();
     }
-  }, [user]);
+  }, [user, profile, profiles]);
 
   const fetchServiceRequests = async () => {
-    if (!user) return;
+    const providerProfileId = getProviderProfileId();
+    if (!user || !providerProfileId) {
+      setRequests([]);
+      return;
+    }
 
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) return;
-
-      // Usar a nova função segura que protege dados sensíveis
+      // Usar a função segura que protege dados sensíveis e aplica filtros de região
       const { data: secureRequests, error } = await supabase
         .rpc('get_provider_service_requests', {
-          provider_profile_id: profile.id
+          provider_profile_id: providerProfileId
         });
 
       if (error) throw error;
@@ -121,7 +123,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             .from('profiles')
             .select('full_name, profile_photo_url')
             .eq('id', request.client_id)
-            .single();
+            .maybeSingle();
 
           return {
             ...request,
@@ -151,17 +153,20 @@ export const ServiceProviderDashboard: React.FC = () => {
   };
 
   const fetchStats = async () => {
-    if (!user) return;
+    const providerProfileId = getProviderProfileId();
+    if (!user || !providerProfileId) {
+      setStats({
+        total_requests: 0,
+        pending_requests: 0,
+        accepted_requests: 0,
+        completed_requests: 0,
+        average_rating: 0,
+        total_earnings: 0
+      });
+      return;
+    }
 
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) return;
-
       // Buscar estatísticas das solicitações com timeout
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Timeout')), 5000)
@@ -170,7 +175,7 @@ export const ServiceProviderDashboard: React.FC = () => {
       const fetchPromise = supabase
         .from('service_requests')
         .select('status, final_price')
-        .eq('provider_id', profile.id);
+        .eq('provider_id', providerProfileId);
 
       const { data: requestStats, error: statsError } = await Promise.race([
         fetchPromise,
@@ -209,20 +214,15 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) return;
+      const providerProfileId = getProviderProfileId();
+      if (!providerProfileId) return;
 
       // Primeiro, tentar atualizar na tabela service_requests
       const { data: serviceRequestData, error: serviceError } = await supabase
         .from('service_requests')
         .update({ 
           status: 'ACCEPTED',
-          provider_id: profile.id,
+          provider_id: providerProfileId,
           accepted_at: new Date().toISOString()
         })
         .eq('id', requestId)
@@ -234,7 +234,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           .from('guest_requests')
           .update({ 
             status: 'ACCEPTED',
-            provider_id: profile.id
+            provider_id: providerProfileId
           })
           .eq('id', requestId);
 
