@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getCargoTypeLabel, CARGO_TYPES, CARGO_CATEGORIES } from '@/lib/cargo-types';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FreightCard } from '@/components/FreightCard';
 import { Brain, Filter, RefreshCw, Search, Zap, Package, Truck, Wrench } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,7 +41,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCargoType, setSelectedCargoType] = useState('all');
 
   useEffect(() => {
     if (profile?.id) {
@@ -114,16 +113,16 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     }
   };
 
-  // Filtrar fretes baseado na busca e tipo de carga selecionado
+  // Filtrar fretes baseado apenas na busca (compatibilidade já é filtrada automaticamente pelo backend)
   const filteredFreights = compatibleFreights.filter(freight => {
-    const matchesSearch = !searchTerm || 
+    if (!searchTerm) return true;
+    
+    const matchesSearch = 
       freight.cargo_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
       freight.origin_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
       freight.destination_address.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesCargoType = selectedCargoType === 'all' || freight.cargo_type === selectedCargoType;
-
-    return matchesSearch && matchesCargoType;
+    return matchesSearch;
   });
 
   const getServiceTypeBadge = (serviceType: string) => {
@@ -214,9 +213,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             </div>
           )}
 
-          {/* Barra de Busca e Seleção de Tipo de Carga */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="relative">
+          {/* Barra de Busca */}
+          <div className="flex gap-4 mb-6">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por origem, destino ou carga..."
@@ -226,43 +225,15 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               />
             </div>
 
-            <div className="flex gap-2">
-              <Select value={selectedCargoType} onValueChange={setSelectedCargoType}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Selecione o tipo de carga" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border shadow-lg z-50">
-                  <SelectItem value="all">Todos os tipos</SelectItem>
-                  {CARGO_CATEGORIES.map((category) => {
-                    const categoryTypes = getCargosByServiceType(profile?.service_types || []).filter(cargo => cargo.category === category.value);
-                    if (categoryTypes.length === 0) return null;
-                    
-                    return (
-                      <SelectGroup key={category.value}>
-                        <SelectLabel className="font-semibold text-primary bg-primary/5 px-3 py-2">
-                          {category.label}
-                        </SelectLabel>
-                        {categoryTypes.map((cargo) => (
-                          <SelectItem key={cargo.value} value={cargo.value} className="pl-6">
-                            {cargo.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-
-              <Button
-                variant="outline"
-                onClick={fetchCompatibleFreights}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                Atualizar
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={fetchCompatibleFreights}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
           </div>
 
           {/* Estatísticas */}
