@@ -31,6 +31,23 @@ const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
+
+  // Redirect non-producers to their correct dashboard
+  React.useEffect(() => {
+    if (profile?.role === 'MOTORISTA') {
+      navigate('/dashboard/driver', { replace: true });
+      return;
+    }
+    if (profile?.role === 'PRESTADOR_SERVICOS') {
+      navigate('/dashboard/service-provider', { replace: true });
+      return;
+    }
+    if (profile?.role && profile.role !== 'PRODUTOR') {
+      const correctRoute = profile.role === 'ADMIN' ? '/admin' : '/';
+      navigate(correctRoute, { replace: true });
+      return;
+    }
+  }, [profile?.role, navigate]);
   const [freights, setFreights] = useState<any[]>([]);
   const [proposals, setProposals] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('open');
@@ -46,7 +63,8 @@ const ProducerDashboard = () => {
 
   // Buscar fretes - otimizado
   const fetchFreights = useCallback(async () => {
-    if (!profile?.id) return;
+    // Don't fetch if user is not a producer
+    if (!profile?.id || profile.role !== 'PRODUTOR') return;
 
     try {
       const { data, error } = await supabase
@@ -62,13 +80,30 @@ const ProducerDashboard = () => {
       console.error('Error fetching freights:', error);
       toast.error('Erro ao carregar fretes');
     }
-  }, [profile?.id]);
+  }, [profile?.id, profile?.role]);
 
   // Buscar propostas - otimizado
   const fetchProposals = useCallback(async () => {
-    if (!profile?.id) return;
+    // Don't fetch if user is not a producer
+    if (!profile?.id || profile.role !== 'PRODUTOR') return;
 
     try {
+      // First get freight IDs for this producer
+      const { data: producerFreights, error: freightError } = await supabase
+        .from('freights')
+        .select('id')
+        .eq('producer_id', profile.id);
+
+      if (freightError) throw freightError;
+
+      if (!producerFreights || producerFreights.length === 0) {
+        setProposals([]);
+        return;
+      }
+
+      const freightIds = producerFreights.map(f => f.id);
+
+      // Then get proposals for those freights
       const { data, error } = await supabase
         .from('freight_proposals')
         .select(`
@@ -76,7 +111,7 @@ const ProducerDashboard = () => {
           freight:freights(*),
           driver:profiles!freight_proposals_driver_id_fkey(*)
         `)
-        .eq('freight.producer_id', profile.id)
+        .in('freight_id', freightIds)
         .eq('status', 'PENDING')
         .order('created_at', { ascending: false })
         .limit(50);
@@ -87,7 +122,7 @@ const ProducerDashboard = () => {
       console.error('Error fetching proposals:', error);
       toast.error('Erro ao carregar propostas');
     }
-  }, [profile?.id]);
+  }, [profile?.id, profile?.role]);
 
   // Carregar dados - otimizado
   useEffect(() => {
