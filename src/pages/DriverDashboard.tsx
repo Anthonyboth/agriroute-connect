@@ -74,6 +74,20 @@ const DriverDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
+
+  // Redirect service providers to their correct dashboard
+  React.useEffect(() => {
+    if (profile?.role === 'PRESTADOR_SERVICOS') {
+      navigate('/dashboard/service-provider', { replace: true });
+      return;
+    }
+    if (profile?.role && profile.role !== 'MOTORISTA') {
+      const correctRoute = profile.role === 'PRODUTOR' ? '/dashboard/producer' : 
+                          profile.role === 'ADMIN' ? '/admin' : '/';
+      navigate(correctRoute, { replace: true });
+      return;
+    }
+  }, [profile?.role, navigate]);
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
   const [counterOffers, setCounterOffers] = useState<any[]>([]);
@@ -123,6 +137,9 @@ const [showRegionModal, setShowRegionModal] = useState(false);
 
   // Buscar fretes disponíveis - otimizado
   const fetchAvailableFreights = useCallback(async () => {
+    // Don't fetch if user is not a driver
+    if (!profile?.id || profile.role !== 'MOTORISTA') return;
+
     try {
       const { data, error } = await supabase
         .from('freights')
@@ -134,13 +151,15 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       if (error) throw error;
       setAvailableFreights(data || []);
     } catch (error) {
+      console.error('Error fetching available freights:', error);
       toast.error('Erro ao carregar fretes disponíveis');
     }
-  }, []);
+  }, [profile?.id, profile?.role]);
 
   // Buscar propostas do motorista - otimizado
   const fetchMyProposals = useCallback(async () => {
-    if (!profile?.id) return;
+    // Don't fetch if user is not a driver
+    if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
     try {
       const { data, error } = await supabase
@@ -164,13 +183,15 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       if (error) throw error;
       setMyProposals(data || []);
     } catch (error) {
+      console.error('Error fetching proposals:', error);
       toast.error('Erro ao carregar suas propostas');
     }
-  }, [profile?.id]);
+  }, [profile?.id, profile?.role]);
 
   // Buscar fretes em andamento - baseado em propostas aceitas
   const fetchOngoingFreights = useCallback(async () => {
-    if (!profile?.id) return;
+    // Don't fetch if user is not a driver
+    if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
     try {
       // Buscar propostas aceitas do motorista
@@ -221,7 +242,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       console.error('Error fetching ongoing freights:', error);
       toast.error('Erro ao carregar fretes em andamento');
     }
-  }, [profile?.id]);
+  }, [profile?.id, profile?.role]);
   const fetchCounterOffers = useCallback(async () => {
     if (!profile?.id || myProposals.length === 0) return;
 
