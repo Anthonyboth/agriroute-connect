@@ -44,35 +44,10 @@ export const LocationFillButton: React.FC<LocationFillButtonProps> = ({
 
       const { latitude, longitude } = position.coords;
 
-      // Usar reverse geocoding para obter o endereço
-      try {
-        // For now, just use coordinates as fallback since API key is not configured
-        const simpleAddress = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-        onLocationFilled(simpleAddress, latitude, longitude);
-        toast.success('Coordenadas preenchidas!');
-        return;
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.results && data.results.length > 0) {
-            const address = data.results[0].formatted;
-            onLocationFilled(address, latitude, longitude);
-            toast.success('Localização preenchida automaticamente!');
-          } else {
-            // Fallback simples se a API falhar
-            const simpleAddress = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-            onLocationFilled(simpleAddress, latitude, longitude);
-            toast.success('Coordenadas preenchidas!');
-          }
-        } else {
-          throw new Error('Geocoding failed');
-        }
-      } catch (geoError) {
-        // Fallback: usar apenas as coordenadas
-        const simpleAddress = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-        onLocationFilled(simpleAddress, latitude, longitude);
-        toast.success('Coordenadas preenchidas!');
-      }
+      // Using coordinates directly for security (no external API calls)
+      const simpleAddress = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+      onLocationFilled(simpleAddress, latitude, longitude);
+      toast.success('Coordenadas preenchidas!');
     } catch (error) {
       console.error('Error getting location:', error);
       toast.error('Erro ao obter localização. Verifique as permissões.');
