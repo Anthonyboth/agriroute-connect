@@ -46,9 +46,11 @@ export const LocationFillButton: React.FC<LocationFillButtonProps> = ({
 
       // Usar reverse geocoding para obter o endereço
       try {
-        const response = await fetch(
-          `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=YOUR_API_KEY&language=pt&pretty=1`
-        );
+        // For now, just use coordinates as fallback since API key is not configured
+        const simpleAddress = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+        onLocationFilled(simpleAddress, latitude, longitude);
+        toast.success('Coordenadas preenchidas!');
+        return;
         
         if (response.ok) {
           const data = await response.json();
