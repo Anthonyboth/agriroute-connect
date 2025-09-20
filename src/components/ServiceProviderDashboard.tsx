@@ -40,13 +40,15 @@ import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManage
 
 interface ServiceRequest {
   id: string;
-  client_id: string;
+  client_id: string | null;
   service_type: string;
   location_address: string;
+  location_address_safe?: string;
   problem_description: string;
   vehicle_info?: string;
   urgency: string;
   contact_phone: string;
+  contact_phone_safe?: string;
   contact_name?: string;
   preferred_datetime?: string;
   additional_info?: string;
@@ -54,6 +56,7 @@ interface ServiceRequest {
   estimated_price?: number;
   status: string;
   created_at: string;
+  request_source?: string;
   profiles: {
     full_name: string;
     profile_photo_url?: string;
