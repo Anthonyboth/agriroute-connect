@@ -446,7 +446,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               onClick={() => setShowSpatialAreasModal(true)}
             >
               <Target className="h-4 w-4 mr-2" />
-              Áreas Inteligentes
+              Área de Atendimento
             </Button>
             <Button 
               variant="secondary" 
