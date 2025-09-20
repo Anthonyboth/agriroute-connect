@@ -135,23 +135,23 @@ const [showRegionModal, setShowRegionModal] = useState(false);
   };
   const [loading, setLoading] = useState(true);
 
-  // Buscar fretes disponíveis - otimizado
+  // Buscar fretes disponíveis - com match inteligente por região
   const fetchAvailableFreights = useCallback(async () => {
     // Don't fetch if user is not a driver
     if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
     try {
-      const { data, error } = await supabase
-        .from('freights')
-        .select('*')
-        .eq('status', 'OPEN')
-        .order('created_at', { ascending: false })
-        .limit(50); // Limitar para melhor performance
+      // Refresh matches and get matched freights via Edge Function (same pattern as service provider)
+      const { data, error } = await (supabase as any).functions.invoke('driver-spatial-matching', {
+        body: { refresh: true }
+      });
 
       if (error) throw error;
-      setAvailableFreights(data || []);
+
+      const freights = (data?.freights as any[]) || [];
+      setAvailableFreights(freights);
     } catch (error) {
-      console.error('Error fetching available freights:', error);
+      console.error('Error fetching available freights (smart match):', error);
       toast.error('Erro ao carregar fretes disponíveis');
     }
   }, [profile?.id, profile?.role]);
