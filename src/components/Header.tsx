@@ -54,7 +54,7 @@ const Header: React.FC<HeaderProps> = ({
 
   const getRoleColor = (role: string) => {
     if (role === 'PRODUTOR') return 'bg-primary/10 text-primary';
-    if (role === 'PRESTADOR') return 'bg-secondary/10 text-secondary';
+    if (role === 'PRESTADOR') return 'bg-blue-600 text-white font-medium';
     return 'bg-accent/10 text-accent';
   };
 
