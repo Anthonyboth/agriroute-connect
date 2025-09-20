@@ -2384,6 +2384,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_distance: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
       check_expired_documents: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -2462,14 +2466,21 @@ export type Database = {
       get_provider_service_requests: {
         Args: { provider_profile_id: string }
         Returns: {
+          additional_info: string
           client_id: string
+          contact_name: string
+          contact_phone: string
           contact_phone_safe: string
           created_at: string
+          distance_km: number
           estimated_price: number
           id: string
           is_emergency: boolean
+          location_address: string
           location_address_safe: string
+          preferred_datetime: string
           problem_description: string
+          request_source: string
           service_type: string
           status: string
           urgency: string

@@ -68,7 +68,7 @@ export const ServiceRegionSelector: React.FC<ServiceRegionSelectorProps> = ({ on
         .from('profiles')
         .select('service_cities, service_states, service_radius_km')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
