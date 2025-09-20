@@ -451,14 +451,6 @@ export const ServiceProviderDashboard: React.FC = () => {
             <Button 
               variant="secondary" 
               className="bg-white/20 text-white border-white/30 hover:bg-white/30"
-              onClick={() => setShowRegionModal(true)}
-            >
-              <MapPin className="h-4 w-4 mr-2" />
-              Configurar Região
-            </Button>
-            <Button 
-              variant="secondary" 
-              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
               onClick={() => setShowSpecialtiesModal(true)}
             >
               <Wrench className="h-4 w-4 mr-2" />
