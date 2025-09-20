@@ -385,6 +385,90 @@ export type Database = {
           },
         ]
       }
+      driver_stripe_accounts: {
+        Row: {
+          account_status: string
+          charges_enabled: boolean | null
+          created_at: string | null
+          driver_id: string
+          id: string
+          payouts_enabled: boolean | null
+          pix_key: string | null
+          requirements_due: Json | null
+          stripe_account_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          account_status?: string
+          charges_enabled?: boolean | null
+          created_at?: string | null
+          driver_id: string
+          id?: string
+          payouts_enabled?: boolean | null
+          pix_key?: string | null
+          requirements_due?: Json | null
+          stripe_account_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          account_status?: string
+          charges_enabled?: boolean | null
+          created_at?: string | null
+          driver_id?: string
+          id?: string
+          payouts_enabled?: boolean | null
+          pix_key?: string | null
+          requirements_due?: Json | null
+          stripe_account_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      driver_withdrawals: {
+        Row: {
+          amount: number
+          created_at: string | null
+          driver_id: string
+          id: string
+          net_amount: number
+          pix_key: string
+          platform_fee: number | null
+          processed_at: string | null
+          status: string
+          stripe_account_id: string | null
+          stripe_payout_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          driver_id: string
+          id?: string
+          net_amount: number
+          pix_key: string
+          platform_fee?: number | null
+          processed_at?: string | null
+          status?: string
+          stripe_account_id?: string | null
+          stripe_payout_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          driver_id?: string
+          id?: string
+          net_amount?: number
+          pix_key?: string
+          platform_fee?: number | null
+          processed_at?: string | null
+          status?: string
+          stripe_account_id?: string | null
+          stripe_payout_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       emergency_events: {
         Row: {
           created_at: string
@@ -486,6 +570,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      external_payments: {
+        Row: {
+          accepted_at: string | null
+          accepted_by_driver: boolean | null
+          amount: number
+          confirmation_doc: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          driver_id: string
+          freight_id: string
+          id: string
+          notes: string | null
+          producer_id: string
+          proposed_at: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by_driver?: boolean | null
+          amount: number
+          confirmation_doc?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          driver_id: string
+          freight_id: string
+          id?: string
+          notes?: string | null
+          producer_id: string
+          proposed_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by_driver?: boolean | null
+          amount?: number
+          confirmation_doc?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          driver_id?: string
+          freight_id?: string
+          id?: string
+          notes?: string | null
+          producer_id?: string
+          proposed_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      financial_audit_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          new_data: Json | null
+          old_data: Json | null
+          operation: string
+          record_id: string
+          table_name: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_data?: Json | null
+          old_data?: Json | null
+          operation: string
+          record_id: string
+          table_name: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_data?: Json | null
+          old_data?: Json | null
+          operation?: string
+          record_id?: string
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       flexible_freight_proposals: {
         Row: {
@@ -1364,6 +1538,51 @@ export type Database = {
           type?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount_paid: number | null
+          amount_total: number
+          created_at: string | null
+          driver_id: string
+          freight_id: string
+          id: string
+          payment_method: string
+          payment_status: string
+          producer_id: string
+          stripe_payment_id: string | null
+          stripe_session_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          amount_total: number
+          created_at?: string | null
+          driver_id: string
+          freight_id: string
+          id?: string
+          payment_method: string
+          payment_status?: string
+          producer_id: string
+          stripe_payment_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_paid?: number | null
+          amount_total?: number
+          created_at?: string | null
+          driver_id?: string
+          freight_id?: string
+          id?: string
+          payment_method?: string
+          payment_status?: string
+          producer_id?: string
+          stripe_payment_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
