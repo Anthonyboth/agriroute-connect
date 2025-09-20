@@ -819,7 +819,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Propostas</span>
-                <span className="sm:hidden">Props</span>
+                <span className="sm:hidden">Propos</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="services" 
