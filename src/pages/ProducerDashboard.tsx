@@ -227,11 +227,12 @@ const ProducerDashboard = () => {
   }, [freights, proposals]);
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error('Erro ao fazer logout');
-    } else {
+    try {
+      await signOut();
       navigate('/auth');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      toast.error('Erro ao fazer logout');
     }
   };
 

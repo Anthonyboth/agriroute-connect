@@ -44,7 +44,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   requiresApproval?: boolean;
   adminOnly?: boolean;
 }) => {
-  const { isAuthenticated, isApproved, isAdmin, loading, profile } = useAuth();
+  const { isAuthenticated, isApproved, isAdmin, loading, profile, signOut } = useAuth();
 
   if (loading) {
     return <ComponentLoader />;
@@ -57,7 +57,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   if (requiresApproval && !isApproved) {
     const handleGoHome = () => {
       // Fazer logout e ir para página inicial
-      supabase.auth.signOut();
+      signOut();
     };
 
     return (
