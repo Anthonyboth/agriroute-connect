@@ -6,6 +6,24 @@ verify_jwt = false
 [functions.driver-service-areas] 
 verify_jwt = true
 
+[functions.create-payment]
+verify_jwt = true
+
+[functions.create-external-payment]
+verify_jwt = true
+
+[functions.respond-external-payment]
+verify_jwt = true
+
+[functions.create-stripe-connect-account]
+verify_jwt = true
+
+[functions.request-withdrawal]
+verify_jwt = true
+
+[functions.payment-webhook]
+verify_jwt = false
+
 [functions.test-data-generator]
 verify_jwt = false
 
