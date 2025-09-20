@@ -6,10 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { MapPin, Plus, Edit, Trash2, Navigation } from 'lucide-react';
+import { MapPin, Plus, Edit, Trash2, Navigation, Settings, Target, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface ServiceArea {
+interface DriverServiceArea {
   id: string;
   city_name: string;
   state?: string;
@@ -29,11 +29,15 @@ interface ServiceAreaFormData {
   is_active: boolean;
 }
 
-const DriverServiceAreasManager = () => {
-  const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
+interface DriverServiceAreasManagerProps {
+  onAreasUpdate?: () => void;
+}
+
+const DriverServiceAreasManager = ({ onAreasUpdate }: DriverServiceAreasManagerProps) => {
+  const [serviceAreas, setServiceAreas] = useState<DriverServiceArea[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingArea, setEditingArea] = useState<ServiceArea | null>(null);
+  const [editingArea, setEditingArea] = useState<DriverServiceArea | null>(null);
   const [formData, setFormData] = useState<ServiceAreaFormData>({
     city_name: '',
     state: '',
@@ -55,7 +59,7 @@ const DriverServiceAreasManager = () => {
         setServiceAreas(data.service_areas);
       }
     } catch (error) {
-      console.error('Error fetching service areas:', error);
+      console.error('Error fetching driver service areas:', error);
       toast.error('Erro ao carregar áreas de atendimento');
     } finally {
       setLoading(false);
@@ -65,6 +69,21 @@ const DriverServiceAreasManager = () => {
   useEffect(() => {
     fetchServiceAreas();
   }, []);
+
+  const refreshMatches = async () => {
+    try {
+      // Refresh freight matches after area changes
+      await supabase.functions.invoke('driver-spatial-matching', {
+        method: 'POST',
+        body: { refresh: true }
+      });
+      
+      // Notify parent component to refresh
+      onAreasUpdate?.();
+    } catch (error) {
+      console.error('Error refreshing freight matches:', error);
+    }
+  };
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -121,16 +140,19 @@ const DriverServiceAreasManager = () => {
           is_active: true
         });
         fetchServiceAreas();
+        
+        // Refresh freight matches after saving area
+        refreshMatches();
       }
     } catch (error) {
-      console.error('Error saving service area:', error);
+      console.error('Error saving driver service area:', error);
       toast.error('Erro ao salvar área de atendimento');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEdit = (area: ServiceArea) => {
+  const handleEdit = (area: DriverServiceArea) => {
     setEditingArea(area);
     setFormData({
       city_name: area.city_name,
@@ -158,16 +180,19 @@ const DriverServiceAreasManager = () => {
       if (data?.success) {
         toast.success('Área excluída com sucesso');
         fetchServiceAreas();
+        
+        // Refresh freight matches after deletion
+        refreshMatches();
       }
     } catch (error) {
-      console.error('Error deleting service area:', error);
+      console.error('Error deleting driver service area:', error);
       toast.error('Erro ao excluir área de atendimento');
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleAreaStatus = async (area: ServiceArea) => {
+  const toggleAreaStatus = async (area: DriverServiceArea) => {
     try {
       setLoading(true);
 
@@ -181,6 +206,9 @@ const DriverServiceAreasManager = () => {
       if (data?.success) {
         toast.success(area.is_active ? 'Área desativada' : 'Área ativada');
         fetchServiceAreas();
+        
+        // Refresh freight matches after status change
+        refreshMatches();
       }
     } catch (error) {
       console.error('Error updating area status:', error);
@@ -202,11 +230,27 @@ const DriverServiceAreasManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header com informações sobre match inteligente - igual ao prestador */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Target className="h-5 w-5 text-primary mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-primary mb-1">Áreas de Atendimento Inteligentes</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Sistema avançado com matching espacial por GPS. Configure múltiplas bases operacionais 
+                com raios específicos para receber apenas fretes relevantes da sua região.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
+              <Settings className="h-5 w-5" />
               Áreas de Atendimento
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
@@ -215,25 +259,35 @@ const DriverServiceAreasManager = () => {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => {
-                setEditingArea(null);
-                setFormData({
-                  city_name: '',
-                  state: '',
-                  lat: 0,
-                  lng: 0,
-                  radius_km: 50,
-                  is_active: true
-                });
-              }}>
+              <Button 
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                onClick={() => {
+                  setEditingArea(null);
+                  setFormData({
+                    city_name: '',
+                    state: '',
+                    lat: 0,
+                    lng: 0,
+                    radius_km: 50,
+                    is_active: true
+                  });
+                }}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Área
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>
+                <DialogTitle className="flex items-center justify-between">
                   {editingArea ? 'Editar Área' : 'Nova Área de Atendimento'}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -323,7 +377,7 @@ const DriverServiceAreasManager = () => {
         <CardContent>
           {serviceAreas.length === 0 ? (
             <div className="text-center py-8">
-              <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <Settings className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-4">
                 Você ainda não tem áreas de atendimento configuradas
               </p>
@@ -336,7 +390,7 @@ const DriverServiceAreasManager = () => {
               {serviceAreas.map((area) => (
                 <div
                   key={area.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -344,7 +398,7 @@ const DriverServiceAreasManager = () => {
                       {area.state && (
                         <Badge variant="secondary">{area.state}</Badge>
                       )}
-                      <Badge variant={area.is_active ? 'default' : 'secondary'}>
+                      <Badge variant={area.is_active ? 'default' : 'secondary'} className={area.is_active ? 'bg-primary text-primary-foreground' : ''}>
                         {area.is_active ? 'Ativa' : 'Inativa'}
                       </Badge>
                     </div>
