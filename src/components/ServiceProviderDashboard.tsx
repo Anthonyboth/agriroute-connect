@@ -533,7 +533,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             <div className="flex gap-2">
               <Dialog.Root open={showRegionModal} onOpenChange={setShowRegionModal}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="secondary" size="sm" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
                     <Settings className="h-4 w-4 mr-2" />
                     Configurar Região
                   </Button>
@@ -548,7 +548,7 @@ export const ServiceProviderDashboard: React.FC = () => {
 
               <Dialog.Root open={showSpecialtiesModal} onOpenChange={setShowSpecialtiesModal}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="secondary" size="sm" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
                     <Wrench className="h-4 w-4 mr-2" />
                     Especialidades
                   </Button>
