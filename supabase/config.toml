@@ -1,5 +1,14 @@
 project_id = "shnvtxejjecbnztdbbbl"
 
+[functions.spatial-freight-matching]
+verify_jwt = false
+
+[functions.driver-service-areas] 
+verify_jwt = true
+
+[functions.test-data-generator]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321
