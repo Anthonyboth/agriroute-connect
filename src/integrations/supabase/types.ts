@@ -131,6 +131,45 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          id: string
+          ip_address: unknown | null
+          new_data: Json | null
+          old_data: Json | null
+          operation: string
+          session_id: string | null
+          table_name: string
+          timestamp: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          ip_address?: unknown | null
+          new_data?: Json | null
+          old_data?: Json | null
+          operation: string
+          session_id?: string | null
+          table_name: string
+          timestamp?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          ip_address?: unknown | null
+          new_data?: Json | null
+          old_data?: Json | null
+          operation?: string
+          session_id?: string | null
+          table_name?: string
+          timestamp?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       driver_availability: {
         Row: {
           available_date: string
@@ -1675,6 +1714,42 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_violations: {
+        Row: {
+          blocked_until: string | null
+          created_at: string | null
+          endpoint: string
+          first_violation_at: string | null
+          id: string
+          ip_address: unknown
+          last_violation_at: string | null
+          user_id: string | null
+          violation_count: number | null
+        }
+        Insert: {
+          blocked_until?: string | null
+          created_at?: string | null
+          endpoint: string
+          first_violation_at?: string | null
+          id?: string
+          ip_address: unknown
+          last_violation_at?: string | null
+          user_id?: string | null
+          violation_count?: number | null
+        }
+        Update: {
+          blocked_until?: string | null
+          created_at?: string | null
+          endpoint?: string
+          first_violation_at?: string | null
+          id?: string
+          ip_address?: unknown
+          last_violation_at?: string | null
+          user_id?: string | null
+          violation_count?: number | null
+        }
+        Relationships: []
+      }
       ratings: {
         Row: {
           comment: string | null
@@ -1776,6 +1851,42 @@ export type Database = {
           resource?: string | null
           success?: boolean
           user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      security_blacklist: {
+        Row: {
+          blocked_at: string | null
+          blocked_until: string | null
+          created_by: string | null
+          id: string
+          ip_address: unknown | null
+          is_permanent: boolean | null
+          notes: string | null
+          reason: string
+          user_id: string | null
+        }
+        Insert: {
+          blocked_at?: string | null
+          blocked_until?: string | null
+          created_by?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_permanent?: boolean | null
+          notes?: string | null
+          reason: string
+          user_id?: string | null
+        }
+        Update: {
+          blocked_at?: string | null
+          blocked_until?: string | null
+          created_by?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_permanent?: boolean | null
+          notes?: string | null
+          reason?: string
           user_id?: string | null
         }
         Relationships: []
@@ -3007,6 +3118,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      check_rate_limit: {
+        Args: {
+          endpoint_name: string
+          max_requests?: number
+          time_window?: unknown
+        }
+        Returns: boolean
+      }
       cleanup_expired_requests: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -3025,9 +3144,17 @@ export type Database = {
         }
         Returns: string
       }
+      decrypt_document: {
+        Args: { encrypted_doc: string; original_doc: string }
+        Returns: string
+      }
       decrypt_sensitive_data: {
         Args: { encrypted_data: string; key?: string }
         Returns: string
+      }
+      detect_suspicious_access: {
+        Args: { rows_accessed: number; table_accessed: string }
+        Returns: boolean
       }
       disablelongtransactions: {
         Args: Record<PropertyKey, never>
@@ -3054,6 +3181,10 @@ export type Database = {
       }
       enablelongtransactions: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      encrypt_document: {
+        Args: { doc: string }
         Returns: string
       }
       encrypt_sensitive_data: {
@@ -3391,6 +3522,10 @@ export type Database = {
           weight: number
         }[]
       }
+      get_current_user_safe: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_platform_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3498,6 +3633,17 @@ export type Database = {
           location_lng: number
         }[]
       }
+      get_secure_user_profile: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
       get_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
@@ -3518,6 +3664,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_freight_owner: {
+        Args: { freight_id: string; user_profile_id: string }
+        Returns: boolean
+      }
+      is_ip_blacklisted: {
+        Args: { check_ip: unknown }
+        Returns: boolean
+      }
       is_service_compatible: {
         Args: { driver_service_types: string[]; freight_service_type: string }
         Returns: boolean
@@ -3531,7 +3685,9 @@ export type Database = {
         Returns: Json
       }
       log_sensitive_data_access: {
-        Args: { access_type: string; request_id: string }
+        Args:
+          | { access_type: string; accessed_id: string; accessed_table: string }
+          | { access_type: string; request_id: string }
         Returns: undefined
       }
       longtransactionsenabled: {
