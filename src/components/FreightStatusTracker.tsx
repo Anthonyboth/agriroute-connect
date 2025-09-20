@@ -184,42 +184,58 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
             Progresso da Viagem
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            {STATUS_FLOW.map((status, index) => {
-              const Icon = status.icon;
-              const variant = getStatusVariant(status.key);
-              const isActive = status.key === currentStatus;
-              
-              return (
-                <div key={status.key} className="flex flex-col items-center flex-1">
-                  <div className={`
-                    w-10 h-10 rounded-full flex items-center justify-center mb-2
-                    ${isActive 
-                      ? 'bg-primary text-primary-foreground' 
-                      : variant === 'default' 
-                        ? 'bg-success text-success-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    }
-                  `}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  
-                  <span className={`text-xs font-medium text-center ${
-                    isActive ? 'text-primary' : 'text-muted-foreground'
-                  }`}>
-                    {status.label}
-                  </span>
-                  
-                  {index < STATUS_FLOW.length - 1 && (
+        <CardContent className="px-6 pb-6">
+          <div className="relative">
+            {/* Progress Line */}
+            <div className="absolute top-5 left-0 right-0 h-0.5 bg-muted mx-8">
+              <div 
+                className="h-full bg-primary transition-all duration-500 ease-in-out" 
+                style={{ 
+                  width: `${(STATUS_FLOW.findIndex(s => s.key === currentStatus) / (STATUS_FLOW.length - 1)) * 100}%` 
+                }}
+              />
+            </div>
+            
+            {/* Status Items */}
+            <div className="flex items-center justify-between relative z-10">
+              {STATUS_FLOW.map((status, index) => {
+                const Icon = status.icon;
+                const variant = getStatusVariant(status.key);
+                const isActive = status.key === currentStatus;
+                const isCompleted = variant === 'default';
+                
+                return (
+                  <div key={status.key} className="flex flex-col items-center" style={{ flex: index === 0 || index === STATUS_FLOW.length - 1 ? '0 0 auto' : '1' }}>
                     <div className={`
-                      h-1 w-full mt-2
-                      ${variant === 'default' ? 'bg-success' : 'bg-muted'}
-                    `} />
-                  )}
-                </div>
-              );
-            })}
+                      relative w-10 h-10 rounded-full flex items-center justify-center mb-3 border-2 transition-all duration-300
+                      ${isActive 
+                        ? 'bg-primary text-primary-foreground border-primary shadow-md scale-110' 
+                        : isCompleted
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background text-muted-foreground border-muted-foreground/30'
+                      }
+                    `}>
+                      <Icon className={`h-4 w-4 ${isActive ? 'animate-pulse' : ''}`} />
+                    </div>
+                    
+                    <span className={`text-xs font-medium text-center leading-tight max-w-[80px] ${
+                      isActive 
+                        ? 'text-primary font-semibold' 
+                        : isCompleted 
+                          ? 'text-foreground' 
+                          : 'text-muted-foreground'
+                    }`}>
+                      {status.label}
+                    </span>
+                    
+                    {/* Active indicator */}
+                    {isActive && (
+                      <div className="w-1 h-1 bg-primary rounded-full mt-1 animate-pulse" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </CardContent>
       </Card>
