@@ -211,32 +211,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                   </div>
                 ))}
               </div>
-              
-              {/* Tipos de Produtos Compatíveis */}
-              <div className="border-t pt-4">
-                <h5 className="font-medium mb-3 text-sm text-muted-foreground">Tipos de Produtos que Você Transporta:</h5>
-                <div className="space-y-3">
-                  {CARGO_CATEGORIES.map((category) => {
-                    const categoryTypes = getCargosByServiceType(profile.service_types).filter(cargo => cargo.category === category.value);
-                    if (categoryTypes.length === 0) return null;
-                    
-                    return (
-                      <div key={category.value} className="space-y-2">
-                        <h6 className="text-xs font-semibold text-primary uppercase tracking-wide">
-                          {category.label}
-                        </h6>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {categoryTypes.map((cargo) => (
-                            <div key={cargo.value} className="text-xs p-2 bg-background rounded border border-border/50 hover:border-primary/20 transition-colors">
-                              {cargo.label}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           )}
 
