@@ -376,7 +376,7 @@ const ProducerDashboard = () => {
               >
                 <Users className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Propostas</span>
-                <span className="sm:hidden">Props</span>
+                <span className="sm:hidden">Propos</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="scheduled" 
