@@ -153,9 +153,21 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
-    // Limpar perfil salvo no logout
-    localStorage.removeItem('current_profile_id');
-    await supabase.auth.signOut();
+    try {
+      console.log('Starting logout process...');
+      // Limpar perfil salvo no logout
+      localStorage.removeItem('current_profile_id');
+      console.log('Calling supabase.auth.signOut()...');
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+        throw error;
+      }
+      console.log('Logout successful');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      throw error;
+    }
   };
 
   const switchProfile = (profileId: string) => {
