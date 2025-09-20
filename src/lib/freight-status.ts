@@ -14,6 +14,8 @@ export const getFreightStatusLabel = (status: string): string => {
       return 'Em Transporte';
     case 'DELIVERED':
       return 'Entregue';
+    case 'DELIVERED_PENDING_CONFIRMATION':
+      return 'Aguardando Confirmação';
     case 'CANCELLED':
       return 'Cancelado';
     case 'REJECTED':
@@ -41,6 +43,8 @@ export const getFreightStatusVariant = (status: string): 'default' | 'secondary'
       return 'secondary';
     case 'DELIVERED':
       return 'default';
+    case 'DELIVERED_PENDING_CONFIRMATION':
+      return 'secondary';
     case 'CANCELLED':
       return 'destructive';
     case 'REJECTED':

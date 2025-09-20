@@ -14,7 +14,7 @@ const STATUS_FLOW = [
   { key: 'LOADING', label: 'A caminho da coleta', icon: Package },
   { key: 'LOADED', label: 'Carregado', icon: Truck },
   { key: 'IN_TRANSIT', label: 'Em Trânsito', icon: Navigation },
-  { key: 'DELIVERED', label: 'Entregue', icon: MapPin }
+  { key: 'DELIVERED_PENDING_CONFIRMATION', label: 'Entrega Reportada', icon: MapPin }
 ];
 
 interface StatusHistory {

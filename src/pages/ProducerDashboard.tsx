@@ -16,6 +16,7 @@ import { FreightStatusTracker } from '@/components/FreightStatusTracker';
 import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
 import { FreightTrackingPanel } from '@/components/FreightTrackingPanel';
 import { FreightDetails } from '@/components/FreightDetails';
+import { DeliveryConfirmationModal } from '@/components/DeliveryConfirmationModal';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -60,6 +61,8 @@ const ProducerDashboard = () => {
   const [freightToCancel, setFreightToCancel] = useState<any>(null);
   const [selectedTrackingFreight, setSelectedTrackingFreight] = useState<any>(null);
   const [selectedFreightDetails, setSelectedFreightDetails] = useState<any>(null);
+  const [deliveryConfirmationModal, setDeliveryConfirmationModal] = useState(false);
+  const [freightToConfirm, setFreightToConfirm] = useState<any>(null);
 
   // Buscar fretes - otimizado
   const fetchFreights = useCallback(async () => {
@@ -255,11 +258,26 @@ const ProducerDashboard = () => {
     return {
       openFreights: freights.filter(f => f.status === 'OPEN').length,
       activeFreights: freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).length,
+      pendingConfirmation: freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length,
       completedFreights: freights.filter(f => f.status === 'DELIVERED').length,
       totalValue: freights.reduce((sum, f) => sum + f.price, 0),
       pendingProposals: proposals.length
     };
   }, [freights, proposals]);
+
+  const openDeliveryConfirmationModal = (freight: any) => {
+    setFreightToConfirm(freight);
+    setDeliveryConfirmationModal(true);
+  };
+
+  const closeDeliveryConfirmationModal = () => {
+    setFreightToConfirm(null);
+    setDeliveryConfirmationModal(false);
+  };
+
+  const handleDeliveryConfirmed = () => {
+    fetchFreights(); // Recarregar dados após confirmação
+  };
 
   const handleLogout = async () => {
     try {
@@ -328,7 +346,7 @@ const ProducerDashboard = () => {
 
       <div className="container max-w-7xl mx-auto py-4 px-4">
         {/* Stats Cards Compactos */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           <Card className="shadow-sm">
             <CardContent className="p-3">
               <div className="flex items-center">
@@ -352,6 +370,20 @@ const ProducerDashboard = () => {
                     Andamento
                   </p>
                   <p className="text-lg font-bold">{statistics.activeFreights}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center">
+                <Clock className="h-6 w-6 text-amber-500 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">
+                    P/ Confirmar
+                  </p>
+                  <p className="text-lg font-bold">{statistics.pendingConfirmation}</p>
                 </div>
               </div>
             </CardContent>
@@ -407,6 +439,19 @@ const ProducerDashboard = () => {
                 <span className="sm:hidden">Ativo</span>
               </TabsTrigger>
               <TabsTrigger 
+                value="confirm-delivery" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Clock className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Confirmar Entrega</span>
+                <span className="sm:hidden">Confirm</span>
+                {statistics.pendingConfirmation > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-4 w-4 p-0 text-xs">
+                    {statistics.pendingConfirmation}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger
                 value="proposals" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
@@ -589,6 +634,106 @@ const ProducerDashboard = () => {
                         )}
                       </div>
                     </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="confirm-delivery" className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Confirmar Entregas</h3>
+            </div>
+            
+            {freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <Clock className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">Nenhuma entrega aguardando confirmação</h3>
+                  <p className="text-muted-foreground mb-6 max-w-sm">
+                    Não há entregas reportadas pelos motoristas aguardando sua confirmação.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').map((freight) => (
+                  <Card key={freight.id} className="p-4 border-amber-200 bg-amber-50/50">
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-lg">
+                            {freight.cargo_type}
+                          </h4>
+                          <p className="text-sm text-muted-foreground">
+                            {freight.origin_address} → {freight.destination_address}
+                          </p>
+                          <p className="text-sm font-medium text-amber-700 mt-2">
+                            ⏰ Entrega reportada pelo motorista - Aguardando sua confirmação
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300">
+                            Aguardando Confirmação
+                          </Badge>
+                          <p className="text-lg font-bold text-green-600 mt-1">
+                            R$ {freight.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="font-medium">Motorista:</p>
+                          <p className="text-muted-foreground">
+                            {freight.driver_profiles?.full_name || 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Telefone:</p>
+                          <p className="text-muted-foreground">
+                            {freight.driver_profiles?.contact_phone || '-'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Reportado em:</p>
+                          <p className="text-muted-foreground">
+                            {new Date(freight.updated_at).toLocaleString('pt-BR')}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Prazo para confirmação:</p>
+                          <p className="text-muted-foreground">
+                            {freight.metadata?.confirmation_deadline 
+                              ? new Date(freight.metadata.confirmation_deadline).toLocaleString('pt-BR')
+                              : '72h após reportado'
+                            }
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => {
+                            setSelectedFreightDetails(freight);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Detalhes
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          onClick={() => openDeliveryConfirmationModal(freight)}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Confirmar Entrega
+                        </Button>
+                      </div>
+                    </div>
                   </Card>
                 ))}
               </div>
@@ -832,6 +977,15 @@ const ProducerDashboard = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {freightToConfirm && (
+        <DeliveryConfirmationModal
+          freight={freightToConfirm}
+          isOpen={deliveryConfirmationModal}
+          onClose={closeDeliveryConfirmationModal}
+          onConfirm={handleDeliveryConfirmed}
+        />
+      )}
     </div>
   );
 };

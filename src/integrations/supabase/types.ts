@@ -3054,6 +3054,10 @@ export type Database = {
             }
         Returns: string
       }
+      auto_confirm_deliveries: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       box: {
         Args: { "": unknown } | { "": unknown }
         Returns: unknown
@@ -3133,6 +3137,10 @@ export type Database = {
       confirm_checkin_as_counterpart: {
         Args: { p_checkin_id: string; p_observations?: string }
         Returns: boolean
+      }
+      confirm_delivery: {
+        Args: { freight_id_param: string }
+        Returns: Json
       }
       create_additional_profile: {
         Args: {
@@ -4994,6 +5002,7 @@ export type Database = {
         | "MUDANCA"
         | "LOADING"
         | "LOADED"
+        | "DELIVERED_PENDING_CONFIRMATION"
       payment_method: "PIX" | "BOLETO" | "CARTAO" | "DIRETO"
       urgency_level: "LOW" | "MEDIUM" | "HIGH"
       user_role: "PRODUTOR" | "MOTORISTA" | "ADMIN" | "PRESTADOR_SERVICOS"
@@ -5155,6 +5164,7 @@ export const Constants = {
         "MUDANCA",
         "LOADING",
         "LOADED",
+        "DELIVERED_PENDING_CONFIRMATION",
       ],
       payment_method: ["PIX", "BOLETO", "CARTAO", "DIRETO"],
       urgency_level: ["LOW", "MEDIUM", "HIGH"],
