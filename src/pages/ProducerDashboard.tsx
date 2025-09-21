@@ -259,7 +259,6 @@ const ProducerDashboard = () => {
       openFreights: freights.filter(f => f.status === 'OPEN').length,
       activeFreights: freights.filter(f => ['IN_NEGOTIATION', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).length,
       pendingConfirmation: freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length,
-      completedFreights: freights.filter(f => f.status === 'DELIVERED').length,
       totalValue: freights.reduce((sum, f) => sum + f.price, 0),
       pendingProposals: proposals.length
     };
@@ -346,7 +345,7 @@ const ProducerDashboard = () => {
 
       <div className="container max-w-7xl mx-auto py-4 px-4">
         {/* Stats Cards Compactos */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <Card className="shadow-sm">
             <CardContent className="p-3">
               <div className="flex items-center">
@@ -403,19 +402,6 @@ const ProducerDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center">
-                <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">
-                    Completos
-                  </p>
-                  <p className="text-lg font-bold">{statistics.completedFreights}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Tabs Compactas */}
