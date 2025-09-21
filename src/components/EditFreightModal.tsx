@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,18 +28,53 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
   onSuccess
 }) => {
   const [formData, setFormData] = useState({
-    cargo_type: freight?.cargo_type || '',
-    weight: freight?.weight ? (freight.weight / 1000).toString() : '', // Convert kg from DB to tonnes for display
-    origin_address: freight?.origin_address || '',
-    destination_address: freight?.destination_address || '',
-    pickup_date: freight?.pickup_date ? new Date(freight.pickup_date) : new Date(),
-    delivery_date: freight?.delivery_date ? new Date(freight.delivery_date) : new Date(),
-    price: freight?.price || '',
-    description: freight?.description || '',
-    urgency: freight?.urgency || 'MEDIUM',
-    required_trucks: freight?.required_trucks || 1
+    cargo_type: '',
+    weight: '',
+    origin_address: '',
+    destination_address: '',
+    pickup_date: new Date(),
+    delivery_date: new Date(),
+    price: '',
+    description: '',
+    urgency: 'MEDIUM',
+    required_trucks: 1
   });
   const [loading, setLoading] = useState(false);
+
+  // Atualizar formulário sempre que o frete mudar
+  useEffect(() => {
+    if (freight && isOpen) {
+      setFormData({
+        cargo_type: freight.cargo_type || '',
+        weight: freight.weight ? (freight.weight / 1000).toString() : '', // Convert kg from DB to tonnes for display
+        origin_address: freight.origin_address || '',
+        destination_address: freight.destination_address || '',
+        pickup_date: freight.pickup_date ? new Date(freight.pickup_date) : new Date(),
+        delivery_date: freight.delivery_date ? new Date(freight.delivery_date) : new Date(),
+        price: freight.price ? freight.price.toString() : '',
+        description: freight.description || '',
+        urgency: (freight.urgency as 'LOW' | 'MEDIUM' | 'HIGH') || 'MEDIUM',
+        required_trucks: freight.required_trucks || 1
+      });
+    }
+  }, [freight, isOpen]);
+
+  // Resetar formulário quando fechar
+  const handleClose = () => {
+    setFormData({
+      cargo_type: '',
+      weight: '',
+      origin_address: '',
+      destination_address: '',
+      pickup_date: new Date(),
+      delivery_date: new Date(),
+      price: '',
+      description: '',
+      urgency: 'MEDIUM',
+      required_trucks: 1
+    });
+    onClose();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +92,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
           delivery_date: formData.delivery_date.toISOString().split('T')[0],
           price: Number(formData.price),
           description: formData.description,
-          urgency: formData.urgency,
+          urgency: formData.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
           required_trucks: Number(formData.required_trucks),
           updated_at: new Date().toISOString()
         })
@@ -67,7 +102,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
 
       toast.success('Frete atualizado com sucesso!');
       onSuccess();
-      onClose();
+      handleClose();
     } catch (error) {
       console.error('Error updating freight:', error);
       toast.error('Erro ao atualizar frete');
@@ -79,7 +114,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
   const cargoTypes = CARGO_TYPES;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Frete</DialogTitle>
@@ -238,7 +273,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
               type="number"
               min="1"
               value={formData.required_trucks}
-              onChange={(e) => setFormData({ ...formData, required_trucks: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, required_trucks: Number(e.target.value) })}
               required
             />
           </div>
@@ -254,7 +289,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="flex-1">
