@@ -124,70 +124,40 @@ serve(async (req) => {
 
     let stripeResponse;
 
+    // Payment Intent para todos os métodos (cartão, PIX e boleto)
+    let paymentMethods = [];
     if (payment_method === 'cartao') {
-      // Checkout Session para cartão
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        line_items: [
-          {
-            price_data: {
-              currency: "brl",
-              product_data: { 
-                name: `Pagamento de Frete - ${freight.id.substring(0, 8)}`,
-                description: `Valor do frete: R$ ${freight.price.toFixed(2)}`
-              },
-              unit_amount: Math.round(remainingAmount * 100), // Converter para centavos
-            },
-            quantity: 1,
-          },
-        ],
-        mode: "payment",
-        success_url: `${Deno.env.get("FRONTEND_URL") || "https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com"}/payment/success?session_id={CHECKOUT_SESSION_ID}&payment_id=${paymentRecord.id}`,
-        cancel_url: `${Deno.env.get("FRONTEND_URL") || "https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com"}/payment/cancel?payment_id=${paymentRecord.id}`,
-        metadata: {
-          payment_id: paymentRecord.id,
-          freight_id: freight_id,
-          payment_method: payment_method,
-          user_id: user.id,
-          type: "freight_payment"
-        }
-      });
-
-      // Atualizar com session_id
-      await supabaseClient
-        .from("payments")
-        .update({ stripe_session_id: session.id })
-        .eq("id", paymentRecord.id);
-
-      stripeResponse = { url: session.url, session_id: session.id };
-
-    } else {
-      // Payment Intent para PIX e Boleto
-      const paymentIntent = await stripe.paymentIntents.create({
-        customer: customerId,
-        amount: Math.round(remainingAmount * 100), // Converter para centavos
-        currency: 'brl',
-        payment_method_types: payment_method === 'pix' ? ['pix'] : ['boleto'],
-        metadata: {
-          payment_id: paymentRecord.id,
-          freight_id: freight_id,
-          payment_method: payment_method,
-          user_id: user.id,
-          type: "freight_payment"
-        }
-      });
-
-      // Atualizar com payment_intent_id
-      await supabaseClient
-        .from("payments")
-        .update({ stripe_payment_id: paymentIntent.id })
-        .eq("id", paymentRecord.id);
-
-      stripeResponse = { 
-        client_secret: paymentIntent.client_secret,
-        payment_intent_id: paymentIntent.id
-      };
+      paymentMethods = ['card'];
+    } else if (payment_method === 'pix') {
+      paymentMethods = ['pix'];
+    } else if (payment_method === 'boleto') {
+      paymentMethods = ['boleto'];
     }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      customer: customerId,
+      amount: Math.round(remainingAmount * 100), // Converter para centavos
+      currency: 'brl',
+      payment_method_types: paymentMethods,
+      metadata: {
+        payment_id: paymentRecord.id,
+        freight_id: freight_id,
+        payment_method: payment_method,
+        user_id: user.id,
+        type: "freight_payment"
+      }
+    });
+
+    // Atualizar com payment_intent_id
+    await supabaseClient
+      .from("payments")
+      .update({ stripe_payment_id: paymentIntent.id })
+      .eq("id", paymentRecord.id);
+
+    stripeResponse = { 
+      client_secret: paymentIntent.client_secret,
+      payment_intent_id: paymentIntent.id
+    };
 
     logStep("Payment created successfully", { 
       paymentId: paymentRecord.id,
