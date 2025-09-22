@@ -75,6 +75,13 @@ const serviceTypes = [
     color: 'text-muted-foreground'
   },
   {
+    id: 'pulverizacao-drone',
+    title: 'Pulverização por Drone',
+    description: 'Aplicação de defensivos e fertilizantes via drone',
+    icon: Battery,
+    color: 'text-accent'
+  },
+  {
     id: 'outros',
     title: 'Outros',
     description: 'Outros tipos de serviços',

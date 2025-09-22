@@ -17,6 +17,7 @@ import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
 import { FreightTrackingPanel } from '@/components/FreightTrackingPanel';
 import { FreightDetails } from '@/components/FreightDetails';
 import { DeliveryConfirmationModal } from '@/components/DeliveryConfirmationModal';
+import { PaymentDeadlineAlert } from '@/components/PaymentDeadlineAlert';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -155,11 +156,14 @@ const ProducerDashboard = () => {
         .eq('id', proposalId);
       if (proposalError) throw proposalError;
 
-      // Atualiza o status do frete para não aparecer mais para motoristas
+      // Atualiza o status do frete para ACCEPTED e associa o motorista
       if (proposal?.freight?.id) {
         const { error: freightError } = await supabase
           .from('freights')
-          .update({ status: 'IN_NEGOTIATION' })
+          .update({ 
+            status: 'ACCEPTED',
+            driver_id: proposal.driver_id 
+          })
           .eq('id', proposal.freight.id)
           .eq('producer_id', profile?.id || '');
         if (freightError) throw freightError;
@@ -403,6 +407,9 @@ const ProducerDashboard = () => {
           </Card>
 
         </div>
+
+        {/* Payment Deadline Alerts */}
+        {profile && <PaymentDeadlineAlert userId={profile.user_id || ''} />}
 
         {/* Tabs Compactas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
