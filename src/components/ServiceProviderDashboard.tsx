@@ -30,13 +30,20 @@ import {
   Droplets,
   Paintbrush2,
   Snowflake,
-  Target
+  Target,
+  TrendingUp,
+  Banknote,
+  Play,
+  Eye,
+  EyeOff,
+  Brain
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
+import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
 
 interface ServiceRequest {
   id: string;
@@ -92,6 +99,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   const [showSpecialtiesModal, setShowSpecialtiesModal] = useState(false);
   const [showAIServicesModal, setShowAIServicesModal] = useState(false);
   const [showSpatialAreasModal, setShowSpatialAreasModal] = useState(false);
+  const [showEarnings, setShowEarnings] = useState(true);
 
   const getProviderProfileId = () => {
     if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
@@ -355,48 +363,11 @@ export const ServiceProviderDashboard: React.FC = () => {
     { value: 'CHAVEIRO', label: 'Chaveiro', icon: Key },
     { value: 'COMBUSTIVEL', label: 'Combustível', icon: Droplets },
     { value: 'PINTURA', label: 'Pintura', icon: Paintbrush2 },
-    { value: 'AR_CONDICIONADO', label: 'Ar Condicionado', icon: Snowflake }
+    { value: 'AR_CONDICIONADO', label: 'Ar Condicionado', icon: Snowflake },
+    { value: 'PULVERIZACAO_DRONE', label: 'Pulverização por Drone', icon: Target }
   ];
 
-  // Função para calcular o tempo restante até expirar (72 horas)
-  const getExpirationInfo = (createdAt: string) => {
-    const createdDate = new Date(createdAt);
-    const expirationDate = new Date(createdDate.getTime() + 72 * 60 * 60 * 1000); // 72 horas
-    const now = new Date();
-    const timeLeft = expirationDate.getTime() - now.getTime();
-    
-    if (timeLeft <= 0) {
-      return { expired: true, text: 'Expirada', color: 'destructive' as const };
-    }
-    
-    const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
-    const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (hoursLeft < 6) {
-      return { 
-        expired: false, 
-        text: `${hoursLeft}h ${minutesLeft}m restantes`, 
-        color: 'destructive' as const 
-      };
-    } else if (hoursLeft < 24) {
-      return { 
-        expired: false, 
-        text: `${hoursLeft}h restantes`, 
-        color: 'default' as const 
-      };
-    } else {
-      const daysLeft = Math.floor(hoursLeft / 24);
-      const remainingHours = hoursLeft % 24;
-      return { 
-        expired: false, 
-        text: `${daysLeft}d ${remainingHours}h restantes`, 
-        color: 'secondary' as const 
-      };
-    }
-  };
-
   const filteredRequests = requests.filter(request => {
-    // Filtro por status
     let statusMatch = false;
     switch (activeTab) {
       case 'pending': statusMatch = request.status === 'PENDING'; break;
@@ -406,7 +377,6 @@ export const ServiceProviderDashboard: React.FC = () => {
       default: statusMatch = true;
     }
     
-    // Filtro por tipo de serviço
     const serviceMatch = serviceTypeFilter === 'all' || request.service_type === serviceTypeFilter;
     
     return statusMatch && serviceMatch;
@@ -421,428 +391,174 @@ export const ServiceProviderDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Banner IA */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-green-500 to-green-600 p-8 text-white">
-        <div className="relative z-10">
-          <h1 className="text-2xl font-bold mb-2">
-            Olá, {user?.user_metadata?.full_name || 'Prestador'}
-          </h1>
-          <p className="text-green-100 mb-6">
-            Sistema IA encontra serviços para você
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Button 
-              variant="secondary" 
-              className="bg-white text-green-600 hover:bg-green-50"
-              onClick={() => setShowAIServicesModal(true)}
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Ver Serviços IA
-            </Button>
-            <Button 
-              variant="secondary" 
-              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
-              onClick={() => setShowSpatialAreasModal(true)}
-            >
-              <Target className="h-4 w-4 mr-2" />
-              Área de Atendimento
-            </Button>
-            <Button 
-              variant="secondary" 
-              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
-              onClick={() => setShowSpecialtiesModal(true)}
-            >
-              <Wrench className="h-4 w-4 mr-2" />
-              Especialidades
-            </Button>
-          </div>
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-transparent"></div>
-      </div>
-
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-500 rounded-lg">
-                <MessageSquare className="h-5 w-5 text-white" />
+    <div className="min-h-screen bg-background">
+      <div className="container max-w-7xl mx-auto py-4 px-4">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center">
+                <MessageSquare className="h-6 w-6 text-primary flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">Total</p>
+                  <p className="text-lg font-bold">{stats.total_requests}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Total de Solicitações</p>
-                <p className="text-2xl font-bold">{stats.total_requests}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-500 rounded-lg">
-                <Clock className="h-5 w-5 text-white" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Pendentes</p>
-                <p className="text-2xl font-bold">{stats.pending_requests}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-500 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-white" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Concluídos</p>
-                <p className="text-2xl font-bold">{stats.completed_requests}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-500 rounded-lg">
-                <Star className="h-5 w-5 text-white" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Ganhos Totais</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.total_earnings)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Lista de Solicitações */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Solicitações de Serviço</CardTitle>
-              <CardDescription>
-                Gerencie suas solicitações de serviços
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Dialog.Root open={showRegionModal} onOpenChange={setShowRegionModal}>
-                <DialogTrigger asChild>
-                  <Button variant="secondary" size="sm" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Configurar Região
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl">
-                  <DialogHeader>
-                    <DialogTitle>Configurar Região de Atendimento</DialogTitle>
-                  </DialogHeader>
-                  <ServiceRegionSelector onClose={() => setShowRegionModal(false)} />
-                </DialogContent>
-              </Dialog.Root>
-
-              <Dialog.Root open={showSpecialtiesModal} onOpenChange={setShowSpecialtiesModal}>
-                <DialogTrigger asChild>
-                  <Button variant="secondary" size="sm" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                    <Wrench className="h-4 w-4 mr-2" />
-                    Especialidades
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Configurar Especialidades</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Selecione seus tipos de serviços especializados para receber solicitações mais relevantes.
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {serviceTypes.slice(1).map((service) => {
-                        const IconComponent = service.icon;
-                        return (
-                          <Button
-                            key={service.value}
-                            variant="outline"
-                            className="justify-start"
-                            onClick={() => {
-                              // TODO: Implementar seleção de especialidades
-                              toast({
-                                title: "Especialidade selecionada",
-                                description: `${service.label} adicionado às suas especialidades.`,
-                              });
-                            }}
-                          >
-                            {IconComponent && <IconComponent className="h-4 w-4 mr-2" />}
-                            {service.label}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                    <div className="flex justify-end pt-4">
-                      <Button onClick={() => setShowSpecialtiesModal(false)}>
-                        Salvar Configurações
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog.Root>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Filtro por Tipo de Serviço */}
-          <div className="mb-4 flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={serviceTypeFilter} onValueChange={setServiceTypeFilter}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Filtrar por tipo de serviço" />
-              </SelectTrigger>
-              <SelectContent>
-                {serviceTypes.map((serviceType) => (
-                  <SelectItem key={serviceType.value} value={serviceType.value}>
-                    {serviceType.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            </CardContent>
+          </Card>
           
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="pending">Pendentes ({stats.pending_requests})</TabsTrigger>
-              <TabsTrigger value="accepted">Aceitas ({stats.accepted_requests})</TabsTrigger>
-              <TabsTrigger value="completed">Concluídas</TabsTrigger>
-              <TabsTrigger value="all">Todas</TabsTrigger>
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center">
+                <Clock className="h-6 w-6 text-orange-500 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">Pendentes</p>
+                  <p className="text-lg font-bold">{stats.pending_requests}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center">
+                <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">Completos</p>
+                  <p className="text-lg font-bold">{stats.completed_requests}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">Ganhos</p>
+                    <p className="text-sm font-bold">
+                      {showEarnings 
+                        ? new Intl.NumberFormat('pt-BR', { 
+                            style: 'currency', 
+                            currency: 'BRL',
+                            notation: 'compact',
+                            maximumFractionDigits: 0
+                          }).format(stats.total_earnings)
+                        : '****'
+                      }
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowEarnings(!showEarnings)}
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                >
+                  {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="w-full overflow-x-auto pb-2">
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
+              <TabsTrigger value="pending" className="text-xs">
+                <Brain className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Pendentes</span>
+                <span className="sm:hidden">Pend</span>
+              </TabsTrigger>
+              <TabsTrigger value="accepted" className="text-xs">
+                <Play className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Em Andamento</span>
+                <span className="sm:hidden">Ativo</span>
+              </TabsTrigger>
+              <TabsTrigger value="completed" className="text-xs">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Concluídos</span>
+                <span className="sm:hidden">Ok</span>
+              </TabsTrigger>
+              <TabsTrigger value="areas" className="text-xs">
+                <MapPin className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Áreas</span>
+                <span className="sm:hidden">Áreas</span>
+              </TabsTrigger>
+              <TabsTrigger value="payouts" className="text-xs">
+                <Banknote className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Saldo</span>
+                <span className="sm:hidden">Saldo</span>
+              </TabsTrigger>
             </TabsList>
-
-            <TabsContent value={activeTab} className="mt-6">
-              {filteredRequests.length === 0 ? (
-                <div className="text-center py-8">
-                  <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-lg font-medium text-muted-foreground">
-                    Nenhuma solicitação encontrada
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredRequests.map((request) => (
-                    <Card key={request.id} className="hover:shadow-lg transition-shadow">
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={request.profiles.profile_photo_url} />
-                              <AvatarFallback>
-                                <User className="h-5 w-5" />
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">{request.profiles.full_name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatDateTime(request.created_at)}
-                              </p>
-                            </div>
-                          </div>
-                           <div className="flex items-center gap-2 flex-wrap">
-                             <Badge variant={getUrgencyColor(request.urgency)}>
-                               {request.urgency}
-                             </Badge>
-                             <Badge variant={getStatusColor(request.status)}>
-                               {request.status}
-                             </Badge>
-                             {request.is_emergency && (
-                               <Badge variant="destructive">
-                                 <AlertCircle className="h-3 w-3 mr-1" />
-                                 EMERGÊNCIA
-                               </Badge>
-                             )}
-                             {/* Indicador de tempo restante para solicitações pendentes */}
-                             {request.status === 'PENDING' && (
-                               <Badge variant={getExpirationInfo(request.created_at).color} className="text-xs">
-                                 <Clock className="h-3 w-3 mr-1" />
-                                 {getExpirationInfo(request.created_at).text}
-                               </Badge>
-                             )}
-                           </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div>
-                            <p className="text-sm font-medium mb-1">Serviço:</p>
-                            <p className="text-sm text-muted-foreground">
-                              {request.service_type.replace(/_/g, ' ')}
-                            </p>
-                          </div>
-                           <div>
-                             <p className="text-sm font-medium mb-1">Local:</p>
-                             <p className="text-sm text-muted-foreground flex items-center gap-1">
-                               <MapPin className="h-3 w-3" />
-                               {request.status === 'ACCEPTED' || request.status === 'COMPLETED' 
-                                 ? request.location_address 
-                                 : 'Endereço disponível após aceitar'}
-                             </p>
-                           </div>
-                          {request.vehicle_info && (
-                            <div>
-                              <p className="text-sm font-medium mb-1">Veículo:</p>
-                              <p className="text-sm text-muted-foreground">{request.vehicle_info}</p>
-                            </div>
-                          )}
-                          {request.preferred_datetime && (
-                            <div>
-                              <p className="text-sm font-medium mb-1">Data preferida:</p>
-                              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {formatDateTime(request.preferred_datetime)}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mb-4">
-                          <p className="text-sm font-medium mb-1">Descrição do problema:</p>
-                          <p className="text-sm text-muted-foreground">{request.problem_description}</p>
-                        </div>
-
-                         {request.additional_info && (
-                           <div className="mb-4">
-                             <p className="text-sm font-medium mb-1">Informações adicionais:</p>
-                             <p className="text-sm text-muted-foreground">{request.additional_info}</p>
-                           </div>
-                         )}
-
-                         {request.status === 'PENDING' && (
-                           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                             <p className="text-xs text-blue-700">
-                               <AlertCircle className="h-3 w-3 inline mr-1" />
-                               Os dados de contato e endereço completo ficam disponíveis após aceitar a solicitação.
-                             </p>
-                           </div>
-                         )}
-
-                         <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-4">
-                             {request.status === 'ACCEPTED' || request.status === 'COMPLETED' ? (
-                               <Button
-                                 variant="outline"
-                                 size="sm"
-                                 onClick={() => {
-                                   const phone = request.contact_phone.replace(/\D/g, '');
-                                   const message = encodeURIComponent(
-                                     `Olá ${request.contact_name || request.profiles.full_name}! Sou prestador de serviços do AgriRoute e recebi sua solicitação de ${request.service_type.replace(/_/g, ' ').toLowerCase()}. Vamos conversar sobre os detalhes?`
-                                   );
-                                   window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
-                                 }}
-                               >
-                                 <Phone className="h-4 w-4 mr-2" />
-                                 Ligar/WhatsApp
-                               </Button>
-                             ) : (
-                               <Button
-                                 variant="outline"
-                                 size="sm"
-                                 disabled
-                                 className="opacity-50"
-                               >
-                                 <Phone className="h-4 w-4 mr-2" />
-                                 Contato disponível após aceitar
-                               </Button>
-                             )}
-                           </div>
-
-                           <div className="flex gap-2">
-                             {request.status === 'PENDING' && (
-                               <Button 
-                                 size="sm"
-                                 onClick={() => handleAcceptRequest(request.id)}
-                               >
-                                 <CheckCircle className="h-4 w-4 mr-2" />
-                                 Aceitar
-                               </Button>
-                             )}
-                             {request.status === 'ACCEPTED' && (
-                               <Button 
-                                 size="sm"
-                                 variant="outline"
-                                 onClick={() => handleCompleteRequest(request.id)}
-                               >
-                                 <CheckCircle className="h-4 w-4 mr-2" />
-                                 Marcar como Concluído
-                               </Button>
-                             )}
-                              {/* Mostrar indicador de dados protegidos */}
-                              {request.contact_phone?.includes('***') && (
-                                <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
-                                  🔒 Dados protegidos
-                                </Badge>
-                              )}
-                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Modal Ver Serviços IA */}
-      <Dialog.Root open={showAIServicesModal} onOpenChange={setShowAIServicesModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Serviços IA - Em Breve</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="text-center py-8">
-              <Sparkles className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Sistema IA em Desenvolvimento</h3>
-              <p className="text-muted-foreground">
-                Nossa inteligência artificial estará disponível em breve para encontrar automaticamente 
-                os melhores serviços para você com base no seu perfil e localização.
-              </p>
-            </div>
-            <div className="flex justify-end">
-              <Button onClick={() => setShowAIServicesModal(false)}>
-                Entendi
-              </Button>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog.Root>
 
-      {/* Modal Áreas Espaciais Inteligentes */}
-      <Dialog.Root open={showSpatialAreasModal} onOpenChange={setShowSpatialAreasModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Áreas de Atendimento Inteligentes
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-700">
-                <Target className="h-4 w-4 inline mr-2" />
-                Sistema avançado com matching espacial por GPS. Configure múltiplas bases operacionais 
-                com raios específicos para receber apenas solicitações relevantes da sua região.
-              </p>
+          <TabsContent value="pending" className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Solicitações Pendentes</h3>
+              <Badge variant="secondary" className="text-xs">{filteredRequests.length}</Badge>
             </div>
+            
+            {filteredRequests.length > 0 ? (
+              <div className="space-y-4">
+                {filteredRequests.map((request) => (
+                  <Card key={request.id} className="shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-medium text-sm">
+                          {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
+                        </h3>
+                        <Badge variant={getUrgencyColor(request.urgency)} className="text-xs">
+                          {request.urgency === 'URGENT' ? 'Urgente' : 
+                           request.urgency === 'HIGH' ? 'Alto' :
+                           request.urgency === 'MEDIUM' ? 'Médio' : 'Baixo'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => handleAcceptRequest(request.id)}
+                        >
+                          Aceitar Serviço
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Nenhuma solicitação pendente.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="accepted" className="space-y-4">
             <ServiceProviderAreasManager />
-            <div className="flex justify-end pt-4">
-              <Button onClick={() => setShowSpatialAreasModal(false)}>
-                Fechar
-              </Button>
+          </TabsContent>
+
+          <TabsContent value="completed" className="space-y-4">
+            <div className="text-center py-12">
+              <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">Serviços concluídos aparecerão aqui.</p>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog.Root>
+          </TabsContent>
+
+          <TabsContent value="areas" className="space-y-4">
+            <ServiceProviderAreasManager />
+          </TabsContent>
+
+          <TabsContent value="payouts" className="space-y-4">
+            <ServiceProviderPayouts providerId={getProviderProfileId() || ''} />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
