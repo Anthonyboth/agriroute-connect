@@ -131,18 +131,21 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       if (providerError) throw providerError;
 
-      // Buscar solicitações pendentes (sem prestador atribuído) na região
-      const { data: pendingRequests, error: pendingError } = await supabase
-        .from('service_requests')
-        .select('*')
-        .is('provider_id', null)
-        .eq('status', 'OPEN')
-        .order('created_at', { ascending: false });
+      // Buscar solicitações pendentes (sem prestador atribuído) usando filtro REGIONAL (RPC)
+      const { data: regionalData, error: regionalError } = await supabase
+        .rpc('get_service_requests_in_radius', {
+          provider_profile_id: providerId
+        });
 
-      if (pendingError) throw pendingError;
+      if (regionalError) throw regionalError;
 
-      // Combinar todas as solicitações
-      const allRequests = [...(providerRequests || []), ...(pendingRequests || [])];
+      const pendingRegionalRequests = (regionalData || []).filter((r: any) => !r.provider_id && r.status === 'OPEN');
+
+      // Combinar e deduplicar por id
+      const byId = new Map<string, ServiceRequest>();
+      (providerRequests || []).forEach((r: any) => byId.set(r.id, r as ServiceRequest));
+      pendingRegionalRequests.forEach((r: any) => byId.set(r.id, r as ServiceRequest));
+      const allRequests = Array.from(byId.values());
       setRequests(allRequests);
     } catch (error: any) {
       console.error('Error fetching service requests:', error);
