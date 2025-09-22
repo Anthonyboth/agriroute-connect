@@ -454,11 +454,6 @@ export const ServiceProviderDashboard: React.FC = () => {
                 <span className="hidden sm:inline">Saldo</span>
                 <span className="sm:hidden">Saldo</span>
               </TabsTrigger>
-              <TabsTrigger value="regional" className="text-xs">
-                <MapPin className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Regional</span>
-                <span className="sm:hidden">Região</span>
-              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -614,38 +609,6 @@ export const ServiceProviderDashboard: React.FC = () => {
             <ServiceProviderPayouts providerId={getProviderProfileId() || ''} />
           </TabsContent>
 
-          <TabsContent value="regional" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="text-lg font-semibold">Configuração Regional</h3>
-                <p className="text-sm text-muted-foreground">
-                  Configure sua região de atendimento e tipos de serviços
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setShowLocationManager(true)}
-                className="flex items-center gap-2"
-              >
-                <Settings className="h-4 w-4" />
-                Configurar Região
-              </Button>
-            </div>
-            
-            {/* Gerenciamento de Tipos de Serviços */}
-            <div className="space-y-4">
-              <ServiceProviderServiceTypeManager />
-              
-              {/* Filtro Regional de Solicitações */}
-              <div className="mt-6">
-                <h4 className="text-md font-semibold mb-3">Solicitações na Sua Região</h4>
-                <RegionalFreightFilter 
-                  userType="PRESTADOR_SERVICOS" 
-                  onFreightsLoaded={setRegionalRequests}
-                />
-              </div>
-            </div>
-          </TabsContent>
         </Tabs>
 
         {/* Modal de Configuração de Localização */}
