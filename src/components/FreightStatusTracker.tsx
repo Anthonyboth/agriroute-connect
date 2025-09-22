@@ -93,6 +93,26 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
 
     setLoading(true);
     try {
+      // Verificar se já existe esse status no histórico recente (últimos 5 minutos)
+      const { data: recentHistory } = await supabase
+        .from('freight_status_history')
+        .select('*')
+        .eq('freight_id', freightId)
+        .eq('status', newStatus as any)
+        .eq('changed_by', currentUserProfile.id)
+        .gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (recentHistory && recentHistory.length > 0) {
+        toast({
+          title: "Status já atualizado",
+          description: "Este status já foi registrado recentemente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       let location = null;
       
       // Tentar obter localização atual
@@ -102,7 +122,19 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         // Silent location update - don't log errors
       }
 
-      const { error } = await supabase
+      // Atualizar o status do frete na tabela principal
+      const { error: freightError } = await supabase
+        .from('freights')
+        .update({ 
+          status: newStatus as any,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', freightId);
+
+      if (freightError) throw freightError;
+
+      // Inserir no histórico
+      const { error: historyError } = await supabase
         .from('freight_status_history')
         .insert({
           freight_id: freightId,
@@ -113,7 +145,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           location_lng: location?.lng
         });
 
-      if (error) throw error;
+      if (historyError) throw historyError;
 
       setNotes('');
       fetchStatusHistory();
@@ -122,6 +154,9 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         title: "Status atualizado",
         description: `Frete marcado como: ${STATUS_FLOW.find(s => s.key === newStatus)?.label}`,
       });
+
+      // Forçar atualização da página parent para refletir o novo status
+      window.location.reload();
 
     } catch (error: any) {
       toast({
