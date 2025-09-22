@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
-export type SubscriptionTier = 'FREE' | 'ESSENTIAL' | 'PROFESSIONAL';
+export type SubscriptionTier = 'FREE' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
 
 interface SubscriptionState {
   subscribed: boolean;
@@ -14,7 +14,7 @@ interface SubscriptionState {
 
 interface SubscriptionContextType extends SubscriptionState {
   checkSubscription: () => Promise<void>;
-  createCheckout: (tier: 'ESSENTIAL' | 'PROFESSIONAL') => Promise<void>;
+  createCheckout: (tier: 'BASIC' | 'PREMIUM' | 'ENTERPRISE') => Promise<void>;
   openCustomerPortal: () => Promise<void>;
   canAccessFeature: (requiredTier: SubscriptionTier) => boolean;
 }
@@ -31,8 +31,9 @@ export const useSubscription = () => {
 
 const tierHierarchy = {
   FREE: 0,
-  ESSENTIAL: 1,
-  PROFESSIONAL: 2
+  BASIC: 1,
+  PREMIUM: 2,
+  ENTERPRISE: 3
 };
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
@@ -92,7 +93,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const createCheckout = async (tier: 'ESSENTIAL' | 'PROFESSIONAL') => {
+  const createCheckout = async (tier: 'BASIC' | 'PREMIUM' | 'ENTERPRISE') => {
     if (!user) {
       toast.error('Você precisa estar logado para assinar');
       return;

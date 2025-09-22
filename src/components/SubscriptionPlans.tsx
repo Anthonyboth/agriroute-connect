@@ -27,8 +27,8 @@ const SubscriptionPlans: React.FC = () => {
       popular: false
     },
     {
-      id: 'ESSENTIAL',
-      name: 'Essential',
+      id: 'BASIC',
+      name: 'Básico',
       price: 'R$ 29',
       period: '/mês',
       description: 'Para produtores que transportam regularmente',
@@ -40,35 +40,54 @@ const SubscriptionPlans: React.FC = () => {
         'Acesso antecipado a novos recursos'
       ],
       icon: <Star className="h-5 w-5" />,
-      buttonText: subscriptionTier === 'ESSENTIAL' ? 'Plano Atual' : 'Assinar Essential',
-      disabled: subscriptionTier === 'ESSENTIAL',
+      buttonText: subscriptionTier === 'BASIC' ? 'Plano Atual' : 'Assinar Básico',
+      disabled: subscriptionTier === 'BASIC',
       popular: true
     },
     {
-      id: 'PROFESSIONAL',
-      name: 'Professional',
-      price: 'R$ 49',
+      id: 'PREMIUM',
+      name: 'Premium',
+      price: 'R$ 59',
       period: '/mês',
-      description: 'Para grandes produtores e cooperativas',
+      description: 'Para grandes produtores',
       features: [
-        'Tudo do Essential',
-        'Comissão mínima de 2%',
-        'Suporte VIP 24/7',
-        'Relatórios avançados e analytics',
+        'Tudo do Básico',
+        'Comissão mínima de 2.5%',
+        'Suporte VIP',
+        'Relatórios avançados',
         'API para integração',
-        'Gerenciamento de múltiplas fazendas',
-        'Consultor dedicado'
+        'Gerenciamento de múltiplas fazendas'
       ],
       icon: <Zap className="h-5 w-5" />,
-      buttonText: subscriptionTier === 'PROFESSIONAL' ? 'Plano Atual' : 'Assinar Professional',
-      disabled: subscriptionTier === 'PROFESSIONAL',
+      buttonText: subscriptionTier === 'PREMIUM' ? 'Plano Atual' : 'Assinar Premium',
+      disabled: subscriptionTier === 'PREMIUM',
+      popular: false
+    },
+    {
+      id: 'ENTERPRISE',
+      name: 'Enterprise',
+      price: 'R$ 99',
+      period: '/mês',
+      description: 'Para cooperativas e grandes empresas',
+      features: [
+        'Tudo do Premium',
+        'Comissão mínima de 2%',
+        'Suporte VIP 24/7',
+        'Analytics avançados',
+        'Integração completa',
+        'Consultor dedicado',
+        'SLA garantido'
+      ],
+      icon: <Zap className="h-5 w-5" />,
+      buttonText: subscriptionTier === 'ENTERPRISE' ? 'Plano Atual' : 'Assinar Enterprise',
+      disabled: subscriptionTier === 'ENTERPRISE',
       popular: false
     }
   ];
 
   const handleSubscribe = async (planId: string) => {
-    if (planId === 'ESSENTIAL' || planId === 'PROFESSIONAL') {
-      await createCheckout(planId as 'ESSENTIAL' | 'PROFESSIONAL');
+    if (planId === 'BASIC' || planId === 'PREMIUM' || planId === 'ENTERPRISE') {
+      await createCheckout(planId as 'BASIC' | 'PREMIUM' | 'ENTERPRISE');
     }
   };
 

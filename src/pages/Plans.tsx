@@ -35,8 +35,8 @@ const Plans: React.FC = () => {
       current: subscriptionTier === 'FREE'
     },
     {
-      id: 'ESSENTIAL',
-      name: 'Essential',
+      id: 'BASIC',
+      name: 'Básico',
       price: 'R$ 29',
       period: '/mês',
       description: 'Para produtores que transportam regularmente',
@@ -49,43 +49,62 @@ const Plans: React.FC = () => {
         'Rede premium de motoristas'
       ],
       icon: <Star className="h-5 w-5" />,
-      buttonText: subscriptionTier === 'ESSENTIAL' ? 'Gerenciar Plano' : 'Assinar Essential',
+      buttonText: subscriptionTier === 'BASIC' ? 'Gerenciar Plano' : 'Assinar Básico',
       disabled: false,
       popular: true,
-      current: subscriptionTier === 'ESSENTIAL'
+      current: subscriptionTier === 'BASIC'
     },
     {
-      id: 'PROFESSIONAL',
-      name: 'Professional',
-      price: 'R$ 49',
+      id: 'PREMIUM',
+      name: 'Premium',
+      price: 'R$ 59',
       period: '/mês',
-      description: 'Para grandes produtores e cooperativas',
+      description: 'Para grandes produtores',
       features: [
-        'Tudo do Essential',
-        'Comissão mínima de 2%',
-        'Suporte VIP 24/7',
+        'Tudo do Básico',
+        'Comissão mínima de 2.5%',
+        'Suporte VIP',
         'Relatórios avançados e analytics',
         'API para integração',
-        'Gerenciamento de múltiplas fazendas',
-        'Consultor dedicado',
-        'Prioridade máxima na plataforma'
+        'Gerenciamento de múltiplas fazendas'
       ],
       icon: <Zap className="h-5 w-5" />,
-      buttonText: subscriptionTier === 'PROFESSIONAL' ? 'Gerenciar Plano' : 'Assinar Professional',
+      buttonText: subscriptionTier === 'PREMIUM' ? 'Gerenciar Plano' : 'Assinar Premium',
       disabled: false,
       popular: false,
-      current: subscriptionTier === 'PROFESSIONAL'
+      current: subscriptionTier === 'PREMIUM'
+    },
+    {
+      id: 'ENTERPRISE',
+      name: 'Enterprise',
+      price: 'R$ 99',
+      period: '/mês',
+      description: 'Para cooperativas e grandes empresas',
+      features: [
+        'Tudo do Premium',
+        'Comissão mínima de 2%',
+        'Suporte VIP 24/7',
+        'Analytics avançados',
+        'Integração completa',
+        'Consultor dedicado',
+        'SLA garantido'
+      ],
+      icon: <Crown className="h-5 w-5" />,
+      buttonText: subscriptionTier === 'ENTERPRISE' ? 'Gerenciar Plano' : 'Assinar Enterprise',
+      disabled: false,
+      popular: false,
+      current: subscriptionTier === 'ENTERPRISE'
     }
   ];
 
   const handlePlanAction = async (planId: string) => {
-    if (planId === 'ESSENTIAL' || planId === 'PROFESSIONAL') {
+    if (planId === 'BASIC' || planId === 'PREMIUM' || planId === 'ENTERPRISE') {
       if (subscriptionTier === planId) {
         // Open customer portal for current plan
         await openCustomerPortal();
       } else {
         // Create checkout for new plan
-        await createCheckout(planId as 'ESSENTIAL' | 'PROFESSIONAL');
+        await createCheckout(planId as 'BASIC' | 'PREMIUM' | 'ENTERPRISE');
       }
     }
   };
@@ -156,7 +175,7 @@ const Plans: React.FC = () => {
 
           {/* Plans Grid */}
           <div className="lg:col-span-3">
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-4">
               {plans.map((plan) => (
                 <Card 
                   key={plan.id} 

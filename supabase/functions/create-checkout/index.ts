@@ -17,26 +17,37 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-  );
-
   try {
     logStep("Function started");
 
-    const { tier } = await req.json();
-    if (!tier || !['ESSENTIAL', 'PROFESSIONAL'].includes(tier)) {
-      throw new Error("Invalid subscription tier");
-    }
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
 
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("No authorization header provided");
+
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    logStep("User authenticated", { userId: user.id, email: user.email, tier });
+    logStep("User authenticated", { userId: user.id, email: user.email });
+
+    const { tier } = await req.json();
+    if (!tier) throw new Error("Tier is required");
+
+    const tierPrices = {
+      'BASIC': 'price_1SAAD5Fk9MPYZBVd7qBtf20e',
+      'PREMIUM': 'price_1SAADbFk9MPYZBVd6iBM29aR', 
+      'ENTERPRISE': 'price_1SAADsFk9MPYZBVdZRGSnlkt'
+    };
+
+    const priceId = tierPrices[tier as keyof typeof tierPrices];
+    if (!priceId) throw new Error("Invalid tier");
+
+    logStep("Selected tier and price", { tier, priceId });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
       apiVersion: "2023-10-16" 
@@ -47,40 +58,25 @@ serve(async (req) => {
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Found existing customer", { customerId });
+    } else {
+      logStep("No existing customer found, will create during checkout");
     }
-
-    // Define pricing based on tier
-    const pricing = {
-      ESSENTIAL: { amount: 2900, name: "Plano Essential" }, // R$ 29/month
-      PROFESSIONAL: { amount: 4900, name: "Plano Professional" } // R$ 49/month
-    };
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price_data: {
-            currency: "brl",
-            product_data: { 
-              name: pricing[tier as keyof typeof pricing].name,
-              description: tier === 'ESSENTIAL' ? 
-                'Acesso a recursos avançados e suporte prioritário' : 
-                'Todos os recursos premium e suporte VIP'
-            },
-            unit_amount: pricing[tier as keyof typeof pricing].amount,
-            recurring: { interval: "month" },
-          },
+          price: priceId,
           quantity: 1,
         },
       ],
       mode: "subscription",
-      success_url: "https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/success?session_id={CHECKOUT_SESSION_ID}&type=subscription",
-      cancel_url: "https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/cancel?type=subscription",
+      success_url: `${req.headers.get("origin")}/payment-success`,
+      cancel_url: `${req.headers.get("origin")}/plans`,
       metadata: {
         user_id: user.id,
-        subscription_tier: tier,
-        type: "subscription"
+        tier: tier
       }
     });
 

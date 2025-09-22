@@ -44,21 +44,24 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, updating free tier state");
-    await supabaseClient.from("subscribers").upsert({
-      user_email: user.email,
-      user_id: user.id,
-      stripe_customer_id: null,
-      subscribed: false,
-      subscription_tier: 'FREE',
-      tier: 'FREE',
-      subscription_end_date: null,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_email' });
+      logStep("No customer found");
       
+      // Update user subscription status in database
+      await supabaseClient
+        .from('user_subscriptions')
+        .upsert({
+          user_id: user.id,
+          plan_id: null,
+          status: 'INACTIVE',
+          current_period_end: null,
+          stripe_subscription_id: null,
+          stripe_customer_id: null
+        });
+
       return new Response(JSON.stringify({ 
-        subscribed: false, 
-        subscription_tier: 'FREE' 
+        subscribed: false,
+        subscription_tier: 'FREE',
+        subscription_end: null
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -75,51 +78,67 @@ serve(async (req) => {
     });
 
     const hasActiveSub = subscriptions.data.length > 0;
-    let subscriptionTier = 'FREE';
+    let tier = 'FREE';
     let subscriptionEnd = null;
+    let planId = null;
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      
-      // Determine tier from price amount
       const priceId = subscription.items.data[0].price.id;
-      const price = await stripe.prices.retrieve(priceId);
-      const amount = price.unit_amount || 0;
       
-      if (amount >= 4900) {
-        subscriptionTier = "PROFESSIONAL";
-      } else if (amount >= 2900) {
-        subscriptionTier = "ESSENTIAL";
+      // Map price IDs to tiers and plan IDs
+      const priceTierMap: { [key: string]: { tier: string; planId: number } } = {
+        'price_1SAAD5Fk9MPYZBVd7qBtf20e': { tier: 'BASIC', planId: 1 },
+        'price_1SAADbFk9MPYZBVd6iBM29aR': { tier: 'PREMIUM', planId: 2 },
+        'price_1SAADsFk9MPYZBVdZRGSnlkt': { tier: 'ENTERPRISE', planId: 3 }
+      };
+
+      const planInfo = priceTierMap[priceId];
+      if (planInfo) {
+        tier = planInfo.tier;
+        planId = planInfo.planId;
       }
-      
+
       logStep("Active subscription found", { 
         subscriptionId: subscription.id, 
         endDate: subscriptionEnd,
-        tier: subscriptionTier,
-        amount 
+        tier,
+        planId
       });
+
+      // Update user subscription status in database
+      await supabaseClient
+        .from('user_subscriptions')
+        .upsert({
+          user_id: user.id,
+          plan_id: planId,
+          status: 'ACTIVE',
+          current_period_end: subscriptionEnd,
+          stripe_subscription_id: subscription.id,
+          stripe_customer_id: customerId
+        });
     } else {
       logStep("No active subscription found");
+      
+      // Update user subscription status in database
+      await supabaseClient
+        .from('user_subscriptions')
+        .upsert({
+          user_id: user.id,
+          plan_id: null,
+          status: 'INACTIVE',
+          current_period_end: null,
+          stripe_subscription_id: null,
+          stripe_customer_id: customerId
+        });
     }
-
-    await supabaseClient.from("subscribers").upsert({
-      user_email: user.email,
-      user_id: user.id,
-      stripe_customer_id: customerId,
-      subscribed: hasActiveSub,
-      subscription_tier: subscriptionTier,
-      tier: subscriptionTier,
-      subscription_end_date: subscriptionEnd,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_email' });
-
-    logStep("Updated database", { subscribed: hasActiveSub, subscriptionTier });
 
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
-      subscription_tier: subscriptionTier,
-      subscription_end: subscriptionEnd
+      subscription_tier: tier,
+      subscription_end: subscriptionEnd,
+      plan_id: planId
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
