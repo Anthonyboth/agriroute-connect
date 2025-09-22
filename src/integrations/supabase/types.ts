@@ -1738,6 +1738,10 @@ export type Database = {
           antt_number: string | null
           aprovado: boolean | null
           background_check_status: string | null
+          base_city_name: string | null
+          base_lat: number | null
+          base_lng: number | null
+          base_state: string | null
           cnh_category: string | null
           cnh_expiry_date: string | null
           cnh_photo_url: string | null
@@ -1800,6 +1804,10 @@ export type Database = {
           antt_number?: string | null
           aprovado?: boolean | null
           background_check_status?: string | null
+          base_city_name?: string | null
+          base_lat?: number | null
+          base_lng?: number | null
+          base_state?: string | null
           cnh_category?: string | null
           cnh_expiry_date?: string | null
           cnh_photo_url?: string | null
@@ -1862,6 +1870,10 @@ export type Database = {
           antt_number?: string | null
           aprovado?: boolean | null
           background_check_status?: string | null
+          base_city_name?: string | null
+          base_lat?: number | null
+          base_lng?: number | null
+          base_state?: string | null
           cnh_category?: string | null
           cnh_expiry_date?: string | null
           cnh_photo_url?: string | null
@@ -3584,6 +3596,10 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      calculate_distance_km: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
       can_notify_driver: {
         Args: { p_driver_id: string }
         Returns: boolean
@@ -4012,6 +4028,28 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_freights_in_radius: {
+        Args: { driver_profile_id: string }
+        Returns: {
+          cargo_type: string
+          created_at: string
+          delivery_date: string
+          destination_address: string
+          destination_lat: number
+          destination_lng: number
+          distance_km: number
+          id: string
+          origin_address: string
+          origin_lat: number
+          origin_lng: number
+          pickup_date: string
+          price: number
+          producer_id: string
+          status: string
+          urgency: string
+          weight: number
+        }[]
+      }
       get_platform_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -4128,6 +4166,23 @@ export type Database = {
           is_active: boolean
           name: string
           role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
+      get_service_requests_in_radius: {
+        Args: { provider_profile_id: string }
+        Returns: {
+          client_id: string
+          contact_phone: string
+          created_at: string
+          distance_km: number
+          id: string
+          location_address: string
+          location_lat: number
+          location_lng: number
+          problem_description: string
+          service_type: string
+          status: string
+          urgency: string
         }[]
       }
       get_user_role: {
