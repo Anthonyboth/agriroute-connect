@@ -14,9 +14,9 @@ const SubscriptionPlans: React.FC = () => {
       name: 'Gratuito',
       price: 'R$ 0',
       period: '/mês',
-      description: 'Para começar a usar a plataforma',
+      description: 'Para experimentar a plataforma',
       features: [
-        'Até 3 cargas por mês',
+        '3 fretes gratuitos no primeiro cadastro',
         'Comissão de 5%',
         'Suporte básico por email',
         'Acesso a motoristas verificados'
