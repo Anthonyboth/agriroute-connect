@@ -292,6 +292,85 @@ export const ServiceProviderServiceTypeManager: React.FC = () => {
         </div>
 
 
+        {/* Lista de Tipos de Serviços por Categoria */}
+        <div className="space-y-6">
+          {Object.entries(groupedServices).map(([category, services]) => (
+            <div key={category} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-foreground">
+                  {CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]}
+                </h3>
+                <Badge variant="outline" className="text-xs">
+                  {services.filter(s => selectedServices.includes(s.id)).length}/{services.length}
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {services.map((serviceType) => {
+                  const isSelected = selectedServices.includes(serviceType.id);
+                  const IconComponent = serviceType.icon;
+                  
+                  return (
+                    <div 
+                      key={serviceType.id}
+                      className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-sm ${
+                        isSelected 
+                          ? 'bg-primary/5 border-primary/30 shadow-sm' 
+                          : 'bg-card border-border hover:border-primary/20'
+                      }`}
+                      onClick={() => handleServiceToggle(serviceType.id, !isSelected)}
+                    >
+                      <Checkbox
+                        id={serviceType.id}
+                        checked={isSelected}
+                        onCheckedChange={(checked) => handleServiceToggle(serviceType.id, checked as boolean)}
+                        className="mt-0.5"
+                      />
+                      
+                      <div className="flex-1 min-w-0">
+                        <Label 
+                          htmlFor={serviceType.id} 
+                          className="flex items-center gap-2 cursor-pointer text-sm font-medium"
+                        >
+                          <IconComponent className="h-4 w-4 text-primary flex-shrink-0" />
+                          <span className="truncate">{serviceType.label}</span>
+                        </Label>
+                        {serviceType.description && (
+                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                            {serviceType.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Resumo de Seleção */}
+        {selectedServices.length > 0 && (
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-primary">
+                {selectedServices.length} {selectedServices.length === 1 ? 'serviço selecionado' : 'serviços selecionados'}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {selectedServices.map(serviceId => {
+                const service = SERVICE_PROVIDER_TYPES.find(s => s.id === serviceId);
+                return service ? (
+                  <Badge key={serviceId} variant="secondary" className="text-xs">
+                    {service.label}
+                  </Badge>
+                ) : null;
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Aviso */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
           <div className="flex items-center gap-2 text-yellow-700">
