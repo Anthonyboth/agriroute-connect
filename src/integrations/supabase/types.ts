@@ -1654,6 +1654,48 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          category: Database["public"]["Enums"]["service_category"]
+          created_at: string | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          monthly_fee: number
+          name: string
+          percentage_fee: number
+          plan_type: Database["public"]["Enums"]["plan_type"]
+          stripe_price_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["service_category"]
+          created_at?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          monthly_fee?: number
+          name: string
+          percentage_fee?: number
+          plan_type: Database["public"]["Enums"]["plan_type"]
+          stripe_price_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["service_category"]
+          created_at?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          monthly_fee?: number
+          name?: string
+          percentage_fee?: number
+          plan_type?: Database["public"]["Enums"]["plan_type"]
+          stripe_price_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       pricing_plans: {
         Row: {
           created_at: string
@@ -2598,6 +2640,54 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_fees: {
+        Row: {
+          created_at: string | null
+          fee_amount: number
+          fee_percentage: number
+          freight_amount: number
+          freight_id: string | null
+          id: string
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          fee_amount: number
+          fee_percentage: number
+          freight_amount: number
+          freight_id?: string | null
+          id?: string
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          fee_amount?: number
+          fee_percentage?: number
+          freight_amount?: number
+          freight_id?: string | null
+          id?: string
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_fees_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_fees_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_messages: {
         Row: {
           created_at: string
@@ -3077,6 +3167,59 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          ends_at: string | null
+          id: string
+          plan_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          ends_at?: string | null
+          id?: string
+          plan_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          ends_at?: string | null
+          id?: string
+          plan_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       validation_history: {
         Row: {
@@ -5343,6 +5486,20 @@ export type Database = {
         | "LOADED"
         | "DELIVERED_PENDING_CONFIRMATION"
       payment_method: "PIX" | "BOLETO" | "CARTAO" | "DIRETO"
+      plan_type: "free" | "essential" | "professional"
+      service_category:
+        | "rodotrem"
+        | "carreta"
+        | "truck"
+        | "vuc"
+        | "pickup"
+        | "prestador"
+      subscription_status:
+        | "active"
+        | "canceled"
+        | "past_due"
+        | "unpaid"
+        | "incomplete"
       urgency_level: "LOW" | "MEDIUM" | "HIGH"
       user_role: "PRODUTOR" | "MOTORISTA" | "ADMIN" | "PRESTADOR_SERVICOS"
       user_status: "PENDING" | "APPROVED" | "REJECTED"
@@ -5506,6 +5663,22 @@ export const Constants = {
         "DELIVERED_PENDING_CONFIRMATION",
       ],
       payment_method: ["PIX", "BOLETO", "CARTAO", "DIRETO"],
+      plan_type: ["free", "essential", "professional"],
+      service_category: [
+        "rodotrem",
+        "carreta",
+        "truck",
+        "vuc",
+        "pickup",
+        "prestador",
+      ],
+      subscription_status: [
+        "active",
+        "canceled",
+        "past_due",
+        "unpaid",
+        "incomplete",
+      ],
       urgency_level: ["LOW", "MEDIUM", "HIGH"],
       user_role: ["PRODUTOR", "MOTORISTA", "ADMIN", "PRESTADOR_SERVICOS"],
       user_status: ["PENDING", "APPROVED", "REJECTED"],
