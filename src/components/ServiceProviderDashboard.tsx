@@ -44,6 +44,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
 import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
+import ServiceProviderHeroDashboard from '@/components/ServiceProviderHeroDashboard';
 
 interface ServiceRequest {
   id: string;
@@ -100,6 +101,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   const [showAIServicesModal, setShowAIServicesModal] = useState(false);
   const [showSpatialAreasModal, setShowSpatialAreasModal] = useState(false);
   const [showEarnings, setShowEarnings] = useState(true);
+  const [showHeroDashboard, setShowHeroDashboard] = useState(true);
 
   const getProviderProfileId = () => {
     if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
@@ -355,9 +357,40 @@ export const ServiceProviderDashboard: React.FC = () => {
     );
   }
 
+  // Show hero dashboard by default, toggle to detailed view
+  if (showHeroDashboard) {
+    return (
+      <div>
+        <ServiceProviderHeroDashboard />
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              onClick={() => setShowHeroDashboard(false)}
+              className="mb-4"
+            >
+              Ver Detalhes das Solicitações
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-7xl mx-auto py-4 px-4">
+        {/* Back to Hero Button */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">Detalhes das Solicitações</h2>
+          <Button
+            variant="outline"
+            onClick={() => setShowHeroDashboard(true)}
+          >
+            Voltar ao Dashboard
+          </Button>
+        </div>
+        
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <Card className="shadow-sm">
