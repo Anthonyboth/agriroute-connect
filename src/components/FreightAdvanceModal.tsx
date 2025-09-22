@@ -141,78 +141,93 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-primary" />
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0 pb-4">
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <DollarSign className="h-6 w-6 text-green-600" />
             Solicitar Adiantamento
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-1 space-y-5 max-h-[calc(90vh-140px)]">
+        <div className="flex-1 overflow-y-auto space-y-6 max-h-[calc(90vh-160px)]">
           {/* Status das Solicitações Pendentes */}
           {pendingCount > 0 && (
-            <div className={`p-4 rounded-xl border-l-4 ${
+            <Alert className={`border-l-4 ${
               pendingCount >= 3 
-                ? 'border-l-red-500 bg-red-50/80' 
-                : 'border-l-amber-500 bg-amber-50/80'
+                ? 'border-l-red-500 bg-red-50 border-red-200' 
+                : 'border-l-amber-500 bg-amber-50 border-amber-200'
             }`}>
-              <div className="flex items-start gap-3">
-                <AlertTriangle className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
-                  pendingCount >= 3 ? 'text-red-600' : 'text-amber-600'
-                }`} />
-                <div>
-                  <p className={`font-semibold mb-1 ${
-                    pendingCount >= 3 ? 'text-red-800' : 'text-amber-800'
-                  }`}>
-                    {pendingCount >= 3 ? 'Limite de Solicitações Atingido' : 'Solicitações Pendentes'}
-                  </p>
-                  <p className={`text-sm leading-relaxed ${
-                    pendingCount >= 3 ? 'text-red-700' : 'text-amber-700'
-                  }`}>
-                    {pendingCount >= 3 
-                      ? `Você já tem ${pendingCount} solicitações pendentes. Aguarde a aprovação ou rejeição das anteriores antes de fazer uma nova solicitação.`
-                      : `Você tem ${pendingCount} solicitação(ões) aguardando aprovação para este frete.`
-                    }
-                  </p>
+              <AlertTriangle className={`h-4 w-4 ${
+                pendingCount >= 3 ? 'text-red-600' : 'text-amber-600'
+              }`} />
+              <AlertDescription className="ml-2">
+                <div className={`font-semibold ${
+                  pendingCount >= 3 ? 'text-red-800' : 'text-amber-800'
+                }`}>
+                  {pendingCount >= 3 ? 'Limite de Solicitações Atingido' : 'Solicitações Pendentes'}
                 </div>
-              </div>
-            </div>
+                <div className={`text-sm mt-1 ${
+                  pendingCount >= 3 ? 'text-red-700' : 'text-amber-700'
+                }`}>
+                  {pendingCount >= 3 
+                    ? `Você já tem ${pendingCount} solicitações pendentes. Aguarde a aprovação das anteriores.`
+                    : `${pendingCount} solicitação(ões) aguardando aprovação para este frete.`
+                  }
+                </div>
+              </AlertDescription>
+            </Alert>
           )}
 
-          {/* Valor do Frete */}
-          <div className="bg-gradient-to-r from-slate-50 to-slate-100 p-5 rounded-xl border border-slate-200">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">Valor total do frete</p>
-                <p className="text-2xl font-bold text-slate-900">
-                  R$ {freightPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              <DollarSign className="h-8 w-8 text-slate-400" />
+          {/* Valor do Frete - Card Principal */}
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl border border-blue-200">
+            <div className="text-center">
+              <p className="text-sm font-medium text-blue-700 mb-2">Valor total do frete</p>
+              <p className="text-3xl font-bold text-blue-900 mb-1">
+                R$ {freightPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+              <div className="w-12 h-1 bg-blue-400 rounded-full mx-auto"></div>
             </div>
           </div>
 
           {/* Formulário de Adiantamento */}
           {pendingCount < 3 && (
-            <div className="space-y-5">
-              {/* Tipo de Adiantamento */}
-              <div className="bg-white p-5 rounded-xl border border-slate-200">
-                <Label className="text-base font-semibold text-slate-700 mb-4 block">Tipo de adiantamento</Label>
+            <div className="space-y-6">
+              {/* Tipo de Adiantamento - Layout mais compacto */}
+              <div>
+                <Label className="text-base font-semibold text-gray-800 mb-3 block">Tipo de adiantamento</Label>
                 <RadioGroup value={advanceType} onValueChange={(value) => setAdvanceType(value as "percentage" | "amount")}>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
-                      <RadioGroupItem value="percentage" id="percentage" />
-                      <Label htmlFor="percentage" className="flex items-center gap-2 cursor-pointer">
-                        <Percent className="h-4 w-4 text-primary" />
-                        <span className="font-medium">Porcentagem</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className={`relative p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                      advanceType === "percentage" 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}>
+                      <RadioGroupItem value="percentage" id="percentage" className="absolute top-3 right-3" />
+                      <Label htmlFor="percentage" className="cursor-pointer block">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Percent className={`h-5 w-5 ${
+                            advanceType === "percentage" ? 'text-green-600' : 'text-gray-500'
+                          }`} />
+                          <span className="font-semibold">Porcentagem</span>
+                        </div>
+                        <p className="text-xs text-gray-600">Calcular por %</p>
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
-                      <RadioGroupItem value="amount" id="amount" />
-                      <Label htmlFor="amount" className="flex items-center gap-2 cursor-pointer">
-                        <DollarSign className="h-4 w-4 text-primary" />
-                        <span className="font-medium">Valor fixo</span>
+                    
+                    <div className={`relative p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                      advanceType === "amount" 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}>
+                      <RadioGroupItem value="amount" id="amount" className="absolute top-3 right-3" />
+                      <Label htmlFor="amount" className="cursor-pointer block">
+                        <div className="flex items-center gap-2 mb-1">
+                          <DollarSign className={`h-5 w-5 ${
+                            advanceType === "amount" ? 'text-green-600' : 'text-gray-500'
+                          }`} />
+                          <span className="font-semibold">Valor fixo</span>
+                        </div>
+                        <p className="text-xs text-gray-600">Inserir valor</p>
                       </Label>
                     </div>
                   </div>
@@ -220,89 +235,108 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
               </div>
 
               {/* Configuração do Valor */}
-              <div className="bg-white p-5 rounded-xl border border-slate-200">
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                 {advanceType === "percentage" ? (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-base font-semibold text-slate-700">Porcentagem do adiantamento</Label>
-                      <span className="text-lg font-bold text-primary">{percentage[0]}%</span>
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <Label className="text-base font-semibold text-gray-800 block mb-2">
+                        Porcentagem do adiantamento
+                      </Label>
+                      <div className="text-4xl font-bold text-green-600 mb-4">
+                        {percentage[0]}%
+                      </div>
                     </div>
-                    <Slider
-                      value={percentage}
-                      onValueChange={setPercentage}
-                      max={50}
-                      min={10}
-                      step={5}
-                      className="w-full"
-                    />
-                    <p className="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg">
-                      <strong>Máximo permitido:</strong> 50% do valor total
-                    </p>
+                    
+                    <div className="space-y-3">
+                      <Slider
+                        value={percentage}
+                        onValueChange={setPercentage}
+                        max={50}
+                        min={10}
+                        step={5}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>10%</span>
+                        <span>25%</span>
+                        <span>50% (máx)</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-700 text-center">
+                        <strong>Máximo permitido:</strong> 50% do valor total
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <Label htmlFor="customAmount" className="text-base font-semibold text-slate-700 block">Valor do adiantamento (R$)</Label>
-                    <Input
-                      id="customAmount"
-                      type="number"
-                      placeholder="0,00"
-                      value={customAmount}
-                      onChange={(e) => setCustomAmount(e.target.value)}
-                      max={freightPrice * 0.5}
-                      className="text-lg font-semibold"
-                    />
-                    <p className="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg">
-                      <strong>Máximo:</strong> R$ {(freightPrice * 0.5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
+                    <Label htmlFor="customAmount" className="text-base font-semibold text-gray-800 block text-center">
+                      Valor do adiantamento
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg">R$</span>
+                      <Input
+                        id="customAmount"
+                        type="number"
+                        placeholder="0,00"
+                        value={customAmount}
+                        onChange={(e) => setCustomAmount(e.target.value)}
+                        max={freightPrice * 0.5}
+                        className="pl-12 text-lg font-semibold h-14 text-center bg-gray-50 border-2 focus:border-green-500"
+                      />
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-700 text-center">
+                        <strong>Máximo:</strong> R$ {(freightPrice * 0.5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Valor Calculado */}
+              {/* Valor Calculado - Card de Resultado */}
               {calculatedAmount > 0 && (
-                <div className="bg-gradient-to-r from-green-50 to-green-100 p-5 rounded-xl border border-green-200">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm font-medium text-green-700 mb-1">Valor do adiantamento</p>
-                      <p className="text-3xl font-bold text-green-800">
-                        R$ {calculatedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                    <div className="bg-green-600 rounded-full p-3">
-                      <DollarSign className="h-6 w-6 text-white" />
-                    </div>
+                <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-2xl text-white shadow-lg">
+                  <div className="text-center">
+                    <p className="text-green-100 text-sm mb-2 font-medium">Valor do adiantamento</p>
+                    <p className="text-4xl font-bold mb-2">
+                      R$ {calculatedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <div className="w-16 h-1 bg-green-300 rounded-full mx-auto"></div>
                   </div>
                 </div>
               )}
 
               {/* Avisos de Validação */}
               {duplicateWarning && (
-                <div className="border-l-4 border-l-orange-500 bg-orange-50/80 p-4 rounded-r-xl">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-orange-800 mb-1">Valor já solicitado</p>
-                      <p className="text-sm text-orange-700 leading-relaxed">
-                        {duplicateWarning} Tente um valor diferente ou aguarde.
-                      </p>
+                <Alert className="border-l-4 border-l-orange-500 bg-orange-50 border-orange-200">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="ml-2">
+                    <div className="font-semibold text-orange-800">Valor já solicitado</div>
+                    <div className="text-sm text-orange-700 mt-1">
+                      {duplicateWarning} Tente um valor diferente ou aguarde.
                     </div>
-                  </div>
-                </div>
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
           )}
-
         </div>
 
-        {/* Botões de Ação - fixos na parte inferior */}
-        <div className="flex-shrink-0 flex gap-4 pt-4 border-t border-slate-200 bg-white">
-          <Button variant="outline" onClick={onClose} className="flex-1 h-12 text-base font-semibold">
+        {/* Botões de Ação */}
+        <div className="flex-shrink-0 flex gap-3 pt-6 border-t border-gray-200">
+          <Button 
+            variant="outline" 
+            onClick={onClose} 
+            className="flex-1 h-12 text-base font-semibold border-2"
+          >
             Cancelar
           </Button>
           <Button 
             onClick={handleCreateAdvance} 
             disabled={isLoading || calculatedAmount === 0 || hasRequestedRecently || !!duplicateWarning || pendingCount >= 3}
-            className="flex-1 h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:text-gray-600"
+            className="flex-1 h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:text-gray-600 shadow-lg"
           >
             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {hasRequestedRecently ? "Aguarde..." : 
