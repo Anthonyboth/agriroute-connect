@@ -47,6 +47,7 @@ import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
 import ServiceProviderHeroDashboard from '@/components/ServiceProviderHeroDashboard';
 import { LocationManager } from '@/components/LocationManager';
 import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
+import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
 
 interface ServiceRequest {
   id: string;
@@ -635,9 +636,9 @@ export const ServiceProviderDashboard: React.FC = () => {
           <TabsContent value="regional" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h3 className="text-lg font-semibold">Solicitações Regionais</h3>
+                <h3 className="text-lg font-semibold">Configuração Regional</h3>
                 <p className="text-sm text-muted-foreground">
-                  Sistema de filtro inteligente por proximidade
+                  Configure sua região de atendimento e tipos de serviços
                 </p>
               </div>
               <Button
@@ -650,10 +651,19 @@ export const ServiceProviderDashboard: React.FC = () => {
               </Button>
             </div>
             
-            <RegionalFreightFilter 
-              userType="PRESTADOR_SERVICOS" 
-              onFreightsLoaded={setRegionalRequests}
-            />
+            {/* Gerenciamento de Tipos de Serviços */}
+            <div className="space-y-4">
+              <ServiceProviderServiceTypeManager />
+              
+              {/* Filtro Regional de Solicitações */}
+              <div className="mt-6">
+                <h4 className="text-md font-semibold mb-3">Solicitações na Sua Região</h4>
+                <RegionalFreightFilter 
+                  userType="PRESTADOR_SERVICOS" 
+                  onFreightsLoaded={setRegionalRequests}
+                />
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
