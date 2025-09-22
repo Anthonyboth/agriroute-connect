@@ -158,28 +158,16 @@ const ProducerDashboard = () => {
 
       // Atualiza o status do frete para ACCEPTED e associa o motorista
       if (proposal?.freight?.id) {
-        console.log('Proposal object:', proposal);
-        console.log('Driver ID type:', typeof proposal.driver_id, proposal.driver_id);
-        console.log('Freight ID type:', typeof proposal.freight.id, proposal.freight.id);
-        console.log('Producer ID type:', typeof profile?.id, profile?.id);
-        
-        const updateData = { 
-          status: 'ACCEPTED' as const,
-          driver_id: String(proposal.driver_id) // Garantir que é string UUID
-        };
-        console.log('Update data:', updateData);
-        
         const { error: freightError } = await supabase
           .from('freights')
-          .update(updateData)
-          .eq('id', String(proposal.freight.id))
-          .eq('producer_id', String(profile?.id || ''));
+          .update({ 
+            status: 'ACCEPTED',
+            driver_id: proposal.driver_id 
+          })
+          .eq('id', proposal.freight.id)
+          .eq('producer_id', profile?.id || '');
         
-        if (freightError) {
-          console.error('Freight update error:', freightError);
-          throw freightError;
-        }
-        console.log('Freight updated successfully');
+        if (freightError) throw freightError;
       }
 
       // Remove a proposta aceita imediatamente do estado local e atualiza lista de fretes
