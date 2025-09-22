@@ -7,7 +7,7 @@ import { Check, Star, Zap, ArrowLeft, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/hooks/useAuth';
-import SubscriptionStatus from '@/components/SubscriptionStatus';
+import CategoryBasedSubscriptionPlans from '@/components/CategoryBasedSubscriptionPlans';
 import Header from '@/components/Header';
 
 const Plans: React.FC = () => {
@@ -175,66 +175,7 @@ const Plans: React.FC = () => {
 
           {/* Plans Grid */}
           <div className="lg:col-span-3">
-            <div className="grid gap-6 md:grid-cols-4">
-              {plans.map((plan) => (
-                <Card 
-                  key={plan.id} 
-                  className={`relative transition-all duration-200 hover:shadow-lg ${
-                    plan.popular ? 'border-primary shadow-md' : ''
-                  } ${
-                    plan.current ? 'ring-2 ring-primary bg-primary/5' : ''
-                  }`}
-                >
-                  {plan.popular && (
-                    <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary">
-                      Mais Popular
-                    </Badge>
-                  )}
-                  
-                  {plan.current && (
-                    <Badge className="absolute -top-2 right-4 bg-green-600">
-                      Atual
-                    </Badge>
-                  )}
-                  
-                  <CardHeader className="text-center pb-4">
-                    <div className="flex justify-center mb-2 text-primary">
-                      {plan.icon}
-                    </div>
-                    <CardTitle className="text-xl">{plan.name}</CardTitle>
-                    <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-3xl font-bold">{plan.price}</span>
-                      <span className="text-muted-foreground text-sm">{plan.period}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {plan.description}
-                    </p>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-4">
-                    <Separator />
-                    
-                    <ul className="space-y-2">
-                      {plan.features.map((feature, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm">
-                          <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    
-                    <Button
-                      className="w-full"
-                      variant={plan.current ? "default" : plan.popular ? "default" : "outline"}
-                      disabled={plan.id === 'FREE' || loading}
-                      onClick={() => handlePlanAction(plan.id)}
-                    >
-                      {plan.buttonText}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <CategoryBasedSubscriptionPlans />
           </div>
         </div>
 

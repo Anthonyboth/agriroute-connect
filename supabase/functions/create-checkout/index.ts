@@ -12,6 +12,21 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
+// Map category and plan type to Stripe price IDs
+const categoryPlanToPrice: { [key: string]: string } = {
+  'rodotrem_essential': 'price_1SAAMuFk9MPYZBVdjsn7F2wL',
+  'rodotrem_professional': 'price_1SAANHFk9MPYZBVdAfHSWk3C',
+  'carreta_essential': 'price_1SAANdFk9MPYZBVdT8yvL3FB',
+  'prestador_essential': 'price_1SAANuFk9MPYZBVdnDgNQ1BH',
+  // Fallback to existing prices for other categories
+  'truck_essential': 'price_1SAAD5Fk9MPYZBVd7qBtf20e',
+  'truck_professional': 'price_1SAADbFk9MPYZBVd6iBM29aR',
+  'vuc_essential': 'price_1SAAD5Fk9MPYZBVd7qBtf20e',
+  'vuc_professional': 'price_1SAADbFk9MPYZBVd6iBM29aR',
+  'pickup_essential': 'price_1SAAD5Fk9MPYZBVd7qBtf20e',
+  'pickup_professional': 'price_1SAADbFk9MPYZBVd6iBM29aR',
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -35,19 +50,20 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { tier } = await req.json();
-    if (!tier) throw new Error("Tier is required");
+    const { category, planType } = await req.json();
+    
+    if (!category || !planType) {
+      throw new Error("Category and planType are required");
+    }
 
-    const tierPrices = {
-      'BASIC': 'price_1SAAD5Fk9MPYZBVd7qBtf20e',
-      'PREMIUM': 'price_1SAADbFk9MPYZBVd6iBM29aR', 
-      'ENTERPRISE': 'price_1SAADsFk9MPYZBVdZRGSnlkt'
-    };
+    const priceKey = `${category}_${planType}`;
+    const priceId = categoryPlanToPrice[priceKey];
+    
+    if (!priceId) {
+      throw new Error(`No price found for category: ${category}, planType: ${planType}`);
+    }
 
-    const priceId = tierPrices[tier as keyof typeof tierPrices];
-    if (!priceId) throw new Error("Invalid tier");
-
-    logStep("Selected tier and price", { tier, priceId });
+    logStep("Selected category, plan and price", { category, planType, priceId });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
       apiVersion: "2023-10-16" 
@@ -76,7 +92,8 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/plans`,
       metadata: {
         user_id: user.id,
-        tier: tier
+        category: category,
+        plan_type: planType
       }
     });
 

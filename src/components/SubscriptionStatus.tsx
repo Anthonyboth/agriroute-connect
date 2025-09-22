@@ -19,11 +19,9 @@ const SubscriptionStatus: React.FC = () => {
 
   const getTierColor = (tier: string) => {
     switch (tier) {
-      case 'ENTERPRISE':
+      case 'PROFESSIONAL':
         return 'bg-yellow-500';
-      case 'PREMIUM':
-        return 'bg-purple-500';
-      case 'BASIC':
+      case 'ESSENTIAL':
         return 'bg-blue-500';
       default:
         return 'bg-gray-500';
@@ -32,12 +30,10 @@ const SubscriptionStatus: React.FC = () => {
 
   const getTierLabel = (tier: string) => {
     switch (tier) {
-      case 'ENTERPRISE':
-        return 'Enterprise';
-      case 'PREMIUM':
-        return 'Premium';
-      case 'BASIC':
-        return 'Básico';
+      case 'PROFESSIONAL':
+        return 'Profissional';
+      case 'ESSENTIAL':
+        return 'Essencial';
       default:
         return 'Gratuito';
     }
@@ -79,9 +75,8 @@ const SubscriptionStatus: React.FC = () => {
         <div className="space-y-2">
           <div className="text-sm text-muted-foreground">
             {subscriptionTier === 'FREE' && 'Você está no plano gratuito com recursos limitados.'}
-            {subscriptionTier === 'BASIC' && 'Você tem acesso a recursos básicos e suporte prioritário.'}
-            {subscriptionTier === 'PREMIUM' && 'Você tem acesso a recursos avançados e analytics.'}
-            {subscriptionTier === 'ENTERPRISE' && 'Você tem acesso completo a todos os recursos premium.'}
+            {subscriptionTier === 'ESSENTIAL' && 'Você tem acesso a recursos essenciais com taxa reduzida.'}
+            {subscriptionTier === 'PROFESSIONAL' && 'Você tem acesso completo sem taxas sobre transações.'}
           </div>
 
           {subscribed && (

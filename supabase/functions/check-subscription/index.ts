@@ -12,6 +12,14 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
+// Map Stripe price IDs to plan info
+const priceToCategory: { [key: string]: { category: string; planType: string } } = {
+  'price_1SAAMuFk9MPYZBVdjsn7F2wL': { category: 'rodotrem', planType: 'essential' },
+  'price_1SAANHFk9MPYZBVdAfHSWk3C': { category: 'rodotrem', planType: 'professional' },
+  'price_1SAANdFk9MPYZBVdT8yvL3FB': { category: 'carreta', planType: 'essential' },
+  'price_1SAANuFk9MPYZBVdnDgNQ1BH': { category: 'prestador', planType: 'essential' },
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -40,6 +48,39 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Get user's profile to determine category
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, role')
+      .eq('user_id', user.id)
+      .single();
+
+    let userCategory = 'prestador'; // default
+
+    // If user is a driver, check their vehicle type
+    if (profile?.role === 'MOTORISTA') {
+      const { data: vehicle } = await supabaseClient
+        .from('vehicles')
+        .select('vehicle_type')
+        .eq('driver_id', profile.id)
+        .single();
+
+      if (vehicle?.vehicle_type) {
+        // Map vehicle types to categories
+        const vehicleTypeMap: { [key: string]: string } = {
+          'BITREM': 'rodotrem',
+          'CARRETA': 'carreta',
+          'TRUCK': 'truck',
+          'TOCO': 'truck',
+          'VUC': 'vuc',
+          'PICKUP': 'pickup'
+        };
+        userCategory = vehicleTypeMap[vehicle.vehicle_type] || 'truck';
+      }
+    }
+
+    logStep("User category determined", { userCategory, role: profile?.role });
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
@@ -61,7 +102,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         subscribed: false,
         subscription_tier: 'FREE',
-        subscription_end: null
+        subscription_end: null,
+        user_category: userCategory
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -87,25 +129,28 @@ serve(async (req) => {
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
       const priceId = subscription.items.data[0].price.id;
       
-      // Map price IDs to tiers and plan IDs
-      const priceTierMap: { [key: string]: { tier: string; planId: number } } = {
-        'price_1SAAD5Fk9MPYZBVd7qBtf20e': { tier: 'BASIC', planId: 1 },
-        'price_1SAADbFk9MPYZBVd6iBM29aR': { tier: 'PREMIUM', planId: 2 },
-        'price_1SAADsFk9MPYZBVdZRGSnlkt': { tier: 'ENTERPRISE', planId: 3 }
-      };
-
-      const planInfo = priceTierMap[priceId];
+      const planInfo = priceToCategory[priceId];
       if (planInfo) {
-        tier = planInfo.tier;
-        planId = planInfo.planId;
+        tier = planInfo.planType.toUpperCase();
       }
 
       logStep("Active subscription found", { 
         subscriptionId: subscription.id, 
         endDate: subscriptionEnd,
         tier,
-        planId
+        priceId,
+        planInfo
       });
+
+      // Get plan ID from database
+      const { data: planData } = await supabaseClient
+        .from('plans')
+        .select('id')
+        .eq('category', planInfo?.category || userCategory)
+        .eq('plan_type', planInfo?.planType || 'free')
+        .single();
+
+      planId = planData?.id;
 
       // Update user subscription status in database
       await supabaseClient
@@ -138,7 +183,8 @@ serve(async (req) => {
       subscribed: hasActiveSub,
       subscription_tier: tier,
       subscription_end: subscriptionEnd,
-      plan_id: planId
+      plan_id: planId,
+      user_category: userCategory
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

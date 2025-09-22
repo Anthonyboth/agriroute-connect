@@ -3,20 +3,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
-export type SubscriptionTier = 'FREE' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
+export type SubscriptionTier = 'FREE' | 'ESSENTIAL' | 'PROFESSIONAL';
 
 interface SubscriptionState {
   subscribed: boolean;
   subscriptionTier: SubscriptionTier;
   subscriptionEnd: string | null;
+  userCategory: string | null;
   loading: boolean;
 }
 
 interface SubscriptionContextType extends SubscriptionState {
   checkSubscription: () => Promise<void>;
-  createCheckout: (tier: 'BASIC' | 'PREMIUM' | 'ENTERPRISE') => Promise<void>;
+  createCheckout: (category: string, planType: 'essential' | 'professional') => Promise<void>;
   openCustomerPortal: () => Promise<void>;
   canAccessFeature: (requiredTier: SubscriptionTier) => boolean;
+  getAvailablePlans: () => any[];
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -31,9 +33,8 @@ export const useSubscription = () => {
 
 const tierHierarchy = {
   FREE: 0,
-  BASIC: 1,
-  PREMIUM: 2,
-  ENTERPRISE: 3
+  ESSENTIAL: 1,  
+  PROFESSIONAL: 2
 };
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
@@ -44,6 +45,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     subscribed: false,
     subscriptionTier: 'FREE',
     subscriptionEnd: null,
+    userCategory: null,
     loading: true,
   });
   const [lastErrorTime, setLastErrorTime] = useState<number>(0);
@@ -65,6 +67,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         subscribed: data.subscribed || false,
         subscriptionTier: data.subscription_tier || 'FREE',
         subscriptionEnd: data.subscription_end || null,
+        userCategory: data.user_category || null,
         loading: false,
       });
     } catch (error) {
@@ -73,7 +76,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         ...prev, 
         loading: false,
         subscriptionTier: 'FREE',
-        subscribed: false 
+        subscribed: false,
+        userCategory: null
       }));
       
       // Só notifica o usuário em erros de autenticação (401/403)
@@ -93,7 +97,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const createCheckout = async (tier: 'BASIC' | 'PREMIUM' | 'ENTERPRISE') => {
+  const createCheckout = async (category: string, planType: 'essential' | 'professional') => {
     if (!user) {
       toast.error('Você precisa estar logado para assinar');
       return;
@@ -101,7 +105,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { tier }
+        body: { category, planType }
       });
 
       if (error) throw error;
@@ -137,6 +141,36 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const getAvailablePlans = () => {
+    const category = state.userCategory || 'prestador';
+    
+    // Return plans based on user's category
+    const categoryPlans = {
+      'prestador': [
+        { id: 'free', name: 'Gratuito', price: 0, planType: 'free' },
+        { id: 'essential', name: 'Essencial', price: 59, planType: 'essential' },
+        { id: 'professional', name: 'Profissional', price: 99, planType: 'professional' }
+      ],
+      'rodotrem': [
+        { id: 'free', name: 'Gratuito', price: 0, planType: 'free' },
+        { id: 'essential', name: 'Essencial', price: 149, planType: 'essential' },
+        { id: 'professional', name: 'Profissional', price: 299, planType: 'professional' }
+      ],
+      'carreta': [
+        { id: 'free', name: 'Gratuito', price: 0, planType: 'free' },
+        { id: 'essential', name: 'Essencial', price: 159, planType: 'essential' },
+        { id: 'professional', name: 'Profissional', price: 249, planType: 'professional' }
+      ],
+      'truck': [
+        { id: 'free', name: 'Gratuito', price: 0, planType: 'free' },
+        { id: 'essential', name: 'Essencial', price: 159, planType: 'essential' },
+        { id: 'professional', name: 'Profissional', price: 249, planType: 'professional' }
+      ]
+    };
+
+    return categoryPlans[category as keyof typeof categoryPlans] || categoryPlans.prestador;
+  };
+
   const canAccessFeature = (requiredTier: SubscriptionTier): boolean => {
     return tierHierarchy[state.subscriptionTier] >= tierHierarchy[requiredTier];
   };
@@ -154,6 +188,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         subscribed: false,
         subscriptionTier: 'FREE',
         subscriptionEnd: null,
+        userCategory: null,
         loading: false,
       });
     }
@@ -171,6 +206,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         createCheckout,
         openCustomerPortal,
         canAccessFeature,
+        getAvailablePlans,
       }}
     >
       {children}
