@@ -18,7 +18,14 @@ import {
   Wheat,
   Truck,
   Package,
-  MapPin
+  MapPin,
+  Zap,
+  Key,
+  Fuel,
+  Plane,
+  Wrench as RepairIcon,
+  Shield,
+  MoreHorizontal
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -49,6 +56,38 @@ const SERVICE_PROVIDER_TYPES: ServiceProviderServiceType[] = [
     description: 'Manutenção e reparo de tratores e implementos agrícolas',
     icon: Wrench,
     color: 'bg-orange-100 text-orange-800 border-orange-200',
+    category: 'technical'
+  },
+  {
+    id: 'MECANICO',
+    label: 'Mecânico',
+    description: 'Reparos mecânicos em geral de veículos e equipamentos',
+    icon: RepairIcon,
+    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    category: 'technical'
+  },
+  {
+    id: 'ELETRICISTA_AUTOMOTIVO',
+    label: 'Eletricista Automotivo',
+    description: 'Sistema elétrico completo de veículos',
+    icon: Zap,
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    category: 'technical'
+  },
+  {
+    id: 'BORRACHEIRO',
+    label: 'Borracheiro',
+    description: 'Troca e reparo de pneus',
+    icon: Shield,
+    color: 'bg-slate-100 text-slate-800 border-slate-200',
+    category: 'technical'
+  },
+  {
+    id: 'CHAVEIRO',
+    label: 'Chaveiro',
+    description: 'Abertura de veículos travados',
+    icon: Key,
+    color: 'bg-amber-100 text-amber-800 border-amber-200',
     category: 'technical'
   },
   {
@@ -85,6 +124,14 @@ const SERVICE_PROVIDER_TYPES: ServiceProviderServiceType[] = [
     category: 'agricultural'
   },
   {
+    id: 'PULVERIZACAO_DRONE',
+    label: 'Pulverização por Drone',
+    description: 'Aplicação de defensivos e fertilizantes via drone',
+    icon: Plane,
+    color: 'bg-teal-100 text-teal-800 border-teal-200',
+    category: 'agricultural'
+  },
+  {
     id: 'COLHEITA_PLANTIO',
     label: 'Colheita e Plantio',
     description: 'Serviços de colheita mecanizada e plantio especializado',
@@ -102,11 +149,35 @@ const SERVICE_PROVIDER_TYPES: ServiceProviderServiceType[] = [
   },
   // Serviços de Logística
   {
+    id: 'GUINCHO',
+    label: 'Guincho',
+    description: 'Reboque e transporte de veículos',
+    icon: Truck,
+    color: 'bg-red-100 text-red-800 border-red-200',
+    category: 'logistics'
+  },
+  {
+    id: 'GUINDASTE',
+    label: 'Guindaste',
+    description: 'Elevação e movimentação de cargas pesadas',
+    icon: Package,
+    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    category: 'logistics'
+  },
+  {
     id: 'TRANSPORTE_ESPECIALIZADO',
     label: 'Transporte Especializado',
     description: 'Transporte de insumos e produtos agrícolas',
     icon: Truck,
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    category: 'logistics'
+  },
+  {
+    id: 'COMBUSTIVEL',
+    label: 'Combustível',
+    description: 'Entrega de combustível',
+    icon: Fuel,
+    color: 'bg-green-100 text-green-800 border-green-200',
     category: 'logistics'
   },
   {
@@ -116,6 +187,14 @@ const SERVICE_PROVIDER_TYPES: ServiceProviderServiceType[] = [
     icon: Package,
     color: 'bg-rose-100 text-rose-800 border-rose-200',
     category: 'logistics'
+  },
+  {
+    id: 'OUTROS',
+    label: 'Outros',
+    description: 'Outros tipos de serviços especializados',
+    icon: MoreHorizontal,
+    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
+    category: 'technical'
   }
 ];
 
