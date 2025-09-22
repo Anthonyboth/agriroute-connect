@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/hooks/useAuth';
 import CategoryBasedSubscriptionPlans from '@/components/CategoryBasedSubscriptionPlans';
+import SubscriptionStatus from '@/components/SubscriptionStatus';
 import Header from '@/components/Header';
 
 const Plans: React.FC = () => {
@@ -35,76 +36,55 @@ const Plans: React.FC = () => {
       current: subscriptionTier === 'FREE'
     },
     {
-      id: 'BASIC',
-      name: 'Básico',
-      price: 'R$ 29',
+      id: 'ESSENTIAL',
+      name: 'Essencial',
+      price: 'R$ 59',
       period: '/mês',
       description: 'Para produtores que transportam regularmente',
       features: [
         'Fretes ilimitados',
-        'Comissão reduzida de 3%',
+        'Comissão reduzida de 2%',
         'Suporte prioritário',
         'Relatórios básicos',
         'Acesso antecipado a novos recursos',
         'Rede premium de motoristas'
       ],
       icon: <Star className="h-5 w-5" />,
-      buttonText: subscriptionTier === 'BASIC' ? 'Gerenciar Plano' : 'Assinar Básico',
+      buttonText: subscriptionTier === 'ESSENTIAL' ? 'Gerenciar Plano' : 'Assinar Essencial',
       disabled: false,
       popular: true,
-      current: subscriptionTier === 'BASIC'
+      current: subscriptionTier === 'ESSENTIAL'
     },
     {
-      id: 'PREMIUM',
-      name: 'Premium',
-      price: 'R$ 59',
+      id: 'PROFESSIONAL',
+      name: 'Profissional',
+      price: 'R$ 99',
       period: '/mês',
       description: 'Para grandes produtores',
       features: [
-        'Tudo do Básico',
-        'Comissão mínima de 2.5%',
+        'Tudo do Essencial',
+        'Sem taxas sobre transações',
         'Suporte VIP',
         'Relatórios avançados e analytics',
         'API para integração',
         'Gerenciamento de múltiplas fazendas'
       ],
       icon: <Zap className="h-5 w-5" />,
-      buttonText: subscriptionTier === 'PREMIUM' ? 'Gerenciar Plano' : 'Assinar Premium',
+      buttonText: subscriptionTier === 'PROFESSIONAL' ? 'Gerenciar Plano' : 'Assinar Profissional',
       disabled: false,
       popular: false,
-      current: subscriptionTier === 'PREMIUM'
-    },
-    {
-      id: 'ENTERPRISE',
-      name: 'Enterprise',
-      price: 'R$ 99',
-      period: '/mês',
-      description: 'Para cooperativas e grandes empresas',
-      features: [
-        'Tudo do Premium',
-        'Comissão mínima de 2%',
-        'Suporte VIP 24/7',
-        'Analytics avançados',
-        'Integração completa',
-        'Consultor dedicado',
-        'SLA garantido'
-      ],
-      icon: <Crown className="h-5 w-5" />,
-      buttonText: subscriptionTier === 'ENTERPRISE' ? 'Gerenciar Plano' : 'Assinar Enterprise',
-      disabled: false,
-      popular: false,
-      current: subscriptionTier === 'ENTERPRISE'
+      current: subscriptionTier === 'PROFESSIONAL'
     }
   ];
 
   const handlePlanAction = async (planId: string) => {
-    if (planId === 'BASIC' || planId === 'PREMIUM' || planId === 'ENTERPRISE') {
+    if (planId === 'ESSENTIAL' || planId === 'PROFESSIONAL') {
       if (subscriptionTier === planId) {
         // Open customer portal for current plan
         await openCustomerPortal();
       } else {
         // Create checkout for new plan
-        await createCheckout(planId as 'BASIC' | 'PREMIUM' | 'ENTERPRISE');
+        await createCheckout('prestador', planId.toLowerCase() as 'essential' | 'professional');
       }
     }
   };
