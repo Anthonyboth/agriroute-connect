@@ -45,6 +45,8 @@ import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
 import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
 import ServiceProviderHeroDashboard from '@/components/ServiceProviderHeroDashboard';
+import { LocationManager } from '@/components/LocationManager';
+import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
 
 interface ServiceRequest {
   id: string;
@@ -102,6 +104,8 @@ export const ServiceProviderDashboard: React.FC = () => {
   const [showSpatialAreasModal, setShowSpatialAreasModal] = useState(false);
   const [showEarnings, setShowEarnings] = useState(true);
   const [showHeroDashboard, setShowHeroDashboard] = useState(true);
+  const [showLocationManager, setShowLocationManager] = useState(false);
+  const [regionalRequests, setRegionalRequests] = useState<ServiceRequest[]>([]);
 
   const getProviderProfileId = () => {
     if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
@@ -126,7 +130,13 @@ export const ServiceProviderDashboard: React.FC = () => {
     try {
       setLoading(true);
       
-      // Buscar solicitações de serviço para este prestador
+      // Primeiro, tentar buscar solicitações regionais se localização estiver configurada
+      if ((profile as any)?.base_lat && (profile as any)?.base_lng) {
+        // Usar filtro regional - priorizar solicitações na região
+        setRegionalRequests(regionalRequests);
+      }
+      
+      // Buscar solicitações de serviço para este prestador (backup/complemento)
       const { data: serviceRequests, error } = await supabase
         .from('service_requests')
         .select('*')
@@ -491,6 +501,11 @@ export const ServiceProviderDashboard: React.FC = () => {
                 <span className="hidden sm:inline">Saldo</span>
                 <span className="sm:hidden">Saldo</span>
               </TabsTrigger>
+              <TabsTrigger value="regional" className="text-xs">
+                <MapPin className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Regional</span>
+                <span className="sm:hidden">Região</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -616,7 +631,42 @@ export const ServiceProviderDashboard: React.FC = () => {
           <TabsContent value="payouts" className="space-y-4">
             <ServiceProviderPayouts providerId={getProviderProfileId() || ''} />
           </TabsContent>
+
+          <TabsContent value="regional" className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">Solicitações Regionais</h3>
+                <p className="text-sm text-muted-foreground">
+                  Sistema de filtro inteligente por proximidade
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowLocationManager(true)}
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Configurar Região
+              </Button>
+            </div>
+            
+            <RegionalFreightFilter 
+              userType="PRESTADOR_SERVICOS" 
+              onFreightsLoaded={setRegionalRequests}
+            />
+          </TabsContent>
         </Tabs>
+
+        {/* Modal de Configuração de Localização */}
+        {showLocationManager && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <LocationManager onClose={() => setShowLocationManager(false)} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
