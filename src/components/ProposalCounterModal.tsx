@@ -98,9 +98,24 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
          // Se for motorista, criar ou atualizar proposta automaticamente
          if (profile.role === 'MOTORISTA') {
+           // Impedir múltiplas propostas do mesmo motorista
+           const { data: existing, error: checkErr } = await supabase
+             .from('freight_proposals')
+             .select('status')
+             .eq('freight_id', originalProposal.freight_id)
+             .eq('driver_id', profile.id)
+             .maybeSingle();
+           if (checkErr) {
+             console.error('Erro ao verificar proposta existente:', checkErr);
+             throw checkErr;
+           }
+           if (existing && (existing.status === 'PENDING' || existing.status === 'ACCEPTED')) {
+             throw new Error(existing.status === 'PENDING' ? 'Você já enviou uma proposta para este frete.' : 'Sua proposta já foi aceita.');
+           }
+
            const { error: createProposalError } = await supabase
              .from('freight_proposals')
-             .upsert({
+             .insert({
                freight_id: originalProposal.freight_id,
                driver_id: profile.id,
                proposed_price: finalPrice,
@@ -108,8 +123,6 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                message: pricingType === 'PER_KM'
                  ? `Proposta por km: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total estimado: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)`
                  : 'Proposta enviada via contra-proposta.'
-             }, {
-               onConflict: 'freight_id,driver_id'
              });
 
            if (createProposalError) {

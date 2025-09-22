@@ -77,7 +77,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         const freight = compatibleFreights.find(f => f.freight_id === freightId);
         if (!freight) return;
 
-        // Evitar reabrir proposta já processada
+        // Verificar se já existe proposta ativa (PENDING/ACCEPTED)
         const { data: existing, error: existingError } = await supabase
           .from('freight_proposals')
           .select('status')
@@ -85,22 +85,24 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           .eq('driver_id', profile.id)
           .maybeSingle();
         if (existingError) throw existingError;
-        if (existing && existing.status !== 'PENDING') {
-          toast.info('Sua proposta já foi processada pelo produtor.');
+        if (existing && (existing.status === 'PENDING' || existing.status === 'ACCEPTED')) {
+          toast.info(
+            existing.status === 'PENDING'
+              ? 'Você já enviou uma proposta para este frete. Aguarde a resposta do produtor.'
+              : 'Sua proposta já foi aceita pelo produtor.'
+          );
           return;
         }
 
-        // Usar upsert para evitar erro de constraint única
+        // Inserir nova proposta (apenas se não existir ativa)
         const { error } = await supabase
           .from('freight_proposals')
-          .upsert({
+          .insert({
             freight_id: freightId,
             driver_id: profile.id,
             proposed_price: freight.price,
             status: 'PENDING',
             message: action === 'accept' ? 'Aceito o frete pelo valor anunciado.' : null,
-          }, {
-            onConflict: 'freight_id,driver_id'
           });
 
         if (error) throw error;

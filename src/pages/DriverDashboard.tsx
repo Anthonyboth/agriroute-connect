@@ -471,20 +471,30 @@ const [showRegionModal, setShowRegionModal] = useState(false);
           return;
         }
 
-        // Usar upsert para evitar erro de constraint única
+        // Impedir múltiplas propostas ativas para o mesmo frete
         const freight = availableFreights.find(f => f.id === freightId);
         if (!freight) return;
 
+        const { data: existing2, error: existingErr2 } = await supabase
+          .from('freight_proposals')
+          .select('status')
+          .eq('freight_id', freightId)
+          .eq('driver_id', profile.id)
+          .maybeSingle();
+        if (existingErr2) throw existingErr2;
+        if (existing2 && (existing2.status === 'PENDING' || existing2.status === 'ACCEPTED')) {
+          toast.info(existing2.status === 'PENDING' ? 'Você já enviou uma proposta para este frete. Aguarde a resposta.' : 'Sua proposta já foi aceita.');
+          return;
+        }
+
         const { error } = await supabase
           .from('freight_proposals')
-          .upsert({
+          .insert({
             freight_id: freightId,
             driver_id: profile.id,
             proposed_price: freight.price,
             status: 'PENDING',
             message: action === 'accept' ? 'Aceito o frete pelo valor anunciado.' : null,
-          }, {
-            onConflict: 'freight_id,driver_id'
           });
 
         if (error) throw error;
