@@ -38,10 +38,41 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
 
     setLoading(true);
     try {
-      // Usar upsert para evitar erro de constraint única
+      // Verificar se já existe uma proposta pendente para evitar múltiplas propostas
+      const { data: existingProposal, error: checkError } = await supabase
+        .from('freight_proposals')
+        .select('status')
+        .eq('freight_id', freight.id)
+        .eq('driver_id', driverProfile.id)
+        .maybeSingle();
+      
+      if (checkError) throw checkError;
+      
+      if (existingProposal) {
+        if (existingProposal.status === 'PENDING') {
+          toast({
+            title: "Proposta já enviada",
+            description: "Você já enviou uma proposta para este frete. Aguarde a resposta do produtor.",
+            variant: "destructive",
+          });
+          setOpen(false);
+          return;
+        }
+        if (existingProposal.status === 'ACCEPTED') {
+          toast({
+            title: "Proposta aceita",
+            description: "Sua proposta já foi aceita pelo produtor.",
+          });
+          setOpen(false);
+          onProposalSent?.();
+          return;
+        }
+      }
+
+      // Inserir nova proposta (apenas se não existir PENDING)
       const { error } = await supabase
         .from('freight_proposals')
-        .upsert({
+        .insert({
           freight_id: freight.id,
           driver_id: driverProfile.id,
           proposed_price: proposalData.pricing_type === 'FIXED' 
@@ -50,8 +81,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
           message: proposalData.message,
           justification: proposalData.justification,
           delivery_estimate_days: proposalData.delivery_estimate_days,
-        }, {
-          onConflict: 'freight_id,driver_id'
+          status: 'PENDING'
         });
 
       if (error) throw error;
