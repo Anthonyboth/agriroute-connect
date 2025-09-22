@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { ServiceTypeManager } from '@/components/ServiceTypeManager';
+import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
 import { useToast } from '@/hooks/use-toast';
 
@@ -248,19 +248,19 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
       {/* Modals */}
       <Dialog open={showServiceTypesModal} onOpenChange={setShowServiceTypesModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <DialogTitle className="flex items-center gap-2">
               <Wrench className="h-5 w-5" />
               Configurar Tipos de Serviços
             </DialogTitle>
           </DialogHeader>
-          <ServiceTypeManager />
+          <ServiceProviderServiceTypeManager />
         </DialogContent>
       </Dialog>
 
       <Dialog open={showAreasModal} onOpenChange={setShowAreasModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
               Gerenciar Áreas de Atendimento
@@ -272,7 +272,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
 
       <Dialog open={showSettingsModal} onOpenChange={setShowSettingsModal}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader>
+          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <DialogTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
               Configurações do Prestador
