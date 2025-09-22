@@ -149,27 +149,11 @@ const SERVICE_PROVIDER_TYPES: ServiceProviderServiceType[] = [
   },
   // Serviços de Logística
   {
-    id: 'GUINCHO',
-    label: 'Guincho',
-    description: 'Reboque e transporte de veículos',
-    icon: Truck,
-    color: 'bg-red-100 text-red-800 border-red-200',
-    category: 'logistics'
-  },
-  {
     id: 'GUINDASTE',
     label: 'Guindaste',
     description: 'Elevação e movimentação de cargas pesadas',
     icon: Package,
     color: 'bg-orange-100 text-orange-800 border-orange-200',
-    category: 'logistics'
-  },
-  {
-    id: 'TRANSPORTE_ESPECIALIZADO',
-    label: 'Transporte Especializado',
-    description: 'Transporte de insumos e produtos agrícolas',
-    icon: Truck,
-    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     category: 'logistics'
   },
   {
