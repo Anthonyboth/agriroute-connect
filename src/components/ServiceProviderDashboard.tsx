@@ -122,38 +122,42 @@ export const ServiceProviderDashboard: React.FC = () => {
     }
 
     try {
-      // Usar a função segura que protege dados sensíveis e aplica filtros de região
-      const { data: secureRequests, error } = await supabase
-        .rpc('get_provider_service_requests', {
-          provider_profile_id: providerProfileId
-        });
+      setLoading(true);
+      
+      // Buscar solicitações de serviço para este prestador
+      const { data: serviceRequests, error } = await supabase
+        .from('service_requests')
+        .select('*')
+        .eq('provider_id', providerProfileId)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Buscar os dados dos clientes separadamente (dados não sensíveis)
+      // Buscar perfis dos clientes separadamente
       const requestsWithProfiles = await Promise.all(
-        (secureRequests || []).map(async (request) => {
-          const { data: clientProfile } = await supabase
-            .from('profiles')
-            .select('full_name, profile_photo_url')
-            .eq('id', request.client_id)
-            .maybeSingle();
+        (serviceRequests || []).map(async (request) => {
+          let clientProfile = { full_name: 'Cliente', profile_photo_url: null };
+          
+          if (request.client_id) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name, profile_photo_url')
+              .eq('id', request.client_id)
+              .single();
+            
+            if (profile) {
+              clientProfile = profile;
+            }
+          }
 
           return {
             ...request,
-            // Usar dados seguros da função RPC
-            contact_phone: request.contact_phone_safe,
-            location_address: request.location_address_safe,
-            profiles: clientProfile || {
-              full_name: 'Cliente',
-              profile_photo_url: null,
-              phone: null
-            }
+            profiles: clientProfile
           };
         })
       );
 
-      setRequests(requestsWithProfiles);
+      setRequests(requestsWithProfiles as ServiceRequest[]);
     } catch (error) {
       console.error('Erro ao buscar solicitações:', error);
       toast({
@@ -181,20 +185,11 @@ export const ServiceProviderDashboard: React.FC = () => {
     }
 
     try {
-      // Buscar estatísticas das solicitações com timeout
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout')), 5000)
-      );
-
-      const fetchPromise = supabase
+      // Buscar estatísticas das solicitações
+      const { data: requestStats, error: statsError } = await supabase
         .from('service_requests')
         .select('status, final_price')
         .eq('provider_id', providerProfileId);
-
-      const { data: requestStats, error: statsError } = await Promise.race([
-        fetchPromise,
-        timeoutPromise
-      ]) as any;
 
       if (statsError) throw statsError;
 
@@ -214,7 +209,6 @@ export const ServiceProviderDashboard: React.FC = () => {
       });
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error);
-      // Definir stats padrão em caso de erro
       setStats({
         total_requests: 0,
         pending_requests: 0,
@@ -231,31 +225,16 @@ export const ServiceProviderDashboard: React.FC = () => {
       const providerProfileId = getProviderProfileId();
       if (!providerProfileId) return;
 
-      // Primeiro, tentar atualizar na tabela service_requests
-      const { data: serviceRequestData, error: serviceError } = await supabase
+      const { error } = await supabase
         .from('service_requests')
         .update({ 
           status: 'ACCEPTED',
           provider_id: providerProfileId,
           accepted_at: new Date().toISOString()
         })
-        .eq('id', requestId)
-        .select();
+        .eq('id', requestId);
 
-      // Se não encontrou na tabela service_requests, tentar na guest_requests
-      if (!serviceRequestData || serviceRequestData.length === 0) {
-        const { error: guestError } = await supabase
-          .from('guest_requests')
-          .update({ 
-            status: 'ACCEPTED',
-            provider_id: providerProfileId
-          })
-          .eq('id', requestId);
-
-        if (guestError) throw guestError;
-      } else if (serviceError) {
-        throw serviceError;
-      }
+      if (error) throw error;
 
       toast({
         title: "Solicitação aceita!",
@@ -276,29 +255,15 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   const handleCompleteRequest = async (requestId: string) => {
     try {
-      // Primeiro, tentar atualizar na tabela service_requests
-      const { data: serviceRequestData, error: serviceError } = await supabase
+      const { error } = await supabase
         .from('service_requests')
         .update({ 
           status: 'COMPLETED',
           completed_at: new Date().toISOString()
         })
-        .eq('id', requestId)
-        .select();
+        .eq('id', requestId);
 
-      // Se não encontrou na tabela service_requests, tentar na guest_requests
-      if (!serviceRequestData || serviceRequestData.length === 0) {
-        const { error: guestError } = await supabase
-          .from('guest_requests')
-          .update({ 
-            status: 'COMPLETED'
-          })
-          .eq('id', requestId);
-
-        if (guestError) throw guestError;
-      } else if (serviceError) {
-        throw serviceError;
-      }
+      if (error) throw error;
 
       toast({
         title: "Serviço concluído!",
@@ -540,14 +505,75 @@ export const ServiceProviderDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="accepted" className="space-y-4">
-            <ServiceProviderAreasManager />
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Serviços em Andamento</h3>
+              <Badge variant="secondary" className="text-xs">{requests.filter(r => r.status === 'ACCEPTED').length}</Badge>
+            </div>
+            
+            {requests.filter(r => r.status === 'ACCEPTED').length > 0 ? (
+              <div className="space-y-4">
+                {requests.filter(r => r.status === 'ACCEPTED').map((request) => (
+                  <Card key={request.id} className="shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-medium text-sm">
+                          {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
+                        </h3>
+                        <Badge variant="default" className="text-xs bg-green-600 text-white">
+                          Em Andamento
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          className="flex-1 h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                          onClick={() => handleCompleteRequest(request.id)}
+                        >
+                          Concluir Serviço
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Play className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Nenhum serviço em andamento.</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="completed" className="space-y-4">
-            <div className="text-center py-12">
-              <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">Serviços concluídos aparecerão aqui.</p>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Serviços Concluídos</h3>
+              <Badge variant="secondary" className="text-xs">{requests.filter(r => r.status === 'COMPLETED').length}</Badge>
             </div>
+            
+            {requests.filter(r => r.status === 'COMPLETED').length > 0 ? (
+              <div className="space-y-4">
+                {requests.filter(r => r.status === 'COMPLETED').map((request) => (
+                  <Card key={request.id} className="shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-medium text-sm">
+                          {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
+                        </h3>
+                        <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                          Concluído
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Nenhum serviço concluído ainda.</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="areas" className="space-y-4">

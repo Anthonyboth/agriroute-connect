@@ -2284,6 +2284,84 @@ export type Database = {
           },
         ]
       }
+      service_provider_payout_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          pix_key: string
+          processed_at: string | null
+          processed_by: string | null
+          provider_id: string
+          rejection_reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          pix_key: string
+          processed_at?: string | null
+          processed_by?: string | null
+          provider_id: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          pix_key?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          provider_id?: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      service_provider_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          metadata: Json | null
+          processed_at: string | null
+          provider_id: string
+          service_request_id: string
+          status: string
+          stripe_transfer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          provider_id: string
+          service_request_id: string
+          status?: string
+          stripe_transfer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          provider_id?: string
+          service_request_id?: string
+          status?: string
+          stripe_transfer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       service_providers: {
         Row: {
           base_price: number | null
