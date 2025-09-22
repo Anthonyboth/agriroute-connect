@@ -991,6 +991,44 @@ export type Database = {
           },
         ]
       }
+      freight_payment_deadlines: {
+        Row: {
+          created_at: string | null
+          deadline_at: string
+          freight_id: string
+          id: string
+          minimum_amount: number
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deadline_at: string
+          freight_id: string
+          id?: string
+          minimum_amount?: number
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deadline_at?: string
+          freight_id?: string
+          id?: string
+          minimum_amount?: number
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_payment_deadlines_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: true
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_payments: {
         Row: {
           amount: number
@@ -5197,6 +5235,10 @@ export type Database = {
       unlockrows: {
         Args: { "": string }
         Returns: number
+      }
+      update_payment_deadline_status: {
+        Args: { p_freight_id: string }
+        Returns: undefined
       }
       updategeometrysrid: {
         Args: {
