@@ -52,6 +52,7 @@ import heroLogistics from '@/assets/hero-logistics.jpg';
 interface ServiceRequest {
   id: string;
   client_id: string | null;
+  provider_id: string | null;
   service_type: string;
   location_address: string;
   location_address_safe?: string;
@@ -121,21 +122,28 @@ export const ServiceProviderDashboard: React.FC = () => {
     if (!providerId) return;
 
     try {
-      const { data, error } = await supabase
+      // Buscar solicitações do prestador (aceitas/em andamento/concluídas)
+      const { data: providerRequests, error: providerError } = await supabase
         .from('service_requests')
-        .select(`
-          *,
-          profiles (
-            full_name,
-            profile_photo_url,
-            phone
-          )
-        `)
+        .select('*')
         .eq('provider_id', providerId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setRequests(data as any[] || []);
+      if (providerError) throw providerError;
+
+      // Buscar solicitações pendentes (sem prestador atribuído) na região
+      const { data: pendingRequests, error: pendingError } = await supabase
+        .from('service_requests')
+        .select('*')
+        .is('provider_id', null)
+        .eq('status', 'OPEN')
+        .order('created_at', { ascending: false });
+
+      if (pendingError) throw pendingError;
+
+      // Combinar todas as solicitações
+      const allRequests = [...(providerRequests || []), ...(pendingRequests || [])];
+      setRequests(allRequests);
     } catch (error: any) {
       console.error('Error fetching service requests:', error);
       toast({
@@ -271,9 +279,9 @@ export const ServiceProviderDashboard: React.FC = () => {
     if (serviceTypeFilter === 'all') return true;
     return request.service_type === serviceTypeFilter;
   }).filter(request => {
-    if (activeTab === 'pending') return request.status === 'OPEN' || request.status === 'PENDING';
-    if (activeTab === 'accepted') return request.status === 'ACCEPTED' || request.status === 'IN_PROGRESS';
-    if (activeTab === 'completed') return request.status === 'COMPLETED';
+    if (activeTab === 'pending') return !request.provider_id && request.status === 'OPEN';
+    if (activeTab === 'accepted') return request.provider_id && (request.status === 'ACCEPTED' || request.status === 'IN_PROGRESS');
+    if (activeTab === 'completed') return request.provider_id && request.status === 'COMPLETED';
     return true;
   });
 
