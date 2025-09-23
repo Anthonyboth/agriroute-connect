@@ -34,6 +34,28 @@ export function FreightPaymentModal({
   const handleCreatePayment = async () => {
     setIsLoading(true);
     try {
+      // Tentar criar sessão de Checkout (mais confiável e sem dependência da chave pública)
+      const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-freight-payment', {
+        body: {
+          freight_id: freightId,
+          // Edge function espera strings como CREDIT_CARD/PIX/BOLETO
+          payment_method: paymentMethod.toUpperCase?.() || paymentMethod,
+        },
+      });
+
+      if (checkoutError) {
+        console.error('Checkout error:', checkoutError);
+      }
+
+      if (checkoutData?.url) {
+        // Abrir o checkout em nova aba e fechar modal
+        window.open(checkoutData.url, '_blank');
+        toast.success('Redirecionando para pagamento seguro...');
+        onClose();
+        return;
+      }
+
+      // Fallback para Payment Element caso URL não seja retornada
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: { 
           freight_id: freightId, 
@@ -43,11 +65,11 @@ export function FreightPaymentModal({
 
       if (error) throw error;
 
-      if (data.client_secret) {
+      if (data?.client_secret) {
         setClientSecret(data.client_secret);
         setShowPaymentForm(true);
       } else {
-        toast.error("Erro ao inicializar pagamento");
+        throw new Error('Não foi possível inicializar o pagamento');
       }
     } catch (error) {
       console.error('Error creating payment:', error);

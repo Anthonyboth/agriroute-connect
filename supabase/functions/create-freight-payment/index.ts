@@ -96,6 +96,7 @@ serve(async (req) => {
     }
 
     // Criar sessão de checkout
+    const origin = req.headers.get("origin") || "https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com";
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
@@ -114,8 +115,8 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/success?session_id={CHECKOUT_SESSION_ID}&type=freight_payment&freight_id=${freight_id}`,
-      cancel_url: `https://f2dbc201-5319-4f90-a3cc-8dd215bbebba.lovableproject.com/payment/cancel?type=freight_payment&freight_id=${freight_id}`,
+      success_url: `${origin}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=freight_payment&freight_id=${freight_id}`,
+      cancel_url: `${origin}/payment/cancel?type=freight_payment&freight_id=${freight_id}`,
       metadata: {
         freight_id: freight_id,
         payment_amount: remainingAmountCents.toString(), // Armazenar em centavos
