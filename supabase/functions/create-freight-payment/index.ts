@@ -37,10 +37,15 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { freight_id, payment_method = "CREDIT_CARD" } = await req.json();
+    const body = await req.json();
+    const freight_id = body.freight_id;
     if (!freight_id) {
       throw new Error("freight_id is required");
     }
+    const rawMethod = (body.payment_method ?? "CARTAO").toString();
+    const normalizedMethod = rawMethod.toUpperCase();
+    const allowedMethods = ["PIX","BOLETO","CARTAO","TRANSFERENCIA","STRIPE"];
+    const paymentMethod = allowedMethods.includes(normalizedMethod) ? normalizedMethod : "CARTAO";
 
     // Verificar se o frete existe
     const { data: freight, error: freightError } = await supabaseClient
@@ -120,7 +125,7 @@ serve(async (req) => {
       metadata: {
         freight_id: freight_id,
         payment_amount: remainingAmountCents.toString(), // Armazenar em centavos
-        payment_method: payment_method,
+        payment_method: paymentMethod,
         user_id: user.id,
         type: "freight_payment"
       }
@@ -134,8 +139,8 @@ serve(async (req) => {
         payer_id: profile.id,
         receiver_id: freight.driver_id,
         amount: remainingAmountCents, // Armazenar em centavos
-        payment_method,
-        payment_type: "FREIGHT_PAYMENT",
+        payment_method: paymentMethod,
+        payment_type: "FULL_PAYMENT",
         stripe_session_id: session.id,
         status: "PENDING" // Aguardar confirmação do webhook
       })

@@ -48,10 +48,8 @@ export function FreightPaymentModal({
       }
 
       if (checkoutData?.url) {
-        // Abrir o checkout em nova aba e fechar modal
-        window.open(checkoutData.url, '_blank');
-        toast.success('Redirecionando para pagamento seguro...');
-        onClose();
+        // Redirecionar para o checkout do Stripe
+        window.location.href = checkoutData.url;
         return;
       }
 
