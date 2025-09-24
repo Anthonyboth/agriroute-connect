@@ -16,7 +16,6 @@ import {
   Construction,
   Grid3X3
 } from 'lucide-react';
-import { ServiceRequestModal } from './ServiceRequestModal';
 import { ServiceProviderRegistrationForm } from './ServiceProviderRegistrationForm';
 
 interface ServicesModalProps {
@@ -94,19 +93,11 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
   isOpen,
   onClose
 }) => {
-  const [selectedService, setSelectedService] = useState<string | null>(null);
-  const [selectedServiceTitle, setSelectedServiceTitle] = useState<string>('');
-  const [showServiceRequest, setShowServiceRequest] = useState(false);
   const [showRegistration, setShowRegistration] = useState(false);
 
   const handleServiceSelect = (serviceId: string) => {
-    const service = serviceTypes.find(s => s.id === serviceId);
-    if (service) {
-      setSelectedService(serviceId.toUpperCase().replace('-', '_'));
-      setSelectedServiceTitle(service.title);
-      setShowServiceRequest(true);
-      onClose();
-    }
+    // Por enquanto apenas fecha o modal - funcionalidade original
+    onClose();
   };
 
   const handleBecomeProvider = () => {
@@ -183,20 +174,6 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Modal de solicitação de serviço */}
-      {selectedService && (
-        <ServiceRequestModal
-          isOpen={showServiceRequest}
-          onClose={() => {
-            setShowServiceRequest(false);
-            setSelectedService(null);
-            setSelectedServiceTitle('');
-          }}
-          serviceType={selectedService}
-          serviceTitle={selectedServiceTitle}
-        />
-      )}
 
       {/* Modal de cadastro de prestador */}
       <ServiceProviderRegistrationForm 
