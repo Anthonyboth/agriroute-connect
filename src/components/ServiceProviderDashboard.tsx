@@ -316,35 +316,15 @@ export const ServiceProviderDashboard: React.FC = () => {
             <p className="text-sm md:text-base mb-4 opacity-90">
               Sistema IA conecta você com clientes
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-              <Button 
-                variant="default"
-                size="sm"
-                onClick={() => setActiveTab('pending')}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
-              >
-                <Brain className="mr-1 h-4 w-4" />
-                Ver Solicitações
-              </Button>
-              
+            <div className="flex items-center justify-center">
               <Button 
                 variant="default"
                 size="sm"
                 onClick={() => setShowLocationManager(true)}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
               >
                 <MapPin className="mr-1 h-4 w-4" />
                 Configurar Região
-              </Button>
-              
-              <Button 
-                variant="default"
-                size="sm"
-                onClick={() => setActiveTab('services')}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
-              >
-                <Settings className="mr-1 h-4 w-4" />
-                Configurar
               </Button>
             </div>
           </div>
