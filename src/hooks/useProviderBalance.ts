@@ -49,7 +49,7 @@ export const useProviderBalance = () => {
       setBalance(data);
     } catch (err) {
       console.error('Error fetching provider balance:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao carregar saldo');
+      setError('Pagamentos pela plataforma ainda não estão disponíveis');
     } finally {
       setLoading(false);
     }
