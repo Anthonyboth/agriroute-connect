@@ -33,7 +33,6 @@ import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
-import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
 
 interface Freight {
   id: string;
@@ -105,8 +104,7 @@ const [initialCheckinType, setInitialCheckinType] = useState<string | null>(null
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
 const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<Freight | null>(null);
 const [showRegionModal, setShowRegionModal] = useState(false);
-const [showLocationManager, setShowLocationManager] = useState(false);
-const [regionalFreights, setRegionalFreights] = useState<Freight[]>([]);
+  const [showLocationManager, setShowLocationManager] = useState(false);
   const [filters, setFilters] = useState({
     cargo_type: 'all',
     service_type: 'all',
@@ -1504,8 +1502,7 @@ const [regionalFreights, setRegionalFreights] = useState<Freight[]>([]);
               <UnifiedLocationManager 
                 userType="MOTORISTA" 
                 onAreasUpdate={() => {
-                  // Refresh regional freights when areas are updated
-                  setRegionalFreights([]);
+                  // Refresh matches when areas are updated
                 }}
               />
             </div>
