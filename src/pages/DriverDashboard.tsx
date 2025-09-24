@@ -1449,29 +1449,6 @@ const [regionalFreights, setRegionalFreights] = useState<Freight[]>([]);
             )}
           </TabsContent>
 
-          <TabsContent value="regional" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="text-lg font-semibold">Fretes Regionais</h3>
-                <p className="text-sm text-muted-foreground">
-                  Sistema de filtro inteligente por proximidade
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setShowLocationManager(true)}
-                className="flex items-center gap-2"
-              >
-                <Settings className="h-4 w-4" />
-                Configurar Região
-              </Button>
-            </div>
-            
-            <RegionalFreightFilter 
-              userType="MOTORISTA" 
-              onFreightsLoaded={setRegionalFreights}
-            />
-          </TabsContent>
 
         </Tabs>
       </div>
