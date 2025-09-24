@@ -3566,6 +3566,15 @@ export type Database = {
         Args: { geom1: unknown; geom2: unknown }
         Returns: boolean
       }
+      accept_service_request: {
+        Args: { p_provider_id: string; p_request_id: string }
+        Returns: {
+          accepted_at: string
+          id: string
+          provider_id: string
+          status: string
+        }[]
+      }
       addauth: {
         Args: { "": string }
         Returns: boolean

@@ -210,30 +210,39 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
-      const { error } = await supabase
-        .from('service_requests')
-        .update({ 
-          status: 'ACCEPTED',
-          accepted_at: new Date().toISOString(),
-          provider_id: getProviderProfileId()
-        })
-        .eq('id', requestId);
+      const providerId = getProviderProfileId();
+      if (!providerId) {
+        toast({
+          title: "Erro",
+          description: "Perfil de prestador não encontrado.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('accept_service_request', {
+        p_provider_id: providerId,
+        p_request_id: requestId,
+      });
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('Solicitação indisponível ou já aceita.');
+      }
 
       toast({
         title: "Sucesso",
-        description: "Solicitação aceita com sucesso!"
+        description: "Solicitação aceita com sucesso!",
       });
-      
+
       fetchServiceRequests();
       fetchStats();
     } catch (error: any) {
       console.error('Error accepting request:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível aceitar a solicitação",
-        variant: "destructive"
+        description: error?.message || "Não foi possível aceitar a solicitação",
+        variant: "destructive",
       });
     }
   };
