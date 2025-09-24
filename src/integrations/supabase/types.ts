@@ -1848,6 +1848,56 @@ export type Database = {
         }
         Relationships: []
       }
+      producer_service_areas: {
+        Row: {
+          city_name: string
+          created_at: string | null
+          geom: unknown | null
+          id: string
+          is_active: boolean | null
+          lat: number
+          lng: number
+          producer_id: string
+          radius_km: number
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city_name: string
+          created_at?: string | null
+          geom?: unknown | null
+          id?: string
+          is_active?: boolean | null
+          lat: number
+          lng: number
+          producer_id: string
+          radius_km?: number
+          state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city_name?: string
+          created_at?: string | null
+          geom?: unknown | null
+          id?: string
+          is_active?: boolean | null
+          lat?: number
+          lng?: number
+          producer_id?: string
+          radius_km?: number
+          state?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_producer_id"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address_proof_url: string | null
