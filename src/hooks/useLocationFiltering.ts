@@ -9,7 +9,7 @@ interface LocationFilteringParams {
 
 interface RegionalItem {
   id: string;
-  distance_m: number;
+  distance_m: number; // Mudado para number para corresponder ao DOUBLE PRECISION do SQL
   [key: string]: any;
 }
 

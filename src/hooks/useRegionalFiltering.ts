@@ -93,11 +93,13 @@ export const useRegionalFiltering = ({ userType, profileId }: RegionalFilteringP
       };
     }
 
-    const distances = items.map(item => item.distance_km || 0).filter(d => d > 0);
-    const closestDistance = Math.min(...distances);
-    const averageDistance = distances.reduce((sum, d) => sum + d, 0) / distances.length;
+    const distances = items.map(item => (item.distance_m || 0) / 1000).filter(d => d > 0); // converter metros para km
+    const closestDistance = distances.length > 0 ? Math.min(...distances) : 0;
+    const averageDistance = distances.length > 0 
+      ? distances.reduce((sum, d) => sum + d, 0) / distances.length 
+      : 0;
     const withinRadius = items.filter(item => 
-      (item.distance_km || 0) <= (regionConfig?.radius || 100)
+      (item.distance_m || 0) <= (regionConfig?.radius || 100) * 1000 // comparar em metros
     ).length;
 
     return {
