@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { User, MessageCircle, Mail, Truck, Home, Package } from 'lucide-react';
 import { LocationFillButton } from './LocationFillButton';
+import { UserLocationSelector } from './UserLocationSelector';
 
 
 interface GuestServiceModalProps {
@@ -156,29 +157,21 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="origin">Origem *</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="origin"
-                          value={formData.origin}
-                          onChange={(e) => handleInputChange('origin', e.target.value)}
-                          required
-                          className="flex-1"
-                          placeholder={serviceType === 'GUINCHO' ? 'Onde está o veículo?' : 'Local de coleta'}
-                        />
-                        <LocationFillButton
-                          onLocationFilled={(address, lat, lng) => {
-                            handleInputChange('origin', address);
+                      <Label>Localização do Atendimento *</Label>
+                      <UserLocationSelector 
+                        onLocationChange={(location) => {
+                          if (location) {
                             setFormData(prev => ({
                               ...prev,
-                              origin_lat: lat,
-                              origin_lng: lng
+                              origin: `${location.city}, ${location.state}`,
+                              origin_lat: location.lat,
+                              origin_lng: location.lng
                             }));
-                          }}
-                        />
-                      </div>
+                          }
+                        }}
+                      />
                     </div>
                     {serviceType !== 'GUINCHO' && (
                       <div className="space-y-2">
