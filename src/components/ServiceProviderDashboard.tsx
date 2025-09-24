@@ -435,9 +435,20 @@ export const ServiceProviderDashboard: React.FC = () => {
             <h1 className="text-xl md:text-2xl font-bold mb-2">
               Olá, {profile?.full_name?.split(' ')[0] || 'Prestador'}
             </h1>
-            <p className="text-sm md:text-base opacity-90">
+            <p className="text-sm md:text-base mb-4 opacity-90">
               Sistema IA conecta você com clientes
             </p>
+            <div className="flex items-center justify-center">
+              <Button 
+                variant="default"
+                size="sm"
+                onClick={() => setActiveTab('cities')}
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
+              >
+                <MapPin className="mr-1 h-4 w-4" />
+                Configurar Região
+              </Button>
+            </div>
           </div>
         </div>
       </section>
