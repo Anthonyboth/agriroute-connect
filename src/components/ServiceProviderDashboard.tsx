@@ -46,7 +46,7 @@ import { ContactInfoCard } from '@/components/ContactInfoCard';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
 import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
 import ServiceProviderHeroDashboard from '@/components/ServiceProviderHeroDashboard';
-
+import { LocationManager } from '@/components/LocationManager';
 import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
 import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
 import { ProviderCityManager } from '@/components/ProviderCityManager';
@@ -102,7 +102,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('pending');
   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
   const [showEarnings, setShowEarnings] = useState(true);
-  
+  const [showLocationManager, setShowLocationManager] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [totalEarnings, setTotalEarnings] = useState(0);
 
@@ -159,85 +159,98 @@ export const ServiceProviderDashboard: React.FC = () => {
     if (!providerId) return;
 
     try {
-      setLoading(true);
-      
-      // Buscar solicitações do prestador (aceitas/em andamento/concluídas)  
+      // Buscar solicitações do prestador (aceitas/em andamento/concluídas)
       const { data: providerRequests, error: providerError } = await supabase
         .from('service_requests')
-        .select(`
-          *,
-          profiles:client_id (
-            id,
-            full_name,
-            profile_photo_url,  
-            phone,
-            user_id
-          )
-        `)
+        .select('*')
         .eq('provider_id', providerId)
         .order('created_at', { ascending: false });
 
       if (providerError) throw providerError;
 
-      // Buscar solicitações pendentes por cidade
+      // Buscar solicitações pendentes por cidade usando a nova função
       const { data: cityBasedRequests, error: cityError } = await supabase
         .rpc('get_service_requests_by_city', {
           provider_profile_id: providerId
         });
 
       if (cityError) {
-        console.warn('City-based search failed, trying direct approach:', cityError);
-        // Fallback: buscar todas as solicitações abertas
-        const { data: openRequests, error: openError } = await supabase
+        console.warn('City-based search failed, falling back to direct search:', cityError);
+        
+        // Fallback: busca direta por solicitações pendentes
+        const { data: directPendingRequests, error: directPendingError } = await supabase
           .from('service_requests')
-          .select('*')
+          .select('*') 
           .is('provider_id', null)
           .eq('status', 'OPEN')
-          .order('created_at', { ascending: true });
+          .order('created_at', { ascending: true }); // Mais antigas primeiro
 
-        if (openError) throw openError;
+        if (directPendingError) throw directPendingError;
 
-        const allRequests: ServiceRequest[] = [
-          ...(providerRequests || []).map((r: any) => r as ServiceRequest),
-          ...(openRequests || []).map((r: any) => ({
+        // Combinar resultados
+        const byId = new Map<string, ServiceRequest>();
+        (providerRequests || []).forEach((r: any) => byId.set(r.id, r as ServiceRequest));
+        
+        (directPendingRequests || []).forEach((r: any) => {
+          const serviceRequest: ServiceRequest = {
             ...r,
             provider_id: null,
             profiles: null
-          } as ServiceRequest))
-        ];
+          };
+          byId.set(r.id, serviceRequest);
+        });
         
+        const allRequests = Array.from(byId.values());
         setRequests(allRequests);
         setLastRefresh(new Date());
-        console.log(`Loaded ${allRequests.length} service requests (direct mode)`);
+        setLoading(false);
+        
+        console.log(`Loaded ${allRequests.length} service requests (fallback mode)`, {
+          providerRequests: (providerRequests || []).length,
+          directPending: (directPendingRequests || []).length
+        });
+        
         return;
       }
 
-      // Combinar solicitações
-      const allRequests: ServiceRequest[] = [
-        ...(providerRequests || []).map((r: any) => r as ServiceRequest),
-        ...(cityBasedRequests || []).map((r: any) => ({
+      // Usar resultados da busca por cidade
+      const pendingCityRequests = (cityBasedRequests || [])
+        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); // Mais antigas primeiro
+
+      // Combinar e deduplicar por id
+      const byId = new Map<string, ServiceRequest>();
+      
+      // Adicionar solicitações do prestador
+      (providerRequests || []).forEach((r: any) => byId.set(r.id, r as ServiceRequest));
+      
+      // Adicionar solicitações pendentes baseadas em cidade
+      pendingCityRequests.forEach((r: any) => {
+        const serviceRequest: ServiceRequest = {
           ...r,
           provider_id: null,
-          profiles: null
-        } as ServiceRequest))
-      ];
-
+          profiles: null // Dados de contato só ficam disponíveis após aceitar
+        };
+        byId.set(r.id, serviceRequest);
+      });
+      
+      const allRequests = Array.from(byId.values());
       setRequests(allRequests);
       setLastRefresh(new Date());
-      console.log(`Loaded ${allRequests.length} service requests`, {
-        provider: (providerRequests || []).length,
-        pending: (cityBasedRequests || []).length
+      setLoading(false);
+      
+      console.log(`Loaded ${allRequests.length} service requests (city-based)`, {
+        providerRequests: (providerRequests || []).length,
+        cityBasedPending: pendingCityRequests.length
       });
       
     } catch (error: any) {
       console.error('Error fetching service requests:', error);
+      setLoading(false);
       toast({
         title: "Erro",
         description: "Não foi possível carregar as solicitações",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -427,9 +440,15 @@ export const ServiceProviderDashboard: React.FC = () => {
               Sistema IA conecta você com clientes
             </p>
             <div className="flex items-center justify-center">
-              <p className="text-sm opacity-75">
-                Configure suas cidades de atendimento na aba "Cidades"
-              </p>
+              <Button 
+                variant="default"
+                size="sm"
+                onClick={() => setShowLocationManager(true)}
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
+              >
+                <MapPin className="mr-1 h-4 w-4" />
+                Configurar Região
+              </Button>
             </div>
           </div>
         </div>
@@ -779,6 +798,16 @@ export const ServiceProviderDashboard: React.FC = () => {
 
         </Tabs>
 
+        {/* Modal de Configuração de Localização */}
+        {showLocationManager && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <LocationManager onClose={() => setShowLocationManager(false)} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
