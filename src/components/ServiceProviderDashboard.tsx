@@ -162,24 +162,40 @@ export const ServiceProviderDashboard: React.FC = () => {
     if (!providerId) return;
 
     try {
-      const { data, error } = await supabase
+      // Buscar solicitações do prestador (aceitas/em andamento/concluídas)
+      const { data: providerRequests, error: providerError } = await supabase
         .from('service_requests')
         .select('status, final_price')
         .eq('provider_id', providerId);
 
-      if (error) throw error;
+      if (providerError) throw providerError;
 
-      const total = data.length;
-      const pending = data.filter(r => r.status === 'OPEN' || r.status === 'PENDING').length;
-      const accepted = data.filter(r => r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS').length;
-      const completed = data.filter(r => r.status === 'COMPLETED').length;
-      const totalEarnings = data
+      // Buscar solicitações pendentes regionais (sem prestador atribuído)
+      const { data: regionalData, error: regionalError } = await supabase
+        .rpc('get_service_requests_in_radius', {
+          provider_profile_id: providerId
+        });
+
+      if (regionalError) throw regionalError;
+
+      // Filtrar apenas solicitações pendentes regionais (sem provider_id e status OPEN)
+      const pendingRegionalRequests = (regionalData || []).filter((r: any) => !r.provider_id && r.status === 'OPEN');
+
+      // Calcular estatísticas baseadas nas solicitações do prestador
+      const total = (providerRequests || []).length;
+      const accepted = (providerRequests || []).filter(r => r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS').length;
+      const completed = (providerRequests || []).filter(r => r.status === 'COMPLETED').length;
+      const totalEarnings = (providerRequests || [])
         .filter(r => r.status === 'COMPLETED' && r.final_price)
         .reduce((sum, r) => sum + (r.final_price || 0), 0);
 
+      // Pendentes = solicitações regionais não aceitas + solicitações próprias pendentes
+      const ownPending = (providerRequests || []).filter(r => r.status === 'OPEN' || r.status === 'PENDING').length;
+      const totalPending = pendingRegionalRequests.length + ownPending;
+
       setStats({
         total_requests: total,
-        pending_requests: pending,
+        pending_requests: totalPending,
         accepted_requests: accepted,
         completed_requests: completed,
         average_rating: profile?.rating || 0,
@@ -302,7 +318,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section Compacto */}
-      <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[200px] flex items-center justify-center overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${heroLogistics})` }}
@@ -313,20 +329,9 @@ export const ServiceProviderDashboard: React.FC = () => {
             <h1 className="text-xl md:text-2xl font-bold mb-2">
               Olá, {profile?.full_name?.split(' ')[0] || 'Prestador'}
             </h1>
-            <p className="text-sm md:text-base mb-4 opacity-90">
+            <p className="text-sm md:text-base opacity-90">
               Sistema IA conecta você com clientes
             </p>
-            <div className="flex items-center justify-center">
-              <Button 
-                variant="default"
-                size="sm"
-                onClick={() => setShowLocationManager(true)}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
-              >
-                <MapPin className="mr-1 h-4 w-4" />
-                Configurar Região
-              </Button>
-            </div>
           </div>
         </div>
       </section>
@@ -451,7 +456,9 @@ export const ServiceProviderDashboard: React.FC = () => {
           <TabsContent value="pending" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Solicitações Pendentes</h3>
-              <Badge variant="secondary" className="text-xs">{filteredRequests.length}</Badge>
+              <Badge variant="secondary" className="text-xs">
+                {requests.filter(r => !r.provider_id && r.status === 'OPEN').length}
+              </Badge>
             </div>
             
             {filteredRequests.length > 0 ? (
@@ -509,12 +516,14 @@ export const ServiceProviderDashboard: React.FC = () => {
           <TabsContent value="accepted" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Serviços em Andamento</h3>
-              <Badge variant="secondary" className="text-xs">{requests.filter(r => r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS').length}</Badge>
+              <Badge variant="secondary" className="text-xs">
+                {requests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).length}
+              </Badge>
             </div>
             
-            {requests.filter(r => r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS').length > 0 ? (
+            {requests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).length > 0 ? (
               <div className="space-y-4">
-                {requests.filter(r => r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS').map((request) => (
+                {requests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).map((request) => (
                   <Card key={request.id} className="shadow-sm border-l-4 border-l-orange-500">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -560,12 +569,14 @@ export const ServiceProviderDashboard: React.FC = () => {
           <TabsContent value="completed" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Serviços Concluídos</h3>
-              <Badge variant="secondary" className="text-xs">{requests.filter(r => r.status === 'COMPLETED').length}</Badge>
+              <Badge variant="secondary" className="text-xs">
+                {requests.filter(r => r.provider_id && r.status === 'COMPLETED').length}
+              </Badge>
             </div>
             
-            {requests.filter(r => r.status === 'COMPLETED').length > 0 ? (
+            {requests.filter(r => r.provider_id && r.status === 'COMPLETED').length > 0 ? (
               <div className="space-y-4">
-                {requests.filter(r => r.status === 'COMPLETED').map((request) => (
+                {requests.filter(r => r.provider_id && r.status === 'COMPLETED').map((request) => (
                   <Card key={request.id} className="shadow-sm">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
