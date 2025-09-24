@@ -395,14 +395,15 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     try {
       const success = await requestLocation();
       if (success && coords) {
-        setFormData({
-          ...formData,
+        setFormData(prev => ({
+          ...prev,
           origin_lat: coords.latitude,
           origin_lng: coords.longitude
-        });
+        }));
+
         toast({
-          title: "Localização obtida!",
-          description: "Suas coordenadas foram capturadas com sucesso.",
+          title: "Coordenadas obtidas!",
+          description: "Verifique se a cidade e estado correspondem à sua localização atual.",
         });
       } else {
         toast({
@@ -421,6 +422,35 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     } finally {
       setLocationLoading(false);
     }
+  };
+
+  // Função para validar se as coordenadas estão aproximadamente no estado selecionado
+  const validateLocationConsistency = () => {
+    if (!formData.origin_lat || !formData.origin_lng || !formData.state) return null;
+    
+    // Coordenadas aproximadas dos estados brasileiros (centro geográfico)
+    const stateBounds: Record<string, { minLat: number, maxLat: number, minLng: number, maxLng: number }> = {
+      'MT': { minLat: -18.0, maxLat: -7.0, minLng: -61.0, maxLng: -50.0 }, // Mato Grosso
+      'AC': { minLat: -11.0, maxLat: -7.0, minLng: -74.0, maxLng: -66.0 }, // Acre
+      'SP': { minLat: -25.0, maxLat: -19.0, minLng: -53.0, maxLng: -44.0 }, // São Paulo
+      'RS': { minLat: -34.0, maxLat: -27.0, minLng: -58.0, maxLng: -49.0 }, // Rio Grande do Sul
+      'PR': { minLat: -26.5, maxLat: -22.0, minLng: -55.0, maxLng: -48.0 }, // Paraná
+      'GO': { minLat: -19.5, maxLat: -12.0, minLng: -53.5, maxLng: -45.5 }, // Goiás
+      'MG': { minLat: -23.0, maxLat: -14.0, minLng: -51.0, maxLng: -39.0 }, // Minas Gerais
+      'BA': { minLat: -18.5, maxLat: -9.0, minLng: -46.5, maxLng: -37.0 }, // Bahia
+      'RJ': { minLat: -23.5, maxLat: -20.5, minLng: -45.0, maxLng: -40.5 }, // Rio de Janeiro
+      // Adicionar outros estados conforme necessário
+    };
+
+    const bounds = stateBounds[formData.state];
+    if (!bounds) return null;
+
+    const isValid = formData.origin_lat >= bounds.minLat && 
+                   formData.origin_lat <= bounds.maxLat && 
+                   formData.origin_lng >= bounds.minLng && 
+                   formData.origin_lng <= bounds.maxLng;
+
+    return { isValid, stateName: BRAZILIAN_STATES.find(s => s.code === formData.state)?.name || formData.state };
   };
 
   return (
@@ -534,6 +564,37 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                     {locationLoading ? 'Obtendo...' : 'Usar Localização Atual'}
                   </Button>
                 </div>
+
+                {/* Alerta de validação de localização */}
+                {(formData.origin_lat && formData.origin_lng && formData.city_name && formData.state) && (
+                  (() => {
+                    const validation = validateLocationConsistency();
+                    if (!validation) return null;
+                    
+                    return (
+                      <div className={`p-3 border rounded-lg ${validation.isValid ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className={`h-4 w-4 mt-0.5 ${validation.isValid ? 'text-green-600' : 'text-yellow-600'}`} />
+                          <div className="text-sm">
+                            <p className={`font-medium ${validation.isValid ? 'text-green-900' : 'text-yellow-900'}`}>
+                              {validation.isValid ? 'Localização Consistente' : 'Verificar Localização'}
+                            </p>
+                            <p className={validation.isValid ? 'text-green-800' : 'text-yellow-800'}>
+                              Coordenadas: {formData.origin_lat.toFixed(6)}, {formData.origin_lng.toFixed(6)}
+                              <br />
+                              Local informado: {formData.city_name}, {validation.stateName}
+                            </p>
+                            {!validation.isValid && (
+                              <p className="text-yellow-700 mt-1">
+                                ⚠️ As coordenadas podem não corresponder ao estado selecionado. Verifique se está correto.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
