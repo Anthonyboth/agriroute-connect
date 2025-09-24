@@ -115,19 +115,42 @@ export const ServiceProviderDashboard: React.FC = () => {
   const { counts, refreshCounts } = useServiceRequestCounts(providerId);
 
   useEffect(() => {
-    if (user) {
-      fetchServiceRequests();
-      fetchTotalEarnings();
-      
-      // Auto-refresh a cada 30 segundos para solicitações pendentes
-      const interval = setInterval(() => {
-        fetchServiceRequests();
-        refreshCounts();
-        fetchTotalEarnings();
-      }, 30000);
+    if (!profile?.id || profile.role !== 'PRESTADOR_SERVICOS') return;
 
-      return () => clearInterval(interval);
-    }
+    // Buscar dados iniciais
+    fetchServiceRequests();
+    fetchTotalEarnings();
+
+    // Configurar realtime para service_requests
+    const channel = supabase
+      .channel('service-requests-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'service_requests'
+        },
+        (payload) => {
+          console.log('Realtime update:', payload);
+          // Recarregar dados quando houver mudanças
+          fetchServiceRequests();
+          refreshCounts();
+        }
+      )
+      .subscribe();
+
+    // Refresh automático a cada 10 segundos como fallback
+    const interval = setInterval(() => {
+      fetchServiceRequests();
+      refreshCounts();
+      fetchTotalEarnings();
+    }, 10000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
   }, [user, profile]);
 
   const fetchServiceRequests = async () => {
@@ -144,40 +167,76 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       if (providerError) throw providerError;
 
-      // Buscar solicitações pendentes (sem prestador atribuído) usando filtro REGIONAL (RPC)
-      // Ordenar as pendentes pelas MAIS ANTIGAS primeiro
-      const { data: regionalData, error: regionalError } = await supabase
-        .rpc('get_service_requests_in_radius', {
-          provider_profile_id: providerId
-        });
+      // Buscar TODAS as solicitações pendentes (status OPEN e sem provider_id)
+      // Usar busca direta na tabela + filtro regional como fallback
+      const { data: directPendingRequests, error: directPendingError } = await supabase
+        .from('service_requests')
+        .select('*') 
+        .is('provider_id', null)
+        .eq('status', 'OPEN')
+        .order('created_at', { ascending: true }); // Mais antigas primeiro
 
-      if (regionalError) throw regionalError;
+      if (directPendingError) throw directPendingError;
 
-      const pendingRegionalRequests = (regionalData || [])
-        .filter((r: any) => !r.provider_id && r.status === 'OPEN')
-        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); // Mais antigas primeiro
+      // Tentar buscar também com filtro regional (RPC) como complemento
+      let regionalPendingRequests: any[] = [];
+      try {
+        const { data: regionalData, error: regionalError } = await supabase
+          .rpc('get_service_requests_in_radius', {
+            provider_profile_id: providerId
+          });
 
-      // Combinar e deduplicar por id
+        if (!regionalError && regionalData) {
+          regionalPendingRequests = regionalData
+            .filter((r: any) => !r.provider_id && r.status === 'OPEN')
+            .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        }
+      } catch (regionalErr) {
+        console.log('Regional search failed, using direct search only:', regionalErr);
+      }
+
+      // Combinar solicitações pendentes (priorizar busca direta)
       const byId = new Map<string, ServiceRequest>();
+      
+      // Adicionar solicitações do prestador
       (providerRequests || []).forEach((r: any) => byId.set(r.id, r as ServiceRequest));
       
-      // Converter dados regionais para o formato ServiceRequest
-      pendingRegionalRequests.forEach((r: any) => {
+      // Adicionar solicitações pendentes diretas
+      (directPendingRequests || []).forEach((r: any) => {
         const serviceRequest: ServiceRequest = {
           ...r,
-          provider_id: r.provider_id || null,
+          provider_id: null,
           profiles: null // Dados de contato só ficam disponíveis após aceitar
         };
         byId.set(r.id, serviceRequest);
       });
       
+      // Adicionar solicitações regionais que não foram encontradas na busca direta
+      regionalPendingRequests.forEach((r: any) => {
+        if (!byId.has(r.id)) {
+          const serviceRequest: ServiceRequest = {
+            ...r,
+            provider_id: null,
+            profiles: null
+          };
+          byId.set(r.id, serviceRequest);
+        }
+      });
+      
       const allRequests = Array.from(byId.values());
       setRequests(allRequests);
       setLastRefresh(new Date());
-      setLoading(false); // Certificar que o loading seja desativado
+      setLoading(false);
+      
+      console.log(`Loaded ${allRequests.length} service requests`, {
+        providerRequests: (providerRequests || []).length,
+        directPending: (directPendingRequests || []).length,
+        regionalPending: regionalPendingRequests.length
+      });
+      
     } catch (error: any) {
       console.error('Error fetching service requests:', error);
-      setLoading(false); // Desativar loading mesmo em caso de erro
+      setLoading(false);
       toast({
         title: "Erro",
         description: "Não foi possível carregar as solicitações",
