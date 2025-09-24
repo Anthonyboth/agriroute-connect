@@ -170,6 +170,68 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          provider_id: string
+          reference_id: string | null
+          reference_type: string | null
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_payout_id: string | null
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          provider_id: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_payout_id?: string | null
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          provider_id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_payout_id?: string | null
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balance_transactions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cities: {
         Row: {
           created_at: string | null
@@ -2393,6 +2455,47 @@ export type Database = {
             foreignKeyName: "fk_service_provider_areas_provider"
             columns: ["provider_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_provider_balances: {
+        Row: {
+          available_balance: number
+          created_at: string
+          id: string
+          last_payout_at: string | null
+          pending_balance: number
+          provider_id: string
+          total_earned: number
+          updated_at: string
+        }
+        Insert: {
+          available_balance?: number
+          created_at?: string
+          id?: string
+          last_payout_at?: string | null
+          pending_balance?: number
+          provider_id: string
+          total_earned?: number
+          updated_at?: string
+        }
+        Update: {
+          available_balance?: number
+          created_at?: string
+          id?: string
+          last_payout_at?: string | null
+          pending_balance?: number
+          provider_id?: string
+          total_earned?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_provider_balances_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
