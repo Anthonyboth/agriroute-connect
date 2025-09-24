@@ -26,6 +26,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LocationFillButton } from './LocationFillButton';
+import { CitySelector } from './CitySelector';
 
 interface ServiceRequestModalProps {
   isOpen: boolean;
@@ -83,7 +84,9 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     origin_lat: undefined as number | undefined,
     origin_lng: undefined as number | undefined,
     destination_lat: undefined as number | undefined,
-    destination_lng: undefined as number | undefined
+    destination_lng: undefined as number | undefined,
+    city_name: '',
+    state: ''
   });
 
   const calculatePricing = async () => {
@@ -119,10 +122,10 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     if (loading) return;
 
     // Validação básica
-    if (!formData.origin_address || !formData.contact_phone || !formData.problem_description) {
+    if (!formData.origin_address || !formData.contact_phone || !formData.problem_description || !formData.city_name) {
       toast({
         title: "Erro",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        description: "Por favor, preencha todos os campos obrigatórios, incluindo a cidade.",
         variant: "destructive"
       });
       return;
@@ -196,6 +199,8 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
               location_address: formData.origin_address,
               location_lat: formData.origin_lat,
               location_lng: formData.origin_lng,
+              city_name: formData.city_name,
+              state: formData.state,
               problem_description: serviceDescription,
               vehicle_info: formData.vehicle_type ? vehicleTypes.find(v => v.value === formData.vehicle_type)?.label : '',
               urgency: formData.emergency ? 'HIGH' : 'MEDIUM',
@@ -203,7 +208,7 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
               contact_name: formData.contact_name,
               additional_info: formData.additional_info,
               is_emergency: formData.emergency,
-              status: 'PENDING'
+              status: 'OPEN'
             });
 
           if (error) throw error;
@@ -234,6 +239,8 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
             service_type: serviceType === 'OUTROS' ? formData.custom_service_description : serviceType,
             contact_phone: formData.contact_phone,
             contact_name: formData.contact_name,
+            city_name: formData.city_name,
+            state: formData.state,
             payload: guestPayload,
             status: 'PENDING'
           });
@@ -261,7 +268,9 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         origin_lat: undefined,
         origin_lng: undefined,
         destination_lat: undefined,
-        destination_lng: undefined
+        destination_lng: undefined,
+        city_name: '',
+        state: ''
       });
       setPricing(null);
     } catch (error) {
@@ -331,6 +340,27 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
             </div>
           </div>
 
+          {/* Campo de cidade obrigatório */}
+          <div className="space-y-2">
+            <CitySelector
+              label="Cidade onde precisa do serviço"
+              required
+              value={formData.city_name && formData.state ? {
+                city: formData.city_name,
+                state: formData.state
+              } : undefined}
+              onChange={(cityData) => setFormData({
+                ...formData,
+                city_name: cityData.city,
+                state: cityData.state
+              })}
+              placeholder="Digite o nome da cidade..."
+            />
+            <p className="text-xs text-muted-foreground">
+              Esta informação é obrigatória para encontrar prestadores na sua região
+            </p>
+          </div>
+
           {isGuincho && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -381,16 +411,37 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                   required
                   className="flex-1"
                 />
-                <LocationFillButton
-                  onLocationFilled={(address, lat, lng) => {
-                    setFormData({
-                      ...formData, 
-                      origin_address: address,
-                      origin_lat: lat,
-                      origin_lng: lng
-                    });
-                  }}
-                />
+                  <LocationFillButton
+                    onLocationFilled={(address, lat, lng) => {
+                      // Extrair cidade do endereço quando usar GPS
+                      const addressParts = address.split(',');
+                      let cityFromAddress = '';
+                      let stateFromAddress = '';
+                      
+                      if (addressParts.length >= 2) {
+                        // Tentar extrair cidade e estado do endereço
+                        const lastPart = addressParts[addressParts.length - 1].trim();
+                        const secondLastPart = addressParts[addressParts.length - 2].trim();
+                        
+                        if (lastPart.length === 2) { // Provável estado
+                          stateFromAddress = lastPart;
+                          cityFromAddress = secondLastPart;
+                        }
+                      }
+                      
+                      setFormData({
+                        ...formData, 
+                        origin_address: address,
+                        origin_lat: lat,
+                        origin_lng: lng,
+                        // Se conseguiu extrair cidade, preencher automaticamente
+                        ...(cityFromAddress && {
+                          city_name: cityFromAddress,
+                          state: stateFromAddress
+                        })
+                      });
+                    }}
+                  />
               </div>
             </div>
 
@@ -416,6 +467,26 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                     }}
                   />
                 </div>
+
+                {/* Opção de preencher endereço destino com base na cidade selecionada */}
+                {formData.city_name && !formData.destination_address && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const cityAddress = `${formData.city_name}, ${formData.state}`;
+                      setFormData({
+                        ...formData,
+                        destination_address: cityAddress
+                      });
+                    }}
+                    className="text-xs"
+                  >
+                    <MapPin className="h-3 w-3 mr-1" />
+                    Usar cidade selecionada
+                  </Button>
+                )}
               </div>
             )}
           </div>

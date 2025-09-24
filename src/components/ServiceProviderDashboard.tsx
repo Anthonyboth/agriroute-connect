@@ -49,6 +49,7 @@ import ServiceProviderHeroDashboard from '@/components/ServiceProviderHeroDashbo
 import { LocationManager } from '@/components/LocationManager';
 import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
 import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
+import { ProviderCityManager } from '@/components/ProviderCityManager';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 interface ServiceRequest {
@@ -167,42 +168,63 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       if (providerError) throw providerError;
 
-      // Buscar TODAS as solicitações pendentes (status OPEN e sem provider_id)
-      // Usar busca direta na tabela + filtro regional como fallback
-      const { data: directPendingRequests, error: directPendingError } = await supabase
-        .from('service_requests')
-        .select('*') 
-        .is('provider_id', null)
-        .eq('status', 'OPEN')
-        .order('created_at', { ascending: true }); // Mais antigas primeiro
+      // Buscar solicitações pendentes por cidade usando a nova função
+      const { data: cityBasedRequests, error: cityError } = await supabase
+        .rpc('get_service_requests_by_city', {
+          provider_profile_id: providerId
+        });
 
-      if (directPendingError) throw directPendingError;
+      if (cityError) {
+        console.warn('City-based search failed, falling back to direct search:', cityError);
+        
+        // Fallback: busca direta por solicitações pendentes
+        const { data: directPendingRequests, error: directPendingError } = await supabase
+          .from('service_requests')
+          .select('*') 
+          .is('provider_id', null)
+          .eq('status', 'OPEN')
+          .order('created_at', { ascending: true }); // Mais antigas primeiro
 
-      // Tentar buscar também com filtro regional (RPC) como complemento
-      let regionalPendingRequests: any[] = [];
-      try {
-        const { data: regionalData, error: regionalError } = await supabase
-          .rpc('get_service_requests_in_radius', {
-            provider_profile_id: providerId
-          });
+        if (directPendingError) throw directPendingError;
 
-        if (!regionalError && regionalData) {
-          regionalPendingRequests = regionalData
-            .filter((r: any) => !r.provider_id && r.status === 'OPEN')
-            .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-        }
-      } catch (regionalErr) {
-        console.log('Regional search failed, using direct search only:', regionalErr);
+        // Combinar resultados
+        const byId = new Map<string, ServiceRequest>();
+        (providerRequests || []).forEach((r: any) => byId.set(r.id, r as ServiceRequest));
+        
+        (directPendingRequests || []).forEach((r: any) => {
+          const serviceRequest: ServiceRequest = {
+            ...r,
+            provider_id: null,
+            profiles: null
+          };
+          byId.set(r.id, serviceRequest);
+        });
+        
+        const allRequests = Array.from(byId.values());
+        setRequests(allRequests);
+        setLastRefresh(new Date());
+        setLoading(false);
+        
+        console.log(`Loaded ${allRequests.length} service requests (fallback mode)`, {
+          providerRequests: (providerRequests || []).length,
+          directPending: (directPendingRequests || []).length
+        });
+        
+        return;
       }
 
-      // Combinar solicitações pendentes (priorizar busca direta)
+      // Usar resultados da busca por cidade
+      const pendingCityRequests = (cityBasedRequests || [])
+        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); // Mais antigas primeiro
+
+      // Combinar e deduplicar por id
       const byId = new Map<string, ServiceRequest>();
       
       // Adicionar solicitações do prestador
       (providerRequests || []).forEach((r: any) => byId.set(r.id, r as ServiceRequest));
       
-      // Adicionar solicitações pendentes diretas
-      (directPendingRequests || []).forEach((r: any) => {
+      // Adicionar solicitações pendentes baseadas em cidade
+      pendingCityRequests.forEach((r: any) => {
         const serviceRequest: ServiceRequest = {
           ...r,
           provider_id: null,
@@ -211,27 +233,14 @@ export const ServiceProviderDashboard: React.FC = () => {
         byId.set(r.id, serviceRequest);
       });
       
-      // Adicionar solicitações regionais que não foram encontradas na busca direta
-      regionalPendingRequests.forEach((r: any) => {
-        if (!byId.has(r.id)) {
-          const serviceRequest: ServiceRequest = {
-            ...r,
-            provider_id: null,
-            profiles: null
-          };
-          byId.set(r.id, serviceRequest);
-        }
-      });
-      
       const allRequests = Array.from(byId.values());
       setRequests(allRequests);
       setLastRefresh(new Date());
       setLoading(false);
       
-      console.log(`Loaded ${allRequests.length} service requests`, {
+      console.log(`Loaded ${allRequests.length} service requests (city-based)`, {
         providerRequests: (providerRequests || []).length,
-        directPending: (directPendingRequests || []).length,
-        regionalPending: regionalPendingRequests.length
+        cityBasedPending: pendingCityRequests.length
       });
       
     } catch (error: any) {
@@ -554,6 +563,11 @@ export const ServiceProviderDashboard: React.FC = () => {
                 <span className="hidden sm:inline">Saldo</span>
                 <span className="sm:hidden">Saldo</span>
               </TabsTrigger>
+              <TabsTrigger value="cities" className="text-xs">
+                <MapPin className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Cidades</span>
+                <span className="sm:hidden">Cid</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -768,6 +782,18 @@ export const ServiceProviderDashboard: React.FC = () => {
 
           <TabsContent value="payouts" className="space-y-4">
             <ServiceProviderPayouts providerId={getProviderProfileId() || ''} />
+          </TabsContent>
+
+          <TabsContent value="cities" className="space-y-4">
+            <ProviderCityManager 
+              providerId={getProviderProfileId() || ''} 
+              onCitiesUpdate={(cities) => {
+                console.log('Provider cities updated:', cities);
+                // Recarregar solicitações quando cidades forem atualizadas
+                fetchServiceRequests();
+                refreshCounts();
+              }}
+            />
           </TabsContent>
 
         </Tabs>

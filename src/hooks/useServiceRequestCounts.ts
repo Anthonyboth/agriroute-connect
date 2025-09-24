@@ -30,30 +30,30 @@ export const useServiceRequestCounts = (providerId?: string) => {
 
       if (providerError) throw providerError;
 
-      // Buscar TODAS as solicitações pendentes diretamente na tabela
-      const { data: allPendingRequests, error: pendingError } = await supabase
-        .from('service_requests')
-        .select('id')
-        .is('provider_id', null)
-        .eq('status', 'OPEN');
-
-      if (pendingError) throw pendingError;
-
-      // Tentar buscar regionais como complemento
-      let regionalPendingCount = 0;
+      // Buscar solicitações pendentes por cidade
+      let pendingCount = 0;
       try {
-        const { data: regionalData, error: regionalError } = await supabase
-          .rpc('get_service_requests_in_radius', {
+        const { data: cityBasedRequests, error: cityError } = await supabase
+          .rpc('get_service_requests_by_city', {
             provider_profile_id: providerId
           });
 
-        if (!regionalError && regionalData) {
-          regionalPendingCount = regionalData.filter((r: any) => 
-            !r.provider_id && r.status === 'OPEN'
-          ).length;
+        if (!cityError && cityBasedRequests) {
+          pendingCount = cityBasedRequests.length;
         }
-      } catch (regionalErr) {
-        console.log('Regional count failed, using direct count:', regionalErr);
+      } catch (cityErr) {
+        console.warn('City-based count failed, using fallback:', cityErr);
+        
+        // Fallback: busca direta por solicitações pendentes
+        const { data: allPendingRequests, error: pendingError } = await supabase
+          .from('service_requests')
+          .select('id')
+          .is('provider_id', null)
+          .eq('status', 'OPEN');
+
+        if (!pendingError && allPendingRequests) {
+          pendingCount = allPendingRequests.length;
+        }
       }
 
       // Contar solicitações próprias pendentes
@@ -72,10 +72,7 @@ export const useServiceRequestCounts = (providerId?: string) => {
       ).length;
 
       const total = (providerRequests || []).length;
-      
-      // Use o maior entre busca direta e regional para garantir precisão
-      const directPendingCount = (allPendingRequests || []).length;
-      const pending = Math.max(directPendingCount, regionalPendingCount) + ownPending;
+      const pending = pendingCount + ownPending;
 
       setCounts({
         pending,
@@ -84,13 +81,12 @@ export const useServiceRequestCounts = (providerId?: string) => {
         total
       });
 
-      console.log('Request counts updated:', {
+      console.log('Request counts updated (city-based):', {
         pending,
         accepted,
         completed,
         total,
-        directPendingCount,
-        regionalPendingCount,
+        cityBasedPending: pendingCount,
         ownPending
       });
 
