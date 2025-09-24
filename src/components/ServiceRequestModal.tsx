@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,11 @@ import { toast } from 'sonner';
 
 interface ServiceRequestModalProps {
   trigger?: React.ReactNode;
+  // Controlled mode props
+  isOpen?: boolean;
+  onClose?: () => void;
+  serviceType?: string;
+  serviceTitle?: string;
 }
 
 interface UserLocation {
@@ -47,15 +52,26 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
       <Plus className="h-4 w-4" />
       Solicitar Serviço
     </Button>
-  )
+  ),
+  // Controlled mode props
+  isOpen: controlledOpen,
+  onClose: controlledOnClose,
+  serviceType: initialServiceType,
+  serviceTitle
 }) => {
   const { profile } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   
+  // Use controlled or internal state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnClose !== undefined 
+    ? (value: boolean) => !value && controlledOnClose() 
+    : setInternalOpen;
+  
   // Dados da solicitação
-  const [serviceType, setServiceType] = useState('');
+  const [serviceType, setServiceType] = useState(initialServiceType || '');
   const [problemDescription, setProblemDescription] = useState('');
   const [vehicleInfo, setVehicleInfo] = useState('');
   const [urgency, setUrgency] = useState('MEDIUM');
@@ -63,6 +79,13 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
   const [contactName, setContactName] = useState('');
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [isEmergency, setIsEmergency] = useState(false);
+
+  // Reset service type when initialServiceType changes
+  useEffect(() => {
+    if (initialServiceType) {
+      setServiceType(initialServiceType);
+    }
+  }, [initialServiceType]);
 
   const resetForm = () => {
     setServiceType('');
@@ -138,9 +161,12 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger}
-      </DialogTrigger>
+      {/* Only render DialogTrigger if we have a trigger and not in controlled mode */}
+      {trigger && controlledOpen === undefined && (
+        <DialogTrigger asChild>
+          {trigger}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
