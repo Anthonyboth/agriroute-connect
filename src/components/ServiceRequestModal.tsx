@@ -106,7 +106,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         urgency: formData.urgency,
         preferred_datetime: formData.preferred_time ? new Date().toISOString() : null,
         additional_info: formData.additional_info || null,
-        status: 'PENDING'
+        status: 'OPEN'
       });
 
       if (error) {
