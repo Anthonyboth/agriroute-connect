@@ -1389,65 +1389,6 @@ const [showRegionModal, setShowRegionModal] = useState(false);
             </div>
           </TabsContent>
 
-          <TabsContent value="regional" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="text-lg font-semibold">Fretes Regionais</h3>
-                <p className="text-sm text-muted-foreground">
-                  Sistema de filtro inteligente por proximidade
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setShowLocationManager(true)}
-                className="flex items-center gap-2"
-              >
-                <Settings className="h-4 w-4" />
-                Configurar Região
-              </Button>
-            </div>
-            
-            <RegionalFreightFilter 
-              userType="MOTORISTA" 
-              onFreightsLoaded={setRegionalFreights}
-            />
-            
-            {/* Lista de fretes regionais */}
-            {regionalFreights.length > 0 && (
-              <div className="space-y-4">
-                <h4 className="text-md font-medium">Fretes Próximos a Você</h4>
-                <div className="grid gap-4">
-                  {regionalFreights.slice(0, 5).map((freight: any) => (
-                    <Card key={freight.id} className="border-l-4 border-l-primary">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <p className="font-medium">{freight.cargo_type}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {freight.origin_address} → {freight.destination_address}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <Badge className="bg-green-100 text-green-800">
-                              {Math.round(freight.distance_km || 0)} km
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-primary font-medium">
-                            R$ {freight.price?.toLocaleString('pt-BR')}
-                          </span>
-                          <span>{freight.weight} ton</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-          </TabsContent>
-
-
         </Tabs>
       </div>
       
