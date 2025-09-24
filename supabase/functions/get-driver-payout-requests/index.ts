@@ -75,7 +75,7 @@ serve(async (req) => {
 
     // Get freight details for available payouts
     const freightIds = availablePayouts?.map(p => p.freight_id).filter(Boolean) || []
-    let freightDetails = []
+    let freightDetails: any[] = []
     
     if (freightIds.length > 0) {
       const { data: freights, error: freightsError } = await supabase
@@ -116,7 +116,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error fetching payout data:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400 

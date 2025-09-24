@@ -44,9 +44,7 @@ serve(async (req) => {
     const { data: freight, error: freightError } = await supabaseClient
       .from("freights")
       .select(`
-        id, price, producer_id, driver_id, status,
-        producer:profiles!freights_producer_id_fkey(id, user_id),
-        driver:profiles!freights_driver_id_fkey(id, user_id)
+        id, price, producer_id, driver_id, status
       `)
       .eq("id", freight_id)
       .single();
@@ -55,8 +53,19 @@ serve(async (req) => {
       throw new Error("Freight not found");
     }
 
+    // Get producer profile separately to verify permissions
+    const { data: producerProfile, error: producerError } = await supabaseClient
+      .from("profiles")
+      .select("user_id")
+      .eq("id", freight.producer_id)
+      .single();
+
+    if (producerError || !producerProfile) {
+      throw new Error("Producer profile not found");
+    }
+
     // Verificar se o usuário é o produtor
-    if (freight.producer?.user_id !== user.id) {
+    if (producerProfile.user_id !== user.id) {
       throw new Error("Unauthorized to propose payment for this freight");
     }
 

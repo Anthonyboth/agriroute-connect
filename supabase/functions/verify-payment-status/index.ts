@@ -108,7 +108,7 @@ serve(async (req) => {
             });
           }
         } catch (stripeError) {
-          logStep("Error checking Stripe session", { error: stripeError.message });
+          logStep("Error checking Stripe session", { error: stripeError instanceof Error ? stripeError.message : 'Unknown error' });
         }
       }
 
@@ -197,7 +197,7 @@ serve(async (req) => {
             });
           }
         } catch (stripeError) {
-          logStep("Error checking Stripe session", { error: stripeError.message });
+          logStep("Error checking Stripe session", { error: stripeError instanceof Error ? stripeError.message : 'Unknown error' });
         }
       }
 

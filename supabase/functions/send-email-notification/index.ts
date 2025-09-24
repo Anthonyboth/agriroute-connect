@@ -165,26 +165,23 @@ serve(async (req) => {
       
       // Store as notification instead
       try {
-        // Get user by email to store notification
-        const { data: authUser } = await supabaseClient.auth.admin.getUserByEmail(to);
-        
-        if (authUser.user) {
-          const { data: profiles } = await supabaseClient
-            .from('profiles')
-            .select('id')
-            .eq('user_id', authUser.user.id);
+        // Get user by email to store notification - use direct profiles query instead
+        const { data: profiles } = await supabaseClient
+          .from('profiles')
+          .select('id, user_id')
+          .eq('email', to)
+          .limit(1);
 
-          if (profiles && profiles.length > 0) {
-            await supabaseClient.rpc('send_notification', {
-              p_user_id: profiles[0].id,
-              p_title: subject,
-              p_message: message,
-              p_type: 'info'
-            });
-          }
+        if (profiles && profiles.length > 0) {
+          await supabaseClient.rpc('send_notification', {
+            p_user_id: profiles[0].id,
+            p_title: subject,
+            p_message: message,
+            p_type: 'info'
+          });
         }
       } catch (error) {
-        console.log('Could not store as notification:', error.message);
+        console.log('Could not store as notification:', error instanceof Error ? error.message : 'Unknown error');
       }
 
       return new Response(JSON.stringify({ 
@@ -212,17 +209,20 @@ serve(async (req) => {
     const result = { id: 'sent-via-resend' };
 
     // Log email sent
-    await supabaseClient
-      .from('email_logs')
-      .insert([{
-        recipient: to,
-        subject: subject,
-        type: type,
-        freight_id: freight_id,
-        sent_at: new Date().toISOString(),
-        status: 'sent'
-      }])
-      .catch(err => console.log('Could not log email:', err.message));
+    try {
+      await supabaseClient
+        .from('email_logs')
+        .insert({
+          to_email: to,
+          from_email: 'noreply@resend.dev',
+          subject,
+          content: message,
+          sent_at: new Date().toISOString(),
+          status: 'sent'
+        });
+    } catch (err) {
+      console.log('Could not log email:', err instanceof Error ? err.message : 'Unknown error');
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
@@ -237,7 +237,7 @@ serve(async (req) => {
     console.error('Error sending email:', error);
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Unknown error' 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

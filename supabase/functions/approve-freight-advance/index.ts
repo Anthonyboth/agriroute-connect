@@ -52,6 +52,7 @@ serve(async (req) => {
         producer_id,
         requested_amount,
         status,
+        stripe_payment_intent_id,
         freights!inner(id, price, producer_id)
       `)
       .eq("id", advance_id)

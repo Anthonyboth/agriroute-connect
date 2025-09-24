@@ -52,11 +52,7 @@ serve(async (req) => {
         commission_amount,
         status,
         producer_id,
-        profiles:driver_id (
-          id,
-          full_name,
-          user_id
-        )
+        profiles(id, full_name, user_id)
       `)
       .eq('id', freight_id)
       .eq('status', 'DELIVERED')
@@ -134,12 +130,12 @@ serve(async (req) => {
     // Send notification to admin about pending payout
     const adminNotification = {
       title: 'Novo Repasse Pendente',
-      message: `Repasse de R$ ${payoutAmount.toFixed(2)} para motorista ${freight.profiles?.full_name || 'Desconhecido'} aguardando processamento`,
+      message: `Repasse de R$ ${payoutAmount.toFixed(2)} para motorista aguardando processamento`,
       type: 'PAYOUT_PENDING',
       data: {
         payout_id: payout.id,
         freight_id: freight.id,
-        driver_name: freight.profiles?.full_name,
+        driver_name: 'Motorista',
         amount: payoutAmount
       }
     }
@@ -162,9 +158,9 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    logStep('Payout processing error', { error: error.message })
+    logStep('Payout processing error', { error: error instanceof Error ? error.message : 'Unknown error' })
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400 
