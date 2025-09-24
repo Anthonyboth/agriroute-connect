@@ -363,7 +363,7 @@ const Landing = () => {
               <h4 className="font-semibold text-foreground mb-4">Plataforma</h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li><Link to="/sobre" className="hover:text-foreground transition-smooth">Sobre nós</Link></li>
-                <li><button onClick={() => setHowItWorksModal({ isOpen: true })} className="hover:text-foreground transition-smooth text-left">Como funciona</button></li>
+                <li><button onClick={() => setHowItWorksModal({ isOpen: true, userType: 'PRODUTOR' })} className="hover:text-foreground transition-smooth text-left">Como funciona</button></li>
                 <li><Link to="/imprensa" className="hover:text-foreground transition-smooth">Imprensa</Link></li>
                 <li><Link to="/carreiras" className="hover:text-foreground transition-smooth">Carreiras</Link></li>
               </ul>
@@ -432,11 +432,11 @@ const Landing = () => {
         onClose={() => setServicesModal(false)}
       />
 
-      {howItWorksModal.userType && (
+      {howItWorksModal.isOpen && (
         <HowItWorksModal
           isOpen={howItWorksModal.isOpen}
           onClose={closeHowItWorksModal}
-          userType={howItWorksModal.userType}
+          userType={howItWorksModal.userType || 'PRODUTOR'}
           onProceed={handleProceedToDashboard}
         />
       )}
