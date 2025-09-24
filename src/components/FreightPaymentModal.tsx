@@ -39,7 +39,7 @@ export function FreightPaymentModal({
         body: {
           freight_id: freightId,
           // Edge function espera strings como CREDIT_CARD/PIX/BOLETO
-          payment_method: paymentMethod.toUpperCase?.() || paymentMethod,
+          payment_method: paymentMethod.toUpperCase(),
         },
       });
 
