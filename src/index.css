@@ -9,7 +9,7 @@
   [data-radix-dropdown-menu-content],
   [data-radix-popover-content],
   [data-radix-dialog-content] {
-    z-index: 60 !important;
+    z-index: 1000 !important;
   }
   
   /* Calendar specific fixes */
