@@ -84,7 +84,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-8 relative">
+      <DialogContent hideCloseButton className="max-w-4xl max-h-[90vh] overflow-y-auto p-8 relative">
         {/* Custom close button - more visible */}
         <button
           onClick={onClose}
