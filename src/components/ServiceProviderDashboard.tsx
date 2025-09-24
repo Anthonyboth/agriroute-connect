@@ -41,6 +41,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useServiceRequestCounts } from '@/hooks/useServiceRequestCounts';
+import { ContactInfoCard } from '@/components/ContactInfoCard';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
 import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
 import ServiceProviderHeroDashboard from '@/components/ServiceProviderHeroDashboard';
@@ -66,13 +68,19 @@ interface ServiceRequest {
   additional_info?: string;
   is_emergency: boolean;
   estimated_price?: number;
+  final_price?: number;
   status: string;
   created_at: string;
+  updated_at?: string;
+  accepted_at?: string;
+  completed_at?: string;
   request_source?: string;
   profiles?: {
+    id: string;
     full_name: string;
     profile_photo_url?: string;
     phone?: string;
+    user_id?: string;
   } | null;
 }
 
@@ -89,31 +97,37 @@ export const ServiceProviderDashboard: React.FC = () => {
   const { toast } = useToast();
   const { user, profile, profiles } = useAuth();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
-  const [stats, setStats] = useState<ServiceProviderStats>({
-    total_requests: 0,
-    pending_requests: 0,
-    accepted_requests: 0,
-    completed_requests: 0,
-    average_rating: 0,
-    total_earnings: 0
-  });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
   const [showEarnings, setShowEarnings] = useState(true);
   const [showLocationManager, setShowLocationManager] = useState(false);
   const [regionalRequests, setRegionalRequests] = useState<ServiceRequest[]>([]);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [totalEarnings, setTotalEarnings] = useState(0);
 
   const getProviderProfileId = () => {
     if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
     const alt = (profiles || []).find((p: any) => p.role === 'PRESTADOR_SERVICOS');
     return alt?.id as string | undefined;
   };
+  
+  const providerId = getProviderProfileId();
+  const { counts, refreshCounts } = useServiceRequestCounts(providerId);
 
   useEffect(() => {
     if (user) {
       fetchServiceRequests();
-      fetchStats();
+      fetchTotalEarnings();
+      
+      // Auto-refresh a cada 30 segundos para solicitações pendentes
+      const interval = setInterval(() => {
+        fetchServiceRequests();
+        refreshCounts();
+        fetchTotalEarnings();
+      }, 30000);
+
+      return () => clearInterval(interval);
     }
   }, [user, profile]);
 
@@ -122,16 +136,25 @@ export const ServiceProviderDashboard: React.FC = () => {
     if (!providerId) return;
 
     try {
-      // Buscar solicitações do prestador (aceitas/em andamento/concluídas)
+      // Buscar solicitações do prestador (aceitas/em andamento/concluídas) COM dados de contato
       const { data: providerRequests, error: providerError } = await supabase
         .from('service_requests')
-        .select('*')
+        .select(`
+          *,
+          profiles:client_id (
+            id,
+            full_name,
+            phone,
+            user_id
+          )
+        `)
         .eq('provider_id', providerId)
         .order('created_at', { ascending: false });
 
       if (providerError) throw providerError;
 
       // Buscar solicitações pendentes (sem prestador atribuído) usando filtro REGIONAL (RPC)
+      // Ordenar as pendentes pelas MAIS ANTIGAS primeiro
       const { data: regionalData, error: regionalError } = await supabase
         .rpc('get_service_requests_in_radius', {
           provider_profile_id: providerId
@@ -139,7 +162,9 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       if (regionalError) throw regionalError;
 
-      const pendingRegionalRequests = (regionalData || []).filter((r: any) => !r.provider_id && r.status === 'OPEN');
+      const pendingRegionalRequests = (regionalData || [])
+        .filter((r: any) => !r.provider_id && r.status === 'OPEN')
+        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); // Mais antigas primeiro
 
       // Combinar e deduplicar por id
       const byId = new Map<string, ServiceRequest>();
@@ -147,6 +172,7 @@ export const ServiceProviderDashboard: React.FC = () => {
       pendingRegionalRequests.forEach((r: any) => byId.set(r.id, r as ServiceRequest));
       const allRequests = Array.from(byId.values());
       setRequests(allRequests);
+      setLastRefresh(new Date());
     } catch (error: any) {
       console.error('Error fetching service requests:', error);
       toast({
@@ -157,54 +183,26 @@ export const ServiceProviderDashboard: React.FC = () => {
     }
   };
 
-  const fetchStats = async () => {
+  const fetchTotalEarnings = async () => {
     const providerId = getProviderProfileId();
     if (!providerId) return;
 
     try {
-      // Buscar solicitações do prestador (aceitas/em andamento/concluídas)
-      const { data: providerRequests, error: providerError } = await supabase
+      const { data, error } = await supabase
         .from('service_requests')
-        .select('status, final_price')
-        .eq('provider_id', providerId);
+        .select('final_price')
+        .eq('provider_id', providerId)
+        .eq('status', 'COMPLETED');
 
-      if (providerError) throw providerError;
+      if (error) throw error;
 
-      // Buscar solicitações pendentes regionais (sem prestador atribuído)
-      const { data: regionalData, error: regionalError } = await supabase
-        .rpc('get_service_requests_in_radius', {
-          provider_profile_id: providerId
-        });
-
-      if (regionalError) throw regionalError;
-
-      // Filtrar apenas solicitações pendentes regionais (sem provider_id e status OPEN)
-      const pendingRegionalRequests = (regionalData || []).filter((r: any) => !r.provider_id && r.status === 'OPEN');
-
-      // Calcular estatísticas baseadas nas solicitações do prestador
-      const total = (providerRequests || []).length;
-      const accepted = (providerRequests || []).filter(r => r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS').length;
-      const completed = (providerRequests || []).filter(r => r.status === 'COMPLETED').length;
-      const totalEarnings = (providerRequests || [])
-        .filter(r => r.status === 'COMPLETED' && r.final_price)
+      const total = (data || [])
+        .filter(r => r.final_price)
         .reduce((sum, r) => sum + (r.final_price || 0), 0);
 
-      // Pendentes = solicitações regionais não aceitas + solicitações próprias pendentes
-      const ownPending = (providerRequests || []).filter(r => r.status === 'OPEN' || r.status === 'PENDING').length;
-      const totalPending = pendingRegionalRequests.length + ownPending;
-
-      setStats({
-        total_requests: total,
-        pending_requests: totalPending,
-        accepted_requests: accepted,
-        completed_requests: completed,
-        average_rating: profile?.rating || 0,
-        total_earnings: totalEarnings
-      });
-    } catch (error: any) {
-      console.error('Error fetching stats:', error);
-    } finally {
-      setLoading(false);
+      setTotalEarnings(total);
+    } catch (error) {
+      console.error('Error fetching earnings:', error);
     }
   };
 
@@ -236,7 +234,8 @@ export const ServiceProviderDashboard: React.FC = () => {
       });
 
       fetchServiceRequests();
-      fetchStats();
+      refreshCounts();
+      fetchTotalEarnings();
     } catch (error: any) {
       console.error('Error accepting request:', error);
       toast({
@@ -249,23 +248,31 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   const handleCompleteRequest = async (requestId: string) => {
     try {
+      const request = requests.find(r => r.id === requestId);
+      if (!request) throw new Error('Solicitação não encontrada');
+
       const { error } = await supabase
         .from('service_requests')
         .update({ 
           status: 'COMPLETED',
-          completed_at: new Date().toISOString()
+          completed_at: new Date().toISOString(),
+          final_price: request.estimated_price // Definir o preço final como o estimado
         })
         .eq('id', requestId);
 
       if (error) throw error;
 
+      // Simular pagamento para o prestador
+      await simulatePayment(requestId, request.estimated_price || 0);
+
       toast({
         title: "Sucesso",
-        description: "Serviço marcado como concluído!"
+        description: `Serviço concluído! Você receberá R$ ${(request.estimated_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
       });
       
       fetchServiceRequests();
-      fetchStats();
+      refreshCounts();
+      fetchTotalEarnings();
     } catch (error: any) {
       console.error('Error completing request:', error);
       toast({
@@ -273,6 +280,19 @@ export const ServiceProviderDashboard: React.FC = () => {
         description: "Não foi possível marcar como concluído",
         variant: "destructive"
       });
+    }
+  };
+
+  const simulatePayment = async (requestId: string, amount: number) => {
+    try {
+      // Em um sistema real, aqui seria integrado com Stripe ou outro gateway de pagamento
+      // Por enquanto, vamos apenas log da simulação
+      console.log(`Pagamento simulado: R$ ${amount} para solicitação ${requestId}`);
+      
+      // TODO: Integrar com sistema de pagamentos real
+      // await processPaymentToProvider(providerId, amount, requestId);
+    } catch (error) {
+      console.error('Erro ao processar pagamento:', error);
     }
   };
 
@@ -311,6 +331,13 @@ export const ServiceProviderDashboard: React.FC = () => {
     if (activeTab === 'accepted') return request.provider_id && (request.status === 'ACCEPTED' || request.status === 'IN_PROGRESS');
     if (activeTab === 'completed') return request.provider_id && request.status === 'COMPLETED';
     return true;
+  }).sort((a, b) => {
+    // Para pendentes, ordenar pelas mais antigas primeiro
+    if (activeTab === 'pending') {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    }
+    // Para outras abas, manter ordem mais recente primeiro
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
   if (loading) {
@@ -367,7 +394,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                   <p className="text-xs font-medium text-muted-foreground truncate">
                     Pendentes
                   </p>
-                  <p className="text-lg font-bold">{stats.pending_requests}</p>
+                  <p className="text-lg font-bold">{counts.pending}</p>
                 </div>
               </div>
             </CardContent>
@@ -381,7 +408,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                   <p className="text-xs font-medium text-muted-foreground truncate">
                     Ativas
                   </p>
-                  <p className="text-lg font-bold">{stats.accepted_requests}</p>
+                  <p className="text-lg font-bold">{counts.accepted}</p>
                 </div>
               </div>
             </CardContent>
@@ -395,7 +422,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                   <p className="text-xs font-medium text-muted-foreground truncate">
                     Concluídas
                   </p>
-                  <p className="text-lg font-bold">{stats.completed_requests}</p>
+                  <p className="text-lg font-bold">{counts.completed}</p>
                 </div>
               </div>
             </CardContent>
@@ -412,12 +439,12 @@ export const ServiceProviderDashboard: React.FC = () => {
                     </p>
                     <p className="text-sm font-bold">
                       {showEarnings 
-                        ? new Intl.NumberFormat('pt-BR', { 
-                            style: 'currency', 
-                            currency: 'BRL',
-                            notation: 'compact',
-                            maximumFractionDigits: 0
-                          }).format(stats.total_earnings)
+                         ? new Intl.NumberFormat('pt-BR', { 
+                             style: 'currency', 
+                             currency: 'BRL',
+                             notation: 'compact',
+                             maximumFractionDigits: 0
+                           }).format(totalEarnings)
                         : '****'
                       }
                     </p>
@@ -470,10 +497,30 @@ export const ServiceProviderDashboard: React.FC = () => {
 
           <TabsContent value="pending" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Solicitações Pendentes</h3>
-              <Badge variant="secondary" className="text-xs">
-                {requests.filter(r => !r.provider_id && r.status === 'OPEN').length}
-              </Badge>
+              <div>
+                <h3 className="text-lg font-semibold">Solicitações Pendentes</h3>
+                <p className="text-xs text-muted-foreground">
+                  Atualizado há {Math.floor((new Date().getTime() - lastRefresh.getTime()) / 60000)} min • 
+                  Auto-refresh a cada 30s
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {requests.filter(r => !r.provider_id && r.status === 'OPEN').length}
+                </Badge>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    fetchServiceRequests();
+                    refreshCounts();
+                    fetchTotalEarnings();
+                  }}
+                  className="text-xs h-7"
+                >
+                  Atualizar
+                </Button>
+              </div>
             </div>
             
             {filteredRequests.length > 0 ? (
@@ -500,11 +547,16 @@ export const ServiceProviderDashboard: React.FC = () => {
                           <MapPin className="inline h-3 w-3 mr-1" />
                           {request.location_address}
                         </p>
-                        {request.estimated_price && (
-                          <p className="text-sm font-medium text-green-600">
-                            Preço Estimado: R$ {request.estimated_price.toLocaleString('pt-BR')}
-                          </p>
-                        )}
+                         {request.estimated_price && (
+                           <p className="text-sm font-medium text-green-600">
+                             <DollarSign className="inline h-3 w-3 mr-1" />
+                             Valor: R$ {request.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                           </p>
+                         )}
+                         <p className="text-xs text-muted-foreground">
+                           <Clock className="inline h-3 w-3 mr-1" />
+                           Solicitado em: {new Date(request.created_at).toLocaleDateString('pt-BR')} às {new Date(request.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                         </p>
                       </div>
                       
                       <div className="flex gap-2">
@@ -550,15 +602,29 @@ export const ServiceProviderDashboard: React.FC = () => {
                         </Badge>
                       </div>
                       
-                      <div className="space-y-2 mb-3">
-                        <p className="text-sm text-muted-foreground">
-                          <strong>Cliente:</strong> {request.profiles?.full_name || 'Cliente'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          <MapPin className="inline h-3 w-3 mr-1" />
-                          {request.location_address}
-                        </p>
-                      </div>
+                       <div className="space-y-2 mb-3">
+                         <p className="text-sm text-muted-foreground">
+                           <strong>Problema:</strong> {request.problem_description}
+                         </p>
+                         <p className="text-sm text-muted-foreground">
+                           <MapPin className="inline h-3 w-3 mr-1" />
+                           {request.location_address}
+                         </p>
+                         {/* DADOS DE CONTATO - Apenas para solicitações aceitas pelo prestador */}
+                         {request.provider_id && (request.status === 'ACCEPTED' || request.status === 'IN_PROGRESS') && (
+                           <ContactInfoCard
+                             requesterName={request.profiles?.full_name || request.contact_name}
+                             contactPhone={request.contact_phone}
+                             requesterPhone={request.profiles?.phone}
+                             showWhatsApp={true}
+                           />
+                         )}
+                         {request.estimated_price && (
+                           <p className="text-sm font-medium text-green-600">
+                             Valor: R$ {request.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                           </p>
+                         )}
+                       </div>
                       
                       <div className="flex gap-2">
                         <Button 
@@ -593,16 +659,36 @@ export const ServiceProviderDashboard: React.FC = () => {
               <div className="space-y-4">
                 {requests.filter(r => r.provider_id && r.status === 'COMPLETED').map((request) => (
                   <Card key={request.id} className="shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-medium text-sm">
-                          {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
-                        </h3>
-                        <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
-                          Concluído
-                        </Badge>
-                      </div>
-                    </CardContent>
+                     <CardContent className="p-4">
+                       <div className="flex items-center justify-between mb-3">
+                         <h3 className="font-medium text-sm">
+                           {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
+                         </h3>
+                         <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                           Concluído
+                         </Badge>
+                       </div>
+                       
+                       <div className="space-y-2 mb-3">
+                         <p className="text-sm text-muted-foreground">
+                           <strong>Cliente:</strong> {request.profiles?.full_name || request.contact_name || 'Cliente'}
+                         </p>
+                         <p className="text-sm text-muted-foreground">
+                           <MapPin className="inline h-3 w-3 mr-1" />
+                           {request.location_address}
+                         </p>
+                         {request.final_price && (
+                           <p className="text-sm font-medium text-green-600">
+                             <DollarSign className="inline h-3 w-3 mr-1" />
+                             Pago: R$ {request.final_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                           </p>
+                         )}
+                         <p className="text-xs text-muted-foreground">
+                           <Clock className="inline h-3 w-3 mr-1" />
+                           Concluído em: {new Date(request.completed_at || request.updated_at).toLocaleDateString('pt-BR')}
+                         </p>
+                       </div>
+                     </CardContent>
                   </Card>
                 ))}
               </div>
