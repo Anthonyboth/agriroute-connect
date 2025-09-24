@@ -22,7 +22,7 @@ import {
   Hammer
 } from 'lucide-react';
 import { ServiceProviderRegistrationForm } from './ServiceProviderRegistrationForm';
-import GuestServiceModal from './GuestServiceModal';
+import ServiceRequestModal from './ServiceRequestModal';
 
 interface ServicesModalProps {
   isOpen: boolean;
@@ -191,25 +191,28 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
   onClose
 }) => {
   const [showRegistration, setShowRegistration] = useState(false);
-  const [guestServiceModal, setGuestServiceModal] = useState<{
+  const [serviceRequestModal, setServiceRequestModal] = useState<{
     isOpen: boolean;
-    serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO';
+    serviceId?: string;
+    serviceLabel?: string;
+    serviceDescription?: string;
+    category?: 'technical' | 'agricultural' | 'logistics';
   }>({ isOpen: false });
 
   const handleServiceSelect = (serviceId: string) => {
-    // Mapear o serviço para o tipo correto
-    let serviceType: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' = 'GUINCHO';
+    // Encontrar o serviço selecionado
+    const selectedService = SERVICE_TYPES.find(s => s.id === serviceId);
     
-    if (serviceId.includes('guincho') || serviceId.includes('mecanico') || serviceId.includes('borracheiro')) {
-      serviceType = 'GUINCHO';
-    } else if (serviceId.includes('mudanca')) {
-      serviceType = 'MUDANCA';  
-    } else {
-      serviceType = 'FRETE_URBANO';
+    if (selectedService) {
+      setServiceRequestModal({
+        isOpen: true,
+        serviceId: selectedService.id,
+        serviceLabel: selectedService.label,
+        serviceDescription: selectedService.description,
+        category: selectedService.category
+      });
+      onClose();
     }
-    
-    setGuestServiceModal({ isOpen: true, serviceType });
-    onClose();
   };
 
   const handleBecomeProvider = () => {
@@ -311,11 +314,14 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
       />
 
       {/* Modal de solicitação de serviços */}
-      {guestServiceModal.serviceType && (
-        <GuestServiceModal
-          isOpen={guestServiceModal.isOpen}
-          serviceType={guestServiceModal.serviceType}
-          onClose={() => setGuestServiceModal({ isOpen: false })}
+      {serviceRequestModal.serviceId && (
+        <ServiceRequestModal
+          isOpen={serviceRequestModal.isOpen}
+          serviceId={serviceRequestModal.serviceId}
+          serviceLabel={serviceRequestModal.serviceLabel || ''}
+          serviceDescription={serviceRequestModal.serviceDescription || ''}
+          category={serviceRequestModal.category || 'technical'}
+          onClose={() => setServiceRequestModal({ isOpen: false })}
         />
       )}
 
