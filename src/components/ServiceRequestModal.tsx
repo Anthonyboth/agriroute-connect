@@ -26,7 +26,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LocationFillButton } from './LocationFillButton';
-import { CitySelector } from './CitySelector';
 
 interface ServiceRequestModalProps {
   isOpen: boolean;
@@ -342,19 +341,14 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
 
           {/* Campo de cidade obrigatório */}
           <div className="space-y-2">
-            <CitySelector
-              label="Cidade onde precisa do serviço"
+            <Label htmlFor="city_name">Cidade onde precisa do serviço *</Label>
+            <Input
+              id="city_name"
+              value={formData.city_name}
+              onChange={(e) => setFormData({...formData, city_name: e.target.value})}
+              placeholder="Digite o nome da cidade"
               required
-              value={formData.city_name && formData.state ? {
-                city: formData.city_name,
-                state: formData.state
-              } : undefined}
-              onChange={(cityData) => setFormData({
-                ...formData,
-                city_name: cityData.city,
-                state: cityData.state
-              })}
-              placeholder="Digite o nome da cidade..."
+              className="w-full"
             />
             <p className="text-xs text-muted-foreground">
               Esta informação é obrigatória para encontrar prestadores na sua região
@@ -416,17 +410,11 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                       // Extrair cidade do endereço quando usar GPS
                       const addressParts = address.split(',');
                       let cityFromAddress = '';
-                      let stateFromAddress = '';
                       
                       if (addressParts.length >= 2) {
-                        // Tentar extrair cidade e estado do endereço
-                        const lastPart = addressParts[addressParts.length - 1].trim();
+                        // Tentar extrair cidade do endereço
                         const secondLastPart = addressParts[addressParts.length - 2].trim();
-                        
-                        if (lastPart.length === 2) { // Provável estado
-                          stateFromAddress = lastPart;
-                          cityFromAddress = secondLastPart;
-                        }
+                        cityFromAddress = secondLastPart;
                       }
                       
                       setFormData({
@@ -435,10 +423,7 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                         origin_lat: lat,
                         origin_lng: lng,
                         // Se conseguiu extrair cidade, preencher automaticamente
-                        ...(cityFromAddress && {
-                          city_name: cityFromAddress,
-                          state: stateFromAddress
-                        })
+                        ...(cityFromAddress && { city_name: cityFromAddress })
                       });
                     }}
                   />
