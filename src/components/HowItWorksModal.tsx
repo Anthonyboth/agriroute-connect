@@ -84,21 +84,12 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent hideCloseButton className="max-w-4xl max-h-[90vh] overflow-y-auto p-8 relative">
-        {/* Custom close button - more visible */}
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 z-50 w-10 h-10 rounded-full bg-muted hover:bg-muted/80 border-2 border-border hover:border-primary/30 transition-all duration-200 flex items-center justify-center group hover:scale-110 shadow-lg"
-          aria-label="Fechar modal"
-        >
-          <span className="text-xl font-bold text-muted-foreground group-hover:text-primary transition-colors">×</span>
-        </button>
-
-        <DialogHeader className="space-y-4 pb-6">
-          <DialogTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-center mb-2">
             {isProducer ? 'Como Funciona para Produtores' : 'Como Funciona para Motoristas'}
           </DialogTitle>
-          <DialogDescription className="text-center text-lg text-muted-foreground max-w-2xl mx-auto">
+          <DialogDescription className="text-center text-lg">
             {isProducer 
               ? 'Conecte sua produção ao destino de forma simples e segura'
               : 'Encontre fretes rentáveis e expanda seu negócio de transporte'
@@ -107,10 +98,10 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
         </DialogHeader>
 
         {/* Fluxograma Visual Aprimorado */}
-        <div className="my-6">
-          <div className="relative bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 rounded-2xl p-6 border border-primary/10 shadow-elegant">
+        <div className="my-8">
+          <div className="relative bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 rounded-2xl p-8 border border-primary/10 shadow-elegant">
             {/* Título com ícone */}
-            <div className="text-center mb-6">
+            <div className="text-center mb-8">
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
                   {isProducer ? '🌾' : '🚛'}
@@ -122,53 +113,53 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             </div>
 
             {/* Fluxo principal - primeira linha (passos 1-4) */}
-            <div className="flex flex-wrap justify-center items-center gap-4 mb-6">
+            <div className="flex flex-wrap justify-center items-center gap-6 mb-8">
               {steps.slice(0, 4).map((step, index) => (
                 <React.Fragment key={index}>
-                  <div className="flex flex-col items-center min-w-[120px] text-center group animate-fade-in" 
+                  <div className="flex flex-col items-center min-w-[140px] text-center group animate-fade-in" 
                        style={{ animationDelay: `${index * 100}ms` }}>
                     <div className="relative">
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary-light text-primary-foreground flex items-center justify-center mb-3 shadow-glow group-hover:scale-110 transition-transform duration-300">
-                        <step.icon className="h-7 w-7" />
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary-light text-primary-foreground flex items-center justify-center mb-3 shadow-glow group-hover:scale-110 transition-transform duration-300">
+                        <step.icon className="h-8 w-8" />
                       </div>
                       <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-bold">
                         {index + 1}
                       </div>
                     </div>
                     <h4 className="text-sm font-semibold text-foreground mb-1">{step.title.replace(/^\d+\.\s/, '')}</h4>
-                    <p className="text-xs text-muted-foreground max-w-[110px] leading-tight">{step.description}</p>
+                    <p className="text-xs text-muted-foreground max-w-[120px]">{step.description}</p>
                   </div>
                   {index < 3 && (
-                    <div className="text-primary/60 text-2xl animate-pulse hidden sm:block">→</div>
+                    <div className="text-primary/60 text-3xl animate-pulse hidden sm:block">→</div>
                   )}
                 </React.Fragment>
               ))}
             </div>
 
             {/* Seta para baixo */}
-            <div className="flex justify-center mb-6">
-              <div className="text-primary/60 text-3xl animate-bounce">↓</div>
+            <div className="flex justify-center mb-8">
+              <div className="text-primary/60 text-4xl animate-bounce">↓</div>
             </div>
 
             {/* Fluxo secundário - segunda linha (passos 5-6) */}
-            <div className="flex justify-center items-center gap-4">
+            <div className="flex justify-center items-center gap-6">
               {steps.slice(4).map((step, index) => (
                 <React.Fragment key={index + 4}>
-                  <div className="flex flex-col items-center min-w-[120px] text-center group animate-fade-in" 
+                  <div className="flex flex-col items-center min-w-[140px] text-center group animate-fade-in" 
                        style={{ animationDelay: `${(index + 4) * 100}ms` }}>
                     <div className="relative">
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-accent to-accent text-accent-foreground flex items-center justify-center mb-3 shadow-glow group-hover:scale-110 transition-transform duration-300">
-                        <step.icon className="h-7 w-7" />
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent to-accent text-accent-foreground flex items-center justify-center mb-3 shadow-glow group-hover:scale-110 transition-transform duration-300">
+                        <step.icon className="h-8 w-8" />
                       </div>
                       <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
                         {index + 5}
                       </div>
                     </div>
                     <h4 className="text-sm font-semibold text-foreground mb-1">{step.title.replace(/^\d+\.\s/, '')}</h4>
-                    <p className="text-xs text-muted-foreground max-w-[110px] leading-tight">{step.description}</p>
+                    <p className="text-xs text-muted-foreground max-w-[120px]">{step.description}</p>
                   </div>
                   {index < steps.slice(4).length - 1 && (
-                    <div className="text-accent/60 text-2xl animate-pulse hidden sm:block">→</div>
+                    <div className="text-accent/60 text-3xl animate-pulse hidden sm:block">→</div>
                   )}
                 </React.Fragment>
               ))}
@@ -181,14 +172,14 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
         </div>
 
         {/* Steps Cards Detalhados */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {steps.map((step, index) => (
             <Card key={index} className="group hover:shadow-glow transition-all duration-300 hover:scale-[1.02] border-muted animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-base">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-4 text-lg">
                   <div className="relative">
-                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20 transition-colors">
-                      <step.icon className="h-5 w-5 text-primary" />
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20 transition-colors">
+                      <step.icon className="h-6 w-6 text-primary" />
                     </div>
                     <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xs font-bold">
                       {index + 1}
@@ -197,8 +188,8 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
                   <span className="font-semibold">{step.title.replace(/^\d+\.\s/, '')}</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-muted-foreground leading-relaxed text-sm">{step.description}</p>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">{step.description}</p>
               </CardContent>
             </Card>
           ))}
@@ -305,17 +296,17 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
         </Card>
 
         {/* Call to Action Aprimorado */}
-        <div className="flex justify-center pt-4">
+        <div className="flex justify-center pt-6">
           <Button 
             size="lg" 
-            className="px-10 py-3 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent text-primary-foreground rounded-full shadow-glow hover:shadow-xl hover:scale-105 transition-all duration-300"
+            className="px-12 py-4 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent text-primary-foreground rounded-full shadow-glow hover:shadow-xl hover:scale-105 transition-all duration-300"
             onClick={onProceed || onClose}
           >
-            <span className="mr-2">
+            <span className="mr-3">
               {isProducer ? '🌾' : '🚛'}
             </span>
             {isProducer ? 'Começar como Produtor' : 'Começar como Motorista'}
-            <span className="ml-2">→</span>
+            <span className="ml-3">→</span>
           </Button>
         </div>
       </DialogContent>
