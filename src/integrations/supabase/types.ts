@@ -170,6 +170,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cities: {
+        Row: {
+          created_at: string | null
+          ibge_code: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          name: string
+          state: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          ibge_code?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name: string
+          state: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          ibge_code?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          state?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       driver_availability: {
         Row: {
           available_date: string
@@ -1205,9 +1238,11 @@ export type Database = {
           delivery_observations: string | null
           description: string | null
           destination_address: string
+          destination_city: string | null
           destination_geog: unknown | null
           destination_lat: number | null
           destination_lng: number | null
+          destination_state: string | null
           distance_km: number | null
           driver_id: string | null
           extra_fees: number | null
@@ -1220,9 +1255,11 @@ export type Database = {
           metadata: Json | null
           minimum_antt_price: number | null
           origin_address: string
+          origin_city: string | null
           origin_geog: unknown | null
           origin_lat: number | null
           origin_lng: number | null
+          origin_state: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           pickup_date: string
           pickup_observations: string | null
@@ -1233,6 +1270,7 @@ export type Database = {
           route_geom: unknown | null
           route_waypoints: Json | null
           scheduled_date: string | null
+          service_radius_km: number | null
           service_type: string | null
           status: Database["public"]["Enums"]["freight_status"]
           toll_cost: number | null
@@ -1261,9 +1299,11 @@ export type Database = {
           delivery_observations?: string | null
           description?: string | null
           destination_address: string
+          destination_city?: string | null
           destination_geog?: unknown | null
           destination_lat?: number | null
           destination_lng?: number | null
+          destination_state?: string | null
           distance_km?: number | null
           driver_id?: string | null
           extra_fees?: number | null
@@ -1276,9 +1316,11 @@ export type Database = {
           metadata?: Json | null
           minimum_antt_price?: number | null
           origin_address: string
+          origin_city?: string | null
           origin_geog?: unknown | null
           origin_lat?: number | null
           origin_lng?: number | null
+          origin_state?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           pickup_date: string
           pickup_observations?: string | null
@@ -1289,6 +1331,7 @@ export type Database = {
           route_geom?: unknown | null
           route_waypoints?: Json | null
           scheduled_date?: string | null
+          service_radius_km?: number | null
           service_type?: string | null
           status?: Database["public"]["Enums"]["freight_status"]
           toll_cost?: number | null
@@ -1317,9 +1360,11 @@ export type Database = {
           delivery_observations?: string | null
           description?: string | null
           destination_address?: string
+          destination_city?: string | null
           destination_geog?: unknown | null
           destination_lat?: number | null
           destination_lng?: number | null
+          destination_state?: string | null
           distance_km?: number | null
           driver_id?: string | null
           extra_fees?: number | null
@@ -1332,9 +1377,11 @@ export type Database = {
           metadata?: Json | null
           minimum_antt_price?: number | null
           origin_address?: string
+          origin_city?: string | null
           origin_geog?: unknown | null
           origin_lat?: number | null
           origin_lng?: number | null
+          origin_state?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           pickup_date?: string
           pickup_observations?: string | null
@@ -1345,6 +1392,7 @@ export type Database = {
           route_geom?: unknown | null
           route_waypoints?: Json | null
           scheduled_date?: string | null
+          service_radius_km?: number | null
           service_type?: string | null
           status?: Database["public"]["Enums"]["freight_status"]
           toll_cost?: number | null
@@ -2504,14 +2552,17 @@ export type Database = {
           is_emergency: boolean | null
           location_address: string
           location_address_encrypted: string | null
+          location_city: string | null
           location_lat: number | null
           location_lng: number | null
+          location_state: string | null
           preferred_datetime: string | null
           problem_description: string
           provider_comment: string | null
           provider_id: string | null
           provider_notes: string | null
           provider_rating: number | null
+          service_radius_km: number | null
           service_type: string
           status: string
           updated_at: string
@@ -2537,14 +2588,17 @@ export type Database = {
           is_emergency?: boolean | null
           location_address: string
           location_address_encrypted?: string | null
+          location_city?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          location_state?: string | null
           preferred_datetime?: string | null
           problem_description: string
           provider_comment?: string | null
           provider_id?: string | null
           provider_notes?: string | null
           provider_rating?: number | null
+          service_radius_km?: number | null
           service_type: string
           status?: string
           updated_at?: string
@@ -2570,14 +2624,17 @@ export type Database = {
           is_emergency?: boolean | null
           location_address?: string
           location_address_encrypted?: string | null
+          location_city?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          location_state?: string | null
           preferred_datetime?: string | null
           problem_description?: string
           provider_comment?: string | null
           provider_id?: string | null
           provider_notes?: string | null
           provider_rating?: number | null
+          service_radius_km?: number | null
           service_type?: string
           status?: string
           updated_at?: string
@@ -3548,6 +3605,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      auto_insert_city: {
+        Args: {
+          city_name: string
+          latitude?: number
+          longitude?: number
+          state_name: string
+        }
+        Returns: string
+      }
       box: {
         Args: { "": unknown } | { "": unknown }
         Returns: unknown
@@ -4028,28 +4094,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      get_freights_in_radius: {
-        Args: { driver_profile_id: string }
-        Returns: {
-          cargo_type: string
-          created_at: string
-          delivery_date: string
-          destination_address: string
-          destination_lat: number
-          destination_lng: number
-          distance_km: number
-          id: string
-          origin_address: string
-          origin_lat: number
-          origin_lng: number
-          pickup_date: string
-          price: number
-          producer_id: string
-          status: string
-          urgency: string
-          weight: number
-        }[]
-      }
       get_platform_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -4166,23 +4210,6 @@ export type Database = {
           is_active: boolean
           name: string
           role: Database["public"]["Enums"]["user_role"]
-        }[]
-      }
-      get_service_requests_in_radius: {
-        Args: { provider_profile_id: string }
-        Returns: {
-          client_id: string
-          contact_phone: string
-          created_at: string
-          distance_km: number
-          id: string
-          location_address: string
-          location_lat: number
-          location_lng: number
-          problem_description: string
-          service_type: string
-          status: string
-          urgency: string
         }[]
       }
       get_user_role: {
