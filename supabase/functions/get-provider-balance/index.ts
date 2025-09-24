@@ -16,6 +16,19 @@ serve(async (req) => {
   }
 
   try {
+    // Use service role key for admin access
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // Also create client for user auth verification
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
@@ -35,8 +48,8 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: userData.user.id });
 
-    // Buscar profile do usuário
-    const { data: profile, error: profileError } = await supabaseClient
+    // Buscar profile do usuário usando admin client
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("id, role")
       .eq("user_id", userData.user.id)
@@ -53,8 +66,8 @@ serve(async (req) => {
 
     logStep("Profile found", { profileId: profile.id, role: profile.role });
 
-    // Buscar saldo usando a função do banco
-    const { data: balanceData, error: balanceError } = await supabaseClient
+    // Buscar saldo usando a função do banco com admin client
+    const { data: balanceData, error: balanceError } = await supabaseAdmin
       .rpc("get_provider_balance", { provider_id_param: profile.id });
 
     if (balanceError) {
@@ -62,8 +75,8 @@ serve(async (req) => {
       throw balanceError;
     }
 
-    // Buscar histórico recente de transações
-    const { data: recentTransactions, error: transactionsError } = await supabaseClient
+    // Buscar histórico recente de transações usando admin client
+    const { data: recentTransactions, error: transactionsError } = await supabaseAdmin
       .from("balance_transactions")
       .select("*")
       .eq("provider_id", profile.id)
