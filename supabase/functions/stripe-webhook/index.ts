@@ -147,7 +147,7 @@ serve(async (req) => {
           logStep('Freight advance payment confirmed', { freightId, advanceId })
           
         } else if (session.metadata?.type === 'freight_payment') {
-          // Handle freight payment - VALIDAÇÃO MELHORADA
+          // Handle freight payment - VALIDAÇÃO MELHORADA com atualização de saldo
           const freightId = session.metadata.freight_id
           const paymentId = session.metadata.payment_id
           
@@ -172,7 +172,7 @@ serve(async (req) => {
             throw new Error('Payment not completed')
           }
 
-          // Atualizar status do pagamento
+          // Atualizar status do pagamento - ISSO ACIONARÁ O TRIGGER PARA ATUALIZAR O SALDO
           const { error: paymentError } = await supabase
             .from('freight_payments')
             .update({ 
@@ -188,6 +188,8 @@ serve(async (req) => {
             logStep('Error updating freight payment', { error: paymentError })
             throw paymentError
           }
+
+          logStep('Freight payment updated - balance will be updated by trigger', { paymentId })
 
           // Atualizar status do frete para DELIVERED
           const { error: freightError } = await supabase
@@ -205,26 +207,28 @@ serve(async (req) => {
 
           // Enviar notificações
           try {
-            // Notificação para o motorista
+            // Notificação para o motorista sobre pagamento confirmado E saldo atualizado
             await supabase.functions.invoke('send-notification', {
               body: {
                 user_id: payment.freights.driver_id,
-                title: 'Pagamento Confirmado!',
-                message: `O pagamento do frete de R$ ${(payment.amount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} foi confirmado. O valor será processado em breve.`,
-                type: 'payment_confirmed',
+                title: 'Pagamento Confirmado e Saldo Atualizado!',
+                message: `O pagamento do frete de R$ ${(payment.amount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} foi confirmado pela Stripe. Seu saldo foi atualizado e está disponível para saque.`,
+                type: 'payment_confirmed_balance_updated',
                 data: {
                   payment_id: paymentId,
                   freight_id: freightId,
-                  amount: payment.amount / 100
+                  gross_amount: payment.amount / 100,
+                  net_amount: (payment.amount * 0.98) / 100, // Após comissão de 2%
+                  commission_rate: 2
                 }
               }
             });
-            logStep('Driver notification sent for payment confirmation')
+            logStep('Driver notification sent for payment confirmation and balance update')
           } catch (notificationError) {
             logStep('Warning: Could not send driver notification', { error: notificationError })
           }
 
-          logStep('Freight payment confirmed and freight delivered', { freightId, paymentId })
+          logStep('Freight payment confirmed, balance updated by trigger, and freight delivered', { freightId, paymentId })
         }
         break
       }

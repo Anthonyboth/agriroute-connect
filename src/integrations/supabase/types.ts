@@ -4271,6 +4271,10 @@ export type Database = {
         Args: { "": number }
         Returns: string
       }
+      get_provider_balance: {
+        Args: { provider_id_param: string }
+        Returns: Json
+      }
       get_provider_service_requests: {
         Args: { provider_profile_id: string }
         Returns: {
@@ -4662,6 +4666,15 @@ export type Database = {
       postgis_wagyu_version: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      process_payout_request: {
+        Args: {
+          amount_param: number
+          description_param?: string
+          pix_key_param: string
+          provider_id_param: string
+        }
+        Returns: Json
       }
       search_cities: {
         Args: { limit_count?: number; search_term: string }

@@ -1,157 +1,78 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { Banknote, TrendingUp, Clock, CheckCircle, AlertTriangle, Plus, Eye, EyeOff } from 'lucide-react';
-import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { 
+  Banknote, 
+  TrendingUp, 
+  Clock, 
+  CheckCircle, 
+  AlertTriangle, 
+  Plus, 
+  Eye, 
+  EyeOff, 
+  RefreshCw,
+  DollarSign,
+  History
+} from 'lucide-react';
+import { useProviderBalance } from '@/hooks/useProviderBalance';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface ServiceProviderPayoutsProps {
   providerId: string;
 }
 
-interface PayoutRequest {
-  id: string;
-  amount: number;
-  pix_key: string;
-  status: string;
-  created_at: string;
-  processed_at?: string;
-  rejection_reason?: string;
-}
-
-interface AvailablePayout {
-  id: string;
-  amount: number;
-  service_request_id: string;
-  status: string;
-  created_at: string;
-  service_request?: {
-    service_type: string;
-    location_address: string;
-    problem_description: string;
-  };
-}
-
 export function ServiceProviderPayouts({ providerId }: ServiceProviderPayoutsProps) {
+  const { 
+    balance, 
+    loading, 
+    error, 
+    fetchBalance, 
+    requestPayout, 
+    availableBalance, 
+    totalEarned, 
+    recentTransactions 
+  } = useProviderBalance();
+  
   const [showPayoutModal, setShowPayoutModal] = useState(false);
-  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
-  const [availablePayouts, setAvailablePayouts] = useState<AvailablePayout[]>([]);
   const [showPixKeys, setShowPixKeys] = useState<{ [key: string]: boolean }>({});
-  const [loading, setLoading] = useState(true);
   const [pixKey, setPixKey] = useState('');
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const availableBalance = availablePayouts
-    .filter(p => p.status === 'PENDING')
-    .reduce((sum, payout) => sum + payout.amount, 0);
-
-  const totalEarned = availablePayouts
-    .filter(p => p.status === 'COMPLETED')
-    .reduce((sum, payout) => sum + payout.amount, 0);
-
-  const pendingRequests = payoutRequests.filter(r => r.status === 'PENDING').length;
-
-  useEffect(() => {
-    fetchPayoutData();
-  }, [providerId]);
-
-  const fetchPayoutData = async () => {
-    try {
-      setLoading(true);
-
-      // Por enquanto, simular dados até a tabela estar disponível nos tipos
-      const mockPayoutRequests: PayoutRequest[] = [];
-      
-      // Buscar valores disponíveis (baseado em serviços completados)
-      const { data: availableData, error: availableError } = await supabase
-        .from('service_requests')
-        .select(`
-          id,
-          final_price,
-          status,
-          created_at,
-          service_type,
-          location_address,
-          problem_description
-        `)
-        .eq('provider_id', providerId)
-        .eq('status', 'COMPLETED')
-        .not('final_price', 'is', null);
-
-      if (availableError) {
-        console.error('Erro ao buscar valores disponíveis:', availableError);
-      }
-
-      // Converter para formato esperado
-      const mockAvailablePayouts = (availableData || []).map(service => ({
-        id: service.id,
-        amount: service.final_price || 0,
-        service_request_id: service.id,
-        status: 'PENDING',
-        created_at: service.created_at,
-        service_request: {
-          service_type: service.service_type,
-          location_address: service.location_address,
-          problem_description: service.problem_description
-        }
-      }));
-
-      setPayoutRequests(mockPayoutRequests);
-      setAvailablePayouts(mockAvailablePayouts);
-    } catch (error) {
-      console.error('Erro ao carregar dados de pagamentos:', error);
-      toast.error('Erro ao carregar informações de pagamentos');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const pendingPayouts = recentTransactions.filter(t => 
+    t.transaction_type === 'PAYOUT' && t.status === 'PENDING'
+  ).length;
 
   const handleWithdrawalRequest = async () => {
     if (!pixKey || !withdrawalAmount) {
-      toast.error('Preencha todos os campos');
       return;
     }
 
     const amount = parseFloat(withdrawalAmount);
-    if (amount < 50) {
-      toast.error('Valor mínimo para saque é R$ 50,00');
-      return;
-    }
-
-    if (amount > availableBalance) {
-      toast.error('Valor superior ao disponível');
-      return;
-    }
-
+    
     try {
       setSubmitting(true);
-
-      // Por enquanto, apenas simular sucesso até a API estar pronta
-      // TODO: Implementar chamada real para a tabela service_provider_payout_requests
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simular delay da API
-
-      toast.success('Solicitação de saque criada com sucesso!');
+      await requestPayout(amount, pixKey, 'Saque via PIX');
+      
       setShowPayoutModal(false);
       setPixKey('');
       setWithdrawalAmount('');
-      fetchPayoutData();
     } catch (error) {
-      console.error('Erro ao criar solicitação:', error);
-      toast.error('Erro ao criar solicitação de saque');
+      // Erro já tratado no hook
     } finally {
       setSubmitting(false);
     }
   };
 
-  const togglePixVisibility = (requestId: string) => {
+  const togglePixVisibility = (transactionId: string) => {
     setShowPixKeys(prev => ({
       ...prev,
-      [requestId]: !prev[requestId]
+      [transactionId]: !prev[transactionId]
     }));
   };
 
@@ -159,12 +80,12 @@ export function ServiceProviderPayouts({ providerId }: ServiceProviderPayoutsPro
     switch (status) {
       case 'PENDING':
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pendente</Badge>;
-      case 'PROCESSING':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Processando</Badge>;
       case 'COMPLETED':
         return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Concluído</Badge>;
-      case 'REJECTED':
-        return <Badge variant="destructive">Rejeitado</Badge>;
+      case 'FAILED':
+        return <Badge variant="destructive">Falhou</Badge>;
+      case 'CANCELLED':
+        return <Badge variant="secondary">Cancelado</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -174,14 +95,27 @@ export function ServiceProviderPayouts({ providerId }: ServiceProviderPayoutsPro
     switch (status) {
       case 'PENDING':
         return <Clock className="h-4 w-4 text-yellow-600" />;
-      case 'PROCESSING':
-        return <TrendingUp className="h-4 w-4 text-blue-600" />;
       case 'COMPLETED':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'REJECTED':
+      case 'FAILED':
         return <AlertTriangle className="h-4 w-4 text-red-600" />;
+      case 'CANCELLED':
+        return <AlertTriangle className="h-4 w-4 text-gray-600" />;
       default:
         return <Clock className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  const getTransactionTypeLabel = (transactionType: string) => {
+    switch (transactionType) {
+      case 'CREDIT':
+        return 'Crédito';
+      case 'PAYOUT':
+        return 'Saque PIX';
+      case 'DEBIT':
+        return 'Débito';
+      default:
+        return transactionType;
     }
   };
 
@@ -204,21 +138,6 @@ export function ServiceProviderPayouts({ providerId }: ServiceProviderPayoutsPro
     return `${pixKey.slice(0, 4)}***${pixKey.slice(-4)}`;
   };
 
-  const getServiceTypeLabel = (serviceType: string) => {
-    const types: { [key: string]: string } = {
-      'GUINCHO': 'Guincho',
-      'MECANICO': 'Mecânico',
-      'BORRACHEIRO': 'Borracheiro',
-      'AUTO_ELETRICA': 'Auto Elétrica',
-      'CHAVEIRO': 'Chaveiro',
-      'COMBUSTIVEL': 'Combustível',
-      'PINTURA': 'Pintura',
-      'AR_CONDICIONADO': 'Ar Condicionado',
-      'PULVERIZACAO_DRONE': 'Pulverização por Drone'
-    };
-    return types[serviceType] || serviceType;
-  };
-
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -235,6 +154,22 @@ export function ServiceProviderPayouts({ providerId }: ServiceProviderPayoutsPro
     );
   }
 
+  if (error) {
+    return (
+      <Card className="p-6">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-destructive" />
+          <h3 className="text-lg font-semibold text-destructive mb-2">Erro ao carregar saldo</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={fetchBalance} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Tentar novamente
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Cards de Resumo */}
@@ -246,6 +181,9 @@ export function ServiceProviderPayouts({ providerId }: ServiceProviderPayoutsPro
                 <p className="text-sm font-medium text-green-700 dark:text-green-300">Saldo Disponível</p>
                 <p className="text-2xl font-bold text-green-800 dark:text-green-200">
                   R$ {availableBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  Confirmado pela Stripe
                 </p>
               </div>
               <Banknote className="h-8 w-8 text-green-600" />
@@ -261,6 +199,9 @@ export function ServiceProviderPayouts({ providerId }: ServiceProviderPayoutsPro
                 <p className="text-2xl font-bold text-blue-800 dark:text-blue-200">
                   R$ {totalEarned.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  Líquido (após comissão)
+                </p>
               </div>
               <TrendingUp className="h-8 w-8 text-blue-600" />
             </div>
@@ -272,7 +213,10 @@ export function ServiceProviderPayouts({ providerId }: ServiceProviderPayoutsPro
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Saques Pendentes</p>
-                <p className="text-2xl font-bold text-amber-800 dark:text-amber-200">{pendingRequests}</p>
+                <p className="text-2xl font-bold text-amber-800 dark:text-amber-200">{pendingPayouts}</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  Processamento em até 2 dias
+                </p>
               </div>
               <Clock className="h-8 w-8 text-amber-600" />
             </div>
@@ -280,113 +224,109 @@ export function ServiceProviderPayouts({ providerId }: ServiceProviderPayoutsPro
         </Card>
       </div>
 
-      {/* Botão de Novo Saque */}
+      {/* Info sobre sistema integrado com Stripe */}
+      <Card className="border-info bg-info/5">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="h-5 w-5 text-info mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-info mb-1">Sistema integrado com Stripe</p>
+              <p className="text-muted-foreground">
+                Seu saldo é atualizado automaticamente quando os pagamentos são confirmados pela Stripe. 
+                Apenas valores efetivamente liberados aparecem como disponíveis para saque.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Botões de ação */}
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Gerenciar Saques</h3>
-        <Button 
-          onClick={() => setShowPayoutModal(true)}
-          disabled={availableBalance < 50}
-          className="bg-green-600 hover:bg-green-700 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Saque PIX
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchBalance}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar Saldo
+          </Button>
+          <Button 
+            onClick={() => setShowPayoutModal(true)}
+            disabled={availableBalance < 10}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Saque PIX
+          </Button>
+        </div>
       </div>
 
-      {/* Solicitações de Saque */}
+      {/* Histórico de Transações */}
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de Saques</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" />
+            Histórico de Transações
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {payoutRequests.length === 0 ? (
+          {recentTransactions.length === 0 ? (
             <div className="text-center py-8">
-              <Banknote className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">Nenhuma solicitação de saque ainda.</p>
+              <History className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">Nenhuma transação ainda.</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Complete serviços para ter valores disponíveis para saque.
+                Complete serviços para receber pagamentos.
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {payoutRequests.map((request) => (
-                <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg">
+              {recentTransactions.map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
-                    {getStatusIcon(request.status)}
+                    {getStatusIcon(transaction.status)}
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">
-                          R$ {request.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          {transaction.transaction_type === 'CREDIT' ? '+' : '-'}R$ {transaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
-                        {getStatusBadge(request.status)}
+                        {getStatusBadge(transaction.status)}
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-muted-foreground">
-                          PIX: {showPixKeys[request.id] ? request.pix_key : maskPixKey(request.pix_key)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => togglePixVisibility(request.id)}
-                          className="h-6 w-6 p-0"
-                        >
-                          {showPixKeys[request.id] ? 
-                            <EyeOff className="h-3 w-3" /> : 
-                            <Eye className="h-3 w-3" />
-                          }
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Solicitado em {new Date(request.created_at).toLocaleDateString('pt-BR')} às {new Date(request.created_at).toLocaleTimeString('pt-BR')}
+                      <p className="text-sm text-muted-foreground">
+                        {getTransactionTypeLabel(transaction.transaction_type)}
                       </p>
-                      {request.rejection_reason && (
-                        <p className="text-xs text-red-600 mt-1">
-                          Motivo da rejeição: {request.rejection_reason}
+                      
+                      {/* Mostrar chave PIX para saques */}
+                      {transaction.transaction_type === 'PAYOUT' && transaction.metadata?.pix_key && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            PIX: {showPixKeys[transaction.id] ? transaction.metadata.pix_key : maskPixKey(transaction.metadata.pix_key)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => togglePixVisibility(transaction.id)}
+                            className="h-5 w-5 p-0"
+                          >
+                            {showPixKeys[transaction.id] ? 
+                              <EyeOff className="h-3 w-3" /> : 
+                              <Eye className="h-3 w-3" />
+                            }
+                          </Button>
+                        </div>
+                      )}
+                      
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                      </p>
+                      
+                      {transaction.description && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {transaction.description}
                         </p>
                       )}
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Valores Disponíveis para Saque */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Valores Disponíveis</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {availablePayouts.filter(p => p.status === 'PENDING').length === 0 ? (
-            <div className="text-center py-8">
-              <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">Nenhum valor disponível para saque.</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Complete mais serviços para acumular valores para saque.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {availablePayouts
-                .filter(p => p.status === 'PENDING')
-                .map((payout) => (
-                <div key={payout.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">
-                        R$ {payout.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                      <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Disponível</Badge>
-                    </div>
-                    {payout.service_request && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {getServiceTypeLabel(payout.service_request.service_type)} - {payout.service_request.location_address}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      Disponível desde {new Date(payout.created_at).toLocaleDateString('pt-BR')}
+                  <div className="text-right">
+                    <p className="text-sm font-medium">
+                      Saldo: R$ {transaction.balance_after.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                 </div>
@@ -403,15 +343,23 @@ export function ServiceProviderPayouts({ providerId }: ServiceProviderPayoutsPro
             <DialogTitle>Solicitar Saque PIX</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="p-4 bg-info/10 border border-info/20 rounded-lg">
+              <p className="text-sm text-info">
+                <CheckCircle className="h-4 w-4 inline mr-2" />
+                Saques são processados em até 2 dias úteis após a confirmação.
+              </p>
+            </div>
+            
             <div>
               <Label htmlFor="pixKey">Chave PIX</Label>
               <Input
                 id="pixKey"
                 value={pixKey}
                 onChange={(e) => setPixKey(e.target.value)}
-                placeholder="Digite sua chave PIX"
+                placeholder="Digite sua chave PIX (CPF, e-mail, telefone ou chave aleatória)"
               />
             </div>
+            
             <div>
               <Label htmlFor="amount">Valor (R$)</Label>
               <Input
@@ -419,8 +367,8 @@ export function ServiceProviderPayouts({ providerId }: ServiceProviderPayoutsPro
                 type="number"
                 value={withdrawalAmount}
                 onChange={(e) => setWithdrawalAmount(e.target.value)}
-                placeholder="Mínimo R$ 50,00"
-                min="50"
+                placeholder="Mínimo R$ 10,00"
+                min="10"
                 max={availableBalance}
                 step="0.01"
               />
@@ -428,6 +376,7 @@ export function ServiceProviderPayouts({ providerId }: ServiceProviderPayoutsPro
                 Disponível: R$ {availableBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </div>
+            
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setShowPayoutModal(false)}>
                 Cancelar
