@@ -4230,6 +4230,30 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_freights_in_provider_region: {
+        Args: { provider_user_id: string }
+        Returns: {
+          cargo_type: string
+          created_at: string
+          delivery_date: string
+          description: string
+          destination_address: string
+          distance_km: number
+          id: string
+          origin_address: string
+          origin_city: string
+          origin_lat: number
+          origin_lng: number
+          origin_state: string
+          pickup_date: string
+          price: number
+          producer_name: string
+          service_type: string
+          status: string
+          urgency: string
+          weight: number
+        }[]
+      }
       get_freights_in_radius: {
         Args: { driver_profile_id: string }
         Returns: {
@@ -4400,6 +4424,26 @@ export type Database = {
           state: string
           status: string
           updated_at: string
+          urgency: string
+          vehicle_info: string
+        }[]
+      }
+      get_service_requests_in_provider_region: {
+        Args: { provider_user_id: string }
+        Returns: {
+          city_name: string
+          contact_name: string
+          created_at: string
+          distance_km: number
+          id: string
+          is_emergency: boolean
+          location_address: string
+          location_lat: number
+          location_lng: number
+          problem_description: string
+          service_type: string
+          state: string
+          status: string
           urgency: string
           vehicle_info: string
         }[]
