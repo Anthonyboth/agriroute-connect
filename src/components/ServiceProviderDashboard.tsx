@@ -329,9 +329,20 @@ export const ServiceProviderDashboard: React.FC = () => {
             <h1 className="text-xl md:text-2xl font-bold mb-2">
               Olá, {profile?.full_name?.split(' ')[0] || 'Prestador'}
             </h1>
-            <p className="text-sm md:text-base opacity-90">
+            <p className="text-sm md:text-base mb-4 opacity-90">
               Sistema IA conecta você com clientes
             </p>
+            <div className="flex items-center justify-center">
+              <Button 
+                variant="default"
+                size="sm"
+                onClick={() => setShowLocationManager(true)}
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
+              >
+                <MapPin className="mr-1 h-4 w-4" />
+                Configurar Região
+              </Button>
+            </div>
           </div>
         </div>
       </section>
@@ -434,11 +445,6 @@ export const ServiceProviderDashboard: React.FC = () => {
                 <CheckCircle className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Concluídos</span>
                 <span className="sm:hidden">Ok</span>
-              </TabsTrigger>
-              <TabsTrigger value="areas" className="text-xs">
-                <MapPin className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Áreas</span>
-                <span className="sm:hidden">Áreas</span>
               </TabsTrigger>
               <TabsTrigger value="services" className="text-xs">
                 <Settings className="h-3 w-3 mr-1" />
@@ -597,10 +603,6 @@ export const ServiceProviderDashboard: React.FC = () => {
                 <p className="text-muted-foreground">Nenhum serviço concluído ainda.</p>
               </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="areas" className="space-y-4">
-            <ServiceProviderAreasManager />
           </TabsContent>
 
           <TabsContent value="services" className="space-y-4">
