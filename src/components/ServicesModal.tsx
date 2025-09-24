@@ -17,6 +17,7 @@ import {
   Grid3X3
 } from 'lucide-react';
 import { ServiceProviderRegistrationForm } from './ServiceProviderRegistrationForm';
+import GuestServiceModal from './GuestServiceModal';
 
 
 interface ServicesModalProps {
@@ -95,8 +96,24 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
   onClose
 }) => {
   const [showRegistration, setShowRegistration] = useState(false);
+  const [guestServiceModal, setGuestServiceModal] = useState<{
+    isOpen: boolean;
+    serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO';
+  }>({ isOpen: false });
 
   const handleServiceSelect = (serviceId: string) => {
+    // Mapear o serviço para o tipo correto
+    let serviceType: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' = 'GUINCHO';
+    
+    if (serviceId.includes('guincho') || serviceId.includes('mecanico') || serviceId.includes('borracheiro')) {
+      serviceType = 'GUINCHO';
+    } else if (serviceId.includes('mudanca')) {
+      serviceType = 'MUDANCA';  
+    } else {
+      serviceType = 'FRETE_URBANO';
+    }
+    
+    setGuestServiceModal({ isOpen: true, serviceType });
     onClose();
   };
 
@@ -180,6 +197,15 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
         isOpen={showRegistration}
         onClose={() => setShowRegistration(false)}
       />
+
+      {/* Modal de solicitação de serviços */}
+      {guestServiceModal.serviceType && (
+        <GuestServiceModal
+          isOpen={guestServiceModal.isOpen}
+          serviceType={guestServiceModal.serviceType}
+          onClose={() => setGuestServiceModal({ isOpen: false })}
+        />
+      )}
 
     </>
   );
