@@ -43,6 +43,13 @@ interface UserProfile {
   current_location_lng?: number;
   // Sistema de match inteligente
   service_types?: string[];
+  // Localização base do usuário
+  base_city_name?: string;
+  base_state?: string;
+  base_lat?: number;
+  base_lng?: number;
+  current_city_name?: string;
+  current_state?: string;
 }
 
 export const useAuth = () => {

@@ -7,6 +7,7 @@ import MudancaModal from '@/components/MudancaModal';
 import GuestServiceModal from '@/components/GuestServiceModal';
 import HowItWorksModal from '@/components/HowItWorksModal';
 import { ServicesModal } from '@/components/ServicesModal';
+import { ServiceRequestModal } from '@/components/ServiceRequestModal';
 import { ContactModal } from '@/components/ContactModal';
 import ReportModal from '@/components/ReportModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail } from 'lucide-react';
@@ -240,19 +241,22 @@ const Landing = () => {
               </Button>
             </div>
             <div className="mt-3 md:mt-4 flex flex-wrap justify-center gap-3 md:gap-4">
-              <Button 
-                variant="outline"
-                onClick={() => setServicesModal(true)}
-                className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base md:text-lg px-6 md:px-8 py-5 rounded-full shadow-elegant hover:scale-105 transition-bounce"
-              >
-                <Wrench className="mr-2 h-5 w-5" />
-                Preciso de Guincho ou Serviços
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => setGuestServiceModal({ isOpen: true, serviceType: 'MUDANCA' })}
-                className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base md:text-lg px-6 md:px-8 py-5 rounded-full shadow-elegant hover:scale-105 transition-bounce"
-              >
+              <ServiceRequestModal 
+                trigger={
+                  <Button 
+                    variant="outline"
+                    className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base md:text-lg px-6 md:px-8 py-5 rounded-full shadow-elegant hover:scale-105 transition-bounce"
+                  >
+                    <Wrench className="mr-2 h-5 w-5" />
+                    Preciso de Guincho ou Serviços
+                  </Button>
+                }
+               />
+               <Button 
+                 variant="outline"
+                 onClick={() => setGuestServiceModal({ isOpen: true, serviceType: 'MUDANCA' })}
+                 className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base md:text-lg px-6 md:px-8 py-5 rounded-full shadow-elegant hover:scale-105 transition-bounce"
+               >
                 <Home className="mr-2 h-5 w-5" />
                 Preciso de Frete Urbano ou Mudança
               </Button>
