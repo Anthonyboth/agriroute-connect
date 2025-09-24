@@ -102,7 +102,6 @@ export const ServiceProviderDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('pending');
   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
   const [showEarnings, setShowEarnings] = useState(true);
-  const [showLocationManager, setShowLocationManager] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [totalEarnings, setTotalEarnings] = useState(0);
 
@@ -436,20 +435,9 @@ export const ServiceProviderDashboard: React.FC = () => {
             <h1 className="text-xl md:text-2xl font-bold mb-2">
               Olá, {profile?.full_name?.split(' ')[0] || 'Prestador'}
             </h1>
-            <p className="text-sm md:text-base mb-4 opacity-90">
+            <p className="text-sm md:text-base opacity-90">
               Sistema IA conecta você com clientes
             </p>
-            <div className="flex items-center justify-center">
-              <Button 
-                variant="default"
-                size="sm"
-                onClick={() => setShowLocationManager(true)}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
-              >
-                <MapPin className="mr-1 h-4 w-4" />
-                Configurar Região
-              </Button>
-            </div>
           </div>
         </div>
       </section>
@@ -797,17 +785,6 @@ export const ServiceProviderDashboard: React.FC = () => {
           </TabsContent>
 
         </Tabs>
-
-        {/* Modal de Configuração de Localização */}
-        {showLocationManager && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <LocationManager onClose={() => setShowLocationManager(false)} />
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
