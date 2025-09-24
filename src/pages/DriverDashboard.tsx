@@ -32,7 +32,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import heroLogistics from '@/assets/hero-logistics.jpg';
-import { LocationManager } from '@/components/LocationManager';
+import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
 
 interface Freight {
@@ -1493,9 +1493,21 @@ const [regionalFreights, setRegionalFreights] = useState<Freight[]>([]);
       {/* Modal de Configuração de Localização */}
       {showLocationManager && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <LocationManager onClose={() => setShowLocationManager(false)} />
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Configurar Áreas de Atendimento</h2>
+                <Button variant="ghost" onClick={() => setShowLocationManager(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <UnifiedLocationManager 
+                userType="MOTORISTA" 
+                onAreasUpdate={() => {
+                  // Refresh regional freights when areas are updated
+                  setRegionalFreights([]);
+                }}
+              />
             </div>
           </div>
         </div>
