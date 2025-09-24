@@ -4094,6 +4094,31 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_freights_in_radius: {
+        Args: { driver_profile_id: string }
+        Returns: {
+          cargo_type: string
+          created_at: string
+          delivery_date: string
+          description: string
+          destination_address: string
+          destination_city: string
+          destination_state: string
+          distance_km: number
+          distance_m: number
+          id: string
+          origin_address: string
+          origin_city: string
+          origin_state: string
+          pickup_date: string
+          price: number
+          producer_id: string
+          service_radius_km: number
+          status: Database["public"]["Enums"]["freight_status"]
+          urgency: Database["public"]["Enums"]["urgency_level"]
+          weight: number
+        }[]
+      }
       get_platform_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -4210,6 +4235,29 @@ export type Database = {
           is_active: boolean
           name: string
           role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
+      get_service_requests_in_radius: {
+        Args: { provider_profile_id: string }
+        Returns: {
+          client_id: string
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          distance_m: number
+          estimated_price: number
+          id: string
+          is_emergency: boolean
+          location_address: string
+          location_city: string
+          location_lat: number
+          location_lng: number
+          location_state: string
+          problem_description: string
+          service_radius_km: number
+          service_type: string
+          status: string
+          urgency: string
         }[]
       }
       get_user_role: {
@@ -4451,6 +4499,15 @@ export type Database = {
       postgis_wagyu_version: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      search_cities: {
+        Args: { limit_count?: number; search_term: string }
+        Returns: {
+          display_name: string
+          id: string
+          name: string
+          state: string
+        }[]
       }
       send_notification: {
         Args: {

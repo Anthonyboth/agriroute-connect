@@ -12,6 +12,8 @@ import { Plus, Loader2 } from 'lucide-react';
 import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
 import { LocationFillButton } from './LocationFillButton';
 import { AddressButton } from './AddressButton';
+import { CitySelector } from './CitySelector';
+import { RadiusSelector } from './RadiusSelector';
 
 interface CreateFreightModalProps {
   onFreightCreated: () => void;
@@ -25,7 +27,12 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     cargo_type: '',
     weight: '',
     origin_address: '',
+    origin_city: '',
+    origin_state: '',
     destination_address: '',
+    destination_city: '',
+    destination_state: '',
+    service_radius_km: 50,
     price: '',
     price_per_km: '',
     pricing_type: 'FIXED' as 'FIXED' | 'PER_KM',
@@ -96,6 +103,17 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     setLoading(true);
 
     try {
+      // Validação básica dos campos obrigatórios de localização
+      if (!formData.origin_city || !formData.origin_state) {
+        toast.error('Por favor, selecione a cidade de origem');
+        return;
+      }
+      
+      if (!formData.destination_city || !formData.destination_state) {
+        toast.error('Por favor, selecione a cidade de destino');
+        return;
+      }
+
       // Producers can create unlimited freights
       
       // Calculate distance (mock for now)
@@ -114,7 +132,12 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         cargo_type: formData.cargo_type,
         weight: weight * 1000, // Convert tonnes to kg for database storage
         origin_address: formData.origin_address,
+        origin_city: formData.origin_city,
+        origin_state: formData.origin_state,
         destination_address: formData.destination_address,
+        destination_city: formData.destination_city,
+        destination_state: formData.destination_state,
+        service_radius_km: formData.service_radius_km,
         distance_km: distance,
         price: formData.pricing_type === 'FIXED' ? parseFloat(formData.price) : parseFloat(formData.price_per_km) * distance,
         price_per_km: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : null,
@@ -139,7 +162,12 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         cargo_type: '',
         weight: '',
         origin_address: '',
+        origin_city: '',
+        origin_state: '',
         destination_address: '',
+        destination_city: '',
+        destination_state: '',
+        service_radius_km: 50,
         price: '',
         price_per_km: '',
         pricing_type: 'FIXED' as 'FIXED' | 'PER_KM',
@@ -256,6 +284,19 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
             required
           />
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CitySelector
+              value={{ city: formData.origin_city, state: formData.origin_state }}
+              onChange={(city) => {
+                handleInputChange('origin_city', city.city);
+                handleInputChange('origin_state', city.state);
+              }}
+              label="Cidade de Origem"
+              placeholder="Digite a cidade de origem..."
+              required
+            />
+          </div>
+
           <AddressButton
             label="Endereço de Destino"
             value={formData.destination_address}
@@ -268,6 +309,34 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
             }}
             required
           />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CitySelector
+              value={{ city: formData.destination_city, state: formData.destination_state }}
+              onChange={(city) => {
+                handleInputChange('destination_city', city.city);
+                handleInputChange('destination_state', city.state);
+              }}
+              label="Cidade de Destino"
+              placeholder="Digite a cidade de destino..."
+              required
+            />
+          </div>
+
+          <div className="space-y-4">
+            <RadiusSelector
+              value={formData.service_radius_km}
+              onChange={(radius) => handleInputChange('service_radius_km', radius.toString())}
+              label="Raio de Alcance para Motoristas"
+              min={10}
+              max={500}
+              step={10}
+            />
+            <p className="text-xs text-muted-foreground">
+              <strong>Sistema Inteligente:</strong> Apenas motoristas dentro deste raio poderão ver seu frete. 
+              Isso garante que apenas profissionais da sua região respondam à solicitação.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
