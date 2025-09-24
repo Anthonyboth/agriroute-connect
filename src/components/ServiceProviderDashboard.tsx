@@ -158,6 +158,26 @@ export const ServiceProviderDashboard: React.FC = () => {
     if (!providerId) return;
 
     try {
+      // Primeiro, buscar o service_type do prestador
+      const { data: providerData, error: providerDataError } = await supabase
+        .from('service_providers')
+        .select('service_type')
+        .eq('profile_id', providerId)
+        .single();
+
+      if (providerDataError) {
+        console.error('Error fetching provider service type:', providerDataError);
+        setLoading(false);
+        return;
+      }
+
+      const providerServiceType = providerData?.service_type;
+      if (!providerServiceType) {
+        console.warn('Provider service type not found');
+        setLoading(false);
+        return;
+      }
+
       // Buscar solicitações do prestador (aceitas/em andamento/concluídas)
       const { data: providerRequests, error: providerError } = await supabase
         .from('service_requests')
@@ -176,12 +196,13 @@ export const ServiceProviderDashboard: React.FC = () => {
       if (cityError) {
         console.warn('City-based search failed, falling back to direct search:', cityError);
         
-        // Fallback: busca direta por solicitações pendentes
+        // Fallback: busca direta por solicitações pendentes compatíveis com o service_type
         const { data: directPendingRequests, error: directPendingError } = await supabase
           .from('service_requests')
           .select('*') 
           .is('provider_id', null)
           .eq('status', 'OPEN')
+          .eq('service_type', providerServiceType) // Filtrar pelo tipo de serviço
           .order('created_at', { ascending: true }); // Mais antigas primeiro
 
         if (directPendingError) throw directPendingError;
@@ -204,16 +225,18 @@ export const ServiceProviderDashboard: React.FC = () => {
         setLastRefresh(new Date());
         setLoading(false);
         
-        console.log(`Loaded ${allRequests.length} service requests (fallback mode)`, {
+        console.log(`Loaded ${allRequests.length} service requests (fallback mode + service type filtered)`, {
           providerRequests: (providerRequests || []).length,
-          directPending: (directPendingRequests || []).length
+          directPending: (directPendingRequests || []).length,
+          providerServiceType: providerServiceType
         });
         
         return;
       }
 
-      // Usar resultados da busca por cidade
+      // Usar resultados da busca por cidade, filtrando pelo service_type
       const pendingCityRequests = (cityBasedRequests || [])
+        .filter((r: any) => r.service_type === providerServiceType) // Filtrar pelo tipo de serviço
         .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); // Mais antigas primeiro
 
       // Combinar e deduplicar por id
@@ -237,9 +260,10 @@ export const ServiceProviderDashboard: React.FC = () => {
       setLastRefresh(new Date());
       setLoading(false);
       
-      console.log(`Loaded ${allRequests.length} service requests (city-based)`, {
+      console.log(`Loaded ${allRequests.length} service requests (city-based + service type filtered)`, {
         providerRequests: (providerRequests || []).length,
-        cityBasedPending: pendingCityRequests.length
+        cityBasedPending: pendingCityRequests.length,
+        providerServiceType: providerServiceType
       });
       
     } catch (error: any) {
