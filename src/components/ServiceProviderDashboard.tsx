@@ -102,7 +102,6 @@ export const ServiceProviderDashboard: React.FC = () => {
   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
   const [showEarnings, setShowEarnings] = useState(true);
   const [showLocationManager, setShowLocationManager] = useState(false);
-  const [regionalRequests, setRegionalRequests] = useState<ServiceRequest[]>([]);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [totalEarnings, setTotalEarnings] = useState(0);
 
@@ -136,18 +135,10 @@ export const ServiceProviderDashboard: React.FC = () => {
     if (!providerId) return;
 
     try {
-      // Buscar solicitações do prestador (aceitas/em andamento/concluídas) COM dados de contato
+      // Buscar solicitações do prestador (aceitas/em andamento/concluídas)
       const { data: providerRequests, error: providerError } = await supabase
         .from('service_requests')
-        .select(`
-          *,
-          profiles:client_id (
-            id,
-            full_name,
-            phone,
-            user_id
-          )
-        `)
+        .select('*')
         .eq('provider_id', providerId)
         .order('created_at', { ascending: false });
 
@@ -169,12 +160,24 @@ export const ServiceProviderDashboard: React.FC = () => {
       // Combinar e deduplicar por id
       const byId = new Map<string, ServiceRequest>();
       (providerRequests || []).forEach((r: any) => byId.set(r.id, r as ServiceRequest));
-      pendingRegionalRequests.forEach((r: any) => byId.set(r.id, r as ServiceRequest));
+      
+      // Converter dados regionais para o formato ServiceRequest
+      pendingRegionalRequests.forEach((r: any) => {
+        const serviceRequest: ServiceRequest = {
+          ...r,
+          provider_id: r.provider_id || null,
+          profiles: null // Dados de contato só ficam disponíveis após aceitar
+        };
+        byId.set(r.id, serviceRequest);
+      });
+      
       const allRequests = Array.from(byId.values());
       setRequests(allRequests);
       setLastRefresh(new Date());
+      setLoading(false); // Certificar que o loading seja desativado
     } catch (error: any) {
       console.error('Error fetching service requests:', error);
+      setLoading(false); // Desativar loading mesmo em caso de erro
       toast({
         title: "Erro",
         description: "Não foi possível carregar as solicitações",
