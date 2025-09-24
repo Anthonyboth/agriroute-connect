@@ -26,6 +26,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LocationFillButton } from './LocationFillButton';
+import { useLocationPermission } from '@/hooks/useLocationPermission';
+import { Navigation, AlertCircle } from 'lucide-react';
 
 interface ServiceRequestModalProps {
   isOpen: boolean;
@@ -60,6 +62,36 @@ const vehicleTypes = [
   { value: 'CARRETA', label: 'Carreta/Bitrem', multiplier: 2.5 }
 ];
 
+const BRAZILIAN_STATES = [
+  { code: 'AC', name: 'Acre' },
+  { code: 'AL', name: 'Alagoas' },
+  { code: 'AP', name: 'Amapá' },
+  { code: 'AM', name: 'Amazonas' },
+  { code: 'BA', name: 'Bahia' },
+  { code: 'CE', name: 'Ceará' },
+  { code: 'DF', name: 'Distrito Federal' },
+  { code: 'ES', name: 'Espírito Santo' },
+  { code: 'GO', name: 'Goiás' },
+  { code: 'MA', name: 'Maranhão' },
+  { code: 'MT', name: 'Mato Grosso' },
+  { code: 'MS', name: 'Mato Grosso do Sul' },
+  { code: 'MG', name: 'Minas Gerais' },
+  { code: 'PA', name: 'Pará' },
+  { code: 'PB', name: 'Paraíba' },
+  { code: 'PR', name: 'Paraná' },
+  { code: 'PE', name: 'Pernambuco' },
+  { code: 'PI', name: 'Piauí' },
+  { code: 'RJ', name: 'Rio de Janeiro' },
+  { code: 'RN', name: 'Rio Grande do Norte' },
+  { code: 'RS', name: 'Rio Grande do Sul' },
+  { code: 'RO', name: 'Rondônia' },
+  { code: 'RR', name: 'Roraima' },
+  { code: 'SC', name: 'Santa Catarina' },
+  { code: 'SP', name: 'São Paulo' },
+  { code: 'SE', name: 'Sergipe' },
+  { code: 'TO', name: 'Tocantins' }
+];
+
 export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({ 
   isOpen, 
   onClose, 
@@ -67,7 +99,9 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
   serviceTitle 
 }) => {
   const { toast } = useToast();
+  const { hasPermission, coords, requestLocation } = useLocationPermission(false);
   const [loading, setLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [pricing, setPricing] = useState<any>(null);
   const [formData, setFormData] = useState({
     vehicle_type: '',
@@ -121,10 +155,20 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     if (loading) return;
 
     // Validação básica
-    if (!formData.origin_address || !formData.contact_phone || !formData.problem_description || !formData.city_name) {
+    if (!formData.origin_address || !formData.contact_phone || !formData.problem_description || !formData.city_name || !formData.state) {
       toast({
         title: "Erro",
-        description: "Por favor, preencha todos os campos obrigatórios, incluindo a cidade.",
+        description: "Por favor, preencha todos os campos obrigatórios: cidade, estado, endereço e contato.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validação de coordenadas obrigatórias
+    if (!formData.origin_lat || !formData.origin_lng) {
+      toast({
+        title: "Erro",
+        description: "Por favor, informe as coordenadas geográficas (use o botão 'Usar Localização Atual' ou digite manualmente).",
         variant: "destructive"
       });
       return;
@@ -163,6 +207,31 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
           return;
         }
 
+        // Validar/criar cidade no banco de dados
+        let { data: existingCity } = await supabase
+          .from('cities')
+          .select('id')
+          .eq('name', formData.city_name)
+          .eq('state', formData.state)
+          .maybeSingle();
+
+        if (!existingCity) {
+          // Criar nova cidade automaticamente
+          const { error: cityError } = await supabase
+            .from('cities')
+            .insert({
+              name: formData.city_name,
+              state: formData.state,
+              lat: formData.origin_lat,
+              lng: formData.origin_lng
+            });
+
+          if (cityError) {
+            console.error('Error creating city:', cityError);
+            // Continuar mesmo se não conseguir criar a cidade
+          }
+        }
+
         if (serviceType === 'GUINCHO') {
           // Create freight entry for GUINCHO service
           const { error } = await supabase
@@ -174,6 +243,14 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
               weight: 0,
               origin_address: formData.origin_address,
               destination_address: formData.destination_address || formData.origin_address,
+              origin_lat: formData.origin_lat,
+              origin_lng: formData.origin_lng,
+              destination_lat: formData.destination_lat || formData.origin_lat,
+              destination_lng: formData.destination_lng || formData.origin_lng,
+              origin_city: formData.city_name,
+              origin_state: formData.state,
+              destination_city: formData.city_name,
+              destination_state: formData.state,
               distance_km: parseFloat(formData.distance_km || '0'),
               pickup_date: new Date().toISOString().split('T')[0],
               delivery_date: new Date().toISOString().split('T')[0],
@@ -214,6 +291,32 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         }
       } else {
         // User is not authenticated - use guest_requests table
+        
+        // Validar/criar cidade no banco de dados para usuários não autenticados também
+        let { data: existingCity } = await supabase
+          .from('cities')
+          .select('id')
+          .eq('name', formData.city_name)
+          .eq('state', formData.state)
+          .maybeSingle();
+
+        if (!existingCity) {
+          // Criar nova cidade automaticamente
+          const { error: cityError } = await supabase
+            .from('cities')
+            .insert({
+              name: formData.city_name,
+              state: formData.state,
+              lat: formData.origin_lat,
+              lng: formData.origin_lng
+            });
+
+          if (cityError) {
+            console.error('Error creating city:', cityError);
+            // Continuar mesmo se não conseguir criar a cidade
+          }
+        }
+        
         const guestPayload = {
           vehicle_type: formData.vehicle_type,
           origin_address: formData.origin_address,
@@ -287,6 +390,39 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
   const ServiceIcon = serviceIcons[serviceType] || Wrench;
   const isGuincho = serviceType === 'GUINCHO';
 
+  const handleUseCurrentLocation = async () => {
+    setLocationLoading(true);
+    try {
+      const success = await requestLocation();
+      if (success && coords) {
+        setFormData({
+          ...formData,
+          origin_lat: coords.latitude,
+          origin_lng: coords.longitude
+        });
+        toast({
+          title: "Localização obtida!",
+          description: "Suas coordenadas foram capturadas com sucesso.",
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: "Não foi possível obter sua localização. Verifique as permissões do navegador.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao obter localização.",
+        variant: "destructive"
+      });
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -339,21 +475,113 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
             </div>
           </div>
 
-          {/* Campo de cidade obrigatório */}
-          <div className="space-y-2">
-            <Label htmlFor="city_name">Cidade onde precisa do serviço *</Label>
-            <Input
-              id="city_name"
-              value={formData.city_name}
-              onChange={(e) => setFormData({...formData, city_name: e.target.value})}
-              placeholder="Digite o nome da cidade"
-              required
-              className="w-full"
-            />
-            <p className="text-xs text-muted-foreground">
-              Esta informação é obrigatória para encontrar prestadores na sua região
-            </p>
-          </div>
+          {/* Região de Atendimento - Layout idêntico ao LocationManager */}
+          <Card className="border-primary/20">
+            <CardContent className="p-6 space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  Localização do Atendimento
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Configure sua cidade e coordenadas para encontrar prestadores da sua região
+                </p>
+              </div>
+
+              {/* Cidade Base e Estado */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city_name">Cidade *</Label>
+                  <Input
+                    id="city_name"
+                    placeholder="Ex: Primavera do Leste"
+                    value={formData.city_name}
+                    onChange={(e) => setFormData({...formData, city_name: e.target.value})}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="state">Estado *</Label>
+                  <Select value={formData.state} onValueChange={(value) => setFormData({...formData, state: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BRAZILIAN_STATES.map((state) => (
+                        <SelectItem key={state.code} value={state.code}>
+                          {state.name} ({state.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Coordenadas e Localização Atual */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Coordenadas Geográficas *</Label>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleUseCurrentLocation}
+                    disabled={locationLoading}
+                    className="flex items-center gap-2"
+                  >
+                    <Navigation className="h-4 w-4" />
+                    {locationLoading ? 'Obtendo...' : 'Usar Localização Atual'}
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="origin_lat">Latitude *</Label>
+                    <Input
+                      id="origin_lat"
+                      type="number"
+                      step="any"
+                      placeholder="Ex: -15.5561"
+                      value={formData.origin_lat || ''}
+                      onChange={(e) => setFormData({...formData, origin_lat: e.target.value ? parseFloat(e.target.value) : undefined})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="origin_lng">Longitude *</Label>
+                    <Input
+                      id="origin_lng"
+                      type="number"
+                      step="any"
+                      placeholder="Ex: -54.2964"
+                      value={formData.origin_lng || ''}
+                      onChange={(e) => setFormData({...formData, origin_lng: e.target.value ? parseFloat(e.target.value) : undefined})}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {!hasPermission && (
+                  <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-sm text-orange-800">
+                      <AlertCircle className="h-4 w-4 inline mr-1" />
+                      Para usar sua localização atual, permita o acesso à localização no navegador.
+                    </p>
+                  </div>
+                )}
+
+                {(!formData.origin_lat || !formData.origin_lng) && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800">
+                      <AlertCircle className="h-4 w-4 inline mr-1" />
+                      As coordenadas são obrigatórias para que prestadores da sua região possam encontrar sua solicitação.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {isGuincho && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
