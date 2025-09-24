@@ -2401,6 +2401,60 @@ export type Database = {
           },
         ]
       }
+      service_payments: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          net_amount: number | null
+          payment_method: string
+          platform_fee: number | null
+          processed_at: string | null
+          provider_id: string
+          service_request_id: string
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          net_amount?: number | null
+          payment_method?: string
+          platform_fee?: number | null
+          processed_at?: string | null
+          provider_id: string
+          service_request_id: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          net_amount?: number | null
+          payment_method?: string
+          platform_fee?: number | null
+          processed_at?: string | null
+          provider_id?: string
+          service_request_id?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       service_provider_areas: {
         Row: {
           city_name: string
@@ -4294,10 +4348,6 @@ export type Database = {
       get_proj4_from_srid: {
         Args: { "": number }
         Returns: string
-      }
-      get_provider_balance: {
-        Args: { provider_id_param: string }
-        Returns: Json
       }
       get_provider_service_requests: {
         Args: { provider_profile_id: string }

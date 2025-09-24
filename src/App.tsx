@@ -35,6 +35,8 @@ import React, { lazy, Suspense } from 'react';
 import { useAuth } from "./hooks/useAuth";
 import { ComponentLoader } from '@/components/LazyComponents';
 const PressPage = lazy(() => import("./pages/Press"));
+const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess"));
+const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
 
 const queryClient = new QueryClient();
 
@@ -218,6 +220,16 @@ const App = () => (
             <Route path="/system-test" element={<SystemTest />} />
             <Route path="/payment/success" element={<PaymentSuccess />} />
             <Route path="/payment/cancel" element={<PaymentCancel />} />
+            <Route path="/service-payment/success" element={
+              <Suspense fallback={<ComponentLoader />}>
+                <ServicePaymentSuccess />
+              </Suspense>
+            } />
+            <Route path="/service-payment/cancel" element={
+              <Suspense fallback={<ComponentLoader />}>
+                <ServicePaymentCancel />
+              </Suspense>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

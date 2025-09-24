@@ -25,20 +25,34 @@ export const PaymentIntegration: React.FC<PaymentIntegrationProps> = ({
   const processPayment = async () => {
     setProcessing(true);
     try {
-      // Simular processamento de pagamento
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast({
-        title: "Pagamento Processado",
-        description: `R$ ${amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} será creditado em sua conta`,
+      const { data, error } = await supabase.functions.invoke('create-service-payment', {
+        body: { serviceRequestId: requestId }
       });
+      
+      if (error) {
+        throw error;
+      }
 
-      onPaymentComplete();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Redirecionar para o checkout da Stripe
+      if (data.url) {
+        window.open(data.url, '_blank');
+        
+        toast({
+          title: "Checkout da Stripe Iniciado",
+          description: "Cliente será redirecionado para realizar o pagamento seguro via Stripe",
+        });
+
+        onPaymentComplete();
+      }
     } catch (error: any) {
-      console.error('Erro no processamento do pagamento:', error);
+      console.error('Erro ao iniciar checkout:', error);
       toast({
-        title: "Erro no Pagamento",
-        description: "Não foi possível processar o pagamento. Tente novamente.",
+        title: "Erro no Checkout",
+        description: error.message || "Não foi possível iniciar o checkout da Stripe. Tente novamente.",
         variant: "destructive"
       });
     } finally {
@@ -77,13 +91,13 @@ export const PaymentIntegration: React.FC<PaymentIntegrationProps> = ({
             ) : (
               <>
                 <CreditCard className="h-3 w-3 mr-1" />
-                Receber Pagamento
+                Pagar via Stripe
               </>
             )}
           </Button>
           
           <p className="text-xs text-green-600 mt-2">
-            O pagamento será creditado instantaneamente em sua conta da plataforma.
+            Pagamento seguro processado pela Stripe. O valor será creditado automaticamente após confirmação.
           </p>
         </div>
       </CardContent>

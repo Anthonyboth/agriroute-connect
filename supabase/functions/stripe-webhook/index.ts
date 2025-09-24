@@ -229,6 +229,90 @@ serve(async (req) => {
           }
 
           logStep('Freight payment confirmed, balance updated by trigger, and freight delivered', { freightId, paymentId })
+        } else if (session.metadata?.type === 'service_payment') {
+          // Handle service payment
+          const serviceRequestId = session.metadata.service_request_id
+          const paymentId = session.metadata.payment_id
+          
+          logStep('Processing service payment', { serviceRequestId, paymentId, sessionId: session.id })
+
+          // Verificar se o pagamento existe e está no status correto
+          const { data: payment, error: fetchError } = await supabase
+            .from('service_payments')
+            .select('*')
+            .eq('id', paymentId)
+            .eq('status', 'PENDING')
+            .single()
+
+          if (fetchError || !payment) {
+            logStep('Service payment not found or invalid status', { paymentId, error: fetchError })
+            throw new Error('Invalid service payment or payment already processed')
+          }
+
+          // Verificar se o pagamento foi realmente bem-sucedido no Stripe
+          if (session.payment_status !== 'paid') {
+            logStep('Service payment not completed in Stripe', { sessionId: session.id, paymentStatus: session.payment_status })
+            throw new Error('Service payment not completed')
+          }
+
+          // Atualizar status do pagamento - ISSO ACIONARÁ O TRIGGER PARA ATUALIZAR O SALDO
+          const { error: paymentError } = await supabase
+            .from('service_payments')
+            .update({ 
+              status: 'COMPLETED',
+              stripe_payment_intent_id: session.payment_intent,
+              processed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', paymentId)
+            .eq('status', 'PENDING') // Double-check status
+
+          if (paymentError) {
+            logStep('Error updating service payment', { error: paymentError })
+            throw paymentError
+          }
+
+          logStep('Service payment updated - balance will be updated by trigger', { paymentId })
+
+          // Enviar notificações
+          try {
+            // Notificação para o prestador sobre pagamento confirmado
+            await supabase.functions.invoke('send-notification', {
+              body: {
+                user_id: session.metadata.provider_id,
+                title: 'Pagamento de Serviço Confirmado!',
+                message: `O pagamento do seu serviço no valor de R$ ${(payment.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} foi confirmado via Stripe. Seu saldo foi atualizado automaticamente.`,
+                type: 'service_payment_confirmed',
+                data: {
+                  payment_id: paymentId,
+                  service_request_id: serviceRequestId,
+                  gross_amount: payment.amount,
+                  net_amount: payment.amount * 0.98 // Após comissão de 2%
+                }
+              }
+            });
+
+            // Notificação para o cliente sobre pagamento processado
+            await supabase.functions.invoke('send-notification', {
+              body: {
+                user_id: session.metadata.client_id,
+                title: 'Pagamento Processado com Sucesso!',
+                message: `Seu pagamento de R$ ${(payment.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} foi processado com sucesso. Obrigado por usar nossos serviços!`,
+                type: 'payment_processed',
+                data: {
+                  payment_id: paymentId,
+                  service_request_id: serviceRequestId,
+                  amount: payment.amount
+                }
+              }
+            });
+            
+            logStep('Service payment notifications sent successfully')
+          } catch (notificationError) {
+            logStep('Warning: Could not send service payment notifications', { error: notificationError })
+          }
+
+          logStep('Service payment confirmed and balance updated', { serviceRequestId, paymentId })
         }
         break
       }

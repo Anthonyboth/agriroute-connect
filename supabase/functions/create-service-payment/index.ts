@@ -146,8 +146,8 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/dashboard/client?payment=success`,
-      cancel_url: `${req.headers.get("origin")}/dashboard/client?payment=cancelled`,
+      success_url: `${req.headers.get("origin")}/service-payment/success`,
+      cancel_url: `${req.headers.get("origin")}/service-payment/cancel`,
       metadata: {
         type: "service_payment",
         service_request_id: serviceRequestId,
