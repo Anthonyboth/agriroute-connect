@@ -164,16 +164,7 @@ export const ServiceProviderDashboard: React.FC = () => {
       // Buscar solicitações do prestador (aceitas/em andamento/concluídas)  
       const { data: providerRequests, error: providerError } = await supabase
         .from('service_requests')
-        .select(`
-          *,
-          profiles:client_id (
-            id,
-            full_name,
-            profile_photo_url,  
-            phone,
-            user_id
-          )
-        `)
+        .select('*')
         .eq('provider_id', providerId)
         .order('created_at', { ascending: false });
 
