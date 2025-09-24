@@ -16,9 +16,19 @@ serve(async (req) => {
   }
 
   try {
+    // Client for auth verification
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+
+    // Admin client to bypass RLS for server-side operations
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: { autoRefreshToken: false, persistSession: false }
+      }
     );
 
     const authHeader = req.headers.get("Authorization");
@@ -52,7 +62,7 @@ serve(async (req) => {
     }
 
     // Buscar profile do usuário
-    const { data: profile, error: profileError } = await supabaseClient
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("id, role")
       .eq("user_id", userData.user.id)
@@ -70,7 +80,7 @@ serve(async (req) => {
     logStep("Profile validated", { profileId: profile.id, role: profile.role });
 
     // Processar solicitação de saque usando função do banco
-    const { data: payoutResult, error: payoutError } = await supabaseClient
+    const { data: payoutResult, error: payoutError } = await supabaseAdmin
       .rpc("process_payout_request", {
         provider_id_param: profile.id,
         amount_param: amount,
@@ -96,7 +106,7 @@ serve(async (req) => {
 
     // Enviar notificação de sucesso
     try {
-      await supabaseClient.functions.invoke('send-notification', {
+      await supabaseAdmin.functions.invoke('send-notification', {
         body: {
           user_id: profile.id,
           title: 'Solicitação de Saque Enviada',
