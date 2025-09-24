@@ -537,7 +537,7 @@ export const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o estado" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[60]">
                       {BRAZILIAN_STATES.map((state) => (
                         <SelectItem key={state.code} value={state.code}>
                           {state.name} ({state.code})
