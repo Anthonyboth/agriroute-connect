@@ -72,272 +72,233 @@ export const UserLocationSelector: React.FC<UserLocationSelectorProps> = ({ onLo
     }
 
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
+      (position) => {
         const { latitude, longitude } = position.coords;
         
-        try {
-          // Usar geocoding reverso para obter o nome da cidade
-          const response = await fetch(
-            `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=YOUR_API_KEY&language=pt`
-          );
-          
-          if (response.ok) {
-            const data = await response.json();
-            const result = data.results[0];
-            const city = result.components.city || result.components.town || result.components.village || '';
-            const state = result.components.state_code || '';
-            
-            const location: UserLocation = {
-              city,
-              state,
-              lat: latitude,
-              lng: longitude
-            };
-            
-            setCurrentLocation(location);
-            setCitySearch(city);
-            setSelectedState(state);
-            setManualLat(latitude.toString());
-            setManualLng(longitude.toString());
-            
-            toast.success('Localização obtida com sucesso!');
-          }
-        } catch (error) {
-          // Usar coordenadas mesmo sem geocoding
-          setManualLat(latitude.toString());
-          setManualLng(longitude.toString());
-          toast.success('Coordenadas obtidas. Preencha a cidade manualmente.');
-        }
+        setManualLat(latitude.toString());
+        setManualLng(longitude.toString());
+        
+        toast.success(`Coordenadas GPS capturadas: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        toast.info('Digite o nome da sua cidade para confirmar a localização');
         
         setLoading(false);
       },
       (error) => {
-        toast.error('Erro ao obter localização. Verifique as permissões.');
+        console.error('Erro ao obter localização:', error);
+        toast.error('Erro ao obter localização. Verifique as permissões do navegador.');
         setLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutos
       }
     );
   };
 
   // Selecionar cidade da lista de sugestões
   const selectCity = (city: any) => {
-    const location: UserLocation = {
-      city: city.display_name,
-      state: city.state,
-      lat: parseFloat(city.lat || '0'),
-      lng: parseFloat(city.lng || '0')
-    };
+    const lat = parseFloat(manualLat) || city.lat;
+    const lng = parseFloat(manualLng) || city.lng;
     
+    if (!lat || !lng) {
+      toast.error('Coordenadas inválidas. Use o botão GPS ou insira manualmente.');
+      return;
+    }
+
+    const location: UserLocation = {
+      city: city.name,
+      state: city.state,
+      lat: lat,
+      lng: lng
+    };
+
     setCurrentLocation(location);
-    setCitySearch(city.display_name);
+    setCitySearch(city.name);
     setSelectedState(city.state);
-    setManualLat(city.lat || '');
-    setManualLng(city.lng || '');
+    setManualLat(lat.toString());
+    setManualLng(lng.toString());
     
     onLocationChange?.(location);
+    toast.success(`Localização definida: ${city.name}, ${city.state}`);
   };
 
-  // Salvar localização manualmente
-  const saveManualLocation = () => {
+  // Confirmar localização manual
+  const confirmManualLocation = () => {
     if (!citySearch || !selectedState || !manualLat || !manualLng) {
       toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    const lat = parseFloat(manualLat);
+    const lng = parseFloat(manualLng);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      toast.error('Coordenadas inválidas');
       return;
     }
 
     const location: UserLocation = {
       city: citySearch,
       state: selectedState,
-      lat: parseFloat(manualLat),
-      lng: parseFloat(manualLng)
+      lat: lat,
+      lng: lng
     };
 
     setCurrentLocation(location);
     onLocationChange?.(location);
-    toast.success('Localização definida com sucesso!');
-  };
-
-  // Salvar no perfil do usuário
-  const saveToProfile = async () => {
-    if (!currentLocation || !profile?.id) {
-      toast.error('Defina uma localização primeiro');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          base_city_name: currentLocation.city,
-          base_state: currentLocation.state,
-          base_lat: currentLocation.lat,
-          base_lng: currentLocation.lng,
-          current_city_name: currentLocation.city,
-          current_state: currentLocation.state
-        })
-        .eq('id', profile.id);
-
-      if (error) throw error;
-
-      toast.success('Localização salva no seu perfil!');
-    } catch (error) {
-      console.error('Erro ao salvar localização:', error);
-      toast.error('Erro ao salvar localização');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Remover localização atual
-  const clearLocation = () => {
-    setCurrentLocation(null);
-    setCitySearch('');
-    setSelectedState('');
-    setManualLat('');
-    setManualLng('');
-    onLocationChange?.(null as any);
+    toast.success(`Localização confirmada: ${citySearch}, ${selectedState}`);
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-primary" />
-            Localização do Atendimento
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Configure sua cidade e coordenadas para encontrar prestadores da sua região
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Localização Atual */}
-          {currentLocation && (
-            <div className="p-3 bg-muted rounded-lg">
-              <h4 className="font-medium mb-2">Sua localização atual</h4>
-              <Badge variant="outline" className="mb-2">
-                <MapPin className="h-3 w-3 mr-1" />
-                {currentLocation.city}, {currentLocation.state}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-2 h-auto p-1"
-                  onClick={clearLocation}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-              <p className="text-xs text-muted-foreground">
-                Esta será sua cidade principal e será automaticamente incluída nas cidades de atendimento.
-              </p>
+    <div className="space-y-4">
+      {/* Localização Atual */}
+      {currentLocation && (
+        <Card className="bg-green-50 border-green-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-green-600" />
+              Localização Atual
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">{currentLocation.city}, {currentLocation.state}</p>
+                <p className="text-xs text-muted-foreground">
+                  {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
+                </p>
+              </div>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => {
+                  setCurrentLocation(null);
+                  setCitySearch('');
+                  setSelectedState('');
+                  setManualLat('');
+                  setManualLng('');
+                }}
+              >
+                <X className="h-3 w-3" />
+              </Button>
             </div>
-          )}
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Busca de Cidade */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="city">Cidade *</Label>
+      {/* GPS Button */}
+      <div className="flex gap-2">
+        <Button 
+          onClick={getCurrentLocation}
+          disabled={loading}
+          variant="outline"
+          className="flex-1"
+        >
+          <Navigation className="mr-2 h-4 w-4" />
+          {loading ? 'Obtendo GPS...' : 'Usar Localização Atual (GPS)'}
+        </Button>
+      </div>
+
+      {/* Busca de Cidade */}
+      <div className="space-y-2">
+        <Label>Pesquisar Cidade</Label>
+        <Input
+          value={citySearch}
+          onChange={(e) => setCitySearch(e.target.value)}
+          placeholder="Digite o nome da cidade..."
+        />
+      </div>
+
+      {/* Lista de Cidades Sugeridas */}
+      {cities.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Cidades Encontradas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="max-h-32 overflow-y-auto space-y-1">
+              {cities.slice(0, 5).map((city, index) => (
+                <Button
+                  key={index}
+                  variant="ghost"
+                  className="w-full justify-start text-left p-2 h-auto"
+                  onClick={() => selectCity(city)}
+                >
+                  <div>
+                    <p className="font-medium">{city.name}</p>
+                    <p className="text-xs text-muted-foreground">{city.state}</p>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Entrada Manual */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Definir Localização Manualmente</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Cidade *</Label>
               <Input
-                id="city"
-                placeholder="Ex: Primavera do Leste"
                 value={citySearch}
                 onChange={(e) => setCitySearch(e.target.value)}
+                placeholder="Nome da cidade"
+                className="text-sm"
               />
-              
-              {/* Sugestões de cidades */}
-              {cities.length > 0 && citySearch.length >= 2 && (
-                <div className="border rounded-md max-h-40 overflow-y-auto">
-                  {cities.map((city) => (
-                    <button
-                      key={city.id}
-                      className="w-full text-left p-2 hover:bg-muted text-sm border-b last:border-b-0"
-                      onClick={() => selectCity(city)}
-                    >
-                      {city.display_name}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="state">Estado *</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Estado *</Label>
               <Select value={selectedState} onValueChange={setSelectedState}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o estado" />
+                <SelectTrigger className="text-sm">
+                  <SelectValue placeholder="Estado" />
                 </SelectTrigger>
                 <SelectContent>
                   {brazilianStates.map((state) => (
-                    <SelectItem key={state} value={state}>
-                      {state}
-                    </SelectItem>
+                    <SelectItem key={state} value={state}>{state}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-
-          {/* Coordenadas Geográficas */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Coordenadas Geográficas *</Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={getCurrentLocation}
-                disabled={loading}
-              >
-                <Navigation className="h-4 w-4 mr-2" />
-                Usar Localização Atual
-              </Button>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Latitude *</Label>
+              <Input
+                value={manualLat}
+                onChange={(e) => setManualLat(e.target.value)}
+                placeholder="-15.123456"
+                className="text-sm"
+              />
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="latitude">Latitude *</Label>
-                <Input
-                  id="latitude"
-                  placeholder="Ex: -15.5561"
-                  value={manualLat}
-                  onChange={(e) => setManualLat(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="longitude">Longitude *</Label>
-                <Input
-                  id="longitude"
-                  placeholder="Ex: -54.2964"
-                  value={manualLng}
-                  onChange={(e) => setManualLng(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-              <p className="text-sm text-orange-800">
-                <strong>⚠️</strong> As coordenadas são obrigatórias para que prestadores da sua região possam encontrar suas solicitações.
-              </p>
+            <div className="space-y-1">
+              <Label className="text-xs">Longitude *</Label>
+              <Input
+                value={manualLng}
+                onChange={(e) => setManualLng(e.target.value)}
+                placeholder="-54.123456"
+                className="text-sm"
+              />
             </div>
           </div>
 
-          {/* Botões de Ação */}
-          <div className="flex gap-2 pt-4">
-            <Button 
-              onClick={saveManualLocation}
-              disabled={!citySearch || !selectedState || !manualLat || !manualLng}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Definir Localização
-            </Button>
-            
-            {currentLocation && (
-              <Button 
-                variant="outline" 
-                onClick={saveToProfile}
-                disabled={loading}
-              >
-                Salvar no Perfil
-              </Button>
-            )}
+          <Button 
+            onClick={confirmManualLocation}
+            className="w-full"
+            size="sm"
+          >
+            <Plus className="mr-2 h-3 w-3" />
+            Confirmar Localização
+          </Button>
+
+          <div className="text-xs text-muted-foreground">
+            <p>💡 Dica: Use o botão GPS para capturar as coordenadas automaticamente, depois confirme a cidade.</p>
           </div>
         </CardContent>
       </Card>
