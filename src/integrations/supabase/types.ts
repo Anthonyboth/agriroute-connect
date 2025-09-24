@@ -1426,6 +1426,7 @@ export type Database = {
       }
       guest_requests: {
         Row: {
+          city_name: string | null
           contact_name: string | null
           contact_phone: string
           created_at: string
@@ -1434,9 +1435,11 @@ export type Database = {
           provider_id: string | null
           request_type: string
           service_type: string | null
+          state: string | null
           status: string
         }
         Insert: {
+          city_name?: string | null
           contact_name?: string | null
           contact_phone: string
           created_at?: string
@@ -1445,9 +1448,11 @@ export type Database = {
           provider_id?: string | null
           request_type: string
           service_type?: string | null
+          state?: string | null
           status?: string
         }
         Update: {
+          city_name?: string | null
           contact_name?: string | null
           contact_phone?: string
           created_at?: string
@@ -1456,6 +1461,7 @@ export type Database = {
           provider_id?: string | null
           request_type?: string
           service_type?: string | null
+          state?: string | null
           status?: string
         }
         Relationships: []
@@ -1799,8 +1805,10 @@ export type Database = {
           cooperative: string | null
           cpf_cnpj: string
           created_at: string
+          current_city_name: string | null
           current_location_lat: number | null
           current_location_lng: number | null
+          current_state: string | null
           document: string | null
           document_cpf_url: string | null
           document_photo_url: string | null
@@ -1865,8 +1873,10 @@ export type Database = {
           cooperative?: string | null
           cpf_cnpj: string
           created_at?: string
+          current_city_name?: string | null
           current_location_lat?: number | null
           current_location_lng?: number | null
+          current_state?: string | null
           document?: string | null
           document_cpf_url?: string | null
           document_photo_url?: string | null
@@ -1931,8 +1941,10 @@ export type Database = {
           cooperative?: string | null
           cpf_cnpj?: string
           created_at?: string
+          current_city_name?: string | null
           current_location_lat?: number | null
           current_location_lng?: number | null
+          current_state?: string | null
           document?: string | null
           document_cpf_url?: string | null
           document_photo_url?: string | null
@@ -2538,6 +2550,9 @@ export type Database = {
           additional_info: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
+          city_lat: number | null
+          city_lng: number | null
+          city_name: string | null
           client_comment: string | null
           client_id: string
           client_rating: number | null
@@ -2564,6 +2579,7 @@ export type Database = {
           provider_rating: number | null
           service_radius_km: number | null
           service_type: string
+          state: string | null
           status: string
           updated_at: string
           urgency: string
@@ -2574,6 +2590,9 @@ export type Database = {
           additional_info?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          city_lat?: number | null
+          city_lng?: number | null
+          city_name?: string | null
           client_comment?: string | null
           client_id: string
           client_rating?: number | null
@@ -2600,6 +2619,7 @@ export type Database = {
           provider_rating?: number | null
           service_radius_km?: number | null
           service_type: string
+          state?: string | null
           status?: string
           updated_at?: string
           urgency?: string
@@ -2610,6 +2630,9 @@ export type Database = {
           additional_info?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          city_lat?: number | null
+          city_lng?: number | null
+          city_name?: string | null
           client_comment?: string | null
           client_id?: string
           client_rating?: number | null
@@ -2636,6 +2659,7 @@ export type Database = {
           provider_rating?: number | null
           service_radius_km?: number | null
           service_type?: string
+          state?: string | null
           status?: string
           updated_at?: string
           urgency?: string
@@ -4244,6 +4268,33 @@ export type Database = {
           is_active: boolean
           name: string
           role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
+      get_service_requests_by_city: {
+        Args: {
+          provider_current_city?: string
+          provider_current_state?: string
+          provider_profile_id: string
+        }
+        Returns: {
+          additional_info: string
+          city_name: string
+          client_id: string
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          id: string
+          is_emergency: boolean
+          location_address: string
+          location_lat: number
+          location_lng: number
+          problem_description: string
+          service_type: string
+          state: string
+          status: string
+          updated_at: string
+          urgency: string
+          vehicle_info: string
         }[]
       }
       get_service_requests_in_radius: {
