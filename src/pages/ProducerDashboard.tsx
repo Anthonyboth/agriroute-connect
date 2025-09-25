@@ -25,7 +25,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
@@ -364,6 +364,56 @@ const ProducerDashboard = () => {
 
   const handleDeliveryConfirmed = () => {
     fetchFreights(); // Recarregar dados após confirmação
+  };
+
+  const handlePaymentNotification = async (freightId: string, driverId: string, amount: number) => {
+    try {
+      console.log('Processando notificação de pagamento:', { freightId, driverId, amount });
+      
+      // Criar registro de pagamento externo
+      const { data: paymentData, error: paymentError } = await supabase
+        .from('external_payments')
+        .insert([
+          {
+            freight_id: freightId,
+            producer_id: profile?.id,
+            driver_id: driverId,
+            amount: amount * 0.5, // 50% do valor
+            status: 'proposed',
+            notes: 'Pagamento obrigatório de 50% do frete'
+          }
+        ])
+        .select()
+        .single();
+
+      if (paymentError) throw paymentError;
+
+      // Enviar notificação para o motorista
+      const { error: notificationError } = await supabase.functions.invoke('send-notification', {
+        body: {
+          user_id: driverId,
+          title: 'Pagamento Disponível',
+          message: `Produtor informou pagamento de R$ ${(amount * 0.5).toLocaleString('pt-BR')} para o frete. Confirme o recebimento.`,
+          type: 'payment_notification',
+          data: {
+            freight_id: freightId,
+            payment_id: paymentData.id,
+            amount: amount * 0.5
+          }
+        }
+      });
+
+      if (notificationError) {
+        console.error('Erro ao enviar notificação:', notificationError);
+        // Não falhar se a notificação der erro
+      }
+
+      toast.success('Pagamento informado! O motorista foi notificado para confirmar o recebimento.');
+      fetchFreights();
+    } catch (error) {
+      console.error('Erro ao processar pagamento:', error);
+      toast.error('Erro ao processar pagamento');
+    }
   };
 
   const handleLogout = async () => {
@@ -710,6 +760,33 @@ const ProducerDashboard = () => {
                           </Button>
                         )}
                       </div>
+
+                      {/* Seção de Pagamento */}
+                      {(freight.status === 'ACCEPTED' || freight.status === 'IN_TRANSIT' || freight.status === 'LOADING' || freight.status === 'LOADED') && freight.driver_profiles && (
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-blue-800 dark:text-blue-200 flex items-center gap-1">
+                                ⚠️ Pagamento obrigatório - {freight.cargo_type}
+                              </p>
+                              <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                                Você deve pagar pelo menos 50% do frete até o carregamento (4 dias)
+                              </p>
+                              <p className="text-xs text-blue-600 dark:text-blue-300">
+                                Valor mínimo: R$ {(freight.price * 0.5).toLocaleString('pt-BR')}
+                              </p>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              className="bg-green-600 hover:bg-green-700 text-white whitespace-nowrap flex-shrink-0"
+                              onClick={() => handlePaymentNotification(freight.id, freight.driver_profiles.id, freight.price)}
+                            >
+                              <CreditCard className="h-4 w-4 mr-1" />
+                              Pagar Agora
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}

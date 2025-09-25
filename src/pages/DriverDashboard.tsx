@@ -378,6 +378,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
   // Estado para contar check-ins
   const [totalCheckins, setTotalCheckins] = useState(0);
   const [freightCheckins, setFreightCheckins] = useState<Record<string, number>>({});
+  const [pendingPayments, setPendingPayments] = useState<any[]>([]);
 
   // Função para buscar total de check-ins do motorista
   const fetchDriverCheckins = useCallback(async () => {
@@ -396,6 +397,52 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       setTotalCheckins(0);
     }
   }, [profile?.id]);
+
+  // Função para buscar pagamentos pendentes
+  const fetchPendingPayments = useCallback(async () => {
+    if (!profile?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('external_payments')
+        .select(`
+          *,
+          freight:freights(*),
+          producer:profiles!external_payments_producer_id_fkey(*)
+        `)
+        .eq('driver_id', profile.id)
+        .eq('status', 'proposed')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setPendingPayments(data || []);
+    } catch (error) {
+      console.error('Error fetching pending payments:', error);
+      setPendingPayments([]);
+    }
+  }, [profile?.id]);
+
+  // Função para confirmar recebimento de pagamento
+  const confirmPaymentReceived = async (paymentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('external_payments')
+        .update({ 
+          status: 'confirmed',
+          accepted_by_driver: true,
+          accepted_at: new Date().toISOString()
+        })
+        .eq('id', paymentId);
+
+      if (error) throw error;
+
+      toast.success('Recebimento confirmado com sucesso!');
+      fetchPendingPayments();
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      toast.error('Erro ao confirmar recebimento');
+    }
+  };
 
   // Função para verificar se existe checkin para um frete específico
   const checkFreightCheckins = useCallback(async (freightId: string) => {
@@ -430,13 +477,14 @@ const [showRegionModal, setShowRegionModal] = useState(false);
         fetchAvailableFreights(), 
         fetchMyProposals(), 
         fetchOngoingFreights(),
-        fetchDriverCheckins()
+        fetchDriverCheckins(),
+        fetchPendingPayments()
       ]);
       setLoading(false);
     };
 
     loadData();
-  }, [profile?.id, fetchAvailableFreights, fetchMyProposals, fetchOngoingFreights, fetchDriverCheckins]);
+  }, [profile?.id, fetchAvailableFreights, fetchMyProposals, fetchOngoingFreights, fetchDriverCheckins, fetchPendingPayments]);
 
   // Atualizar em tempo real contadores e listas ao mudar fretes/propostas
   useEffect(() => {
@@ -931,6 +979,14 @@ const [showRegionModal, setShowRegionModal] = useState(false);
                 <span className="sm:hidden">Veíc</span>
               </TabsTrigger>
               <TabsTrigger 
+                value="payments" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <DollarSign className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Pagamentos</span>
+                <span className="sm:hidden">Pag</span>
+              </TabsTrigger>
+              <TabsTrigger 
                 value="advances" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
@@ -1336,6 +1392,102 @@ const [showRegionModal, setShowRegionModal] = useState(false);
 
           <TabsContent value="vehicles" className="space-y-4">
             <VehicleManager driverProfile={profile} />
+          </TabsContent>
+
+          <TabsContent value="payments" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Pagamentos Pendentes</h3>
+              <Badge variant="secondary" className="text-sm font-medium">
+                {pendingPayments.length} pendente{pendingPayments.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
+
+            {pendingPayments.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <DollarSign className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                    Nenhum pagamento pendente
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    Quando um produtor informar um pagamento, aparecerá aqui para confirmação
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {pendingPayments.map((payment) => (
+                  <Card key={payment.id} className="border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-900/10">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-semibold text-lg">
+                              💰 Pagamento Disponível
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              Frete: {payment.freight?.cargo_type}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {payment.freight?.origin_address} → {payment.freight?.destination_address}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300">
+                            Aguardando Confirmação
+                          </Badge>
+                        </div>
+
+                        <div className="bg-white/60 dark:bg-gray-800/60 p-3 rounded-lg border">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-sm font-medium">Valor informado pelo produtor:</p>
+                              <p className="text-2xl font-bold text-green-600">
+                                R$ {payment.amount?.toLocaleString('pt-BR')}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-muted-foreground">Produtor:</p>
+                              <p className="text-sm font-medium">{payment.producer?.full_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(payment.created_at).toLocaleDateString('pt-BR')}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {payment.notes && (
+                          <div className="bg-muted/30 p-2 rounded text-sm">
+                            <p className="font-medium">Observações:</p>
+                            <p>{payment.notes}</p>
+                          </div>
+                        )}
+
+                        <div className="flex gap-3">
+                          <Button 
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                            onClick={() => confirmPaymentReceived(payment.id)}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Confirmar Recebimento
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            className="flex-1 border-red-200 hover:bg-red-50 text-red-600"
+                            onClick={() => {
+                              // TODO: Implementar função para contestar pagamento
+                              toast.info('Funcionalidade em desenvolvimento - Entre em contato com o produtor');
+                            }}
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Contestar
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="advances" className="space-y-4">
