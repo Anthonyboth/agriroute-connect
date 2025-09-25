@@ -42,7 +42,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     vehicle_type_required: '',
     pickup_observations: '',
     delivery_observations: '',
-    payment_method: 'PIX',
+    payment_method: 'DIRETO',
     required_trucks: '1'
   });
 
@@ -103,6 +103,12 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
   };
 
   const handleInputChange = (field: string, value: string) => {
+    // Validação especial para forma de pagamento
+    if (field === 'payment_method' && value !== 'DIRETO') {
+      toast.error('Apenas pagamento direto ao motorista está disponível no momento');
+      return; // Não atualiza o estado se não for DIRETO
+    }
+    
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -486,12 +492,21 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PIX">PIX</SelectItem>
-                  <SelectItem value="BOLETO">Boleto</SelectItem>
-                  <SelectItem value="CARTAO">Cartão</SelectItem>
                   <SelectItem value="DIRETO">Direto ao Motorista</SelectItem>
+                  <SelectItem value="PIX" disabled className="opacity-50">
+                    PIX (Em breve)
+                  </SelectItem>
+                  <SelectItem value="BOLETO" disabled className="opacity-50">
+                    Boleto (Em breve)
+                  </SelectItem>
+                  <SelectItem value="CARTAO" disabled className="opacity-50">
+                    Cartão (Em breve)
+                  </SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Outras formas de pagamento estarão disponíveis em breve
+              </p>
             </div>
           </div>
 
