@@ -118,6 +118,9 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     setLoading(true);
 
     try {
+      console.log('=== INICIANDO CRIAÇÃO DE FRETE ===');
+      console.log('Dados do formulário:', formData);
+      
       // Validação básica dos campos obrigatórios de localização
       if (!formData.origin_city || !formData.origin_state) {
         toast.error('Por favor, selecione a cidade de origem');
@@ -129,9 +132,17 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         return;
       }
 
+      // Validação do peso
+      const weight = parseFloat(formData.weight);
+      if (isNaN(weight) || weight <= 0 || weight > 100) {
+        toast.error('Peso deve estar entre 0.1 e 100 toneladas');
+        return;
+      }
+
+      console.log('Peso validado:', weight, 'toneladas');
+
       // Calculate distance (mock for now)
       const distance = await calculateDistance(formData.origin_address, formData.destination_address);
-      const weight = parseFloat(formData.weight);
       // Extract states from addresses (basic extraction)
       const originState = extractStateFromAddress(formData.origin_address) || 'SP';
       const destState = extractStateFromAddress(formData.destination_address) || 'RJ';
@@ -224,8 +235,19 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
       });
       onFreightCreated();
     } catch (error) {
-      console.error('Error creating freight:', error);
-      toast.error('Erro ao criar frete');
+      console.error('=== ERRO NA CRIAÇÃO DO FRETE ===', error);
+      
+      let errorMessage = 'Erro ao criar frete';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Tratar mensagens de erro específicas
+        if (error.message.includes('weight')) {
+          errorMessage = 'Erro na validação do peso. Verifique se o valor está entre 0.1 e 100 toneladas.';
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -283,13 +305,14 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                 type="number"
                 step="0.01"
                 min="0.01"
+                max="100"
                 value={formData.weight}
                 onChange={(e) => handleInputChange('weight', e.target.value)}
                 placeholder="1.5"
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Peso em toneladas (ex: 1.5 para 1.5t)
+                Peso em toneladas (entre 0.01 e 100 toneladas)
               </p>
             </div>
 

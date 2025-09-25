@@ -20,7 +20,7 @@ export const profileSchema = z.object({
 // Freight validation
 export const freightSchema = z.object({
   cargo_type: z.string().trim().min(2).max(100),
-  weight: z.number().positive().max(100000),
+  weight: z.number().positive().max(100), // Weight in tonnes
   origin_address: z.string().trim().min(5).max(500),
   destination_address: z.string().trim().min(5).max(500),
   pickup_date: z.string().refine((date) => new Date(date) > new Date(), {
