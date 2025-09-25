@@ -187,6 +187,18 @@ export const useAuth = () => {
       console.error('Error fetching profiles:', error);
       setProfile(null);
       setProfiles([]);
+
+      // Clear stale/invalid sessions to satisfy RLS (auth.uid()) on profiles
+      const status = (error as any)?.status ?? (error as any)?.code ?? (error as any)?.context?.response?.status ?? null;
+      const message = String((error as any)?.message ?? '');
+      if (status === 401 || status === 403 || message.includes('sub claim')) {
+        try {
+          localStorage.removeItem('current_profile_id');
+          await supabase.auth.signOut({ scope: 'local' });
+        } catch {}
+        setUser(null);
+        setSession(null);
+      }
     } finally {
       setLoading(false);
     }
