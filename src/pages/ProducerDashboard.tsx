@@ -167,6 +167,66 @@ const ProducerDashboard = () => {
     }
   }, [profile?.id, profile?.role]);
 
+  // Buscar pagamentos externos
+  const fetchExternalPayments = useCallback(async () => {
+    if (!profile?.id || profile.role !== 'PRODUTOR') {
+      console.log('fetchExternalPayments: Não executando - Profile não é produtor:', profile);
+      return;
+    }
+
+    console.log('fetchExternalPayments: Iniciando busca para produtor ID:', profile.id);
+
+    try {
+      const { data, error } = await supabase
+        .from('external_payments')
+        .select('*')
+        .eq('producer_id', profile.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('fetchExternalPayments: Erro na query:', error);
+        throw error;
+      }
+
+      const paymentsData = data || [];
+      
+      setExternalPayments(paymentsData);
+    } catch (error) {
+      console.error('fetchExternalPayments: Error:', error);
+      toast.error('Erro ao carregar pagamentos');
+    }
+  }, [profile?.id, profile?.role]);
+
+  // Buscar pagamentos de fretes
+  const fetchFreightPayments = useCallback(async () => {
+    if (!profile?.id || profile.role !== 'PRODUTOR') {
+      console.log('fetchFreightPayments: Não executando - Profile não é produtor:', profile);
+      return;
+    }
+
+    console.log('fetchFreightPayments: Iniciando busca para produtor ID:', profile.id);
+
+    try {
+      const { data, error } = await (supabase as any)
+        .from('freight_payments')
+        .select('*')
+        .eq('producer_id', profile.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('fetchFreightPayments: Erro na query:', error);
+        throw error;
+      }
+
+      const paymentsData = data || [];
+      
+      setFreightPayments(paymentsData);
+    } catch (error) {
+      console.error('fetchFreightPayments: Error:', error);
+      toast.error('Erro ao carregar pagamentos de fretes');
+    }
+  }, [profile?.id, profile?.role]);
+
   // Carregar dados - otimizado
   useEffect(() => {
     console.log('useEffect loadData executado. Profile:', profile);
@@ -209,103 +269,6 @@ const ProducerDashboard = () => {
       loadData();
     }
   }, [profile?.id, profile?.role, fetchFreights, fetchProposals, fetchExternalPayments, fetchFreightPayments]);
-
-  // Buscar pagamentos externos
-  const fetchExternalPayments = useCallback(async () => {
-    if (!profile?.id || profile.role !== 'PRODUTOR') {
-      console.log('fetchExternalPayments: Não executando - Profile não é produtor:', profile);
-      return;
-    }
-
-    console.log('fetchExternalPayments: Iniciando busca para produtor ID:', profile.id);
-
-    try {
-      const { data, error } = await supabase
-        .from('external_payments')
-        .select(`
-          *,
-          freight:freights!external_payments_freight_id_fkey(*),
-          driver:profiles!external_payments_driver_id_fkey(*)
-        `)
-        .eq('producer_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      console.log('fetchExternalPayments: Resposta da query:', { data, error, count: data?.length });
-
-      if (error) {
-        console.error('fetchExternalPayments: Erro na query:', error);
-        throw error;
-      }
-      
-      const paymentsData = data || [];
-      console.log('fetchExternalPayments: Pagamentos encontrados por status:', {
-        proposed: paymentsData.filter(p => p.status === 'proposed').length,
-        paid_by_producer: paymentsData.filter(p => p.status === 'paid_by_producer').length,
-        confirmed: paymentsData.filter(p => p.status === 'confirmed').length,
-        total: paymentsData.length,
-        allStatuses: paymentsData.map(p => p.status),
-        paymentDetails: paymentsData.map(p => ({
-          id: p.id,
-          freight_id: p.freight_id,
-          amount: p.amount,
-          status: p.status,
-          notes: p.notes
-        }))
-      });
-      
-      setExternalPayments(paymentsData);
-    } catch (error) {
-      console.error('fetchExternalPayments: Error:', error);
-      toast.error('Erro ao carregar pagamentos');
-    }
-  // Buscar pagamentos de fretes
-  const fetchFreightPayments = useCallback(async () => {
-    if (!profile?.id || profile.role !== 'PRODUTOR') {
-      console.log('fetchFreightPayments: Não executando - Profile não é produtor:', profile);
-      return;
-    }
-
-    console.log('fetchFreightPayments: Iniciando busca para produtor ID:', profile.id);
-
-    try {
-      const { data, error } = await supabase
-        .from('freight_payments')
-        .select(`
-          *,
-          freight:freights!freight_payments_freight_id_fkey(*),
-          receiver:profiles!freight_payments_receiver_id_fkey(*)
-        `)
-        .eq('payer_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      console.log('fetchFreightPayments: Resposta da query:', { data, error, count: data?.length });
-
-      if (error) {
-        console.error('fetchFreightPayments: Erro na query:', error);
-        throw error;
-      }
-      
-      const paymentsData = data || [];
-      console.log('fetchFreightPayments: Pagamentos encontrados por status:', {
-        pending: paymentsData.filter(p => p.status === 'PENDING').length,
-        completed: paymentsData.filter(p => p.status === 'COMPLETED').length,
-        total: paymentsData.length,
-        allStatuses: paymentsData.map(p => p.status),
-        paymentDetails: paymentsData.map(p => ({
-          id: p.id,
-          freight_id: p.freight_id,
-          amount: p.amount,
-          status: p.status,
-          payment_type: p.payment_type
-        }))
-      });
-      
-      setFreightPayments(paymentsData);
-    } catch (error) {
-      console.error('fetchFreightPayments: Error:', error);
-      toast.error('Erro ao carregar pagamentos de fretes');
-    }
-  }, [profile?.id, profile?.role]);
 
   // Carregar pagamentos junto com outros dados
   useEffect(() => {
