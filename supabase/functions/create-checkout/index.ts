@@ -14,17 +14,28 @@ const logStep = (step: string, details?: any) => {
 
 // Map category and plan type to Stripe price IDs
 const categoryPlanToPrice: { [key: string]: string } = {
+  // Prestador de serviços
+  'prestador_essential': 'price_prestador_essential_69', // R$ 69/mês
+  'prestador_professional': 'price_prestador_professional_119', // R$ 119/mês
+  
+  // Motorista rural
+  'motorista_rural_essential': 'price_motorista_rural_essential_119', // R$ 119/mês
+  'motorista_rural_professional': 'price_motorista_rural_professional_199', // R$ 199/mês
+  
+  // Motorista urbano
+  'motorista_urbano_essential': 'price_motorista_urbano_essential_69', // R$ 69/mês
+  'motorista_urbano_professional': 'price_motorista_urbano_professional_119', // R$ 119/mês
+  
+  // Guincho urbano
+  'guincho_urbano_essential': 'price_guincho_urbano_essential_69', // R$ 69/mês
+  'guincho_urbano_professional': 'price_guincho_urbano_professional_119', // R$ 119/mês
+  
+  // Legacy compatibility (fallback to existing prices)
   'rodotrem_essential': 'price_1SAAMuFk9MPYZBVdjsn7F2wL',
   'rodotrem_professional': 'price_1SAANHFk9MPYZBVdAfHSWk3C',
   'carreta_essential': 'price_1SAANdFk9MPYZBVdT8yvL3FB',
-  'prestador_essential': 'price_1SAANuFk9MPYZBVdnDgNQ1BH',
-  // Fallback to existing prices for other categories
   'truck_essential': 'price_1SAAD5Fk9MPYZBVd7qBtf20e',
   'truck_professional': 'price_1SAADbFk9MPYZBVd6iBM29aR',
-  'vuc_essential': 'price_1SAAD5Fk9MPYZBVd7qBtf20e',
-  'vuc_professional': 'price_1SAADbFk9MPYZBVd6iBM29aR',
-  'pickup_essential': 'price_1SAAD5Fk9MPYZBVd7qBtf20e',
-  'pickup_professional': 'price_1SAADbFk9MPYZBVd6iBM29aR',
 };
 
 serve(async (req) => {

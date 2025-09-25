@@ -14,6 +14,17 @@ const logStep = (step: string, details?: any) => {
 
 // Map Stripe price IDs to plan info
 const priceToCategory: { [key: string]: { category: string; planType: string } } = {
+  // New pricing scheme
+  'price_prestador_essential_69': { category: 'prestador', planType: 'essential' },
+  'price_prestador_professional_119': { category: 'prestador', planType: 'professional' },
+  'price_motorista_rural_essential_119': { category: 'motorista_rural', planType: 'essential' },
+  'price_motorista_rural_professional_199': { category: 'motorista_rural', planType: 'professional' },
+  'price_motorista_urbano_essential_69': { category: 'motorista_urbano', planType: 'essential' },
+  'price_motorista_urbano_professional_119': { category: 'motorista_urbano', planType: 'professional' },
+  'price_guincho_urbano_essential_69': { category: 'guincho_urbano', planType: 'essential' },
+  'price_guincho_urbano_professional_119': { category: 'guincho_urbano', planType: 'professional' },
+  
+  // Legacy compatibility
   'price_1SAAMuFk9MPYZBVdjsn7F2wL': { category: 'rodotrem', planType: 'essential' },
   'price_1SAANHFk9MPYZBVdAfHSWk3C': { category: 'rodotrem', planType: 'professional' },
   'price_1SAANdFk9MPYZBVdT8yvL3FB': { category: 'carreta', planType: 'essential' },
@@ -57,7 +68,7 @@ serve(async (req) => {
 
     let userCategory = 'prestador'; // default
 
-    // If user is a driver, check their vehicle type
+    // If user is a driver, check their vehicle type or role for category determination
     if (profile?.role === 'MOTORISTA') {
       const { data: vehicle } = await supabaseClient
         .from('vehicles')
@@ -66,16 +77,34 @@ serve(async (req) => {
         .single();
 
       if (vehicle?.vehicle_type) {
-        // Map vehicle types to categories
+        // Map vehicle types to new categories
         const vehicleTypeMap: { [key: string]: string } = {
-          'BITREM': 'rodotrem',
-          'CARRETA': 'carreta',
-          'TRUCK': 'truck',
-          'TOCO': 'truck',
-          'VUC': 'vuc',
-          'PICKUP': 'pickup'
+          'BITREM': 'motorista_rural',
+          'CARRETA': 'motorista_rural', 
+          'TRUCK': 'motorista_urbano',
+          'TOCO': 'motorista_urbano',
+          'VUC': 'motorista_urbano',
+          'PICKUP': 'motorista_urbano'
         };
-        userCategory = vehicleTypeMap[vehicle.vehicle_type] || 'truck';
+        userCategory = vehicleTypeMap[vehicle.vehicle_type] || 'motorista_urbano';
+      } else {
+        // Default to urban driver if no vehicle specified
+        userCategory = 'motorista_urbano';
+      }
+    } else if (profile?.role === 'PRESTADOR_SERVICOS') {
+      // Check if it's a towing service (guincho)
+      const { data: serviceProvider } = await supabaseClient
+        .from('service_providers')
+        .select('service_types')
+        .eq('profile_id', profile.id)
+        .single();
+
+      if (serviceProvider?.service_types && 
+          Array.isArray(serviceProvider.service_types) && 
+          serviceProvider.service_types.includes('GUINCHO')) {
+        userCategory = 'guincho_urbano';
+      } else {
+        userCategory = 'prestador';
       }
     }
 

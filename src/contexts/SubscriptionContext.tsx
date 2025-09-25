@@ -144,27 +144,27 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
   const getAvailablePlans = () => {
     const category = state.userCategory || 'prestador';
     
-    // Return plans based on user's category
+    // New pricing scheme based on user requirements
     const categoryPlans = {
       'prestador': [
-        { id: 'free', name: 'Gratuito', price: 0, planType: 'free' },
-        { id: 'essential', name: 'Essencial', price: 59, planType: 'essential' },
-        { id: 'professional', name: 'Profissional', price: 99, planType: 'professional' }
+        { id: 'free', name: 'Plano Grátis', price: 0, planType: 'free', commission: '5%' },
+        { id: 'essential', name: 'Plano Essencial', price: 69, planType: 'essential', commission: '2%' },
+        { id: 'professional', name: 'Plano Profissional', price: 119, planType: 'professional', commission: '0%' }
       ],
-      'rodotrem': [
-        { id: 'free', name: 'Gratuito', price: 0, planType: 'free' },
-        { id: 'essential', name: 'Essencial', price: 149, planType: 'essential' },
-        { id: 'professional', name: 'Profissional', price: 299, planType: 'professional' }
+      'motorista_rural': [
+        { id: 'free', name: 'Plano Grátis', price: 0, planType: 'free', commission: '5%' },
+        { id: 'essential', name: 'Plano Essencial', price: 119, planType: 'essential', commission: '2%' },
+        { id: 'professional', name: 'Plano Profissional', price: 199, planType: 'professional', commission: '0%' }
       ],
-      'carreta': [
-        { id: 'free', name: 'Gratuito', price: 0, planType: 'free' },
-        { id: 'essential', name: 'Essencial', price: 159, planType: 'essential' },
-        { id: 'professional', name: 'Profissional', price: 249, planType: 'professional' }
+      'motorista_urbano': [
+        { id: 'free', name: 'Plano Grátis', price: 0, planType: 'free', commission: '5%' },
+        { id: 'essential', name: 'Plano Essencial', price: 69, planType: 'essential', commission: '2%' },
+        { id: 'professional', name: 'Plano Profissional', price: 119, planType: 'professional', commission: '0%' }
       ],
-      'truck': [
-        { id: 'free', name: 'Gratuito', price: 0, planType: 'free' },
-        { id: 'essential', name: 'Essencial', price: 159, planType: 'essential' },
-        { id: 'professional', name: 'Profissional', price: 249, planType: 'professional' }
+      'guincho_urbano': [
+        { id: 'free', name: 'Plano Grátis', price: 0, planType: 'free', commission: '5%' },
+        { id: 'essential', name: 'Plano Essencial', price: 69, planType: 'essential', commission: '2%' },
+        { id: 'professional', name: 'Plano Profissional', price: 119, planType: 'professional', commission: '0%' }
       ]
     };
 

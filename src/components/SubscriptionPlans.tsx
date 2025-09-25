@@ -11,15 +11,15 @@ const SubscriptionPlans: React.FC = () => {
   const plans = [
     {
       id: 'FREE',
-      name: 'Gratuito',
+      name: 'Plano Grátis',
       price: 'R$ 0',
       period: '/mês',
       description: 'Para experimentar a plataforma',
       features: [
-        '3 fretes gratuitos no primeiro cadastro',
-        'Comissão de 5%',
+        'Fretes/serviços limitados',
+        '5% comissão sobre transações',
         'Suporte básico por email',
-        'Acesso a motoristas verificados'
+        'Acesso a rede básica'
       ],
       icon: <Check className="h-5 w-5" />,
       buttonText: 'Plano Atual',
@@ -28,16 +28,17 @@ const SubscriptionPlans: React.FC = () => {
     },
     {
       id: 'ESSENTIAL',
-      name: 'Essencial',
-      price: 'R$ 59',
+      name: 'Plano Essencial',
+      price: 'R$ 69-119',
       period: '/mês',
-      description: 'Para produtores que transportam regularmente',
+      description: 'Para profissionais ativos',
       features: [
-        'Cargas ilimitadas',
-        'Comissão reduzida de 2%',
+        'Fretes/serviços ilimitados',
+        '2% comissão reduzida',
+        'Valor mensal fixo',
         'Suporte prioritário',
         'Relatórios básicos',
-        'Acesso antecipado a novos recursos'
+        'Dashboard avançado'
       ],
       icon: <Star className="h-5 w-5" />,
       buttonText: subscriptionTier === 'ESSENTIAL' ? 'Plano Atual' : 'Assinar Essencial',
@@ -46,17 +47,18 @@ const SubscriptionPlans: React.FC = () => {
     },
     {
       id: 'PROFESSIONAL',
-      name: 'Profissional',
-      price: 'R$ 99',
+      name: 'Plano Profissional',
+      price: 'R$ 119-199',
       period: '/mês',
-      description: 'Para grandes produtores',
+      description: 'Para grandes profissionais',
       features: [
         'Tudo do Essencial',
-        'Sem taxas sobre transações',
-        'Suporte VIP',
+        'Sem comissões sobre transações',
+        'Apenas valor mensal',
+        'Suporte VIP 24/7',
         'Relatórios avançados',
         'API para integração',
-        'Gerenciamento de múltiplas fazendas'
+        'Consultor dedicado'
       ],
       icon: <Zap className="h-5 w-5" />,
       buttonText: subscriptionTier === 'PROFESSIONAL' ? 'Plano Atual' : 'Assinar Profissional',

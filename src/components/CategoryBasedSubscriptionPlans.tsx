@@ -19,11 +19,9 @@ const CategoryBasedSubscriptionPlans: React.FC = () => {
   const getCategoryIcon = (category: string) => {
     const icons = {
       'prestador': <Package className="h-5 w-5" />,
-      'rodotrem': <Truck className="h-5 w-5" />,
-      'carreta': <Truck className="h-5 w-5" />,
-      'truck': <Truck className="h-5 w-5" />,
-      'vuc': <Package className="h-5 w-5" />,
-      'pickup': <Package className="h-5 w-5" />
+      'motorista_rural': <Truck className="h-5 w-5" />,
+      'motorista_urbano': <Truck className="h-5 w-5" />,
+      'guincho_urbano': <Package className="h-5 w-5" />
     };
     return icons[category as keyof typeof icons] || <Package className="h-5 w-5" />;
   };
@@ -31,11 +29,9 @@ const CategoryBasedSubscriptionPlans: React.FC = () => {
   const getCategoryName = (category: string) => {
     const names = {
       'prestador': 'Prestador de Serviços',
-      'rodotrem': 'Rodotrem',
-      'carreta': 'Carreta',
-      'truck': 'Truck/Toco',
-      'vuc': 'VUC',
-      'pickup': 'Pickup'
+      'motorista_rural': 'Motorista Rural',
+      'motorista_urbano': 'Motorista Urbano',
+      'guincho_urbano': 'Guincho Urbano'
     };
     return names[category as keyof typeof names] || 'Categoria';
   };
@@ -50,23 +46,28 @@ const CategoryBasedSubscriptionPlans: React.FC = () => {
   };
 
   const getPlanFeatures = (planType: string, category: string) => {
+    const serviceType = category === 'prestador' ? 'serviços' : 'fretes';
+    const itemType = category === 'prestador' ? 'Serviços' : 'Fretes';
+    
     const baseFeatures = {
       'free': [
-        'Fretes limitados',
-        category === 'prestador' ? '5% taxa sobre serviços' : '5% taxa sobre fretes',
+        `${itemType} limitados`,
+        `5% comissão sobre ${serviceType}`,
         'Suporte básico por email',
-        'Acesso a rede básica'
+        'Acesso à rede básica'
       ],
       'essential': [
-        category === 'prestador' ? 'Serviços ilimitados' : 'Fretes ilimitados',
-        category === 'prestador' ? '2% taxa sobre serviços' : '2% taxa sobre fretes',
+        `${itemType} ilimitados`,
+        `2% comissão sobre ${serviceType}`,
+        'Valor mensal fixo',
         'Suporte prioritário',
         'Dashboard avançado',
         'Relatórios básicos'
       ],
       'professional': [
-        category === 'prestador' ? 'Serviços ilimitados' : 'Fretes ilimitados',
-        'Sem taxas sobre transações',
+        `${itemType} ilimitados`,
+        'Sem comissões sobre transações',
+        'Apenas valor mensal',
         'Suporte premium 24/7',
         'Relatórios completos',
         'Dashboard premium',
@@ -100,7 +101,7 @@ const CategoryBasedSubscriptionPlans: React.FC = () => {
           </h2>
         </div>
         <p className="text-muted-foreground">
-          Planos específicos para sua categoria de {userCategory === 'prestador' ? 'serviço' : 'veículo'}
+          Planos específicos para sua categoria profissional
         </p>
       </div>
 
@@ -171,8 +172,8 @@ const CategoryBasedSubscriptionPlans: React.FC = () => {
       {/* Category Switch Note */}
       <div className="text-center text-sm text-muted-foreground">
         <p>
-          Os preços são específicos para sua categoria. 
-          {userCategory !== 'prestador' && ' Preços podem variar para outras categorias de veículos.'}
+          Os preços são específicos para sua categoria profissional. 
+          Motoristas e prestadores pagam mensalidade, com diferentes comissões por categoria.
         </p>
       </div>
     </div>
