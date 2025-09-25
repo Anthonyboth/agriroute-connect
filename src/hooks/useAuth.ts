@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -58,71 +58,26 @@ export const useAuth = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
+  
+  // Prevent multiple simultaneous fetches
+  const fetchingRef = useRef(false);
+  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state change:', event, session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Validar se o user.id é um UUID válido
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-          if (!uuidRegex.test(session.user.id)) {
-            console.error('Invalid UUID format for user.id:', session.user.id);
-            setProfile(null);
-            setLoading(false);
-            return;
-          }
-
-          // Use setTimeout to prevent auth callback deadlock
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-          setProfiles([]);
-          setLoading(false);
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Existing session check:', session?.user?.id);
-      // Only process if no session was already handled by the listener
-      if (!user && session?.user) {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Validar se o user.id é um UUID válido
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(session.user.id)) {
-          console.error('Invalid UUID format for user.id in existing session:', session.user.id);
-          setProfile(null);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch profile for existing session
-        fetchProfile(session.user.id);
-      } else if (!session?.user) {
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchProfile = async (userId: string) => {
+  // Memoized fetch function to prevent recreation on every render
+  const fetchProfile = useCallback(async (userId: string) => {
+    if (fetchingRef.current || !mountedRef.current) return;
+    
+    fetchingRef.current = true;
+    
     try {
       console.log('Fetching profiles for user:', userId);
       const { data: profilesData, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId);
+      
+      if (!mountedRef.current) return;
       
       if (error) {
         console.error('Profiles fetch error:', error);
@@ -150,51 +105,17 @@ export const useAuth = () => {
         setProfile(null);
         setProfiles([]);
         
-        // Tentar criar perfil automaticamente a partir dos metadados do usuário
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const meta = (user as any).user_metadata || {};
-            const roleMeta = (meta.role as any);
-            const resolvedRole = (roleMeta === 'PRODUTOR' || roleMeta === 'MOTORISTA' || roleMeta === 'PRESTADOR_SERVICOS') ? roleMeta : 'PRODUTOR';
-            const newProfile = {
-              user_id: user.id,
-              full_name: meta.full_name || '',
-              phone: meta.phone || '',
-              document: meta.document || '',
-              cpf_cnpj: meta.document || '',
-              role: resolvedRole,
-              status: 'PENDING' as any,
-            };
-            console.log('Attempting to create profile:', newProfile);
-            const { data: inserted, error: insertError } = await supabase
-              .from('profiles')
-              .insert(newProfile)
-              .select('*')
-              .single();
-            if (!insertError && inserted) {
-              console.log('Profile auto-created successfully:', inserted);
-              setProfiles([inserted as any]);
-              setProfile(inserted as any);
-            } else if (insertError) {
-              console.error('Auto-create profile failed:', insertError);
-              // Se falhar por conflito, pode ser que já existe
-              if (insertError.code === '23505') {
-                console.log('Profile already exists, refetching...');
-                setTimeout(() => fetchProfile(user.id), 1000);
-              }
-            }
-          }
-        } catch (e) {
-          console.error('Error during auto-create profile:', e);
-        }
+        // Auto-create profile only once
+        await tryAutoCreateProfile(userId);
       }
     } catch (error) {
+      if (!mountedRef.current) return;
+      
       console.error('Error fetching profiles:', error);
       setProfile(null);
       setProfiles([]);
 
-      // Clear stale/invalid sessions to satisfy RLS (auth.uid()) on profiles
+      // Handle auth errors
       const status = (error as any)?.status ?? (error as any)?.code ?? (error as any)?.context?.response?.status ?? null;
       const message = String((error as any)?.message ?? '');
       if (status === 401 || status === 403 || message.includes('sub claim')) {
@@ -206,9 +127,131 @@ export const useAuth = () => {
         setSession(null);
       }
     } finally {
-      setLoading(false);
+      fetchingRef.current = false;
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  const tryAutoCreateProfile = async (userId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !mountedRef.current) return;
+      
+      const meta = (user as any).user_metadata || {};
+      const roleMeta = (meta.role as any);
+      const resolvedRole = (roleMeta === 'PRODUTOR' || roleMeta === 'MOTORISTA' || roleMeta === 'PRESTADOR_SERVICOS') ? roleMeta : 'PRODUTOR';
+      
+      const newProfile = {
+        user_id: user.id,
+        full_name: meta.full_name || '',
+        phone: meta.phone || '',
+        document: meta.document || '',
+        cpf_cnpj: meta.document || '',
+        role: resolvedRole,
+        status: 'PENDING' as any,
+      };
+      
+      console.log('Attempting to create profile:', newProfile);
+      const { data: inserted, error: insertError } = await supabase
+        .from('profiles')
+        .insert(newProfile)
+        .select('*')
+        .single();
+        
+      if (!mountedRef.current) return;
+      
+      if (!insertError && inserted) {
+        console.log('Profile auto-created successfully:', inserted);
+        setProfiles([inserted as any]);
+        setProfile(inserted as any);
+      } else if (insertError?.code === '23505') {
+        // Profile already exists, refetch once
+        console.log('Profile already exists, refetching...');
+        setTimeout(() => {
+          if (mountedRef.current) {
+            fetchProfile(user.id);
+          }
+        }, 500);
+      }
+    } catch (e) {
+      console.error('Error during auto-create profile:', e);
     }
   };
+
+  useEffect(() => {
+    mountedRef.current = true;
+    
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!mountedRef.current) return;
+        
+        console.log('Auth state change:', event, session?.user?.id);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Validate UUID format
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          if (!uuidRegex.test(session.user.id)) {
+            console.error('Invalid UUID format for user.id:', session.user.id);
+            setProfile(null);
+            setLoading(false);
+            return;
+          }
+          
+          fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+          setProfiles([]);
+          setLoading(false);
+        }
+        
+        setInitialized(true);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mountedRef.current) return;
+      
+      console.log('Existing session check:', session?.user?.id);
+      
+      if (session?.user) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(session.user.id)) {
+          console.error('Invalid UUID format for user.id:', session.user.id);
+          setProfile(null);
+          setLoading(false);
+          setInitialized(true);
+          return;
+        }
+        
+        setSession(session);
+        setUser(session.user);
+        fetchProfile(session.user.id);
+      } else {
+        setLoading(false);
+        setInitialized(true);
+      }
+    });
+
+    return () => {
+      mountedRef.current = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchProfile]);
+
+  // Cleanup ref on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // fetchProfile is now defined above as a useCallback hook
 
   const signOut = async () => {
     try {
