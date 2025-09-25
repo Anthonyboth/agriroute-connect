@@ -122,6 +122,41 @@ export const DriverRegionManager: React.FC<DriverRegionManagerProps> = ({
       if (error) throw error;
 
       if (saveData?.success) {
+        // Also update the profile's service_cities to sync with the Cidades tab
+        const cityString = `${selectedCity.city}, ${selectedCity.state}`;
+        
+        // Get current service cities
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('service_cities, current_city_name, current_state')
+          .eq('id', driverId)
+          .single();
+
+        const currentServiceCities = profile?.service_cities || [];
+        
+        // Add the new city if it's not already in the list
+        if (!currentServiceCities.includes(cityString)) {
+          const updatedServiceCities = [...currentServiceCities, cityString];
+          
+          await supabase
+            .from('profiles')
+            .update({ 
+              service_cities: updatedServiceCities,
+              current_city_name: selectedCity.city,
+              current_state: selectedCity.state 
+            })
+            .eq('id', driverId);
+        } else {
+          // Just update current city
+          await supabase
+            .from('profiles')
+            .update({ 
+              current_city_name: selectedCity.city,
+              current_state: selectedCity.state 
+            })
+            .eq('id', driverId);
+        }
+
         toast.success('Região de atendimento configurada com sucesso!');
         setCurrentRegion({
           city: selectedCity.city,
