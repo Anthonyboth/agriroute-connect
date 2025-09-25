@@ -4811,6 +4811,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      process_freight_withdrawal: {
+        Args: { driver_profile_id: string; freight_id_param: string }
+        Returns: Json
+      }
       process_payout_request: {
         Args: {
           amount_param: number

@@ -534,48 +534,19 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     try {
       const freightId = selectedFreightForWithdrawal.id;
 
-      // Atualizar o frete para voltar ao status OPEN
-      const { error: freightError } = await supabase
-        .from('freights')
-        .update({ 
-          status: 'OPEN',
-          driver_id: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', freightId)
-        .eq('driver_id', profile.id);
-
-      if (freightError) throw freightError;
-
-      // Atualizar a proposta para cancelada
-      const { error: proposalError } = await supabase
-        .from('freight_proposals')
-        .update({ 
-          status: 'CANCELLED',
-          updated_at: new Date().toISOString()
-        })
-        .eq('freight_id', freightId)
-        .eq('driver_id', profile.id);
-
-      if (proposalError) throw proposalError;
-
-      // Registrar a taxa de desistência (futuramente pode ser integrada com sistema de pagamento)
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: profile.id,
-          title: 'Taxa de Desistência',
-          message: 'Foi aplicada uma taxa de R$ 20,00 pela desistência do frete. O valor será descontado do próximo pagamento.',
-          type: 'warning',
-          data: {
-            freight_id: freightId,
-            fee_amount: 20.00,
-            fee_type: 'withdrawal'
-          }
+      // Usar a função SECURITY DEFINER para processar a desistência
+      const { data, error } = await supabase
+        .rpc('process_freight_withdrawal', {
+          freight_id_param: freightId,
+          driver_profile_id: profile.id
         });
 
-      if (notificationError) {
-        console.error('Error creating notification:', notificationError);
+      if (error) throw error;
+
+      const result = data as { success: boolean; message?: string; error?: string };
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Erro desconhecido');
       }
 
       toast.success('Desistência processada. Taxa de R$ 20 será cobrada.');
