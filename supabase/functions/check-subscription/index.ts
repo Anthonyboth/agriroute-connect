@@ -66,6 +66,21 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
+    // If no profile exists, user needs to complete registration
+    if (!profile) {
+      logStep("No profile found for user", { userId: user.id });
+      return new Response(JSON.stringify({ 
+        subscribed: false,
+        subscription_tier: 'FREE',
+        subscription_end: null,
+        user_category: 'prestador',
+        requires_registration: true
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     let userCategory = 'prestador'; // default
 
     // If user is a driver, check their vehicle type or role for category determination

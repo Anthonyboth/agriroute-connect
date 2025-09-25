@@ -30,12 +30,21 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Remove automatic redirect from auth page - let RedirectIfAuthed handle it
+    // Check if user exists but has no profile (data was deleted)
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        // Just log, don't redirect from here
-        console.log('User already authenticated, RedirectIfAuthed will handle redirect');
+        // Check if user has profile
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', session.user.id);
+        
+        if (!profiles || profiles.length === 0) {
+          console.log('User authenticated but no profile found, signing out...');
+          await supabase.auth.signOut();
+          toast.info('Dados removidos. Faça um novo cadastro.');
+        }
       }
     };
     

@@ -92,11 +92,10 @@ export const useAuth = () => {
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('Existing session check:', session?.user?.id);
-      // Only process if no session was already handled by the listener
-      if (!user && session?.user) {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
         // Validar se o user.id é um UUID válido
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
         if (!uuidRegex.test(session.user.id)) {
@@ -108,7 +107,7 @@ export const useAuth = () => {
 
         // Fetch profile for existing session
         fetchProfile(session.user.id);
-      } else if (!session?.user) {
+      } else {
         setLoading(false);
       }
     });
