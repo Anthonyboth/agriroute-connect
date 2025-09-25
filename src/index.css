@@ -167,11 +167,17 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
     font-size: var(--font-size-base);
     line-height: 1.6; /* Better readability */
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   /* Enhanced focus indicators for accessibility */
