@@ -150,6 +150,27 @@ export function DriverPayouts({ driverId }: DriverPayoutsProps) {
 
   return (
     <div className="space-y-6">
+      {/* Aviso sobre pagamentos pela plataforma */}
+      <Card className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-800">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="space-y-2">
+              <h4 className="font-semibold text-amber-800 dark:text-amber-200">
+                Pagamentos pela plataforma ainda não estão disponíveis
+              </h4>
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                Por enquanto, todos os pagamentos devem ser feitos diretamente aos motoristas. 
+                Os valores mostrados aqui são apenas para controle interno e não representam pagamentos automáticos da plataforma.
+              </p>
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Entre em contato diretamente com os produtores para receber seus pagamentos.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
