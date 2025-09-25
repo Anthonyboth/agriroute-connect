@@ -307,7 +307,7 @@ const Auth = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        minLength={6}
+                        minLength={8}
                         className="pr-10"
                       />
                       <button
@@ -330,6 +330,7 @@ const Auth = () => {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="(11) 99999-9999"
+                      required
                     />
                   </div>
                   <div className="space-y-2">

@@ -120,7 +120,7 @@ const RedirectIfAuthed = () => {
   
   // Wait for profile to be loaded before redirecting
   if (!profile) {
-    return <ComponentLoader />;
+    return <Navigate to="/complete-profile" replace />;
   }
   
   let to = "/";

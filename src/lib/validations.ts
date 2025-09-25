@@ -61,7 +61,7 @@ export const userRegistrationSchema = z.object({
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Senha deve conter pelo menos uma letra minúscula, uma maiúscula e um número"),
   phone: phoneSchema,
   document: documentSchema,
-  role: z.enum(['PRODUTOR', 'MOTORISTA', 'PRESTADOR_SERVICO'], {
+  role: z.enum(['PRODUTOR', 'MOTORISTA', 'PRESTADOR_SERVICOS'], {
     errorMap: () => ({ message: "Papel inválido" })
   }),
 });
