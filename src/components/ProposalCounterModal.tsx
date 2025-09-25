@@ -36,7 +36,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 }) => {
   const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM'>('FIXED');
+  const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM'>('PER_KM');
   const [counterPrice, setCounterPrice] = useState('');
   const [counterPricePerKm, setCounterPricePerKm] = useState('');
   const [counterMessage, setCounterMessage] = useState('');
@@ -172,7 +172,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
   };
 
   const resetForm = () => {
-    setPricingType('FIXED');
+    setPricingType('PER_KM');
     setCounterPrice('');
     setCounterPricePerKm('');
     setCounterMessage('');
