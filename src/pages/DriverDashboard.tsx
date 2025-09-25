@@ -412,8 +412,15 @@ const [showRegionModal, setShowRegionModal] = useState(false);
   // Calcular estatísticas - memoizado para performance
   const statistics = useMemo(() => {
     const acceptedProposals = myProposals.filter(p => p.status === 'ACCEPTED');
+    
+    // Contar fretes ativos baseado nos fretes em andamento (que incluem ACCEPTED, LOADED, IN_TRANSIT)
+    const activeStatuses = ['ACCEPTED', 'LOADED', 'IN_TRANSIT'];
+    const activeTripsCount = ongoingFreights.filter(freight => 
+      activeStatuses.includes(freight.status)
+    ).length;
+    
     return {
-      activeTrips: acceptedProposals.filter(p => p.freight?.status === 'IN_TRANSIT').length,
+      activeTrips: activeTripsCount,
       completedTrips: acceptedProposals.filter(p => p.freight?.status === 'DELIVERED').length,
       availableCount: availableFreights.length,
       totalEarnings: acceptedProposals
@@ -421,7 +428,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
         .reduce((sum, proposal) => sum + (proposal.proposed_price || 0), 0),
       totalCheckins: totalCheckins
     };
-  }, [myProposals, availableFreights, totalCheckins]);
+  }, [myProposals, availableFreights, totalCheckins, ongoingFreights]);
 
   const handleLogout = async () => {
     try {
