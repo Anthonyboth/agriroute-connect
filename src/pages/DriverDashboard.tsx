@@ -421,6 +421,28 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     loadData();
   }, [profile?.id, fetchAvailableFreights, fetchMyProposals, fetchOngoingFreights, fetchDriverCheckins]);
 
+  // Atualizar em tempo real contadores e listas ao mudar fretes/propostas
+  useEffect(() => {
+    if (!profile?.id) return;
+    const channel = supabase
+      .channel('realtime-freights-driver')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freights' }, () => {
+        fetchAvailableFreights();
+        fetchOngoingFreights();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_matches' }, () => {
+        fetchAvailableFreights();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_proposals' }, () => {
+        fetchMyProposals();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.id, fetchAvailableFreights, fetchOngoingFreights, fetchMyProposals]);
+
   // Carregar contra-ofertas - debounced para evitar chamadas excessivas
   useEffect(() => {
     const timeoutId = setTimeout(() => {
