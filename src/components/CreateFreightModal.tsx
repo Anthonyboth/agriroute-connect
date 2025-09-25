@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectGroup } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Search } from 'lucide-react';
 import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
 import { LocationFillButton } from './LocationFillButton';
 import { AddressButton } from './AddressButton';
@@ -22,6 +22,7 @@ interface CreateFreightModalProps {
 const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModalProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [cargoSearch, setCargoSearch] = useState('');
   const [formData, setFormData] = useState({
     cargo_type: '',
     weight: '',
@@ -110,6 +111,25 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     }
     
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Função para filtrar tipos de carga baseado na busca
+  const getFilteredCargoTypes = () => {
+    if (!cargoSearch.trim()) {
+      return CARGO_TYPES;
+    }
+    
+    const searchTerm = cargoSearch.toLowerCase();
+    const filtered = CARGO_TYPES.filter(cargo => 
+      cargo.label.toLowerCase().includes(searchTerm)
+    );
+    
+    // Se não encontrar nenhum resultado, adicionar "outros" como sugestão
+    if (filtered.length === 0) {
+      return CARGO_TYPES.filter(cargo => cargo.value === 'outros');
+    }
+    
+    return filtered;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -249,6 +269,15 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cargo_type">Tipo de Carga *</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar tipo de carga..."
+                  value={cargoSearch}
+                  onChange={(e) => setCargoSearch(e.target.value)}
+                  className="pl-10 mb-2"
+                />
+              </div>
               <Select
                 value={formData.cargo_type}
                 onValueChange={(value) => handleInputChange('cargo_type', value)}
@@ -257,21 +286,42 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                   <SelectValue placeholder="Selecione o tipo de carga" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CARGO_CATEGORIES.map((category) => (
-                    <SelectGroup key={category.value}>
-                      <SelectLabel className="font-semibold text-primary">
-                        {category.label}
-                      </SelectLabel>
-                      {getCargoTypesByCategory(category.value).map((cargo) => (
+                  {cargoSearch ? (
+                    // Mostrar resultados filtrados
+                    getFilteredCargoTypes().length > 0 ? (
+                      getFilteredCargoTypes().map((cargo) => (
                         <SelectItem key={cargo.value} value={cargo.value}>
                           {cargo.label}
                         </SelectItem>
-                      ))}
-                      {category.value !== 'outros' && <Separator className="my-1" />}
-                    </SelectGroup>
-                  ))}
+                      ))
+                    ) : (
+                      <SelectItem value="outros">
+                        Outros (não encontrado na lista)
+                      </SelectItem>
+                    )
+                  ) : (
+                    // Mostrar categorias organizadas quando não há busca
+                    CARGO_CATEGORIES.map((category) => (
+                      <SelectGroup key={category.value}>
+                        <SelectLabel className="font-semibold text-primary">
+                          {category.label}
+                        </SelectLabel>
+                        {getCargoTypesByCategory(category.value).map((cargo) => (
+                          <SelectItem key={cargo.value} value={cargo.value}>
+                            {cargo.label}
+                          </SelectItem>
+                        ))}
+                        {category.value !== 'outros' && <Separator className="my-1" />}
+                      </SelectGroup>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              {cargoSearch && getFilteredCargoTypes().length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Não encontrado? Use "Outros" para cargas não listadas
+                </p>
+              )}
             </div>
             
             <div className="space-y-2">
