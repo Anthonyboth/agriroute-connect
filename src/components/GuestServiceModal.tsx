@@ -46,14 +46,16 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
   const serviceInfo = {
     GUINCHO: {
       title: 'Solicitar Guincho ou Fretes Urbanos',
-      description: 'Precisa de guincho ou frete urbano? Conectamos você com os melhores profissionais da sua região',
+      description: 'Precisa de guincho, frete urbano ou mudança? Conectamos você com os melhores profissionais da sua região',
       icon: '🚛',
       subServices: [
         { id: 'GUINCHO_LEVE', name: 'Guincho Leve', description: 'Para carros e motos', price: 'A partir de R$ 200' },
         { id: 'GUINCHO_PESADO', name: 'Guincho Pesado', description: 'Para caminhões', price: 'A partir de R$ 200' },
-        { id: 'FRETE_URBANO_SIMPLES', name: 'Frete Urbano', description: 'Transporte de objetos', price: 'A partir de R$ 50' }
+        { id: 'FRETE_URBANO_SIMPLES', name: 'Frete Urbano', description: 'Transporte de objetos', price: 'A partir de R$ 50' },
+        { id: 'MUDANCA_RESIDENCIAL', name: 'Mudança Residencial', description: 'Casa ou apartamento', price: 'A partir de R$ 200' },
+        { id: 'MUDANCA_COMERCIAL', name: 'Mudança Comercial', description: 'Escritórios e lojas', price: 'A partir de R$ 300' }
       ],
-      features: ['Atendimento 24h', 'Profissionais qualificados', 'Preços transparentes']
+      features: ['Atendimento 24h', 'Profissionais qualificados', 'Preços transparentes', 'Embalagem inclusa']
     },
     MUDANCA: {
       title: 'Solicitar Mudança',
