@@ -47,55 +47,13 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
   });
 
   const confirmDelivery = async () => {
+    console.log('=== INICIANDO CONFIRMAÇÃO DE ENTREGA ===');
+    console.log('Freight ID:', freight.id);
+    console.log('Status atual:', freight.status);
+    
     setLoading(true);
     try {
-      console.log('Confirmando entrega para frete:', freight.id);
-      
-      // Verificar se o usuário está autenticado
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      console.log('Dados do usuário:', userData, 'Erro:', userError);
-      
-      if (userError || !userData.user) {
-        throw new Error('Usuário não autenticado');
-      }
-      
-      // Verificar se o frete pertence ao usuário atual
-      const { data: freightCheck, error: freightError } = await supabase
-        .from('freights')
-        .select('producer_id, status')
-        .eq('id', freight.id)
-        .single();
-        
-      console.log('Verificação do frete:', freightCheck, 'Erro:', freightError);
-      
-      if (freightError) {
-        throw new Error(`Erro ao verificar frete: ${freightError.message}`);
-      }
-      
-      // Buscar o profile do usuário atual
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', userData.user.id)
-        .single();
-        
-      console.log('Profile do usuário:', profile, 'Erro:', profileError);
-      
-      if (profileError || !profile) {
-        throw new Error('Profile do usuário não encontrado');
-      }
-      
-      if (freightCheck.producer_id !== profile.id) {
-        throw new Error('Você não tem permissão para confirmar este frete');
-      }
-      
-      if (freightCheck.status !== 'DELIVERED_PENDING_CONFIRMATION') {
-        throw new Error('Frete não está aguardando confirmação');
-      }
-      
-      console.log('Todas as verificações passaram, tentando atualizar...');
-      
-      // Tentar confirmar diretamente
+      // Atualizar diretamente o status do frete
       const { error: updateError } = await supabase
         .from('freights')
         .update({ 
@@ -105,29 +63,31 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
             ...freight.metadata,
             delivery_confirmed_at: new Date().toISOString(),
             confirmed_by_producer: true,
-            confirmed_by_producer_id: profile.id,
             confirmation_notes: notes
           }
         })
         .eq('id', freight.id)
-        .eq('producer_id', profile.id); // Adicionar filtro extra para segurança
+        .eq('status', 'DELIVERED_PENDING_CONFIRMATION');
+
+      console.log('Resultado da atualização:', updateError);
 
       if (updateError) {
         console.error('Erro na atualização:', updateError);
-        throw new Error(`Erro ao atualizar: ${updateError.message}`);
+        throw new Error(`Erro ao confirmar entrega: ${updateError.message}`);
       }
       
-      console.log('Atualização realizada com sucesso');
+      console.log('=== ENTREGA CONFIRMADA COM SUCESSO ===');
 
       toast({
         title: "Entrega Confirmada",
         description: "A entrega foi confirmada com sucesso.",
       });
+      
       onConfirm();
       onClose();
       
     } catch (error: any) {
-      console.error('Erro completo ao confirmar entrega:', error);
+      console.error('=== ERRO NA CONFIRMAÇÃO ===', error);
       toast({
         title: "Erro ao confirmar entrega",
         description: error.message || 'Erro desconhecido',
