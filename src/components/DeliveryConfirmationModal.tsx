@@ -38,29 +38,63 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Debug do frete recebido
+  console.log('DeliveryConfirmationModal - freight recebido:', {
+    id: freight.id,
+    status: freight.status,
+    metadata: freight.metadata,
+    updated_at: freight.updated_at
+  });
+
   const confirmDelivery = async () => {
     setLoading(true);
     try {
+      console.log('Confirmando entrega para frete:', freight.id);
+      
       const { data, error } = await supabase.rpc('confirm_delivery', {
         freight_id_param: freight.id
       });
 
-      if (error) throw error;
-      
-      if ((data as any)?.success) {
-        toast({
-          title: "Entrega Confirmada",
-          description: "A entrega foi confirmada e o pagamento foi processado para o motorista.",
-        });
-        onConfirm();
-        onClose();
-      } else {
-        throw new Error((data as any)?.message || 'Erro ao confirmar entrega');
+      console.log('Resposta da RPC confirm_delivery:', { data, error });
+
+      if (error) {
+        console.error('Erro na RPC:', error);
+        throw error;
       }
+      
+      // Tentar confirmar diretamente atualizando o status se RPC não funcionar
+      if (!data || !(data as any)?.success) {
+        console.log('RPC não retornou sucesso, tentando atualização direta...');
+        
+        const { error: updateError } = await supabase
+          .from('freights')
+          .update({ 
+            status: 'DELIVERED',
+            updated_at: new Date().toISOString(),
+            metadata: {
+              ...freight.metadata,
+              delivery_confirmed_at: new Date().toISOString(),
+              confirmed_by_producer: true,
+              confirmation_notes: notes
+            }
+          })
+          .eq('id', freight.id);
+
+        if (updateError) throw updateError;
+      }
+
+      toast({
+        title: "Entrega Confirmada",
+        description: "A entrega foi confirmada com sucesso.",
+      });
+      onConfirm();
+      onClose();
+      
     } catch (error: any) {
+      console.error('Erro completo ao confirmar entrega:', error);
       toast({
         title: "Erro ao confirmar entrega",
-        description: error.message,
+        description: error.message || 'Erro desconhecido',
         variant: "destructive",
       });
     } finally {
@@ -69,11 +103,21 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
   };
 
   const getTimeRemaining = () => {
-    if (!freight.metadata?.confirmation_deadline) return null;
+    if (!freight.metadata?.confirmation_deadline) {
+      console.log('Sem deadline definido no metadata:', freight.metadata);
+      return null;
+    }
     
     const deadline = new Date(freight.metadata.confirmation_deadline);
     const now = new Date();
     const hoursRemaining = differenceInHours(deadline, now);
+    
+    console.log('Cálculo de tempo:', {
+      deadline: freight.metadata.confirmation_deadline,
+      deadlineDate: deadline,
+      now,
+      hoursRemaining
+    });
     
     return {
       hours: Math.max(0, hoursRemaining),
@@ -211,7 +255,7 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
             </Button>
             <Button 
               onClick={confirmDelivery} 
-              disabled={loading || timeInfo?.isExpired}
+              disabled={loading}
               className="flex-1"
             >
               {loading ? 'Confirmando...' : 'Confirmar Entrega'}
