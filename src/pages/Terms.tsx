@@ -229,13 +229,13 @@ const Terms = () => {
             Se você tiver alguma dúvida sobre estes Termos de Uso, entre em contato conosco.
           </p>
           <div className="space-y-2 text-sm text-muted-foreground mb-6">
-            <p><strong>Responsável:</strong> Anthony Both</p>
-            <p><strong>Email:</strong> anthony_pva@hotmail.com</p>
-            <p><strong>Telefone:</strong> 015 66 9 9942-6656</p>
+            <p><strong>Responsável:</strong> Equipe AgriRoute Connect</p>
+            <p><strong>Email:</strong> agrirouteconnect@gmail.com</p>
+            <p><strong>WhatsApp:</strong> 015 66 9 9942-6656</p>
           </div>
           <Button 
             className="gradient-primary text-primary-foreground"
-            onClick={() => window.open('mailto:anthony_pva@hotmail.com?subject=Termos de Uso AgriRoute', '_blank')}
+            onClick={() => window.open('mailto:agrirouteconnect@gmail.com?subject=Termos de Uso AgriRoute', '_blank')}
           >
             Entrar em Contato
           </Button>

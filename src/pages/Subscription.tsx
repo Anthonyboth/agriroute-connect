@@ -93,10 +93,10 @@ const Subscription: React.FC = () => {
             Nossa equipe está pronta para ajudar você a escolher o melhor plano
           </p>
           <a 
-            href="mailto:anthony_pva@hotmail.com" 
+            href="mailto:agrirouteconnect@gmail.com" 
             className="text-primary hover:underline font-medium"
           >
-            Fale conosco: anthony_pva@hotmail.com | WhatsApp: 015 66 9 9942-6656
+            Fale conosco: agrirouteconnect@gmail.com | WhatsApp: 015 66 9 9942-6656
           </a>
         </CardContent>
       </Card>

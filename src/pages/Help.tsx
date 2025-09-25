@@ -120,7 +120,7 @@ const Help = () => {
     },
     {
       title: "E-mail",
-      description: "suporte@agriroute.com.br",
+      description: "agrirouteconnect@gmail.com",
       icon: Mail,
       action: "Enviar E-mail",
       available: "Resposta em até 4h"

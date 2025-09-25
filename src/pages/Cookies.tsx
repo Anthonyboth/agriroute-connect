@@ -295,8 +295,8 @@ const Cookies = () => {
             Se você tiver alguma dúvida sobre nossa política de cookies, entre em contato conosco.
           </p>
           <div className="space-y-2 text-sm text-muted-foreground mb-6">
-            <p><strong>Email:</strong> privacidade@agriroute.com.br</p>
-            <p><strong>Telefone:</strong> (11) 3000-0000</p>
+            <p><strong>Email:</strong> agrirouteconnect@gmail.com</p>
+            <p><strong>WhatsApp:</strong> 015 66 9 9942-6656</p>
           </div>
           <Button className="gradient-primary text-primary-foreground">
             Entrar em Contato

@@ -170,10 +170,10 @@ const Plans: React.FC = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a 
-                href="mailto:anthony_pva@hotmail.com" 
+                href="mailto:agrirouteconnect@gmail.com" 
                 className="text-primary hover:underline font-medium"
               >
-                📧 anthony_pva@hotmail.com
+                📧 agrirouteconnect@gmail.com
               </a>
               <a 
                 href="https://wa.me/5515669942656" 

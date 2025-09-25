@@ -11,7 +11,7 @@ export const ContactInfo: React.FC = () => {
   };
 
   const handleEmailClick = () => {
-    window.open('mailto:anthony_pva@hotmail.com?subject=Suporte AgriRoute Connect', '_blank');
+    window.open('mailto:agrirouteconnect@gmail.com?subject=Suporte AgriRoute Connect', '_blank');
   };
 
   return (
@@ -24,9 +24,9 @@ export const ContactInfo: React.FC = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-center space-y-2">
-          <h3 className="font-semibold text-lg">Anthony Both</h3>
+          <h3 className="font-semibold text-lg">AgriRoute Connect</h3>
           <p className="text-sm text-muted-foreground">
-            Fundador & CEO do AgriRoute Connect
+            Plataforma de Transporte Rural
           </p>
         </div>
 
@@ -55,23 +55,10 @@ export const ContactInfo: React.FC = () => {
             </div>
             <div className="text-left">
               <p className="font-medium">E-mail</p>
-              <p className="text-sm text-muted-foreground">anthony_pva@hotmail.com</p>
+              <p className="text-sm text-muted-foreground">agrirouteconnect@gmail.com</p>
             </div>
           </Button>
 
-          <Button
-            variant="outline"
-            className="justify-start gap-3 h-auto p-4"
-            onClick={() => window.open('tel:+5566999426656', '_self')}
-          >
-            <div className="flex items-center justify-center w-8 h-8 bg-muted rounded-full">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium">Telefone</p>
-              <p className="text-sm text-muted-foreground">015 66 9 9942-6656</p>
-            </div>
-          </Button>
         </div>
 
         <div className="text-center pt-2">

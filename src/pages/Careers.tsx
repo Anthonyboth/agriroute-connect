@@ -258,9 +258,11 @@ const Careers = () => {
               <p className="text-muted-foreground mb-6">
                 Envie seu currículo e nos conte sobre seu interesse em fazer parte da nossa equipe.
               </p>
-              <Button variant="outline" className="flex items-center gap-2 mx-auto">
+              <Button variant="outline" className="flex items-center gap-2 mx-auto"
+                onClick={() => window.open('mailto:agrirouteconnect@gmail.com', '_blank')}
+              >
                 <Mail className="h-4 w-4" />
-                rh@agriroute.com.br
+                agrirouteconnect@gmail.com
               </Button>
             </CardContent>
           </Card>

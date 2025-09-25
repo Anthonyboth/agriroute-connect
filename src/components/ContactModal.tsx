@@ -61,7 +61,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
                   variant="outline" 
                   className="w-full"
                   onClick={() => {
-                    window.open('mailto:contato@agriroute.com.br?subject=Contato AgriRoute', '_blank');
+                    window.open('mailto:agrirouteconnect@gmail.com?subject=Contato AgriRoute', '_blank');
                   }}
                 >
                   Enviar E-mail

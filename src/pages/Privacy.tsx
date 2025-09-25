@@ -186,14 +186,14 @@ const Privacy = () => {
                 exercer seus direitos ou esclarecer dúvidas sobre o tratamento dos seus dados.
               </p>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p><strong>Responsável:</strong> Anthony Both</p>
-                <p><strong>Email:</strong> anthony_pva@hotmail.com</p>
-                <p><strong>Telefone:</strong> 015 66 9 9942-6656</p>
+                <p><strong>Responsável:</strong> Equipe AgriRoute Connect</p>
+                <p><strong>Email:</strong> agrirouteconnect@gmail.com</p>
+                <p><strong>WhatsApp:</strong> 015 66 9 9942-6656</p>
                 <p><strong>Endereço:</strong> Brasil</p>
               </div>
               <Button 
                 className="mt-6 gradient-primary text-primary-foreground"
-                onClick={() => window.open('mailto:anthony_pva@hotmail.com?subject=Política de Privacidade AgriRoute', '_blank')}
+                onClick={() => window.open('mailto:agrirouteconnect@gmail.com?subject=Política de Privacidade AgriRoute', '_blank')}
               >
                 Entrar em Contato
               </Button>

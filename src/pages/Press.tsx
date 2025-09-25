@@ -283,11 +283,11 @@ const Press = () => {
                 </div>
                 <div>
                   <strong>Responsável:</strong>
-                  <p className="text-muted-foreground">Anthony Both - Fundador & CEO</p>
+                  <p className="text-muted-foreground">Equipe AgriRoute Connect</p>
                 </div>
                 <div>
                   <strong>Email:</strong>
-                  <p className="text-muted-foreground">anthony_pva@hotmail.com</p>
+                  <p className="text-muted-foreground">agrirouteconnect@gmail.com</p>
                 </div>
                 <div>
                   <strong>WhatsApp:</strong>
@@ -296,7 +296,7 @@ const Press = () => {
               </div>
               <Button 
                 className="gradient-primary text-primary-foreground"
-                onClick={() => window.open('mailto:anthony_pva@hotmail.com?subject=Contato Imprensa AgriRoute', '_blank')}
+                onClick={() => window.open('mailto:agrirouteconnect@gmail.com?subject=Contato Imprensa AgriRoute', '_blank')}
               >
                 Entrar em Contato
               </Button>
