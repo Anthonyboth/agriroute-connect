@@ -21,7 +21,7 @@ import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building } fro
 import { validateDocument } from '@/utils/cpfValidator';
 
 const CompleteProfile = () => {
-  const { profile, loading: authLoading } = useAuth();
+  const { profile, loading: authLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -61,7 +61,7 @@ const CompleteProfile = () => {
   const [showSelfieModal, setShowSelfieModal] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !profile) {
+    if (!authLoading && !isAuthenticated) {
       navigate('/auth');
       return;
     }
@@ -117,7 +117,7 @@ const CompleteProfile = () => {
         navigate(dashboardPath);
       }
     }
-  }, [profile, authLoading, navigate]);
+  }, [profile, authLoading, isAuthenticated, navigate]);
 
   const fetchVehicles = async () => {
     if (!profile) return;
