@@ -1619,7 +1619,7 @@ const ProducerDashboard = () => {
                 )
               ).length > 0 && (
                 <div className="space-y-4">
-                  <h4 className="text-md font-semibold text-purple-700">Fretes Entregues - Solicitar Pagamento Final</h4>
+                  <h4 className="text-md font-semibold text-purple-700">Fretes Entregues - Confirmar Pagamento Final</h4>
                   {freights.filter(freight => 
                     freight.status === 'DELIVERED' && 
                     freight.driver_profiles &&
@@ -1656,11 +1656,11 @@ const ProducerDashboard = () => {
                               </p>
                             </div>
                             <Button
-                              onClick={() => requestFullPayment(freight.id, freight.driver_id, remainingAmount)}
+                              onClick={() => handleConfirmExternalPayment(freight.id, remainingAmount)}
                               disabled={paymentLoading}
                             >
-                              <CreditCard className="h-4 w-4 mr-2" />
-                              Solicitar Pagamento
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Confirmar Pagamento
                             </Button>
                           </div>
                         </div>
