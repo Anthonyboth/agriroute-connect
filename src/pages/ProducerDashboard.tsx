@@ -596,11 +596,17 @@ const ProducerDashboard = () => {
         .from('profiles')
         .select('user_id')
         .eq('id', freightData.driver_id)
-        .single();
+        .maybeSingle();
 
       if (driverError) {
         console.error('Erro ao buscar dados do motorista:', driverError);
         toast.error('Erro ao buscar dados do motorista');
+        return;
+      }
+
+      if (!driverData) {
+        console.error('Motorista não encontrado com ID:', freightData.driver_id);
+        toast.error('Motorista não encontrado no sistema');
         return;
       }
 
