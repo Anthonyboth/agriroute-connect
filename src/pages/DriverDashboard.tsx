@@ -403,6 +403,8 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     if (!profile?.id) return;
     
     try {
+      console.log('🔍 Buscando pagamentos pendentes para driver:', profile.id);
+      
       const { data, error } = await supabase
         .from('external_payments')
         .select(`
@@ -415,6 +417,10 @@ const [showRegionModal, setShowRegionModal] = useState(false);
         .order('created_at', { ascending: false });
       
       if (error) throw error;
+      
+      console.log('💰 Pagamentos pendentes encontrados:', data?.length || 0);
+      console.log('📋 Dados dos pagamentos:', data);
+      
       setPendingPayments(data || []);
     } catch (error) {
       console.error('Error fetching pending payments:', error);
@@ -500,6 +506,15 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_proposals' }, () => {
         fetchMyProposals();
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'external_payments', 
+        filter: `driver_id=eq.${profile.id}` 
+      }, (payload) => {
+        console.log('Mudança detectada em external_payments:', payload);
+        fetchPendingPayments();
       })
       .subscribe();
 
