@@ -67,7 +67,7 @@ export function StripePaymentForm({ amount, onSuccess, onCancel }: StripePayment
         } else {
           setMessage('Ocorreu um erro inesperado.');
         }
-        toast.error(error.message || 'Erro no pagamento');
+        toast.error('Erro no pagamento. Verifique os dados e tente novamente.');
       } else {
         toast.success('Pagamento processado!');
         onSuccess();

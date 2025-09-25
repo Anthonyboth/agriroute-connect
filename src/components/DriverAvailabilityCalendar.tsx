@@ -139,7 +139,7 @@ export const DriverAvailabilityCalendar: React.FC = () => {
       fetchAvailabilities();
     } catch (error: any) {
       console.error('Erro ao salvar disponibilidade:', error);
-      toast.error('Erro ao salvar: ' + error.message);
+      toast.error('Erro ao salvar disponibilidade. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -157,7 +157,7 @@ export const DriverAvailabilityCalendar: React.FC = () => {
       fetchAvailabilities();
     } catch (error: any) {
       console.error('Erro ao deletar disponibilidade:', error);
-      toast.error('Erro ao deletar: ' + error.message);
+      toast.error('Erro ao deletar disponibilidade. Tente novamente.');
     }
   };
 

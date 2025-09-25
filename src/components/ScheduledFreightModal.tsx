@@ -93,7 +93,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
 
     } catch (error: any) {
       console.error('Erro ao agendar frete:', error);
-      toast.error('Erro ao agendar frete: ' + error.message);
+      toast.error('Erro ao agendar frete. Tente novamente.');
     } finally {
       setLoading(false);
     }

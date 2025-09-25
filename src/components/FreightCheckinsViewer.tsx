@@ -126,7 +126,7 @@ const FreightCheckinsViewer: React.FC<FreightCheckinsViewerProps> = ({
       }
     } catch (error: any) {
       console.error('Erro ao confirmar check-in:', error);
-      toast.error('Erro ao confirmar check-in: ' + error.message);
+      toast.error('Erro ao confirmar check-in. Tente novamente.');
     }
   };
 

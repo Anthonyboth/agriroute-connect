@@ -108,7 +108,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({
       await fetchSubscriptionData();
       onSubscriptionChange?.();
     } catch (error: any) {
-      toast.error('Erro ao ativar período trial: ' + error.message);
+      toast.error('Erro ao ativar período trial. Tente novamente.');
     } finally {
       setLoading(false);
     }

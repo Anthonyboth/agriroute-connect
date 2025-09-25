@@ -78,7 +78,7 @@ const Auth = () => {
         if (error.message.includes('already registered')) {
           toast.error('Email já cadastrado. Tente fazer login.');
         } else {
-          toast.error(error.message);
+          toast.error('Erro na autenticação. Verifique suas credenciais.');
         }
       } else {
         toast.success('Pré-cadastro realizado! Verifique seu email para continuar.');

@@ -80,7 +80,7 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
         }
       },
       (error) => {
-        toast.error('Erro ao obter localização: ' + error.message);
+        toast.error('Erro ao obter localização. Verifique as permissões do navegador.');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
@@ -189,7 +189,7 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
       
     } catch (error: any) {
       console.error('Erro ao criar check-in:', error);
-      toast.error('Erro ao registrar check-in: ' + error.message);
+      toast.error('Erro ao registrar check-in. Tente novamente.');
     } finally {
       setLoading(false);
     }

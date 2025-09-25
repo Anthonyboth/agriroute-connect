@@ -71,7 +71,7 @@ export function FreightPaymentModal({
       }
     } catch (error) {
       console.error('Error creating payment:', error);
-      toast.error(error instanceof Error ? error.message : "Erro ao processar pagamento");
+      toast.error("Erro ao processar pagamento. Tente novamente.");
     } finally {
       setIsLoading(false);
     }

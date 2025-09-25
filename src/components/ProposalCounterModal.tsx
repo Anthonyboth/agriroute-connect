@@ -165,7 +165,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
     } catch (error: any) {
       console.error('Erro ao enviar contra-proposta:', error);
-      toast.error('Erro ao enviar contra-proposta: ' + (error.message || 'Tente novamente'));
+      toast.error('Erro ao enviar contra-proposta. Tente novamente.');
     } finally {
       setLoading(false);
     }

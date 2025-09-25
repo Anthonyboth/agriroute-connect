@@ -149,7 +149,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
 
     } catch (error: any) {
       console.error('Erro ao enviar proposta:', error);
-      toast.error('Erro ao processar ação: ' + (error.message || 'Tente novamente'));
+      toast.error('Erro ao processar solicitação. Tente novamente.');
     } finally {
       setLoading(false);
     }

@@ -86,7 +86,7 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
       setTimeout(() => setHasRequestedRecently(false), 30000);
     } catch (error) {
       console.error('Error creating advance:', error);
-      toast.error(error instanceof Error ? error.message : "Erro ao criar adiantamento");
+      toast.error("Erro ao criar solicitação de adiantamento. Tente novamente.");
       setHasRequestedRecently(false);
     } finally {
       setIsLoading(false);

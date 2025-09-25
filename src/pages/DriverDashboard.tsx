@@ -519,7 +519,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       }
     } catch (error: any) {
       console.error('Error handling freight action:', error);
-      toast.error('Erro ao processar ação: ' + (error.message || 'Tente novamente'));
+      toast.error('Erro ao processar ação. Tente novamente.');
     }
   };
 
@@ -557,7 +557,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       
     } catch (error: any) {
       console.error('Error processing freight withdrawal:', error);
-      toast.error('Erro ao processar desistência: ' + (error.message || 'Tente novamente'));
+      toast.error('Erro ao processar desistência. Tente novamente.');
     }
   };
 
@@ -607,7 +607,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       
     } catch (error: any) {
       console.error('Error canceling freight:', error);
-      toast.error('Erro ao cancelar frete: ' + (error.message || 'Tente novamente'));
+      toast.error('Erro ao cancelar frete. Tente novamente.');
     }
   };
 

@@ -66,7 +66,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       setAdvances(advancesData || []);
     } catch (error: any) {
       console.error('Erro ao carregar detalhes do frete:', error);
-      toast.error("Erro ao carregar frete: " + error.message);
+      toast.error("Erro ao carregar detalhes do frete. Tente novamente.");
     } finally {
       setLoading(false);
     }

@@ -146,7 +146,7 @@ const CompleteProfile = () => {
       });
 
     if (error) {
-      toast.error('Erro ao cadastrar veículo: ' + error.message);
+      toast.error('Erro ao cadastrar veículo. Tente novamente.');
     } else {
       toast.success('Veículo cadastrado com sucesso!');
       setNewVehicle({
@@ -175,7 +175,7 @@ const CompleteProfile = () => {
       .eq('driver_id', profile.id);
 
     if (error) {
-      toast.error('Erro ao remover veículo: ' + error.message);
+      toast.error('Erro ao remover veículo. Tente novamente.');
     } else {
       toast.success('Veículo removido com sucesso');
       setVehicles(prev => prev.filter(v => v.id !== vehicleToDelete));

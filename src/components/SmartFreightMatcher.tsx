@@ -86,7 +86,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       }
     } catch (error: any) {
       console.error('Erro ao buscar fretes compatíveis:', error);
-      toast.error('Erro ao carregar fretes: ' + error.message);
+      toast.error('Erro ao carregar fretes. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -134,7 +134,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         fetchCompatibleFreights(); // Atualizar lista
       } catch (error: any) {
         console.error('Erro ao enviar proposta:', error);
-        toast.error('Erro ao processar ação: ' + (error.message || 'Tente novamente'));
+        toast.error('Erro ao processar ação. Tente novamente.');
       }
     }
   };

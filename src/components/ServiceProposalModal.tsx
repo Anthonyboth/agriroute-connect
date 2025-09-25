@@ -188,7 +188,7 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
 
     } catch (error: any) {
       console.error('Erro ao enviar proposta:', error);
-      toast.error('Erro ao enviar proposta: ' + (error.message || 'Tente novamente'));
+      toast.error('Erro ao enviar proposta. Tente novamente.');
     } finally {
       setLoading(false);
     }

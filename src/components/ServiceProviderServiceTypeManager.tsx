@@ -233,7 +233,7 @@ export const ServiceProviderServiceTypeManager: React.FC = () => {
       toast.success('Tipos de serviço atualizados com sucesso!');
     } catch (error: any) {
       console.error('Erro ao atualizar tipos de serviço:', error);
-      toast.error('Erro ao salvar: ' + error.message);
+      toast.error('Erro ao salvar configurações. Tente novamente.');
     } finally {
       setLoading(false);
     }
