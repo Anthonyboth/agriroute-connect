@@ -254,6 +254,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
               <Popover open={cargoComboOpen} onOpenChange={setCargoComboOpen}>
                 <PopoverTrigger asChild>
                   <Button
+                    type="button"
                     variant="outline"
                     role="combobox"
                     aria-expanded={cargoComboOpen}
