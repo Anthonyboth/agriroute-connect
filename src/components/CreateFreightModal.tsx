@@ -265,7 +265,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
+                <PopoverContent className="w-[400px] p-0" align="start">
                   <Command>
                     <CommandInput placeholder="Buscar tipo de carga..." />
                     <CommandEmpty>
@@ -290,9 +290,9 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                           {getCargoTypesByCategory(category.value).map((cargo) => (
                             <CommandItem
                               key={cargo.value}
-                              value={cargo.value}
-                              onSelect={(value) => {
-                                handleInputChange('cargo_type', value);
+                              value={cargo.label}
+                              onSelect={() => {
+                                handleInputChange('cargo_type', cargo.value);
                                 setCargoComboOpen(false);
                               }}
                             >
