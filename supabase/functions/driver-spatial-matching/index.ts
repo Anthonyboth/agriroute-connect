@@ -7,6 +7,12 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
+// Helper logging function
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[DRIVER-SPATIAL-MATCHING] ${step}${detailsStr}`);
+};
+
 // Haversine distance in meters
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371000; // meters
@@ -93,6 +99,8 @@ serve(async (req) => {
     }
 
     if (req.method === 'POST') {
+      logStep("Starting driver spatial matching", { driverId });
+      
       // Build/refresh matches based on driver service areas
       const { data: areas, error: areasErr } = await supabase
         .from('driver_service_areas')
@@ -100,10 +108,16 @@ serve(async (req) => {
         .eq('driver_id', driverId)
         .eq('is_active', true);
 
-      if (areasErr) throw areasErr;
+      if (areasErr) {
+        logStep("Error fetching driver service areas", areasErr);
+        throw areasErr;
+      }
+
+      logStep("Driver service areas found", { count: areas?.length || 0 });
 
       // No areas: nothing to match
       if (!areas || areas.length === 0) {
+        logStep("No active service areas found for driver");
         const result = await fetchMatches();
         return new Response(JSON.stringify({ success: true, ...result, note: 'no_active_areas' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -115,49 +129,100 @@ serve(async (req) => {
         .from('freights')
         .select('*')
         .eq('status', 'OPEN')
+        .is('driver_id', null) // Only unassigned freights
         .not('origin_lat', 'is', null)
         .not('origin_lng', 'is', null)
         .order('created_at', { ascending: false })
         .limit(500);
 
-      if (freErr) throw freErr;
+      if (freErr) {
+        logStep("Error fetching freights", freErr);
+        throw freErr;
+      }
+
+      logStep("Open freights found", { count: freights?.length || 0 });
 
       const toUpsert: any[] = [];
+      let matchesFound = 0;
+
       for (const f of freights || []) {
         const { origin_lat: flat, origin_lng: flng } = f as any;
         if (typeof flat !== 'number' || typeof flng !== 'number') continue;
 
         let bestDistance: number | null = null;
+        let matchingArea: any = null;
+
         for (const a of areas) {
-          const d = haversine(flat, flng, Number(a.lat), Number(a.lng));
-          const within = d <= Number(a.radius_km) * 1000;
+          const areaLat = Number(a.lat);
+          const areaLng = Number(a.lng);
+          const radiusKm = Number(a.radius_km || 50);
+          
+          if (isNaN(areaLat) || isNaN(areaLng) || isNaN(radiusKm)) continue;
+
+          const distance = haversine(flat, flng, areaLat, areaLng);
+          const within = distance <= radiusKm * 1000; // Convert km to meters
+          
           if (within) {
-            bestDistance = bestDistance === null ? d : Math.min(bestDistance, d);
+            if (bestDistance === null || distance < bestDistance) {
+              bestDistance = distance;
+              matchingArea = a;
+            }
           }
         }
 
-        if (bestDistance !== null) {
+        if (bestDistance !== null && matchingArea) {
+          matchesFound++;
           toUpsert.push({
             freight_id: f.id,
             driver_id: driverId,
-            match_type: 'DRIVER_AREA',
-            distance_m: bestDistance,
+            driver_area_id: matchingArea.id,
+            match_type: 'SPATIAL_RADIUS',
+            distance_m: Math.round(bestDistance),
+            match_score: Math.max(0.1, 1 - (bestDistance / (Number(matchingArea.radius_km) * 1000)))
           });
         }
       }
 
+      logStep("Matches to upsert", { count: toUpsert.length, matchesFound });
+
       if (toUpsert.length > 0) {
-        // Upsert matches to avoid duplicates
-        const { error: upErr } = await supabase
-          .from('freight_matches')
-          .upsert(toUpsert, { onConflict: 'freight_id,driver_id' });
-        if (upErr) {
-          console.error('Upsert matches error:', upErr);
+        // Use individual insert to handle conflicts gracefully
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const match of toUpsert) {
+          try {
+            const { error: insertErr } = await supabase
+              .from('freight_matches')
+              .upsert(match, { onConflict: 'freight_id,driver_id' });
+            
+            if (insertErr) {
+              logStep("Individual match upsert error", { match, error: insertErr });
+              errorCount++;
+            } else {
+              successCount++;
+            }
+          } catch (err) {
+            logStep("Match insertion failed", { match, error: err });
+            errorCount++;
+          }
         }
+        
+        logStep("Matches processing complete", { successCount, errorCount });
       }
 
       const result = await fetchMatches();
-      return new Response(JSON.stringify({ success: true, ...result, created: toUpsert.length }), {
+      logStep("Spatial matching complete", { 
+        totalMatches: result.matches.length, 
+        activeFreights: result.freights.length 
+      });
+      
+      return new Response(JSON.stringify({ 
+        success: true, 
+        ...result, 
+        created: toUpsert.length,
+        processed: matchesFound
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

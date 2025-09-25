@@ -1059,7 +1059,19 @@ const [showRegionModal, setShowRegionModal] = useState(false);
 
           <TabsContent value="calendar" className="space-y-4">
             <div>
-              <DriverServiceAreasManager onAreasUpdate={fetchAvailableFreights} />
+              <DriverServiceAreasManager onAreasUpdate={() => {
+                fetchAvailableFreights();
+                // Também executar matching espacial quando áreas de serviço forem atualizadas
+                if (profile?.id) {
+                  supabase.functions.invoke('driver-spatial-matching', { method: 'POST' })
+                    .then(({ data }) => {
+                      if (data?.created > 0) {
+                        toast.success(`${data.created} novos matches encontrados com suas novas áreas de atendimento!`);
+                      }
+                    })
+                    .catch(console.warn);
+                }
+              }} />
             </div>
             <div className="border-t pt-6">
               <h3 className="text-lg font-semibold mb-4">Disponibilidade</h3>

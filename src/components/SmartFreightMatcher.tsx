@@ -54,6 +54,25 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
 
     setLoading(true);
     try {
+      // Primeiro executar o matching espacial baseado nas áreas de serviço
+      const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
+        'driver-spatial-matching',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      if (spatialError) {
+        console.warn('Erro no matching espacial:', spatialError);
+        toast.warning('Sistema de matching espacial indisponível, usando busca básica.');
+      } else {
+        console.log('Matching espacial executado:', spatialData);
+      }
+
+      // Buscar fretes compatíveis usando a função RPC
       const { data, error } = await supabase.rpc(
         'get_compatible_freights_for_driver',
         { p_driver_id: profile.id }
@@ -61,6 +80,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
 
       if (error) throw error;
       setCompatibleFreights(data || []);
+      
+      if (spatialData?.created > 0) {
+        toast.success(`${spatialData.created} novos matches encontrados com base nas suas áreas de atendimento!`);
+      }
     } catch (error: any) {
       console.error('Erro ao buscar fretes compatíveis:', error);
       toast.error('Erro ao carregar fretes: ' + error.message);
@@ -197,7 +220,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             </Badge>
           </CardTitle>
           <CardDescription>
-            Fretes selecionados automaticamente com base nos seus tipos de serviço configurados
+            Fretes selecionados automaticamente com base nas suas áreas de atendimento e tipos de serviço configurados. O sistema analisa geograficamente os fretes disponíveis dentro do seu raio de atuação.
           </CardDescription>
         </CardHeader>
 
