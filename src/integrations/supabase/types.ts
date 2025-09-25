@@ -4621,6 +4621,15 @@ export type Database = {
         Args: { "": unknown }
         Returns: Json
       }
+      log_security_event: {
+        Args: {
+          details?: Json
+          event_type: string
+          record_id?: string
+          table_name: string
+        }
+        Returns: undefined
+      }
       log_sensitive_data_access: {
         Args:
           | { access_type: string; accessed_id: string; accessed_table: string }
