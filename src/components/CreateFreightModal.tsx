@@ -71,6 +71,16 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     }
   };
 
+  const extractStateFromAddress = (address: string): string | null => {
+    const stateAbbreviations = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+    for (const state of stateAbbreviations) {
+      if (address.toUpperCase().includes(state) || address.toUpperCase().includes(state.toLowerCase())) {
+        return state;
+      }
+    }
+    return null;
+  };
+
   const calculateMinimumAnttPrice = async (cargoType: string, weight: number, distance: number, originState: string, destinationState: string): Promise<number> => {
     try {
       const invoke = supabase.functions.invoke('antt-freight-table', {
@@ -119,12 +129,16 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
       // Calculate distance (mock for now)
       const distance = await calculateDistance(formData.origin_address, formData.destination_address);
       const weight = parseFloat(formData.weight);
+      // Extract states from addresses (basic extraction)
+      const originState = extractStateFromAddress(formData.origin_address) || 'SP';
+      const destState = extractStateFromAddress(formData.destination_address) || 'RJ';
+      
       const minimumAnttPrice = await calculateMinimumAnttPrice(
         formData.cargo_type,
         weight,
         distance,
-        'SP', // Estado de origem - você pode melhorar isso extraindo do endereço
-        'RJ'  // Estado de destino - você pode melhorar isso extraindo do endereço
+        originState,
+        destState
       );
 
       const freightData = {

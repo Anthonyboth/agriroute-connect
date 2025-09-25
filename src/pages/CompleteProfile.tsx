@@ -100,16 +100,17 @@ const CompleteProfile = () => {
         fetchVehicles();
       }
 
-      // Check if profile has minimum requirements for access
-      const hasBasicRequirements = profile.selfie_url && profile.document_photo_url;
-      const isDriverComplete = profile.role !== 'MOTORISTA' || (
-        profile.cnh_photo_url && 
-        profile.address_proof_url &&
-        profile.location_enabled
-      );
+      // Always show complete profile form - don't auto-redirect
+      // Only redirect if user tries to access this page but already has completed profile
+      const hasCompletedProfile = profile.selfie_url && profile.document_photo_url && 
+        (profile.role !== 'MOTORISTA' || (
+          profile.cnh_photo_url && 
+          profile.address_proof_url &&
+          profile.location_enabled
+        ));
 
-      if (hasBasicRequirements && isDriverComplete) {
-        // Allow access with basic requirements met, regardless of approval status
+      // Only redirect if profile is fully complete AND user has been approved
+      if (hasCompletedProfile && profile.status === 'APPROVED') {
         const dashboardPath = profile.role === 'MOTORISTA' ? '/dashboard/driver' : 
                              (profile.role as any) === 'PRESTADOR_SERVICOS' ? '/dashboard/service-provider' :
                              '/dashboard/producer';
