@@ -60,9 +60,58 @@ const CompleteProfile = () => {
   const [vehicleToDelete, setVehicleToDelete] = useState<string | null>(null);
   const [showSelfieModal, setShowSelfieModal] = useState(false);
 
+  const createProfileFromMetadata = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const meta = (user as any).user_metadata || {};
+        const roleMeta = (meta.role as any);
+        const resolvedRole = (roleMeta === 'PRODUTOR' || roleMeta === 'MOTORISTA' || roleMeta === 'PRESTADOR_SERVICOS') ? roleMeta : 'PRODUTOR';
+        const newProfile = {
+          user_id: user.id,
+          full_name: meta.full_name || '',
+          phone: meta.phone || '',
+          document: meta.document || '',
+          cpf_cnpj: meta.document || '',
+          role: resolvedRole,
+          status: 'PENDING' as any,
+        };
+        console.log('Creating profile from metadata:', newProfile);
+        const { data: inserted, error: insertError } = await supabase
+          .from('profiles')
+          .insert(newProfile)
+          .select('*')
+          .single();
+        if (!insertError && inserted) {
+          console.log('Profile created successfully:', inserted);
+          toast.success('Perfil criado com sucesso!');
+          // Força um reload da página para recarregar o useAuth
+          window.location.reload();
+        } else if (insertError) {
+          console.error('Profile creation failed:', insertError);
+          if (insertError.code === '23505') {
+            toast.error('Perfil já existe. Recarregando...');
+            window.location.reload();
+          } else {
+            toast.error('Erro ao criar perfil. Tente novamente.');
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error creating profile from metadata:', e);
+      toast.error('Erro ao criar perfil. Tente novamente.');
+    }
+  };
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       navigate('/auth');
+      return;
+    }
+
+    // Se autenticado mas sem perfil, criar perfil automaticamente
+    if (isAuthenticated && !profile) {
+      createProfileFromMetadata();
       return;
     }
 

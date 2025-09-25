@@ -166,17 +166,23 @@ export const useAuth = () => {
               role: resolvedRole,
               status: 'PENDING' as any,
             };
+            console.log('Attempting to create profile:', newProfile);
             const { data: inserted, error: insertError } = await supabase
               .from('profiles')
               .insert(newProfile)
               .select('*')
               .single();
             if (!insertError && inserted) {
-              console.log('Profile auto-created for user:', user.id);
+              console.log('Profile auto-created successfully:', inserted);
               setProfiles([inserted as any]);
               setProfile(inserted as any);
             } else if (insertError) {
               console.error('Auto-create profile failed:', insertError);
+              // Se falhar por conflito, pode ser que já existe
+              if (insertError.code === '23505') {
+                console.log('Profile already exists, refetching...');
+                setTimeout(() => fetchProfile(user.id), 1000);
+              }
             }
           }
         } catch (e) {
