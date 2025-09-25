@@ -56,6 +56,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
+    // Evitar chamadas se a sessão está expirada
+    const session = await supabase.auth.getSession();
+    if (!session.data.session) {
+      setState(prev => ({ ...prev, loading: false, subscriptionTier: 'FREE' }));
+      return;
+    }
+
     try {
       setState(prev => ({ ...prev, loading: true }));
       

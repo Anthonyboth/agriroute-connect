@@ -484,7 +484,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     };
 
     loadData();
-  }, [profile?.id, fetchAvailableFreights, fetchMyProposals, fetchOngoingFreights, fetchDriverCheckins, fetchPendingPayments]);
+  }, [profile?.id]);
 
   // Atualizar em tempo real contadores e listas ao mudar fretes/propostas
   useEffect(() => {
@@ -506,16 +506,18 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile?.id, fetchAvailableFreights, fetchOngoingFreights, fetchMyProposals]);
+  }, [profile?.id]);
 
   // Carregar contra-ofertas - debounced para evitar chamadas excessivas
   useEffect(() => {
+    if (!profile?.id) return;
+    
     const timeoutId = setTimeout(() => {
       fetchCounterOffers();
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [fetchCounterOffers]);
+  }, [profile?.id]);
 
   // Calcular estatísticas - memoizado para performance
   const statistics = useMemo(() => {
