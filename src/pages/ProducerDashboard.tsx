@@ -68,9 +68,12 @@ const ProducerDashboard = () => {
   // Buscar fretes - otimizado
   const fetchFreights = useCallback(async () => {
     // Don't fetch if user is not a producer
-    if (!profile?.id || profile.role !== 'PRODUTOR') return;
+    if (!profile?.id || profile.role !== 'PRODUTOR') {
+      console.log('fetchFreights: Não executando - Profile não é produtor:', profile);
+      return;
+    }
 
-    console.log('Buscando fretes para produtor:', profile.id);
+    console.log('fetchFreights: Iniciando busca para produtor ID:', profile.id);
 
     try {
       const { data, error } = await supabase
@@ -83,18 +86,19 @@ const ProducerDashboard = () => {
         .order('created_at', { ascending: false })
         .limit(100);
 
-      console.log('Resposta da query de fretes:', { data, error, count: data?.length });
+      console.log('fetchFreights: Resposta da query:', { data, error, count: data?.length });
       
       if (error) {
-        console.error('Erro na query:', error);
+        console.error('fetchFreights: Erro na query:', error);
         throw error;
       }
       
       const freightData = data || [];
-      console.log('Fretes encontrados por status:', {
+      console.log('fetchFreights: Fretes encontrados por status:', {
         OPEN: freightData.filter(f => f.status === 'OPEN').length,
         ACCEPTED: freightData.filter(f => f.status === 'ACCEPTED').length,
         IN_TRANSIT: freightData.filter(f => f.status === 'IN_TRANSIT').length,
+        DELIVERED_PENDING_CONFIRMATION: freightData.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length,
         DELIVERED: freightData.filter(f => f.status === 'DELIVERED').length,
         total: freightData.length,
         allStatuses: freightData.map(f => f.status)
@@ -102,7 +106,7 @@ const ProducerDashboard = () => {
       
       setFreights(freightData);
     } catch (error) {
-      console.error('Error fetching freights:', error);
+      console.error('fetchFreights: Error:', error);
       toast.error('Erro ao carregar fretes');
     }
   }, [profile?.id, profile?.role]);
@@ -110,7 +114,12 @@ const ProducerDashboard = () => {
   // Buscar propostas - otimizado
   const fetchProposals = useCallback(async () => {
     // Don't fetch if user is not a producer
-    if (!profile?.id || profile.role !== 'PRODUTOR') return;
+    if (!profile?.id || profile.role !== 'PRODUTOR') {
+      console.log('fetchProposals: Não executando - Profile não é produtor:', profile);
+      return;
+    }
+
+    console.log('fetchProposals: Iniciando busca para produtor ID:', profile.id);
 
     try {
       // First get freight IDs for this producer
@@ -119,14 +128,18 @@ const ProducerDashboard = () => {
         .select('id')
         .eq('producer_id', profile.id);
 
+      console.log('fetchProposals: Fretes do produtor:', { producerFreights, freightError });
+
       if (freightError) throw freightError;
 
       if (!producerFreights || producerFreights.length === 0) {
+        console.log('fetchProposals: Nenhum frete encontrado para o produtor');
         setProposals([]);
         return;
       }
 
       const freightIds = producerFreights.map(f => f.id);
+      console.log('fetchProposals: IDs dos fretes:', freightIds);
 
       // Then get proposals for those freights
       const { data, error } = await supabase
@@ -141,30 +154,54 @@ const ProducerDashboard = () => {
         .order('created_at', { ascending: false })
         .limit(50);
 
+      console.log('fetchProposals: Resposta da query de propostas:', { data, error, count: data?.length });
+
       if (error) throw error;
       setProposals(data || []);
     } catch (error) {
-      console.error('Error fetching proposals:', error);
+      console.error('fetchProposals: Error:', error);
       toast.error('Erro ao carregar propostas');
     }
   }, [profile?.id, profile?.role]);
 
   // Carregar dados - otimizado
   useEffect(() => {
+    console.log('useEffect loadData executado. Profile:', profile);
+    
     const loadData = async () => {
-      if (!profile?.id) return;
+      // Forçar execução mesmo sem profile para debug
+      console.log('loadData: Forçando execução. Profile disponível:', !!profile?.id, 'Role:', profile?.role);
+      
+      if (!profile?.id) {
+        console.log('loadData: Profile não está disponível ainda, aguardando...');
+        return;
+      }
 
-      console.log('Carregando dados para produtor:', profile);
+      if (profile.role !== 'PRODUTOR') {
+        console.log('loadData: Usuário não é produtor, role:', profile.role);
+        return;
+      }
+
+      console.log('loadData: Executando fetchFreights e fetchProposals para:', profile.id);
       setLoading(true);
-      await Promise.all([
-        fetchFreights(), 
-        fetchProposals()
-      ]);
-      setLoading(false);
+      
+      try {
+        // Executar as funções
+        await fetchFreights();
+        await fetchProposals();
+      } catch (error) {
+        console.error('loadData: Erro no carregamento:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    loadData();
-  }, [profile?.id, fetchFreights, fetchProposals]);
+    // Executar imediatamente se profile estiver disponível
+    if (profile?.id && profile?.role === 'PRODUTOR') {
+      console.log('loadData: Profile disponível, executando imediatamente');
+      loadData();
+    }
+  }, [profile?.id, profile?.role, fetchFreights, fetchProposals]);
 
   // Atualização em tempo real
   useEffect(() => {
@@ -524,20 +561,6 @@ const ProducerDashboard = () => {
           <TabsContent value="open" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Fretes Abertos</h3>
-              <Button
-                onClick={() => {
-                  console.log('=== DEBUG FRETES ===');
-                  console.log('Profile atual:', profile);
-                  console.log('Todos os fretes carregados:', freights);
-                  console.log('Fretes OPEN filtrados:', freights.filter(f => f.status === 'OPEN'));
-                  console.log('IDs dos fretes:', freights.map(f => ({ id: f.id, status: f.status, producer_id: f.producer_id })));
-                  fetchFreights();
-                }}
-                variant="outline"
-                size="sm"
-              >
-                🔄 Debug & Recarregar
-              </Button>
             </div>
             
             {freights.filter(f => f.status === 'OPEN').length === 0 ? (
@@ -586,46 +609,6 @@ const ProducerDashboard = () => {
           <TabsContent value="ongoing" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Fretes em Andamento</h3>
-              <Button
-                onClick={async () => {
-                  console.log('=== DEBUG FRETES EM ANDAMENTO ===');
-                  console.log('Profile atual:', profile);
-                  console.log('Todos os fretes carregados:', freights);
-                  console.log('Fretes em andamento filtrados:', freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)));
-                  
-                  // Consulta direta ao banco para fretes em andamento
-                  const { data: ongoingFreights } = await supabase
-                    .from('freights')
-                    .select(`
-                      *,
-                      driver_profiles:profiles!freights_driver_id_fkey(*)
-                    `)
-                    .eq('producer_id', profile?.id || '')
-                    .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
-                    .order('created_at', { ascending: false });
-                    
-                  console.log('Fretes em andamento (consulta direta):', ongoingFreights);
-                  
-                  // Também verificar fretes com status DELIVERED_PENDING_CONFIRMATION
-                  const { data: pendingDelivery } = await supabase
-                    .from('freights')
-                    .select(`
-                      *,
-                      driver_profiles:profiles!freights_driver_id_fkey(*)
-                    `)
-                    .eq('producer_id', profile?.id || '')
-                    .eq('status', 'DELIVERED_PENDING_CONFIRMATION')
-                    .order('created_at', { ascending: false });
-                    
-                  console.log('Fretes aguardando confirmação:', pendingDelivery);
-                  
-                  fetchFreights();
-                }}
-                variant="outline"
-                size="sm"
-              >
-                🔍 Debug Andamento
-              </Button>
             </div>
             
             {freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).length === 0 ? (
@@ -837,39 +820,6 @@ const ProducerDashboard = () => {
           <TabsContent value="proposals" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Propostas Recebidas</h3>
-              <Button
-                onClick={async () => {
-                  console.log('=== DEBUG PROPOSTAS ===');
-                  console.log('Profile atual:', profile);
-                  console.log('Propostas carregadas:', proposals);
-                  
-                  // Consulta direta ao banco
-                  const { data: allProposals } = await supabase
-                    .from('freight_proposals')
-                    .select(`
-                      *,
-                      freight:freights(*),
-                      driver:profiles!freight_proposals_driver_id_fkey(*)
-                    `)
-                    .order('created_at', { ascending: false });
-                    
-                  console.log('Todas as propostas no banco:', allProposals);
-                  
-                  // Verificar fretes do produtor
-                  const { data: myFreights } = await supabase
-                    .from('freights')
-                    .select('*')
-                    .eq('producer_id', profile?.id || '');
-                    
-                  console.log('Meus fretes:', myFreights);
-                  
-                  fetchProposals();
-                }}
-                variant="outline"
-                size="sm"
-              >
-                🔍 Debug Propostas
-              </Button>
             </div>
             
             {proposals.length === 0 ? (
