@@ -363,6 +363,7 @@ const ProducerDashboard = () => {
   };
 
   const handleDeliveryConfirmed = () => {
+    console.log('handleDeliveryConfirmed chamado - atualizando lista de fretes');
     fetchFreights(); // Recarregar dados após confirmação
   };
 
@@ -1134,7 +1135,19 @@ const ProducerDashboard = () => {
 
       {freightToConfirm && (
         <DeliveryConfirmationModal
-          freight={freightToConfirm}
+          freight={{
+            id: freightToConfirm.id,
+            cargo_type: freightToConfirm.cargo_type,
+            origin_address: freightToConfirm.origin_address,
+            destination_address: freightToConfirm.destination_address,
+            status: freightToConfirm.status,
+            updated_at: freightToConfirm.updated_at,
+            metadata: freightToConfirm.metadata,
+            driver: freightToConfirm.driver_profiles ? {
+              full_name: freightToConfirm.driver_profiles.full_name,
+              contact_phone: freightToConfirm.driver_profiles.contact_phone || freightToConfirm.driver_profiles.phone
+            } : undefined
+          }}
           isOpen={deliveryConfirmationModal}
           onClose={closeDeliveryConfirmationModal}
           onConfirm={handleDeliveryConfirmed}

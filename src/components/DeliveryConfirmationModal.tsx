@@ -51,37 +51,73 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
     try {
       console.log('Confirmando entrega para frete:', freight.id);
       
-      const { data, error } = await supabase.rpc('confirm_delivery', {
-        freight_id_param: freight.id
-      });
-
-      console.log('Resposta da RPC confirm_delivery:', { data, error });
-
-      if (error) {
-        console.error('Erro na RPC:', error);
-        throw error;
+      // Verificar se o usuário está autenticado
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      console.log('Dados do usuário:', userData, 'Erro:', userError);
+      
+      if (userError || !userData.user) {
+        throw new Error('Usuário não autenticado');
       }
       
-      // Tentar confirmar diretamente atualizando o status se RPC não funcionar
-      if (!data || !(data as any)?.success) {
-        console.log('RPC não retornou sucesso, tentando atualização direta...');
+      // Verificar se o frete pertence ao usuário atual
+      const { data: freightCheck, error: freightError } = await supabase
+        .from('freights')
+        .select('producer_id, status')
+        .eq('id', freight.id)
+        .single();
         
-        const { error: updateError } = await supabase
-          .from('freights')
-          .update({ 
-            status: 'DELIVERED',
-            updated_at: new Date().toISOString(),
-            metadata: {
-              ...freight.metadata,
-              delivery_confirmed_at: new Date().toISOString(),
-              confirmed_by_producer: true,
-              confirmation_notes: notes
-            }
-          })
-          .eq('id', freight.id);
-
-        if (updateError) throw updateError;
+      console.log('Verificação do frete:', freightCheck, 'Erro:', freightError);
+      
+      if (freightError) {
+        throw new Error(`Erro ao verificar frete: ${freightError.message}`);
       }
+      
+      // Buscar o profile do usuário atual
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userData.user.id)
+        .single();
+        
+      console.log('Profile do usuário:', profile, 'Erro:', profileError);
+      
+      if (profileError || !profile) {
+        throw new Error('Profile do usuário não encontrado');
+      }
+      
+      if (freightCheck.producer_id !== profile.id) {
+        throw new Error('Você não tem permissão para confirmar este frete');
+      }
+      
+      if (freightCheck.status !== 'DELIVERED_PENDING_CONFIRMATION') {
+        throw new Error('Frete não está aguardando confirmação');
+      }
+      
+      console.log('Todas as verificações passaram, tentando atualizar...');
+      
+      // Tentar confirmar diretamente
+      const { error: updateError } = await supabase
+        .from('freights')
+        .update({ 
+          status: 'DELIVERED',
+          updated_at: new Date().toISOString(),
+          metadata: {
+            ...freight.metadata,
+            delivery_confirmed_at: new Date().toISOString(),
+            confirmed_by_producer: true,
+            confirmed_by_producer_id: profile.id,
+            confirmation_notes: notes
+          }
+        })
+        .eq('id', freight.id)
+        .eq('producer_id', profile.id); // Adicionar filtro extra para segurança
+
+      if (updateError) {
+        console.error('Erro na atualização:', updateError);
+        throw new Error(`Erro ao atualizar: ${updateError.message}`);
+      }
+      
+      console.log('Atualização realizada com sucesso');
 
       toast({
         title: "Entrega Confirmada",
