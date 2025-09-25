@@ -56,7 +56,7 @@ const Auth = () => {
       role
     });
     
-    if (!validation.success) {
+    if (validation.success === false) {
       toast.error(`Erro de validação: ${validation.errors.join(', ')}`);
       setLoading(false);
       return;
