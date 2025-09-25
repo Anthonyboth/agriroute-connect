@@ -6,7 +6,9 @@ import { Check, Star, Zap } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 
 const SubscriptionPlans: React.FC = () => {
-  const { subscriptionTier, createCheckout, loading } = useSubscription();
+  const { subscriptionTier, createCheckout, loading, userCategory, getAvailablePlans } = useSubscription();
+  
+  const availablePlans = getAvailablePlans();
 
   const plans = [
     {
@@ -29,7 +31,7 @@ const SubscriptionPlans: React.FC = () => {
     {
       id: 'ESSENTIAL',
       name: 'Plano Essencial',
-      price: 'R$ 69-119',
+      price: `R$ ${availablePlans.find(p => p.planType === 'essential')?.price || 69}`,
       period: '/mês',
       description: 'Para profissionais ativos',
       features: [
@@ -48,7 +50,7 @@ const SubscriptionPlans: React.FC = () => {
     {
       id: 'PROFESSIONAL',
       name: 'Plano Profissional',
-      price: 'R$ 119-199',
+      price: `R$ ${availablePlans.find(p => p.planType === 'professional')?.price || 199}`,
       period: '/mês',
       description: 'Para grandes profissionais',
       features: [
@@ -69,7 +71,7 @@ const SubscriptionPlans: React.FC = () => {
 
   const handleSubscribe = async (planId: string) => {
     if (planId === 'ESSENTIAL' || planId === 'PROFESSIONAL') {
-      await createCheckout('prestador', planId.toLowerCase() as 'essential' | 'professional');
+      await createCheckout(userCategory || 'prestador', planId.toLowerCase() as 'essential' | 'professional');
     }
   };
 
