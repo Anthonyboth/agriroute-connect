@@ -64,6 +64,8 @@ const ProducerDashboard = () => {
   const [selectedFreightDetails, setSelectedFreightDetails] = useState<any>(null);
   const [deliveryConfirmationModal, setDeliveryConfirmationModal] = useState(false);
   const [freightToConfirm, setFreightToConfirm] = useState<any>(null);
+  const [externalPayments, setExternalPayments] = useState<any[]>([]);
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   // Buscar fretes - otimizado
   const fetchFreights = useCallback(async () => {
@@ -203,6 +205,35 @@ const ProducerDashboard = () => {
     }
   }, [profile?.id, profile?.role, fetchFreights, fetchProposals]);
 
+  // Buscar pagamentos externos
+  const fetchExternalPayments = useCallback(async () => {
+    if (!profile?.id || profile.role !== 'PRODUTOR') return;
+
+    try {
+      const { data, error } = await supabase
+        .from('external_payments')
+        .select(`
+          *,
+          freight:freights!external_payments_freight_id_fkey(*),
+          driver:profiles!external_payments_driver_id_fkey(*)
+        `)
+        .eq('producer_id', profile.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setExternalPayments(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar pagamentos:', error);
+    }
+  }, [profile?.id, profile?.role]);
+
+  // Carregar pagamentos junto com outros dados
+  useEffect(() => {
+    if (profile?.id && profile?.role === 'PRODUTOR') {
+      fetchExternalPayments();
+    }
+  }, [profile?.id, profile?.role, fetchExternalPayments]);
+
   // Atualização em tempo real
   useEffect(() => {
     if (!profile?.id) return;
@@ -219,13 +250,17 @@ const ProducerDashboard = () => {
         console.log('Mudança em propostas detectada:', payload);
         fetchProposals();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'external_payments' }, (payload) => {
+        console.log('Mudança em pagamentos detectada:', payload);
+        fetchExternalPayments();
+      })
       .subscribe();
 
     return () => {
       console.log('Removendo canal realtime');
       supabase.removeChannel(channel);
     };
-  }, [profile?.id, fetchFreights, fetchProposals]);
+  }, [profile?.id, fetchFreights, fetchProposals, fetchExternalPayments]);
 
   const handleAcceptProposal = async (proposalId: string) => {
     try {
@@ -343,14 +378,21 @@ const ProducerDashboard = () => {
 
   // Estatísticas calculadas - memoizadas
   const statistics = useMemo(() => {
+    const pendingPayments = externalPayments.filter(p => p.status === 'proposed').length;
+    const totalPendingAmount = externalPayments
+      .filter(p => p.status === 'proposed')
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
+    
     return {
       openFreights: freights.filter(f => f.status === 'OPEN').length,
       activeFreights: freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).length,
       pendingConfirmation: freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length,
       totalValue: freights.reduce((sum, f) => sum + f.price, 0),
-      pendingProposals: proposals.length
+      pendingProposals: proposals.length,
+      pendingPayments,
+      totalPendingAmount
     };
-  }, [freights, proposals]);
+  }, [freights, proposals, externalPayments]);
 
   const openDeliveryConfirmationModal = (freight: any) => {
     setFreightToConfirm(freight);
@@ -364,7 +406,26 @@ const ProducerDashboard = () => {
 
   const handleDeliveryConfirmed = () => {
     console.log('handleDeliveryConfirmed chamado - atualizando lista de fretes');
+    
+    // Após confirmar entrega, solicitar pagamento automático se ainda não foi feito
+    if (freightToConfirm && freightToConfirm.driver_profiles) {
+      const existingPayment = externalPayments.find(p => 
+        p.freight_id === freightToConfirm.id && p.amount === freightToConfirm.price
+      );
+      
+      if (!existingPayment) {
+        setTimeout(() => {
+          requestFullPayment(
+            freightToConfirm.id, 
+            freightToConfirm.driver_profiles.id, 
+            freightToConfirm.price
+          );
+        }, 1000);
+      }
+    }
+    
     fetchFreights(); // Recarregar dados após confirmação
+    fetchExternalPayments(); // Recarregar pagamentos
   };
 
   const handlePaymentNotification = async (freightId: string, driverId: string, amount: number) => {
@@ -427,6 +488,84 @@ const ProducerDashboard = () => {
     }
   };
 
+  // Solicitar pagamento completo após entrega confirmada
+  const requestFullPayment = async (freightId: string, driverId: string, amount: number) => {
+    try {
+      setPaymentLoading(true);
+      console.log('Solicitando pagamento completo:', { freightId, driverId, amount });
+      
+      // Criar registro de pagamento externo
+      const { data: paymentData, error: paymentError } = await supabase
+        .from('external_payments')
+        .insert([
+          {
+            freight_id: freightId,
+            producer_id: profile?.id,
+            driver_id: driverId,
+            amount: amount,
+            status: 'proposed',
+            notes: 'Pagamento completo do frete após entrega confirmada'
+          }
+        ])
+        .select()
+        .single();
+
+      if (paymentError) throw paymentError;
+
+      // Enviar notificação para o motorista
+      const { error: notificationError } = await supabase.functions.invoke('send-notification', {
+        body: {
+          user_id: driverId,
+          title: 'Pagamento Disponível',
+          message: `Produtor deve pagar o valor total de R$ ${amount.toLocaleString('pt-BR')} do frete. Confirme quando receber.`,
+          type: 'payment_notification',
+          data: {
+            freight_id: freightId,
+            payment_id: paymentData.id,
+            amount: amount
+          }
+        }
+      });
+
+      if (notificationError) {
+        console.error('Erro ao enviar notificação:', notificationError);
+      }
+
+      toast.success('Solicitação de pagamento enviada ao motorista!');
+      fetchExternalPayments();
+    } catch (error) {
+      console.error('Erro ao solicitar pagamento:', error);
+      toast.error('Erro ao solicitar pagamento');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // Confirmar que pagamento foi realizado
+  const confirmPaymentMade = async (paymentId: string) => {
+    try {
+      setPaymentLoading(true);
+      
+      const { error } = await supabase
+        .from('external_payments')
+        .update({ 
+          status: 'paid_by_producer',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', paymentId);
+
+      if (error) throw error;
+
+      toast.success('Pagamento confirmado! Aguardando confirmação do motorista.');
+      fetchExternalPayments();
+    } catch (error) {
+      console.error('Erro ao confirmar pagamento:', error);
+      toast.error('Erro ao confirmar pagamento');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/5 to-background">
@@ -484,7 +623,7 @@ const ProducerDashboard = () => {
 
       <div className="container max-w-7xl mx-auto py-4 px-4 pb-8">
         {/* Stats Cards Compactos */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           <Card className="shadow-sm">
             <CardContent className="p-3">
               <div className="flex items-center">
@@ -536,6 +675,20 @@ const ProducerDashboard = () => {
                     Propostas
                   </p>
                   <p className="text-lg font-bold">{statistics.pendingProposals}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center">
+                <CreditCard className="h-6 w-6 text-green-500 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground truncate">
+                    Pagamentos
+                  </p>
+                  <p className="text-lg font-bold">{statistics.pendingPayments}</p>
                 </div>
               </div>
             </CardContent>
@@ -602,6 +755,14 @@ const ProducerDashboard = () => {
                 <CheckCircle className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Histórico</span>
                 <span className="sm:hidden">Hist</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="payments" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <CreditCard className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Pagamentos</span>
+                <span className="sm:hidden">Pag</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1085,6 +1246,260 @@ const ProducerDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="payments" className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Pagamentos</h3>
+            </div>
+            
+            {externalPayments.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">Nenhum pagamento pendente</h3>
+                  <p className="text-muted-foreground mb-6 max-w-sm">
+                    Não há pagamentos para serem realizados no momento.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="max-h-[600px] overflow-y-auto pr-2 scroll-area">
+                <div className="space-y-4">
+                  {/* Pagamentos Pendentes */}
+                  <div className="space-y-4">
+                    <h4 className="text-md font-semibold text-amber-700">Pagamentos Solicitados</h4>
+                    {externalPayments.filter(p => p.status === 'proposed').map((payment) => (
+                      <Card key={payment.id} className="p-4 border-amber-200 bg-amber-50/50 dark:bg-amber-900/20">
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h5 className="font-semibold text-lg">
+                                {payment.freight?.cargo_type}
+                              </h5>
+                              <p className="text-sm text-muted-foreground">
+                                {payment.freight?.origin_address} → {payment.freight?.destination_address}
+                              </p>
+                              <p className="text-sm font-medium text-amber-700 mt-2">
+                                ⏰ Pagamento solicitado pelo motorista
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300">
+                                Aguardando Pagamento
+                              </Badge>
+                              <p className="text-xl font-bold text-green-600 mt-1">
+                                R$ {payment.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="font-medium">Motorista:</p>
+                              <p className="text-muted-foreground">
+                                {payment.driver?.full_name || 'N/A'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Telefone:</p>
+                              <p className="text-muted-foreground">
+                                {payment.driver?.contact_phone || payment.driver?.phone || '-'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Solicitado em:</p>
+                              <p className="text-muted-foreground">
+                                {new Date(payment.proposed_at).toLocaleString('pt-BR')}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Observações:</p>
+                              <p className="text-muted-foreground">
+                                {payment.notes || 'Nenhuma observação'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3 pt-2">
+                            <Button 
+                              size="sm" 
+                              className="flex-1 bg-green-600 hover:bg-green-700"
+                              onClick={() => confirmPaymentMade(payment.id)}
+                              disabled={paymentLoading}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Confirmar Pagamento Realizado
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Pagamentos Confirmados pelo Produtor */}
+                  <div className="space-y-4">
+                    <h4 className="text-md font-semibold text-blue-700">Aguardando Confirmação do Motorista</h4>
+                    {externalPayments.filter(p => p.status === 'paid_by_producer').map((payment) => (
+                      <Card key={payment.id} className="p-4 border-blue-200 bg-blue-50/50 dark:bg-blue-900/20">
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h5 className="font-semibold text-lg">
+                                {payment.freight?.cargo_type}
+                              </h5>
+                              <p className="text-sm text-muted-foreground">
+                                {payment.freight?.origin_address} → {payment.freight?.destination_address}
+                              </p>
+                              <p className="text-sm font-medium text-blue-700 mt-2">
+                                ✅ Pagamento confirmado por você - Aguardando confirmação do motorista
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300">
+                                Aguardando Confirmação
+                              </Badge>
+                              <p className="text-xl font-bold text-green-600 mt-1">
+                                R$ {payment.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="font-medium">Motorista:</p>
+                              <p className="text-muted-foreground">
+                                {payment.driver?.full_name || 'N/A'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Pago em:</p>
+                              <p className="text-muted-foreground">
+                                {new Date(payment.updated_at).toLocaleString('pt-BR')}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Pagamentos Completados */}
+                  <div className="space-y-4">
+                    <h4 className="text-md font-semibold text-green-700">Pagamentos Completados</h4>
+                    {externalPayments.filter(p => p.status === 'confirmed').map((payment) => (
+                      <Card key={payment.id} className="p-4 border-green-200 bg-green-50/50 dark:bg-green-900/20">
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h5 className="font-semibold text-lg">
+                                {payment.freight?.cargo_type}
+                              </h5>
+                              <p className="text-sm text-muted-foreground">
+                                {payment.freight?.origin_address} → {payment.freight?.destination_address}
+                              </p>
+                              <p className="text-sm font-medium text-green-700 mt-2">
+                                ✅ Pagamento completado e confirmado por ambas as partes
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300">
+                                Completado
+                              </Badge>
+                              <p className="text-xl font-bold text-green-600 mt-1">
+                                R$ {payment.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                          </div>
+
+                         <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <p className="font-medium">Motorista:</p>
+                              <p className="text-muted-foreground">
+                                {payment.driver?.full_name || 'N/A'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Pago em:</p>
+                              <p className="text-muted-foreground">
+                                {new Date(payment.updated_at).toLocaleString('pt-BR')}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Confirmado em:</p>
+                              <p className="text-muted-foreground">
+                                {payment.confirmed_at ? new Date(payment.confirmed_at).toLocaleString('pt-BR') : '-'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Fretes Entregues - Solicitar Pagamento Completo */}
+                  <div className="space-y-4">
+                    <h4 className="text-md font-semibold text-purple-700">Fretes Entregues - Solicitar Pagamento</h4>
+                    {freights.filter(f => f.status === 'DELIVERED' && 
+                      !externalPayments.some(p => p.freight_id === f.id && p.amount === f.price)
+                    ).map((freight) => (
+                      <Card key={freight.id} className="p-4 border-purple-200 bg-purple-50/50 dark:bg-purple-900/20">
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h5 className="font-semibold text-lg">
+                                {freight.cargo_type}
+                              </h5>
+                              <p className="text-sm text-muted-foreground">
+                                {freight.origin_address} → {freight.destination_address}
+                              </p>
+                              <p className="text-sm font-medium text-purple-700 mt-2">
+                                📦 Frete entregue - Realizar pagamento completo
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-300">
+                                Pagamento Pendente
+                              </Badge>
+                              <p className="text-xl font-bold text-green-600 mt-1">
+                                R$ {freight.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="font-medium">Motorista:</p>
+                              <p className="text-muted-foreground">
+                                {freight.driver_profiles?.full_name || 'N/A'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Entregue em:</p>
+                              <p className="text-muted-foreground">
+                                {new Date(freight.updated_at).toLocaleString('pt-BR')}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3 pt-2">
+                            <Button 
+                              size="sm" 
+                              className="flex-1 bg-purple-600 hover:bg-purple-700"
+                              onClick={() => requestFullPayment(freight.id, freight.driver_profiles?.id, freight.price)}
+                              disabled={paymentLoading}
+                            >
+                              <CreditCard className="h-4 w-4 mr-2" />
+                              Solicitar Pagamento ao Motorista
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
         </Tabs>
