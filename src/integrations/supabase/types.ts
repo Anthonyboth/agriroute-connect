@@ -3898,6 +3898,16 @@ export type Database = {
         Args: { "": unknown } | { "": unknown }
         Returns: string
       }
+      calculate_antt_minimum_price: {
+        Args: {
+          cargo_type_param: string
+          destination_state: string
+          distance_km: number
+          origin_state: string
+          weight_kg: number
+        }
+        Returns: number
+      }
       calculate_distance: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number

@@ -190,7 +190,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
           <div className="text-left">
             <p className="font-bold text-xl text-primary">R$ {(freight.price || 0).toLocaleString('pt-BR')}</p>
             <p className="text-xs text-muted-foreground">
-              Min. ANTT: R$ {(freight.minimum_antt_price || 0).toLocaleString('pt-BR')}
+              Min. ANTT: R$ {(freight.minimum_antt_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
           </div>
           <div className="text-right">

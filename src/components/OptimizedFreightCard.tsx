@@ -146,7 +146,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
   );
 
   const formattedMinPrice = React.useMemo(() => 
-    (freight.minimum_antt_price || 0).toLocaleString('pt-BR'),
+    (freight.minimum_antt_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
     [freight.minimum_antt_price]
   );
 
