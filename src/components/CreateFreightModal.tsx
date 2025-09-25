@@ -154,6 +154,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         destination_city: formData.destination_city,
         destination_state: formData.destination_state,
         distance_km: distance,
+        minimum_antt_price: minimumAnttPrice,
         price: formData.pricing_type === 'FIXED' ? parseFloat(formData.price) : parseFloat(formData.price_per_km) * distance,
         price_per_km: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : null,
         required_trucks: parseInt(formData.required_trucks),
