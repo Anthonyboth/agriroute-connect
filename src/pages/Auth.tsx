@@ -46,16 +46,18 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Validate required fields
-    if (!document.trim()) {
-      toast.error('CPF/CNPJ é obrigatório para o cadastro.');
-      setLoading(false);
-      return;
-    }
-
-    // Validate CPF/CNPJ
-    if (!validateDocument(document)) {
-      toast.error('CPF/CNPJ inválido. Verifique os dados informados.');
+    // Validate input using Zod schema
+    const validation = validateInput(userRegistrationSchema, {
+      full_name: fullName,
+      email,
+      password,
+      phone,
+      document,
+      role
+    });
+    
+    if (!validation.success) {
+      toast.error(`Erro de validação: ${validation.errors.join(', ')}`);
       setLoading(false);
       return;
     }
