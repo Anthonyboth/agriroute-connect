@@ -146,7 +146,7 @@ export const useAuth = () => {
         setProfile(activeProfile);
         console.log('Active profile set:', activeProfile);
       } else {
-        console.log('No profiles found, user may need to complete registration');
+        console.log('No profiles found, attempting auto-create from metadata');
         setProfile(null);
         setProfiles([]);
         
@@ -155,12 +155,15 @@ export const useAuth = () => {
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
             const meta = (user as any).user_metadata || {};
+            const roleMeta = (meta.role as any);
+            const resolvedRole = (roleMeta === 'PRODUTOR' || roleMeta === 'MOTORISTA' || roleMeta === 'PRESTADOR_SERVICOS') ? roleMeta : 'PRODUTOR';
             const newProfile = {
               user_id: user.id,
               full_name: meta.full_name || '',
               phone: meta.phone || '',
               document: meta.document || '',
-              role: (meta.role as any) || 'PRODUTOR',
+              cpf_cnpj: meta.document || '',
+              role: resolvedRole,
               status: 'PENDING' as any,
             };
             const { data: inserted, error: insertError } = await supabase
@@ -178,9 +181,15 @@ export const useAuth = () => {
           }
         } catch (e) {
           console.error('Error during auto-create profile:', e);
-        } finally {
-          setLoading(false);
         }
+      }
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+      setProfile(null);
+      setProfiles([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signOut = async () => {

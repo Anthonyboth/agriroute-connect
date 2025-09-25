@@ -79,6 +79,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
       });
     } catch (error) {
       console.error('Error checking subscription:', error);
+      // Sempre permitir acesso com tier FREE em caso de erro
       setState(prev => ({ 
         ...prev, 
         loading: false,
@@ -87,11 +88,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         userCategory: null
       }));
       
-      // Só notifica o usuário em erros de autenticação (401/403)
+      // Só notifica o usuário em erros críticos de autenticação
       const status = (error as any)?.status ?? (error as any)?.context?.response?.status ?? null;
       if (status === 401 || status === 403) {
         const now = Date.now();
-        if (now - lastErrorTime > 10000) {
+        if (now - lastErrorTime > 30000) { // Reduzido de 10s para 30s
           setLastErrorTime(now);
           toast.error('Sua sessão expirou. Faça login novamente.', {
             action: {
@@ -101,6 +102,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
           });
         }
       }
+      // Para outros erros (como 500), não notifica o usuário para não interromper o fluxo
     }
   };
 
