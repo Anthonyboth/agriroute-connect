@@ -210,7 +210,7 @@ const ProducerDashboard = () => {
       const { data, error } = await (supabase as any)
         .from('freight_payments')
         .select('*')
-        .eq('producer_id', profile.id)
+        .eq('payer_id', profile.id)
         .order('created_at', { ascending: false });
 
       if (error) {
