@@ -205,12 +205,22 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     // Don't fetch if user is not a driver
     if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
+    console.log('🔍 Buscando propostas do motorista:', profile.id);
     try {
       const { data, error } = await (supabase as any).functions.invoke('driver-proposals');
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro na edge function driver-proposals:', error);
+        throw error;
+      }
 
+      console.log('✅ Dados retornados da edge function:', data);
       const proposals = (data?.proposals as any[]) || [];
       const ongoing = (data?.ongoingFreights as any[]) || [];
+      
+      console.log('📋 Propostas encontradas:', proposals.length);
+      console.log('🚛 Fretes em andamento encontrados:', ongoing.length);
+      console.log('📊 Detalhes dos fretes em andamento:', ongoing);
+      
       setMyProposals(proposals);
       setOngoingFreights(ongoing);
 
@@ -239,6 +249,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     // Don't fetch if user is not a driver
     if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
+    console.log('🔍 Buscando fretes diretos do motorista:', profile.id);
     try {
       // Buscar fretes vinculados ao motorista diretamente (evita políticas com recursão)
       const { data, error } = await supabase
@@ -248,7 +259,13 @@ const [showRegionModal, setShowRegionModal] = useState(false);
         .order('updated_at', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro buscando fretes diretos:', error);
+        throw error;
+      }
+      
+      console.log('📦 Fretes diretos encontrados:', data?.length || 0);
+      console.log('📊 Detalhes dos fretes diretos:', data);
       setOngoingFreights(data || []);
 
       // Verificar checkins para cada frete
