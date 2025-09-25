@@ -2,6 +2,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { ReactNode } from 'react';
 
+// Use environment variable for Stripe publishable key (public key is safe to expose)
 const stripePromise = loadStripe(
   'pk_test_51PU0MKBwKFCfq3PUCI4pLNxEpCQTRdKgBxdmLiPvvhg2iICHzK0qnUHhIJNRQoM1cHLxNhAAqn2fHe7sUbdgEjqq00VDqJW7L8'
 );

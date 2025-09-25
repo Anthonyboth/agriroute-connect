@@ -74,16 +74,30 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         }
       } catch (error) {
         console.error("Erro ao carregar o Google Maps:", error);
-        // Fallback para quando não há chave de API
+        // Fallback para quando não há chave de API - usando DOM seguro
         if (mapRef.current) {
-          mapRef.current.innerHTML = `
-            <div class="flex items-center justify-center h-full bg-muted rounded-lg">
-              <div class="text-center">
-                <p class="text-muted-foreground">Mapa indisponível</p>
-                <p class="text-sm text-muted-foreground">Configure a chave da API do Google Maps</p>
-              </div>
-            </div>
-          `;
+          // Clear existing content safely
+          mapRef.current.textContent = '';
+          
+          // Create fallback UI using DOM methods (prevents XSS)
+          const container = document.createElement('div');
+          container.className = 'flex items-center justify-center h-full bg-muted rounded-lg';
+          
+          const innerDiv = document.createElement('div');
+          innerDiv.className = 'text-center';
+          
+          const title = document.createElement('p');
+          title.className = 'text-muted-foreground';
+          title.textContent = 'Mapa indisponível';
+          
+          const subtitle = document.createElement('p');
+          subtitle.className = 'text-sm text-muted-foreground';
+          subtitle.textContent = 'Configure a chave da API do Google Maps';
+          
+          innerDiv.appendChild(title);
+          innerDiv.appendChild(subtitle);
+          container.appendChild(innerDiv);
+          mapRef.current.appendChild(container);
         }
       }
     };
