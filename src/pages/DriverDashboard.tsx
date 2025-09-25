@@ -926,35 +926,6 @@ const [showRegionModal, setShowRegionModal] = useState(false);
               />
             </div>
             <SmartFreightMatcher onFreightAction={handleFreightAction} />
-            
-            {/* Fretes disponíveis tradicionais */}
-            {availableFreights.length > 0 && (
-              <div className="mt-8">
-                <h4 className="text-md font-semibold mb-4">Outros Fretes Disponíveis</h4>
-                <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-                  {availableFreights.map((freight) => (
-                    <FreightCard 
-                      key={freight.id}
-                      freight={{
-                        ...freight,
-                        status: freight.status as 'OPEN' | 'IN_TRANSIT' | 'DELIVERED' | 'ACCEPTED' | 'IN_NEGOTIATION' | 'CANCELLED',
-                        service_type: (freight.service_type === 'GUINCHO' || 
-                                     freight.service_type === 'MUDANCA' || 
-                                     freight.service_type === 'CARGA') 
-                                    ? freight.service_type as 'GUINCHO' | 'MUDANCA' | 'CARGA'
-                                    : undefined
-                      }}
-                      onAction={(action) => {
-                        if (action !== 'edit') {
-                          handleFreightAction(freight.id, action);
-                        }
-                      }}
-                      showActions={true}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
           </TabsContent>
 
           <TabsContent value="ongoing" className="space-y-3">
