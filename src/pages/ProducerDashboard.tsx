@@ -585,6 +585,12 @@ const ProducerDashboard = () => {
 
       if (freightError) throw freightError;
 
+      // Verificar se o frete tem um motorista atribuído
+      if (!freightData.driver_id) {
+        toast.error('Este frete ainda não foi aceito por um motorista');
+        return;
+      }
+
       // Buscar dados do driver
       const { data: driverData, error: driverError } = await supabase
         .from('profiles')
@@ -592,7 +598,11 @@ const ProducerDashboard = () => {
         .eq('id', freightData.driver_id)
         .single();
 
-      if (driverError) throw driverError;
+      if (driverError) {
+        console.error('Erro ao buscar dados do motorista:', driverError);
+        toast.error('Erro ao buscar dados do motorista');
+        return;
+      }
 
       // Criar registro de pagamento externo
       const { data: paymentData, error: paymentError } = await supabase
