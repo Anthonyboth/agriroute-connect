@@ -33,7 +33,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     destination_state: '',
     price: '',
     price_per_km: '',
-    pricing_type: 'FIXED' as 'FIXED' | 'PER_KM',
+    pricing_type: 'PER_KM' as 'FIXED' | 'PER_KM',
     pickup_date: '',
     delivery_date: '',
     urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
