@@ -673,7 +673,8 @@ const ProducerDashboard = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">{freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
+              <div className="max-h-[600px] overflow-y-auto pr-2 scroll-area">
+                <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">{freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
                   <Card key={freight.id} className="border-l-4 border-l-primary hover:shadow-lg transition-all duration-300">
                     <CardHeader className="pb-4">
                       <div className="flex justify-between items-start">
@@ -791,6 +792,7 @@ const ProducerDashboard = () => {
                     </CardContent>
                   </Card>
                 ))}
+                </div>
               </div>
             )}
           </TabsContent>
@@ -911,8 +913,9 @@ const ProducerDashboard = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {proposals.map((proposal) => (
+              <div className="max-h-[500px] overflow-y-auto pr-2 scroll-area">
+                <div className="space-y-4">
+                  {proposals.map((proposal) => (
                   <Card key={proposal.id} className="p-4">
                     <div className="space-y-4">
                       <div className="flex justify-between items-start">
@@ -991,6 +994,7 @@ const ProducerDashboard = () => {
                     </div>
                   </Card>
                 ))}
+                </div>
               </div>
             )}
           </TabsContent>

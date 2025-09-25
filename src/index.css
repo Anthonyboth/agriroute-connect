@@ -278,4 +278,33 @@
   .status-cancelled {
     @apply bg-destructive/10 text-destructive border-destructive/20;
   }
+
+  /* Custom scrollbar styles */
+  .scroll-area {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.3) hsl(var(--muted));
+  }
+
+  .scroll-area::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .scroll-area::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 6px;
+  }
+
+  .scroll-area::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.3);
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+  }
+
+  .scroll-area::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.5);
+  }
+
+  .scroll-area::-webkit-scrollbar-corner {
+    background: hsl(var(--muted));
+  }
 }
