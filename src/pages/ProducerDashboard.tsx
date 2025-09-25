@@ -265,7 +265,7 @@ const ProducerDashboard = () => {
   const statistics = useMemo(() => {
     return {
       openFreights: freights.filter(f => f.status === 'OPEN').length,
-      activeFreights: freights.filter(f => ['ACCEPTED', 'LOADED', 'IN_TRANSIT'].includes(f.status)).length,
+      activeFreights: freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).length,
       pendingConfirmation: freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length,
       totalValue: freights.reduce((sum, f) => sum + f.price, 0),
       pendingProposals: proposals.length
@@ -531,7 +531,7 @@ const ProducerDashboard = () => {
               <h3 className="text-lg font-semibold">Fretes em Andamento</h3>
             </div>
             
-            {freights.filter(f => ['ACCEPTED', 'LOADED', 'IN_TRANSIT'].includes(f.status)).length === 0 ? (
+            {freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Play className="h-12 w-12 text-muted-foreground mb-4" />
@@ -542,7 +542,7 @@ const ProducerDashboard = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">{freights.filter(f => ['ACCEPTED', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
+              <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">{freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
                   <Card key={freight.id} className="border-l-4 border-l-primary hover:shadow-lg transition-all duration-300">
                     <CardHeader className="pb-4">
                       <div className="flex justify-between items-start">
