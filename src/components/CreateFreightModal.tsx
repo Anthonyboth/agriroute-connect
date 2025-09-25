@@ -8,10 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectGroup } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Loader2, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { LocationFillButton } from './LocationFillButton';
 import { AddressButton } from './AddressButton';
 import { CitySelector } from './CitySelector';
 
@@ -23,7 +22,6 @@ interface CreateFreightModalProps {
 const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModalProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [cargoComboOpen, setCargoComboOpen] = useState(false);
   const [formData, setFormData] = useState({
     cargo_type: '',
     weight: '',
@@ -210,7 +208,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         destination_state: '',
         price: '',
         price_per_km: '',
-        pricing_type: 'PER_KM' as 'FIXED' | 'PER_KM',
+        pricing_type: 'FIXED' as 'FIXED' | 'PER_KM',
         pickup_date: '',
         delivery_date: '',
         urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
@@ -219,7 +217,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         vehicle_type_required: '',
         pickup_observations: '',
         delivery_observations: '',
-        payment_method: 'DIRETO',
+        payment_method: 'PIX',
         required_trucks: '1'
       });
       onFreightCreated();
@@ -251,66 +249,29 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cargo_type">Tipo de Carga *</Label>
-              <Popover open={cargoComboOpen} onOpenChange={setCargoComboOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={cargoComboOpen}
-                    className="w-full justify-between"
-                  >
-                    {formData.cargo_type
-                      ? CARGO_TYPES.find((cargo) => cargo.value === formData.cargo_type)?.label
-                      : "Buscar ou selecionar tipo de carga..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Buscar tipo de carga..." />
-                    <CommandEmpty>
-                      <div className="p-2">
-                        <p className="text-sm text-muted-foreground mb-2">Nenhum resultado encontrado.</p>
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start"
-                          onClick={() => {
-                            handleInputChange('cargo_type', 'outros');
-                            setCargoComboOpen(false);
-                          }}
-                        >
-                          <Check className="mr-2 h-4 w-4" />
-                          Outros (não listado)
-                        </Button>
-                      </div>
-                    </CommandEmpty>
-                    <CommandList>
-                      {CARGO_CATEGORIES.map((category) => (
-                        <CommandGroup key={category.value} heading={category.label}>
-                          {getCargoTypesByCategory(category.value).map((cargo) => (
-                            <CommandItem
-                              key={cargo.value}
-                              value={cargo.label}
-                              onSelect={() => {
-                                handleInputChange('cargo_type', cargo.value);
-                                setCargoComboOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${
-                                  formData.cargo_type === cargo.value ? "opacity-100" : "opacity-0"
-                                }`}
-                              />
-                              {cargo.label}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
+              <Select
+                value={formData.cargo_type}
+                onValueChange={(value) => handleInputChange('cargo_type', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo de carga" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CARGO_CATEGORIES.map((category) => (
+                    <SelectGroup key={category.value}>
+                      <SelectLabel className="font-semibold text-primary">
+                        {category.label}
+                      </SelectLabel>
+                      {getCargoTypesByCategory(category.value).map((cargo) => (
+                        <SelectItem key={cargo.value} value={cargo.value}>
+                          {cargo.label}
+                        </SelectItem>
                       ))}
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                      {category.value !== 'outros' && <Separator className="my-1" />}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-2">
