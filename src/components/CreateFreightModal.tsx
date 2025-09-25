@@ -13,7 +13,6 @@ import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/ca
 import { LocationFillButton } from './LocationFillButton';
 import { AddressButton } from './AddressButton';
 import { CitySelector } from './CitySelector';
-import { RadiusSelector } from './RadiusSelector';
 
 interface CreateFreightModalProps {
   onFreightCreated: () => void;
@@ -32,7 +31,6 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     destination_address: '',
     destination_city: '',
     destination_state: '',
-    service_radius_km: 50,
     price: '',
     price_per_km: '',
     pricing_type: 'FIXED' as 'FIXED' | 'PER_KM',
@@ -151,7 +149,6 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         destination_address: formData.destination_address,
         destination_city: formData.destination_city,
         destination_state: formData.destination_state,
-        service_radius_km: formData.service_radius_km,
         distance_km: distance,
         price: formData.pricing_type === 'FIXED' ? parseFloat(formData.price) : parseFloat(formData.price_per_km) * distance,
         price_per_km: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : null,
@@ -164,13 +161,37 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         status: 'OPEN' as const
       };
 
-      const { error } = await supabase
+      const { data: insertedFreight, error } = await supabase
         .from('freights')
-        .insert([freightData]);
+        .insert([freightData])
+        .select('id')
+        .single();
 
       if (error) throw error;
 
-      toast.success('Frete criado com sucesso!');
+      // Trigger automatic spatial matching for drivers
+      if (insertedFreight?.id) {
+        try {
+          console.log(`Triggering spatial matching for freight ${insertedFreight.id}...`);
+          const matchingResponse = await supabase.functions.invoke('spatial-freight-matching', {
+            body: { 
+              freight_id: insertedFreight.id,
+              notify_drivers: true 
+            }
+          });
+          
+          if (matchingResponse.error) {
+            console.error('Error in spatial matching:', matchingResponse.error);
+          } else {
+            console.log('Spatial matching completed:', matchingResponse.data);
+          }
+        } catch (matchingError) {
+          console.error('Failed to trigger spatial matching:', matchingError);
+          // Don't block freight creation if matching fails
+        }
+      }
+
+      toast.success('Frete criado com sucesso! Motoristas qualificados serão notificados automaticamente.');
       setOpen(false);
       setFormData({
         cargo_type: '',
@@ -181,7 +202,6 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         destination_address: '',
         destination_city: '',
         destination_state: '',
-        service_radius_km: 50,
         price: '',
         price_per_km: '',
         pricing_type: 'FIXED' as 'FIXED' | 'PER_KM',
@@ -217,7 +237,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         <DialogHeader>
           <DialogTitle>Criar Novo Frete</DialogTitle>
           <DialogDescription>
-            Preencha os detalhes do frete para publicá-lo na plataforma
+            Preencha os detalhes do frete. Motoristas qualificados na região serão notificados automaticamente.
           </DialogDescription>
         </DialogHeader>
         
@@ -337,21 +357,6 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
             />
           </div>
 
-          <div className="space-y-4">
-            <RadiusSelector
-              value={formData.service_radius_km}
-              onChange={(radius) => handleInputChange('service_radius_km', radius.toString())}
-              label="Raio de Alcance para Motoristas"
-              min={10}
-              max={500}
-              step={10}
-            />
-            <p className="text-xs text-muted-foreground">
-              <strong>Sistema Inteligente:</strong> Apenas motoristas dentro deste raio poderão ver seu frete. 
-              Isso garante que apenas profissionais da sua região respondam à solicitação.
-            </p>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="pickup_date">Data de Coleta *</Label>
@@ -438,23 +443,6 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                   <SelectItem value="HIGH">Alta</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="required_trucks">Quantidade de Carretas *</Label>
-              <Input
-                id="required_trucks"
-                type="number"
-                min="1"
-                max="10"
-                value={formData.required_trucks}
-                onChange={(e) => handleInputChange('required_trucks', e.target.value)}
-                placeholder="1"
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Número de carretas necessárias para este frete
-              </p>
             </div>
           </div>
 
