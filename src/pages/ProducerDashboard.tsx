@@ -586,6 +586,46 @@ const ProducerDashboard = () => {
           <TabsContent value="ongoing" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Fretes em Andamento</h3>
+              <Button
+                onClick={async () => {
+                  console.log('=== DEBUG FRETES EM ANDAMENTO ===');
+                  console.log('Profile atual:', profile);
+                  console.log('Todos os fretes carregados:', freights);
+                  console.log('Fretes em andamento filtrados:', freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)));
+                  
+                  // Consulta direta ao banco para fretes em andamento
+                  const { data: ongoingFreights } = await supabase
+                    .from('freights')
+                    .select(`
+                      *,
+                      driver_profiles:profiles!freights_driver_id_fkey(*)
+                    `)
+                    .eq('producer_id', profile?.id || '')
+                    .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
+                    .order('created_at', { ascending: false });
+                    
+                  console.log('Fretes em andamento (consulta direta):', ongoingFreights);
+                  
+                  // Também verificar fretes com status DELIVERED_PENDING_CONFIRMATION
+                  const { data: pendingDelivery } = await supabase
+                    .from('freights')
+                    .select(`
+                      *,
+                      driver_profiles:profiles!freights_driver_id_fkey(*)
+                    `)
+                    .eq('producer_id', profile?.id || '')
+                    .eq('status', 'DELIVERED_PENDING_CONFIRMATION')
+                    .order('created_at', { ascending: false });
+                    
+                  console.log('Fretes aguardando confirmação:', pendingDelivery);
+                  
+                  fetchFreights();
+                }}
+                variant="outline"
+                size="sm"
+              >
+                🔍 Debug Andamento
+              </Button>
             </div>
             
             {freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).length === 0 ? (
@@ -797,6 +837,39 @@ const ProducerDashboard = () => {
           <TabsContent value="proposals" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Propostas Recebidas</h3>
+              <Button
+                onClick={async () => {
+                  console.log('=== DEBUG PROPOSTAS ===');
+                  console.log('Profile atual:', profile);
+                  console.log('Propostas carregadas:', proposals);
+                  
+                  // Consulta direta ao banco
+                  const { data: allProposals } = await supabase
+                    .from('freight_proposals')
+                    .select(`
+                      *,
+                      freight:freights(*),
+                      driver:profiles!freight_proposals_driver_id_fkey(*)
+                    `)
+                    .order('created_at', { ascending: false });
+                    
+                  console.log('Todas as propostas no banco:', allProposals);
+                  
+                  // Verificar fretes do produtor
+                  const { data: myFreights } = await supabase
+                    .from('freights')
+                    .select('*')
+                    .eq('producer_id', profile?.id || '');
+                    
+                  console.log('Meus fretes:', myFreights);
+                  
+                  fetchProposals();
+                }}
+                variant="outline"
+                size="sm"
+              >
+                🔍 Debug Propostas
+              </Button>
             </div>
             
             {proposals.length === 0 ? (
