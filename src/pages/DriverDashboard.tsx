@@ -1392,9 +1392,11 @@ const [showRegionModal, setShowRegionModal] = useState(false);
   initialType={initialCheckinType || undefined}
   onCheckinCreated={() => {
     fetchOngoingFreights();
+    fetchDriverCheckins(); // Atualizar contadores de check-ins
     setShowCheckinModal(false);
     setSelectedFreightForCheckin(null);
     setInitialCheckinType(null);
+    // Preservar o estado de visualização de detalhes - não limpar selectedFreightId nem showDetails
   }}
 />
       )}
