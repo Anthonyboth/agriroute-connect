@@ -31,6 +31,7 @@ import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, D
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
+import { DriverRegionManager } from '@/components/DriverRegionManager';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
@@ -688,11 +689,19 @@ const [showRegionModal, setShowRegionModal] = useState(false);
                     Configurar Região
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Configurar Região de Atendimento</DialogTitle>
                   </DialogHeader>
-                  <ServiceRegionSelector onClose={() => setShowRegionModal(false)} />
+                  <DriverRegionManager 
+                    driverId={profile?.id}
+                    onSave={() => {
+                      setShowRegionModal(false);
+                      fetchAvailableFreights();
+                      toast.success('Região configurada! Atualizando fretes disponíveis...');
+                    }}
+                    onClose={() => setShowRegionModal(false)}
+                  />
                 </DialogContent>
               </Dialog>
               
