@@ -81,8 +81,17 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       if (error) throw error;
       setCompatibleFreights(data || []);
       
+      // Rate limiting para notificações de matches - só mostra se passaram pelo menos 5 minutos
       if (spatialData?.created > 0) {
-        toast.success(`${spatialData.created} novos matches encontrados com base nas suas áreas de atendimento!`);
+        const lastNotificationKey = `lastMatchNotification_${profile.id}`;
+        const lastNotification = localStorage.getItem(lastNotificationKey);
+        const now = Date.now();
+        const fiveMinutes = 5 * 60 * 1000; // 5 minutos em millisegundos
+        
+        if (!lastNotification || (now - parseInt(lastNotification)) > fiveMinutes) {
+          localStorage.setItem(lastNotificationKey, now.toString());
+          toast.success(`${spatialData.created} novos matches encontrados com base nas suas áreas de atendimento!`);
+        }
       }
     } catch (error: any) {
       console.error('Erro ao buscar fretes compatíveis:', error);
