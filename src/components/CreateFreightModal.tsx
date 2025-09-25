@@ -13,6 +13,7 @@ import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/ca
 import { LocationFillButton } from './LocationFillButton';
 import { AddressButton } from './AddressButton';
 import { CitySelector } from './CitySelector';
+import { freightSchema, validateInput } from '@/lib/validations';
 
 interface CreateFreightModalProps {
   onFreightCreated: () => void;

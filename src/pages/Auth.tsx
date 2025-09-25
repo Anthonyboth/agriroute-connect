@@ -12,6 +12,7 @@ import { Loader2, Mail, Eye, EyeOff } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
 import { validateDocument } from '@/utils/cpfValidator';
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
+import { userRegistrationSchema, validateInput } from '@/lib/validations';
 
 
 const Auth = () => {
