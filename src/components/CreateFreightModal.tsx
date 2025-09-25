@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectGroup } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Loader2, Search, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Loader2, Check, ChevronsUpDown } from 'lucide-react';
 import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -210,7 +210,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         destination_state: '',
         price: '',
         price_per_km: '',
-        pricing_type: 'FIXED' as 'FIXED' | 'PER_KM',
+        pricing_type: 'PER_KM' as 'FIXED' | 'PER_KM',
         pickup_date: '',
         delivery_date: '',
         urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
@@ -219,7 +219,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         vehicle_type_required: '',
         pickup_observations: '',
         delivery_observations: '',
-        payment_method: 'PIX',
+        payment_method: 'DIRETO',
         required_trucks: '1'
       });
       onFreightCreated();
