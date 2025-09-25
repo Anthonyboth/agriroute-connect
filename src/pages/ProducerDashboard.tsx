@@ -70,6 +70,8 @@ const ProducerDashboard = () => {
     // Don't fetch if user is not a producer
     if (!profile?.id || profile.role !== 'PRODUTOR') return;
 
+    console.log('Buscando fretes para produtor:', profile.id);
+
     try {
       const { data, error } = await supabase
         .from('freights')
@@ -81,8 +83,24 @@ const ProducerDashboard = () => {
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
-      setFreights(data || []);
+      console.log('Resposta da query de fretes:', { data, error, count: data?.length });
+      
+      if (error) {
+        console.error('Erro na query:', error);
+        throw error;
+      }
+      
+      const freightData = data || [];
+      console.log('Fretes encontrados por status:', {
+        OPEN: freightData.filter(f => f.status === 'OPEN').length,
+        ACCEPTED: freightData.filter(f => f.status === 'ACCEPTED').length,
+        IN_TRANSIT: freightData.filter(f => f.status === 'IN_TRANSIT').length,
+        DELIVERED: freightData.filter(f => f.status === 'DELIVERED').length,
+        total: freightData.length,
+        allStatuses: freightData.map(f => f.status)
+      });
+      
+      setFreights(freightData);
     } catch (error) {
       console.error('Error fetching freights:', error);
       toast.error('Erro ao carregar fretes');
@@ -136,6 +154,7 @@ const ProducerDashboard = () => {
     const loadData = async () => {
       if (!profile?.id) return;
 
+      console.log('Carregando dados para produtor:', profile);
       setLoading(true);
       await Promise.all([
         fetchFreights(), 
@@ -145,6 +164,30 @@ const ProducerDashboard = () => {
     };
 
     loadData();
+  }, [profile?.id, fetchFreights, fetchProposals]);
+
+  // Atualização em tempo real
+  useEffect(() => {
+    if (!profile?.id) return;
+    
+    console.log('Configurando realtime para produtor:', profile.id);
+    
+    const channel = supabase
+      .channel('realtime-freights-producer')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freights' }, (payload) => {
+        console.log('Mudança em freights detectada:', payload);
+        fetchFreights();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_proposals' }, (payload) => {
+        console.log('Mudança em propostas detectada:', payload);
+        fetchProposals();
+      })
+      .subscribe();
+
+    return () => {
+      console.log('Removendo canal realtime');
+      supabase.removeChannel(channel);
+    };
   }, [profile?.id, fetchFreights, fetchProposals]);
 
   const handleAcceptProposal = async (proposalId: string) => {
@@ -481,6 +524,20 @@ const ProducerDashboard = () => {
           <TabsContent value="open" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Fretes Abertos</h3>
+              <Button
+                onClick={() => {
+                  console.log('=== DEBUG FRETES ===');
+                  console.log('Profile atual:', profile);
+                  console.log('Todos os fretes carregados:', freights);
+                  console.log('Fretes OPEN filtrados:', freights.filter(f => f.status === 'OPEN'));
+                  console.log('IDs dos fretes:', freights.map(f => ({ id: f.id, status: f.status, producer_id: f.producer_id })));
+                  fetchFreights();
+                }}
+                variant="outline"
+                size="sm"
+              >
+                🔄 Debug & Recarregar
+              </Button>
             </div>
             
             {freights.filter(f => f.status === 'OPEN').length === 0 ? (
