@@ -8,9 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectGroup } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Loader2, Search } from 'lucide-react';
+import { Plus, Loader2, Search, Check, ChevronsUpDown } from 'lucide-react';
 import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
-import { LocationFillButton } from './LocationFillButton';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { AddressButton } from './AddressButton';
 import { CitySelector } from './CitySelector';
 
@@ -22,7 +23,7 @@ interface CreateFreightModalProps {
 const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModalProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [cargoSearch, setCargoSearch] = useState('');
+  const [cargoComboOpen, setCargoComboOpen] = useState(false);
   const [formData, setFormData] = useState({
     cargo_type: '',
     weight: '',
@@ -111,25 +112,6 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     }
     
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Função para filtrar tipos de carga baseado na busca
-  const getFilteredCargoTypes = () => {
-    if (!cargoSearch.trim()) {
-      return CARGO_TYPES;
-    }
-    
-    const searchTerm = cargoSearch.toLowerCase();
-    const filtered = CARGO_TYPES.filter(cargo => 
-      cargo.label.toLowerCase().includes(searchTerm)
-    );
-    
-    // Se não encontrar nenhum resultado, adicionar "outros" como sugestão
-    if (filtered.length === 0) {
-      return CARGO_TYPES.filter(cargo => cargo.value === 'outros');
-    }
-    
-    return filtered;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -269,59 +251,65 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cargo_type">Tipo de Carga *</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar tipo de carga..."
-                  value={cargoSearch}
-                  onChange={(e) => setCargoSearch(e.target.value)}
-                  className="pl-10 mb-2"
-                />
-              </div>
-              <Select
-                value={formData.cargo_type}
-                onValueChange={(value) => handleInputChange('cargo_type', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de carga" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cargoSearch ? (
-                    // Mostrar resultados filtrados
-                    getFilteredCargoTypes().length > 0 ? (
-                      getFilteredCargoTypes().map((cargo) => (
-                        <SelectItem key={cargo.value} value={cargo.value}>
-                          {cargo.label}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="outros">
-                        Outros (não encontrado na lista)
-                      </SelectItem>
-                    )
-                  ) : (
-                    // Mostrar categorias organizadas quando não há busca
-                    CARGO_CATEGORIES.map((category) => (
-                      <SelectGroup key={category.value}>
-                        <SelectLabel className="font-semibold text-primary">
-                          {category.label}
-                        </SelectLabel>
-                        {getCargoTypesByCategory(category.value).map((cargo) => (
-                          <SelectItem key={cargo.value} value={cargo.value}>
-                            {cargo.label}
-                          </SelectItem>
-                        ))}
-                        {category.value !== 'outros' && <Separator className="my-1" />}
-                      </SelectGroup>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {cargoSearch && getFilteredCargoTypes().length === 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Não encontrado? Use "Outros" para cargas não listadas
-                </p>
-              )}
+              <Popover open={cargoComboOpen} onOpenChange={setCargoComboOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={cargoComboOpen}
+                    className="w-full justify-between"
+                  >
+                    {formData.cargo_type
+                      ? CARGO_TYPES.find((cargo) => cargo.value === formData.cargo_type)?.label
+                      : "Buscar ou selecionar tipo de carga..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Buscar tipo de carga..." />
+                    <CommandEmpty>
+                      <div className="p-2">
+                        <p className="text-sm text-muted-foreground mb-2">Nenhum resultado encontrado.</p>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={() => {
+                            handleInputChange('cargo_type', 'outros');
+                            setCargoComboOpen(false);
+                          }}
+                        >
+                          <Check className="mr-2 h-4 w-4" />
+                          Outros (não listado)
+                        </Button>
+                      </div>
+                    </CommandEmpty>
+                    <CommandList>
+                      {CARGO_CATEGORIES.map((category) => (
+                        <CommandGroup key={category.value} heading={category.label}>
+                          {getCargoTypesByCategory(category.value).map((cargo) => (
+                            <CommandItem
+                              key={cargo.value}
+                              value={cargo.value}
+                              onSelect={(value) => {
+                                handleInputChange('cargo_type', value);
+                                setCargoComboOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  formData.cargo_type === cargo.value ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              {cargo.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      ))}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div className="space-y-2">
