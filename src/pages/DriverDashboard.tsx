@@ -11,6 +11,7 @@ import { FreightDetails } from '@/components/FreightDetails';
 import { DriverAvailabilityCalendar } from '@/components/DriverAvailabilityCalendar';
 import DriverServiceAreasManager from '@/components/DriverServiceAreasManager';
 import { DriverCityManager } from '@/components/DriverCityManager';
+import { DriverAvailabilityAreasManager } from '@/components/DriverAvailabilityAreasManager';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { SmartFreightMatcher } from '@/components/SmartFreightMatcher';
 import { ServiceTypeManager } from '@/components/ServiceTypeManager';
@@ -1054,25 +1055,10 @@ const [showRegionModal, setShowRegionModal] = useState(false);
           </TabsContent>
 
           <TabsContent value="calendar" className="space-y-4">
-            <div>
-              <DriverServiceAreasManager onAreasUpdate={() => {
-                fetchAvailableFreights();
-                // Também executar matching espacial quando áreas de serviço forem atualizadas
-                if (profile?.id) {
-                  supabase.functions.invoke('driver-spatial-matching', { method: 'POST' })
-                    .then(({ data }) => {
-                      if (data?.created > 0) {
-                        toast.success(`${data.created} novos matches encontrados com suas novas áreas de atendimento!`);
-                      }
-                    })
-                    .catch(console.warn);
-                }
-              }} />
-            </div>
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold mb-4">Disponibilidade</h3>
-              <DriverAvailabilityCalendar />
-            </div>
+            <DriverAvailabilityAreasManager 
+              driverId={profile?.id}
+              onFreightAction={handleFreightAction}
+            />
           </TabsContent>
 
           <TabsContent value="cities" className="space-y-4">
