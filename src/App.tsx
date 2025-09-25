@@ -110,7 +110,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
 };
 
 const RedirectIfAuthed = () => {
-  const { isAuthenticated, profile, loading } = useAuth();
+  const { isAuthenticated, profile, loading, profiles } = useAuth();
   
   if (loading) {
     return <ComponentLoader />;
@@ -118,9 +118,13 @@ const RedirectIfAuthed = () => {
   
   if (!isAuthenticated) return <Auth />;
   
-  // Wait for profile to be loaded before redirecting
+  // Evita redirecionar cedo demais: só vá para /complete-profile
+  // quando já soubermos que não há perfis após o carregamento
   if (!profile) {
-    return <Navigate to="/complete-profile" replace />;
+    if (Array.isArray(profiles) && profiles.length === 0) {
+      return <Navigate to="/complete-profile" replace />;
+    }
+    return <ComponentLoader />; // aguardando resolução do perfil
   }
   
   let to = "/";
