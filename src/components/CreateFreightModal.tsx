@@ -122,8 +122,6 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         return;
       }
 
-      // Producers can create unlimited freights
-      
       // Calculate distance (mock for now)
       const distance = await calculateDistance(formData.origin_address, formData.destination_address);
       const weight = parseFloat(formData.weight);
@@ -506,7 +504,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
               Criar Frete
             </Button>
           </div>
-          </form>
+        </form>
       </DialogContent>
     </Dialog>
   );
