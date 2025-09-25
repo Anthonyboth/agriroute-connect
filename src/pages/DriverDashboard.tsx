@@ -147,37 +147,55 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
     try {
-      // Refresh matches and get matched freights via Edge Function (same pattern as service provider)
-      const { data, error } = await (supabase as any).functions.invoke('driver-spatial-matching', {
-        body: { refresh: true }
-      });
-
-      if (error) throw error;
-
-      const matches = (data?.matches as any[]) || [];
-      const distanceByFreight: Record<string, number> = {};
-      for (const m of matches) {
-        if (m.freight_id && typeof m.distance_m === 'number') {
-          distanceByFreight[m.freight_id] = m.distance_m;
+      // Primeiro executar o matching espacial para atualizar os matches
+      const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
+        'driver-spatial-matching',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
         }
+      );
+
+      if (spatialError) {
+        console.warn('Erro no matching espacial:', spatialError);
       }
 
-      const freights = ((data?.freights as any[]) || []).map((f: any) => ({
-        ...f,
-        distance_km: distanceByFreight[f.id]
-          ? Math.round(distanceByFreight[f.id] / 10) / 100
-          : undefined,
+      // Usar a mesma RPC que o SmartFreightMatcher usa para consistência
+      const { data: freights, error } = await supabase.rpc(
+        'get_compatible_freights_for_driver',
+        { p_driver_id: profile.id }
+      );
+
+      if (error) throw error;
+      
+      // Mapear os dados para o formato esperado
+      const formattedFreights = (freights || []).map((f: any) => ({
+        id: f.freight_id,
+        cargo_type: f.cargo_type,
+        weight: f.weight,
+        origin_address: f.origin_address,
+        destination_address: f.destination_address,
+        pickup_date: f.pickup_date,
+        delivery_date: f.delivery_date,
+        price: f.price,
+        urgency: f.urgency,
+        status: f.status,
+        distance_km: f.distance_km,
+        minimum_antt_price: f.minimum_antt_price,
+        service_type: f.service_type,
+        producer: f.producer_name ? {
+          id: f.producer_id,
+          full_name: f.producer_name,
+          contact_phone: f.producer_phone,
+          role: 'PRODUTOR'
+        } : undefined
       }));
 
-      freights.sort((a: any, b: any) => {
-        const da = distanceByFreight[a.id] ?? Number.POSITIVE_INFINITY;
-        const db = distanceByFreight[b.id] ?? Number.POSITIVE_INFINITY;
-        return da - db;
-      });
-
-      setAvailableFreights(freights);
+      setAvailableFreights(formattedFreights);
     } catch (error) {
-      console.error('Error fetching available freights (smart match):', error);
+      console.error('Error fetching available freights:', error);
       toast.error('Erro ao carregar fretes disponíveis');
     }
   }, [profile?.id, profile?.role]);
