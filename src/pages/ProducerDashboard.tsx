@@ -603,8 +603,8 @@ const ProducerDashboard = () => {
             producer_id: profile?.id,
             driver_id: freightData.driver_id,
             amount: amount,
-            status: 'paid_by_producer',
-            notes: 'Pagamento confirmado pelo produtor'
+            status: 'proposed',
+            notes: 'Pagamento completo do frete após entrega confirmada'
           }
         ])
         .select()
