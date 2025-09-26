@@ -163,4 +163,5 @@ const ServicesModal: React.FC<ServicesModalProps> = ({
   );
 };
 
+export { ServicesModal };
 export default ServicesModal;
