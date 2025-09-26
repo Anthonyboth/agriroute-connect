@@ -478,83 +478,110 @@ export const ServiceProviderDashboard: React.FC = () => {
       </section>
 
       <div className="container max-w-7xl mx-auto py-4 px-4">
-        {/* Stats Cards Compactos */}
+        {/* Stats Cards Compactos - Navegáveis */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <Card className="shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center">
-                <Clock className="h-6 w-6 text-primary flex-shrink-0" />
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">
-                    Pendentes
-                  </p>
-                  <p className="text-lg font-bold">{counts.pending}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center">
-                <Play className="h-6 w-6 text-orange-500 flex-shrink-0" />
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">
-                    Ativas
-                  </p>
-                  <p className="text-lg font-bold">{counts.accepted}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center">
-                <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">
-                    Concluídas
-                  </p>
-                  <p className="text-lg font-bold">{counts.completed}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('pending')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
                 <div className="flex items-center">
-                  <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
+                  <Clock className="h-6 w-6 text-primary flex-shrink-0" />
                   <div className="ml-2 min-w-0">
                     <p className="text-xs font-medium text-muted-foreground truncate">
-                      Saldo
+                      Pendentes
                     </p>
-                    <p className="text-sm font-bold">
-                      {showEarnings 
-                         ? new Intl.NumberFormat('pt-BR', { 
-                             style: 'currency', 
-                             currency: 'BRL',
-                             notation: 'compact',
-                             maximumFractionDigits: 0
-                           }).format(totalEarnings)
-                        : '****'
-                      }
-                    </p>
+                    <p className="text-lg font-bold">{counts.pending}</p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowEarnings(!showEarnings)}
-                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                >
-                  {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('active')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center">
+                  <Play className="h-6 w-6 text-orange-500 flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">
+                      Ativas
+                    </p>
+                    <p className="text-lg font-bold">{counts.accepted}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('completed')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center">
+                  <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">
+                      Concluídas
+                    </p>
+                    <p className="text-lg font-bold">{counts.completed}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('earnings')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
+                    <div className="ml-2 min-w-0">
+                      <p className="text-xs font-medium text-muted-foreground truncate">
+                        Saldo
+                      </p>
+                      <p className="text-sm font-bold">
+                        {showEarnings 
+                           ? new Intl.NumberFormat('pt-BR', { 
+                               style: 'currency', 
+                               currency: 'BRL',
+                               notation: 'compact',
+                               maximumFractionDigits: 0
+                             }).format(totalEarnings)
+                          : '****'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowEarnings(!showEarnings);
+                    }}
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                  >
+                    {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </Button>
         </div>
 
         {/* Tabs */}

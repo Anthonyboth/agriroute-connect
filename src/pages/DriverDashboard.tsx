@@ -871,9 +871,119 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       </section>
 
       <div className="container max-w-7xl mx-auto py-4 px-4">
-        {/* Stats Cards Compactos */}
+        {/* Stats Cards Compactos - Navegáveis */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <Card className="shadow-sm">
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('available')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center">
+                  <MapPin className="h-6 w-6 text-primary flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">
+                      Disponíveis
+                    </p>
+                    <p className="text-lg font-bold">{statistics.availableCount}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('ongoing')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center">
+                  <Clock className="h-6 w-6 text-orange-500 flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">
+                      Ativas
+                    </p>
+                    <p className="text-lg font-bold">{statistics.activeTrips}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('my-trips')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center">
+                  <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">
+                      Propostas
+                    </p>
+                    <p className="text-lg font-bold">{statistics.totalCheckins}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('advances')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
+                    <div className="ml-2 min-w-0">
+                      <p className="text-xs font-medium text-muted-foreground truncate">
+                        Saldo
+                      </p>
+                      <p className="text-sm font-bold">
+                        {showEarnings 
+                          ? new Intl.NumberFormat('pt-BR', { 
+                              style: 'currency', 
+                              currency: 'BRL',
+                              notation: 'compact',
+                              maximumFractionDigits: 0
+                            }).format(statistics.totalEarnings)
+                          : '****'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowEarnings(!showEarnings);
+                    }}
+                     className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                  >
+                    {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </Button>
+
+        </div>
+
+        {/* FreightLimitTracker compacto */}
+        <div className="mb-4">
+          <FreightLimitTracker />
+        </div>
+
+        {/* Tabs Compactas */}
             <CardContent className="p-3">
               <div className="flex items-center">
                 <MapPin className="h-6 w-6 text-primary flex-shrink-0" />
@@ -956,7 +1066,6 @@ const [showRegionModal, setShowRegionModal] = useState(false);
         </div>
 
         {/* Tabs Compactas */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full overflow-x-auto pb-2">
             <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
               <TabsTrigger 

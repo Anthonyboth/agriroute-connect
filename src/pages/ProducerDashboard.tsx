@@ -794,77 +794,107 @@ const ProducerDashboard = () => {
       </section>
 
       <div className="container max-w-7xl mx-auto py-4 px-4 pb-8">
-        {/* Stats Cards Compactos */}
+        {/* Stats Cards Compactos - Navegáveis */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          <Card className="shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center">
-                <Package className="h-6 w-6 text-blue-500 flex-shrink-0" />
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">
-                    Abertos
-                  </p>
-                  <p className="text-lg font-bold">{statistics.openFreights}</p>
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('open')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center">
+                  <Package className="h-6 w-6 text-blue-500 flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">
+                      Abertos
+                    </p>
+                    <p className="text-lg font-bold">{statistics.openFreights}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Button>
 
-          <Card className="shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center">
-                <Play className="h-6 w-6 text-orange-500 flex-shrink-0" />
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">
-                    Andamento
-                  </p>
-                  <p className="text-lg font-bold">{statistics.activeFreights}</p>
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('ongoing')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center">
+                  <Play className="h-6 w-6 text-orange-500 flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">
+                      Andamento
+                    </p>
+                    <p className="text-lg font-bold">{statistics.activeFreights}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Button>
 
-          <Card className="shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center">
-                <Clock className="h-6 w-6 text-amber-500 flex-shrink-0" />
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">
-                    P/ Confirmar
-                  </p>
-                  <p className="text-lg font-bold">{statistics.pendingConfirmation}</p>
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('confirm-delivery')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center">
+                  <Clock className="h-6 w-6 text-amber-500 flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">
+                      P/ Confirmar
+                    </p>
+                    <p className="text-lg font-bold">{statistics.pendingConfirmation}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Button>
 
-          <Card className="shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center">
-                <Users className="h-6 w-6 text-purple-500 flex-shrink-0" />
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">
-                    Propostas
-                  </p>
-                  <p className="text-lg font-bold">{statistics.pendingProposals}</p>
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('proposals')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center">
+                  <Users className="h-6 w-6 text-purple-500 flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">
+                      Propostas
+                    </p>
+                    <p className="text-lg font-bold">{statistics.pendingProposals}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Button>
 
-          <Card className="shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center">
-                <CreditCard className="h-6 w-6 text-green-500 flex-shrink-0" />
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">
-                    Pagamentos
-                  </p>
-                  <p className="text-lg font-bold">{statistics.pendingPayments}</p>
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab('payments')}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center">
+                  <CreditCard className="h-6 w-6 text-green-500 flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">
+                      Pagamentos
+                    </p>
+                    <p className="text-lg font-bold">{statistics.pendingPayments}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Button>
 
         </div>
 
