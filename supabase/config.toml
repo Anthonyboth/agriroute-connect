@@ -125,3 +125,6 @@ verify_jwt = false
 
 [functions.tracking-service]
 verify_jwt = false
+
+[functions.accept-freight]
+verify_jwt = true
