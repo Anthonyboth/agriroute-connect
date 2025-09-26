@@ -25,8 +25,9 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 const ProducerDashboard = () => {

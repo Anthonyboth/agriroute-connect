@@ -1,67 +1,126 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Star, User, Truck } from 'lucide-react';
+import { InteractiveStarRating } from '@/components/InteractiveStarRating';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Star, User } from 'lucide-react';
 
 interface FreightRatingModalProps {
+  freight: {
+    id: string;
+    producer_profiles?: {
+      full_name: string;
+    };
+    driver_profiles?: {
+      full_name: string;
+    };
+    metadata?: any;
+  };
   isOpen: boolean;
   onClose: () => void;
-  freightId: string;
-  userToRate: {
-    id: string;
-    full_name: string;
-    role: 'PRODUTOR' | 'MOTORISTA';
-  };
-  currentUserProfile: any;
+  onRatingSubmitted: () => void;
+  userRole: 'PRODUTOR' | 'MOTORISTA';
 }
 
 export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
+  freight,
   isOpen,
   onClose,
-  freightId,
-  userToRate,
-  currentUserProfile
+  onRatingSubmitted,
+  userRole
 }) => {
   const { toast } = useToast();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
-  const [hoveredRating, setHoveredRating] = useState(0);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUserProfile || rating === 0) return;
+  const isProducerRating = userRole === 'PRODUTOR';
+  const ratedUserName = isProducerRating 
+    ? freight.driver_profiles?.full_name || 'Motorista'
+    : freight.producer_profiles?.full_name || 'Produtor';
+
+  const handleSubmitRating = async () => {
+    if (rating === 0) {
+      toast({
+        title: "Avaliação obrigatória",
+        description: "Por favor, selecione uma nota de 1 a 5 estrelas.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('ratings')
+      // Get current user profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Get freight details to identify producer and driver
+      const { data: freightData, error: freightError } = await supabase
+        .from('freights')
+        .select('producer_id, driver_id')
+        .eq('id', freight.id)
+        .single();
+
+      if (freightError) throw freightError;
+
+      const ratedUserId = isProducerRating ? freightData.driver_id : freightData.producer_id;
+      const ratingType = isProducerRating ? 'PRODUCER_TO_DRIVER' : 'DRIVER_TO_PRODUCER';
+
+      // Submit rating
+      const { error: ratingError } = await supabase
+        .from('freight_ratings')
         .insert({
-          freight_id: freightId,
-          rater_user_id: currentUserProfile.id,
-          rated_user_id: userToRate.id,
+          freight_id: freight.id,
+          rater_id: profile.id,
+          rated_user_id: ratedUserId,
           rating: rating,
-          comment: comment.trim() || null
+          comment: comment.trim() || null,
+          rating_type: ratingType
         });
 
-      if (error) throw error;
+      if (ratingError) throw ratingError;
+
+      // Check if both parties have now rated
+      const { data: bothRated, error: checkError } = await supabase
+        .rpc('check_mutual_ratings_complete', { freight_id_param: freight.id });
+
+      if (checkError) throw checkError;
+
+      // If both have rated, we can consider the freight fully completed
+      if (bothRated) {
+        await supabase
+          .from('freights')
+          .update({ 
+            metadata: {
+              ...freight.metadata || {},
+              ratings_completed: true,
+              ratings_pending: false
+            }
+          })
+          .eq('id', freight.id);
+      }
 
       toast({
         title: "Avaliação enviada",
-        description: `Você avaliou ${userToRate.full_name} com ${rating} estrela${rating > 1 ? 's' : ''}.`,
+        description: `Sua avaliação para ${ratedUserName} foi enviada com sucesso.`,
       });
-
+      
+      onRatingSubmitted();
       onClose();
-      setRating(0);
-      setComment('');
+      
     } catch (error: any) {
+      console.error('Erro ao enviar avaliação:', error);
       toast({
         title: "Erro ao enviar avaliação",
-        description: error.message,
+        description: error.message || 'Erro desconhecido',
         variant: "destructive",
       });
     } finally {
@@ -69,120 +128,83 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
     }
   };
 
-  const handleReset = () => {
-    setRating(0);
-    setComment('');
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {userToRate.role === 'MOTORISTA' ? 
-              <Truck className="h-5 w-5" /> : 
-              <User className="h-5 w-5" />
-            }
-            Avaliar {userToRate.role === 'MOTORISTA' ? 'Motorista' : 'Produtor'}
+            <Star className="h-5 w-5 text-primary" />
+            Avaliar {isProducerRating ? 'Motorista' : 'Produtor'}
           </DialogTitle>
-          <DialogDescription>
-            Como foi sua experiência com {userToRate.full_name}?
-          </DialogDescription>
         </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* User Info */}
+          <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+            <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
+              <User className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium">{ratedUserName}</p>
+              <p className="text-sm text-muted-foreground">
+                {isProducerRating ? 'Motorista responsável' : 'Produtor do frete'}
+              </p>
+            </div>
+          </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Rating Stars */}
-          <div className="space-y-2">
-            <Label>Sua Avaliação</Label>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  className={`p-1 rounded transition-colors ${
-                    star <= (hoveredRating || rating)
-                      ? 'text-yellow-400'
-                      : 'text-gray-300'
-                  }`}
-                  onMouseEnter={() => setHoveredRating(star)}
-                  onMouseLeave={() => setHoveredRating(0)}
-                  onClick={() => setRating(star)}
-                >
-                  <Star 
-                    className={`h-8 w-8 ${
-                      star <= (hoveredRating || rating) ? 'fill-current' : ''
-                    }`}
-                  />
-                </button>
-              ))}
+          {/* Rating */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium">
+              Como você avalia o serviço prestado?
+            </label>
+            <div className="flex justify-center">
+              <InteractiveStarRating 
+                rating={rating} 
+                onRatingChange={setRating}
+              />
             </div>
             {rating > 0 && (
-              <p className="text-sm text-muted-foreground">
-                {rating === 1 && "Muito ruim"}
-                {rating === 2 && "Ruim"}
-                {rating === 3 && "Regular"}
-                {rating === 4 && "Bom"}
-                {rating === 5 && "Excelente"}
+              <p className="text-center text-sm text-muted-foreground">
+                {rating === 1 && "Muito insatisfeito"}
+                {rating === 2 && "Insatisfeito"}
+                {rating === 3 && "Neutro"}
+                {rating === 4 && "Satisfeito"}
+                {rating === 5 && "Muito satisfeito"}
               </p>
             )}
           </div>
 
           {/* Comment */}
           <div className="space-y-2">
-            <Label htmlFor="comment">Comentário (opcional)</Label>
+            <label className="text-sm font-medium">
+              Comentários (opcional)
+            </label>
             <Textarea
-              id="comment"
-              placeholder={`Conte como foi trabalhar com ${userToRate.full_name}...`}
+              placeholder="Conte mais sobre sua experiência..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              rows={4}
+              rows={3}
               maxLength={500}
             />
             <p className="text-xs text-muted-foreground text-right">
-              {comment.length}/500 caracteres
+              {comment.length}/500
             </p>
           </div>
 
-          {/* Evaluation Criteria */}
-          <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
-            <h4 className="font-medium">Critérios de Avaliação:</h4>
-            <ul className="space-y-1 text-muted-foreground">
-              {userToRate.role === 'MOTORISTA' ? (
-                <>
-                  <li>• Pontualidade no carregamento e entrega</li>
-                  <li>• Cuidado com a carga</li>
-                  <li>• Comunicação durante o transporte</li>
-                  <li>• Profissionalismo</li>
-                </>
-              ) : (
-                <>
-                  <li>• Organização do local de carregamento</li>
-                  <li>• Clareza nas instruções</li>
-                  <li>• Cumprimento dos prazos acordados</li>
-                  <li>• Comunicação e cordialidade</li>
-                </>
-              )}
-            </ul>
-          </div>
-
-          <div className="flex gap-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => { onClose(); handleReset(); }}
-              className="flex-1"
-            >
+          {/* Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" onClick={onClose} className="flex-1">
               Cancelar
             </Button>
             <Button 
-              type="submit" 
+              onClick={handleSubmitRating} 
               disabled={loading || rating === 0}
               className="flex-1"
             >
-              {loading ? 'Enviando...' : 'Avaliar'}
+              {loading ? 'Enviando...' : 'Enviar Avaliação'}
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

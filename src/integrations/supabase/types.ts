@@ -1237,6 +1237,61 @@ export type Database = {
           },
         ]
       }
+      freight_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          freight_id: string
+          id: string
+          rated_user_id: string
+          rater_id: string
+          rating: number
+          rating_type: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          freight_id: string
+          id?: string
+          rated_user_id: string
+          rater_id: string
+          rating: number
+          rating_type: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          freight_id?: string
+          id?: string
+          rated_user_id?: string
+          rater_id?: string
+          rating?: number
+          rating_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_freight_ratings_freight"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_freight_ratings_rated"
+            columns: ["rated_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_freight_ratings_rater"
+            columns: ["rater_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_status_history: {
         Row: {
           changed_by: string
@@ -3932,6 +3987,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      check_mutual_ratings_complete: {
+        Args: { freight_id_param: string }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: {
           endpoint_name: string
@@ -5967,6 +6026,7 @@ export type Database = {
         | "LOADING"
         | "LOADED"
         | "DELIVERED_PENDING_CONFIRMATION"
+        | "COMPLETED"
       payment_method: "PIX" | "BOLETO" | "CARTAO" | "DIRETO"
       plan_type: "free" | "essential" | "professional"
       service_category:
@@ -6143,6 +6203,7 @@ export const Constants = {
         "LOADING",
         "LOADED",
         "DELIVERED_PENDING_CONFIRMATION",
+        "COMPLETED",
       ],
       payment_method: ["PIX", "BOLETO", "CARTAO", "DIRETO"],
       plan_type: ["free", "essential", "professional"],

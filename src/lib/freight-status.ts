@@ -23,7 +23,7 @@ export const getFreightStatusLabel = (status: string): string => {
     case 'PENDING':
       return 'Pendente';
     case 'COMPLETED':
-      return 'Concluído';
+      return 'Finalizado';
     default:
       return status;
   }

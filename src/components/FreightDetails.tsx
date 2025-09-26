@@ -689,13 +689,21 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       )}
 
       {/* Modals */}
-      {ratingModalOpen && userToRate && (
+      {ratingModalOpen && freight && (
         <FreightRatingModal
+          freight={{
+            id: freight.id,
+            producer_profiles: freight.producer,
+            driver_profiles: freight.driver,
+            metadata: freight.metadata
+          }}
           isOpen={ratingModalOpen}
           onClose={() => setRatingModalOpen(false)}
-          freightId={freightId}
-          userToRate={userToRate}
-          currentUserProfile={currentUserProfile}
+          onRatingSubmitted={() => {
+            setRatingModalOpen(false);
+            fetchFreightDetails(); // Refresh data
+          }}
+          userRole={currentUserProfile?.role as 'PRODUTOR' | 'MOTORISTA'}
         />
       )}
 

@@ -28,13 +28,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote, Star } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
 import { DriverRegionManager } from '@/components/DriverRegionManager';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import heroLogistics from '@/assets/hero-logistics.jpg';
+import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 
 interface Freight {
@@ -1505,6 +1506,13 @@ const [showRegionModal, setShowRegionModal] = useState(false);
 
           <TabsContent value="advances" className="space-y-4">
             <DriverPayouts driverId={profile?.id || ''} />
+          </TabsContent>
+
+          <TabsContent value="ratings" className="mt-6">
+            <PendingRatingsPanel 
+              userRole="MOTORISTA"
+              userProfileId={profile?.id || ''}
+            />
           </TabsContent>
 
           <TabsContent value="historico" className="mt-6">
