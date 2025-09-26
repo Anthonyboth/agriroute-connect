@@ -19,7 +19,7 @@ interface ServiceRequestModalProps {
   serviceId: string;
   serviceLabel: string;
   serviceDescription: string;
-  category: 'technical' | 'agricultural' | 'logistics';
+  category: 'freight' | 'technical' | 'agricultural' | 'logistics';
 }
 
 const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
@@ -62,6 +62,12 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
   }, [profile]);
 
   const categoryInfo = {
+    freight: {
+      title: 'Frete e Transporte',
+      icon: '🚛',
+      color: 'bg-blue-50 border-blue-200',
+      features: ['Transporte seguro', 'Rastreamento', 'Pontualidade garantida']
+    },
     technical: {
       title: 'Serviço Técnico',
       icon: '🔧',
@@ -76,9 +82,9 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     },
     logistics: {
       title: 'Logística',
-      icon: '🚛',
+      icon: '📦',
       color: 'bg-orange-50 border-orange-200',
-      features: ['Transporte seguro', 'Rastreamento', 'Pontualidade garantida']
+      features: ['Armazenamento seguro', 'Controle de estoque', 'Distribuição eficiente']
     }
   };
 
