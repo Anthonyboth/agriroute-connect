@@ -489,19 +489,19 @@ export const ServiceProviderDashboard: React.FC = () => {
               <Button 
                 variant="default"
                 size="sm"
-                onClick={() => window.location.href = '/services'}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
-              >
-                🛠️ Solicitar Serviços
-              </Button>
-              <Button 
-                variant="default"
-                size="sm"
                 onClick={() => setActiveTab('cities')}
                 className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
               >
                 <MapPin className="mr-1 h-4 w-4" />
                 Configurar Região
+              </Button>
+              <Button 
+                variant="default"
+                size="sm"
+                onClick={() => window.location.href = '/services'}
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
+              >
+                🛠️ Solicitar Serviços
               </Button>
             </div>
           </div>
