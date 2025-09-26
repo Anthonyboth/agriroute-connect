@@ -179,6 +179,33 @@ const UnifiedLocationManager: React.FC<UnifiedLocationManagerProps> = ({ userTyp
     }
   };
 
+  // Função para buscar coordenadas automaticamente baseado no nome da cidade
+  const geocodeCity = async (cityName: string, state?: string) => {
+    if (!cityName.trim()) return;
+    
+    try {
+      const query = state ? `${cityName}, ${state}, Brasil` : `${cityName}, Brasil`;
+      
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`
+      );
+      
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const result = data[0];
+        setFormData(prev => ({
+          ...prev,
+          lat: parseFloat(result.lat),
+          lng: parseFloat(result.lon)
+        }));
+        toast.success(`Coordenadas encontradas para ${cityName}`);
+      }
+    } catch (error) {
+      console.error('Erro no geocoding:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -187,11 +214,11 @@ const UnifiedLocationManager: React.FC<UnifiedLocationManagerProps> = ({ userTyp
     if (!formData.city_name?.trim()) {
       missingFields.push('Nome da cidade');
     }
-    if (!formData.lat) {
-      missingFields.push('Latitude (clique no mapa para definir)');
-    }
-    if (!formData.lng) {
-      missingFields.push('Longitude (clique no mapa para definir)');
+
+    // Tentar buscar coordenadas se não tiver
+    if ((!formData.lat || !formData.lng) && formData.city_name?.trim()) {
+      toast.info('Buscando coordenadas da cidade...');
+      await geocodeCity(formData.city_name);
     }
 
     if (missingFields.length > 0) {

@@ -94,6 +94,50 @@ const ServiceProviderAreasManager = () => {
     fetchServiceAreas();
   }, []);
 
+  // Função para buscar coordenadas automaticamente baseado no nome da cidade
+  const geocodeCity = async (cityName: string, state?: string) => {
+    if (!cityName.trim()) return;
+    
+    try {
+      // Montar query de busca
+      const query = state ? `${cityName}, ${state}, Brasil` : `${cityName}, Brasil`;
+      
+      // Usar API gratuita de geocoding
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`
+      );
+      
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const result = data[0];
+        setFormData(prev => ({
+          ...prev,
+          lat: parseFloat(result.lat),
+          lng: parseFloat(result.lon)
+        }));
+        toast.success(`Coordenadas encontradas para ${cityName}`);
+      }
+    } catch (error) {
+      console.error('Erro no geocoding:', error);
+      // Não mostra erro para o usuário, coordenadas não são obrigatórias
+    }
+  };
+
+  // Função chamada quando o nome da cidade muda
+  const handleCityNameChange = (cityName: string) => {
+    setFormData(prev => ({ ...prev, city_name: cityName }));
+    
+    // Buscar coordenadas automaticamente após 1 segundo de pausa
+    if (cityName.trim().length > 2) {
+      const timeoutId = setTimeout(() => {
+        geocodeCity(cityName, formData.state);
+      }, 1000);
+      
+      return timeoutId;
+    }
+  };
+
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -123,11 +167,19 @@ const ServiceProviderAreasManager = () => {
     if (!formData.city_name?.trim()) {
       missingFields.push('Nome da cidade');
     }
-    if (!formData.lat) {
-      missingFields.push('Latitude (clique no mapa para definir)');
-    }
-    if (!formData.lng) {
-      missingFields.push('Longitude (clique no mapa para definir)');
+
+    // Se não tem coordenadas, tentar buscar automaticamente antes de falhar
+    if ((!formData.lat || !formData.lng) && formData.city_name?.trim()) {
+      toast.info('Buscando coordenadas da cidade...');
+      await geocodeCity(formData.city_name, formData.state);
+      
+      // Aguardar um momento para a atualização do estado
+      setTimeout(() => {
+        // Se ainda não tiver coordenadas, continuar sem elas (não são obrigatórias)
+        if (!formData.lat || !formData.lng) {
+          toast.warning('Coordenadas não encontradas, mas você pode continuar. As coordenadas podem ser definidas depois.');
+        }
+      }, 1000);
     }
 
     if (missingFields.length > 0) {
@@ -298,7 +350,10 @@ const ServiceProviderAreasManager = () => {
                   <Input
                     id="city_name"
                     value={formData.city_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, city_name: e.target.value }))}
+                    onChange={(e) => {
+                      const cityName = e.target.value;
+                      handleCityNameChange(cityName);
+                    }}
                     placeholder="Ex: Primavera do Leste"
                     required
                   />
@@ -316,25 +371,25 @@ const ServiceProviderAreasManager = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="lat">Latitude *</Label>
+                    <Label htmlFor="lat">Latitude <span className="text-xs text-muted-foreground">(automático)</span></Label>
                     <Input
                       id="lat"
                       type="number"
                       step="any"
                       value={formData.lat}
                       onChange={(e) => setFormData(prev => ({ ...prev, lat: parseFloat(e.target.value) || 0 }))}
-                      required
+                      placeholder="Será preenchido automaticamente"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="lng">Longitude *</Label>
+                    <Label htmlFor="lng">Longitude <span className="text-xs text-muted-foreground">(automático)</span></Label>
                     <Input
                       id="lng"
                       type="number"
                       step="any"
                       value={formData.lng}
                       onChange={(e) => setFormData(prev => ({ ...prev, lng: parseFloat(e.target.value) || 0 }))}
-                      required
+                      placeholder="Será preenchido automaticamente"
                     />
                   </div>
                 </div>
@@ -346,8 +401,13 @@ const ServiceProviderAreasManager = () => {
                   className="w-full"
                 >
                   <Navigation className="h-4 w-4 mr-2" />
-                  Usar Localização Atual
+                  Usar Minha Localização Atual
                 </Button>
+                
+                <div className="text-sm text-muted-foreground">
+                  <p>💡 <strong>Dica:</strong> Digite o nome da cidade e as coordenadas serão preenchidas automaticamente!</p>
+                  <p>Você também pode usar o botão acima para capturar sua localização atual ou inserir as coordenadas manualmente se necessário.</p>
+                </div>
 
                 <div>
                   <Label htmlFor="radius_km">Raio de Atendimento (km)</Label>
