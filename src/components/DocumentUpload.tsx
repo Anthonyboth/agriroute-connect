@@ -28,7 +28,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   fileType = 'document',
   bucketName = 'profile-photos',
   required = false,
-  accept = acceptedTypes.join(',')
+  accept = 'image/*,image/heic,image/heif'
 }) => {
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
@@ -107,6 +107,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
               onChange={handleFileUpload}
               disabled={uploading || uploaded}
               className="hidden"
+              capture="environment"
             />
             <Label
               htmlFor={fileType}

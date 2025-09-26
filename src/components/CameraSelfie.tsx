@@ -26,7 +26,14 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
 
   const startCamera = useCallback(async () => {
     try {
+      console.log('Iniciando câmera...');
       setVideoReady(false);
+      
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Câmera não disponível neste dispositivo');
+      }
+      
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 1280 },
@@ -36,26 +43,66 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
         audio: false
       });
 
+      console.log('Stream obtido:', mediaStream);
+      console.log('Video tracks:', mediaStream.getVideoTracks());
+
       const video = videoRef.current;
       if (video) {
+        console.log('Configurando vídeo...');
         video.srcObject = mediaStream;
         setStream(mediaStream);
         setIsStreaming(true);
         setUploadMethod('CAMERA');
         
         const onLoaded = () => {
+          console.log('Vídeo carregado - dimensões:', video.videoWidth, 'x', video.videoHeight);
           setVideoReady(true);
-          video.play().catch(() => {});
+          video.play().then(() => {
+            console.log('Vídeo iniciado com sucesso');
+          }).catch((playError) => {
+            console.error('Erro ao iniciar vídeo:', playError);
+          });
         };
+        
+        const onError = (error: Event) => {
+          console.error('Erro no elemento de vídeo:', error);
+        };
+        
+        video.addEventListener('error', onError);
+        
         if (video.readyState >= 2) {
+          console.log('Vídeo já pronto, executando onLoaded');
           onLoaded();
         } else {
+          console.log('Aguardando metadata do vídeo...');
           video.onloadedmetadata = onLoaded;
         }
+        
+        // Forçar play após um pequeno delay
+        setTimeout(() => {
+          if (video.paused) {
+            console.log('Forçando play do vídeo...');
+            video.play().catch((e) => console.log('Erro no play forçado:', e));
+          }
+        }, 500);
+      } else {
+        console.error('Elemento de vídeo não encontrado');
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
-      toast.error('Erro ao acessar a câmera. Verifique as permissões.');
+      let errorMessage = 'Erro ao acessar a câmera.';
+      
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage = 'Permissão negada para acessar a câmera. Verifique as configurações do navegador.';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = 'Câmera não encontrada no dispositivo.';
+        } else if (error.name === 'NotReadableError') {
+          errorMessage = 'Câmera está sendo usada por outro aplicativo.';
+        }
+      }
+      
+      toast.error(errorMessage);
     }
   }, []);
 
@@ -211,13 +258,44 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
           )}
 
           {isStreaming && (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
+            <>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+                style={{ 
+                  display: 'block',
+                  backgroundColor: '#000',
+                  minHeight: '200px'
+                }}
+                onLoadedMetadata={() => {
+                  console.log('Video metadata carregado');
+                  const video = videoRef.current;
+                  if (video) {
+                    console.log('Dimensões do vídeo:', video.videoWidth, 'x', video.videoHeight);
+                  }
+                }}
+                onCanPlay={() => {
+                  console.log('Video pode ser reproduzido');
+                }}
+                onPlay={() => {
+                  console.log('Video iniciou a reprodução');
+                }}
+                onError={(e) => {
+                  console.error('Erro no elemento video:', e);
+                }}
+              />
+              {!videoReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                    <p>Carregando câmera...</p>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {currentImage && (
