@@ -115,6 +115,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 const [showRegionModal, setShowRegionModal] = useState(false);
   const [showLocationManager, setShowLocationManager] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
+  // Dialog para detalhes de serviços urbanos (GUINCHO/MUDANCA)
+  const [showServiceRequestDialog, setShowServiceRequestDialog] = useState(false);
+  const [selectedServiceRequest, setSelectedServiceRequest] = useState<Freight | null>(null);
   const [filters, setFilters] = useState({
     cargo_type: 'all',
     service_type: 'all',
@@ -1299,7 +1302,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
 
                       {/* Botões de ação simplificados */}
                       <div className="flex gap-2">
-                        {(freight.status === 'ACCEPTED' || freight.status === 'LOADING' || freight.status === 'IN_TRANSIT') && (
+                        {!freight.is_service_request && (freight.status === 'ACCEPTED' || freight.status === 'LOADING' || freight.status === 'IN_TRANSIT') && (
                           <Button 
                             size="sm" 
                             className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
@@ -1317,8 +1320,13 @@ const [showRegionModal, setShowRegionModal] = useState(false);
                           variant="outline"
                           className="flex-1 h-8 text-xs border-primary/30 hover:bg-primary/5"
                           onClick={() => {
-                            setSelectedFreightId(freight.id);
-                            setShowDetails(true);
+                            if (freight.is_service_request) {
+                              setSelectedServiceRequest(freight);
+                              setShowServiceRequestDialog(true);
+                            } else {
+                              setSelectedFreightId(freight.id);
+                              setShowDetails(true);
+                            }
                           }}
                         >
                           Ver Detalhes
@@ -1857,6 +1865,37 @@ const [showRegionModal, setShowRegionModal] = useState(false);
           </div>
         </div>
       )}
+      {/* Detalhes do Chamado de Serviço (GUINCHO/MUDANCA) */}
+      <Dialog open={showServiceRequestDialog} onOpenChange={setShowServiceRequestDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedServiceRequest?.service_type === 'GUINCHO' ? 'Chamado de Guincho' : 'Serviço de Mudança'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Endereço:</span>
+              <span className="font-medium max-w-[220px] text-right truncate">
+                {selectedServiceRequest?.origin_address}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Status:</span>
+              <Badge variant="secondary">{selectedServiceRequest?.status}</Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Criado em:</span>
+              <span className="font-medium">
+                {selectedServiceRequest?.pickup_date && new Date(selectedServiceRequest.pickup_date).toLocaleString('pt-BR')}
+              </span>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowServiceRequestDialog(false)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <ServicesModal 
         isOpen={servicesModalOpen}
