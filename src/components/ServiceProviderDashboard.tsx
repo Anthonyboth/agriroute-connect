@@ -158,25 +158,29 @@ export const ServiceProviderDashboard: React.FC = () => {
     if (!providerId) return;
 
     try {
-      // Primeiro, buscar o service_type do prestador
-      const { data: providerData, error: providerDataError } = await supabase
-        .from('service_providers')
-        .select('service_type')
-        .eq('profile_id', providerId)
+      // Buscar tipos de serviço do prestador (preferir profiles.service_types; fallback para service_providers.service_type)
+      let providerServiceTypes: string[] | null = null;
+      // Tentar via profiles
+      const { data: profileData, error: profileErr } = await supabase
+        .from('profiles')
+        .select('service_types')
+        .eq('id', providerId)
         .single();
-
-      if (providerDataError) {
-        console.error('Error fetching provider service type:', providerDataError);
-        setLoading(false);
-        return;
+      if (!profileErr && profileData?.service_types && Array.isArray(profileData.service_types)) {
+        providerServiceTypes = profileData.service_types as unknown as string[];
+      } else {
+        // Fallback legado: tabela service_providers com único service_type
+        const { data: providerData, error: providerDataError } = await supabase
+          .from('service_providers')
+          .select('service_type')
+          .eq('profile_id', providerId)
+          .single();
+        if (!providerDataError && providerData?.service_type) {
+          providerServiceTypes = [providerData.service_type];
+        }
       }
-
-      const providerServiceType = providerData?.service_type;
-      if (!providerServiceType) {
-        console.warn('Provider service type not found');
-        setLoading(false);
-        return;
-      }
+      // Se não houver tipos configurados, não filtramos por tipo (mostraremos todos)
+      const hasTypeFilter = Array.isArray(providerServiceTypes) && providerServiceTypes.length > 0;
 
       // Buscar solicitações do prestador (aceitas/em andamento/concluídas)
       const { data: providerRequests, error: providerError } = await supabase
@@ -196,13 +200,16 @@ export const ServiceProviderDashboard: React.FC = () => {
       if (cityError) {
         console.warn('City-based search failed, falling back to direct search:', cityError);
         
-        // Fallback: busca direta por solicitações pendentes compatíveis com o service_type
-        const { data: directPendingRequests, error: directPendingError } = await supabase
+        // Fallback: busca direta por solicitações pendentes (filtra por tipo se houver)
+        let directQuery = supabase
           .from('service_requests')
           .select('*') 
           .is('provider_id', null)
-          .eq('status', 'OPEN')
-          .eq('service_type', providerServiceType) // Filtrar pelo tipo de serviço
+          .eq('status', 'OPEN');
+        if (hasTypeFilter) {
+          directQuery = directQuery.in('service_type', providerServiceTypes as string[]);
+        }
+        const { data: directPendingRequests, error: directPendingError } = await directQuery
           .order('created_at', { ascending: true }); // Mais antigas primeiro
 
         if (directPendingError) throw directPendingError;
@@ -228,15 +235,15 @@ export const ServiceProviderDashboard: React.FC = () => {
         console.log(`Loaded ${allRequests.length} service requests (fallback mode + service type filtered)`, {
           providerRequests: (providerRequests || []).length,
           directPending: (directPendingRequests || []).length,
-          providerServiceType: providerServiceType
+          providerServiceTypes: providerServiceTypes
         });
         
         return;
       }
 
-      // Usar resultados da busca por cidade, filtrando pelo service_type
+      // Usar resultados da busca por cidade, filtrando pelos tipos do prestador (se houver)
       const pendingCityRequests = (cityBasedRequests || [])
-        .filter((r: any) => r.service_type === providerServiceType) // Filtrar pelo tipo de serviço
+        .filter((r: any) => !hasTypeFilter || (providerServiceTypes as string[]).includes(r.service_type))
         .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); // Mais antigas primeiro
 
       // Combinar e deduplicar por id
@@ -263,7 +270,7 @@ export const ServiceProviderDashboard: React.FC = () => {
       console.log(`Loaded ${allRequests.length} service requests (city-based + service type filtered)`, {
         providerRequests: (providerRequests || []).length,
         cityBasedPending: pendingCityRequests.length,
-        providerServiceType: providerServiceType
+        providerServiceTypes: providerServiceTypes
       });
       
     } catch (error: any) {
