@@ -29,13 +29,13 @@ interface CitySelectorProps {
 export const CitySelector: React.FC<CitySelectorProps> = ({
   value,
   onChange,
-  placeholder = "Digite o nome da cidade...",
+  placeholder = "Localize sua Cidade",
   label = "Cidade",
   required = false,
   className,
   error
 }) => {
-  const [searchTerm, setSearchTerm] = useState(value ? `${value.city}, ${value.state}` : '');
+  const [searchTerm, setSearchTerm] = useState(value && value.city && value.state ? `${value.city}, ${value.state}` : '');
   const [cities, setCities] = useState<City[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
