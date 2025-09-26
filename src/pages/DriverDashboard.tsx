@@ -537,17 +537,22 @@ const [showRegionModal, setShowRegionModal] = useState(false);
   useEffect(() => {
     const loadData = async () => {
       if (!profile?.id) return;
-      
       setLoading(true);
-      await Promise.all([
-        fetchAvailableFreights(), 
-        fetchMyProposals(), 
-        fetchOngoingFreights(),
-        fetchTransportRequests(),
-        fetchDriverCheckins(),
-        fetchPendingPayments()
-      ]);
-      setLoading(false);
+      try {
+        await Promise.all([
+          fetchAvailableFreights(),
+          fetchMyProposals(),
+          fetchOngoingFreights(),
+          fetchTransportRequests(),
+          fetchDriverCheckins(),
+          fetchPendingPayments()
+        ]);
+      } catch (err) {
+        console.error('Erro ao carregar dados do dashboard do motorista:', err);
+        toast.error('Erro ao carregar dados do dashboard');
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadData();
