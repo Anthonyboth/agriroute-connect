@@ -220,12 +220,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
                     <p className="text-sm font-medium text-gray-600">Saldo</p>
                     <p className="text-2xl font-bold text-gray-900">
                       {showEarnings 
-                        ? new Intl.NumberFormat('pt-BR', { 
-                            style: 'currency', 
-                            currency: 'BRL',
-                            notation: 'compact',
-                            maximumFractionDigits: 0
-                          }).format(stats.total_earnings)
+                        ? 'R$ 0,00'
                         : '****'
                       }
                     </p>

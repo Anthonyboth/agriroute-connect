@@ -21,38 +21,21 @@ interface BalanceData {
 }
 
 export const useProviderBalance = () => {
+  // Valores fixos em 0 até ativar pagamentos pela plataforma
   const [balance, setBalance] = useState<BalanceData>({
     available_balance: 0,
     pending_balance: 0,
     total_earned: 0,
     recent_transactions: []
   });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>('Pagamentos pela plataforma ainda não estão disponíveis');
   const { toast } = useToast();
 
   const fetchBalance = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error } = await supabase.functions.invoke('get-provider-balance');
-      
-      if (error) {
-        throw error;
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setBalance(data);
-    } catch (err) {
-      console.error('Error fetching provider balance:', err);
-      setError('Pagamentos pela plataforma ainda não estão disponíveis');
-    } finally {
-      setLoading(false);
-    }
+    // Não buscar dados reais, manter valores fixos em 0
+    setLoading(false);
+    setError('Pagamentos pela plataforma ainda não estão disponíveis');
   };
 
   const requestPayout = async (amount: number, pixKey: string, description?: string) => {

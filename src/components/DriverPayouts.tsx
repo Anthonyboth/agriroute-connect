@@ -41,13 +41,10 @@ export function DriverPayouts({ driverId }: DriverPayoutsProps) {
   const [showPixKeys, setShowPixKeys] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
 
-  const availableBalance = availablePayouts
-    .filter(p => p.status === 'PENDING')
-    .reduce((sum, payout) => sum + payout.amount, 0);
+  // Valores fixos em 0 até ativar pagamentos pela plataforma
+  const availableBalance = 0;
 
-  const totalEarned = availablePayouts
-    .filter(p => p.status === 'COMPLETED')
-    .reduce((sum, payout) => sum + payout.amount, 0);
+  const totalEarned = 0;
 
   const pendingRequests = payoutRequests.filter(r => r.status === 'PENDING').length;
 
