@@ -618,17 +618,45 @@ const [showRegionModal, setShowRegionModal] = useState(false);
           return;
         }
 
-        const { error } = await supabase
-          .from('freight_proposals')
-          .insert({
-            freight_id: freightId,
-            driver_id: profile.id,
-            proposed_price: freight.price,
-            status: 'PENDING',
-            message: action === 'accept' ? 'Aceito o frete pelo valor anunciado.' : null,
-          });
+        if (action === 'accept') {
+          // Aceitar frete diretamente - atualizar o frete para ACCEPTED
+          const { error: freightError } = await supabase
+            .from('freights')
+            .update({
+              status: 'ACCEPTED',
+              driver_id: profile.id,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', freightId);
 
-        if (error) throw error;
+          if (freightError) throw freightError;
+
+          // Inserir proposta como ACCEPTED
+          const { error: proposalError } = await supabase
+            .from('freight_proposals')
+            .insert({
+              freight_id: freightId,
+              driver_id: profile.id,
+              proposed_price: freight.price,
+              status: 'ACCEPTED',
+              message: 'Aceito o frete pelo valor anunciado.',
+            });
+
+          if (proposalError) throw proposalError;
+        } else {
+          // Apenas proposta (não aceite direto)
+          const { error } = await supabase
+            .from('freight_proposals')
+            .insert({
+              freight_id: freightId,
+              driver_id: profile.id,
+              proposed_price: freight.price,
+              status: 'PENDING',
+              message: null,
+            });
+
+          if (error) throw error;
+        }
         
         toast.success(
           action === 'accept' ? 
@@ -637,7 +665,10 @@ const [showRegionModal, setShowRegionModal] = useState(false);
              'Frete aceito com sucesso!') :
             'Proposta enviada com sucesso!'
         );
-        fetchMyProposals(); // Atualizar lista
+        
+        // Atualizar as listas
+        fetchMyProposals();
+        fetchOngoingFreights(); // Importante para atualizar a aba "Em Andamento"
       }
     } catch (error: any) {
       console.error('Error handling freight action:', error);
