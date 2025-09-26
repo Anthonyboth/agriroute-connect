@@ -254,28 +254,68 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     // Don't fetch if user is not a driver
     if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
-    console.log('🔍 Buscando fretes diretos do motorista:', profile.id);
+    console.log('🔍 Buscando fretes e serviços ativos do motorista:', profile.id);
     try {
-      // Buscar fretes vinculados ao motorista diretamente (evita políticas com recursão)
-      const { data, error } = await supabase
+      // Buscar fretes vinculados ao motorista diretamente
+      const { data: freightData, error: freightError } = await supabase
         .from('freights')
         .select('*')
         .eq('driver_id', profile.id)
         .order('updated_at', { ascending: false })
         .limit(100);
 
-      if (error) {
-        console.error('❌ Erro buscando fretes diretos:', error);
-        throw error;
+      if (freightError) {
+        console.error('❌ Erro buscando fretes diretos:', freightError);
+        throw freightError;
       }
       
-      console.log('📦 Fretes diretos encontrados:', data?.length || 0);
-      console.log('📊 Detalhes dos fretes diretos:', data);
-      setOngoingFreights(data || []);
+      // Buscar service_requests aceitos pelo motorista
+      const { data: serviceData, error: serviceError } = await supabase
+        .from('service_requests')
+        .select('*')
+        .eq('provider_id', profile.id)
+        .in('status', ['ACCEPTED', 'IN_PROGRESS'])
+        .order('updated_at', { ascending: false })
+        .limit(100);
 
-      // Verificar checkins para cada frete
-      if (data && data.length > 0) {
-        data.forEach(async (freight) => {
+      if (serviceError) {
+        console.error('❌ Erro buscando serviços aceitos:', serviceError);
+        // Não throw aqui, apenas log o erro
+      }
+      
+      // Converter service_requests para formato de frete
+      const convertedServices = (serviceData || []).map(service => ({
+        id: service.id,
+        cargo_type: service.service_type === 'GUINCHO' ? 'Guincho' : 'Mudança',
+        weight: 0,
+        origin_address: service.location_address,
+        destination_address: service.location_address,
+        pickup_date: service.created_at,
+        delivery_date: service.created_at,
+        price: service.estimated_price || 0,
+        status: service.status,
+        service_type: service.service_type,
+        producer_id: service.client_id,
+        driver_id: service.provider_id,
+        created_at: service.created_at,
+        updated_at: service.updated_at,
+        urgency: 'MEDIUM' as const,
+        distance_km: 0,
+        minimum_antt_price: 0,
+        is_service_request: true // Flag para identificar que é um service_request
+      }));
+      
+      // Combinar fretes tradicionais com serviços aceitos
+      const allOngoing = [...(freightData || []), ...convertedServices];
+      
+      console.log('📦 Fretes diretos encontrados:', freightData?.length || 0);
+      console.log('🔧 Serviços aceitos encontrados:', serviceData?.length || 0);
+      console.log('📊 Total de itens ativos:', allOngoing.length);
+      setOngoingFreights(allOngoing);
+
+      // Verificar checkins para cada frete tradicional
+      if (freightData && freightData.length > 0) {
+        freightData.forEach(async (freight) => {
           try {
             const { count } = await (supabase as any)
               .from('freight_checkins')
@@ -587,6 +627,15 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_proposals' }, () => {
         fetchMyProposals();
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'service_requests', 
+        filter: `provider_id=eq.${profile.id}` 
+      }, () => {
+        fetchOngoingFreights(); // Atualizar quando service_requests mudarem
+        fetchTransportRequests(); // Também atualizar a lista de disponíveis
       })
       .on('postgres_changes', { 
         event: '*', 
