@@ -23,6 +23,7 @@ import { getProviderVisibleServices, CATEGORY_LABELS } from '@/lib/service-types
 import CreateFreightModal from '@/components/CreateFreightModal';
 import { MudancaModal } from '@/components/MudancaModal';
 import GuestServiceModal from '@/components/GuestServiceModal';
+import { BackButton } from '@/components/BackButton';
 
 const Services: React.FC = () => {
   const navigate = useNavigate();
@@ -97,6 +98,11 @@ const Services: React.FC = () => {
       />
 
       <div className="container mx-auto py-8 px-4">
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton />
+        </div>
+
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 gradient-text">
