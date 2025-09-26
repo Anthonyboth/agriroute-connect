@@ -100,7 +100,7 @@ const Services: React.FC = () => {
       <div className="container mx-auto py-8 px-4">
         {/* Back Button */}
         <div className="mb-4">
-          <BackButton />
+          <BackButton to="/dashboard/service-provider" />
         </div>
 
         {/* Hero Section */}
