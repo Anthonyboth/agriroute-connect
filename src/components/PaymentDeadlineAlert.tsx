@@ -121,10 +121,10 @@ export const PaymentDeadlineAlert: React.FC<PaymentDeadlineAlertProps> = ({ user
             <AlertDescription className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="font-medium">
-                  Pagamento obrigatório - {deadline.freight?.cargo_type}
+                  Solicitação de adiantamento - {deadline.freight?.cargo_type}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Você deve pagar pelo menos 50% do frete até o carregamento (
+                  O motorista solicitou adiantamento (
                   <span className="font-medium">
                     {getTimeRemaining(deadline.deadline_at)}
                   </span>)
