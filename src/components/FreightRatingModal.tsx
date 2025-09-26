@@ -8,24 +8,28 @@ import { useToast } from '@/hooks/use-toast';
 import { Star, User } from 'lucide-react';
 
 interface FreightRatingModalProps {
-  freight: {
+  freight?: {
     id: string;
-    producer_profiles?: {
-      full_name: string;
-    };
-    driver_profiles?: {
-      full_name: string;
-    };
+    producer_profiles?: { full_name: string };
+    driver_profiles?: { full_name: string };
     metadata?: any;
   };
+  // Legacy props (backward compatibility)
+  freightId?: string;
+  userToRate?: { full_name?: string; id?: string } | null;
+  currentUserProfile?: { id: string; role: 'PRODUTOR' | 'MOTORISTA' } | null;
+
   isOpen: boolean;
   onClose: () => void;
   onRatingSubmitted: () => void;
-  userRole: 'PRODUTOR' | 'MOTORISTA';
+  userRole?: 'PRODUTOR' | 'MOTORISTA';
 }
 
 export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
   freight,
+  freightId: freightIdProp,
+  userToRate,
+  currentUserProfile,
   isOpen,
   onClose,
   onRatingSubmitted,
@@ -36,10 +40,12 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isProducerRating = userRole === 'PRODUTOR';
+  const effectiveFreightId = freight?.id || freightIdProp || '';
+  const effectiveUserRole = userRole || currentUserProfile?.role || 'PRODUTOR';
+  const isProducerRating = effectiveUserRole === 'PRODUTOR';
   const ratedUserName = isProducerRating 
-    ? freight.driver_profiles?.full_name || 'Motorista'
-    : freight.producer_profiles?.full_name || 'Produtor';
+    ? freight?.driver_profiles?.full_name || userToRate?.full_name || 'Motorista'
+    : freight?.producer_profiles?.full_name || userToRate?.full_name || 'Produtor';
 
   const handleSubmitRating = async () => {
     if (rating === 0) {
@@ -65,8 +71,8 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
       // Get freight details to identify producer and driver
       const { data: freightData, error: freightError } = await supabase
         .from('freights')
-        .select('producer_id, driver_id')
-        .eq('id', freight.id)
+        .select('producer_id, driver_id, metadata')
+        .eq('id', effectiveFreightId)
         .single();
 
       if (freightError) throw freightError;
@@ -78,7 +84,7 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
       const { error: ratingError } = await supabase
         .from('freight_ratings')
         .insert({
-          freight_id: freight.id,
+          freight_id: effectiveFreightId,
           rater_id: profile.id,
           rated_user_id: ratedUserId,
           rating: rating,
@@ -90,22 +96,22 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
 
       // Check if both parties have now rated
       const { data: bothRated, error: checkError } = await supabase
-        .rpc('check_mutual_ratings_complete', { freight_id_param: freight.id });
+        .rpc('check_mutual_ratings_complete', { freight_id_param: effectiveFreightId });
 
       if (checkError) throw checkError;
 
       // If both have rated, we can consider the freight fully completed
-      if (bothRated) {
+      if (bothRated && freight) {
         await supabase
           .from('freights')
           .update({ 
             metadata: {
-              ...freight.metadata || {},
+              ...(freight.metadata || freightData.metadata || {}),
               ratings_completed: true,
               ratings_pending: false
             }
           })
-          .eq('id', freight.id);
+          .eq('id', effectiveFreightId);
       }
 
       toast({

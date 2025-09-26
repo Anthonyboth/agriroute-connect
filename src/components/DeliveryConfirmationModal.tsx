@@ -57,14 +57,13 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
       const { error: updateError } = await supabase
         .from('freights')
         .update({ 
-          status: 'COMPLETED',  // Changed from 'DELIVERED' to 'COMPLETED'
+          status: 'DELIVERED',
           updated_at: new Date().toISOString(),
           metadata: {
             ...freight.metadata,
             delivery_confirmed_at: new Date().toISOString(),
             confirmed_by_producer: true,
-            confirmation_notes: notes,
-            ratings_pending: true  // Flag to indicate ratings are needed
+            confirmation_notes: notes
           }
         })
         .eq('id', freight.id)
