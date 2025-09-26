@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { User, MapPin, Clock, AlertCircle } from 'lucide-react';
 import { UserLocationSelector } from './UserLocationSelector';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ServiceRequestModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
   serviceDescription,
   category
 }) => {
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -45,6 +47,19 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     preferred_time: '',
     additional_info: ''
   });
+
+  // Preencher automaticamente dados do usuário se logado
+  useEffect(() => {
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        name: profile.full_name || '',
+        phone: profile.phone || '',
+        city: profile.current_city_name || '',
+        state: profile.current_state || '',
+      }));
+    }
+  }, [profile]);
 
   const categoryInfo = {
     technical: {
@@ -110,7 +125,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
       });
 
       const { data, error } = await supabase.from('service_requests').insert({
-        client_id: '00000000-0000-0000-0000-000000000000', // UUID null para guests
+        client_id: profile?.id || '00000000-0000-0000-0000-000000000000', // Usar ID do perfil se logado
         service_type: serviceId,
         contact_name: formData.name,
         contact_phone: formData.phone,
