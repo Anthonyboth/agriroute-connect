@@ -299,6 +299,8 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
     try {
+      console.log('🔍 Buscando solicitações de transporte para motorista:', profile.id);
+      
       // Buscar solicitações de transporte pendentes (guincho e mudanças)
       const { data, error } = await supabase
         .from('service_requests')
@@ -308,10 +310,15 @@ const [showRegionModal, setShowRegionModal] = useState(false);
         .is('provider_id', null)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao buscar solicitações de transporte:', error);
+        throw error;
+      }
+      
+      console.log('🚛 Solicitações de transporte encontradas:', data?.length || 0);
+      console.log('📋 Dados completos das solicitações:', data);
       
       setTransportRequests(data || []);
-      console.log('🚛 Solicitações de transporte encontradas:', data?.length || 0);
     } catch (error) {
       console.error('Error fetching transport requests:', error);
       toast.error('Erro ao carregar solicitações de transporte');
