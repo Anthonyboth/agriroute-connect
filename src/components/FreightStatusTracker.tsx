@@ -166,9 +166,10 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       }
 
     } catch (error: any) {
+      console.error('Error updating freight status:', error);
       toast({
         title: "Erro ao atualizar status",
-        description: error.message,
+        description: "Não foi possível atualizar o status. Verifique suas permissões e tente novamente.",
         variant: "destructive",
       });
     } finally {

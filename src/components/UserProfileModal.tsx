@@ -69,9 +69,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       
       setEditMode(false);
     } catch (error: any) {
+      console.error('Error updating profile:', error);
       toast({
         title: "Erro ao atualizar perfil",
-        description: error.message,
+        description: "Não foi possível atualizar o perfil. Verifique os dados e tente novamente.",
         variant: "destructive",
       });
     } finally {

@@ -129,9 +129,10 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
       setIsAddModalOpen(false);
       fetchVehicles();
     } catch (error: any) {
+      console.error('Error saving vehicle:', error);
       toast({
         title: "Erro ao salvar veículo",
-        description: error.message,
+        description: "Não foi possível salvar o veículo. Verifique os dados e tente novamente.",
         variant: "destructive",
       });
     } finally {

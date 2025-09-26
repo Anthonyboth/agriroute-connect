@@ -54,9 +54,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       if (error) throw error;
       setNotifications(data || []);
     } catch (error: any) {
+      console.error('Error loading notifications:', error);
       toast({
         title: "Erro ao carregar notificações",
-        description: error.message,
+        description: "Não foi possível carregar as notificações. Tente novamente.",
         variant: "destructive",
       });
     } finally {

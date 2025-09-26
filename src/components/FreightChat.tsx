@@ -77,9 +77,10 @@ export const FreightChat: React.FC<FreightChatProps> = ({
       setNewMessage('');
       fetchMessages();
     } catch (error: any) {
+      console.error('Error sending message:', error);
       toast({
         title: "Erro ao enviar mensagem",
-        description: error.message,
+        description: "Não foi possível enviar a mensagem. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -122,9 +123,10 @@ export const FreightChat: React.FC<FreightChatProps> = ({
         description: "A imagem foi enviada com sucesso.",
       });
     } catch (error: any) {
+      console.error('Error sending image:', error);
       toast({
         title: "Erro ao enviar imagem",
-        description: error.message,
+        description: "Não foi possível enviar a imagem. Verifique o tamanho do arquivo e tente novamente.",
         variant: "destructive",
       });
     } finally {

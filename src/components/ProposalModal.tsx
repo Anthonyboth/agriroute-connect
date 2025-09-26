@@ -103,9 +103,10 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
       
       onProposalSent?.();
     } catch (error: any) {
+      console.error('Error sending proposal:', error);
       toast({
         title: "Erro ao enviar proposta",
-        description: error.message,
+        description: "Não foi possível enviar a proposta. Verifique os dados e tente novamente.",
         variant: "destructive",
       });
     } finally {

@@ -107,7 +107,7 @@ export const SecurityMonitoringPanel: React.FC = () => {
       toast({
         variant: "destructive",
         title: "Erro ao carregar dados de segurança",
-        description: error.message
+        description: "Não foi possível carregar os dados. Tente novamente."
       });
     } finally {
       setLoading(false);
@@ -137,7 +137,7 @@ export const SecurityMonitoringPanel: React.FC = () => {
       toast({
         variant: "destructive",
         title: "Erro ao bloquear IP",
-        description: error.message
+        description: "Não foi possível bloquear o IP. Tente novamente."
       });
     }
   };
@@ -161,7 +161,7 @@ export const SecurityMonitoringPanel: React.FC = () => {
       toast({
         variant: "destructive",
         title: "Erro ao desbloquear IP",
-        description: error.message
+        description: "Não foi possível desbloquear o IP. Tente novamente."
       });
     }
   };

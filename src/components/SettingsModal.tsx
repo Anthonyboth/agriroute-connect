@@ -68,9 +68,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
       onClose();
     } catch (error: any) {
+      console.error('Error saving settings:', error);
       toast({
         title: "Erro ao salvar configurações",
-        description: error.message,
+        description: "Não foi possível salvar as configurações. Tente novamente.",
         variant: "destructive",
       });
     } finally {

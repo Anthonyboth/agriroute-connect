@@ -76,9 +76,10 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ children }) =>
       
       setIsOpen(false);
     } catch (error: any) {
+      console.error('Error sending suggestion:', error);
       toast({
         title: "Erro ao enviar",
-        description: error.message,
+        description: "Não foi possível enviar a sugestão. Tente novamente.",
         variant: "destructive",
       });
     } finally {
