@@ -402,6 +402,8 @@ const [showRegionModal, setShowRegionModal] = useState(false);
 
       toast.success('Solicitação aceita com sucesso!');
       fetchTransportRequests();
+      await fetchOngoingFreights();
+      setActiveTab('ongoing');
     } catch (error) {
       console.error('Error accepting transport request:', error);
       toast.error('Erro ao aceitar solicitação');
@@ -1239,13 +1241,13 @@ const [showRegionModal, setShowRegionModal] = useState(false);
             <div className="flex flex-col space-y-2 mb-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-base font-semibold">Em Andamento</h3>
-                <Badge variant="secondary" className="text-xs">{ongoingFreights.filter(f => ['ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length}</Badge>
+                <Badge variant="secondary" className="text-xs">{ongoingFreights.filter(f => ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length}</Badge>
               </div>
             </div>
             
-            {ongoingFreights.filter(f => ['ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length > 0 ? (
+            {ongoingFreights.filter(f => ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length > 0 ? (
               <div className="space-y-4">
-                {ongoingFreights.filter(f => ['ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).map((freight) => (
+                {ongoingFreights.filter(f => ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).map((freight) => (
                   <Card key={freight.id} className="shadow-sm border border-border/50 hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       {/* Header com tipo de carga e status */}
