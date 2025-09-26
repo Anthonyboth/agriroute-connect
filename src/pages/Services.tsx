@@ -336,6 +336,17 @@ const Services: React.FC = () => {
             Falar com Suporte
           </Button>
         </section>
+
+        {/* Frete Urbano - CTA final */}
+        <section className="mt-8">
+          <div className="max-w-2xl mx-auto text-center">
+            <h3 className="text-xl font-semibold mb-2">Precisa de Frete Urbano?</h3>
+            <p className="text-muted-foreground mb-4">Transporte rápido dentro da cidade para pequenas e médias cargas.</p>
+            <Button size="lg" onClick={() => { setGuestServiceType('FRETE_URBANO'); setShowGuestServiceModal(true); }}>
+              Solicitar Frete Urbano
+            </Button>
+          </div>
+        </section>
       </div>
 
       {/* Modals */}
