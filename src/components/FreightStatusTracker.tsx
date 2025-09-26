@@ -36,13 +36,15 @@ interface FreightStatusTrackerProps {
   currentStatus: string;
   currentUserProfile: any;
   isDriver: boolean;
+  onStatusUpdated?: (newStatus: string) => void;
 }
 
 export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
   freightId,
   currentStatus,
   currentUserProfile,
-  isDriver
+  isDriver,
+  onStatusUpdated
 }) => {
   const { toast } = useToast();
   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
@@ -155,8 +157,13 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         description: `Frete marcado como: ${STATUS_FLOW.find(s => s.key === newStatus)?.label}`,
       });
 
-      // Forçar atualização da página parent para refletir o novo status
-      window.location.reload();
+      // Notificar o parent para atualizar UI sem recarregar tudo
+      if (onStatusUpdated) {
+        onStatusUpdated(newStatus);
+      } else {
+        // Fallback suave: re-fetcha histórico local
+        fetchStatusHistory();
+      }
 
     } catch (error: any) {
       toast({

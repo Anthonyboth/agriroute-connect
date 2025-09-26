@@ -651,6 +651,9 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               currentStatus={freight.status}
               currentUserProfile={currentUserProfile}
               isDriver={isDriver}
+              onStatusUpdated={() => {
+                fetchFreightDetails();
+              }}
             />
           </TabsContent>
           
