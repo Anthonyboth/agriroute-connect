@@ -149,6 +149,23 @@ const SERVICE_PROVIDER_TYPES: ServiceProviderServiceType[] = [
   },
   // Serviços de Logística
   {
+    id: 'OPERADOR_MAQUINAS',
+    label: 'Operador de Máquinas',
+    description: 'Operação de tratores, colheitadeiras e implementos',
+    icon: Wrench,
+    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    category: 'agricultural'
+  },
+  {
+    id: 'SECAGEM_GRAOS',
+    label: 'Secador / Secagem de Grãos',
+    description: 'Operação de secadores e controle de umidade dos grãos',
+    icon: Package,
+    color: 'bg-rose-100 text-rose-800 border-rose-200',
+    category: 'agricultural'
+  },
+  // Serviços de Logística
+  {
     id: 'GUINDASTE',
     label: 'Guindaste',
     description: 'Elevação e movimentação de cargas pesadas',
