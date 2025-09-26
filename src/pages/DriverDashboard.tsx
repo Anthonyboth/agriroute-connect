@@ -665,6 +665,15 @@ const [showRegionModal, setShowRegionModal] = useState(false);
               ? 'Orçamento enviado com sucesso!'
               : 'Frete aceito com sucesso!'
           );
+
+          // Atualização otimista da UI: mover para "Em Andamento" imediatamente
+          setOngoingFreights(prev => {
+            const updated = { ...freight, status: 'ACCEPTED' as const, driver_id: profile.id } as Freight;
+            const without = prev.filter(f => f.id !== freightId);
+            return [updated, ...without];
+          });
+          setAvailableFreights(prev => prev.filter(f => f.id !== freightId));
+          setActiveTab('ongoing');
         }
 
         // Atualizar as listas
