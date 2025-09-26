@@ -407,11 +407,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       
       const { data, error } = await supabase
         .from('external_payments')
-        .select(`
-          *,
-          freights(*),
-          producer:profiles!external_payments_producer_id_fkey(*)
-        `)
+        .select('*')
         .eq('driver_id', profile.id)
         .eq('status', 'proposed')
         .order('created_at', { ascending: false });
