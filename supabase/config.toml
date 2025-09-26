@@ -128,3 +128,6 @@ verify_jwt = false
 
 [functions.accept-freight]
 verify_jwt = true
+
+[functions.withdraw-freight]
+verify_jwt = true

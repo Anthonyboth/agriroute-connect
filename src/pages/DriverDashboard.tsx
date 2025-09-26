@@ -675,47 +675,39 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     try {
       const freightId = selectedFreightForWithdrawal.id;
 
-      // Verificar se há checkins para este frete
+      // Verificação rápida no cliente (mensagem mais amigável)
       const hasCheckins = await checkFreightCheckins(freightId);
-      
       if (hasCheckins) {
         toast.error('Não é possível desistir do frete após o primeiro check-in.');
         return;
       }
 
-      // Atualizar o frete para OPEN (disponível novamente) e remover o motorista
-      const { error: freightError } = await supabase
-        .from('freights')
-        .update({ 
-          status: 'OPEN',
-          driver_id: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', freightId)
-        .eq('driver_id', profile.id); // Só permite se for o motorista atual
+      // Processar via Edge Function para evitar bloqueios de RLS
+      const { data, error } = await (supabase as any).functions.invoke('withdraw-freight', {
+        method: 'POST',
+        body: { freight_id: freightId },
+      });
 
-      if (freightError) throw freightError;
+      if (error) {
+        // Edge function pode retornar erro sem lançar exception
+        console.error('withdraw-freight error:', error);
+        const msg = (error as any)?.message || 'Erro ao processar desistência. Tente novamente.';
+        toast.error(msg);
+        return;
+      }
 
-      // Atualizar a proposta para CANCELLED mantendo histórico
-      const { error: proposalError } = await supabase
-        .from('freight_proposals')
-        .update({ 
-          status: 'CANCELLED',
-          updated_at: new Date().toISOString()
-        })
-        .eq('freight_id', freightId)
-        .eq('driver_id', profile.id);
-
-      if (proposalError) console.warn('Aviso: Erro ao atualizar proposta:', proposalError);
+      if (data?.error === 'HAS_CHECKINS') {
+        toast.error('Não é possível desistir do frete após o primeiro check-in.');
+        return;
+      }
 
       toast.success('Desistência processada. O frete está novamente disponível para outros motoristas.');
-      
+
       // Fechar modal e atualizar listas
       setShowWithdrawalModal(false);
       setSelectedFreightForWithdrawal(null);
       fetchOngoingFreights();
       fetchMyProposals();
-      
     } catch (error: any) {
       console.error('Error processing freight withdrawal:', error);
       toast.error('Erro ao processar desistência. Tente novamente.');
