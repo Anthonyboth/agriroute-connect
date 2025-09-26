@@ -115,8 +115,8 @@ const CompleteProfile = () => {
           profile.location_enabled
         ));
 
-      // Only redirect if profile is fully complete AND user has been approved
-      if (hasCompletedProfile && profile.status === 'APPROVED') {
+      // Redirect if profile is fully complete (even if pending approval)
+      if (hasCompletedProfile) {
         const dashboardPath = profile.role === 'MOTORISTA' ? '/dashboard/driver' : 
                              (profile.role as any) === 'PRESTADOR_SERVICOS' ? '/dashboard/service-provider' :
                              '/dashboard/producer';
