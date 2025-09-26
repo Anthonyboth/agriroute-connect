@@ -101,6 +101,35 @@ serve(async (req) => {
       amount: advance.requested_amount
     });
 
+    // Buscar informações do produtor para a mensagem
+    const { data: producerProfile } = await supabaseClient
+      .from("profiles")
+      .select("name")
+      .eq("id", advance.producer_id)
+      .single();
+
+    // Enviar mensagem no chat do frete
+    try {
+      const chatMessage = `💼 Adiantamento rejeitado pelo produtor${rejection_reason ? `\n\n📝 Motivo: ${rejection_reason}` : ''}\n\n💰 Valor: R$ ${advance.requested_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      
+      const { error: messageError } = await supabaseClient
+        .from("freight_messages")
+        .insert({
+          freight_id: advance.freight_id,
+          sender_id: advance.producer_id,
+          message: chatMessage,
+          message_type: 'SYSTEM'
+        });
+
+      if (messageError) {
+        logStep("Warning: Could not send chat message", { error: messageError });
+      } else {
+        logStep("Chat message sent successfully");
+      }
+    } catch (chatError) {
+      logStep("Warning: Could not send chat message", { error: chatError });
+    }
+
     // Enviar notificação para o motorista sobre rejeição do adiantamento
     try {
       await supabaseClient.functions.invoke('send-notification', {
