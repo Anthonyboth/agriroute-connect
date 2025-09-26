@@ -17,7 +17,7 @@ import { SmartFreightMatcher } from '@/components/SmartFreightMatcher';
 import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
-import { ServiceProviderDashboard } from '@/components/ServiceProviderDashboard';
+
 import { DriverPayouts } from '@/components/DriverPayouts';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import FreightLimitTracker from '@/components/FreightLimitTracker';
@@ -1427,13 +1427,6 @@ const [showRegionModal, setShowRegionModal] = useState(false);
                 <ServiceTypeManager />
               </div>
               
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold mb-4">Prestação de Serviços</h3>
-                <p className="text-muted-foreground mb-4">
-                  Gerencie suas solicitações como prestador de serviços
-                </p>
-                <ServiceProviderDashboard />
-              </div>
               
               <div className="border-t pt-6">
                 <MatchIntelligentDemo />
