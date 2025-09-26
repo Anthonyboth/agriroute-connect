@@ -54,6 +54,8 @@ interface Freight {
   distance_km: number;
   minimum_antt_price: number;
   service_type?: string;
+  // Flag para identificar serviços urbanos (GUINCHO/MUDANCA) convertidos
+  is_service_request?: boolean;
   producer?: {
     id: string;
     full_name: string;
@@ -227,7 +229,14 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       console.log('📊 Detalhes dos fretes em andamento:', ongoing);
       
       setMyProposals(proposals);
-      setOngoingFreights(ongoing);
+      // Preservar serviços aceitos (service_requests) já no estado e mesclar com fretes em andamento da edge function
+      setOngoingFreights((prev) => {
+        const serviceRequests = (prev || []).filter((f: any) => (f as any).is_service_request);
+        const merged = [...ongoing, ...serviceRequests].filter(
+          (item, index, self) => self.findIndex((x: any) => x.id === item.id) === index
+        );
+        return merged;
+      });
 
       if (ongoing.length > 0) {
         ongoing.forEach(async (freight: any) => {
