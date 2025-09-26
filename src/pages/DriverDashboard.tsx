@@ -678,7 +678,8 @@ const [showRegionModal, setShowRegionModal] = useState(false);
 
         // Atualizar as listas
         fetchMyProposals();
-        fetchOngoingFreights(); // Importante para atualizar a aba "Em Andamento"
+        // Removido fetchOngoingFreights aqui para evitar sobrescrever a atualização otimista
+
       }
     } catch (error: any) {
       console.error('Error handling freight action:', error);
