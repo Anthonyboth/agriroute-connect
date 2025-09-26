@@ -79,8 +79,15 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       );
 
       if (error) throw error;
-      setCompatibleFreights(data || []);
-      
+      // Filtrar pelos tipos de serviço que o motorista presta (CARGA, GUINCHO, MUDANCA)
+      const allowedTypes = Array.isArray(profile?.service_types)
+        ? (profile?.service_types as unknown as string[]).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA'].includes(t))
+        : [];
+      const filtered = (data || []).filter((f: any) =>
+        allowedTypes.length === 0 ? true : allowedTypes.includes(f.service_type)
+      );
+      setCompatibleFreights(filtered);
+
       // Rate limiting para notificações de matches - só mostra se passaram pelo menos 5 minutos
       if (spatialData?.created > 0) {
         const lastNotificationKey = `lastMatchNotification_${profile.id}`;
