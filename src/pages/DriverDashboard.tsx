@@ -629,7 +629,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     return {
       activeTrips: activeTripsCount,
       completedTrips: acceptedProposals.filter(p => p.freight?.status === 'DELIVERED').length,
-      availableCount: availableFreights.length,
+      availableCount: availableFreights.length + transportRequests.length,
       totalEarnings: acceptedProposals
         .filter(p => p.freight?.status === 'DELIVERED')
         .reduce((sum, proposal) => sum + (proposal.proposed_price || 0), 0),

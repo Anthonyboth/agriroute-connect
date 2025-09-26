@@ -6,7 +6,7 @@ import { getCargoTypeLabel, CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCatego
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { FreightCard } from '@/components/FreightCard';
-import { Brain, Filter, RefreshCw, Search, Zap, Package, Truck, Wrench } from 'lucide-react';
+import { Brain, Filter, RefreshCw, Search, Zap, Package, Truck, Wrench, MapPin, MessageSquare, Clock, DollarSign } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -39,6 +39,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
 }) => {
   const { profile } = useAuth();
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
+  const [towingRequests, setTowingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCargoType, setSelectedCargoType] = useState<string>('all');
@@ -88,6 +89,20 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       );
       setCompatibleFreights(filtered);
 
+      // Buscar chamados de serviço (GUINCHO/MUDANCA) abertos e sem prestador atribuído
+      if (allowedTypes.some(t => t === 'GUINCHO' || t === 'MUDANCA')) {
+        const { data: sr, error: srErr } = await supabase
+          .from('service_requests')
+          .select('*')
+          .in('service_type', allowedTypes.filter(t => t === 'GUINCHO' || t === 'MUDANCA'))
+          .eq('status', 'OPEN')
+          .is('provider_id', null)
+          .order('created_at', { ascending: true });
+        if (srErr) throw srErr;
+        setTowingRequests(sr || []);
+      } else {
+        setTowingRequests([]);
+      }
       // Rate limiting para notificações de matches - só mostra se passaram pelo menos 5 minutos
       if (spatialData?.created > 0) {
         const lastNotificationKey = `lastMatchNotification_${profile.id}`;
@@ -155,7 +170,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     }
   };
 
-  // Filtrar fretes baseado na busca e tipo de carga selecionado
+  // Filtrar fretes
   const filteredFreights = compatibleFreights.filter(freight => {
     const matchesSearch = !searchTerm || 
       freight.cargo_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -165,6 +180,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     const matchesCargoType = selectedCargoType === 'all' || freight.cargo_type === selectedCargoType;
 
     return matchesSearch && matchesCargoType;
+  });
+
+  // Filtrar chamados de serviço (GUINCHO/MUDANCA)
+  const filteredRequests = towingRequests.filter((r: any) => {
+    const matchesSearch = !searchTerm ||
+      (r.location_address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (r.problem_description || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
   });
 
   const getServiceTypeBadge = (serviceType: string) => {
@@ -322,11 +345,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           {/* Estatísticas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="text-center p-4 bg-primary/5 rounded-lg">
-              <div className="text-2xl font-bold text-primary">{filteredFreights.length}</div>
+              <div className="text-2xl font-bold text-primary">{filteredFreights.length + filteredRequests.length}</div>
               <div className="text-sm text-muted-foreground">Fretes Compatíveis</div>
             </div>
             <div className="text-center p-4 bg-secondary/30 rounded-lg">
-              <div className="text-2xl font-bold">{filteredFreights.filter(f => f.urgency === 'HIGH').length}</div>
+              <div className="text-2xl font-bold">{filteredFreights.filter(f => f.urgency === 'HIGH').length + filteredRequests.filter((r:any)=>r.urgency==='HIGH' || r.is_emergency).length}</div>
               <div className="text-sm text-muted-foreground">Alta Urgência</div>
             </div>
           </div>
@@ -340,16 +363,15 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">Carregando fretes compatíveis...</p>
           </div>
-        ) : filteredFreights.length === 0 ? (
+        ) : (filteredFreights.length + filteredRequests.length) === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
               <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="font-semibold mb-2">Nenhum frete compatível encontrado</h3>
               <p className="text-muted-foreground mb-4">
-                {compatibleFreights.length === 0 
+                {compatibleFreights.length === 0 && towingRequests.length === 0
                   ? 'Não há fretes disponíveis no momento que correspondam aos seus tipos de serviço.'
-                  : 'Tente ajustar os filtros para encontrar mais fretes.'
-                }
+                  : 'Tente ajustar os filtros para encontrar mais fretes.'}
               </p>
               <Button variant="outline" onClick={fetchCompatibleFreights}>
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -358,35 +380,122 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredFreights.map((freight) => (
-              <div key={freight.freight_id} className="relative">
-                <FreightCard
-                  freight={{
-                    id: freight.freight_id,
-                    cargo_type: freight.cargo_type,
-                    weight: (freight.weight / 1000), // Convert kg to tonnes
-                    origin_address: freight.origin_address,
-                    destination_address: freight.destination_address,
-                    pickup_date: freight.pickup_date,
-                    delivery_date: freight.delivery_date,
-                    price: freight.price,
-                    urgency: freight.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
-                    status: 'OPEN' as const,
-                    distance_km: freight.distance_km,
-                    minimum_antt_price: freight.minimum_antt_price,
-                    required_trucks: freight.required_trucks,
-                    accepted_trucks: freight.accepted_trucks,
-                    service_type: freight.service_type as 'CARGA' | 'GUINCHO' | 'MUDANCA',
-                  }}
-                  onAction={(action) => handleFreightAction(freight.freight_id, action)}
-                  showActions={true}
-                />
-                
-                {/* badges removidos */}
+          <>
+            {/* Fretes padrão */}
+            {filteredFreights.length > 0 && (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredFreights.map((freight) => (
+                  <div key={freight.freight_id} className="relative">
+                    <FreightCard
+                      freight={{
+                        id: freight.freight_id,
+                        cargo_type: freight.cargo_type,
+                        weight: (freight.weight / 1000),
+                        origin_address: freight.origin_address,
+                        destination_address: freight.destination_address,
+                        pickup_date: freight.pickup_date,
+                        delivery_date: freight.delivery_date,
+                        price: freight.price,
+                        urgency: freight.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
+                        status: 'OPEN' as const,
+                        distance_km: freight.distance_km,
+                        minimum_antt_price: freight.minimum_antt_price,
+                        required_trucks: freight.required_trucks,
+                        accepted_trucks: freight.accepted_trucks,
+                        service_type: freight.service_type as 'CARGA' | 'GUINCHO' | 'MUDANCA',
+                      }}
+                      onAction={(action) => handleFreightAction(freight.freight_id, action)}
+                      showActions={true}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+
+            {/* Chamados de Guincho/Mudança */}
+            {filteredRequests.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="font-semibold">Chamados de Guincho/Mudança</h4>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredRequests.map((r: any) => (
+                    <Card key={r.id} className="border-l-4 border-l-orange-500">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2">
+                            {r.service_type === 'GUINCHO' ? (
+                              <Wrench className="h-5 w-5 text-orange-600" />
+                            ) : (
+                              <Truck className="h-5 w-5 text-blue-600" />
+                            )}
+                            <div>
+                              <CardTitle className="text-base">
+                                {r.service_type === 'GUINCHO' ? 'Guincho' : 'Mudança/Frete Urbano'}
+                              </CardTitle>
+                              <div className="flex items-center gap-2 mt-1">
+                                {r.is_emergency && (
+                                  <Badge variant="destructive" className="text-xs">Emergência</Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium">Local</p>
+                              <p className="text-sm text-muted-foreground">{r.location_address}</p>
+                            </div>
+                          </div>
+                          {r.problem_description && (
+                            <div className="flex items-start gap-2">
+                              <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium">Descrição</p>
+                                <p className="text-sm text-muted-foreground">{r.problem_description}</p>
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            Há {Math.floor((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60))} min
+                          </div>
+                          {r.estimated_price && (
+                            <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                              <DollarSign className="h-4 w-4 text-green-600" />
+                              <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                                Valor: R$ {r.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <Button className="w-full" size="sm" onClick={async () => {
+                          try {
+                            if (!profile?.id) return;
+                            const { error } = await supabase
+                              .from('service_requests')
+                              .update({ provider_id: profile.id, status: 'ACCEPTED', accepted_at: new Date().toISOString() })
+                              .eq('id', r.id)
+                              .eq('status', 'OPEN');
+                            if (error) throw error;
+                            toast.success('Solicitação aceita com sucesso!');
+                            setTowingRequests(prev => prev.filter((x:any) => x.id !== r.id));
+                          } catch (e:any) {
+                            console.error('Erro ao aceitar solicitação:', e);
+                            toast.error('Erro ao aceitar solicitação');
+                          }
+                        }}>
+                          Aceitar Solicitação
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
