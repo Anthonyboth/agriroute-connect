@@ -18,7 +18,8 @@ import {
   Leaf,
   Package,
   Fuel,
-  MoreHorizontal
+  MoreHorizontal,
+  Cog
 } from 'lucide-react';
 import ServiceRequestModal from './ServiceRequestModal';
 
@@ -149,6 +150,14 @@ const SERVICE_TYPES: ServiceType[] = [
     description: 'Aplicação de fertilizantes e correção do pH do solo',
     icon: Leaf,
     color: 'text-emerald-600',
+    category: 'agricultural'
+  },
+  {
+    id: 'OPERADORES_MAQUINAS_SECADOR',
+    label: 'Operadores de Máquinas e Secador',
+    description: 'Operação especializada de máquinas agrícolas e secadores',
+    icon: Cog,
+    color: 'text-indigo-600',
     category: 'agricultural'
   },
   // Serviços de Logística
