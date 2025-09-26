@@ -17,7 +17,7 @@ import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
 import { FreightTrackingPanel } from '@/components/FreightTrackingPanel';
 import { FreightDetails } from '@/components/FreightDetails';
 import { DeliveryConfirmationModal } from '@/components/DeliveryConfirmationModal';
-import { PaymentDeadlineAlert } from '@/components/PaymentDeadlineAlert';
+
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -867,9 +867,6 @@ const ProducerDashboard = () => {
           </Card>
 
         </div>
-
-        {/* Payment Deadline Alerts */}
-        {profile && <PaymentDeadlineAlert userId={profile.user_id || ''} />}
 
         {/* Tabs Compactas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
