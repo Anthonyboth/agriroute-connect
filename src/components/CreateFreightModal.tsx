@@ -221,7 +221,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         destination_state: '',
         price: '',
         price_per_km: '',
-        pricing_type: 'FIXED' as 'FIXED' | 'PER_KM',
+        pricing_type: 'PER_KM' as 'FIXED' | 'PER_KM',
         pickup_date: '',
         delivery_date: '',
         urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
@@ -230,7 +230,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         vehicle_type_required: '',
         pickup_observations: '',
         delivery_observations: '',
-        payment_method: 'PIX',
+        payment_method: 'DIRETO',
         required_trucks: '1'
       });
       onFreightCreated();
