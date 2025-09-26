@@ -46,10 +46,27 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.email || !formData.category || !formData.description) {
+    const missingFields: string[] = [];
+    
+    if (!formData.email?.trim()) {
+      missingFields.push('E-mail');
+    }
+    if (!formData.category) {
+      missingFields.push('Categoria');
+    }
+    if (!formData.description?.trim()) {
+      missingFields.push('Descrição');
+    }
+
+    if (missingFields.length > 0) {
+      const fieldList = missingFields.join(', ');
+      const message = missingFields.length === 1 
+        ? `Por favor, preencha o campo: ${fieldList}`
+        : `Por favor, preencha os campos: ${fieldList}`;
+      
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha todos os campos obrigatórios.",
+        description: message,
         variant: "destructive",
       });
       return;

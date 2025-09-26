@@ -125,8 +125,27 @@ export const UserLocationSelector: React.FC<UserLocationSelectorProps> = ({ onLo
 
   // Confirmar localização manual
   const confirmManualLocation = () => {
-    if (!citySearch || !selectedState || !manualLat || !manualLng) {
-      toast.error('Preencha todos os campos obrigatórios');
+    const missingFields: string[] = [];
+    
+    if (!citySearch?.trim()) {
+      missingFields.push('Nome da cidade');
+    }
+    if (!selectedState) {
+      missingFields.push('Estado');
+    }
+    if (!manualLat?.trim()) {
+      missingFields.push('Latitude');
+    }
+    if (!manualLng?.trim()) {
+      missingFields.push('Longitude');
+    }
+
+    if (missingFields.length > 0) {
+      const fieldList = missingFields.join(', ');
+      const message = missingFields.length === 1 
+        ? `Por favor, preencha: ${fieldList}`
+        : `Por favor, preencha: ${fieldList}`;
+      toast.error(message);
       return;
     }
 
@@ -134,7 +153,7 @@ export const UserLocationSelector: React.FC<UserLocationSelectorProps> = ({ onLo
     const lng = parseFloat(manualLng);
 
     if (isNaN(lat) || isNaN(lng)) {
-      toast.error('Coordenadas inválidas');
+      toast.error('Coordenadas inválidas. Verifique os valores de latitude e longitude.');
       return;
     }
 

@@ -101,14 +101,35 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     setLoading(true);
 
     try {
-      // Validações básicas
-      if (!formData.name || !formData.phone || !formData.location_address || !formData.description) {
-        toast.error('Por favor, preencha todos os campos obrigatórios.');
+      // Validações específicas com feedback detalhado
+      const missingFields: string[] = [];
+      
+      if (!formData.name?.trim()) {
+        missingFields.push('Nome');
+      }
+      if (!formData.phone?.trim()) {
+        missingFields.push('Telefone');
+      }
+      if (!formData.location_address?.trim()) {
+        missingFields.push('Endereço');
+      }
+      if (!formData.description?.trim()) {
+        missingFields.push('Descrição do problema');
+      }
+
+      if (missingFields.length > 0) {
+        const fieldList = missingFields.join(', ');
+        const message = missingFields.length === 1 
+          ? `Por favor, preencha o campo: ${fieldList}`
+          : `Por favor, preencha os campos: ${fieldList}`;
+        toast.error(message);
+        setLoading(false);
         return;
       }
 
       if (!formData.location_lat || !formData.location_lng) {
-        toast.error('Por favor, selecione a localização no mapa.');
+        toast.error('Por favor, selecione a localização no mapa clicando no botão "Preencher Localização".');
+        setLoading(false);
         return;
       }
 

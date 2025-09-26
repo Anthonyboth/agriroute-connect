@@ -109,8 +109,24 @@ const DriverServiceAreasManager = ({ onAreasUpdate }: DriverServiceAreasManagerP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.city_name || !formData.lat || !formData.lng) {
-      toast.error('Preencha todos os campos obrigatórios');
+    const missingFields: string[] = [];
+    
+    if (!formData.city_name?.trim()) {
+      missingFields.push('Nome da cidade');
+    }
+    if (!formData.lat) {
+      missingFields.push('Latitude (clique no mapa para definir)');
+    }
+    if (!formData.lng) {
+      missingFields.push('Longitude (clique no mapa para definir)');
+    }
+
+    if (missingFields.length > 0) {
+      const fieldList = missingFields.join(', ');
+      const message = missingFields.length === 1 
+        ? `Por favor, preencha: ${fieldList}`
+        : `Por favor, preencha: ${fieldList}`;
+      toast.error(message);
       return;
     }
 

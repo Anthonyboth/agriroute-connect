@@ -246,8 +246,27 @@ const CompleteProfile = () => {
 
     // Validate step 1 requirements - basic info
     if (currentStep === 1) {
-      if (!profileData.full_name || !profileData.phone || !profileData.cpf_cnpj || !profileData.fixed_address) {
-        toast.error('Por favor, preencha todos os campos obrigatórios');
+      const missingFields: string[] = [];
+      
+      if (!profileData.full_name?.trim()) {
+        missingFields.push('Nome completo');
+      }
+      if (!profileData.phone?.trim()) {
+        missingFields.push('Telefone');
+      }
+      if (!profileData.cpf_cnpj?.trim()) {
+        missingFields.push('CPF/CNPJ');
+      }
+      if (!profileData.fixed_address?.trim()) {  
+        missingFields.push('Endereço');
+      }
+
+      if (missingFields.length > 0) {
+        const fieldList = missingFields.join(', ');
+        const message = missingFields.length === 1 
+          ? `Por favor, preencha o campo: ${fieldList}`
+          : `Por favor, preencha os campos: ${fieldList}`;
+        toast.error(message);
         return;
       }
       

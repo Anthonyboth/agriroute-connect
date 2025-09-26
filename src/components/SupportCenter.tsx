@@ -108,10 +108,24 @@ export const SupportCenter = () => {
   };
 
   const createTicket = async () => {
-    if (!newTicket.subject.trim() || !newTicket.description.trim()) {
+    const missingFields: string[] = [];
+    
+    if (!newTicket.subject.trim()) {
+      missingFields.push('Assunto');
+    }
+    if (!newTicket.description.trim()) {
+      missingFields.push('Descrição');
+    }
+
+    if (missingFields.length > 0) {
+      const fieldList = missingFields.join(', ');
+      const message = missingFields.length === 1 
+        ? `Por favor, preencha o campo: ${fieldList}`
+        : `Por favor, preencha os campos: ${fieldList}`;
+      
       toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
+        title: "Campos obrigatórios",
+        description: message,
         variant: "destructive",
       });
       return;

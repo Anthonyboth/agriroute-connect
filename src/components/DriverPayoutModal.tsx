@@ -61,13 +61,28 @@ export function DriverPayoutModal({ isOpen, onClose, availableBalance, driverId 
   };
 
   const handleRequestPayout = async () => {
-    if (!pixKey || !amount) {
-      toast.error('Preencha todos os campos obrigatórios');
+    const missingFields: string[] = [];
+    
+    if (!pixKey?.trim()) {
+      missingFields.push('Chave PIX');
+    }
+    
+    const numAmount = Number(amount);
+    if (!amount || numAmount <= 0) {
+      missingFields.push('Valor (deve ser maior que zero)');
+    }
+
+    if (missingFields.length > 0) {
+      const fieldList = missingFields.join(', ');
+      const message = missingFields.length === 1 
+        ? `Por favor, preencha o campo: ${fieldList}`
+        : `Por favor, preencha os campos: ${fieldList}`;
+      toast.error(message);
       return;
     }
 
     if (!validatePixKey(pixKey)) {
-      toast.error('Chave PIX inválida');
+      toast.error('Chave PIX inválida. Verifique o formato da chave.');
       return;
     }
 

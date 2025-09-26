@@ -36,10 +36,38 @@ export const SuggestionModal: React.FC<SuggestionModalProps> = ({ children }) =>
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile || !formData.type || !formData.subject || !formData.description) {
+    
+    // Validação específica com feedback detalhado
+    const missingFields: string[] = [];
+    
+    if (!formData.type) {
+      missingFields.push('Tipo da solicitação');
+    }
+    if (!formData.subject?.trim()) {
+      missingFields.push('Assunto');
+    }
+    if (!formData.description?.trim()) {
+      missingFields.push('Descrição');
+    }
+
+    if (missingFields.length > 0) {
+      const fieldList = missingFields.join(', ');
+      const message = missingFields.length === 1 
+        ? `Por favor, preencha o campo: ${fieldList}`
+        : `Por favor, preencha os campos: ${fieldList}`;
+      
       toast({
         title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        description: message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!profile) {
+      toast({
+        title: "Erro",
+        description: "Usuário não encontrado. Faça login novamente.",
         variant: "destructive",
       });
       return;
