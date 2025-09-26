@@ -409,7 +409,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
         .from('external_payments')
         .select(`
           *,
-          freight:freights(*),
+          freights(*),
           producer:profiles!external_payments_producer_id_fkey(*)
         `)
         .eq('driver_id', profile.id)
