@@ -43,7 +43,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-primary/10 text-primary border-primary/20',
     category: 'freight',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: false
   },
   {
     id: 'GUINCHO',
@@ -53,7 +53,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-orange-100 text-orange-800 border-orange-200',
     category: 'freight',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: false
   },
   {
     id: 'MUDANCA',
@@ -63,7 +63,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'freight',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: false
   },
 
   // SERVIÇOS TÉCNICOS (só prestadores por enquanto, mas podem ser solicitados via ServiceRequestModal)
