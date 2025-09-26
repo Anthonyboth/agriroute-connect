@@ -20,8 +20,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
 import { useToast } from '@/hooks/use-toast';
-import ServiceRequestModal from '@/components/ServiceRequestModal';
-import ServicesModal from '@/components/ServicesModal';
 
 interface ServiceProviderStats {
   total_requests: number;
@@ -45,9 +43,6 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
   const [showServiceTypesModal, setShowServiceTypesModal] = useState(false);
   const [showAreasModal, setShowAreasModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [serviceRequestModal, setServiceRequestModal] = useState(false);
-  const [servicesModal, setServicesModal] = useState(false);
-  const [selectedService, setSelectedService] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const getProviderProfileId = () => {
@@ -163,16 +158,6 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
               >
                 <Settings className="h-5 w-5 mr-2" />
                 Configurar
-              </Button>
-              
-              <Button
-                onClick={() => setServicesModal(true)}
-                variant="secondary"
-                size="lg"
-                className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
-              >
-                <MapPin className="h-5 w-5 mr-2" />
-                Solicitar Serviços
               </Button>
             </div>
           </div>
@@ -335,24 +320,6 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      <ServicesModal 
-        isOpen={servicesModal}
-        onClose={() => setServicesModal(false)}
-        onServiceSelect={(service) => {
-          setSelectedService(service);
-          setServiceRequestModal(true);
-        }}
-      />
-
-      <ServiceRequestModal 
-        isOpen={serviceRequestModal}
-        onClose={() => setServiceRequestModal(false)}
-        serviceId={selectedService?.id || "general"}
-        serviceLabel={selectedService?.title || "Solicitar Serviços"}
-        serviceDescription={selectedService?.description || "Solicite serviços oferecidos na plataforma"}
-        category={selectedService?.category || "logistics"}
-      />
     </div>
   );
 };

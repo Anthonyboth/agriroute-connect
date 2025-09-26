@@ -6,7 +6,7 @@ import AuthModal from '@/components/AuthModal';
 import MudancaModal from '@/components/MudancaModal';
 import GuestServiceModal from '@/components/GuestServiceModal';
 import HowItWorksModal from '@/components/HowItWorksModal';
-import ServicesModal from '@/components/ServicesModal';
+import { ServicesModal } from '@/components/ServicesModal';
 import { ContactModal } from '@/components/ContactModal';
 import ReportModal from '@/components/ReportModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail } from 'lucide-react';
@@ -430,11 +430,6 @@ const Landing = () => {
       <ServicesModal 
         isOpen={servicesModal}
         onClose={() => setServicesModal(false)}
-        onServiceSelect={(service) => {
-          // No Landing.tsx, apenas fecha o modal após selecionar o serviço
-          console.log('Serviço selecionado:', service);
-          setServicesModal(false);
-        }}
       />
 
       {howItWorksModal.userType && (

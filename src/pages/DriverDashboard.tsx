@@ -37,8 +37,6 @@ import { getCargoTypeLabel } from '@/lib/cargo-types';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
-import ServiceRequestModal from '@/components/ServiceRequestModal';
-import ServicesModal from '@/components/ServicesModal';
 
 interface Freight {
   id: string;
@@ -111,9 +109,6 @@ const [initialCheckinType, setInitialCheckinType] = useState<string | null>(null
 const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<Freight | null>(null);
 const [showRegionModal, setShowRegionModal] = useState(false);
   const [showLocationManager, setShowLocationManager] = useState(false);
-  const [serviceRequestModal, setServiceRequestModal] = useState(false);
-  const [servicesModal, setServicesModal] = useState(false);
-  const [selectedService, setSelectedService] = useState<any>(null);
   const [filters, setFilters] = useState({
     cargo_type: 'all',
     service_type: 'all',
@@ -869,16 +864,6 @@ const [showRegionModal, setShowRegionModal] = useState(false);
               >
                 <Settings className="mr-1 h-4 w-4" />
                 Configurar
-              </Button>
-              
-              <Button 
-                variant="default"
-                size="sm"
-                onClick={() => setServicesModal(true)}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
-              >
-                <MapPin className="mr-1 h-4 w-4" />
-                Solicitar Serviços
               </Button>
             </div>
           </div>
@@ -1730,24 +1715,6 @@ const [showRegionModal, setShowRegionModal] = useState(false);
           </div>
         </div>
       )}
-
-      <ServicesModal 
-        isOpen={servicesModal}
-        onClose={() => setServicesModal(false)}
-        onServiceSelect={(service) => {
-          setSelectedService(service);
-          setServiceRequestModal(true);
-        }}
-      />
-
-      <ServiceRequestModal 
-        isOpen={serviceRequestModal}
-        onClose={() => setServiceRequestModal(false)}
-        serviceId={selectedService?.id || "general"}
-        serviceLabel={selectedService?.title || "Solicitar Serviços"}
-        serviceDescription={selectedService?.description || "Solicite serviços oferecidos na plataforma"}
-        category={selectedService?.category || "technical"}
-      />
     </div>
   );
 };
