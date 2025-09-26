@@ -150,7 +150,7 @@ serve(async (req) => {
         body: {
           user_id: freight.producer_id,
           title: 'Nova Solicitação de Adiantamento',
-          message: `O motorista solicitou um adiantamento de R$ ${(calculatedAmount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} para o frete de ${freight.cargo_type}`,
+          message: `O motorista solicitou um adiantamento de R$ ${(calculatedAmount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} para o frete de ${freight.cargo_type}. ATENÇÃO: O pagamento deve ser feito diretamente ao motorista. O pagamento pela plataforma ainda não está disponível.`,
           type: 'advance_request',
           data: {
             advance_id: advanceRecord.id,
