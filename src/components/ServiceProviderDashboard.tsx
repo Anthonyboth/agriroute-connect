@@ -101,6 +101,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [showEarnings, setShowEarnings] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [totalEarnings, setTotalEarnings] = useState(0);
@@ -425,8 +426,23 @@ export const ServiceProviderDashboard: React.FC = () => {
   };
 
   const filteredRequests = requests.filter(request => {
-    if (serviceTypeFilter === 'all') return true;
-    return request.service_type === serviceTypeFilter;
+    // Filtro por tipo de serviço
+    if (serviceTypeFilter !== 'all' && request.service_type !== serviceTypeFilter) {
+      return false;
+    }
+    
+    // Filtro por termo de pesquisa (buscar na descrição do problema e no tipo de serviço)
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      const problemDescription = (request.problem_description || '').toLowerCase();
+      const serviceTypeName = serviceTypes.find(t => t.value === request.service_type)?.label.toLowerCase() || request.service_type.toLowerCase();
+      
+      if (!problemDescription.includes(searchLower) && !serviceTypeName.includes(searchLower)) {
+        return false;
+      }
+    }
+    
+    return true;
   }).filter(request => {
     if (activeTab === 'pending') return !request.provider_id && request.status === 'OPEN';
     if (activeTab === 'accepted') return request.provider_id && (request.status === 'ACCEPTED' || request.status === 'IN_PROGRESS');
@@ -639,7 +655,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="text-xs">
-                  {requests.filter(r => !r.provider_id && r.status === 'OPEN').length}
+                  {filteredRequests.length}
                 </Badge>
                 <Button 
                   variant="outline" 
@@ -654,6 +670,37 @@ export const ServiceProviderDashboard: React.FC = () => {
                   Atualizar
                 </Button>
               </div>
+            </div>
+
+            {/* Barra de Pesquisa */}
+            <div className="mb-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar serviços por descrição ou tipo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-2 pl-10 pr-4 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {searchTerm && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {filteredRequests.length} {filteredRequests.length === 1 ? 'resultado encontrado' : 'resultados encontrados'} para "{searchTerm}"
+                </p>
+              )}
             </div>
             
             {filteredRequests.length > 0 ? (
