@@ -868,8 +868,15 @@ const ProducerDashboard = () => {
 
         </div>
 
+        {/* Avaliações Pendentes */}
+        {profile && (
+          <div className="mt-4">
+            <PendingRatingsPanel userRole="PRODUTOR" userProfileId={profile.id} />
+          </div>
+        )}
+
         {/* Tabs Compactas */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+
           <div className="w-full overflow-x-auto pb-2">
             <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
               <TabsTrigger 
