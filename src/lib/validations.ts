@@ -28,8 +28,7 @@ export const freightSchema = z.object({
     .min(1, "Tipo de carga é obrigatório")
     .max(100, "Tipo de carga deve ter no máximo 100 caracteres"),
   weight: z.coerce.number()
-    .min(0.1, "Peso deve ser maior que 0.1 kg")
-    .max(100, "Peso não pode ser maior que 100 toneladas"),
+    .min(0.1, "Peso deve ser maior que 0.1 kg"),
   origin_address: z.string()
     .min(5, "Endereço de origem deve ter pelo menos 5 caracteres")
     .max(500, "Endereço de origem deve ter no máximo 500 caracteres"),

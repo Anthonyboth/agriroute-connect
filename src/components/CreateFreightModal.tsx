@@ -134,8 +134,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
 
       // Validação do peso
       const weight = parseFloat(formData.weight);
-      if (isNaN(weight) || weight <= 0 || weight > 100) {
-        toast.error('Peso deve estar entre 0.1 e 100 toneladas');
+      if (isNaN(weight) || weight <= 0) {
+        toast.error('Peso deve ser maior que zero');
         return;
       }
 
@@ -243,7 +243,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         
         // Tratar mensagens de erro específicas
         if (error.message.includes('weight')) {
-          errorMessage = 'Erro na validação do peso. Verifique se o valor está entre 0.1 e 100 toneladas.';
+          errorMessage = 'Erro na validação do peso. Verifique se o valor está correto.';
         }
       }
       
@@ -305,14 +305,13 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                 type="number"
                 step="0.01"
                 min="0.01"
-                max="100"
                 value={formData.weight}
                 onChange={(e) => handleInputChange('weight', e.target.value)}
                 placeholder="1.5"
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Peso em toneladas (entre 0.01 e 100 toneladas)
+                Peso em toneladas (valor mínimo 0.01)
               </p>
             </div>
 
