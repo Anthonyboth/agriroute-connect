@@ -160,6 +160,7 @@ export const ServiceProviderDashboard: React.FC = () => {
 
     try {
       // Buscar tipos de serviço do prestador (preferir profiles.service_types; fallback para service_providers.service_type)
+      // IMPORTANTE: Filtrar apenas serviços não relacionados a transporte (freight)
       let providerServiceTypes: string[] | null = null;
       // Tentar via profiles
       const { data: profileData, error: profileErr } = await supabase
@@ -168,7 +169,9 @@ export const ServiceProviderDashboard: React.FC = () => {
         .eq('id', providerId)
         .single();
       if (!profileErr && profileData?.service_types && Array.isArray(profileData.service_types)) {
-        providerServiceTypes = profileData.service_types as unknown as string[];
+        const allTypes = profileData.service_types as unknown as string[];
+        // Filtrar apenas serviços que não são de transporte/freight
+        providerServiceTypes = allTypes.filter(type => !['CARGA', 'GUINCHO', 'MUDANCA'].includes(type));
       } else {
         // Fallback legado: tabela service_providers com único service_type
         const { data: providerData, error: providerDataError } = await supabase
@@ -177,10 +180,15 @@ export const ServiceProviderDashboard: React.FC = () => {
           .eq('profile_id', providerId)
           .single();
         if (!providerDataError && providerData?.service_type) {
-          providerServiceTypes = [providerData.service_type];
+          // Filtrar apenas se não for serviço de transporte
+          if (!['CARGA', 'GUINCHO', 'MUDANCA'].includes(providerData.service_type)) {
+            providerServiceTypes = [providerData.service_type];
+          } else {
+            providerServiceTypes = []; // Não mostrar serviços de transporte
+          }
         }
       }
-      // Se não houver tipos configurados, não filtramos por tipo (mostraremos todos)
+      // Se não houver tipos configurados ou todos foram filtrados, usar apenas serviços técnicos/agrícolas/logística
       const hasTypeFilter = Array.isArray(providerServiceTypes) && providerServiceTypes.length > 0;
 
       // Buscar solicitações do prestador (aceitas/em andamento/concluídas)
@@ -206,9 +214,11 @@ export const ServiceProviderDashboard: React.FC = () => {
           .from('service_requests')
           .select('*') 
           .is('provider_id', null)
-          .eq('status', 'OPEN');
-        if (hasTypeFilter) {
-          directQuery = directQuery.in('service_type', providerServiceTypes as string[]);
+          .eq('status', 'OPEN')
+          // Sempre excluir serviços de transporte do painel de prestadores
+          .not('service_type', 'in', '(CARGA,GUINCHO,MUDANCA)');
+        if (hasTypeFilter && providerServiceTypes && providerServiceTypes.length > 0) {
+          directQuery = directQuery.in('service_type', providerServiceTypes);
         }
         const { data: directPendingRequests, error: directPendingError } = await directQuery
           .order('created_at', { ascending: true }); // Mais antigas primeiro
@@ -403,7 +413,6 @@ export const ServiceProviderDashboard: React.FC = () => {
     { value: 'MECANICO', label: 'Mecânico' },
     { value: 'ELETRICISTA_AUTOMOTIVO', label: 'Eletricista' },
     { value: 'BORRACHEIRO', label: 'Borracheiro' },
-    { value: 'GUINCHO', label: 'Guincho' },
     { value: 'CHAVEIRO', label: 'Chaveiro' },
     { value: 'COMBUSTIVEL', label: 'Combustível' },
     { value: 'AR_CONDICIONADO', label: 'Ar Condicionado' },
@@ -412,7 +421,21 @@ export const ServiceProviderDashboard: React.FC = () => {
     { value: 'SOLDADOR', label: 'Soldador' },
     { value: 'PINTURA', label: 'Pintura' },
     { value: 'VIDRACEIRO', label: 'Vidraceiro' },
+    { value: 'ASSISTENCIA_TECNICA', label: 'Assistência Técnica' },
+    { value: 'MANUTENCAO_EQUIPAMENTOS', label: 'Manutenção de Equipamentos' },
+    { value: 'CONSULTORIA_RURAL', label: 'Consultoria Rural' },
+    { value: 'SERVICOS_VETERINARIOS', label: 'Serviços Veterinários' },
+    { value: 'ANALISE_SOLO', label: 'Análise de Solo' },
+    { value: 'PULVERIZACAO', label: 'Pulverização' },
+    { value: 'PULVERIZACAO_DRONE', label: 'Pulverização por Drone' },
+    { value: 'COLHEITA_PLANTIO', label: 'Colheita e Plantio' },
+    { value: 'ADUBACAO_CALCARIO', label: 'Adubação e Calagem' },
+    { value: 'OPERADOR_MAQUINAS', label: 'Operador de Máquinas' },
+    { value: 'SECAGEM_GRAOS', label: 'Secador / Secagem de Grãos' },
+    { value: 'GUINDASTE', label: 'Guindaste' },
+    { value: 'ARMAZENAGEM', label: 'Armazenagem' },
     { value: 'OUTROS', label: 'Outros' }
+    // NOTA: Removidos CARGA, GUINCHO, MUDANCA pois estes são para motoristas
   ];
 
   const getUrgencyColor = (urgency: string) => {
