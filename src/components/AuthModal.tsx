@@ -198,7 +198,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
                 >
                   <CardContent className="flex flex-col items-center justify-center p-4">
                     <Users className="h-8 w-8 text-primary mb-2" />
-                    <span className="text-sm font-medium">Produtor</span>
+                    <span className="text-sm font-medium">Produtor/contratante</span>
                   </CardContent>
                 </Card>
                 
