@@ -25,9 +25,10 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star, Wrench } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
+import { ServicesModal } from '@/components/ServicesModal';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 const ProducerDashboard = () => {
@@ -68,6 +69,7 @@ const ProducerDashboard = () => {
   const [externalPayments, setExternalPayments] = useState<any[]>([]);
   const [freightPayments, setFreightPayments] = useState<any[]>([]);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [servicesModalOpen, setServicesModalOpen] = useState(false);
 
   // Buscar fretes - otimizado
   const fetchFreights = useCallback(async () => {
@@ -787,6 +789,15 @@ const ProducerDashboard = () => {
               >
                 <Users className="mr-1 h-4 w-4" />
                 Ver Propostas
+              </Button>
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => setServicesModalOpen(true)}
+                className="bg-background/10 text-white border-white/30 hover:bg-white/20 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+              >
+                <Wrench className="mr-1 h-4 w-4" />
+                Solicitar Serviços
               </Button>
             </div>
           </div>
@@ -1704,6 +1715,11 @@ const ProducerDashboard = () => {
           onConfirm={handleDeliveryConfirmed}
         />
       )}
+      
+      <ServicesModal 
+        isOpen={servicesModalOpen}
+        onClose={() => setServicesModalOpen(false)}
+      />
     </div>
   );
 };

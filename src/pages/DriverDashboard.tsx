@@ -28,7 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote, Star } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote, Star, Wrench } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
@@ -37,6 +37,7 @@ import { getCargoTypeLabel } from '@/lib/cargo-types';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
+import { ServicesModal } from '@/components/ServicesModal';
 
 interface Freight {
   id: string;
@@ -109,6 +110,7 @@ const [initialCheckinType, setInitialCheckinType] = useState<string | null>(null
 const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<Freight | null>(null);
 const [showRegionModal, setShowRegionModal] = useState(false);
   const [showLocationManager, setShowLocationManager] = useState(false);
+  const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     cargo_type: 'all',
     service_type: 'all',
@@ -864,6 +866,16 @@ const [showRegionModal, setShowRegionModal] = useState(false);
               >
                 <Settings className="mr-1 h-4 w-4" />
                 Configurar
+              </Button>
+              
+              <Button 
+                variant="default"
+                size="sm"
+                onClick={() => setServicesModalOpen(true)}
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+              >
+                <Wrench className="mr-1 h-4 w-4" />
+                Solicitar Serviços
               </Button>
             </div>
           </div>
@@ -1715,6 +1727,11 @@ const [showRegionModal, setShowRegionModal] = useState(false);
           </div>
         </div>
       )}
+      
+      <ServicesModal 
+        isOpen={servicesModalOpen}
+        onClose={() => setServicesModalOpen(false)}
+      />
     </div>
   );
 };

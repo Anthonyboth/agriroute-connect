@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
+import { ServicesModal } from '@/components/ServicesModal';
 import { useToast } from '@/hooks/use-toast';
 
 interface ServiceProviderStats {
@@ -43,6 +44,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
   const [showServiceTypesModal, setShowServiceTypesModal] = useState(false);
   const [showAreasModal, setShowAreasModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const getProviderProfileId = () => {
@@ -158,6 +160,16 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
               >
                 <Settings className="h-5 w-5 mr-2" />
                 Configurar
+              </Button>
+              
+              <Button
+                onClick={() => setServicesModalOpen(true)}
+                variant="secondary"
+                size="lg"
+                className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
+              >
+                <Wrench className="h-5 w-5 mr-2" />
+                Solicitar Serviços
               </Button>
             </div>
           </div>
@@ -320,6 +332,11 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+      
+      <ServicesModal 
+        isOpen={servicesModalOpen}
+        onClose={() => setServicesModalOpen(false)}
+      />
     </div>
   );
 };
