@@ -300,8 +300,23 @@ const [showRegionModal, setShowRegionModal] = useState(false);
 
     try {
       console.log('🔍 Buscando solicitações de transporte para motorista:', profile.id);
+      console.log('📍 Role do usuário:', profile.role);
       
-      // Buscar solicitações de transporte pendentes (guincho e mudanças)
+      // Primeiro, vamos verificar se a query simples funciona
+      const { data: allRequests, error: allError } = await supabase
+        .from('service_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+        
+      console.log('📋 Todas as service_requests encontradas:', allRequests?.length || 0);
+      console.log('📊 Dados completos das service_requests:', allRequests);
+      
+      if (allError) {
+        console.error('❌ Erro ao buscar TODAS as service_requests:', allError);
+      }
+      
+      // Agora vamos buscar especificamente GUINCHO/MUDANCA
       const { data, error } = await supabase
         .from('service_requests')
         .select('*')
@@ -315,8 +330,8 @@ const [showRegionModal, setShowRegionModal] = useState(false);
         throw error;
       }
       
-      console.log('🚛 Solicitações de transporte encontradas:', data?.length || 0);
-      console.log('📋 Dados completos das solicitações:', data);
+      console.log('🚛 Solicitações de transporte GUINCHO/MUDANCA encontradas:', data?.length || 0);
+      console.log('📋 Dados filtrados:', data);
       
       setTransportRequests(data || []);
     } catch (error) {

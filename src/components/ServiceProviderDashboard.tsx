@@ -170,8 +170,10 @@ export const ServiceProviderDashboard: React.FC = () => {
         .single();
       if (!profileErr && profileData?.service_types && Array.isArray(profileData.service_types)) {
         const allTypes = profileData.service_types as unknown as string[];
+        console.log('🔧 PRESTADOR - Tipos de serviço brutos:', allTypes);
         // Filtrar apenas serviços que não são de transporte/freight
         providerServiceTypes = allTypes.filter(type => !['CARGA', 'GUINCHO', 'MUDANCA'].includes(type));
+        console.log('🔧 PRESTADOR - Tipos filtrados (sem transporte):', providerServiceTypes);
       } else {
         // Fallback legado: tabela service_providers com único service_type
         const { data: providerData, error: providerDataError } = await supabase
@@ -180,11 +182,14 @@ export const ServiceProviderDashboard: React.FC = () => {
           .eq('profile_id', providerId)
           .single();
         if (!providerDataError && providerData?.service_type) {
+          console.log('🔧 PRESTADOR - Service type legado:', providerData.service_type);
           // Filtrar apenas se não for serviço de transporte
           if (!['CARGA', 'GUINCHO', 'MUDANCA'].includes(providerData.service_type)) {
             providerServiceTypes = [providerData.service_type];
+            console.log('🔧 PRESTADOR - Service type aceito:', providerServiceTypes);
           } else {
             providerServiceTypes = []; // Não mostrar serviços de transporte
+            console.log('🔧 PRESTADOR - Service type rejeitado (é transporte)');
           }
         }
       }
@@ -222,6 +227,9 @@ export const ServiceProviderDashboard: React.FC = () => {
         }
         const { data: directPendingRequests, error: directPendingError } = await directQuery
           .order('created_at', { ascending: true }); // Mais antigas primeiro
+
+        console.log('🔧 PRESTADOR - Busca direta excluindo transporte:', directPendingRequests?.length || 0);
+        console.log('🔧 PRESTADOR - Tipos encontrados na busca direta:', directPendingRequests?.map(r => r.service_type));
 
         if (directPendingError) throw directPendingError;
 
