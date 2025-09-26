@@ -627,35 +627,12 @@ const [showRegionModal, setShowRegionModal] = useState(false);
           toast.success('Proposta enviada com sucesso!');
         } else if (action === 'accept') {
           // Aceitação direta: não bloquear por proposta existente
-          // 1) Atualizar o frete para ACCEPTED e vincular o motorista
-          const { error: freightError } = await supabase
-            .from('freights')
-            .update({
-              status: 'ACCEPTED',
-              driver_id: profile.id,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', freightId);
-          if (freightError) throw freightError;
-
-          // 2) Sincronizar a proposta: atualizar PENDING -> ACCEPTED ou inserir se não existir
-          if (existingProposal && existingProposal.status === 'PENDING') {
-            const { error: proposalUpdateError } = await supabase
-              .from('freight_proposals')
-              .update({ status: 'ACCEPTED', message: 'Aceito o frete pelo valor anunciado.' })
-              .eq('id', existingProposal.id);
-            if (proposalUpdateError) throw proposalUpdateError;
-          } else if (!existingProposal) {
-            const { error: proposalInsertError } = await supabase
-              .from('freight_proposals')
-              .insert({
-                freight_id: freightId,
-                driver_id: profile.id,
-                proposed_price: freight.price,
-                status: 'ACCEPTED',
-                message: 'Aceito o frete pelo valor anunciado.',
-              });
-            if (proposalInsertError) throw proposalInsertError;
+          // Aceitar via Edge Function (bypass RLS com service role)
+          const { data: acceptData, error: acceptError } = await (supabase as any).functions.invoke('accept-freight', {
+            body: { freight_id: freightId },
+          });
+          if (acceptError || !acceptData?.success) {
+            throw acceptError || new Error('Falha ao aceitar o frete');
           }
 
           toast.success(
