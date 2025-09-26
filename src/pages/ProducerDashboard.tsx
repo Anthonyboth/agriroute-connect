@@ -746,7 +746,7 @@ const ProducerDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/5 to-background overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/5 to-background overflow-x-hidden overflow-y-auto">
       <Header 
         user={{ name: profile?.full_name || 'Usuário', role: (profile?.role as 'PRODUTOR' | 'MOTORISTA') || 'PRODUTOR' }}
         onLogout={handleLogout}
@@ -792,7 +792,7 @@ const ProducerDashboard = () => {
         </div>
       </section>
 
-      <div className="container max-w-7xl mx-auto py-4 px-4 pb-8">
+      <div className="container max-w-7xl mx-auto py-4 px-4 pb-8 max-h-[calc(100vh-12rem)] overflow-y-auto">
         {/* Stats Cards Compactos */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           <Card className="shadow-sm">
