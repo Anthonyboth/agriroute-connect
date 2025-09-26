@@ -188,7 +188,7 @@ const SERVICE_TYPES: ServiceType[] = [
 ];
 
 const CATEGORY_LABELS = {
-  technical: 'Serviços Técnicos',
+  technical: 'Serviços Técnicos / Rurais e Urbanos',
   agricultural: 'Serviços Agrícolas',
   logistics: 'Logística e Armazenagem'
 };
