@@ -464,92 +464,65 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                           Solicitado em {new Date(advance.requested_at).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={async (e) => {
-                            e.currentTarget.disabled = true; // Prevent multiple clicks
-                            try {
-                              const { data, error } = await supabase.functions.invoke('approve-freight-advance', {
-                                body: { advance_id: advance.id }
-                              });
-                              if (error) {
-                                if (error.message?.includes('no longer pending') || error.message?.includes('já foi processad')) {
-                                  toast.error("Esta solicitação já foi processada");
-                                  fetchFreightDetails(); // Refresh data
-                                } else {
-                                  throw error;
-                                }
-                                return;
-                              }
-                              window.open(data.url, '_blank');
+                      <div className="flex flex-col gap-2">
+                        <div className="bg-blue-50 border border-blue-200 rounded-md p-2 text-xs text-blue-800">
+                          💡 <strong>Pagamento direto:</strong> Faça o pagamento diretamente ao motorista via PIX ou transferência bancária.
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            disabled={true}
+                            className="bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                            size="sm"
+                          >
+                            <CreditCard className="h-3 w-3 mr-1" />
+                            Pagar via Plataforma
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={!!freight.metadata?.advance_payment_required}
+                            onClick={async (e) => {
                               if (freight.metadata?.advance_payment_required) {
-                                toast.success("Redirecionando para pagamento obrigatório do adiantamento");
-                              } else {
-                                toast.success("Redirecionando para pagamento do adiantamento");
-                              }
-                              fetchFreightDetails(); // Refresh data
-                            } catch (error) {
-                              console.error('Error approving advance:', error);
-                              toast.error("Erro ao processar pagamento do adiantamento");
-                            } finally {
-                              e.currentTarget.disabled = false; // Re-enable after request
-                            }
-                          }}
-                          className={`${
-                            freight.metadata?.advance_payment_required 
-                              ? 'bg-red-600 hover:bg-red-700 ring-2 ring-red-300' 
-                              : 'bg-green-600 hover:bg-green-700'
-                          } text-white`}
-                          size="sm"
-                        >
-                          <CreditCard className="h-3 w-3 mr-1" />
-                          {freight.metadata?.advance_payment_required ? 'PAGAR AGORA' : 'Pagar'}
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          disabled={!!freight.metadata?.advance_payment_required}
-                          onClick={async (e) => {
-                            if (freight.metadata?.advance_payment_required) {
-                              toast.error("Você deve aprovar pelo menos um adiantamento antes de recusar outros.");
-                              return;
-                            }
-                            
-                            e.currentTarget.disabled = true; // Prevent multiple clicks
-                            try {
-                              const reason = window.prompt("Motivo da rejeição (opcional):");
-                              if (reason === null) return; // User cancelled
-                              
-                              const { error } = await supabase.functions.invoke('reject-freight-advance', {
-                                body: { 
-                                  advance_id: advance.id,
-                                  rejection_reason: reason?.trim() || undefined
-                                }
-                              });
-                              
-                              if (error) {
-                                if (error.message?.includes('já foi processad')) {
-                                  toast.error("Esta solicitação já foi processada");
-                                } else {
-                                  throw error;
-                                }
+                                toast.error("Você deve aprovar pelo menos um adiantamento antes de recusar outros.");
                                 return;
                               }
                               
-                              toast.success("Adiantamento rejeitado com sucesso");
-                              fetchFreightDetails(); // Refresh data
-                            } catch (error) {
-                              console.error('Error rejecting advance:', error);
-                              toast.error("Erro ao rejeitar adiantamento");
-                            } finally {
-                              e.currentTarget.disabled = false; // Re-enable after request
-                            }
-                          }}
-                          title={freight.metadata?.advance_payment_required ? "Você deve aprovar pelo menos um adiantamento primeiro" : "Recusar adiantamento"}
-                        >
-                          <X className="h-3 w-3 mr-1" />
-                          Recusar
-                        </Button>
+                              e.currentTarget.disabled = true; // Prevent multiple clicks
+                              try {
+                                const reason = window.prompt("Motivo da rejeição (opcional):");
+                                if (reason === null) return; // User cancelled
+                                
+                                const { error } = await supabase.functions.invoke('reject-freight-advance', {
+                                  body: { 
+                                    advance_id: advance.id,
+                                    rejection_reason: reason?.trim() || undefined
+                                  }
+                                });
+                                
+                                if (error) {
+                                  if (error.message?.includes('já foi processad')) {
+                                    toast.error("Esta solicitação já foi processada");
+                                  } else {
+                                    throw error;
+                                  }
+                                  return;
+                                }
+                                
+                                toast.success("Adiantamento rejeitado com sucesso");
+                                fetchFreightDetails(); // Refresh data
+                              } catch (error) {
+                                console.error('Error rejecting advance:', error);
+                                toast.error("Erro ao rejeitar adiantamento");
+                              } finally {
+                                e.currentTarget.disabled = false; // Re-enable after request
+                              }
+                            }}
+                            title={freight.metadata?.advance_payment_required ? "Você deve aprovar pelo menos um adiantamento primeiro" : "Recusar adiantamento"}
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Recusar
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
