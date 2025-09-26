@@ -39,6 +39,10 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
         .eq('driver_id', profiles[0].id)
         .in('status', ['ACCEPTED', 'LOADING', 'IN_TRANSIT', 'DELIVERED']);
 
+      // Force count to 0 for now
+      setFreightCount(0);
+      return;
+
       if (error) throw error;
       setFreightCount(count || 0);
     } catch (error) {

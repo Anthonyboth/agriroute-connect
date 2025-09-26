@@ -983,11 +983,6 @@ const [showRegionModal, setShowRegionModal] = useState(false);
           <FreightLimitTracker />
         </div>
 
-        {/* FreightLimitTracker compacto */}
-        <div className="mb-4">
-          <FreightLimitTracker />
-        </div>
-
         {/* Tabs Compactas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full overflow-x-auto pb-2">
