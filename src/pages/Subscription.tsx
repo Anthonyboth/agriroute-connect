@@ -1,13 +1,16 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import SubscriptionPlans from '@/components/SubscriptionPlans';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { Truck, Users, BarChart3, HeadphonesIcon } from 'lucide-react';
+import { Truck, Users, BarChart3, HeadphonesIcon, X, Mail, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Subscription: React.FC = () => {
   const { subscriptionTier } = useSubscription();
+  const navigate = useNavigate();
 
   const benefits = [
     {
@@ -37,7 +40,17 @@ const Subscription: React.FC = () => {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
+    <div className="container mx-auto px-4 py-8 space-y-8 relative">
+      {/* Close Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => navigate(-1)}
+        className="absolute top-0 right-4 z-10"
+      >
+        <X className="h-5 w-5" />
+      </Button>
+      
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-bold">Planos de Assinatura</h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -89,15 +102,30 @@ const Subscription: React.FC = () => {
           <h2 className="text-xl font-semibold mb-2">
             Precisa de mais informações?
           </h2>
-          <p className="text-muted-foreground mb-4">
+          <p className="text-muted-foreground mb-6">
             Nossa equipe está pronta para ajudar você a escolher o melhor plano
           </p>
-          <a 
-            href="mailto:agrirouteconnect@gmail.com" 
-            className="text-primary hover:underline font-medium"
-          >
-            Fale conosco: agrirouteconnect@gmail.com | WhatsApp: 015 66 9 9942-6656
-          </a>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button
+              variant="outline"
+              onClick={() => window.open('mailto:agrirouteconnect@gmail.com')}
+              className="flex items-center gap-2 min-w-[200px]"
+            >
+              <Mail className="h-4 w-4" />
+              Email
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => window.open('https://wa.me/5515669942656', '_blank')}
+              className="flex items-center gap-2 min-w-[200px]"
+            >
+              <MessageCircle className="h-4 w-4" />
+              WhatsApp
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground mt-4">
+            agrirouteconnect@gmail.com • 015 66 9 9942-6656
+          </p>
         </CardContent>
       </Card>
     </div>
