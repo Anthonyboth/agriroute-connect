@@ -32,7 +32,7 @@ export const SubscriptionExpiryNotification: React.FC = () => {
         .from('subscribers')
         .select('*')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (subscriber) {
         setSubscriptionStatus({

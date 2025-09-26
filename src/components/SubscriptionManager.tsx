@@ -35,7 +35,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({
         .from('subscribers')
         .select('*')
         .eq('user_id', profile?.user_id)
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
         setSubscription(data);
