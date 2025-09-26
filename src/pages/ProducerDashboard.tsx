@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
+import ServiceRequestModal from '@/components/ServiceRequestModal';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 const ProducerDashboard = () => {
@@ -68,6 +69,7 @@ const ProducerDashboard = () => {
   const [externalPayments, setExternalPayments] = useState<any[]>([]);
   const [freightPayments, setFreightPayments] = useState<any[]>([]);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [serviceRequestModal, setServiceRequestModal] = useState(false);
 
   // Buscar fretes - otimizado
   const fetchFreights = useCallback(async () => {
@@ -787,6 +789,15 @@ const ProducerDashboard = () => {
               >
                 <Users className="mr-1 h-4 w-4" />
                 Ver Propostas
+              </Button>
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => setServiceRequestModal(true)}
+                className="bg-background/10 text-white border-white/30 hover:bg-white/20 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+              >
+                <Settings className="mr-1 h-4 w-4" />
+                Solicitar Serviços
               </Button>
             </div>
           </div>
@@ -1704,6 +1715,15 @@ const ProducerDashboard = () => {
           onConfirm={handleDeliveryConfirmed}
         />
       )}
+
+      <ServiceRequestModal 
+        isOpen={serviceRequestModal}
+        onClose={() => setServiceRequestModal(false)}
+        serviceId="general"
+        serviceLabel="Solicitar Serviços"
+        serviceDescription="Solicite serviços oferecidos na plataforma"
+        category="agricultural"
+      />
     </div>
   );
 };
