@@ -38,6 +38,7 @@ import heroLogistics from '@/assets/hero-logistics.jpg';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import ServiceRequestModal from '@/components/ServiceRequestModal';
+import ServicesModal from '@/components/ServicesModal';
 
 interface Freight {
   id: string;
@@ -111,6 +112,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 const [showRegionModal, setShowRegionModal] = useState(false);
   const [showLocationManager, setShowLocationManager] = useState(false);
   const [serviceRequestModal, setServiceRequestModal] = useState(false);
+  const [servicesModal, setServicesModal] = useState(false);
+  const [selectedService, setSelectedService] = useState<any>(null);
   const [filters, setFilters] = useState({
     cargo_type: 'all',
     service_type: 'all',
@@ -871,7 +874,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
               <Button 
                 variant="default"
                 size="sm"
-                onClick={() => setServiceRequestModal(true)}
+                onClick={() => setServicesModal(true)}
                 className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
               >
                 <MapPin className="mr-1 h-4 w-4" />
@@ -1728,13 +1731,22 @@ const [showRegionModal, setShowRegionModal] = useState(false);
         </div>
       )}
 
+      <ServicesModal 
+        isOpen={servicesModal}
+        onClose={() => setServicesModal(false)}
+        onServiceSelect={(service) => {
+          setSelectedService(service);
+          setServiceRequestModal(true);
+        }}
+      />
+
       <ServiceRequestModal 
         isOpen={serviceRequestModal}
         onClose={() => setServiceRequestModal(false)}
-        serviceId="general"
-        serviceLabel="Solicitar Serviços"
-        serviceDescription="Solicite serviços oferecidos na plataforma"
-        category="technical"
+        serviceId={selectedService?.id || "general"}
+        serviceLabel={selectedService?.title || "Solicitar Serviços"}
+        serviceDescription={selectedService?.description || "Solicite serviços oferecidos na plataforma"}
+        category={selectedService?.category || "technical"}
       />
     </div>
   );
