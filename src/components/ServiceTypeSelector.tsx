@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Truck, Wrench, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getClientVisibleServices } from '@/lib/service-types';
 
 export type ServiceType = 'CARGA' | 'GUINCHO' | 'MUDANCA';
 
@@ -16,29 +16,13 @@ export const ServiceTypeSelector: React.FC<ServiceTypeSelectorProps> = ({
   onTypeChange,
   className
 }) => {
-  const services = [
-    {
-      type: 'CARGA' as ServiceType,
-      icon: Truck,
-      title: 'Transporte de Carga',
-      description: 'Grãos, fertilizantes e produtos agrícolas',
-      color: 'text-primary'
-    },
-    {
-      type: 'GUINCHO' as ServiceType,
-      icon: Wrench,
-      title: 'Serviço de Guincho',
-      description: 'Reboque de veículos e equipamentos',
-      color: 'text-warning'
-    },
-    {
-      type: 'MUDANCA' as ServiceType,
-      icon: Home,
-      title: 'Frete Urbano',
-      description: 'Mudanças e fretes urbanos com diversos veículos',
-      color: 'text-accent'
-    }
-  ];
+  const services = getClientVisibleServices().map(service => ({
+    type: service.id as ServiceType,
+    icon: service.icon,
+    title: service.label,
+    description: service.description,
+    color: 'text-primary'
+  }));
 
   return (
     <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-4", className)}>

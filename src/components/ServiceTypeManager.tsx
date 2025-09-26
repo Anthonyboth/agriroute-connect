@@ -5,42 +5,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, Home, Wrench, Settings, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Settings, CheckCircle, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { getClientVisibleServices } from '@/lib/service-types';
 
-interface ServiceType {
-  id: string;
-  label: string;
-  description: string;
-  icon: React.ComponentType<any>;
-  color: string;
-}
-
-const SERVICE_TYPES: ServiceType[] = [
-  {
-    id: 'CARGA',
-    label: 'Transporte Rural',
-    description: 'Soja, milho, fertilizantes e outros produtos agrícolas',
-    icon: Truck,
-    color: 'bg-primary/10 text-primary border-primary/20'
-  },
-  {
-    id: 'MUDANCA',
-    label: 'Mudanças',
-    description: 'Mudanças residenciais e comerciais',
-    icon: Home,
-    color: 'bg-blue-100 text-blue-800 border-blue-200'
-  },
-  {
-    id: 'GUINCHO',
-    label: 'Guincho',
-    description: 'Reboque e socorro de veículos',
-    icon: Wrench,
-    color: 'bg-orange-100 text-orange-800 border-orange-200'
-  }
-];
+const SERVICE_TYPES = getClientVisibleServices();
 
 export const ServiceTypeManager: React.FC = () => {
   const { profile } = useAuth();

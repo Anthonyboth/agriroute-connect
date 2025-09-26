@@ -5,205 +5,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Settings, 
-  CheckCircle, 
-  AlertTriangle,
-  Stethoscope,
-  Wrench,
-  Leaf,
-  Users,
-  TestTube,
-  Droplets,
-  Wheat,
-  Truck,
-  Package,
-  MapPin,
-  Zap,
-  Key,
-  Fuel,
-  Plane,
-  Wrench as RepairIcon,
-  Shield,
-  MoreHorizontal
-} from 'lucide-react';
+import { Settings, CheckCircle, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { getProviderVisibleServices, CATEGORY_LABELS } from '@/lib/service-types';
 
-interface ServiceProviderServiceType {
-  id: string;
-  label: string;
-  description: string;
-  icon: React.ComponentType<any>;
-  color: string;
-  category: 'technical' | 'agricultural' | 'logistics';
-}
-
-const SERVICE_PROVIDER_TYPES: ServiceProviderServiceType[] = [
-  // Serviços Técnicos
-  {
-    id: 'ASSISTENCIA_TECNICA',
-    label: 'Assistência Técnica Agrícola',
-    description: 'Suporte técnico especializado para produção agrícola',
-    icon: Settings,
-    color: 'bg-primary/10 text-primary border-primary/20',
-    category: 'technical'
-  },
-  {
-    id: 'MANUTENCAO_EQUIPAMENTOS',
-    label: 'Manutenção de Equipamentos',
-    description: 'Manutenção e reparo de tratores e implementos agrícolas',
-    icon: Wrench,
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
-    category: 'technical'
-  },
-  {
-    id: 'MECANICO',
-    label: 'Mecânico',
-    description: 'Reparos mecânicos em geral de veículos e equipamentos',
-    icon: RepairIcon,
-    color: 'bg-gray-100 text-gray-800 border-gray-200',
-    category: 'technical'
-  },
-  {
-    id: 'ELETRICISTA_AUTOMOTIVO',
-    label: 'Eletricista Automotivo',
-    description: 'Sistema elétrico completo de veículos',
-    icon: Zap,
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    category: 'technical'
-  },
-  {
-    id: 'BORRACHEIRO',
-    label: 'Borracheiro',
-    description: 'Troca e reparo de pneus',
-    icon: Shield,
-    color: 'bg-slate-100 text-slate-800 border-slate-200',
-    category: 'technical'
-  },
-  {
-    id: 'CHAVEIRO',
-    label: 'Chaveiro',
-    description: 'Abertura de veículos travados',
-    icon: Key,
-    color: 'bg-amber-100 text-amber-800 border-amber-200',
-    category: 'technical'
-  },
-  {
-    id: 'CONSULTORIA_RURAL',
-    label: 'Consultoria Rural',
-    description: 'Consultoria especializada em gestão rural e produtividade',
-    icon: Users,
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    category: 'technical'
-  },
-  {
-    id: 'SERVICOS_VETERINARIOS',
-    label: 'Serviços Veterinários',
-    description: 'Atendimento veterinário e cuidados com o rebanho',
-    icon: Stethoscope,
-    color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'technical'
-  },
-  // Serviços Agrícolas
-  {
-    id: 'ANALISE_SOLO',
-    label: 'Análise de Solo',
-    description: 'Coleta e análise de amostras de solo para correção',
-    icon: TestTube,
-    color: 'bg-purple-100 text-purple-800 border-purple-200',
-    category: 'agricultural'
-  },
-  {
-    id: 'PULVERIZACAO',
-    label: 'Pulverização',
-    description: 'Aplicação de defensivos e fertilizantes foliares',
-    icon: Droplets,
-    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    category: 'agricultural'
-  },
-  {
-    id: 'PULVERIZACAO_DRONE',
-    label: 'Pulverização por Drone',
-    description: 'Aplicação de defensivos e fertilizantes via drone',
-    icon: Plane,
-    color: 'bg-teal-100 text-teal-800 border-teal-200',
-    category: 'agricultural'
-  },
-  {
-    id: 'COLHEITA_PLANTIO',
-    label: 'Colheita e Plantio',
-    description: 'Serviços de colheita mecanizada e plantio especializado',
-    icon: Wheat,
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    category: 'agricultural'
-  },
-  {
-    id: 'ADUBACAO_CALCARIO',
-    label: 'Adubação e Calagem',
-    description: 'Aplicação de fertilizantes e correção do pH do solo',
-    icon: Leaf,
-    color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    category: 'agricultural'
-  },
-  // Serviços de Logística
-  {
-    id: 'OPERADOR_MAQUINAS',
-    label: 'Operador de Máquinas',
-    description: 'Operação de tratores, colheitadeiras e implementos',
-    icon: Wrench,
-    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    category: 'agricultural'
-  },
-  {
-    id: 'SECAGEM_GRAOS',
-    label: 'Secador / Secagem de Grãos',
-    description: 'Operação de secadores e controle de umidade dos grãos',
-    icon: Package,
-    color: 'bg-rose-100 text-rose-800 border-rose-200',
-    category: 'agricultural'
-  },
-  // Serviços de Logística
-  {
-    id: 'GUINDASTE',
-    label: 'Guindaste',
-    description: 'Elevação e movimentação de cargas pesadas',
-    icon: Package,
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
-    category: 'logistics'
-  },
-  {
-    id: 'COMBUSTIVEL',
-    label: 'Combustível',
-    description: 'Entrega de combustível',
-    icon: Fuel,
-    color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'logistics'
-  },
-  {
-    id: 'ARMAZENAGEM',
-    label: 'Armazenagem',
-    description: 'Serviços de armazenamento de grãos e insumos',
-    icon: Package,
-    color: 'bg-rose-100 text-rose-800 border-rose-200',
-    category: 'logistics'
-  },
-  {
-    id: 'OUTROS',
-    label: 'Outros',
-    description: 'Outros tipos de serviços especializados',
-    icon: MoreHorizontal,
-    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
-    category: 'technical'
-  }
-];
-
-const CATEGORY_LABELS = {
-  technical: 'Serviços Técnicos',
-  agricultural: 'Serviços Agrícolas',
-  logistics: 'Logística e Armazenagem'
-};
+const SERVICE_PROVIDER_TYPES = getProviderVisibleServices();
 
 export const ServiceProviderServiceTypeManager: React.FC = () => {
   const { profile } = useAuth();
@@ -264,7 +72,7 @@ export const ServiceProviderServiceTypeManager: React.FC = () => {
     }
     acc[service.category].push(service);
     return acc;
-  }, {} as Record<string, ServiceProviderServiceType[]>);
+  }, {} as Record<string, any[]>);
 
   if (initialLoading) {
     return (
