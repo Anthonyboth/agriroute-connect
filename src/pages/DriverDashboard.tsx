@@ -588,63 +588,31 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       }
 
       if (action === 'propose' || action === 'accept') {
-        // Verifica se já existe uma proposta processada para evitar voltar para PENDING
-        const { data: existing, error: existingError } = await supabase
+        // Buscar proposta existente (se houver)
+        const { data: existingProposal, error: existingError } = await supabase
           .from('freight_proposals')
-          .select('status')
+          .select('id, status')
           .eq('freight_id', freightId)
           .eq('driver_id', profile.id)
           .maybeSingle();
-
         if (existingError) throw existingError;
-        if (existing && existing.status !== 'PENDING') {
-          toast.info('Sua proposta já foi processada pelo produtor.');
-          return;
-        }
 
-        // Impedir múltiplas propostas ativas para o mesmo frete
+        // Encontrar o frete selecionado
         const freight = availableFreights.find(f => f.id === freightId);
         if (!freight) return;
 
-        const { data: existing2, error: existingErr2 } = await supabase
-          .from('freight_proposals')
-          .select('status')
-          .eq('freight_id', freightId)
-          .eq('driver_id', profile.id)
-          .maybeSingle();
-        if (existingErr2) throw existingErr2;
-        if (existing2 && (existing2.status === 'PENDING' || existing2.status === 'ACCEPTED')) {
-          toast.info(existing2.status === 'PENDING' ? 'Você já enviou uma proposta para este frete. Aguarde a resposta.' : 'Sua proposta já foi aceita.');
-          return;
-        }
+        if (action === 'propose') {
+          // Impedir múltiplas propostas ativas para o mesmo frete (apenas ao propor)
+          if (existingProposal && (existingProposal.status === 'PENDING' || existingProposal.status === 'ACCEPTED')) {
+            toast.info(
+              existingProposal.status === 'PENDING'
+                ? 'Você já enviou uma proposta para este frete. Aguarde a resposta.'
+                : 'Sua proposta já foi aceita.'
+            );
+            return;
+          }
 
-        if (action === 'accept') {
-          // Aceitar frete diretamente - atualizar o frete para ACCEPTED
-          const { error: freightError } = await supabase
-            .from('freights')
-            .update({
-              status: 'ACCEPTED',
-              driver_id: profile.id,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', freightId);
-
-          if (freightError) throw freightError;
-
-          // Inserir proposta como ACCEPTED
-          const { error: proposalError } = await supabase
-            .from('freight_proposals')
-            .insert({
-              freight_id: freightId,
-              driver_id: profile.id,
-              proposed_price: freight.price,
-              status: 'ACCEPTED',
-              message: 'Aceito o frete pelo valor anunciado.',
-            });
-
-          if (proposalError) throw proposalError;
-        } else {
-          // Apenas proposta (não aceite direto)
+          // Criar nova proposta pendente
           const { error } = await supabase
             .from('freight_proposals')
             .insert({
@@ -654,18 +622,51 @@ const [showRegionModal, setShowRegionModal] = useState(false);
               status: 'PENDING',
               message: null,
             });
-
           if (error) throw error;
+
+          toast.success('Proposta enviada com sucesso!');
+        } else if (action === 'accept') {
+          // Aceitação direta: não bloquear por proposta existente
+          // 1) Atualizar o frete para ACCEPTED e vincular o motorista
+          const { error: freightError } = await supabase
+            .from('freights')
+            .update({
+              status: 'ACCEPTED',
+              driver_id: profile.id,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', freightId);
+          if (freightError) throw freightError;
+
+          // 2) Sincronizar a proposta: atualizar PENDING -> ACCEPTED ou inserir se não existir
+          if (existingProposal && existingProposal.status === 'PENDING') {
+            const { error: proposalUpdateError } = await supabase
+              .from('freight_proposals')
+              .update({ status: 'ACCEPTED', message: 'Aceito o frete pelo valor anunciado.' })
+              .eq('id', existingProposal.id);
+            if (proposalUpdateError) throw proposalUpdateError;
+          } else if (!existingProposal) {
+            const { error: proposalInsertError } = await supabase
+              .from('freight_proposals')
+              .insert({
+                freight_id: freightId,
+                driver_id: profile.id,
+                proposed_price: freight.price,
+                status: 'ACCEPTED',
+                message: 'Aceito o frete pelo valor anunciado.',
+              });
+            if (proposalInsertError) throw proposalInsertError;
+          }
+
+          toast.success(
+            freight.service_type === 'GUINCHO'
+              ? 'Chamado aceito com sucesso!'
+              : freight.service_type === 'MUDANCA'
+              ? 'Orçamento enviado com sucesso!'
+              : 'Frete aceito com sucesso!'
+          );
         }
-        
-        toast.success(
-          action === 'accept' ? 
-            (freight.service_type === 'GUINCHO' ? 'Chamado aceito com sucesso!' :
-             freight.service_type === 'MUDANCA' ? 'Orçamento enviado com sucesso!' :
-             'Frete aceito com sucesso!') :
-            'Proposta enviada com sucesso!'
-        );
-        
+
         // Atualizar as listas
         fetchMyProposals();
         fetchOngoingFreights(); // Importante para atualizar a aba "Em Andamento"
