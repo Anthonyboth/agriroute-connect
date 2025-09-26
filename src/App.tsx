@@ -16,6 +16,7 @@ import ProducerDashboard from "./pages/ProducerDashboard";
 import DriverDashboard from "./pages/DriverDashboard";
 import ServiceProviderDashboard from "./pages/ServiceProviderDashboard";
 import ServiceProviderRegistration from "./pages/ServiceProviderRegistration";
+import Services from "./pages/Services";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
@@ -206,6 +207,7 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route path="/services" element={<Services />} />
             <Route path="/subscription" element={<Subscription />} />
             <Route path="/plans" element={
               <ProtectedRoute requiresAuth>
