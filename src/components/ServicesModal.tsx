@@ -18,10 +18,8 @@ import {
   Leaf,
   Package,
   Fuel,
-  MoreHorizontal,
-  Hammer
+  MoreHorizontal
 } from 'lucide-react';
-import { ServiceProviderRegistrationForm } from './ServiceProviderRegistrationForm';
 import ServiceRequestModal from './ServiceRequestModal';
 
 interface ServicesModalProps {
@@ -190,7 +188,6 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
   isOpen,
   onClose
 }) => {
-  const [showRegistration, setShowRegistration] = useState(false);
   const [serviceRequestModal, setServiceRequestModal] = useState<{
     isOpen: boolean;
     serviceId?: string;
@@ -213,11 +210,6 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
       });
       onClose();
     }
-  };
-
-  const handleBecomeProvider = () => {
-    setShowRegistration(true);
-    onClose();
   };
 
   return (
@@ -276,42 +268,9 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
                 );
               })}
             </div>
-
-            {/* Divisor */}
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <Hammer className="mr-2 h-5 w-5 text-primary" />
-                Quero ser Prestador de Serviços
-              </h3>
-              <Card className="gradient-subtle border-primary/20 shadow-card">
-                <CardContent className="p-6">
-                  <div className="text-center space-y-4">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full gradient-primary mb-2">
-                      <Hammer className="h-8 w-8 text-primary-foreground" />
-                    </div>
-                    <h4 className="text-lg font-semibold text-foreground">Seja um Prestador</h4>
-                    <p className="text-muted-foreground">
-                      Cadastre-se como prestador de serviços e comece a receber solicitações na sua região
-                    </p>
-                    <Button 
-                      onClick={handleBecomeProvider} 
-                      className="gradient-primary text-primary-foreground shadow-glow hover:scale-105 transition-bounce"
-                    >
-                      Cadastrar como Prestador
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Modal de cadastro de prestador */}
-      <ServiceProviderRegistrationForm 
-        isOpen={showRegistration}
-        onClose={() => setShowRegistration(false)}
-      />
 
       {/* Modal de solicitação de serviços */}
       {serviceRequestModal.serviceId && (
