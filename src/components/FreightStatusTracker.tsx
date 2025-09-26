@@ -149,6 +149,21 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
 
       if (historyError) throw historyError;
 
+      // Se há observações, enviar também para o chat
+      if (notes.trim()) {
+        const statusLabel = STATUS_FLOW.find(s => s.key === newStatus)?.label;
+        const chatMessage = `Status atualizado para "${statusLabel}"\n\nObservações: ${notes.trim()}`;
+        
+        await supabase
+          .from('freight_messages')
+          .insert({
+            freight_id: freightId,
+            sender_id: currentUserProfile.id,
+            message: chatMessage,
+            message_type: 'TEXT'
+          });
+      }
+
       setNotes('');
       fetchStatusHistory();
       
