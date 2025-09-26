@@ -537,7 +537,8 @@ const [showRegionModal, setShowRegionModal] = useState(false);
   // Calcular estatísticas - memoizado para performance
   const statistics = useMemo(() => {
     const acceptedProposals = myProposals.filter(p => p.status === 'ACCEPTED');
-    
+    const pendingProposalsCount = myProposals.filter(p => p.status === 'PENDING').length;
+
     // Contar fretes ativos baseado nos fretes em andamento (que incluem ACCEPTED, LOADED, IN_TRANSIT)
     const activeStatuses = ['ACCEPTED', 'LOADED', 'IN_TRANSIT'];
     const activeTripsCount = ongoingFreights.filter(freight => 
@@ -551,7 +552,8 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       totalEarnings: acceptedProposals
         .filter(p => p.freight?.status === 'DELIVERED')
         .reduce((sum, proposal) => sum + (proposal.proposed_price || 0), 0),
-      totalCheckins: totalCheckins
+      totalCheckins: totalCheckins,
+      pendingProposals: pendingProposalsCount,
     };
   }, [myProposals, availableFreights, totalCheckins, ongoingFreights]);
 
@@ -939,7 +941,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
                     <p className="text-xs font-medium text-muted-foreground truncate">
                       Propostas
                     </p>
-                    <p className="text-lg font-bold">{statistics.totalCheckins}</p>
+                    <p className="text-lg font-bold">{statistics.pendingProposals}</p>
                   </div>
                 </div>
               </CardContent>
@@ -961,15 +963,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
                         Saldo
                       </p>
                       <p className="text-sm font-bold">
-                        {showEarnings 
-                          ? new Intl.NumberFormat('pt-BR', { 
-                              style: 'currency', 
-                              currency: 'BRL',
-                              notation: 'compact',
-                              maximumFractionDigits: 0
-                            }).format(statistics.totalEarnings)
-                          : '****'
-                        }
+                        {showEarnings ? 'R$ 0,00' : '****'}
                       </p>
                     </div>
                   </div>
@@ -1269,12 +1263,12 @@ const [showRegionModal, setShowRegionModal] = useState(false);
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold">Minhas Propostas Enviadas</h3>
               <Badge variant="secondary" className="text-sm font-medium">
-                {myProposals.length} proposta{myProposals.length !== 1 ? 's' : ''}
+                {myProposals.filter(p => p.status === 'PENDING').length} proposta{myProposals.filter(p => p.status === 'PENDING').length !== 1 ? 's' : ''}
               </Badge>
             </div>
-            {myProposals.length > 0 ? (
+            {myProposals.some(p => p.status === 'PENDING') ? (
               <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-                {myProposals.map((proposal) => (
+                {myProposals.filter(p => p.status === 'PENDING').map((proposal) => (
                   proposal.freight && (
                     <div key={proposal.id} className="relative">
                        <FreightCard 
