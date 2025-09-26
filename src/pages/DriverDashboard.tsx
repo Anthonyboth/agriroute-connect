@@ -1041,13 +1041,13 @@ const [showRegionModal, setShowRegionModal] = useState(false);
             <div className="flex flex-col space-y-2 mb-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-base font-semibold">Em Andamento</h3>
-                <Badge variant="secondary" className="text-xs">{ongoingFreights.length}</Badge>
+                <Badge variant="secondary" className="text-xs">{ongoingFreights.filter(f => ['ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length}</Badge>
               </div>
             </div>
             
-            {ongoingFreights.length > 0 ? (
+            {ongoingFreights.filter(f => ['ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length > 0 ? (
               <div className="space-y-4">
-                {ongoingFreights.map((freight) => (
+                {ongoingFreights.filter(f => ['ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).map((freight) => (
                   <Card key={freight.id} className="shadow-sm border border-border/50 hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       {/* Header com tipo de carga e status */}
@@ -1523,29 +1523,33 @@ const [showRegionModal, setShowRegionModal] = useState(false);
                   <CardTitle className="text-green-600">Viagens Concluídas</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {myProposals.filter(p => p.freight?.status === 'DELIVERED').length === 0 ? (
+                  {ongoingFreights.filter(f => ['DELIVERED','COMPLETED'].includes(f.status)).length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-muted-foreground">Nenhuma viagem concluída ainda.</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {myProposals.filter(p => p.freight?.status === 'DELIVERED').map((proposal) => (
-                        <Card key={proposal.id} className="p-4">
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-start">
-                              <h4 className="font-semibold">{proposal.freight?.cargo_type}</h4>
-                              <Badge className="bg-green-100 text-green-800">Concluída</Badge>
+                      {ongoingFreights
+                        .filter(f => ['DELIVERED','COMPLETED'].includes(f.status))
+                        .map((freight) => (
+                          <Card key={freight.id} className="p-4">
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-start">
+                                <h4 className="font-semibold">{getCargoTypeLabel(freight.cargo_type)}</h4>
+                                <Badge className="bg-green-100 text-green-800">Concluída</Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {freight.origin_address} → {freight.destination_address}
+                              </p>
+                              <div className="flex justify-between text-sm">
+                                <span>Valor: R$ {freight.price?.toLocaleString('pt-BR')}</span>
+                                {typeof freight.distance_km !== 'undefined' && (
+                                  <span>{freight.distance_km} km</span>
+                                )}
+                              </div>
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                              {proposal.freight?.origin_address} → {proposal.freight?.destination_address}
-                            </p>
-                            <div className="flex justify-between text-sm">
-                              <span>Valor: R$ {proposal.proposed_price?.toLocaleString()}</span>
-                              <span>{proposal.freight?.distance_km} km</span>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
+                          </Card>
+                        ))}
                     </div>
                   )}
                 </CardContent>
