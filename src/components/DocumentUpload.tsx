@@ -38,31 +38,55 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    console.log('Starting file upload...', { fileName: file.name, bucketName, fileType });
+    
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      console.log('Getting authenticated user...');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('Error getting user:', userError);
+        throw new Error(`Authentication error: ${userError.message}`);
+      }
+      
+      if (!user) {
+        console.error('No authenticated user found');
+        throw new Error('User not authenticated - please log in first');
+      }
+
+      console.log('User authenticated:', user.id);
 
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${fileType}_${Date.now()}.${fileExt}`;
+      
+      console.log('Uploading to storage...', { fileName, bucketName });
 
       const { error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(fileName, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      console.log('Upload successful, getting public URL...');
 
       const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
         .getPublicUrl(fileName);
 
+      console.log('Upload complete:', publicUrl);
+      
       setUploaded(true);
       setFileName(file.name);
       onUploadComplete(publicUrl);
       toast.success(`${label} enviado com sucesso!`);
     } catch (error) {
       console.error('Error uploading file:', error);
-      toast.error(`Erro ao enviar ${label.toLowerCase()}`);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(`Erro ao enviar ${label.toLowerCase()}: ${errorMessage}`);
     } finally {
       setUploading(false);
     }
