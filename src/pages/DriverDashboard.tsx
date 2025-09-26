@@ -675,24 +675,44 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     try {
       const freightId = selectedFreightForWithdrawal.id;
 
-      // Usar a função SECURITY DEFINER para processar a desistência
-      const { data, error } = await supabase
-        .rpc('process_freight_withdrawal', {
-          freight_id_param: freightId,
-          driver_profile_id: profile.id
-        });
-
-      if (error) throw error;
-
-      const result = data as { success: boolean; message?: string; error?: string };
+      // Verificar se há checkins para este frete
+      const hasCheckins = await checkFreightCheckins(freightId);
       
-      if (!result.success) {
-        throw new Error(result.error || 'Erro desconhecido');
+      if (hasCheckins) {
+        toast.error('Não é possível desistir do frete após o primeiro check-in.');
+        return;
       }
 
-      toast.success('Desistência processada. Taxa de R$ 20 será cobrada.');
+      // Atualizar o frete para OPEN (disponível novamente) e remover o motorista
+      const { error: freightError } = await supabase
+        .from('freights')
+        .update({ 
+          status: 'OPEN',
+          driver_id: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', freightId)
+        .eq('driver_id', profile.id); // Só permite se for o motorista atual
+
+      if (freightError) throw freightError;
+
+      // Atualizar a proposta para CANCELLED mantendo histórico
+      const { error: proposalError } = await supabase
+        .from('freight_proposals')
+        .update({ 
+          status: 'CANCELLED',
+          updated_at: new Date().toISOString()
+        })
+        .eq('freight_id', freightId)
+        .eq('driver_id', profile.id);
+
+      if (proposalError) console.warn('Aviso: Erro ao atualizar proposta:', proposalError);
+
+      toast.success('Desistência processada. O frete está novamente disponível para outros motoristas.');
       
-      // Atualizar as listas
+      // Fechar modal e atualizar listas
+      setShowWithdrawalModal(false);
+      setSelectedFreightForWithdrawal(null);
       fetchOngoingFreights();
       fetchMyProposals();
       

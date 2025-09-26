@@ -626,7 +626,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                   size="sm"
                   className="w-full text-destructive hover:text-destructive hover:bg-destructive/5 text-xs"
                 >
-                  Desistir do Frete (Taxa R$ 20)
+                  Desistir do Frete
                 </Button>
               </div>
             )}
