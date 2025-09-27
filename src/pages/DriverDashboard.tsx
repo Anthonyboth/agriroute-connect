@@ -56,6 +56,11 @@ interface Freight {
   service_type?: string;
   // Flag para identificar serviços urbanos (GUINCHO/MUDANCA) convertidos
   is_service_request?: boolean;
+  // Propriedades específicas de service_requests
+  problem_description?: string;
+  contact_phone?: string;
+  contact_name?: string;
+  additional_info?: string;
   producer?: {
     id: string;
     full_name: string;
@@ -149,6 +154,36 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       vehicle_type: 'all',
     });
   };
+  
+  // Função para encerrar chamado de serviço
+  const handleCompleteServiceRequest = async (serviceId: string) => {
+    try {
+      const { error } = await supabase
+        .from('service_requests')
+        .update({ 
+          status: 'COMPLETED',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', serviceId);
+
+      if (error) {
+        toast.error("Não foi possível encerrar o chamado. Tente novamente.");
+        return;
+      }
+
+      toast.success("O chamado foi encerrado com sucesso.");
+
+      // Fechar dialog e atualizar lista
+      setShowServiceRequestDialog(false);
+      setSelectedServiceRequest(null);
+      await fetchOngoingFreights();
+      
+    } catch (error) {
+      console.error('Erro ao encerrar chamado:', error);
+      toast.error("Erro inesperado ao encerrar o chamado.");
+    }
+  };
+
   const [loading, setLoading] = useState(true);
 
   // Buscar fretes disponíveis - com match inteligente por região
@@ -314,7 +349,12 @@ const [showRegionModal, setShowRegionModal] = useState(false);
         urgency: 'MEDIUM' as const,
         distance_km: 0,
         minimum_antt_price: 0,
-        is_service_request: true // Flag para identificar que é um service_request
+        is_service_request: true, // Flag para identificar que é um service_request
+        // Informações específicas do service_request
+        problem_description: service.problem_description,
+        contact_phone: service.contact_phone,
+        contact_name: service.contact_name,
+        additional_info: service.additional_info,
       }));
       
       // Combinar fretes tradicionais com serviços aceitos
@@ -1867,32 +1907,91 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       )}
       {/* Detalhes do Chamado de Serviço (GUINCHO/MUDANCA) */}
       <Dialog open={showServiceRequestDialog} onOpenChange={setShowServiceRequestDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
               {selectedServiceRequest?.service_type === 'GUINCHO' ? 'Chamado de Guincho' : 'Serviço de Mudança'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Endereço:</span>
-              <span className="font-medium max-w-[220px] text-right truncate">
-                {selectedServiceRequest?.origin_address}
-              </span>
+          <div className="space-y-4 text-sm">
+            {/* Informações do Solicitante */}
+            {(selectedServiceRequest?.contact_name || selectedServiceRequest?.contact_phone) && (
+              <div>
+                <h4 className="font-semibold text-primary mb-2">Solicitante</h4>
+                <div className="space-y-2">
+                  {selectedServiceRequest?.contact_name && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Nome:</span>
+                      <span className="font-medium">{selectedServiceRequest.contact_name}</span>
+                    </div>
+                  )}
+                  {selectedServiceRequest?.contact_phone && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Telefone:</span>
+                      <span className="font-medium">{selectedServiceRequest.contact_phone}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Local do Atendimento */}
+            <div>
+              <h4 className="font-semibold text-primary mb-2">Local do Atendimento</h4>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Endereço:</span>
+                <span className="font-medium max-w-[200px] text-right">
+                  {selectedServiceRequest?.origin_address}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Status:</span>
-              <Badge variant="secondary">{selectedServiceRequest?.status}</Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Criado em:</span>
-              <span className="font-medium">
-                {selectedServiceRequest?.pickup_date && new Date(selectedServiceRequest.pickup_date).toLocaleString('pt-BR')}
-              </span>
+
+            {/* Descrição do Problema */}
+            {selectedServiceRequest?.problem_description && (
+              <div>
+                <h4 className="font-semibold text-primary mb-2">Descrição do Problema</h4>
+                <p className="text-muted-foreground bg-muted p-2 rounded text-xs">
+                  {selectedServiceRequest.problem_description}
+                </p>
+              </div>
+            )}
+
+            {/* Informações Adicionais */}
+            {selectedServiceRequest?.additional_info && (
+              <div>
+                <h4 className="font-semibold text-primary mb-2">Informações Adicionais</h4>
+                <p className="text-muted-foreground bg-muted p-2 rounded text-xs">
+                  {selectedServiceRequest.additional_info}
+                </p>
+              </div>
+            )}
+
+            {/* Status e Data */}
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Status:</span>
+                <Badge variant="secondary">{selectedServiceRequest?.status}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Criado em:</span>
+                <span className="font-medium text-xs">
+                  {selectedServiceRequest?.pickup_date && new Date(selectedServiceRequest.pickup_date).toLocaleString('pt-BR')}
+                </span>
+              </div>
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setShowServiceRequestDialog(false)}>Fechar</Button>
+          
+          <div className="flex justify-between gap-2 mt-6">
+            <Button variant="outline" onClick={() => setShowServiceRequestDialog(false)}>
+              Fechar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => selectedServiceRequest && handleCompleteServiceRequest(selectedServiceRequest.id)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Encerrar Chamado
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
