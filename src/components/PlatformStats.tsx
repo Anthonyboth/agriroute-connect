@@ -72,7 +72,7 @@ const PlatformStats: React.FC = () => {
     if (kg <= 0) return '0k ton';
     // Converter para formato k ton (dividir por 1000 para remover os milhares)
     const kTons = kg / 1000;
-    return `${kTons.toFixed(1)}k ton`;
+    return `${Math.round(kTons)}k ton`;
   };
 
   if (stats.loading) {
