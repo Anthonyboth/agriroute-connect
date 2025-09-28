@@ -11,31 +11,24 @@ const Press = () => {
 
   const pressReleases = [
     {
-      title: 'AgriRoute Conecta Mais de 10 Mil Produtores Rurais em 2024',
-      date: '15 de dezembro, 2024',
-      category: 'Milestone',
-      summary: 'A plataforma de logística agrícola AgriRoute alcança marca histórica de 10.000 produtores cadastrados, movimentando mais de 1 milhão de toneladas de produtos agrícolas.',
+      title: 'AgriRoute: Plataforma de Conexão Rural',
+      date: 'Atualizado em 2024',
+      category: 'Sobre',
+      summary: 'A AgriRoute é uma plataforma de demonstração que conecta produtores rurais e motoristas, facilitando o transporte de produtos agrícolas de forma eficiente.',
       downloadUrl: '#'
     },
     {
-      title: 'AgriRoute Lança Novo Sistema de Avaliações para Motoristas',
-      date: '28 de novembro, 2024',
+      title: 'Sistema de Avaliações Implementado',
+      date: 'Funcionalidade Atual',
       category: 'Produto',
-      summary: 'Nova funcionalidade permite que produtores avaliem transportadores, aumentando a confiança e qualidade dos serviços de frete agrícola.',
+      summary: 'Plataforma conta com sistema de avaliações que permite maior transparência entre produtores e transportadores.',
       downloadUrl: '#'
     },
     {
-      title: 'Parceria Estratégica com Cooperativas do Sul do Brasil',
-      date: '10 de outubro, 2024',
-      category: 'Parceria',
-      summary: 'AgriRoute firma acordo com 15 cooperativas agrícolas da região Sul, facilitando o escoamento da produção de soja e milho.',
-      downloadUrl: '#'
-    },
-    {
-      title: 'AgriRoute Recebe Investimento de R$ 50 Milhões',
-      date: '5 de setembro, 2024',
-      category: 'Investimento',
-      summary: 'Rodada Série A liderada pelo fundo AgroTech Ventures acelera expansão da plataforma para todo território nacional.',
+      title: 'Funcionalidades da Plataforma',
+      date: 'Recursos Disponíveis',
+      category: 'Recursos',
+      summary: 'Sistema completo com gestão de fretes, geolocalização, chat integrado, pagamentos e dashboard para diferentes tipos de usuários.',
       downloadUrl: '#'
     }
   ];
@@ -69,22 +62,10 @@ const Press = () => {
 
   const awards = [
     {
-      title: 'Startup Agro do Ano 2024',
-      organization: 'AgroTech Summit',
+      title: 'Plataforma de Demonstração',
+      organization: 'Projeto Educacional',
       date: '2024',
-      description: 'Reconhecimento pela inovação em logística agrícola'
-    },
-    {
-      title: 'Prêmio Inovação Digital Rural',
-      organization: 'Ministério da Agricultura',
-      date: '2024',
-      description: 'Destaque em soluções digitais para o agronegócio'
-    },
-    {
-      title: 'Top 10 Startups B2B',
-      organization: 'Revista Agronegócio',
-      date: '2023',
-      description: 'Entre as startups mais promissoras do setor'
+      description: 'Sistema desenvolvido para demonstrar funcionalidades de logística agrícola'
     }
   ];
 
@@ -231,10 +212,10 @@ const Press = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-foreground mb-4">
-              Prêmios e Reconhecimentos
+              Sobre o Projeto
             </h2>
             <p className="text-muted-foreground">
-              Honrarias recebidas pela AgriRoute
+              Informações sobre a plataforma AgriRoute
             </p>
           </div>
 
@@ -273,25 +254,16 @@ const Press = () => {
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-muted-foreground mb-6">
-                Entre em contato com nossa equipe de comunicação para entrevistas, 
-                informações adicionais ou agendamento de visitas
+                Entre em contato para informações sobre a plataforma AgriRoute
               </p>
               <div className="space-y-3 text-sm mb-6">
                 <div>
-                  <strong>Assessoria de Imprensa</strong>
-                  <p className="text-muted-foreground">Maria Silva - Gerente de Comunicação</p>
-                </div>
-                <div>
-                  <strong>Responsável:</strong>
-                  <p className="text-muted-foreground">Equipe AgriRoute Connect</p>
+                  <strong>Contato:</strong>
+                  <p className="text-muted-foreground">Equipe AgriRoute</p>
                 </div>
                 <div>
                   <strong>Email:</strong>
                   <p className="text-muted-foreground">agrirouteconnect@gmail.com</p>
-                </div>
-                <div>
-                  <strong>WhatsApp:</strong>
-                  <p className="text-muted-foreground">015 66 9 9942-6656</p>
                 </div>
               </div>
               <Button 
