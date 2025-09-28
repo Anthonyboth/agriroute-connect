@@ -136,6 +136,27 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     vehicle_type: 'all',
   });
 
+  // Utility functions for WhatsApp integration
+  const formatPhone = (phoneNumber: string) => {
+    // Remove caracteres não numéricos
+    const cleaned = phoneNumber.replace(/\D/g, '');
+    
+    // Formato brasileiro
+    if (cleaned.length === 11) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`;
+    } else if (cleaned.length === 10) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
+    }
+    
+    return phoneNumber;
+  };
+
+  const getWhatsAppUrl = (phoneNumber: string) => {
+    const cleaned = phoneNumber.replace(/\D/g, '');
+    const formattedForWhatsApp = cleaned.startsWith('55') ? cleaned : `55${cleaned}`;
+    return `https://wa.me/${formattedForWhatsApp}`;
+  };
+
   const handleFilterChange = (field: string, value: string) => {
     setFilters(prev => ({ ...prev, [field]: value }));
   };
@@ -1926,9 +1947,17 @@ const [showRegionModal, setShowRegionModal] = useState(false);
                     </div>
                   )}
                   {selectedServiceRequest?.contact_phone && (
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Telefone:</span>
-                      <span className="font-medium">{selectedServiceRequest.contact_phone}</span>
+                      <a
+                        href={getWhatsAppUrl(selectedServiceRequest.contact_phone)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm transition-colors"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        {formatPhone(selectedServiceRequest.contact_phone)}
+                      </a>
                     </div>
                   )}
                 </div>
