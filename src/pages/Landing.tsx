@@ -144,7 +144,7 @@ const Landing = () => {
       label: 'Motoristas Ativos' 
     },
     { 
-      value: realStats.totalWeight > 0 ? `${(realStats.totalWeight / 1000).toFixed(1)}k ton` : '0 ton', 
+      value: realStats.totalWeight > 0 ? `${Math.round(realStats.totalWeight / 1000)}k ton` : '0 ton', 
       label: 'Toneladas Transportadas' 
     },
     { 
