@@ -62,10 +62,10 @@ const Press = () => {
 
   const awards = [
     {
-      title: 'Plataforma de Demonstração',
-      organization: 'Projeto Educacional',
+      title: 'Aplicativo de Logística Agrícola',
+      organization: 'Plataforma Digital',
       date: '2024',
-      description: 'Sistema desenvolvido para demonstrar funcionalidades de logística agrícola'
+      description: 'Aplicativo completo para conexão entre produtores rurais e transportadores'
     }
   ];
 
