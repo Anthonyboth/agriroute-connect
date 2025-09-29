@@ -128,6 +128,16 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
+    id: 'MANUTENCAO_BALANCAS',
+    label: 'Manutenção de Balanças',
+    description: 'Manutenção, calibração e reparo de balanças rodoviárias e de grãos',
+    icon: Settings,
+    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    category: 'technical',
+    clientVisible: false,
+    providerVisible: true
+  },
+  {
     id: 'CONSULTORIA_RURAL',
     label: 'Consultoria Rural',
     description: 'Consultoria especializada em gestão rural e produtividade',
