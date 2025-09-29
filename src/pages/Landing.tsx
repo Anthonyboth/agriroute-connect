@@ -12,6 +12,7 @@ import ReportModal from '@/components/ReportModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail } from 'lucide-react';
 import heroImage from '@/assets/hero-logistics.jpg';
 import { supabase } from '@/integrations/supabase/client';
+import { formatTonsCompactFromKg } from '@/lib/utils';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -144,7 +145,7 @@ const Landing = () => {
       label: 'Motoristas Ativos' 
     },
     { 
-      value: realStats.totalWeight > 0 ? `${Math.round(realStats.totalWeight / 1000)}k ton` : '0 ton', 
+      value: formatTonsCompactFromKg(realStats.totalWeight), 
       label: 'Toneladas Transportadas' 
     },
     { 

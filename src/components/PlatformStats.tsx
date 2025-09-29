@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { formatTonsCompactFromKg } from '@/lib/utils';
 
 interface PlatformStatsData {
   totalProducers: number;
@@ -68,12 +69,7 @@ const PlatformStats: React.FC = () => {
   }, []);
 
   const formatNumber = (n: number) => n.toLocaleString('pt-BR');
-  const formatWeight = (kg: number) => {
-    if (kg <= 0) return '0k ton';
-    // Converter para formato k ton (dividir por 1000 para remover os milhares)
-    const kTons = kg / 1000;
-    return `${Math.round(kTons)}k ton`;
-  };
+  const formatWeight = (kg: number) => formatTonsCompactFromKg(kg);
 
   if (stats.loading) {
     return (
