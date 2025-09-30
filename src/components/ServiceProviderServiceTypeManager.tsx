@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Settings, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Settings, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { getProviderVisibleServices, CATEGORY_LABELS } from '@/lib/service-types';
-
-const SERVICE_PROVIDER_TYPES = getProviderVisibleServices();
+import { ServiceCatalogGrid } from './ServiceCatalogGrid';
 
 export const ServiceProviderServiceTypeManager: React.FC = () => {
   const { profile } = useAuth();
@@ -66,14 +60,6 @@ export const ServiceProviderServiceTypeManager: React.FC = () => {
 
   const hasChanges = JSON.stringify(selectedServices.sort()) !== JSON.stringify((profile?.service_types || []).sort());
 
-  const groupedServices = SERVICE_PROVIDER_TYPES.reduce((acc, service) => {
-    if (!acc[service.category]) {
-      acc[service.category] = [];
-    }
-    acc[service.category].push(service);
-    return acc;
-  }, {} as Record<string, any[]>);
-
   if (initialLoading) {
     return (
       <Card>
@@ -104,97 +90,14 @@ export const ServiceProviderServiceTypeManager: React.FC = () => {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Sistema de Match Inteligente Info */}
-        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="h-4 w-4 text-primary" />
-            <span className="font-semibold text-primary">Sistema de Match Inteligente</span>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Apenas solicitações compatíveis com seus tipos de serviço aparecerão no seu dashboard. 
-            Isso garante que você veja apenas oportunidades relevantes.
-          </p>
-        </div>
-
-
-        {/* Lista de Tipos de Serviços por Categoria */}
-        <div className="space-y-6">
-          {Object.entries(groupedServices).map(([category, services]) => (
-            <div key={category} className="space-y-3">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-foreground">
-                  {CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]}
-                </h3>
-                <Badge variant="outline" className="text-xs">
-                  {services.filter(s => selectedServices.includes(s.id)).length}/{services.length}
-                </Badge>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {services.map((serviceType) => {
-                  const isSelected = selectedServices.includes(serviceType.id);
-                  const IconComponent = serviceType.icon;
-                  
-                  return (
-                    <div 
-                      key={serviceType.id}
-                      className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-sm ${
-                        isSelected 
-                          ? 'bg-primary/5 border-primary/30 shadow-sm' 
-                          : 'bg-card border-border hover:border-primary/20'
-                      }`}
-                      onClick={() => handleServiceToggle(serviceType.id, !isSelected)}
-                    >
-                      <Checkbox
-                        id={serviceType.id}
-                        checked={isSelected}
-                        onCheckedChange={(checked) => handleServiceToggle(serviceType.id, checked as boolean)}
-                        className="mt-0.5"
-                      />
-                      
-                      <div className="flex-1 min-w-0">
-                        <Label 
-                          htmlFor={serviceType.id} 
-                          className="flex items-center gap-2 cursor-pointer text-sm font-medium"
-                        >
-                          <IconComponent className="h-4 w-4 text-primary flex-shrink-0" />
-                          <span className="truncate">{serviceType.label}</span>
-                        </Label>
-                        {serviceType.description && (
-                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                            {serviceType.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Resumo de Seleção */}
-        {selectedServices.length > 0 && (
-          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="h-4 w-4 text-primary" />
-              <span className="font-semibold text-primary">
-                {selectedServices.length} {selectedServices.length === 1 ? 'serviço selecionado' : 'serviços selecionados'}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {selectedServices.map(serviceId => {
-                const service = SERVICE_PROVIDER_TYPES.find(s => s.id === serviceId);
-                return service ? (
-                  <Badge key={serviceId} variant="secondary" className="text-xs">
-                    {service.label}
-                  </Badge>
-                ) : null;
-              })}
-            </div>
-          </div>
-        )}
+        <ServiceCatalogGrid
+          mode="provider"
+          selectedServices={selectedServices}
+          onServiceToggle={handleServiceToggle}
+          showCheckboxes={true}
+          title="Serviços Disponíveis"
+          description="Selecione todos os serviços que você está qualificado para oferecer. Apenas solicitações compatíveis aparecerão no seu dashboard."
+        />
 
         {/* Aviso */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">

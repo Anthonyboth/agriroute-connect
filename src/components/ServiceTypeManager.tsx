@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Settings, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Settings, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { getClientVisibleServices } from '@/lib/service-types';
-
-const SERVICE_TYPES = getClientVisibleServices();
+import { ServiceCatalogGrid } from './ServiceCatalogGrid';
 
 export const ServiceTypeManager: React.FC = () => {
   const { profile } = useAuth();
@@ -96,77 +90,14 @@ export const ServiceTypeManager: React.FC = () => {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Sistema de Match Inteligente Info */}
-        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="h-4 w-4 text-primary" />
-            <span className="font-semibold text-primary">Sistema de Match Inteligente</span>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Apenas fretes compatíveis com seus tipos de serviço aparecerão no seu dashboard. 
-            Isso garante que você veja apenas oportunidades relevantes.
-          </p>
-        </div>
-
-        {/* Seleção de Tipos de Serviço */}
-        <div className="space-y-4">
-          <Label className="text-base font-semibold">Tipos de Serviço que Você Oferece:</Label>
-          
-          {SERVICE_TYPES.map((serviceType) => {
-            const IconComponent = serviceType.icon;
-            const isSelected = selectedServices.includes(serviceType.id);
-            
-            return (
-              <div key={serviceType.id} className="space-y-2">
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id={serviceType.id}
-                    checked={isSelected}
-                    onCheckedChange={(checked) => handleServiceToggle(serviceType.id, checked as boolean)}
-                  />
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-3">
-                      <IconComponent className="h-5 w-5 text-muted-foreground" />
-                      <Label htmlFor={serviceType.id} className="font-medium cursor-pointer">
-                        {serviceType.label}
-                      </Label>
-                      {isSelected && (
-                        <Badge className={serviceType.color}>
-                          Ativo
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground pl-8">
-                      {serviceType.description}
-                    </p>
-                  </div>
-                </div>
-                {serviceType.id !== SERVICE_TYPES[SERVICE_TYPES.length - 1].id && (
-                  <Separator className="my-2" />
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Resumo Selecionado */}
-        {selectedServices.length > 0 && (
-          <div className="bg-secondary/30 p-4 rounded-lg">
-            <h4 className="font-semibold mb-2">Seus Tipos de Serviço Ativos:</h4>
-            <div className="flex flex-wrap gap-2">
-              {selectedServices.map(serviceId => {
-                const serviceType = SERVICE_TYPES.find(s => s.id === serviceId);
-                if (!serviceType) return null;
-                
-                return (
-                  <Badge key={serviceId} className={serviceType.color}>
-                    {serviceType.label}
-                  </Badge>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <ServiceCatalogGrid
+          mode="driver"
+          selectedServices={selectedServices}
+          onServiceToggle={handleServiceToggle}
+          showCheckboxes={true}
+          title="Tipos de Frete"
+          description="Selecione os tipos de frete que você aceita transportar. Apenas fretes compatíveis aparecerão no seu dashboard."
+        />
 
         {/* Aviso */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
