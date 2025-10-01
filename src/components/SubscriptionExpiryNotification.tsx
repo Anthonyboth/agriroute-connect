@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -16,6 +17,7 @@ interface SubscriptionStatus {
 
 export const SubscriptionExpiryNotification: React.FC = () => {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [showExpiryModal, setShowExpiryModal] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -60,8 +62,7 @@ export const SubscriptionExpiryNotification: React.FC = () => {
   };
 
   const handleRenewSubscription = () => {
-    // Redirect to subscription page
-    window.location.href = '/subscription';
+    navigate('/subscription');
   };
 
   const formatDate = (dateString: string) => {

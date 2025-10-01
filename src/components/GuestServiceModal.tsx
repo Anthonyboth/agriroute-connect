@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
   onClose,
   serviceType
 }) => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [selectedSubService, setSelectedSubService] = useState<string>('');
@@ -241,7 +243,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                 <p className="text-muted-foreground">
                   Para criar uma conta e ter acesso a descontos exclusivos,
                 </p>
-                <Button onClick={() => window.location.href = '/auth'} className="w-full">
+                <Button onClick={() => navigate('/auth')} className="w-full">
                   Ir para Cadastro/Login
                 </Button>
               </div>

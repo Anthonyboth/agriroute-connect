@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -97,6 +98,7 @@ interface ServiceProviderStats {
 export const ServiceProviderDashboard: React.FC = () => {
   const { toast } = useToast();
   const { user, profile, profiles } = useAuth();
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
@@ -529,7 +531,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               <Button 
                 variant="default"
                 size="sm"
-                onClick={() => window.location.href = '/services'}
+                onClick={() => navigate('/services')}
                 className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
               >
                 🛠️ Solicitar Serviços
