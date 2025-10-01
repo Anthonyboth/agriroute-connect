@@ -534,7 +534,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                 onClick={() => navigate('/services')}
                 className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
               >
-                🛠️ Solicitar Serviços
+                Solicitar Serviços
               </Button>
             </div>
           </div>
