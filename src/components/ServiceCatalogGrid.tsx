@@ -35,9 +35,9 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  const allServices = mode === 'driver' 
-    ? getClientVisibleServices() 
-    : getProviderVisibleServices();
+  const allServices = mode === 'provider' 
+    ? getProviderVisibleServices() 
+    : getClientVisibleServices();
   
   const categories = [
     { id: 'all', label: 'Todos os Serviços', count: allServices.length },
