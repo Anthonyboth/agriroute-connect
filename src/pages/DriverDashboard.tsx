@@ -28,7 +28,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote, Star, MessageSquare } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote, Star, MessageSquare, AlertTriangle } from 'lucide-react';
+import { useGPSMonitoring } from '@/hooks/useGPSMonitoring';
+import { TrackingConsentModal } from '@/components/TrackingConsentModal';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Wrench } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -123,6 +126,9 @@ const [showRegionModal, setShowRegionModal] = useState(false);
   // Dialog para detalhes de serviços urbanos (GUINCHO/MUDANCA)
   const [showServiceRequestDialog, setShowServiceRequestDialog] = useState(false);
   const [selectedServiceRequest, setSelectedServiceRequest] = useState<Freight | null>(null);
+  // Estados para controle de consentimento de tracking
+  const [freightAwaitingConsent, setFreightAwaitingConsent] = useState<string | null>(null);
+  const [showTrackingConsentModal, setShowTrackingConsentModal] = useState(false);
   const [filters, setFilters] = useState({
     cargo_type: 'all',
     service_type: 'all',
@@ -135,6 +141,12 @@ const [showRegionModal, setShowRegionModal] = useState(false);
     destination_city: '',
     vehicle_type: 'all',
   });
+
+  // Monitoramento GPS para fretes em andamento
+  const activeFreight = ongoingFreights.find(f => 
+    f.status === 'IN_TRANSIT' || f.status === 'ACCEPTED'
+  );
+  useGPSMonitoring(activeFreight?.id || null, !!activeFreight);
 
   // Utility functions for WhatsApp integration
   const formatPhone = (phoneNumber: string) => {
@@ -836,6 +848,37 @@ const [showRegionModal, setShowRegionModal] = useState(false);
 
           toast.success('Proposta enviada com sucesso!');
         } else if (action === 'accept') {
+          // ✅ FASE 1 - CRÍTICO: Verificar location_enabled ANTES de aceitar
+          if (!profile.location_enabled) {
+            toast.error('❌ Você precisa ativar a localização para aceitar fretes', {
+              description: 'Vá em Configurações → Localização para ativar'
+            });
+            return;
+          }
+
+          // ✅ FASE 1 - CRÍTICO: Verificar status de validação antes de aceitar
+          if (profile.status !== 'APPROVED') {
+            toast.error('❌ Seus documentos ainda estão em validação', {
+              description: 'Aguarde a aprovação do administrador para aceitar fretes'
+            });
+            return;
+          }
+          
+          // Verificar se já tem consentimento de tracking
+          const { data: existingConsent } = await supabase
+            .from('tracking_consents')
+            .select('id, consent_given')
+            .eq('freight_id', freightId)
+            .eq('user_id', profile.user_id)
+            .maybeSingle();
+            
+          if (!existingConsent?.consent_given) {
+            // Mostrar modal de consentimento ANTES de aceitar
+            setFreightAwaitingConsent(freightId);
+            setShowTrackingConsentModal(true);
+            return;
+          }
+
           // Aceitação direta: não bloquear por proposta existente
           // Aceitar via Edge Function (bypass RLS com service role)
           const { data: acceptData, error: acceptError } = await (supabase as any).functions.invoke('accept-freight', {
@@ -1294,6 +1337,35 @@ const [showRegionModal, setShowRegionModal] = useState(false);
           <div className="mb-4">
             <SubscriptionExpiryNotification />
           </div>
+
+          {/* ✅ FASE 4 - Alerta de Localização Desativada */}
+          {!profile?.location_enabled && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Localização Desativada</AlertTitle>
+              <AlertDescription>
+                Você não pode aceitar fretes sem localização ativa.
+                <Button 
+                  variant="link" 
+                  onClick={() => navigate('/complete-profile')}
+                  className="p-0 h-auto ml-2 text-destructive-foreground underline"
+                >
+                  Ativar agora
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* ✅ FASE 1/3 - Alerta de Documentos Pendentes */}
+          {profile?.status === 'PENDING' && (
+            <Alert variant="default" className="mb-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertTitle className="text-yellow-800 dark:text-yellow-200">Documentos em Validação</AlertTitle>
+              <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+                Seus documentos estão sendo analisados. Você poderá aceitar fretes após a aprovação.
+              </AlertDescription>
+            </Alert>
+          )}
           
           <TabsContent value="available" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
@@ -2028,6 +2100,20 @@ const [showRegionModal, setShowRegionModal] = useState(false);
       <ServicesModal 
         isOpen={servicesModalOpen}
         onClose={() => setServicesModalOpen(false)}
+      />
+
+      {/* ✅ FASE 1 - Modal de Consentimento de Tracking */}
+      <TrackingConsentModal
+        isOpen={showTrackingConsentModal}
+        freightId={freightAwaitingConsent || ''}
+        onConsent={async (consented) => {
+          setShowTrackingConsentModal(false);
+          if (consented && freightAwaitingConsent) {
+            // Agora aceitar o frete
+            await handleFreightAction(freightAwaitingConsent, 'accept');
+          }
+          setFreightAwaitingConsent(null);
+        }}
       />
     </div>
   );

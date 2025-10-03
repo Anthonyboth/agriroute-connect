@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Upload, Check, X, Camera } from 'lucide-react';
+import { validateImageQuality } from '@/utils/imageValidator';
 
 interface DocumentUploadProps {
   onUploadComplete: (url: string) => void;
@@ -17,6 +18,7 @@ interface DocumentUploadProps {
   bucketName?: string;
   required?: boolean;
   accept?: string;
+  enableQualityCheck?: boolean;
 }
 
 export const DocumentUpload: React.FC<DocumentUploadProps> = ({
@@ -28,7 +30,8 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   fileType = 'document',
   bucketName = 'profile-photos',
   required = false,
-  accept = 'image/*,image/heic,image/heif'
+  accept = 'image/*,image/heic,image/heif',
+  enableQualityCheck = true
 }) => {
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
@@ -39,6 +42,18 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     if (!file) return;
 
     console.log('Starting file upload...', { fileName: file.name, bucketName, fileType });
+    
+    // ✅ FASE 3 - MÉDIO: Validação de qualidade de imagem
+    if (enableQualityCheck && file.type.startsWith('image/')) {
+      const validationResult = await validateImageQuality(file);
+      
+      if (!validationResult.valid) {
+        toast.error(`Qualidade insuficiente: ${validationResult.reason}`);
+        // Reset input
+        event.target.value = '';
+        return;
+      }
+    }
     
     setUploading(true);
     try {

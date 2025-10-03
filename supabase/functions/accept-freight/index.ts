@@ -52,19 +52,65 @@ serve(async (req) => {
       );
     }
 
-    // Find driver profile id
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("id, role")
-      .eq("user_id", user.id)
-      .single();
+// ✅ FASE 1 - CRÍTICO: Validar location_enabled e tracking_consents no backend
+const { data: profile, error: profileErr } = await supabase
+  .from("profiles")
+  .select("id, role, location_enabled, status")
+  .eq("user_id", user.id)
+  .single();
 
-    if (profileErr || !profile || profile.role !== "MOTORISTA") {
-      return new Response(JSON.stringify({ error: "Driver profile not found" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+if (profileErr || !profile || profile.role !== "MOTORISTA") {
+  return new Response(JSON.stringify({ error: "Driver profile not found" }), {
+    status: 403,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+// ✅ NOVO: Validar location_enabled
+if (!profile.location_enabled) {
+  return new Response(
+    JSON.stringify({ 
+      error: "Location must be enabled to accept freights",
+      code: "LOCATION_DISABLED"
+    }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     }
+  );
+}
+
+// ✅ NOVO: Validar status de aprovação
+if (profile.status !== 'APPROVED') {
+  return new Response(
+    JSON.stringify({ 
+      error: "Profile must be approved to accept freights",
+      code: "PROFILE_NOT_APPROVED"
+    }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
+  );
+}
+
+// ✅ NOVO: Verificar consentimento de tracking
+const { data: consent } = await supabase
+  .from("tracking_consents")
+  .select("consent_given")
+  .eq("freight_id", freightId)
+  .eq("user_id", user.id)
+  .maybeSingle();
+
+if (!consent?.consent_given) {
+  return new Response(
+    JSON.stringify({ 
+      error: "Tracking consent required",
+      code: "CONSENT_REQUIRED"
+    }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
+  );
+}
 
     const driverId: string = profile.id as string;
 

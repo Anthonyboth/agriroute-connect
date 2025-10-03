@@ -48,6 +48,7 @@ const CompleteProfile = () => {
     antt_number: '',
     cooperative: '',
     fixed_address: '',
+    cnh_expiry_date: '' as string,
   });
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [newVehicle, setNewVehicle] = useState({
@@ -99,6 +100,7 @@ const CompleteProfile = () => {
         antt_number: (profile as any).antt_number || '',
         cooperative: (profile as any).cooperative || '',
         fixed_address: (profile as any).fixed_address || '',
+        cnh_expiry_date: (profile as any).cnh_expiry_date || '',
       });
 
       // Fetch vehicles for drivers
@@ -308,9 +310,30 @@ const CompleteProfile = () => {
      if (!documentUrls.cnh) missingDocs.push('CNH');
      if (!documentUrls.address_proof) missingDocs.push('Comprovante de residência');
      
+     // ✅ FASE 2 - ALTO: Tornar fotos de veículo obrigatórias
+     if (!documentUrls.truck_photo) missingDocs.push('Foto do veículo');
+     if (!documentUrls.truck_documents) missingDocs.push('CRLV do veículo');
+     if (!documentUrls.license_plate) missingDocs.push('Foto da placa');
+     
      if (missingDocs.length > 0) {
        toast.error(`Documentos faltando: ${missingDocs.join(', ')}`);
        return;
+     }
+
+     // ✅ FASE 2 - ALTO: Validar vencimento de CNH
+     if (profileData.cnh_expiry_date) {
+       const expiryDate = new Date(profileData.cnh_expiry_date);
+       const today = new Date();
+       const daysUntilExpiry = Math.floor((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+       
+       if (daysUntilExpiry < 0) {
+         toast.error('❌ Sua CNH está vencida. Atualize antes de continuar.');
+         return;
+       }
+       
+       if (daysUntilExpiry < 30) {
+         toast.warning(`⚠️ Sua CNH vence em ${daysUntilExpiry} dias. Renove em breve.`);
+       }
      }
 
      if (!locationEnabled) {
