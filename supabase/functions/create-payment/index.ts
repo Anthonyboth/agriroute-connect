@@ -1,11 +1,18 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput, uuidSchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const CreatePaymentSchema = z.object({
+  freight_id: uuidSchema,
+  payment_method: z.enum(['pix', 'boleto', 'cartao'])
+});
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -37,11 +44,9 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { freight_id, payment_method } = await req.json();
-    if (!freight_id) throw new Error("freight_id is required");
-    if (!payment_method || !['pix', 'boleto', 'cartao'].includes(payment_method)) {
-      throw new Error("payment_method must be pix, boleto, or cartao");
-    }
+    const body = await req.json()
+    const validated = validateInput(CreatePaymentSchema, body)
+    const { freight_id, payment_method } = validated
 
     // Buscar frete e verificar permissões
     const { data: freight, error: freightError } = await supabaseClient

@@ -34,7 +34,10 @@ export interface ServiceType {
 }
 
 export const ALL_SERVICE_TYPES: ServiceType[] = [
-  // SERVIÇOS DE FRETE (visíveis para clientes e prestadores)
+  // TODOS OS SERVIÇOS AGORA SÃO VISÍVEIS PARA TODOS OS TIPOS DE USUÁRIOS
+  // Prestadores podem marcar serviços oferecidos, clientes/motoristas podem solicitar
+  
+  // SERVIÇOS DE FRETE
   {
     id: 'CARGA',
     label: 'Transporte de Carga',
@@ -43,7 +46,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-primary/10 text-primary border-primary/20',
     category: 'freight',
     clientVisible: true,
-    providerVisible: false
+    providerVisible: true
   },
   {
     id: 'GUINCHO',
@@ -53,7 +56,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-orange-100 text-orange-800 border-orange-200',
     category: 'freight',
     clientVisible: true,
-    providerVisible: false
+    providerVisible: true
   },
   {
     id: 'MUDANCA',
@@ -63,10 +66,10 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'freight',
     clientVisible: true,
-    providerVisible: false
+    providerVisible: true
   },
 
-  // SERVIÇOS TÉCNICOS (só prestadores por enquanto, mas podem ser solicitados via ServiceRequestModal)
+  // SERVIÇOS TÉCNICOS
   {
     id: 'CHAVEIRO',
     label: 'Chaveiro',
@@ -74,7 +77,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Key,
     color: 'bg-amber-100 text-amber-800 border-amber-200',
     category: 'technical',
-    clientVisible: false, // Será implementado futuramente
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -84,7 +87,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Wrench,
     color: 'bg-gray-100 text-gray-800 border-gray-200',
     category: 'technical',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -94,7 +97,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Zap,
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     category: 'technical',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -104,7 +107,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Shield,
     color: 'bg-slate-100 text-slate-800 border-slate-200',
     category: 'technical',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -114,7 +117,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Settings,
     color: 'bg-primary/10 text-primary border-primary/20',
     category: 'technical',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -124,7 +127,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Wrench,
     color: 'bg-orange-100 text-orange-800 border-orange-200',
     category: 'technical',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -134,7 +137,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Settings,
     color: 'bg-purple-100 text-purple-800 border-purple-200',
     category: 'technical',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -144,7 +147,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Users,
     color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'technical',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -154,7 +157,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Stethoscope,
     color: 'bg-green-100 text-green-800 border-green-200',
     category: 'technical',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
 
@@ -166,7 +169,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: TestTube,
     color: 'bg-purple-100 text-purple-800 border-purple-200',
     category: 'agricultural',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -176,7 +179,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Droplets,
     color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
     category: 'agricultural',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -186,7 +189,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Plane,
     color: 'bg-teal-100 text-teal-800 border-teal-200',
     category: 'agricultural',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -196,7 +199,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Wheat,
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     category: 'agricultural',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -206,7 +209,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Leaf,
     color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     category: 'agricultural',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -216,7 +219,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Wrench,
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     category: 'agricultural',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -226,7 +229,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Package,
     color: 'bg-rose-100 text-rose-800 border-rose-200',
     category: 'agricultural',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
 
@@ -238,7 +241,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Package,
     color: 'bg-orange-100 text-orange-800 border-orange-200',
     category: 'logistics',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -248,7 +251,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Fuel,
     color: 'bg-green-100 text-green-800 border-green-200',
     category: 'logistics',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -258,7 +261,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: Package,
     color: 'bg-rose-100 text-rose-800 border-rose-200',
     category: 'logistics',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   },
   {
@@ -268,7 +271,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     icon: MoreHorizontal,
     color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
     category: 'technical',
-    clientVisible: false,
+    clientVisible: true,
     providerVisible: true
   }
 ];

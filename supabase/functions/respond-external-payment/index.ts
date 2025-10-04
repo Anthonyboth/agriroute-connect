@@ -1,10 +1,18 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput, uuidSchema, textSchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const RespondExternalPaymentSchema = z.object({
+  external_payment_id: uuidSchema,
+  accept: z.boolean(),
+  confirmation_doc: z.string().url('Invalid confirmation document URL').optional()
+});
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -36,9 +44,9 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id });
 
-    const { external_payment_id, accept, confirmation_doc } = await req.json();
-    if (!external_payment_id) throw new Error("external_payment_id is required");
-    if (typeof accept !== "boolean") throw new Error("accept must be true or false");
+    const body = await req.json()
+    const validated = validateInput(RespondExternalPaymentSchema, body)
+    const { external_payment_id, accept, confirmation_doc } = validated
 
     // Buscar proposta de pagamento
     const { data: externalPayment, error: paymentError } = await supabaseClient

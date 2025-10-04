@@ -1,11 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput, uuidSchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
+
+const WithdrawFreightSchema = z.object({
+  freight_id: uuidSchema
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -43,14 +49,9 @@ serve(async (req) => {
       });
     }
 
-    const body = await req.json().catch(() => ({}));
-    const freightId: string | undefined = body.freight_id;
-    if (!freightId) {
-      return new Response(
-        JSON.stringify({ error: "freight_id is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const body = await req.json()
+    const validated = validateInput(WithdrawFreightSchema, body)
+    const freightId = validated.freight_id
 
     // Find driver profile id for this user
     const { data: profile, error: profileErr } = await supabase

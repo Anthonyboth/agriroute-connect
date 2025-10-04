@@ -1,10 +1,18 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2'
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput, uuidSchema, amountSchema, pixKeySchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+const PayoutRequestSchema = z.object({
+  driver_id: uuidSchema,
+  amount: amountSchema.min(50, 'Amount must be at least R$ 50'),
+  pix_key: pixKeySchema
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -25,7 +33,9 @@ serve(async (req) => {
       throw new Error('Não autorizado')
     }
 
-    const { driver_id, amount, pix_key } = await req.json()
+    const body = await req.json()
+    const validated = validateInput(PayoutRequestSchema, body)
+    const { driver_id, amount, pix_key } = validated
 
     // Validar se o usuário é o motorista
     const { data: profile, error: profileError } = await supabase

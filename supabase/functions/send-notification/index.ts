@@ -1,10 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput, uuidSchema, textSchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const NotificationSchema = z.object({
+  user_id: uuidSchema,
+  title: textSchema(200).min(1, 'Title cannot be empty'),
+  message: textSchema(1000).min(1, 'Message cannot be empty'),
+  type: z.string().optional().default('info'),
+  data: z.record(z.any()).optional()
+});
 
 const log = (level: string, message: string, data?: any) => {
   console.log(`[${level}] ${message}`, data ? JSON.stringify(data) : '');
@@ -25,15 +35,9 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { user_id, title, message, type = 'info', data } = await req.json();
-
-    if (!user_id || !title || !message) {
-      log('ERROR', 'Missing required fields', { user_id, title, message });
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: user_id, title, message' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const body = await req.json()
+    const validated = validateInput(NotificationSchema, body)
+    const { user_id, title, message, type, data } = validated
 
     log('INFO', 'Creating notification', { user_id, title, type });
 

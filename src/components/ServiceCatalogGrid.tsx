@@ -11,7 +11,7 @@ import {
   Shield,
   CheckCircle
 } from 'lucide-react';
-import { getProviderVisibleServices, getClientVisibleServices, CATEGORY_LABELS } from '@/lib/service-types';
+import { ALL_SERVICE_TYPES, CATEGORY_LABELS } from '@/lib/service-types';
 
 interface ServiceCatalogGridProps {
   mode: 'provider' | 'driver' | 'client';
@@ -35,9 +35,10 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  const allServices = mode === 'provider' 
-    ? getProviderVisibleServices() 
-    : getClientVisibleServices();
+  // Todos os serviços são visíveis para todos - a diferença está na interação
+  // Prestadores: marcam com checkbox os serviços que oferecem
+  // Clientes/Motoristas: solicitam serviços via botão
+  const allServices = ALL_SERVICE_TYPES;
   
   const categories = [
     { id: 'all', label: 'Todos os Serviços', count: allServices.length },

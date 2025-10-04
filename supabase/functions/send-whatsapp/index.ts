@@ -1,17 +1,19 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput, uuidSchema, textSchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface WhatsAppMessage {
-  to: string;
-  message: string;
-  type?: 'text' | 'freight_update' | 'proposal_received';
-  freight_id?: string;
-}
+const WhatsAppMessageSchema = z.object({
+  to: z.string().regex(/^55\d{10,11}$/, 'Phone number must be in Brazilian format with country code'),
+  message: textSchema(1000),
+  type: z.enum(['text', 'freight_update', 'proposal_received']).optional().default('text'),
+  freight_id: uuidSchema.optional()
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,7 +26,9 @@ serve(async (req) => {
   );
 
   try {
-    const { to, message, type = 'text', freight_id }: WhatsAppMessage = await req.json();
+    const body = await req.json()
+    const validated = validateInput(WhatsAppMessageSchema, body)
+    const { to, message, type, freight_id } = validated;
     
     console.log('Sending WhatsApp message:', { to, type, freight_id });
 

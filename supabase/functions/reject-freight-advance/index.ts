@@ -1,10 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput, uuidSchema, textSchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const RejectAdvanceSchema = z.object({
+  advance_id: uuidSchema,
+  rejection_reason: textSchema(500).optional()
+});
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -36,10 +43,9 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { advance_id, rejection_reason } = await req.json();
-    if (!advance_id) {
-      throw new Error("advance_id is required");
-    }
+    const body = await req.json()
+    const validated = validateInput(RejectAdvanceSchema, body)
+    const { advance_id, rejection_reason } = validated
 
     // Buscar o adiantamento e verificar se o usuário é o produtor
     const { data: advance, error: advanceError } = await supabaseClient
