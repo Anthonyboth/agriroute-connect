@@ -1,11 +1,22 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput, uuidSchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const AdvanceSchema = z.object({
+  freight_id: uuidSchema,
+  advance_amount: z.number().min(1).max(100000).optional(),
+  advance_percentage: z.number().min(0.01).max(1.0).optional()
+}).refine(
+  (data) => data.advance_amount || data.advance_percentage,
+  { message: "Either advance_amount or advance_percentage must be provided" }
+);
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -37,10 +48,8 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { freight_id, advance_amount, advance_percentage } = await req.json();
-    if (!freight_id || (!advance_amount && !advance_percentage)) {
-      throw new Error("freight_id and either advance_amount or advance_percentage are required");
-    }
+    const body = await req.json();
+    const { freight_id, advance_amount, advance_percentage } = validateInput(AdvanceSchema, body);
 
     // Verificar se o frete existe e pertence ao usuário
     const { data: freight, error: freightError } = await supabaseClient

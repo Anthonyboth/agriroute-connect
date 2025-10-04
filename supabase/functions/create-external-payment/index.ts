@@ -1,10 +1,18 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput, uuidSchema, amountSchema, textSchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const PaymentSchema = z.object({
+  freight_id: uuidSchema,
+  amount: amountSchema,
+  notes: textSchema(500).optional()
+});
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -36,9 +44,8 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id });
 
-    const { freight_id, amount, notes } = await req.json();
-    if (!freight_id) throw new Error("freight_id is required");
-    if (!amount || amount <= 0) throw new Error("amount must be greater than 0");
+    const body = await req.json();
+    const { freight_id, amount, notes } = validateInput(PaymentSchema, body);
 
     // Buscar frete e verificar permissões
     const { data: freight, error: freightError } = await supabaseClient

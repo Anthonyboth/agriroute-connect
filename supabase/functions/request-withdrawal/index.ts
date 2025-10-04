@@ -1,11 +1,18 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput, pixKeySchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const WithdrawalSchema = z.object({
+  amount: z.number().min(50, 'Minimum withdrawal is R$ 50').max(1000000),
+  pix_key: pixKeySchema
+});
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -37,14 +44,8 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id });
 
-    const { amount, pix_key } = await req.json();
-    if (!amount || amount <= 0) throw new Error("amount must be greater than 0");
-    if (!pix_key) throw new Error("pix_key is required");
-
-    const MIN_WITHDRAWAL = 50; // R$ 50 mínimo
-    if (amount < MIN_WITHDRAWAL) {
-      throw new Error(`Minimum withdrawal amount is R$ ${MIN_WITHDRAWAL}`);
-    }
+    const body = await req.json();
+    const { amount, pix_key } = validateInput(WithdrawalSchema, body);
 
     // Verificar se é motorista e buscar conta Stripe
     const { data: profile, error: profileError } = await supabaseClient

@@ -1,10 +1,22 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput, uuidSchema, coordinateSchema, longitudeSchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const LocationUpdateSchema = z.object({
+  freight_id: uuidSchema,
+  lat: coordinateSchema,
+  lng: longitudeSchema,
+  speed: z.number().min(0).max(300).optional(),
+  heading: z.number().min(0).max(360).optional(),
+  accuracy: z.number().min(0).max(1000).optional(),
+  source: z.string().max(20).optional()
+});
 
 interface LocationUpdate {
   freight_id: string;
@@ -57,7 +69,8 @@ serve(async (req) => {
     
     // POST /tracking-service/locations - Receber updates de localização
     if (path.includes('/locations') && req.method === 'POST') {
-      const { freight_id, lat, lng, speed, heading, accuracy, source }: LocationUpdate = await req.json();
+      const body = await req.json();
+      const { freight_id, lat, lng, speed, heading, accuracy, source } = validateInput(LocationUpdateSchema, body);
       
       // Verificar se o usuário tem permissão para este frete
       const { data: profile } = await supabase
