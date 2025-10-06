@@ -6,10 +6,10 @@ workflows:
       groups:
         - app_store_connect
       vars:
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"  # Ajuste se o caminho do workspace for diferente
-        XCODE_SCHEME: "App"                          # Ajuste para o seu Xcode Scheme
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"  # Caminho do workspace do Xcode
+        XCODE_SCHEME: "App"                          # Nome do scheme do Xcode
       xcode: latest
-      node: 20.5.1  # Node >=20 é necessário para o Capacitor
+      node: 20.5.1  # Node >=20 para Capacitor
     scripts:
       - name: Install dependencies
         script: |
@@ -22,6 +22,6 @@ workflows:
           npx cap sync ios
       - name: Build iOS
         script: |
-          xcode-project build-ipa
+          xcode-project build-ipa --workspace $XCODE_WORKSPACE --scheme $XCODE_SCHEME
     artifacts:
       - build/ios/ipa/*.ipa
