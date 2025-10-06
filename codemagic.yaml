@@ -4,12 +4,12 @@ workflows:
     max_build_duration: 120
     environment:
       groups:
-        - app_store_connect
+        - app_store_connect   # Certifique-se de que você configurou o App Store Connect API Key neste grupo
       vars:
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"  # Caminho do workspace do Xcode
-        XCODE_SCHEME: "App"                          # Nome do scheme do Xcode
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
       xcode: latest
-      node: 20.5.1  # Node >=20 para Capacitor
+      node: 20.5.1
     scripts:
       - name: Install dependencies
         script: |
@@ -22,6 +22,6 @@ workflows:
           npx cap sync ios
       - name: Build iOS
         script: |
-          xcode-project build-ipa --workspace $XCODE_WORKSPACE --scheme $XCODE_SCHEME
+          xcode-project build-ipa --workspace $XCODE_WORKSPACE --scheme $XCODE_SCHEME --automatic-code-signing
     artifacts:
       - build/ios/ipa/*.ipa
