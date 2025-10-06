@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -150,17 +151,18 @@ const RedirectIfAuthed = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <SubscriptionProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter 
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true
-          }}
-        >
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <SubscriptionProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter 
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true
+            }}
+          >
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/landing" element={<Landing />} />
@@ -243,6 +245,7 @@ const App = () => (
       </TooltipProvider>
     </SubscriptionProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

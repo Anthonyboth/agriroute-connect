@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
   category
 }) => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -382,7 +384,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                 <p className="text-muted-foreground">
                   Para criar uma conta e ter acesso a todas as funcionalidades,
                 </p>
-                <Button onClick={() => window.location.href = '/auth'} className="w-full">
+                <Button onClick={() => navigate('/auth')} className="w-full">
                   Ir para Cadastro/Login
                 </Button>
               </div>

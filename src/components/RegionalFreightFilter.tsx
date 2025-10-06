@@ -124,7 +124,9 @@ export const RegionalFreightFilter: React.FC<RegionalFreightFilterProps> = ({
             
             <Button 
               className="w-full" 
-              onClick={() => window.location.reload()} // Trigger region setup
+              onClick={() => {
+                toast.info('Configure sua região de atendimento nas suas configurações de perfil');
+              }}
             >
               <Navigation className="h-4 w-4 mr-2" />
               Configurar Região de Atendimento
