@@ -6,10 +6,10 @@ workflows:
       groups:
         - app_store_connect
       vars:
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
-        XCODE_SCHEME: "App"
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"  # Ajuste se o caminho do workspace for diferente
+        XCODE_SCHEME: "App"                          # Ajuste para o seu Xcode Scheme
       xcode: latest
-      node: 20.5.1
+      node: 20.5.1  # Node >=20 é necessário para o Capacitor
     scripts:
       - name: Install dependencies
         script: |
