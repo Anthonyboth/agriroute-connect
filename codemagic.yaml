@@ -9,7 +9,7 @@ workflows:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
       xcode: latest
-      node: 18.17.0
+      node: 20.8.0
     scripts:
       - name: Install dependencies
         script: |
