@@ -71,7 +71,6 @@ export const useAuth = () => {
     fetchingRef.current = true;
     
     try {
-      console.log('Fetching profiles for user:', userId);
       const { data: profilesData, error } = await supabase
         .from('profiles')
         .select('*')
@@ -80,11 +79,9 @@ export const useAuth = () => {
       if (!mountedRef.current) return;
       
       if (error) {
-        console.error('Profiles fetch error:', error);
         setProfile(null);
         setProfiles([]);
       } else if (profilesData && profilesData.length > 0) {
-        console.log('Profiles fetched successfully:', profilesData);
         setProfiles(profilesData);
         
         // Verificar se há um perfil específico salvo no localStorage
@@ -99,9 +96,7 @@ export const useAuth = () => {
         }
         
         setProfile(activeProfile);
-        console.log('Active profile set:', activeProfile);
       } else {
-        console.log('No profiles found, attempting auto-create from metadata');
         setProfile(null);
         setProfiles([]);
         
@@ -110,8 +105,6 @@ export const useAuth = () => {
       }
     } catch (error) {
       if (!mountedRef.current) return;
-      
-      console.error('Error fetching profiles:', error);
       setProfile(null);
       setProfiles([]);
 
@@ -153,7 +146,6 @@ export const useAuth = () => {
         status: 'PENDING' as any,
       };
       
-      console.log('Attempting to create profile:', newProfile);
       const { data: inserted, error: insertError } = await supabase
         .from('profiles')
         .insert(newProfile)
@@ -163,12 +155,10 @@ export const useAuth = () => {
       if (!mountedRef.current) return;
       
       if (!insertError && inserted) {
-        console.log('Profile auto-created successfully:', inserted);
         setProfiles([inserted as any]);
         setProfile(inserted as any);
       } else if (insertError?.code === '23505') {
         // Profile already exists, refetch once
-        console.log('Profile already exists, refetching...');
         setTimeout(() => {
           if (mountedRef.current) {
             fetchProfile(user.id);
@@ -176,7 +166,7 @@ export const useAuth = () => {
         }, 500);
       }
     } catch (e) {
-      console.error('Error during auto-create profile:', e);
+      // Silent fail - profile creation will be handled by CompleteProfile page
     }
   };
 
@@ -188,7 +178,6 @@ export const useAuth = () => {
       (event, session) => {
         if (!mountedRef.current) return;
         
-        console.log('Auth state change:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -196,7 +185,6 @@ export const useAuth = () => {
           // Validate UUID format
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
           if (!uuidRegex.test(session.user.id)) {
-            console.error('Invalid UUID format for user.id:', session.user.id);
             setProfile(null);
             setLoading(false);
             return;
@@ -217,12 +205,9 @@ export const useAuth = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mountedRef.current) return;
       
-      console.log('Existing session check:', session?.user?.id);
-      
       if (session?.user) {
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
         if (!uuidRegex.test(session.user.id)) {
-          console.error('Invalid UUID format for user.id:', session.user.id);
           setProfile(null);
           setLoading(false);
           setInitialized(true);
@@ -255,23 +240,18 @@ export const useAuth = () => {
 
   const signOut = async () => {
     try {
-      console.log('Starting logout process...');
       // Limpar perfil salvo no logout
       localStorage.removeItem('current_profile_id');
 
       // Verificar sessão atual antes de deslogar
       const { data } = await supabase.auth.getSession();
       const hasSession = !!data.session;
-      console.log('Current session exists:', hasSession);
 
       if (!hasSession) {
-        console.log('No active session. Clearing local auth state.');
         await supabase.auth.signOut({ scope: 'local' });
       } else {
-        console.log('Signing out globally...');
         const { error } = await supabase.auth.signOut({ scope: 'global' });
         if (error) {
-          console.error('Logout error (global). Falling back to local signout:', error);
           await supabase.auth.signOut({ scope: 'local' });
         }
       }
@@ -281,9 +261,7 @@ export const useAuth = () => {
       setSession(null);
       setProfile(null);
       setProfiles([]);
-      console.log('Logout successful');
     } catch (error) {
-      console.error('Error during logout:', error);
       // Último recurso: limpar localmente para não travar o usuário
       try {
         await supabase.auth.signOut({ scope: 'local' });

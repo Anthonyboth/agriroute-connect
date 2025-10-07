@@ -18,7 +18,6 @@ import DriverDashboard from "./pages/DriverDashboard";
 import ServiceProviderDashboard from "./pages/ServiceProviderDashboard";
 import ServiceProviderRegistration from "./pages/ServiceProviderRegistration";
 import Services from "./pages/Services";
-import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 import Privacy from "./pages/Privacy";
@@ -164,7 +163,7 @@ const App = () => (
             }}
           >
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Landing />} />
             <Route path="/landing" element={<Landing />} />
             <Route path="/auth" element={<RedirectIfAuthed />} />
             <Route path="/reset-password" element={<ResetPassword />} />
