@@ -17,7 +17,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
   onAddressChange,
   label = "Endereço Completo",
   required = false,
-  placeholder = "Rua, número, bairro, cidade, estado, CEP"
+  placeholder = "Rua, número, bairro/fazenda, cidade, estado, CEP"
 }) => {
   return (
     <div className="space-y-2">
@@ -41,7 +41,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
             <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-blue-800">
               <p className="font-medium">Importante:</p>
-              <p>Este endereço deve ser o mesmo do comprovante de endereço que você enviará. Preencha com todos os detalhes: rua, número, complemento, bairro, cidade, estado e CEP.</p>
+              <p>Este endereço deve ser o mesmo do comprovante de endereço que você enviará. Preencha com todos os detalhes: rua, número, complemento, bairro/fazenda, cidade, estado e CEP.</p>
             </div>
           </div>
         </CardContent>

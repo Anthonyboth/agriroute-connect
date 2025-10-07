@@ -273,14 +273,13 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1">
                     <MapPin className="h-4 w-4" />
-                    Localização do Atendimento *
+                    Cidade e Estado *
                   </Label>
                   <UserLocationSelector 
                     onLocationChange={(location) => {
                       if (location) {
                         setFormData(prev => ({
                           ...prev,
-                          location_address: `${location.city}, ${location.state}`.trim(),
                           location_lat: location.lat,
                           location_lng: location.lng,
                           city: location.city,
@@ -290,7 +289,22 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Selecione no mapa o local onde o serviço será realizado
+                    Selecione a cidade onde o serviço será realizado
+                  </p>
+                </div>
+
+                {/* Endereço Completo */}
+                <div className="space-y-2">
+                  <Label htmlFor="location_address">Endereço Completo do Atendimento *</Label>
+                  <Input
+                    id="location_address"
+                    value={formData.location_address}
+                    onChange={(e) => handleInputChange('location_address', e.target.value)}
+                    placeholder="Rua, número, bairro/fazenda, complemento"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Informe o endereço completo onde o serviço deve ser realizado
                   </p>
                 </div>
 

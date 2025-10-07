@@ -498,7 +498,7 @@ const CompleteProfile = () => {
                         onAddressChange={(address) => setProfileData(prev => ({ ...prev, fixed_address: address }))}
                         label="Endereço Fixo"
                         required={true}
-                        placeholder="Rua, número, bairro, cidade, estado, CEP"
+                        placeholder="Rua, número, bairro/fazenda, cidade, estado, CEP"
                       />
                     </div>
 

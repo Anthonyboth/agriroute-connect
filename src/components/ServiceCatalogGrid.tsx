@@ -38,7 +38,10 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
   // Todos os serviços são visíveis para todos - a diferença está na interação
   // Prestadores: marcam com checkbox os serviços que oferecem
   // Clientes/Motoristas: solicitam serviços via botão
-  const allServices = ALL_SERVICE_TYPES;
+  // MOTORISTAS: Apenas tipos de frete (CARGA, GUINCHO, MUDANCA)
+  const allServices = mode === 'driver' 
+    ? ALL_SERVICE_TYPES.filter(s => s.category === 'freight')
+    : ALL_SERVICE_TYPES;
   
   const categories = [
     { id: 'all', label: 'Todos os Serviços', count: allServices.length },
