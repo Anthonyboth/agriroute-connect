@@ -30,6 +30,7 @@ import { Wrench } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
+import { ServiceHistory } from '@/components/ServiceHistory';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 const ProducerDashboard = () => {
@@ -1350,86 +1351,14 @@ const ProducerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-4">
+            {/* Histórico de Fretes */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Fretes Concluídos */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-green-600">Fretes Concluídos</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {freights.filter(f => f.status === 'DELIVERED').length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">Nenhum frete concluído ainda.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {freights.filter(f => f.status === 'DELIVERED').map((freight) => (
-                        <FreightCard
-                          key={freight.id}
-                          freight={{
-                            id: freight.id,
-                            cargo_type: freight.cargo_type,
-                            weight: (freight.weight / 1000), // Convert kg to tonnes
-                            distance_km: freight.distance_km,
-                            origin_address: freight.origin_address,
-                            destination_address: freight.destination_address,
-                            price: freight.price,
-                            status: freight.status,
-                            pickup_date: freight.pickup_date,
-                            delivery_date: freight.delivery_date,
-                            urgency: freight.urgency,
-                            minimum_antt_price: freight.minimum_antt_price || 0,
-                            required_trucks: freight.required_trucks || 1,
-                            accepted_trucks: freight.accepted_trucks || 0
-                          }}
-                          showProducerActions={false}
-                          onAction={() => {}}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+...
+            </div>
 
-              {/* Fretes Cancelados */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-red-600">Fretes Cancelados</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {freights.filter(f => f.status === 'CANCELLED').length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">Nenhum frete cancelado.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {freights.filter(f => f.status === 'CANCELLED').map((freight) => (
-                        <FreightCard
-                          key={freight.id}
-                          freight={{
-                            id: freight.id,
-                            cargo_type: freight.cargo_type,
-                            weight: (freight.weight / 1000), // Convert kg to tonnes
-                            distance_km: freight.distance_km,
-                            origin_address: freight.origin_address,
-                            destination_address: freight.destination_address,
-                            price: freight.price,
-                            status: freight.status,
-                            pickup_date: freight.pickup_date,
-                            delivery_date: freight.delivery_date,
-                            urgency: freight.urgency,
-                            minimum_antt_price: freight.minimum_antt_price || 0,
-                            required_trucks: freight.required_trucks || 1,
-                            accepted_trucks: freight.accepted_trucks || 0
-                          }}
-                          showProducerActions={false}
-                          onAction={() => {}}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+            {/* Histórico de Serviços */}
+            <div className="mt-6">
+              <ServiceHistory />
             </div>
           </TabsContent>
 

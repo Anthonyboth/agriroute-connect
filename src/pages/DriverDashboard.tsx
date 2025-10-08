@@ -42,6 +42,7 @@ import heroLogistics from '@/assets/hero-logistics.jpg';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
+import { ServiceHistory } from '@/components/ServiceHistory';
 
 interface Freight {
   id: string;
@@ -1860,78 +1861,14 @@ const [showRegionModal, setShowRegionModal] = useState(false);
           </TabsContent>
 
           <TabsContent value="historico" className="mt-6">
+            {/* Histórico de Fretes */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Viagens Concluídas */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-green-600">Viagens Concluídas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {ongoingFreights.filter(f => ['DELIVERED','COMPLETED'].includes(f.status)).length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">Nenhuma viagem concluída ainda.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {ongoingFreights
-                        .filter(f => ['DELIVERED','COMPLETED'].includes(f.status))
-                        .map((freight) => (
-                          <Card key={freight.id} className="p-4">
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-start">
-                                <h4 className="font-semibold">{getCargoTypeLabel(freight.cargo_type)}</h4>
-                                <Badge className="bg-green-100 text-green-800">Concluída</Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground">
-                                {freight.origin_address} → {freight.destination_address}
-                              </p>
-                              <div className="flex justify-between text-sm">
-                                <span>Valor: R$ {freight.price?.toLocaleString('pt-BR')}</span>
-                                {typeof freight.distance_km !== 'undefined' && (
-                                  <span>{freight.distance_km} km</span>
-                                )}
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+...
+            </div>
 
-              {/* Viagens Canceladas */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-red-600">Viagens Canceladas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {myProposals.filter(p => p.freight?.status === 'CANCELLED' || p.status === 'CANCELLED').length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">Nenhuma viagem cancelada.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {myProposals.filter(p => p.freight?.status === 'CANCELLED' || p.status === 'CANCELLED').map((proposal) => (
-                        <Card key={proposal.id} className="p-4">
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-start">
-                              <h4 className="font-semibold">{proposal.freight?.cargo_type}</h4>
-                              <Badge variant="destructive">Cancelada</Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {proposal.freight?.origin_address} → {proposal.freight?.destination_address}
-                            </p>
-                            <div className="flex justify-between text-sm">
-                              <span>Valor: R$ {proposal.proposed_price?.toLocaleString()}</span>
-                              <span>{proposal.freight?.distance_km} km</span>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+            {/* Histórico de Serviços */}
+            <div className="mt-6">
+              <ServiceHistory />
             </div>
           </TabsContent>
 

@@ -51,6 +51,7 @@ import { LocationManager } from '@/components/LocationManager';
 import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
 import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
 import { ProviderCityManager } from '@/components/ProviderCityManager';
+import { ServiceHistory } from '@/components/ServiceHistory';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 interface ServiceRequest {
@@ -682,6 +683,11 @@ export const ServiceProviderDashboard: React.FC = () => {
                 <span className="hidden sm:inline">Cidades</span>
                 <span className="sm:hidden">Cid</span>
               </TabsTrigger>
+              <TabsTrigger value="history" className="text-xs">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Histórico</span>
+                <span className="sm:hidden">Hist</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -939,6 +945,10 @@ export const ServiceProviderDashboard: React.FC = () => {
                 refreshCounts();
               }}
             />
+          </TabsContent>
+
+          <TabsContent value="history" className="space-y-4">
+            <ServiceHistory />
           </TabsContent>
 
         </Tabs>
