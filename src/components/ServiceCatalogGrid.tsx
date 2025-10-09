@@ -45,9 +45,10 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
   
   const categories = [
     { id: 'all', label: 'Todos os Serviços', count: allServices.length },
-    { id: 'technical', label: CATEGORY_LABELS.technical, count: allServices.filter(s => s.category === 'technical').length },
     { id: 'agricultural', label: CATEGORY_LABELS.agricultural, count: allServices.filter(s => s.category === 'agricultural').length },
     { id: 'logistics', label: CATEGORY_LABELS.logistics, count: allServices.filter(s => s.category === 'logistics').length },
+    { id: 'technical', label: CATEGORY_LABELS.technical, count: allServices.filter(s => s.category === 'technical').length },
+    { id: 'urban', label: CATEGORY_LABELS.urban, count: allServices.filter(s => s.category === 'urban').length },
     ...(mode !== 'provider' ? [{ id: 'freight', label: CATEGORY_LABELS.freight, count: allServices.filter(s => s.category === 'freight').length }] : [])
   ];
 
@@ -60,10 +61,11 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
 
   const getServiceIcon = (category: string) => {
     switch (category) {
-      case 'technical': return '🔧';
       case 'agricultural': return '🚜';
-      case 'logistics': return '📦';
       case 'freight': return '🚛';
+      case 'logistics': return '📦';
+      case 'technical': return '🔧';
+      case 'urban': return '🏘️';
       default: return '⚙️';
     }
   };
