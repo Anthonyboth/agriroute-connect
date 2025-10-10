@@ -11,6 +11,7 @@ import { ContactModal } from '@/components/ContactModal';
 import ReportModal from '@/components/ReportModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail } from 'lucide-react';
 import heroImage from '@/assets/hero-logistics.jpg';
+import agriRouteLogo from '@/assets/agriroute-full-logo.png';
 import { supabase } from '@/integrations/supabase/client';
 import { formatTonsCompactFromKg } from '@/lib/utils';
 import Autoplay from "embla-carousel-autoplay";
@@ -27,7 +28,7 @@ const Landing = () => {
   });
   
   const partners = [
-    { id: 1, name: 'Parceiro 1', logo: null },
+    { id: 1, name: 'AgriRoute', logo: agriRouteLogo },
     { id: 2, name: 'Parceiro 2', logo: null },
     { id: 3, name: 'Parceiro 3', logo: null },
     { id: 4, name: 'Parceiro 4', logo: null },
