@@ -30,7 +30,9 @@ import {
   Hammer,
   Users2,
   Satellite,
-  Sun
+  Sun,
+  Car,
+  Bike
 } from 'lucide-react';
 
 export interface ServiceType {
@@ -57,7 +59,17 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-primary/10 text-primary border-primary/20',
     category: 'freight',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: false
+  },
+  {
+    id: 'FRETE_MOTO',
+    label: 'Frete por Moto',
+    description: 'Entregas rápidas e pequenos fretes urbanos',
+    icon: Bike,
+    color: 'bg-green-100 text-green-800 border-green-200',
+    category: 'freight',
+    clientVisible: true,
+    providerVisible: false
   },
   {
     id: 'GUINCHO',
@@ -67,7 +79,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-orange-100 text-orange-800 border-orange-200',
     category: 'freight',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: false
   },
   {
     id: 'MUDANCA',
@@ -77,7 +89,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'freight',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: false
   },
 
   // ==================== SERVIÇOS TÉCNICOS (Ordem Alfabética) ====================
@@ -92,12 +104,22 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
+    id: 'AUTO_ELETRICA',
+    label: 'Auto Elétrica',
+    description: 'Reparo e manutenção de sistemas elétricos automotivos',
+    icon: Car,
+    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
     id: 'BORRACHEIRO',
     label: 'Borracheiro',
     description: 'Troca e reparo de pneus (veículos, tratores e implementos)',
     icon: Shield,
     color: 'bg-slate-100 text-slate-800 border-slate-200',
-    category: 'technical',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -107,7 +129,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Abertura de veículos travados',
     icon: Key,
     color: 'bg-amber-100 text-amber-800 border-amber-200',
-    category: 'technical',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -122,12 +144,12 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
-    id: 'ELETRICISTA_AUTOMOTIVO',
+    id: 'ELETRICISTA',
     label: 'Eletricista',
     description: 'Instalações e manutenção elétrica (veículos, propriedades rurais e prediais)',
     icon: Zap,
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    category: 'technical',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -135,9 +157,9 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     id: 'MANUTENCAO_BALANCAS',
     label: 'Manutenção de Balanças',
     description: 'Manutenção, calibração e reparo de balanças rodoviárias e de grãos',
-    icon: Settings,
+    icon: Scale,
     color: 'bg-purple-100 text-purple-800 border-purple-200',
-    category: 'technical',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -147,7 +169,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Manutenção, atualização e calibração de sistemas GPS agrícolas',
     icon: Satellite,
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    category: 'technical',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -157,7 +179,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Reparos mecânicos em veículos leves e pesados',
     icon: Wrench,
     color: 'bg-gray-100 text-gray-800 border-gray-200',
-    category: 'technical',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -249,7 +271,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Busca e entrega de peças e componentes para máquinas agrícolas',
     icon: Box,
     color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    category: 'agricultural',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -269,7 +291,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Instalação e manutenção de sistemas de energia solar fotovoltaica',
     icon: Sun,
     color: 'bg-sky-100 text-sky-800 border-sky-200',
-    category: 'agricultural',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -359,7 +381,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Serviços de terraplanagem e movimentação de terra',
     icon: Mountain,
     color: 'bg-orange-100 text-orange-800 border-orange-200',
-    category: 'agricultural',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -379,7 +401,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Serviços de tornearia, solda e reparos mecânicos',
     icon: Hammer,
     color: 'bg-zinc-100 text-zinc-800 border-zinc-200',
-    category: 'agricultural',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -401,7 +423,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Entrega de combustível',
     icon: Fuel,
     color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'logistics',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -411,13 +433,10 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Elevação e movimentação de cargas pesadas',
     icon: Package,
     color: 'bg-orange-100 text-orange-800 border-orange-200',
-    category: 'logistics',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
-
-  // ==================== SERVIÇOS URBANOS (Ordem Alfabética) ====================
-  // Categoria esvaziada conforme solicitação - serviços urbanos removidos
 ];
 
 // Helpers para filtrar tipos por categoria ou visibilidade
@@ -435,8 +454,8 @@ export const URBAN_SERVICE_TYPES = ALL_SERVICE_TYPES.filter(s => s.category === 
 
 export const CATEGORY_LABELS = {
   freight: 'Fretes e Transporte',
-  technical: 'Serviços Técnicos Gerais',
-  agricultural: 'Serviços Agrícolas e Rurais',
-  logistics: 'Logística e Armazenagem',
+  technical: 'Serviços Técnicos',
+  agricultural: 'Serviços Agrícolas',
+  logistics: 'Logística',
   urban: 'Serviços Urbanos'
 };

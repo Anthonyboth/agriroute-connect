@@ -175,7 +175,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         const allTypes = profileData.service_types as unknown as string[];
         console.log('🔧 PRESTADOR - Tipos de serviço brutos:', allTypes);
         // Filtrar apenas serviços que não são de transporte/freight
-        providerServiceTypes = allTypes.filter(type => !['CARGA', 'GUINCHO', 'MUDANCA'].includes(type));
+        providerServiceTypes = allTypes.filter(type => !['CARGA', 'GUINCHO', 'MUDANCA', 'FRETE_MOTO'].includes(type));
         console.log('🔧 PRESTADOR - Tipos filtrados (sem transporte):', providerServiceTypes);
       } else {
         // Fallback legado: tabela service_providers com único service_type
@@ -187,7 +187,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         if (!providerDataError && providerData?.service_type) {
           console.log('🔧 PRESTADOR - Service type legado:', providerData.service_type);
           // Filtrar apenas se não for serviço de transporte
-          if (!['CARGA', 'GUINCHO', 'MUDANCA'].includes(providerData.service_type)) {
+          if (!['CARGA', 'GUINCHO', 'MUDANCA', 'FRETE_MOTO'].includes(providerData.service_type)) {
             providerServiceTypes = [providerData.service_type];
             console.log('🔧 PRESTADOR - Service type aceito:', providerServiceTypes);
           } else {
@@ -224,7 +224,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           .is('provider_id', null)
           .eq('status', 'OPEN')
           // Sempre excluir serviços de transporte do painel de prestadores
-          .not('service_type', 'in', '(CARGA,GUINCHO,MUDANCA)');
+          .not('service_type', 'in', '(CARGA,GUINCHO,MUDANCA,FRETE_MOTO)');
         if (hasTypeFilter && providerServiceTypes && providerServiceTypes.length > 0) {
           directQuery = directQuery.in('service_type', providerServiceTypes);
         }

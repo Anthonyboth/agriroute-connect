@@ -31,6 +31,7 @@ export const CARGO_TYPES: CargoType[] = [
   { value: 'maquinas_agricolas', label: 'Máquinas Agrícolas', category: 'outros' },
   { value: 'equipamentos', label: 'Equipamentos', category: 'outros' },
   { value: 'combustivel', label: 'Combustível', category: 'outros' },
+  { value: 'frete_moto', label: 'Frete por Moto', category: 'outros' },
   { value: 'outros', label: 'Outros', category: 'outros' }
 ];
 
