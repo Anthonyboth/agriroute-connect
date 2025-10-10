@@ -201,9 +201,9 @@ export const FunctionalityTester: React.FC = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {tests.map((test, index) => (
+          {tests.map((test, testIndex) => (
             <div 
-              key={index}
+              key={`test-${testIndex}-${test.name}`}
               className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -221,7 +221,7 @@ export const FunctionalityTester: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => runSingleTest(index)}
+                  onClick={() => runSingleTest(testIndex)}
                   disabled={test.status === 'running' || isRunning}
                 >
                   Testar

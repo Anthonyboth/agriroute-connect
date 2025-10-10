@@ -309,9 +309,9 @@ export const DriverAvailabilityAreasManager: React.FC<DriverAvailabilityAreasMan
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {availabilityEntries.map((entry, index) => (
+              {availabilityEntries.map((entry) => (
                 <div
-                  key={index}
+                  key={`${entry.date.toISOString()}-${entry.city}-${entry.state}`}
                   className="p-3 border rounded-lg bg-muted/30 flex items-center justify-between"
                 >
                   <div>

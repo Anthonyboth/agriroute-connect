@@ -146,10 +146,10 @@ const Careers = () => {
         <section className="mb-16">
           <h2 className="text-3xl font-bold text-center mb-12">Nossos Valores</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {values.map((value, index) => {
+            {values.map((value) => {
               const Icon = value.icon;
               return (
-                <Card key={index} className="text-center hover:shadow-glow transition-shadow">
+                <Card key={value.title} className="text-center hover:shadow-glow transition-shadow">
                   <CardContent className="p-6">
                     <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                       <Icon className="h-8 w-8 text-primary" />
@@ -196,8 +196,8 @@ const Careers = () => {
                       <p className="text-muted-foreground mb-4">{job.description}</p>
                       
                       <div className="flex flex-wrap gap-2">
-                        {job.requirements.slice(0, 3).map((req, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
+                        {job.requirements.slice(0, 3).map((req) => (
+                          <Badge key={req} variant="outline" className="text-xs">
                             {req}
                           </Badge>
                         ))}

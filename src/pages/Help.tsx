@@ -232,8 +232,8 @@ const Help = () => {
                       </CardHeader>
                       <CardContent>
                         <Accordion type="single" collapsible>
-                          {category.questions.map((item, index) => (
-                            <AccordionItem key={index} value={`${category.id}-${index}`}>
+                          {category.questions.map((item, itemIndex) => (
+                            <AccordionItem key={`${category.id}-${itemIndex}`} value={`${category.id}-${itemIndex}`}>
                               <AccordionTrigger>{item.question}</AccordionTrigger>
                               <AccordionContent>{item.answer}</AccordionContent>
                             </AccordionItem>
@@ -264,8 +264,8 @@ const Help = () => {
                     </CardHeader>
                     <CardContent>
                       <Accordion type="single" collapsible>
-                        {category.questions.map((item, index) => (
-                          <AccordionItem key={index} value={`${category.id}-${index}`}>
+                        {category.questions.map((item, itemIndex) => (
+                          <AccordionItem key={`${category.id}-${itemIndex}`} value={`${category.id}-${itemIndex}`}>
                             <AccordionTrigger className="text-left">{item.question}</AccordionTrigger>
                             <AccordionContent>{item.answer}</AccordionContent>
                           </AccordionItem>
@@ -286,8 +286,8 @@ const Help = () => {
             </div>
             
             <div className="grid md:grid-cols-2 gap-6">
-              {quickGuides.map((guide, index) => (
-                <Card key={index} className="hover:shadow-glow transition-shadow">
+              {quickGuides.map((guide) => (
+                <Card key={guide.title} className="hover:shadow-glow transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -318,8 +318,8 @@ const Help = () => {
             </div>
             
             <div className="grid md:grid-cols-3 gap-6 mb-12">
-              {contactOptions.map((option, index) => (
-                <Card key={index} className="hover:shadow-glow transition-shadow">
+              {contactOptions.map((option) => (
+                <Card key={option.title} className="hover:shadow-glow transition-shadow">
                   <CardContent className="p-6 text-center">
                     <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                       <option.icon className="h-8 w-8 text-primary" />

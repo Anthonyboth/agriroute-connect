@@ -216,9 +216,9 @@ export const DriverCityManager: React.FC<DriverCityManagerProps> = ({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {serviceCities.map((city, index) => (
+                {serviceCities.map((city) => (
                   <div
-                    key={index}
+                    key={city}
                     className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
                   >
                     <div className="flex items-center gap-2">

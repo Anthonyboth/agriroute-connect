@@ -119,8 +119,8 @@ const Privacy = () => {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {sections.map((section, index) => (
-              <Card key={index} className="shadow-card hover:shadow-glow transition-smooth">
+            {sections.map((section) => (
+              <Card key={section.title} className="shadow-card hover:shadow-glow transition-smooth">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-3">
                     <div className="p-2 rounded-full bg-primary/10">
@@ -159,8 +159,8 @@ const Privacy = () => {
           <Card className="shadow-card max-w-4xl mx-auto">
             <CardContent className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {rights.map((right, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                {rights.map((right) => (
+                  <div key={right} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
                     <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
                     <span className="text-muted-foreground">{right}</span>
                   </div>

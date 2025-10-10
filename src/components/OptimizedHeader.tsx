@@ -163,9 +163,9 @@ const OptimizedHeader = memo<OptimizedHeaderProps>(({
                     </div>
                   </div>
                   <DropdownMenuSeparator />
-                  {menuItems.map((item, index) => (
+                  {menuItems.map((item) => (
                     <DropdownMenuItem 
-                      key={index} 
+                      key={item.label}
                       onClick={item.action}
                       className="py-3 text-base cursor-pointer"
                     >
@@ -233,9 +233,9 @@ const OptimizedHeader = memo<OptimizedHeaderProps>(({
 
                     {/* Menu Items */}
                     <div className="spacing-accessible">
-                      {menuItems.map((item, index) => (
+                      {menuItems.map((item) => (
                         <Button
-                          key={index}
+                          key={item.label}
                           variant="ghost"
                           className="justify-start btn-accessible text-base w-full"
                           onClick={item.action}

@@ -131,8 +131,8 @@ const Press = () => {
           </div>
 
           <div className="max-w-4xl mx-auto space-y-6">
-            {pressReleases.map((release, index) => (
-              <Card key={index} className="shadow-card hover:shadow-glow transition-smooth">
+            {pressReleases.map((release) => (
+              <Card key={release.title} className="shadow-card hover:shadow-glow transition-smooth">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
@@ -183,8 +183,8 @@ const Press = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {mediaKit.map((item, index) => (
-              <Card key={index} className="shadow-card hover:shadow-glow transition-smooth">
+            {mediaKit.map((item) => (
+              <Card key={item.title} className="shadow-card hover:shadow-glow transition-smooth">
                 <CardHeader>
                   <CardTitle className="text-lg">{item.title}</CardTitle>
                 </CardHeader>
@@ -220,8 +220,8 @@ const Press = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {awards.map((award, index) => (
-              <Card key={index} className="shadow-card text-center">
+            {awards.map((award) => (
+              <Card key={award.title} className="shadow-card text-center">
                 <CardContent className="p-6">
                   <Trophy className="h-12 w-12 text-warning mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-foreground mb-2">

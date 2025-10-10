@@ -274,8 +274,8 @@ const Landing = () => {
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <Card key={index} className="text-center shadow-card">
+            {stats.map((stat) => (
+              <Card key={stat.label} className="text-center shadow-card">
                 <CardContent className="p-6">
                   <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
                     {stat.value}
@@ -301,8 +301,8 @@ const Landing = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="shadow-card hover:shadow-glow transition-smooth group">
+            {features.map((feature) => (
+              <Card key={feature.title} className="shadow-card hover:shadow-glow transition-smooth group">
                 <CardContent className="p-8 text-center">
                   <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full gradient-primary">
                     <feature.icon className="h-8 w-8 text-primary-foreground" />

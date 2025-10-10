@@ -143,8 +143,8 @@ const CategoryBasedSubscriptionPlans: React.FC = () => {
             
             <CardContent className="space-y-4">
               <ul className="space-y-2">
-                {getPlanFeatures(plan.planType, userCategory || 'prestador').map((feature, index) => (
-                  <li key={index} className="flex items-center gap-2 text-sm">
+              {getPlanFeatures(plan.planType, userCategory || 'prestador').map((feature) => (
+                <li key={feature} className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-primary flex-shrink-0" />
                     <span>{feature}</span>
                   </li>

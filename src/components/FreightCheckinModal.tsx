@@ -292,7 +292,7 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
               {photos.length > 0 && (
                 <div className="grid grid-cols-2 gap-2">
                   {photos.map((photo, index) => (
-                    <div key={index} className="relative">
+                    <div key={`checkin-photo-${index}-${photo.name}`} className="relative">
                       <img
                         src={URL.createObjectURL(photo)}
                         alt={`Foto ${index + 1}`}

@@ -65,10 +65,10 @@ const ServiceProviderRegistration = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {steps.map((step, index) => {
+                  {steps.map((step) => {
                     const IconComponent = step.icon;
                     return (
-                      <div key={index} className="text-center space-y-3">
+                      <div key={step.title} className="text-center space-y-3">
                         <div className="flex justify-center">
                           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                             <IconComponent className="w-8 h-8 text-primary" />

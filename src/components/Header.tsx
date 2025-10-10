@@ -128,8 +128,8 @@ const Header: React.FC<HeaderProps> = ({
                     </div>
                   </div>
                   <DropdownMenuSeparator />
-                  {menuItems.map((item, index) => (
-                    <DropdownMenuItem key={index} onClick={item.action}>
+                  {menuItems.map((item) => (
+                    <DropdownMenuItem key={item.label} onClick={item.action}>
                       <item.icon className="mr-2 h-4 w-4" />
                       {item.label}
                     </DropdownMenuItem>
@@ -185,9 +185,9 @@ const Header: React.FC<HeaderProps> = ({
                     </Button>
 
                     {/* Menu Items */}
-                    {menuItems.map((item, index) => (
+                    {menuItems.map((item) => (
                       <Button
-                        key={index}
+                        key={item.label}
                         variant="ghost"
                         className="justify-start"
                         size="sm"

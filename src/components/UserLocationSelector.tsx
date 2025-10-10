@@ -237,9 +237,9 @@ export const UserLocationSelector: React.FC<UserLocationSelectorProps> = ({ onLo
           </CardHeader>
           <CardContent>
             <div className="max-h-32 overflow-y-auto space-y-1">
-              {cities.slice(0, 5).map((city, index) => (
+              {cities.slice(0, 5).map((city) => (
                 <Button
-                  key={index}
+                  key={`${city.name}-${city.state}`}
                   variant="ghost"
                   className="w-full justify-start text-left p-2 h-auto"
                   onClick={() => selectCity(city)}

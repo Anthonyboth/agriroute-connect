@@ -221,8 +221,8 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {info.features.map((feature, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
+                    {info.features.map((feature) => (
+                      <Badge key={feature} variant="secondary" className="text-xs">
                         {feature}
                       </Badge>
                     ))}

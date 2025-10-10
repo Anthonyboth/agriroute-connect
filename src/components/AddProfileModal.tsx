@@ -145,8 +145,8 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
                   <div className="flex-1">
                     <h4 className="font-medium">Benefícios</h4>
                     <ul className="text-sm text-muted-foreground mt-1 space-y-1">
-                      {targetRoleInfo.benefits.map((benefit, index) => (
-                        <li key={index} className="flex items-center gap-1">
+                    {targetRoleInfo.benefits.map((benefit) => (
+                      <li key={benefit} className="flex items-center gap-1">
                           <span className="w-1 h-1 bg-current rounded-full" />
                           {benefit}
                         </li>

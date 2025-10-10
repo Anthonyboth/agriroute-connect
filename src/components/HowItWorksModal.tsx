@@ -114,22 +114,22 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
 
             {/* Fluxo principal - primeira linha (passos 1-4) */}
             <div className="flex flex-wrap justify-center items-center gap-6 mb-8">
-              {steps.slice(0, 4).map((step, index) => (
-                <React.Fragment key={index}>
+              {steps.slice(0, 4).map((step, stepIndex) => (
+                <React.Fragment key={`step-${stepIndex}-${step.title}`}>
                   <div className="flex flex-col items-center min-w-[140px] text-center group animate-fade-in" 
-                       style={{ animationDelay: `${index * 100}ms` }}>
+                       style={{ animationDelay: `${stepIndex * 100}ms` }}>
                     <div className="relative">
                       <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary-light text-primary-foreground flex items-center justify-center mb-3 shadow-glow group-hover:scale-110 transition-transform duration-300">
                         <step.icon className="h-8 w-8" />
                       </div>
                       <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-bold">
-                        {index + 1}
+                        {stepIndex + 1}
                       </div>
                     </div>
                     <h4 className="text-sm font-semibold text-foreground mb-1">{step.title.replace(/^\d+\.\s/, '')}</h4>
                     <p className="text-xs text-muted-foreground max-w-[120px]">{step.description}</p>
                   </div>
-                  {index < 3 && (
+                  {stepIndex < 3 && (
                     <div className="text-primary/60 text-3xl animate-pulse hidden sm:block">→</div>
                   )}
                 </React.Fragment>
@@ -143,22 +143,22 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
 
             {/* Fluxo secundário - segunda linha (passos 5-6) */}
             <div className="flex justify-center items-center gap-6">
-              {steps.slice(4).map((step, index) => (
-                <React.Fragment key={index + 4}>
+              {steps.slice(4).map((step, stepIndex) => (
+                <React.Fragment key={`step-${stepIndex + 4}-${step.title}`}>
                   <div className="flex flex-col items-center min-w-[140px] text-center group animate-fade-in" 
-                       style={{ animationDelay: `${(index + 4) * 100}ms` }}>
+                       style={{ animationDelay: `${(stepIndex + 4) * 100}ms` }}>
                     <div className="relative">
                       <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent to-accent text-accent-foreground flex items-center justify-center mb-3 shadow-glow group-hover:scale-110 transition-transform duration-300">
                         <step.icon className="h-8 w-8" />
                       </div>
                       <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
-                        {index + 5}
+                        {stepIndex + 5}
                       </div>
                     </div>
                     <h4 className="text-sm font-semibold text-foreground mb-1">{step.title.replace(/^\d+\.\s/, '')}</h4>
                     <p className="text-xs text-muted-foreground max-w-[120px]">{step.description}</p>
                   </div>
-                  {index < steps.slice(4).length - 1 && (
+                  {stepIndex < steps.slice(4).length - 1 && (
                     <div className="text-accent/60 text-3xl animate-pulse hidden sm:block">→</div>
                   )}
                 </React.Fragment>
@@ -173,8 +173,8 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
 
         {/* Steps Cards Detalhados */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {steps.map((step, index) => (
-            <Card key={index} className="group hover:shadow-glow transition-all duration-300 hover:scale-[1.02] border-muted animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+          {steps.map((step, stepIndex) => (
+            <Card key={`card-${stepIndex}-${step.title}`} className="group hover:shadow-glow transition-all duration-300 hover:scale-[1.02] border-muted animate-fade-in" style={{ animationDelay: `${stepIndex * 50}ms` }}>
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-4 text-lg">
                   <div className="relative">
@@ -182,7 +182,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
                       <step.icon className="h-6 w-6 text-primary" />
                     </div>
                     <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xs font-bold">
-                      {index + 1}
+                      {stepIndex + 1}
                     </div>
                   </div>
                   <span className="font-semibold">{step.title.replace(/^\d+\.\s/, '')}</span>

@@ -72,7 +72,7 @@ export const DynamicStats: React.FC = () => {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
-          <Card key={i}>
+          <Card key={`loading-skeleton-${i}`}>
             <CardContent className="p-6">
               <div className="animate-pulse space-y-3">
                 <div className="h-4 bg-muted rounded w-1/2"></div>
@@ -114,10 +114,10 @@ export const DynamicStats: React.FC = () => {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {statsData.map((stat, index) => {
+      {statsData.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card key={index}>
+          <Card key={stat.title}>
             <CardContent className="p-6">
               <div className="flex items-center space-x-2">
                 <Icon className={`h-5 w-5 ${stat.color}`} />

@@ -332,8 +332,8 @@ export const AdminServiceProviderValidation: React.FC = () => {
                     <div>
                       <Label>Especialidades</Label>
                       <div className="flex flex-wrap gap-2 mt-1">
-                        {selectedProvider.specialties?.map((specialty, index) => (
-                          <Badge key={index} variant="secondary">{specialty}</Badge>
+                        {selectedProvider.specialties?.map((specialty) => (
+                          <Badge key={specialty} variant="secondary">{specialty}</Badge>
                         ))}
                       </div>
                     </div>
@@ -341,8 +341,8 @@ export const AdminServiceProviderValidation: React.FC = () => {
                     <div>
                       <Label>Certificações</Label>
                       <div className="flex flex-wrap gap-2 mt-1">
-                        {selectedProvider.certifications?.map((cert, index) => (
-                          <Badge key={index} variant="outline">{cert}</Badge>
+                        {selectedProvider.certifications?.map((cert) => (
+                          <Badge key={cert} variant="outline">{cert}</Badge>
                         ))}
                       </div>
                     </div>
@@ -350,8 +350,8 @@ export const AdminServiceProviderValidation: React.FC = () => {
                     <div>
                       <Label>Cidades de Atendimento</Label>
                       <div className="flex flex-wrap gap-2 mt-1">
-                        {selectedProvider.service_area_cities?.map((city, index) => (
-                          <Badge key={index} variant="secondary">{city}</Badge>
+                        {selectedProvider.service_area_cities?.map((city) => (
+                          <Badge key={city} variant="secondary">{city}</Badge>
                         ))}
                       </div>
                     </div>
@@ -378,8 +378,8 @@ export const AdminServiceProviderValidation: React.FC = () => {
                         { label: 'CPF', url: selectedProvider.profiles.document_cpf_url },
                         { label: 'CNH', url: selectedProvider.profiles.cnh_url },
                         { label: 'Comprovante Endereço', url: selectedProvider.profiles.address_proof_url },
-                      ].map((doc, index) => (
-                        <div key={index} className="border rounded-lg p-4">
+                      ].map((doc) => (
+                        <div key={doc.label} className="border rounded-lg p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
                               <FileText className="h-4 w-4" />

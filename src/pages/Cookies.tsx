@@ -135,8 +135,8 @@ const Cookies = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {cookieTypes.map((type, index) => (
-              <Card key={index} className="shadow-card hover:shadow-glow transition-smooth">
+            {cookieTypes.map((type) => (
+              <Card key={type.title} className="shadow-card hover:shadow-glow transition-smooth">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-3">
                     <div className={`p-2 rounded-full ${type.essential ? 'bg-primary/10' : 'bg-accent/10'}`}>
@@ -187,8 +187,8 @@ const Cookies = () => {
           <Card className="shadow-card max-w-4xl mx-auto">
             <CardContent className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {thirdPartyServices.map((service, index) => (
-                  <div key={index} className="p-4 rounded-lg bg-muted/50 border">
+                {thirdPartyServices.map((service) => (
+                  <div key={service.name} className="p-4 rounded-lg bg-muted/50 border">
                     <h3 className="font-semibold text-foreground mb-2">
                       {service.name}
                     </h3>

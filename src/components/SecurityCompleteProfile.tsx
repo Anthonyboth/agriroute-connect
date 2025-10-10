@@ -206,8 +206,8 @@ export const SecurityCompleteProfile: React.FC = () => {
                 <div>
                   <p className="font-medium text-yellow-800">Campos Pendentes:</p>
                   <ul className="text-yellow-700 mt-1">
-                    {missingFields.map((field, index) => (
-                      <li key={index}>• {field}</li>
+                    {missingFields.map((field) => (
+                      <li key={field}>• {field}</li>
                     ))}
                   </ul>
                 </div>

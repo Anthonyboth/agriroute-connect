@@ -75,7 +75,7 @@ const PlatformStats: React.FC = () => {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
         {[...Array(4)].map((_, i) => (
-          <Card key={i}>
+          <Card key={`loading-skeleton-${i}`}>
             <CardContent className="p-6">
               <div className="animate-pulse space-y-3">
                 <div className="h-4 bg-muted rounded w-1/2"></div>
@@ -97,8 +97,8 @@ const PlatformStats: React.FC = () => {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-      {items.map((stat, index) => (
-        <Card key={index} className="text-center shadow-card">
+      {items.map((stat) => (
+        <Card key={stat.label} className="text-center shadow-card">
           <CardContent className="p-6">
             <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
               {stat.value}

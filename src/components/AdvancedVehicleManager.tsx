@@ -276,7 +276,7 @@ export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[1, 2, 3, 4].map((index) => (
               <DocumentUpload
-                key={index}
+                key={`vehicle-photo-${index}`}
                 onUploadComplete={(url) => setVehiclePhotos([...vehiclePhotos, url])}
                 label={`Foto ${index}${index <= 3 ? ' (obrigatória)' : ' (opcional)'}`}
                 fileType={`vehicle_photo_${index}`}

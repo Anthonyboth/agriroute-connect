@@ -85,8 +85,8 @@ const About = () => {
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {values.map((value, index) => (
-              <Card key={index} className="shadow-card hover:shadow-glow transition-smooth">
+            {values.map((value) => (
+              <Card key={value.title} className="shadow-card hover:shadow-glow transition-smooth">
                 <CardContent className="p-8 text-center">
                   <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full gradient-primary">
                     <value.icon className="h-8 w-8 text-primary-foreground" />
@@ -132,8 +132,8 @@ const About = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="shadow-card hover:shadow-glow transition-smooth group">
+            {features.map((feature) => (
+              <Card key={feature.title} className="shadow-card hover:shadow-glow transition-smooth group">
                 <CardContent className="p-8 text-center">
                   <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full gradient-primary">
                     <feature.icon className="h-8 w-8 text-primary-foreground" />

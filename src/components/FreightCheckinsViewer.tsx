@@ -291,7 +291,7 @@ const FreightCheckinsViewer: React.FC<FreightCheckinsViewerProps> = ({
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {selectedPhotos.map((photo, index) => (
-              <div key={index} className="space-y-2">
+              <div key={`viewer-photo-${index}-${photo}`} className="space-y-2">
                 <img
                   src={photo}
                   alt={`Foto ${index + 1}`}
