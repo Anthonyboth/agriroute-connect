@@ -398,7 +398,7 @@ const Landing = () => {
                     className="pl-2 md:pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4"
                   >
                     <div className="p-4">
-                      <Card className="border-2 border-primary/20 bg-gradient-to-br from-background to-muted/20 hover:border-primary hover:shadow-xl hover:scale-105 transition-all duration-300">
+                      <Card className="border-0 bg-transparent hover:shadow-xl hover:scale-105 transition-all duration-300">
                         <CardContent className="flex aspect-square items-center justify-center p-8">
                           <img 
                             src={partner.logo} 
