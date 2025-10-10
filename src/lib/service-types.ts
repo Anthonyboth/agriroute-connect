@@ -91,6 +91,16 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     clientVisible: true,
     providerVisible: false
   },
+  {
+    id: 'OUTROS_FRETE',
+    label: 'Outros',
+    description: 'Outros serviços de transporte e frete',
+    icon: MoreHorizontal,
+    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
+    category: 'freight',
+    clientVisible: true,
+    providerVisible: false
+  },
 
   // ==================== SERVIÇOS TÉCNICOS (Ordem Alfabética) ====================
   {
@@ -184,21 +194,21 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
-    id: 'OUTROS',
-    label: 'Outros',
-    description: 'Outros tipos de serviços especializados',
-    icon: MoreHorizontal,
-    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
-    category: 'technical',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
     id: 'SERVICOS_VETERINARIOS',
     label: 'Serviços Veterinários',
     description: 'Atendimento veterinário e cuidados com o rebanho',
     icon: Stethoscope,
     color: 'bg-green-100 text-green-800 border-green-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'OUTROS',
+    label: 'Outros',
+    description: 'Outros tipos de serviços técnicos especializados',
+    icon: MoreHorizontal,
+    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
     category: 'technical',
     clientVisible: true,
     providerVisible: true
@@ -396,6 +406,16 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
+    id: 'OUTROS_AGRICOLA',
+    label: 'Outros',
+    description: 'Outros serviços agrícolas especializados',
+    icon: MoreHorizontal,
+    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
+    category: 'agricultural',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
     id: 'TORNEARIA_SOLDA_REPAROS',
     label: 'Tornearia, Solda e Reparos',
     description: 'Serviços de tornearia, solda e reparos mecânicos',
@@ -418,6 +438,16 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
+    id: 'OUTROS_LOGISTICA',
+    label: 'Outros',
+    description: 'Outros serviços de logística',
+    icon: MoreHorizontal,
+    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
+    category: 'logistics',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
     id: 'COMBUSTIVEL',
     label: 'Combustível',
     description: 'Entrega de combustível',
@@ -433,6 +463,16 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Elevação e movimentação de cargas pesadas',
     icon: Package,
     color: 'bg-orange-100 text-orange-800 border-orange-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'OUTROS_URBANO',
+    label: 'Outros',
+    description: 'Outros serviços urbanos especializados',
+    icon: MoreHorizontal,
+    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
     category: 'urban',
     clientVisible: true,
     providerVisible: true
