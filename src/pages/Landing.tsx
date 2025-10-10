@@ -38,6 +38,10 @@ const Landing = () => {
     { id: 9, name: 'Parceiro 9', logo: null },
     { id: 10, name: 'Parceiro 10', logo: null },
   ];
+  
+  // Filtrar apenas parceiros com logo
+  const partnersWithLogo = partners.filter(partner => partner.logo !== null);
+  
   const [mudancaModal, setMudancaModal] = useState(false);
   const [guestServiceModal, setGuestServiceModal] = useState<{ isOpen: boolean; serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' }>({
     isOpen: false,
@@ -360,62 +364,56 @@ const Landing = () => {
       </section>
 
       {/* Partners Section */}
-      <section className="py-16 bg-muted/10 border-y">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Nossos Parceiros
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Empresas que confiam e apoiam nossa plataforma
-            </p>
+      {partnersWithLogo.length > 0 && (
+        <section className="py-16 bg-muted/10 border-y">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+                Nossos Parceiros
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Empresas que confiam e apoiam nossa plataforma
+              </p>
+            </div>
+            
+            <Carousel
+              opts={{
+                align: "start",
+                loop: partnersWithLogo.length > 4,
+              }}
+              plugins={partnersWithLogo.length > 4 ? [
+                Autoplay({
+                  delay: 3000,
+                  stopOnInteraction: false,
+                  stopOnMouseEnter: true,
+                })
+              ] : []}
+              className="w-full max-w-6xl mx-auto"
+            >
+              <CarouselContent className="-ml-2 md:-ml-4">
+                {partnersWithLogo.map((partner) => (
+                  <CarouselItem 
+                    key={partner.id}
+                    className="pl-2 md:pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4"
+                  >
+                    <div className="p-4">
+                      <Card className="border-2 border-primary/20 bg-gradient-to-br from-background to-muted/20 hover:border-primary hover:shadow-xl hover:scale-105 transition-all duration-300">
+                        <CardContent className="flex aspect-square items-center justify-center p-8">
+                          <img 
+                            src={partner.logo} 
+                            alt={partner.name}
+                            className="max-w-full max-h-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                          />
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
           </div>
-          
-          <Carousel
-            opts={{
-              align: "start",
-              loop: true,
-            }}
-            plugins={[
-              Autoplay({
-                delay: 3000,
-                stopOnInteraction: false,
-                stopOnMouseEnter: true,
-              })
-            ]}
-            className="w-full max-w-6xl mx-auto"
-          >
-            <CarouselContent className="-ml-2 md:-ml-4">
-              {partners.map((partner) => (
-                <CarouselItem 
-                  key={partner.id}
-                  className="pl-2 md:pl-4 basis-1/2 md:basis-1/3 lg:basis-1/5"
-                >
-                  <div className="p-4">
-                    <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg">
-                      <CardContent className="flex aspect-square items-center justify-center p-6">
-                        <div className="text-center w-full h-full flex items-center justify-center">
-                          {partner.logo ? (
-                            <img 
-                              src={partner.logo} 
-                              alt={partner.name}
-                              className="max-w-full max-h-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                            />
-                          ) : (
-                            <div className="text-2xl md:text-3xl font-bold text-muted-foreground/30">
-                              {partner.name}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-          </Carousel>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="bg-card border-t py-12">
