@@ -18,7 +18,7 @@ import { FreightTrackingPanel } from '@/components/FreightTrackingPanel';
 import { FreightDetails } from '@/components/FreightDetails';
 import { DeliveryConfirmationModal } from '@/components/DeliveryConfirmationModal';
 
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -1611,8 +1611,11 @@ const ProducerDashboard = () => {
         variant="destructive"
       />
 
-      <Dialog open={!!selectedFreightDetails} onOpenChange={() => {}}>
+      <Dialog open={!!selectedFreightDetails} onOpenChange={(open) => !open && setSelectedFreightDetails(null)}>
         <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto" hideCloseButton>
+          <DialogDescription className="sr-only">
+            Detalhes completos do frete
+          </DialogDescription>
           {selectedFreightDetails && (
             <FreightDetails
               freightId={selectedFreightDetails.id}

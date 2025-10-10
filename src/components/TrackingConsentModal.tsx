@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, MapPin, Shield } from "lucide-react";
@@ -58,13 +58,24 @@ export function TrackingConsentModal({ isOpen, onConsent, freightId }: TrackingC
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        console.log('Tentativa de fechar modal de consentimento bloqueada');
+      }
+    }}>
+      <DialogContent 
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Shield className="h-6 w-6 text-primary" />
             Termo de Rastreamento e Segurança
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Leia e aceite os termos de rastreamento GPS para continuar
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
