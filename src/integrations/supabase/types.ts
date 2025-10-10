@@ -3888,6 +3888,7 @@ export type Database = {
           distance_m: number
           driver_area_id: string
           driver_id: string
+          match_method: string
           radius_km: number
         }[]
       }
@@ -3898,6 +3899,7 @@ export type Database = {
           distance_to_route_m: number
           driver_area_id: string
           driver_id: string
+          match_method: string
           radius_km: number
         }[]
       }
