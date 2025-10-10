@@ -11,8 +11,8 @@ import { toast } from 'sonner';
 import { Plus, Loader2 } from 'lucide-react';
 import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
 import { LocationFillButton } from './LocationFillButton';
-import { AddressButton } from './AddressButton';
 import { CitySelector } from './CitySelector';
+import { StructuredAddressInput } from './StructuredAddressInput';
 import { freightSchema, validateInput } from '@/lib/validations';
 
 interface CreateFreightModalProps {
@@ -333,57 +333,53 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
             </div>
           </div>
 
-          <AddressButton
-            label="Endereço de Origem"
-            value={formData.origin_address}
-            onAddressChange={(address, lat, lng) => {
-              handleInputChange('origin_address', address);
-              if (lat && lng) {
-                handleInputChange('origin_lat', lat.toString());
-                handleInputChange('origin_lng', lng.toString());
-              }
-            }}
-            required
-          />
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <CitySelector
+    value={{ city: formData.origin_city, state: formData.origin_state }}
+    onChange={(city) => {
+      handleInputChange('origin_city', city.city);
+      handleInputChange('origin_state', city.state);
+      if (city.lat && city.lng) {
+        handleInputChange('origin_lat', String(city.lat));
+        handleInputChange('origin_lng', String(city.lng));
+      }
+    }}
+    label="Cidade de Origem"
+    placeholder="Digite a cidade de origem..."
+    required
+  />
+</div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <CitySelector
-              value={{ city: formData.origin_city, state: formData.origin_state }}
-              onChange={(city) => {
-                handleInputChange('origin_city', city.city);
-                handleInputChange('origin_state', city.state);
-              }}
-              label="Cidade de Origem"
-              placeholder="Digite a cidade de origem..."
-              required
-            />
-          </div>
+<StructuredAddressInput
+  label="Endereço de Origem"
+  value={formData.origin_address}
+  onChange={(address) => handleInputChange('origin_address', address)}
+  required
+/>
 
-          <AddressButton
-            label="Endereço de Destino"
-            value={formData.destination_address}
-            onAddressChange={(address, lat, lng) => {
-              handleInputChange('destination_address', address);
-              if (lat && lng) {
-                handleInputChange('destination_lat', lat.toString());
-                handleInputChange('destination_lng', lng.toString());
-              }
-            }}
-            required
-          />
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <CitySelector
+    value={{ city: formData.destination_city, state: formData.destination_state }}
+    onChange={(city) => {
+      handleInputChange('destination_city', city.city);
+      handleInputChange('destination_state', city.state);
+      if (city.lat && city.lng) {
+        handleInputChange('destination_lat', String(city.lat));
+        handleInputChange('destination_lng', String(city.lng));
+      }
+    }}
+    label="Cidade de Destino"
+    placeholder="Digite a cidade de destino..."
+    required
+  />
+</div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <CitySelector
-              value={{ city: formData.destination_city, state: formData.destination_state }}
-              onChange={(city) => {
-                handleInputChange('destination_city', city.city);
-                handleInputChange('destination_state', city.state);
-              }}
-              label="Cidade de Destino"
-              placeholder="Digite a cidade de destino..."
-              required
-            />
-          </div>
+<StructuredAddressInput
+  label="Endereço de Destino"
+  value={formData.destination_address}
+  onChange={(address) => handleInputChange('destination_address', address)}
+  required
+/>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">

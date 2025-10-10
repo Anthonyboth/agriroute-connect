@@ -11,6 +11,8 @@ interface City {
   name: string;
   state: string;
   display_name: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface CitySelectorProps {
@@ -18,7 +20,7 @@ interface CitySelectorProps {
     city: string;
     state: string;
   };
-  onChange: (city: { city: string; state: string }) => void;
+  onChange: (city: { city: string; state: string; lat?: number; lng?: number }) => void;
   placeholder?: string;
   label?: string;
   required?: boolean;
@@ -119,7 +121,9 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
     setSelectedIndex(-1);
     onChange({
       city: city.name,
-      state: city.state
+      state: city.state,
+      lat: (city as any).lat,
+      lng: (city as any).lng
     });
   };
 

@@ -124,14 +124,12 @@ serve(async (req) => {
         });
       }
 
-      // Fetch recent open freights with coordinates
+      // Fetch recent open freights (with or without coordinates)
       const { data: freights, error: freErr } = await supabase
         .from('freights')
         .select('*')
         .eq('status', 'OPEN')
-        .is('driver_id', null) // Only unassigned freights
-        .not('origin_lat', 'is', null)
-        .not('origin_lng', 'is', null)
+        .is('driver_id', null)
         .order('created_at', { ascending: false })
         .limit(500);
 
@@ -146,39 +144,52 @@ serve(async (req) => {
       let matchesFound = 0;
 
       for (const f of freights || []) {
-        const { origin_lat: flat, origin_lng: flng } = f as any;
-        if (typeof flat !== 'number' || typeof flng !== 'number') continue;
+        const { origin_lat: flat, origin_lng: flng, origin_city, origin_state } = f as any;
 
         let bestDistance: number | null = null;
         let matchingArea: any = null;
+        let matchType: 'SPATIAL_RADIUS' | 'CITY_MATCH' | null = null;
 
         for (const a of areas) {
           const areaLat = Number(a.lat);
           const areaLng = Number(a.lng);
           const radiusKm = Number(a.radius_km || 50);
-          
-          if (isNaN(areaLat) || isNaN(areaLng) || isNaN(radiusKm)) continue;
 
-          const distance = haversine(flat, flng, areaLat, areaLng);
-          const within = distance <= radiusKm * 1000; // Convert km to meters
-          
-          if (within) {
-            if (bestDistance === null || distance < bestDistance) {
-              bestDistance = distance;
+          if (typeof flat === 'number' && typeof flng === 'number' &&
+              !isNaN(areaLat) && !isNaN(areaLng) && !isNaN(radiusKm)) {
+            const distance = haversine(flat, flng, areaLat, areaLng);
+            const within = distance <= radiusKm * 1000; // km -> m
+            if (within) {
+              if (bestDistance === null || distance < bestDistance) {
+                bestDistance = distance;
+                matchingArea = a;
+                matchType = 'SPATIAL_RADIUS';
+              }
+            }
+          } else {
+            // Fallback: match by city/state equality (case-insensitive)
+            const sameCity = origin_city && a.city_name && String(origin_city).toLowerCase() === String(a.city_name).toLowerCase();
+            const sameState = !origin_state || !a.state || String(origin_state).toLowerCase() === String(a.state).toLowerCase();
+            if (sameCity && sameState) {
+              bestDistance = 0;
               matchingArea = a;
+              matchType = 'CITY_MATCH';
+              break; // city match is enough
             }
           }
         }
 
-        if (bestDistance !== null && matchingArea) {
+        if (bestDistance !== null && matchingArea && matchType) {
           matchesFound++;
           toUpsert.push({
             freight_id: f.id,
             driver_id: driverId,
             driver_area_id: matchingArea.id,
-            match_type: 'SPATIAL_RADIUS',
-            distance_m: Math.round(bestDistance),
-            match_score: Math.max(0.1, 1 - (bestDistance / (Number(matchingArea.radius_km) * 1000)))
+            match_type: matchType,
+            distance_m: bestDistance ? Math.round(bestDistance) : 0,
+            match_score: matchType === 'SPATIAL_RADIUS'
+              ? Math.max(0.1, 1 - (bestDistance / (Number(matchingArea.radius_km) * 1000)))
+              : 1
           });
         }
       }

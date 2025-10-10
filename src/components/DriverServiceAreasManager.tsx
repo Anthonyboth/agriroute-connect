@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from 'sonner';
 import { MapPin, Plus, Edit, Trash2, Navigation, Settings, Target, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { CitySelector } from './CitySelector';
 
 interface DriverServiceArea {
   id: string;
@@ -344,65 +345,14 @@ const DriverServiceAreasManager = ({ onAreasUpdate }: DriverServiceAreasManagerP
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="city_name">Cidade *</Label>
-                  <Input
-                    id="city_name"
-                    value={formData.city_name}
-                    onChange={(e) => handleCityNameChange(e.target.value)}
-                    placeholder="Ex: Primavera do Leste"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="state">Estado</Label>
-                  <Input
-                    id="state"
-                    value={formData.state}
-                    onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                    placeholder="Ex: MT"
-                  />
-                </div>
+<CitySelector
+  value={{ city: formData.city_name, state: formData.state }}
+  onChange={(c) => setFormData(prev => ({ ...prev, city_name: c.city, state: c.state, lat: c.lat ?? prev.lat, lng: c.lng ?? prev.lng }))}
+  label="Cidade de Atendimento *"
+  placeholder="Digite e selecione a cidade"
+  required
+/>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="lat">Latitude <span className="text-xs text-muted-foreground">(automático)</span></Label>
-                    <Input
-                      id="lat"
-                      type="number"
-                      step="any"
-                      value={formData.lat}
-                      onChange={(e) => setFormData(prev => ({ ...prev, lat: parseFloat(e.target.value) || 0 }))}
-                      placeholder="Será preenchido automaticamente"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="lng">Longitude <span className="text-xs text-muted-foreground">(automático)</span></Label>
-                    <Input
-                      id="lng"
-                      type="number"
-                      step="any"
-                      value={formData.lng}
-                      onChange={(e) => setFormData(prev => ({ ...prev, lng: parseFloat(e.target.value) || 0 }))}
-                      placeholder="Será preenchido automaticamente"
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={getCurrentLocation}
-                  className="w-full"
-                >
-                  <Navigation className="h-4 w-4 mr-2" />
-                  Usar Minha Localização Atual
-                </Button>
-                
-                <div className="text-sm text-muted-foreground">
-                  <p>💡 <strong>Dica:</strong> Digite o nome da cidade e as coordenadas serão preenchidas automaticamente!</p>
-                </div>
 
                 <div>
                   <Label htmlFor="radius_km">Raio de Atendimento (km)</Label>

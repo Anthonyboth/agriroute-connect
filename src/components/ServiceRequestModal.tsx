@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { User, MapPin, Clock, AlertCircle } from 'lucide-react';
-import { UserLocationSelector } from './UserLocationSelector';
+import { User, Clock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { CitySelector } from './CitySelector';
+import { StructuredAddressInput } from './StructuredAddressInput';
 
 interface ServiceRequestModalProps {
   isOpen: boolean;
@@ -129,11 +130,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         return;
       }
 
-      if (!formData.location_lat || !formData.location_lng) {
-        toast.error('Por favor, selecione a localização no mapa clicando no botão "Preencher Localização".');
-        setLoading(false);
-        return;
-      }
+// Latitude/longitude não são obrigatórios; cidade e endereço estruturado bastam para o match por cidade.
 
       // Criar solicitação de serviço na tabela service_requests
       console.log('Tentando inserir service request com dados:', {

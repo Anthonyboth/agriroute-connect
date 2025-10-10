@@ -7,6 +7,8 @@ interface City {
   name: string;
   state: string;
   display_name: string;
+  lat?: number;
+  lng?: number;
 }
 
 export const useCitySearch = () => {
