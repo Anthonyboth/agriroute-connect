@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Truck, Crown } from 'lucide-react';
+import { Truck, Crown, X, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface FreightLimitTrackerProps {
@@ -17,8 +17,16 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
   const navigate = useNavigate();
   const [freightCount, setFreightCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isClosed, setIsClosed] = useState(() => {
+    return localStorage.getItem('testPeriodNoticeClosed') === 'true';
+  });
 
   const FREE_FREIGHT_LIMIT = 3;
+
+  const handleClose = () => {
+    setIsClosed(true);
+    localStorage.setItem('testPeriodNoticeClosed', 'true');
+  };
 
   const fetchAcceptedFreightCount = useCallback(async () => {
     if (!user) return;
@@ -60,35 +68,48 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
   const remainingFreights = Math.max(0, FREE_FREIGHT_LIMIT - freightCount);
   const progressPercentage = (freightCount / FREE_FREIGHT_LIMIT) * 100;
 
+  // Se o usuário fechou a mensagem, não mostra mais
+  if (isClosed) {
+    return null;
+  }
+
   if (loading) {
-    return (
-      <Card className="mb-4">
-        <CardContent className="p-4">
-          <div className="animate-pulse flex space-x-4">
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-muted rounded w-3/4"></div>
-              <div className="h-2 bg-muted rounded"></div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   return (
-    <Card className="mb-4 border-l-4 border-l-primary">
+    <Card className="mb-4 border-l-4 border-l-blue-500">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Truck className="h-5 w-5" />
-            Fretes Gratuitos por Cadastro
+            <Info className="h-5 w-5 text-blue-600" />
+            Período de Testes - Plataforma Gratuita
           </CardTitle>
-          <Badge variant="secondary" className="text-xs">
-            {remainingFreights} restantes
-          </Badge>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-muted"
+            onClick={handleClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
+            A plataforma está disponível <strong>gratuitamente</strong> por um período indeterminado para que você possa testar e verificar seu valor. 
+          </p>
+          <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed mt-2">
+            Quando for o momento certo, implementaremos uma cobrança mensal ou percentual pelo uso da plataforma.
+          </p>
+          <p className="text-sm text-blue-800 dark:text-blue-200 mt-3 font-medium">
+            ✨ Aproveite o período de testes e conheça todos os recursos!
+          </p>
+        </div>
+
+        {/* Código de contagem de fretes mantido para futura ativação */}
+        {/* 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">
@@ -129,6 +150,7 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
             </p>
           </div>
         )}
+        */}
       </CardContent>
     </Card>
   );
