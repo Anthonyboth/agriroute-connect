@@ -59,9 +59,14 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
       const matchesSearch = service.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            service.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
-      return matchesSearch && matchesCategory;
+      const showInCurrentTab = !service.showOnlyInAllTab || selectedCategory === 'all';
+      return matchesSearch && matchesCategory && showInCurrentTab;
     })
-    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+    .sort((a, b) => {
+      if (a.id === 'OUTROS') return 1;
+      if (b.id === 'OUTROS') return -1;
+      return a.label.localeCompare(b.label, 'pt-BR');
+    });
 
   const getServiceIcon = (category: string) => {
     switch (category) {

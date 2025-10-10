@@ -44,6 +44,7 @@ export interface ServiceType {
   category: 'freight' | 'technical' | 'agricultural' | 'logistics' | 'urban';
   clientVisible: boolean; // Se aparece para clientes solicitarem
   providerVisible: boolean; // Se aparece para prestadores oferecerem
+  showOnlyInAllTab?: boolean; // Se aparece apenas na aba "Todos os Serviços"
 }
 
 export const ALL_SERVICE_TYPES: ServiceType[] = [
@@ -87,16 +88,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Mudanças residenciais, comerciais e fretes urbanos',
     icon: Home,
     color: 'bg-blue-100 text-blue-800 border-blue-200',
-    category: 'freight',
-    clientVisible: true,
-    providerVisible: false
-  },
-  {
-    id: 'OUTROS_FRETE',
-    label: 'Outros',
-    description: 'Outros serviços de transporte e frete',
-    icon: MoreHorizontal,
-    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
     category: 'freight',
     clientVisible: true,
     providerVisible: false
@@ -206,12 +197,13 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   {
     id: 'OUTROS',
     label: 'Outros',
-    description: 'Outros tipos de serviços técnicos especializados',
+    description: 'Outros serviços especializados não listados acima',
     icon: MoreHorizontal,
     color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    showOnlyInAllTab: true
   },
 
   // ==================== SERVIÇOS AGRÍCOLAS (Ordem Alfabética) ====================
@@ -406,16 +398,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
-    id: 'OUTROS_AGRICOLA',
-    label: 'Outros',
-    description: 'Outros serviços agrícolas especializados',
-    icon: MoreHorizontal,
-    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
     id: 'TORNEARIA_SOLDA_REPAROS',
     label: 'Tornearia, Solda e Reparos',
     description: 'Serviços de tornearia, solda e reparos mecânicos',
@@ -433,16 +415,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Serviços de armazenamento de grãos e insumos',
     icon: Package,
     color: 'bg-rose-100 text-rose-800 border-rose-200',
-    category: 'logistics',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'OUTROS_LOGISTICA',
-    label: 'Outros',
-    description: 'Outros serviços de logística',
-    icon: MoreHorizontal,
-    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
     category: 'logistics',
     clientVisible: true,
     providerVisible: true
@@ -466,17 +438,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     category: 'urban',
     clientVisible: true,
     providerVisible: true
-  },
-  {
-    id: 'OUTROS_URBANO',
-    label: 'Outros',
-    description: 'Outros serviços urbanos especializados',
-    icon: MoreHorizontal,
-    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
+  }
 ];
 
 // Helpers para filtrar tipos por categoria ou visibilidade
