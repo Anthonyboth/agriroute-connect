@@ -3908,6 +3908,7 @@ export type Database = {
         Returns: {
           city_name: string
           distance_m: number
+          match_method: string
           provider_area_id: string
           provider_id: string
           radius_km: number
