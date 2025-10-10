@@ -31,6 +31,7 @@ import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
 import { ServiceHistory } from '@/components/ServiceHistory';
+import { FreightHistory } from '@/components/FreightHistory';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 const ProducerDashboard = () => {
@@ -1352,9 +1353,11 @@ const ProducerDashboard = () => {
 
           <TabsContent value="history" className="space-y-4">
             {/* Histórico de Fretes */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-...
-            </div>
+            <Card>
+              <CardContent className="pt-6">
+                <FreightHistory />
+              </CardContent>
+            </Card>
 
             {/* Histórico de Serviços */}
             <div className="mt-6">

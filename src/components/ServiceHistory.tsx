@@ -51,27 +51,41 @@ export const ServiceHistory: React.FC = () => {
   const [selectedService, setSelectedService] = useState<ServiceRequest | null>(null);
   const [showChatDialog, setShowChatDialog] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [mainTab, setMainTab] = useState<'provided' | 'requested'>('provided'); // Para prestadores
 
   useEffect(() => {
     if (profile?.id) {
       fetchServices();
     }
-  }, [profile?.id]);
+  }, [profile?.id, mainTab]);
 
   const fetchServices = async () => {
     if (!profile?.id) return;
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('service_requests')
         .select(`
           *,
           client:profiles!service_requests_client_id_fkey(id, full_name),
           provider:profiles!service_requests_provider_id_fkey(id, full_name)
         `)
-        .or(`client_id.eq.${profile.id},provider_id.eq.${profile.id}`)
         .order('created_at', { ascending: false });
+
+      // Se for prestador de serviços e estiver na tab "provided", filtrar apenas os fornecidos
+      if (profile.role === 'PRESTADOR_SERVICOS') {
+        if (mainTab === 'provided') {
+          query = query.eq('provider_id', profile.id);
+        } else {
+          query = query.eq('client_id', profile.id);
+        }
+      } else {
+        // Para outros roles, mostrar todos relacionados ao usuário
+        query = query.or(`client_id.eq.${profile.id},provider_id.eq.${profile.id}`);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       
@@ -151,6 +165,8 @@ export const ServiceHistory: React.FC = () => {
     );
   }
 
+  const isPrestador = profile?.role === 'PRESTADOR_SERVICOS';
+
   return (
     <div className="space-y-6">
       <Card>
@@ -160,11 +176,29 @@ export const ServiceHistory: React.FC = () => {
             Histórico de Serviços
           </CardTitle>
           <CardDescription>
-            Visualize todos os seus serviços solicitados ou prestados
+            {isPrestador 
+              ? 'Visualize os serviços que você forneceu e solicitou'
+              : 'Visualize todos os seus serviços solicitados'
+            }
           </CardDescription>
         </CardHeader>
 
         <CardContent>
+          {/* Tabs principais para prestador de serviços */}
+          {isPrestador && (
+            <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as 'provided' | 'requested')} className="mb-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="provided">
+                  Serviços Fornecidos
+                </TabsTrigger>
+                <TabsTrigger value="requested">
+                  Serviços Solicitados
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
+          {/* Tabs de filtro por status */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="all">Todos ({services.length})</TabsTrigger>

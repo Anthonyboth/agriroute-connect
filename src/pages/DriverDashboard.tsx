@@ -43,6 +43,7 @@ import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
 import { ServiceHistory } from '@/components/ServiceHistory';
+import { FreightHistory } from '@/components/FreightHistory';
 
 interface Freight {
   id: string;
@@ -1862,9 +1863,11 @@ const [showRegionModal, setShowRegionModal] = useState(false);
 
           <TabsContent value="historico" className="mt-6">
             {/* Histórico de Fretes */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-...
-            </div>
+            <Card>
+              <CardContent className="pt-6">
+                <FreightHistory />
+              </CardContent>
+            </Card>
 
             {/* Histórico de Serviços */}
             <div className="mt-6">
