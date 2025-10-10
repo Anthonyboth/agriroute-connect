@@ -1118,7 +1118,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
                 className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
               >
                 <Settings className="mr-1 h-4 w-4" />
-                Configurar
+                Configurar Fretes
               </Button>
               
               <Button 
