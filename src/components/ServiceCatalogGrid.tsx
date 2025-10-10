@@ -127,7 +127,7 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
           return (
             <Card 
               key={service.id} 
-              className={`hover:shadow-lg transition-all duration-300 cursor-pointer group ${
+              className={`hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col ${
                 isSelected && showCheckboxes ? 'ring-2 ring-primary' : ''
               }`}
               onClick={() => {
@@ -163,40 +163,46 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
                 </div>
               </CardHeader>
               
-              <CardContent className="pt-0">
-                <CardDescription className="mb-4 leading-relaxed">
-                  {service.description}
-                </CardDescription>
-                
-                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    <span>Resposta rápida</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Shield className="h-4 w-4" />
-                    <span>Verificado</span>
+              <CardContent className="pt-0 flex flex-col flex-1">
+                {/* Área de conteúdo que pode crescer */}
+                <div className="flex-1">
+                  <CardDescription className="mb-4 leading-relaxed">
+                    {service.description}
+                  </CardDescription>
+                  
+                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      <span>Resposta rápida</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Shield className="h-4 w-4" />
+                      <span>Verificado</span>
+                    </div>
                   </div>
                 </div>
                 
-                {!showCheckboxes && onServiceRequest && (
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onServiceRequest(service);
-                    }} 
-                    className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-all"
-                  >
-                    Solicitar Serviço
-                  </Button>
-                )}
+                {/* Botão fixado no fundo */}
+                <div className="mt-auto">
+                  {!showCheckboxes && onServiceRequest && (
+                    <Button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onServiceRequest(service);
+                      }} 
+                      className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-all"
+                    >
+                      Solicitar Serviço
+                    </Button>
+                  )}
 
-                {showCheckboxes && isSelected && (
-                  <div className="flex items-center justify-center gap-2 text-primary">
-                    <CheckCircle className="h-4 w-4" />
-                    <span className="text-sm font-medium">Selecionado</span>
-                  </div>
-                )}
+                  {showCheckboxes && isSelected && (
+                    <div className="flex items-center justify-center gap-2 text-primary">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-sm font-medium">Selecionado</span>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           );
