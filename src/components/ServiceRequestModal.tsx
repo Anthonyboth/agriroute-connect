@@ -268,21 +268,17 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
 
                 {/* Localização */}
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    Cidade e Estado *
-                  </Label>
-                  <UserLocationSelector 
-                    onLocationChange={(location) => {
-                      if (location) {
-                        setFormData(prev => ({
-                          ...prev,
-                          location_lat: location.lat,
-                          location_lng: location.lng,
-                          city: location.city,
-                          state: location.state
-                        }));
-                      }
+                  <Label>Cidade e Estado *</Label>
+                  <CitySelector
+                    value={formData.city && formData.state ? { city: formData.city, state: formData.state } : undefined}
+                    onChange={(city) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        city: city.city,
+                        state: city.state,
+                        location_lat: city.lat,
+                        location_lng: city.lng
+                      }));
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
