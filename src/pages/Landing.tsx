@@ -13,12 +13,31 @@ import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Ho
 import heroImage from '@/assets/hero-logistics.jpg';
 import { supabase } from '@/integrations/supabase/client';
 import { formatTonsCompactFromKg } from '@/lib/utils';
+import Autoplay from "embla-carousel-autoplay";
+import { 
+  Carousel, 
+  CarouselContent, 
+  CarouselItem 
+} from "@/components/ui/carousel";
 
 const Landing = () => {
   const navigate = useNavigate();
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; initialTab?: 'login' | 'signup' }>({
     isOpen: false,
   });
+  
+  const partners = [
+    { id: 1, name: 'Parceiro 1', logo: null },
+    { id: 2, name: 'Parceiro 2', logo: null },
+    { id: 3, name: 'Parceiro 3', logo: null },
+    { id: 4, name: 'Parceiro 4', logo: null },
+    { id: 5, name: 'Parceiro 5', logo: null },
+    { id: 6, name: 'Parceiro 6', logo: null },
+    { id: 7, name: 'Parceiro 7', logo: null },
+    { id: 8, name: 'Parceiro 8', logo: null },
+    { id: 9, name: 'Parceiro 9', logo: null },
+    { id: 10, name: 'Parceiro 10', logo: null },
+  ];
   const [mudancaModal, setMudancaModal] = useState(false);
   const [guestServiceModal, setGuestServiceModal] = useState<{ isOpen: boolean; serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' }>({
     isOpen: false,
@@ -340,6 +359,63 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Partners Section */}
+      <section className="py-16 bg-muted/10 border-y">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Nossos Parceiros
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Empresas que confiam e apoiam nossa plataforma
+            </p>
+          </div>
+          
+          <Carousel
+            opts={{
+              align: "start",
+              loop: true,
+            }}
+            plugins={[
+              Autoplay({
+                delay: 3000,
+                stopOnInteraction: false,
+                stopOnMouseEnter: true,
+              })
+            ]}
+            className="w-full max-w-6xl mx-auto"
+          >
+            <CarouselContent className="-ml-2 md:-ml-4">
+              {partners.map((partner) => (
+                <CarouselItem 
+                  key={partner.id}
+                  className="pl-2 md:pl-4 basis-1/2 md:basis-1/3 lg:basis-1/5"
+                >
+                  <div className="p-4">
+                    <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg">
+                      <CardContent className="flex aspect-square items-center justify-center p-6">
+                        <div className="text-center w-full h-full flex items-center justify-center">
+                          {partner.logo ? (
+                            <img 
+                              src={partner.logo} 
+                              alt={partner.name}
+                              className="max-w-full max-h-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                            />
+                          ) : (
+                            <div className="text-2xl md:text-3xl font-bold text-muted-foreground/30">
+                              {partner.name}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="bg-card border-t py-12">
