@@ -52,12 +52,14 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
     ...(mode !== 'provider' ? [{ id: 'freight', label: CATEGORY_LABELS.freight, count: allServices.filter(s => s.category === 'freight').length }] : [])
   ];
 
-  const filteredServices = allServices.filter(service => {
-    const matchesSearch = service.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         service.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredServices = allServices
+    .filter(service => {
+      const matchesSearch = service.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           service.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
 
   const getServiceIcon = (category: string) => {
     switch (category) {
