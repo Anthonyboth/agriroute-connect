@@ -4255,6 +4255,8 @@ export type Database = {
         Returns: {
           display_name: string
           id: string
+          lat: number
+          lng: number
           name: string
           state: string
         }[]
