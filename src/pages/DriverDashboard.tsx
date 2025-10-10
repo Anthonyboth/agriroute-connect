@@ -1083,7 +1083,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
                 Ver Fretes IA
               </Button>
               
-              <Dialog open={showRegionModal} onOpenChange={setShowRegionModal}>
+              <Dialog open={showRegionModal} onOpenChange={(open) => { if (!open) setShowRegionModal(false); }}>
                 <DialogTrigger asChild>
                   <Button 
                     variant="default"
@@ -1936,7 +1936,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
         </div>
       )}
       {/* Detalhes do Chamado de Serviço (GUINCHO/MUDANCA) */}
-      <Dialog open={showServiceRequestDialog} onOpenChange={setShowServiceRequestDialog}>
+      <Dialog open={showServiceRequestDialog} onOpenChange={(open) => { if (!open) setShowServiceRequestDialog(false); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>

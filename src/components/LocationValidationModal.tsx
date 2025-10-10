@@ -105,7 +105,7 @@ export const LocationValidationModal: React.FC<LocationValidationModalProps> = (
 
   if (isLoading) {
     return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
         <DialogContent className="sm:max-w-md">
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
@@ -116,7 +116,7 @@ export const LocationValidationModal: React.FC<LocationValidationModalProps> = (
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

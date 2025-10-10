@@ -55,7 +55,9 @@ export const ForgotPasswordModal = ({ open, onOpenChange }: ForgotPasswordModalP
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={(openState) => { 
+      if (!openState) handleClose();
+    }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

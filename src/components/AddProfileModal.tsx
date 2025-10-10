@@ -94,7 +94,7 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
   const currentRoleInfo = getRoleInfo(currentRole);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

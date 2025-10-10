@@ -124,7 +124,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
   const isCounterOffer = Number.isFinite(priceDifference) && priceDifference !== 0;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(openState) => { if (!openState) setOpen(false); }}>
       <DialogTrigger asChild>
         <Button className="w-full">
           {freight.service_type === 'GUINCHO' ? 'Aceitar Chamado' : 

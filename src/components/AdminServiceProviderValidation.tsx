@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
@@ -241,12 +241,15 @@ export const AdminServiceProviderValidation: React.FC = () => {
       </div>
 
       {/* Modal de Detalhes */}
-      <Dialog open={!!selectedProvider} onOpenChange={() => setSelectedProvider(null)}>
+      <Dialog open={!!selectedProvider} onOpenChange={(open) => !open && setSelectedProvider(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Validação - {selectedProvider?.profiles.full_name}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Análise completa do prestador de serviços para validação
+            </DialogDescription>
           </DialogHeader>
 
           {selectedProvider && (

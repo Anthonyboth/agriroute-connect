@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -123,13 +123,16 @@ export function DriverPayoutModal({ isOpen, onClose, availableBalance, driverId 
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Banknote className="h-5 w-5 text-primary" />
             Solicitar Saque via PIX
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Solicite o saque dos seus ganhos acumulados via PIX
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-1 space-y-5">

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   AlertTriangle, 
   MapPin, 
@@ -281,13 +281,16 @@ export function IncidentManagementPanel() {
       </Card>
 
       {/* Modal de Detalhes do Incidente */}
-      <Dialog open={!!selectedIncident} onOpenChange={() => setSelectedIncident(null)}>
+      <Dialog open={!!selectedIncident} onOpenChange={(open) => !open && setSelectedIncident(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-600" />
               Detalhes do Incidente
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Visualização completa do incidente de segurança registrado
+            </DialogDescription>
           </DialogHeader>
 
           {selectedIncident && (

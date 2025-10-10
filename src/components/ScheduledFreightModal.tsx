@@ -117,7 +117,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
   minDate.setDate(minDate.getDate() + 1); // Mínimo amanhã
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader className="pb-4 shrink-0">
           <DialogTitle className="flex items-center gap-2">
