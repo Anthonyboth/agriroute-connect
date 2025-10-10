@@ -27,19 +27,10 @@ import {
   Fence,
   Mountain,
   Waves,
-  Building2,
   Hammer,
-  CircuitBoard,
-  TreePine,
-  Paintbrush,
-  Camera,
-  AirVent,
-  Navigation,
-  Pipette,
-  Scissors,
   Users2,
   Satellite,
-  FlaskConical
+  Sun
 } from 'lucide-react';
 
 export interface ServiceType {
@@ -103,7 +94,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   {
     id: 'BORRACHEIRO',
     label: 'Borracheiro',
-    description: 'Troca e reparo de pneus (geral)',
+    description: 'Troca e reparo de pneus (veículos, tratores e implementos)',
     icon: Shield,
     color: 'bg-slate-100 text-slate-800 border-slate-200',
     category: 'technical',
@@ -132,8 +123,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
   {
     id: 'ELETRICISTA_AUTOMOTIVO',
-    label: 'Eletricista Automotivo',
-    description: 'Sistema elétrico completo de veículos',
+    label: 'Eletricista',
+    description: 'Instalações e manutenção elétrica (veículos, propriedades rurais e prediais)',
     icon: Zap,
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     category: 'technical',
@@ -146,16 +137,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Manutenção, calibração e reparo de balanças rodoviárias e de grãos',
     icon: Settings,
     color: 'bg-purple-100 text-purple-800 border-purple-200',
-    category: 'technical',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'MANUTENCAO_EQUIPAMENTOS',
-    label: 'Manutenção de Equipamentos',
-    description: 'Manutenção e reparo de tratores e implementos agrícolas',
-    icon: Wrench,
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
     category: 'technical',
     clientVisible: true,
     providerVisible: true
@@ -233,16 +214,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
-    id: 'BORRACHEIRO_RURAL',
-    label: 'Borracheiro Rural',
-    description: 'Troca e reparo de pneus de tratores e implementos agrícolas',
-    icon: Shield,
-    color: 'bg-lime-100 text-lime-800 border-lime-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
     id: 'CARREGAMENTO_DESCARREGAMENTO',
     label: 'Carregamento e Descarregamento',
     description: 'Pessoas para carregamento e descarregamento de caminhões',
@@ -293,20 +264,10 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
-    id: 'ELETRICISTA_AGRICOLA',
-    label: 'Eletricista Agrícola',
-    description: 'Instalação e manutenção elétrica em propriedades rurais',
-    icon: Zap,
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'ENERGIA_RURAL',
-    label: 'Energia Rural (Padrões, Bombas, Fiação)',
-    description: 'Instalação e manutenção de sistemas elétricos rurais',
-    icon: CircuitBoard,
+    id: 'ENERGIA_SOLAR',
+    label: 'Energia Solar',
+    description: 'Instalação e manutenção de sistemas de energia solar fotovoltaica',
+    icon: Sun,
     color: 'bg-sky-100 text-sky-800 border-sky-200',
     category: 'agricultural',
     clientVisible: true,
@@ -358,16 +319,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Serviços de plantio mecanizado com plantadeiras de precisão',
     icon: Wheat,
     color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'PULVERIZACAO',
-    label: 'Pulverização',
-    description: 'Aplicação de defensivos e fertilizantes foliares',
-    icon: Droplets,
-    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
     category: 'agricultural',
     clientVisible: true,
     providerVisible: true
@@ -466,106 +417,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
 
   // ==================== SERVIÇOS URBANOS (Ordem Alfabética) ====================
-  {
-    id: 'BORRACHEIRO_URBANO',
-    label: 'Borracheiro Urbano',
-    description: 'Troca e reparo de pneus de veículos urbanos',
-    icon: Shield,
-    color: 'bg-slate-100 text-slate-800 border-slate-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'CAMERAS_SEGURANCA',
-    label: 'Câmeras e Sistemas de Segurança',
-    description: 'Instalação e manutenção de câmeras e sistemas de segurança',
-    icon: Camera,
-    color: 'bg-slate-100 text-slate-800 border-slate-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'CONSERTO_ELETRODOMESTICOS',
-    label: 'Conserto de Eletrodomésticos',
-    description: 'Reparo de geladeiras, máquinas de lavar e outros eletrodomésticos',
-    icon: Settings,
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'ELETRICISTA_PREDIAL',
-    label: 'Eletricista Predial',
-    description: 'Instalações e manutenção elétrica residencial e comercial',
-    icon: Zap,
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'ENCANADOR',
-    label: 'Encanador',
-    description: 'Instalações hidráulicas e reparos de tubulações',
-    icon: Pipette,
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'INSTALACAO_AR_CONDICIONADO',
-    label: 'Instalação de Ar-Condicionado',
-    description: 'Instalação, manutenção e limpeza de ar-condicionado',
-    icon: AirVent,
-    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'JARDINAGEM_PAISAGISMO',
-    label: 'Jardinagem e Paisagismo',
-    description: 'Cuidados com jardins, gramados e projetos de paisagismo',
-    icon: TreePine,
-    color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'PEDREIRO_REPAROS',
-    label: 'Pedreiro e Pequenos Reparos',
-    description: 'Serviços de alvenaria e pequenos reparos prediais',
-    icon: Building2,
-    color: 'bg-stone-100 text-stone-800 border-stone-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'PINTURA_RESIDENCIAL',
-    label: 'Pintura Residencial',
-    description: 'Pintura interna e externa de residências e prédios',
-    icon: Paintbrush,
-    color: 'bg-pink-100 text-pink-800 border-pink-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'ROCAGEM_TERRENOS',
-    label: 'Roçagem de Terrenos Urbanos',
-    description: 'Limpeza e roçagem de terrenos em áreas urbanas',
-    icon: Scissors,
-    color: 'bg-lime-100 text-lime-800 border-lime-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  }
+  // Categoria esvaziada conforme solicitação - serviços urbanos removidos
 ];
 
 // Helpers para filtrar tipos por categoria ou visibilidade
