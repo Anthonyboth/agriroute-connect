@@ -46,20 +46,28 @@ export const useLocationFiltering = ({ userType }: LocationFilteringParams) => {
         // Buscar fretes no raio do motorista usando a função melhorada
         const { data, error } = await supabase
           .rpc('get_freights_in_radius', { 
-            driver_profile_id: profile.id 
+            p_driver_id: profile.id 
           });
         
         if (error) throw error;
-        result = data || [];
+        // Mapear freight_id para id para compatibilidade com RegionalItem
+        result = (data || []).map((item: any) => ({
+          ...item,
+          id: item.freight_id
+        }));
       } else {
         // Buscar solicitações de serviços no raio do prestador usando a função melhorada
         const { data, error } = await supabase
           .rpc('get_service_requests_in_radius', { 
-            provider_profile_id: profile.id 
+            p_provider_id: profile.id 
           });
         
         if (error) throw error;
-        result = data || [];
+        // Mapear request_id para id para compatibilidade com RegionalItem
+        result = (data || []).map((item: any) => ({
+          ...item,
+          id: item.request_id
+        }));
       }
 
       setItems(result);

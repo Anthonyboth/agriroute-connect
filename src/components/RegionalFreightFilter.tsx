@@ -61,7 +61,7 @@ export const RegionalFreightFilter: React.FC<RegionalFreightFilterProps> = ({
         // Usar função do banco para buscar fretes no raio
         const { data, error } = await supabase
           .rpc('get_freights_in_radius', { 
-            driver_profile_id: profile.id 
+            p_driver_id: profile.id 
           });
         
         if (error) throw error;
@@ -70,7 +70,7 @@ export const RegionalFreightFilter: React.FC<RegionalFreightFilterProps> = ({
         // Usar função do banco para buscar service_requests no raio
         const { data, error } = await supabase
           .rpc('get_service_requests_in_radius', { 
-            provider_profile_id: profile.id 
+            p_provider_id: profile.id 
           });
         
         if (error) throw error;

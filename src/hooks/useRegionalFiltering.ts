@@ -55,7 +55,7 @@ export const useRegionalFiltering = ({ userType, profileId }: RegionalFilteringP
         // Buscar fretes no raio do motorista
         const { data, error } = await supabase
           .rpc('get_freights_in_radius', { 
-            driver_profile_id: profileId 
+            p_driver_id: profileId 
           });
         
         if (error) throw error;
@@ -64,7 +64,7 @@ export const useRegionalFiltering = ({ userType, profileId }: RegionalFilteringP
         // Buscar solicitações de serviços no raio do prestador
         const { data, error } = await supabase
           .rpc('get_service_requests_in_radius', { 
-            provider_profile_id: profileId 
+            p_provider_id: profileId 
           });
         
         if (error) throw error;
