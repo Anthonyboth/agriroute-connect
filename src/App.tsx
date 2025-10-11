@@ -33,6 +33,7 @@ import PaymentCancel from "./pages/PaymentCancel";
 import React, { lazy, Suspense } from 'react';
 import { useAuth } from "./hooks/useAuth";
 import { ComponentLoader } from '@/components/LazyComponents';
+import { ScrollToTop } from './components/ScrollToTop';
 const PressPage = lazy(() => import("./pages/Press"));
 const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess"));
 const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
@@ -158,6 +159,7 @@ const App = () => (
               v7_relativeSplatPath: true
             }}
           >
+          <ScrollToTop />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/landing" element={<Landing />} />
