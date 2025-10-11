@@ -154,6 +154,29 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     clientVisible: true,
     providerVisible: true
   },
+  // Aliases para compatibilidade com dados antigos
+  {
+    id: 'ELETRICISTA_AUTOMOTIVO',
+    label: 'Eletricista Automotivo',
+    description: 'Instalações e manutenção elétrica automotiva',
+    icon: Zap,
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    showOnlyInAllTab: true
+  },
+  {
+    id: 'ELETRICA',
+    label: 'Elétrica',
+    description: 'Serviços elétricos em geral',
+    icon: Zap,
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    showOnlyInAllTab: true
+  },
   {
     id: 'MANUTENCAO_BALANCAS',
     label: 'Manutenção de Balanças',
@@ -183,6 +206,18 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     category: 'urban',
     clientVisible: true,
     providerVisible: true
+  },
+  // Alias para compatibilidade
+  {
+    id: 'MECANICO',
+    label: 'Mecânico',
+    description: 'Reparos mecânicos em geral',
+    icon: Wrench,
+    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    showOnlyInAllTab: true
   },
   {
     id: 'SERVICOS_VETERINARIOS',

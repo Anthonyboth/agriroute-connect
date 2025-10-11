@@ -9,9 +9,10 @@ import {
   Search,
   Clock,
   Shield,
-  CheckCircle
+  CheckCircle,
+  MoreHorizontal
 } from 'lucide-react';
-import { ALL_SERVICE_TYPES, CATEGORY_LABELS } from '@/lib/service-types';
+import { ALL_SERVICE_TYPES, CATEGORY_LABELS, getServiceById } from '@/lib/service-types';
 
 interface ServiceCatalogGridProps {
   mode: 'provider' | 'driver' | 'client';
@@ -125,7 +126,13 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
 
       {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredServices.map((service) => {
+      {filteredServices.map((service) => {
+          // Proteção contra service undefined
+          if (!service) {
+            console.warn('Service not found in catalog');
+            return null;
+          }
+          
           const IconComponent = service.icon;
           const isSelected = selectedServices.includes(service.id);
           
