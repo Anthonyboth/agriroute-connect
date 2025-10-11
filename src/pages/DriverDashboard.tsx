@@ -1182,14 +1182,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             onClick={() => setActiveTab('available')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center">
-                  <MapPin className="h-6 w-6 text-primary flex-shrink-0" />
-                  <div className="ml-2 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
                       Disponíveis
                     </p>
-                    <p className="text-lg font-bold">{statistics.availableCount}</p>
+                    <p className="text-lg font-bold leading-tight mt-1">{statistics.availableCount}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1202,14 +1202,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             onClick={() => setActiveTab('ongoing')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center">
-                  <Clock className="h-6 w-6 text-orange-500 flex-shrink-0" />
-                  <div className="ml-2 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <Clock className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
                       Ativas
                     </p>
-                    <p className="text-lg font-bold">{statistics.activeTrips}</p>
+                    <p className="text-lg font-bold leading-tight mt-1">{statistics.activeTrips}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1222,14 +1222,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             onClick={() => setActiveTab('my-trips')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center">
-                  <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
-                  <div className="ml-2 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
                       Propostas
                     </p>
-                    <p className="text-lg font-bold">{statistics.pendingProposals}</p>
+                    <p className="text-lg font-bold leading-tight mt-1">{statistics.pendingProposals}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1242,30 +1242,30 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             onClick={() => setActiveTab('advances')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
-                    <div className="ml-2 min-w-0">
-                      <p className="text-xs font-medium text-muted-foreground truncate">
-                        Saldo
-                      </p>
-                      <p className="text-sm font-bold">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
+                      Saldo
+                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <p className="text-lg font-bold leading-tight">
                         {showEarnings ? 'R$ 0,00' : '****'}
                       </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowEarnings(!showEarnings);
+                        }}
+                        className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                      >
+                        {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      </Button>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowEarnings(!showEarnings);
-                    }}
-                     className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                  >
-                    {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                  </Button>
                 </div>
               </CardContent>
             </Card>

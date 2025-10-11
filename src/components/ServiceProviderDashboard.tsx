@@ -551,14 +551,14 @@ export const ServiceProviderDashboard: React.FC = () => {
             onClick={() => setActiveTab('pending')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center">
-                  <Clock className="h-6 w-6 text-primary flex-shrink-0" />
-                  <div className="ml-2 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <Clock className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
                       Pendentes
                     </p>
-                    <p className="text-lg font-bold">{counts.pending}</p>
+                    <p className="text-lg font-bold leading-tight mt-1">{counts.pending}</p>
                   </div>
                 </div>
               </CardContent>
@@ -571,14 +571,14 @@ export const ServiceProviderDashboard: React.FC = () => {
             onClick={() => setActiveTab('active')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center">
-                  <Play className="h-6 w-6 text-orange-500 flex-shrink-0" />
-                  <div className="ml-2 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <Play className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
                       Ativas
                     </p>
-                    <p className="text-lg font-bold">{counts.accepted}</p>
+                    <p className="text-lg font-bold leading-tight mt-1">{counts.accepted}</p>
                   </div>
                 </div>
               </CardContent>
@@ -591,14 +591,14 @@ export const ServiceProviderDashboard: React.FC = () => {
             onClick={() => setActiveTab('completed')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center">
-                  <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
-                  <div className="ml-2 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
                       Concluídas
                     </p>
-                    <p className="text-lg font-bold">{counts.completed}</p>
+                    <p className="text-lg font-bold leading-tight mt-1">{counts.completed}</p>
                   </div>
                 </div>
               </CardContent>
@@ -611,15 +611,15 @@ export const ServiceProviderDashboard: React.FC = () => {
             onClick={() => setActiveTab('earnings')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
-                    <div className="ml-2 min-w-0">
-                      <p className="text-xs font-medium text-muted-foreground truncate">
-                        Saldo
-                      </p>
-                      <p className="text-sm font-bold">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
+                      Saldo
+                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <p className="text-lg font-bold leading-tight">
                         {showEarnings 
                            ? new Intl.NumberFormat('pt-BR', { 
                                style: 'currency', 
@@ -630,19 +630,19 @@ export const ServiceProviderDashboard: React.FC = () => {
                           : '****'
                         }
                       </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowEarnings(!showEarnings);
+                        }}
+                        className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                      >
+                        {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      </Button>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowEarnings(!showEarnings);
-                    }}
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                  >
-                    {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                  </Button>
                 </div>
               </CardContent>
             </Card>

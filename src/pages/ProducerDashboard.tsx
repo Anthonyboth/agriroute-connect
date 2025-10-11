@@ -864,14 +864,14 @@ const ProducerDashboard = () => {
             onClick={() => setActiveTab('open')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center">
-                  <Package className="h-6 w-6 text-blue-500 flex-shrink-0" />
-                  <div className="ml-2 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <Package className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
                       Abertos
                     </p>
-                    <p className="text-lg font-bold">{statistics.openFreights}</p>
+                    <p className="text-lg font-bold leading-tight mt-1">{statistics.openFreights}</p>
                   </div>
                 </div>
               </CardContent>
@@ -884,14 +884,14 @@ const ProducerDashboard = () => {
             onClick={() => setActiveTab('ongoing')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center">
-                  <Play className="h-6 w-6 text-orange-500 flex-shrink-0" />
-                  <div className="ml-2 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <Play className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
                       Andamento
                     </p>
-                    <p className="text-lg font-bold">{statistics.activeFreights}</p>
+                    <p className="text-lg font-bold leading-tight mt-1">{statistics.activeFreights}</p>
                   </div>
                 </div>
               </CardContent>
@@ -904,14 +904,14 @@ const ProducerDashboard = () => {
             onClick={() => setActiveTab('confirm-delivery')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center">
-                  <Clock className="h-6 w-6 text-amber-500 flex-shrink-0" />
-                  <div className="ml-2 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <Clock className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
                       P/ Confirmar
                     </p>
-                    <p className="text-lg font-bold">{statistics.pendingConfirmation}</p>
+                    <p className="text-lg font-bold leading-tight mt-1">{statistics.pendingConfirmation}</p>
                   </div>
                 </div>
               </CardContent>
@@ -924,14 +924,14 @@ const ProducerDashboard = () => {
             onClick={() => setActiveTab('proposals')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center">
-                  <Users className="h-6 w-6 text-purple-500 flex-shrink-0" />
-                  <div className="ml-2 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <Users className="h-5 w-5 text-purple-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
                       Propostas
                     </p>
-                    <p className="text-lg font-bold">{statistics.pendingProposals}</p>
+                    <p className="text-lg font-bold leading-tight mt-1">{statistics.pendingProposals}</p>
                   </div>
                 </div>
               </CardContent>
@@ -944,14 +944,14 @@ const ProducerDashboard = () => {
             onClick={() => setActiveTab('payments')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center">
-                  <CreditCard className="h-6 w-6 text-green-500 flex-shrink-0" />
-                  <div className="ml-2 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <CreditCard className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
                       Pagamentos
                     </p>
-                    <p className="text-lg font-bold">{statistics.pendingPayments}</p>
+                    <p className="text-lg font-bold leading-tight mt-1">{statistics.pendingPayments}</p>
                   </div>
                 </div>
               </CardContent>
@@ -973,14 +973,14 @@ const ProducerDashboard = () => {
             }}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-center">
-                  <Wrench className="h-6 w-6 text-teal-500 flex-shrink-0" />
-                  <div className="ml-2 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate">
+              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
+                <div className="flex items-start gap-2 w-full">
+                  <Wrench className="h-5 w-5 text-teal-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
                       Serviços
                     </p>
-                    <p className="text-lg font-bold">{statistics.openServices || 0}</p>
+                    <p className="text-lg font-bold leading-tight mt-1">{statistics.openServices || 0}</p>
                   </div>
                 </div>
               </CardContent>
