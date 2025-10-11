@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { 
   MapPin, 
@@ -108,6 +109,9 @@ export const ServiceProviderDashboard: React.FC = () => {
   const [showEarnings, setShowEarnings] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [totalEarnings, setTotalEarnings] = useState(0);
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
 
   const getProviderProfileId = () => {
     if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
@@ -137,6 +141,25 @@ export const ServiceProviderDashboard: React.FC = () => {
         },
         (payload) => {
           console.log('Realtime update:', payload);
+          
+          // Se for UPDATE e envolver o serviço selecionado no modal
+          if (payload.eventType === 'UPDATE' && 
+              selectedRequest?.id === payload.new.id &&
+              showRequestModal) {
+            
+            // Verificar se foi aceito por outro prestador
+            if (payload.new.provider_id !== null && 
+                payload.new.provider_id !== getProviderProfileId()) {
+              toast({
+                title: "Serviço Não Disponível",
+                description: "Este serviço foi aceito por outro prestador.",
+                variant: "destructive",
+              });
+              setShowRequestModal(false);
+              setSelectedRequest(null);
+            }
+          }
+          
           // Recarregar dados quando houver mudanças
           fetchServiceRequests();
           refreshCounts();
@@ -156,6 +179,41 @@ export const ServiceProviderDashboard: React.FC = () => {
       clearInterval(interval);
     };
   }, [user, profile]);
+
+  // Monitorar disponibilidade do serviço em tempo real enquanto modal está aberto
+  useEffect(() => {
+    if (!showRequestModal || !selectedRequest) return;
+
+    const checkInterval = setInterval(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('service_requests')
+          .select('provider_id, status')
+          .eq('id', selectedRequest.id)
+          .single();
+
+        if (error) throw error;
+
+        // Se foi aceito por outro prestador, notificar e fechar modal
+        if (data.provider_id !== null || data.status !== 'OPEN') {
+          toast({
+            title: "Serviço Não Disponível",
+            description: "Este serviço foi aceito por outro prestador.",
+            variant: "destructive",
+          });
+          
+          setShowRequestModal(false);
+          setSelectedRequest(null);
+          fetchServiceRequests();
+          refreshCounts();
+        }
+      } catch (error) {
+        console.error('Error checking service availability:', error);
+      }
+    }, 3000); // Verificar a cada 3 segundos
+
+    return () => clearInterval(checkInterval);
+  }, [showRequestModal, selectedRequest]);
 
   const fetchServiceRequests = async () => {
     const providerId = getProviderProfileId();
@@ -366,6 +424,110 @@ export const ServiceProviderDashboard: React.FC = () => {
         description: error?.message || "Não foi possível aceitar a solicitação",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleAcceptFromModal = async (requestId: string) => {
+    setIsAccepting(true);
+    
+    try {
+      const providerId = getProviderProfileId();
+      if (!providerId) {
+        toast({
+          title: "Erro",
+          description: "Perfil de prestador não encontrado.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // VERIFICAÇÃO EM TEMPO REAL: Buscar estado atual do serviço
+      const { data: currentRequest, error: checkError } = await supabase
+        .from('service_requests')
+        .select('provider_id, status')
+        .eq('id', requestId)
+        .single();
+
+      if (checkError) {
+        throw new Error('Erro ao verificar disponibilidade do serviço');
+      }
+
+      // Verificar se já foi aceito por outro prestador
+      if (currentRequest.provider_id !== null || currentRequest.status !== 'OPEN') {
+        toast({
+          title: "Serviço Indisponível",
+          description: "Este serviço já foi aceito por outro prestador.",
+          variant: "destructive",
+        });
+        
+        // Fechar modal e atualizar lista
+        setShowRequestModal(false);
+        fetchServiceRequests();
+        refreshCounts();
+        return;
+      }
+
+      // Tentar aceitar usando a função RPC
+      const { data, error } = await supabase.rpc('accept_service_request', {
+        p_provider_id: providerId,
+        p_request_id: requestId,
+      });
+
+      if (error) {
+        // Verificar se é erro de concorrência
+        if (error.message.includes('indisponível') || error.message.includes('aceita')) {
+          toast({
+            title: "Serviço Indisponível",
+            description: "Este serviço foi aceito por outro prestador no momento.",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+        
+        setShowRequestModal(false);
+        fetchServiceRequests();
+        refreshCounts();
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        toast({
+          title: "Serviço Indisponível",
+          description: "Este serviço já foi aceito por outro prestador.",
+          variant: "destructive",
+        });
+        
+        setShowRequestModal(false);
+        fetchServiceRequests();
+        refreshCounts();
+        return;
+      }
+
+      // Sucesso!
+      toast({
+        title: "Sucesso! 🎉",
+        description: "Serviço aceito com sucesso! Confira na aba 'Ativas'.",
+      });
+
+      // Fechar modal e atualizar
+      setShowRequestModal(false);
+      fetchServiceRequests();
+      refreshCounts();
+      fetchTotalEarnings();
+      
+      // Mudar para a aba de serviços ativos
+      setActiveTab('accepted');
+
+    } catch (error: any) {
+      console.error('Error accepting request:', error);
+      toast({
+        title: "Erro",
+        description: error?.message || "Não foi possível aceitar a solicitação",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAccepting(false);
     }
   };
 
@@ -655,8 +817,8 @@ export const ServiceProviderDashboard: React.FC = () => {
             <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
               <TabsTrigger value="pending" className="text-xs">
                 <Brain className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Pendentes</span>
-                <span className="sm:hidden">Pend</span>
+                <span className="hidden sm:inline">Disponível</span>
+                <span className="sm:hidden">Disp</span>
               </TabsTrigger>
               <TabsTrigger value="accepted" className="text-xs">
                 <Play className="h-3 w-3 mr-1" />
@@ -694,7 +856,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           <TabsContent value="pending" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h3 className="text-lg font-semibold">Solicitações Pendentes</h3>
+                <h3 className="text-lg font-semibold">Solicitações Disponíveis</h3>
                 <p className="text-xs text-muted-foreground">
                   Atualizado há {Math.floor((new Date().getTime() - lastRefresh.getTime()) / 60000)} min • 
                   Auto-refresh a cada 30s
@@ -753,50 +915,54 @@ export const ServiceProviderDashboard: React.FC = () => {
             {filteredRequests.length > 0 ? (
               <div className="space-y-4">
                 {filteredRequests.map((request) => (
-                  <Card key={request.id} className="shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-medium text-sm">
-                          {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
-                        </h3>
-                        <Badge variant={getUrgencyColor(request.urgency)} className="text-xs">
-                          {request.urgency === 'URGENT' ? 'Urgente' : 
-                           request.urgency === 'HIGH' ? 'Alto' :
-                           request.urgency === 'MEDIUM' ? 'Médio' : 'Baixo'}
-                        </Badge>
-                      </div>
-                      
-                      <div className="space-y-2 mb-3">
-                        <p className="text-sm text-muted-foreground">
-                          <strong>Problema:</strong> {request.problem_description}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          <MapPin className="inline h-3 w-3 mr-1" />
-                          {request.location_address}
-                        </p>
-                         {request.estimated_price && (
-                           <p className="text-sm font-medium text-green-600">
-                             <DollarSign className="inline h-3 w-3 mr-1" />
-                             Valor: R$ {request.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  <Button
+                    key={request.id}
+                    variant="ghost"
+                    className="w-full p-0 h-auto text-left hover:bg-accent"
+                    onClick={() => {
+                      setSelectedRequest(request);
+                      setShowRequestModal(true);
+                    }}
+                  >
+                    <Card className="w-full shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-green-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-medium text-sm">
+                            {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
+                          </h3>
+                          <Badge variant={getUrgencyColor(request.urgency)} className="text-xs">
+                            {request.urgency === 'URGENT' ? 'Urgente' : 
+                             request.urgency === 'HIGH' ? 'Alto' :
+                             request.urgency === 'MEDIUM' ? 'Médio' : 'Baixo'}
+                          </Badge>
+                        </div>
+                        
+                        <div className="space-y-2 mb-3">
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            <strong>Problema:</strong> {request.problem_description}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            <MapPin className="inline h-3 w-3 mr-1" />
+                            {request.location_address}
+                          </p>
+                           {request.estimated_price && (
+                             <p className="text-sm font-medium text-green-600">
+                               <DollarSign className="inline h-3 w-3 mr-1" />
+                               Valor: R$ {request.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                             </p>
+                           )}
+                           <p className="text-xs text-muted-foreground">
+                             <Clock className="inline h-3 w-3 mr-1" />
+                             {new Date(request.created_at).toLocaleTimeString('pt-BR')}
                            </p>
-                         )}
-                         <p className="text-xs text-muted-foreground">
-                           <Clock className="inline h-3 w-3 mr-1" />
-                           Solicitado em: {new Date(request.created_at).toLocaleDateString('pt-BR')} às {new Date(request.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                         </p>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => handleAcceptRequest(request.id)}
-                        >
-                          Aceitar Serviço
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        </div>
+                        
+                        <div className="mt-3 text-xs text-primary font-medium">
+                          Clique para ver detalhes →
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Button>
                 ))}
               </div>
             ) : (
@@ -952,6 +1118,141 @@ export const ServiceProviderDashboard: React.FC = () => {
           </TabsContent>
 
         </Tabs>
+
+        {/* Modal de Detalhes da Solicitação */}
+        <Dialog open={showRequestModal} onOpenChange={setShowRequestModal}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Wrench className="h-5 w-5 text-green-600" />
+                Detalhes da Solicitação
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedRequest && (
+              <div className="space-y-6">
+                {/* Tipo de Serviço e Urgência */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      {serviceTypes.find(t => t.value === selectedRequest.service_type)?.label || selectedRequest.service_type}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Solicitado em {new Date(selectedRequest.created_at).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                  <Badge variant={getUrgencyColor(selectedRequest.urgency)} className="text-sm">
+                    {selectedRequest.urgency === 'URGENT' ? 'Urgente' : 
+                     selectedRequest.urgency === 'HIGH' ? 'Alto' :
+                     selectedRequest.urgency === 'MEDIUM' ? 'Médio' : 'Baixo'}
+                  </Badge>
+                </div>
+
+                <div className="h-px bg-border" />
+
+                {/* Informações do Cliente (se disponível) */}
+                {selectedRequest.contact_name && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Cliente
+                    </h4>
+                    <p className="text-sm">{selectedRequest.contact_name}</p>
+                  </div>
+                )}
+
+                {/* Descrição do Problema */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    Descrição do Problema
+                  </h4>
+                  <p className="text-sm bg-muted p-3 rounded-lg">
+                    {selectedRequest.problem_description}
+                  </p>
+                </div>
+
+                {/* Localização */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Localização
+                  </h4>
+                  <p className="text-sm bg-muted p-3 rounded-lg">
+                    {selectedRequest.location_address}
+                  </p>
+                </div>
+
+                {/* Informações do Veículo (se houver) */}
+                {selectedRequest.vehicle_info && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Truck className="h-4 w-4" />
+                      Informações do Veículo
+                    </h4>
+                    <p className="text-sm bg-muted p-3 rounded-lg">
+                      {selectedRequest.vehicle_info}
+                    </p>
+                  </div>
+                )}
+
+                {/* Valor Estimado */}
+                {selectedRequest.estimated_price && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Valor
+                    </h4>
+                    <p className="text-2xl font-bold text-green-600">
+                      R$ {selectedRequest.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                )}
+
+                {/* Informações Adicionais */}
+                {selectedRequest.additional_info && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold">Informações Adicionais</h4>
+                    <p className="text-sm bg-muted p-3 rounded-lg">
+                      {selectedRequest.additional_info}
+                    </p>
+                  </div>
+                )}
+
+                <div className="h-px bg-border" />
+
+                {/* Botões de Ação */}
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowRequestModal(false)}
+                    disabled={isAccepting}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => handleAcceptFromModal(selectedRequest.id)}
+                    disabled={isAccepting}
+                  >
+                    {isAccepting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        Aceitando...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Aceitar Serviço
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

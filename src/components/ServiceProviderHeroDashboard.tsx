@@ -133,16 +133,6 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-2xl mx-auto">
               <Button
-                onClick={() => setShowServiceTypesModal(true)}
-                variant="secondary"
-                size="lg"
-                className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
-              >
-                <Brain className="h-5 w-5 mr-2" />
-                Ver Serviços IA
-              </Button>
-              
-              <Button
                 onClick={() => setShowAreasModal(true)}
                 variant="secondary"
                 size="lg"
@@ -153,13 +143,13 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
               </Button>
               
               <Button
-                onClick={() => setShowSettingsModal(true)}
+                onClick={() => setShowServiceTypesModal(true)}
                 variant="secondary"
                 size="lg"
                 className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
               >
-                <Settings className="h-5 w-5 mr-2" />
-                Configurar
+                <Wrench className="h-5 w-5 mr-2" />
+                Configurar Serviços
               </Button>
               
               <Button
@@ -168,7 +158,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
                 size="lg"
                 className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
               >
-                <Wrench className="h-5 w-5 mr-2" />
+                <Settings className="h-5 w-5 mr-2" />
                 Solicitar Serviços
               </Button>
             </div>
@@ -186,7 +176,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
                   <MessageSquare className="h-6 w-6 text-green-600" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">Disponíveis</p>
+                  <p className="text-sm font-medium text-gray-600">Disponível</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.pending_requests}</p>
                 </div>
               </div>
