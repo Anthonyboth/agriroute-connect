@@ -1,5 +1,6 @@
 import React from 'react';
 import { ServiceProviderDashboard as ServiceDashboard } from '@/components/ServiceProviderDashboard';
+import { ServiceProviderHeroDashboard } from '@/components/ServiceProviderHeroDashboard';
 import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -33,6 +34,7 @@ const ServiceProviderDashboard = () => {
         userProfile={profile}
         notifications={unreadCount}
       />
+      <ServiceProviderHeroDashboard />
       <div className="container mx-auto py-6 px-4">
         <ServiceDashboard />
       </div>
