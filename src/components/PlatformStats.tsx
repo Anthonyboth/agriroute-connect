@@ -27,45 +27,36 @@ const PlatformStats: React.FC = () => {
       if (!error && data && data.length > 0) {
         const row = data[0] as any;
         setStats({
-          totalProducers: Number(row.produtores) || 355,
-          totalDrivers: Number(row.motoristas) || 892,
-          totalWeight: Math.round(Number(row.peso_total) || 2900),
-          averageRating: Math.round(((Number(row.avaliacao_media) || 4.8) * 10)) / 10,
+          totalProducers: Number(row.produtores) || 0,
+          totalDrivers: Number(row.motoristas) || 0,
+          totalWeight: Math.round(Number(row.peso_total) || 0),
+          averageRating: Math.round(((Number(row.avaliacao_media) || 0) * 10)) / 10,
           loading: false,
         });
       } else {
-        // Usar valores de fallback se RPC falhar
+        console.error('Erro ao buscar estatísticas:', error);
         setStats({
-          totalProducers: 355,
-          totalDrivers: 892,
-          totalWeight: 2900,
-          averageRating: 4.8,
+          totalProducers: 0,
+          totalDrivers: 0,
+          totalWeight: 0,
+          averageRating: 0,
           loading: false,
         });
       }
     } catch (e) {
-      // Usar valores de fallback em caso de erro
+      console.error('Erro ao buscar estatísticas:', e);
       setStats({
-        totalProducers: 355,
-        totalDrivers: 892,
-        totalWeight: 2900,
-        averageRating: 4.8,
+        totalProducers: 0,
+        totalDrivers: 0,
+        totalWeight: 0,
+        averageRating: 0,
         loading: false,
       });
     }
   };
 
   useEffect(() => {
-    // Usar valores estáticos para evitar sobrecarga no servidor
-    setStats({
-      totalProducers: 355,
-      totalDrivers: 892,
-      totalWeight: 2900,
-      averageRating: 4.8,
-      loading: false,
-    });
-    
-    // Não fazer requests para evitar travamentos
+    fetchStats();
   }, []);
 
   const formatNumber = (n: number) => n.toLocaleString('pt-BR');

@@ -95,36 +95,36 @@ const Landing = () => {
       if (!error && data && data.length > 0) {
         const row = data[0] as any;
         setRealStats({
-          totalProducers: Number(row.produtores) || 355,
-          totalDrivers: Number(row.motoristas) || 892,
-          totalServiceProviders: Number(row.prestadores) || 127,
-          totalWeight: Math.round(Number(row.peso_total) || 2900),
-          completedFreights: Number(row.fretes_entregues) || 2900,
-          totalUsers: Number(row.total_usuarios) || 1247,
-          averageRating: Math.round(((Number(row.avaliacao_media) || 4.8) * 10)) / 10,
+          totalProducers: Number(row.produtores) || 0,
+          totalDrivers: Number(row.motoristas) || 0,
+          totalServiceProviders: Number(row.prestadores) || 0,
+          totalWeight: Math.round(Number(row.peso_total) || 0),
+          completedFreights: Number(row.fretes_entregues) || 0,
+          totalUsers: Number(row.total_usuarios) || 0,
+          averageRating: Math.round(((Number(row.avaliacao_media) || 0) * 10)) / 10,
         });
       } else {
-        // Usar valores de fallback
+        console.error('Erro ao buscar estatísticas:', error);
         setRealStats({
-          totalProducers: 355,
-          totalDrivers: 892,
-          totalServiceProviders: 127,
-          totalWeight: 2900,
-          completedFreights: 2900,
-          totalUsers: 1247,
-          averageRating: 4.8,
+          totalProducers: 0,
+          totalDrivers: 0,
+          totalServiceProviders: 0,
+          totalWeight: 0,
+          completedFreights: 0,
+          totalUsers: 0,
+          averageRating: 0,
         });
       }
     } catch (error) {
-      // Usar valores de fallback em caso de erro
+      console.error('Erro ao buscar estatísticas:', error);
       setRealStats({
-        totalProducers: 355,
-        totalDrivers: 892,
-        totalServiceProviders: 127,
-        totalWeight: 2900,
-        completedFreights: 2900,
-        totalUsers: 1247,
-        averageRating: 4.8,
+        totalProducers: 0,
+        totalDrivers: 0,
+        totalServiceProviders: 0,
+        totalWeight: 0,
+        completedFreights: 0,
+        totalUsers: 0,
+        averageRating: 0,
       });
     }
   };
@@ -488,11 +488,13 @@ const Landing = () => {
               <p className="text-muted-foreground mb-4">
                 Conectando pessoas no agronegócio brasileiro.
               </p>
-              <div className="flex space-x-4 text-sm text-muted-foreground">
-                <span>+5.000 usuários</span>
-                <span>•</span>
-                <span>4.8★ avaliação</span>
-              </div>
+              {(realStats.totalUsers > 0 || realStats.averageRating > 0) && (
+                <div className="flex space-x-4 text-sm text-muted-foreground">
+                  {realStats.totalUsers > 0 && <span>{realStats.totalUsers.toLocaleString()} usuários</span>}
+                  {realStats.totalUsers > 0 && realStats.averageRating > 0 && <span>•</span>}
+                  {realStats.averageRating > 0 && <span>{realStats.averageRating.toFixed(1)}★ avaliação</span>}
+                </div>
+              )}
             </div>
             
             <div>

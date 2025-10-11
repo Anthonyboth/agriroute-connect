@@ -12,16 +12,6 @@ interface OptimizedStats {
   error: string | null;
 }
 
-const FALLBACK_STATS: OptimizedStats = {
-  totalUsers: 1247,
-  totalFreights: 3829,
-  averageRating: 4.8,
-  activeDrivers: 892,
-  activeProducers: 355,
-  completedFreights: 2900,
-  loading: false,
-  error: null
-};
 
 // Cache for stats data
 const CACHE_KEY = 'agri_stats_cache';
@@ -33,7 +23,16 @@ interface CachedStats {
 }
 
 export const useOptimizedStats = () => {
-  const [stats, setStats] = useState<OptimizedStats>(FALLBACK_STATS);
+  const [stats, setStats] = useState<OptimizedStats>({
+    totalUsers: 0,
+    totalFreights: 0,
+    averageRating: 0,
+    activeDrivers: 0,
+    activeProducers: 0,
+    completedFreights: 0,
+    loading: true,
+    error: null
+  });
   const [lastFetch, setLastFetch] = useState(0);
 
   // Get cached data if available and fresh
@@ -89,23 +88,28 @@ export const useOptimizedStats = () => {
       
       if (error) {
         console.warn('Stats fetch error:', error);
-        setStats(prev => ({ 
-          ...FALLBACK_STATS, 
+        setStats({ 
+          totalUsers: 0,
+          totalFreights: 0,
+          averageRating: 0,
+          activeDrivers: 0,
+          activeProducers: 0,
+          completedFreights: 0,
           loading: false, 
           error: 'Erro ao carregar estatísticas' 
-        }));
+        });
         return;
       }
 
       if (data && data.length > 0) {
         const row = data[0] as any;
         const newStats: OptimizedStats = {
-          totalUsers: Math.max(Number(row.total_usuarios) || 0, FALLBACK_STATS.totalUsers),
-          totalFreights: Math.max(Number(row.total_fretes) || 0, FALLBACK_STATS.totalFreights),
-          averageRating: Math.max(Number(row.avaliacao_media) || 0, FALLBACK_STATS.averageRating),
-          activeDrivers: Math.max(Number(row.motoristas) || 0, FALLBACK_STATS.activeDrivers),
-          activeProducers: Math.max(Number(row.produtores) || 0, FALLBACK_STATS.activeProducers),
-          completedFreights: Math.max(Number(row.fretes_entregues) || 0, FALLBACK_STATS.completedFreights),
+          totalUsers: Number(row.total_usuarios) || 0,
+          totalFreights: Number(row.total_fretes) || 0,
+          averageRating: Number(row.avaliacao_media) || 0,
+          activeDrivers: Number(row.motoristas) || 0,
+          activeProducers: Number(row.produtores) || 0,
+          completedFreights: Number(row.fretes_entregues) || 0,
           loading: false,
           error: null
         };
@@ -113,15 +117,29 @@ export const useOptimizedStats = () => {
         setStats(newStats);
         setCachedStats(newStats);
       } else {
-        setStats({ ...FALLBACK_STATS, loading: false });
+        setStats({
+          totalUsers: 0,
+          totalFreights: 0,
+          averageRating: 0,
+          activeDrivers: 0,
+          activeProducers: 0,
+          completedFreights: 0,
+          loading: false,
+          error: 'Dados não disponíveis'
+        });
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
-      setStats(prev => ({ 
-        ...FALLBACK_STATS, 
+      setStats({ 
+        totalUsers: 0,
+        totalFreights: 0,
+        averageRating: 0,
+        activeDrivers: 0,
+        activeProducers: 0,
+        completedFreights: 0,
         loading: false, 
         error: 'Erro de conexão' 
-      }));
+      });
     }
   }, [lastFetch, getCachedStats, setCachedStats]);
 

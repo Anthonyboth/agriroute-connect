@@ -13,16 +13,7 @@ export const DynamicStats: React.FC = () => {
   });
 
   useEffect(() => {
-    // Usar valores estáticos para evitar sobrecarga no servidor
-    setStats({
-      totalDrivers: 892,
-      totalProducers: 355,
-      totalFreights: 3829,
-      activeFreights: 247,
-      loading: false
-    });
-    
-    // Não fazer requests para evitar travamentos
+    fetchStats();
   }, []);
 
   const fetchStats = async () => {
@@ -40,22 +31,22 @@ export const DynamicStats: React.FC = () => {
           loading: false
         });
       } else {
-        // Usar valores de fallback se RPC falhar
+        console.error('Erro ao buscar estatísticas:', error);
         setStats({
-          totalDrivers: 892,
-          totalProducers: 355,
-          totalFreights: 3829,
-          activeFreights: 247,
+          totalDrivers: 0,
+          totalProducers: 0,
+          totalFreights: 0,
+          activeFreights: 0,
           loading: false
         });
       }
     } catch (error) {
-      // Usar valores de fallback em caso de erro
+      console.error('Erro ao buscar estatísticas:', error);
       setStats({
-        totalDrivers: 892,
-        totalProducers: 355,
-        totalFreights: 3829,
-        activeFreights: 247,
+        totalDrivers: 0,
+        totalProducers: 0,
+        totalFreights: 0,
+        activeFreights: 0,
         loading: false
       });
     }
