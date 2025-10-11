@@ -8,8 +8,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectGroup } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Loader2 } from 'lucide-react';
-import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
+import { Plus, Loader2, Truck, Info } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ANTTValidation } from './ANTTValidation';
+import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory, cargoRequiresAxles, AXLE_OPTIONS, VEHICLE_TYPES_URBAN } from '@/lib/cargo-types';
 import { LocationFillButton } from './LocationFillButton';
 import { CitySelector } from './CitySelector';
 import { StructuredAddressInput } from './StructuredAddressInput';
@@ -23,6 +26,10 @@ interface CreateFreightModalProps {
 const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModalProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showAxlesSelector, setShowAxlesSelector] = useState(false);
+  const [calculatedAnttPrice, setCalculatedAnttPrice] = useState<number | null>(null);
+  const [anttDetails, setAnttDetails] = useState<any>(null);
+  const [calculatedDistance, setCalculatedDistance] = useState<number>(0);
   const [formData, setFormData] = useState({
     cargo_type: '',
     weight: '',
@@ -45,6 +52,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     description: '',
     service_type: 'CARGA',
     vehicle_type_required: '',
+    vehicle_axles_required: '',
+    high_performance: false,
     pickup_observations: '',
     delivery_observations: '',
     payment_method: 'DIRETO',
@@ -107,7 +116,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: any) => {
     // Validação especial para forma de pagamento
     if (field === 'payment_method' && value !== 'DIRETO') {
       toast.error('Apenas pagamento direto ao motorista está disponível no momento');
@@ -116,6 +125,79 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  // Detectar se carga requer seleção de eixos
+  React.useEffect(() => {
+    if (formData.cargo_type) {
+      const requiresAxles = cargoRequiresAxles(formData.cargo_type);
+      setShowAxlesSelector(requiresAxles);
+      
+      // Limpar campos conflitantes
+      if (requiresAxles) {
+        setFormData(prev => ({ ...prev, vehicle_type_required: '' }));
+      } else {
+        setFormData(prev => ({ ...prev, vehicle_axles_required: '', high_performance: false }));
+        setCalculatedAnttPrice(null);
+        setAnttDetails(null);
+      }
+    }
+  }, [formData.cargo_type]);
+
+  // Calcular preço ANTT automaticamente
+  const calculateAnttPrice = async () => {
+    if (!formData.cargo_type || !calculatedDistance || !formData.vehicle_axles_required) {
+      return;
+    }
+    
+    try {
+      console.log('🔢 Calculating ANTT price...', {
+        cargo_type: formData.cargo_type,
+        distance_km: calculatedDistance,
+        axles: parseInt(formData.vehicle_axles_required),
+        high_performance: formData.high_performance
+      });
+
+      const { data, error } = await supabase.functions.invoke('antt-calculator', {
+        body: {
+          cargo_type: formData.cargo_type,
+          distance_km: calculatedDistance,
+          axles: parseInt(formData.vehicle_axles_required),
+          origin_state: formData.origin_state,
+          destination_state: formData.destination_state,
+          high_performance: formData.high_performance
+        }
+      });
+      
+      if (error) {
+        console.error('❌ Error calculating ANTT:', error);
+        throw error;
+      }
+      
+      console.log('✅ ANTT calculated:', data);
+      setCalculatedAnttPrice(data.minimum_freight_value);
+      setAnttDetails(data.calculation_details);
+      
+      // Sugerir preço se ainda não preenchido
+      if (!formData.price && !formData.price_per_km) {
+        if (formData.pricing_type === 'FIXED') {
+          handleInputChange('price', String(data.suggested_freight_value));
+        } else {
+          const pricePerKm = data.suggested_freight_value / calculatedDistance;
+          handleInputChange('price_per_km', pricePerKm.toFixed(2));
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao calcular ANTT:', error);
+      toast.error('Erro ao calcular preço ANTT. Usando valores aproximados.');
+    }
+  };
+
+  // Recalcular ANTT quando parâmetros mudarem
+  React.useEffect(() => {
+    if (showAxlesSelector && formData.vehicle_axles_required && calculatedDistance > 0) {
+      calculateAnttPrice();
+    }
+  }, [formData.cargo_type, formData.vehicle_axles_required, calculatedDistance, formData.high_performance, showAxlesSelector]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,6 +229,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
 
       // Calculate distance (mock for now)
       const distance = await calculateDistance(formData.origin_address, formData.destination_address);
+      setCalculatedDistance(distance); // Salvar para cálculo ANTT
+      
       // Extract states from addresses (basic extraction)
       const originState = extractStateFromAddress(formData.origin_address) || 'SP';
       const destState = extractStateFromAddress(formData.destination_address) || 'RJ';
@@ -183,6 +267,9 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         delivery_date: formData.delivery_date,
         urgency: formData.urgency,
         description: formData.description || null,
+        vehicle_type_required: (formData.vehicle_type_required || null) as any,
+        vehicle_axles_required: formData.vehicle_axles_required ? parseInt(formData.vehicle_axles_required) : null,
+        high_performance: formData.high_performance || false,
         status: 'OPEN' as const
       };
 
@@ -240,6 +327,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         description: '',
         service_type: 'CARGA',
         vehicle_type_required: '',
+        vehicle_axles_required: '',
+        high_performance: false,
         pickup_observations: '',
         delivery_observations: '',
         payment_method: 'DIRETO',
@@ -493,54 +582,73 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
             />
           </div>
 
-          {/* New Enhanced Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="vehicle_type_required">Tipo de Veículo Preferido</Label>
-              <Select value={formData.vehicle_type_required || 'all'} onValueChange={(value) => handleInputChange('vehicle_type_required', value === 'all' ? '' : value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Qualquer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Qualquer</SelectItem>
-                  <SelectItem value="TRUCK">Truck</SelectItem>
-                  <SelectItem value="BITREM">Bitrem</SelectItem>
-                  <SelectItem value="RODOTREM">Rodotrem</SelectItem>
-                  <SelectItem value="CARRETA">Carreta</SelectItem>
-                  <SelectItem value="CARRETA_BAU">Carreta Baú</SelectItem>
-                  <SelectItem value="VUC">VUC</SelectItem>
-                  <SelectItem value="TOCO">Toco</SelectItem>
-                  <SelectItem value="F400">Ford F-400</SelectItem>
-                  <SelectItem value="STRADA">Fiat Strada</SelectItem>
-                  <SelectItem value="CARRO_PEQUENO">Carro Pequeno</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Seleção Condicional: Eixos ou Tipo de Veículo */}
+          {showAxlesSelector ? (
+            <>
+              <Alert className="border-blue-200 bg-blue-50">
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  Para fretes rurais, o preço mínimo ANTT é calculado automaticamente baseado no número de eixos.
+                </AlertDescription>
+              </Alert>
 
-            <div className="space-y-2">
-              <Label htmlFor="payment_method">Forma de Pagamento</Label>
-              <Select value={formData.payment_method} onValueChange={(value) => handleInputChange('payment_method', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="DIRETO">Direto ao Motorista</SelectItem>
-                  <SelectItem value="PIX" disabled className="opacity-50">
-                    PIX (Em breve)
-                  </SelectItem>
-                  <SelectItem value="BOLETO" disabled className="opacity-50">
-                    Boleto (Em breve)
-                  </SelectItem>
-                  <SelectItem value="CARTAO" disabled className="opacity-50">
-                    Cartão (Em breve)
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Outras formas de pagamento estarão disponíveis em breve
-              </p>
+              <div className="space-y-2">
+                <Label htmlFor="vehicle_axles_required">Número de Eixos Requerido *</Label>
+                <Select value={formData.vehicle_axles_required || ''} onValueChange={(value) => handleInputChange('vehicle_axles_required', value)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {AXLE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={String(opt.value)}>
+                        {opt.label} • {opt.capacity} • {opt.description}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox id="high_performance" checked={formData.high_performance} onCheckedChange={(checked) => handleInputChange('high_performance', checked)} />
+                <Label htmlFor="high_performance" className="text-sm">⚡ Alto Desempenho (Tabela C)</Label>
+              </div>
+              
+              {calculatedAnttPrice && formData.vehicle_axles_required && (formData.price || formData.price_per_km) && (
+                <ANTTValidation
+                  proposedPrice={formData.pricing_type === 'FIXED' ? parseFloat(formData.price || '0') : parseFloat(formData.price_per_km || '0') * calculatedDistance}
+                  minimumAnttPrice={calculatedAnttPrice}
+                  distance={calculatedDistance}
+                  cargoType={formData.cargo_type}
+                  axles={parseInt(formData.vehicle_axles_required)}
+                  highPerformance={formData.high_performance}
+                  anttDetails={anttDetails}
+                />
+              )}
+            </>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="vehicle_type_required">Tipo de Veículo Preferido</Label>
+                <Select value={formData.vehicle_type_required || 'all'} onValueChange={(value) => handleInputChange('vehicle_type_required', value === 'all' ? '' : value)}>
+                  <SelectTrigger><SelectValue placeholder="Qualquer" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Qualquer</SelectItem>
+                    {VEHICLE_TYPES_URBAN.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="payment_method">Forma de Pagamento</Label>
+                <Select value={formData.payment_method} onValueChange={(value) => handleInputChange('payment_method', value)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DIRETO">Direto ao Motorista</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

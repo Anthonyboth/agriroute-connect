@@ -104,6 +104,45 @@ export type Database = {
         }
         Relationships: []
       }
+      antt_rates: {
+        Row: {
+          axles: number
+          cargo_category: string
+          created_at: string | null
+          diesel_price: number | null
+          effective_date: string | null
+          fixed_charge: number
+          id: string
+          rate_per_km: number
+          table_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          axles: number
+          cargo_category: string
+          created_at?: string | null
+          diesel_price?: number | null
+          effective_date?: string | null
+          fixed_charge: number
+          id?: string
+          rate_per_km: number
+          table_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          axles?: number
+          cargo_category?: string
+          created_at?: string | null
+          diesel_price?: number | null
+          effective_date?: string | null
+          fixed_charge?: number
+          id?: string
+          rate_per_km?: number
+          table_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       api_rate_limits: {
         Row: {
           created_at: string
@@ -1343,6 +1382,7 @@ export type Database = {
       freights: {
         Row: {
           accepted_trucks: number
+          cargo_category_antt: string | null
           cargo_type: string
           commission_amount: number | null
           commission_rate: number | null
@@ -1366,6 +1406,7 @@ export type Database = {
           extra_fees_description: string | null
           fiscal_documents_url: string | null
           flexible_dates: boolean | null
+          high_performance: boolean | null
           id: string
           is_scheduled: boolean | null
           last_location_update: string | null
@@ -1397,6 +1438,7 @@ export type Database = {
           tracking_status: string | null
           updated_at: string
           urgency: Database["public"]["Enums"]["urgency_level"]
+          vehicle_axles_required: number | null
           vehicle_type_required:
             | Database["public"]["Enums"]["vehicle_type"]
             | null
@@ -1404,6 +1446,7 @@ export type Database = {
         }
         Insert: {
           accepted_trucks?: number
+          cargo_category_antt?: string | null
           cargo_type: string
           commission_amount?: number | null
           commission_rate?: number | null
@@ -1427,6 +1470,7 @@ export type Database = {
           extra_fees_description?: string | null
           fiscal_documents_url?: string | null
           flexible_dates?: boolean | null
+          high_performance?: boolean | null
           id?: string
           is_scheduled?: boolean | null
           last_location_update?: string | null
@@ -1458,6 +1502,7 @@ export type Database = {
           tracking_status?: string | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["urgency_level"]
+          vehicle_axles_required?: number | null
           vehicle_type_required?:
             | Database["public"]["Enums"]["vehicle_type"]
             | null
@@ -1465,6 +1510,7 @@ export type Database = {
         }
         Update: {
           accepted_trucks?: number
+          cargo_category_antt?: string | null
           cargo_type?: string
           commission_amount?: number | null
           commission_rate?: number | null
@@ -1488,6 +1534,7 @@ export type Database = {
           extra_fees_description?: string | null
           fiscal_documents_url?: string | null
           flexible_dates?: boolean | null
+          high_performance?: boolean | null
           id?: string
           is_scheduled?: boolean | null
           last_location_update?: string | null
@@ -1519,6 +1566,7 @@ export type Database = {
           tracking_status?: string | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["urgency_level"]
+          vehicle_axles_required?: number | null
           vehicle_type_required?:
             | Database["public"]["Enums"]["vehicle_type"]
             | null
@@ -3679,6 +3727,7 @@ export type Database = {
           crlv_expiry_date: string | null
           crlv_url: string | null
           driver_id: string
+          high_performance: boolean | null
           id: string
           inspection_certificate_url: string | null
           insurance_document_url: string | null
@@ -3686,6 +3735,7 @@ export type Database = {
           last_inspection_date: string | null
           license_plate: string
           max_capacity_tons: number
+          primary_identification: string | null
           status: string
           updated_at: string
           vehicle_photo_url: string | null
@@ -3698,6 +3748,7 @@ export type Database = {
           crlv_expiry_date?: string | null
           crlv_url?: string | null
           driver_id: string
+          high_performance?: boolean | null
           id?: string
           inspection_certificate_url?: string | null
           insurance_document_url?: string | null
@@ -3705,6 +3756,7 @@ export type Database = {
           last_inspection_date?: string | null
           license_plate: string
           max_capacity_tons: number
+          primary_identification?: string | null
           status?: string
           updated_at?: string
           vehicle_photo_url?: string | null
@@ -3717,6 +3769,7 @@ export type Database = {
           crlv_expiry_date?: string | null
           crlv_url?: string | null
           driver_id?: string
+          high_performance?: boolean | null
           id?: string
           inspection_certificate_url?: string | null
           insurance_document_url?: string | null
@@ -3724,6 +3777,7 @@ export type Database = {
           last_inspection_date?: string | null
           license_plate?: string
           max_capacity_tons?: number
+          primary_identification?: string | null
           status?: string
           updated_at?: string
           vehicle_photo_url?: string | null
