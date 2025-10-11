@@ -72,6 +72,7 @@ const ProducerDashboard = () => {
   const [freightPayments, setFreightPayments] = useState<any[]>([]);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
+  const [serviceRequests, setServiceRequests] = useState<any[]>([]);
 
   // Buscar fretes - otimizado
   const fetchFreights = useCallback(async () => {
@@ -232,6 +233,46 @@ const ProducerDashboard = () => {
     }
   }, [profile?.id, profile?.role]);
 
+  // Buscar solicitações de serviço
+  const fetchServiceRequests = useCallback(async () => {
+    if (!profile?.id || profile.role !== 'PRODUTOR') {
+      console.log('fetchServiceRequests: Não executando - Profile não é produtor:', profile);
+      return;
+    }
+
+    console.log('fetchServiceRequests: Iniciando busca para produtor ID:', profile.id);
+
+    try {
+      const { data, error } = await supabase
+        .from('service_requests')
+        .select('*')
+        .eq('client_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      console.log('fetchServiceRequests: Resposta da query:', { data, error, count: data?.length });
+      
+      if (error) {
+        console.error('fetchServiceRequests: Erro na query:', error);
+        throw error;
+      }
+      
+      const serviceData = data || [];
+      console.log('fetchServiceRequests: Serviços encontrados por status:', {
+        OPEN: serviceData.filter(s => s.status === 'OPEN').length,
+        ACCEPTED: serviceData.filter(s => s.status === 'ACCEPTED').length,
+        IN_PROGRESS: serviceData.filter(s => s.status === 'IN_PROGRESS').length,
+        COMPLETED: serviceData.filter(s => s.status === 'COMPLETED').length,
+        total: serviceData.length
+      });
+      
+      setServiceRequests(serviceData);
+    } catch (error) {
+      console.error('fetchServiceRequests: Error:', error);
+      toast.error('Erro ao carregar serviços');
+    }
+  }, [profile?.id, profile?.role]);
+
   // Carregar dados - otimizado
   useEffect(() => {
     console.log('useEffect loadData executado. Profile:', profile);
@@ -259,7 +300,8 @@ const ProducerDashboard = () => {
           fetchFreights(),
           fetchProposals(),
           fetchExternalPayments(),
-          fetchFreightPayments()
+          fetchFreightPayments(),
+          fetchServiceRequests()
         ]);
       } catch (error) {
         console.error('loadData: Erro no carregamento:', error);
@@ -273,7 +315,7 @@ const ProducerDashboard = () => {
       console.log('loadData: Profile disponível, executando imediatamente');
       loadData();
     }
-  }, [profile?.id, profile?.role, fetchFreights, fetchProposals, fetchExternalPayments, fetchFreightPayments]);
+  }, [profile?.id, profile?.role, fetchFreights, fetchProposals, fetchExternalPayments, fetchFreightPayments, fetchServiceRequests]);
 
   // Carregar pagamentos junto com outros dados
   useEffect(() => {
@@ -307,13 +349,17 @@ const ProducerDashboard = () => {
         console.log('Mudança em pagamentos de fretes detectada:', payload);
         fetchFreightPayments();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_requests' }, (payload) => {
+        console.log('Mudança em service_requests detectada:', payload);
+        fetchServiceRequests();
+      })
       .subscribe();
 
     return () => {
       console.log('Removendo canal realtime');
       supabase.removeChannel(channel);
     };
-  }, [profile?.id, fetchFreights, fetchProposals, fetchExternalPayments, fetchFreightPayments]);
+  }, [profile?.id, fetchFreights, fetchProposals, fetchExternalPayments, fetchFreightPayments, fetchServiceRequests]);
 
   const handleAcceptProposal = async (proposalId: string) => {
     try {
@@ -442,6 +488,8 @@ const ProducerDashboard = () => {
         .filter(p => p.status === 'PENDING')
         .reduce((sum, p) => sum + (p.amount || 0), 0);
     
+    const openServices = serviceRequests.filter(s => s.status === 'OPEN').length;
+    
     return {
       openFreights: freights.filter(f => f.status === 'OPEN').length,
       activeFreights: freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).length,
@@ -449,9 +497,10 @@ const ProducerDashboard = () => {
       totalValue: freights.reduce((sum, f) => sum + f.price, 0),
       pendingProposals: proposals.length,
       pendingPayments: totalPendingPayments,
-      totalPendingAmount
+      totalPendingAmount,
+      openServices
     };
-  }, [freights, proposals, externalPayments, freightPayments]);
+  }, [freights, proposals, externalPayments, freightPayments, serviceRequests]);
 
   const openDeliveryConfirmationModal = (freight: any) => {
     setFreightToConfirm(freight);
@@ -808,7 +857,7 @@ const ProducerDashboard = () => {
 
       <div className="container max-w-7xl mx-auto py-4 px-4 pb-8">
         {/* Stats Cards Compactos - Navegáveis */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
           <Button 
             variant="ghost" 
             className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
@@ -903,6 +952,35 @@ const ProducerDashboard = () => {
                       Pagamentos
                     </p>
                     <p className="text-lg font-bold">{statistics.pendingPayments}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+            onClick={() => {
+              setActiveTab('history');
+              // Timeout para permitir que a tab 'history' seja renderizada primeiro
+              setTimeout(() => {
+                const servicesTab = document.querySelector('[data-value="services"]') as HTMLElement;
+                if (servicesTab) {
+                  servicesTab.click();
+                }
+              }, 100);
+            }}
+          >
+            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
+              <CardContent className="p-3">
+                <div className="flex items-center">
+                  <Wrench className="h-6 w-6 text-teal-500 flex-shrink-0" />
+                  <div className="ml-2 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground truncate">
+                      Serviços
+                    </p>
+                    <p className="text-lg font-bold">{statistics.openServices || 0}</p>
                   </div>
                 </div>
               </CardContent>
