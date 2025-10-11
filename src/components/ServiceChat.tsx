@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Image as ImageIcon, MessageSquare } from 'lucide-react';
+import { Send, Image as ImageIcon, MessageSquare, User, Wrench } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -22,6 +23,7 @@ interface Message {
     id: string;
     full_name: string;
     role: string;
+    profile_photo_url?: string;
   };
 }
 
@@ -48,7 +50,7 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
         .from('service_messages')
         .select(`
           *,
-          sender:profiles!service_messages_sender_id_fkey(id, full_name, role)
+          sender:profiles!service_messages_sender_id_fkey(id, full_name, role, profile_photo_url)
         `)
         .eq('service_request_id', serviceRequestId)
         .order('created_at', { ascending: true });
@@ -199,12 +201,22 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
               messages.map((msg) => {
                 const isCurrentUser = msg.sender_id === currentUserProfile?.id;
                 const roleBadge = msg.sender ? getRoleBadge(msg.sender.role) : null;
+                const isProducer = msg.sender?.role === 'PRODUTOR';
 
                 return (
                   <div
                     key={msg.id}
-                    className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                    className={`flex gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
                   >
+                    {!isCurrentUser && (
+                      <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
+                        <AvatarImage src={msg.sender?.profile_photo_url} />
+                        <AvatarFallback>
+                          {isProducer ? <User className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    
                     <div
                       className={`max-w-[70%] rounded-lg p-3 ${
                         isCurrentUser

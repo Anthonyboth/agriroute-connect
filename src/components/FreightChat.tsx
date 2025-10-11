@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Send, Image, MessageCircle, User, Truck } from 'lucide-react';
@@ -20,6 +20,7 @@ interface Message {
   sender?: {
     full_name: string;
     role: string;
+    profile_photo_url?: string;
   };
 }
 
@@ -46,7 +47,7 @@ export const FreightChat: React.FC<FreightChatProps> = ({
         .from('freight_messages')
         .select(`
           *,
-          sender:profiles!sender_id(full_name, role)
+          sender:profiles!sender_id(full_name, role, profile_photo_url)
         `)
         .eq('freight_id', freightId)
         .order('created_at', { ascending: true });
@@ -202,6 +203,7 @@ export const FreightChat: React.FC<FreightChatProps> = ({
                 >
                   <div className={`flex gap-2 max-w-[70%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                     <Avatar className="h-8 w-8 mt-1">
+                      <AvatarImage src={message.sender?.profile_photo_url} />
                       <AvatarFallback>
                         {isProducer ? <User className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
                       </AvatarFallback>

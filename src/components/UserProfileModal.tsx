@@ -7,10 +7,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { StarRating } from '@/components/StarRating';
-import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, User, MapPin, Phone, Mail, Calendar, Award } from 'lucide-react';
+import { ProfilePhotoUpload } from '@/components/ProfilePhotoUpload';
+import { StructuredAddressForm } from '@/components/StructuredAddressForm';
+import { formatAddress, Address } from '@/lib/address-utils';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -26,6 +28,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [ratingDistribution, setRatingDistribution] = useState<{ star_rating: number; count: number }[]>([]);
   const [profileData, setProfileData] = useState({
     full_name: '',
     phone: '',
@@ -34,7 +37,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     farm_address: '',
     cooperative: '',
     emergency_contact_name: '',
-    emergency_contact_phone: ''
+    emergency_contact_phone: '',
+    address_street: '',
+    address_number: '',
+    address_complement: '',
+    address_neighborhood: '',
+    address_city: '',
+    address_state: '',
+    address_zip: '',
   });
 
   useEffect(() => {
@@ -47,17 +57,57 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         farm_address: user.farm_address || '',
         cooperative: user.cooperative || '',
         emergency_contact_name: user.emergency_contact_name || '',
-        emergency_contact_phone: user.emergency_contact_phone || ''
+        emergency_contact_phone: user.emergency_contact_phone || '',
+        address_street: user.address_street || '',
+        address_number: user.address_number || '',
+        address_complement: user.address_complement || '',
+        address_neighborhood: user.address_neighborhood || '',
+        address_city: user.address_city || '',
+        address_state: user.address_state || '',
+        address_zip: user.address_zip || '',
       });
+      fetchRatingDistribution();
     }
   }, [user]);
+
+  const fetchRatingDistribution = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase.rpc('get_user_rating_distribution', {
+        p_user_id: user.id
+      });
+
+      if (error) throw error;
+      
+      setRatingDistribution(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar distribuição de avaliações:', error);
+    }
+  };
 
   const handleSave = async () => {
     setLoading(true);
     try {
       const { error } = await supabase
         .from('profiles')
-        .update(profileData)
+        .update({
+          full_name: profileData.full_name,
+          phone: profileData.phone,
+          contact_phone: profileData.contact_phone,
+          farm_name: profileData.farm_name,
+          farm_address: profileData.farm_address,
+          cooperative: profileData.cooperative,
+          emergency_contact_name: profileData.emergency_contact_name,
+          emergency_contact_phone: profileData.emergency_contact_phone,
+          address_street: profileData.address_street,
+          address_number: profileData.address_number,
+          address_complement: profileData.address_complement,
+          address_neighborhood: profileData.address_neighborhood,
+          address_city: profileData.address_city,
+          address_state: profileData.address_state,
+          address_zip: profileData.address_zip,
+        })
         .eq('user_id', user.user_id);
 
       if (error) throw error;
@@ -78,6 +128,42 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePhotoUploadComplete = async (url: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ profile_photo_url: url })
+        .eq('user_id', user.user_id);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Foto atualizada",
+        description: "Sua foto de perfil foi atualizada com sucesso!",
+      });
+    } catch (error: any) {
+      console.error('Error updating photo:', error);
+      toast({
+        title: "Erro ao atualizar foto",
+        description: "Não foi possível atualizar a foto.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddressChange = (address: Address) => {
+    setProfileData({
+      ...profileData,
+      address_street: address.street || '',
+      address_number: address.number || '',
+      address_complement: address.complement || '',
+      address_neighborhood: address.neighborhood || '',
+      address_city: address.city || '',
+      address_state: address.state || '',
+      address_zip: address.zip || '',
+    });
   };
 
   const getUserInitials = (name: string) => {
@@ -111,12 +197,22 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <Avatar className="h-12 w-12">
-              <AvatarImage src={user?.avatar_url} />
-              <AvatarFallback className="gradient-primary text-primary-foreground">
-                {getUserInitials(user?.full_name)}
-              </AvatarFallback>
-            </Avatar>
+            <div className="flex flex-col items-center gap-2">
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={user?.profile_photo_url} />
+                <AvatarFallback className="gradient-primary text-primary-foreground">
+                  {getUserInitials(user?.full_name)}
+                </AvatarFallback>
+              </Avatar>
+              {editMode && (
+                <ProfilePhotoUpload
+                  currentPhotoUrl={user?.profile_photo_url || ''}
+                  onUploadComplete={handlePhotoUploadComplete}
+                  userName={user?.full_name || ''}
+                  size="sm"
+                />
+              )}
+            </div>
             <div>
               <h2 className="text-xl font-bold">{user?.full_name}</h2>
               <div className="flex items-center gap-2">
@@ -281,6 +377,41 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   </div>
                 </div>
 
+                {/* Endereço Estruturado */}
+                <div className="pt-4 border-t">
+                  <Label className="flex items-center gap-2 mb-3">
+                    <MapPin className="h-4 w-4" />
+                    Endereço
+                  </Label>
+                  {editMode ? (
+                    <StructuredAddressForm
+                      value={{
+                        street: profileData.address_street,
+                        number: profileData.address_number,
+                        complement: profileData.address_complement,
+                        neighborhood: profileData.address_neighborhood,
+                        city: profileData.address_city,
+                        state: profileData.address_state,
+                        zip: profileData.address_zip,
+                      }}
+                      onChange={handleAddressChange}
+                      disabled={loading}
+                    />
+                  ) : (
+                    <div className="text-sm text-muted-foreground whitespace-pre-line">
+                      {formatAddress({
+                        street: user?.address_street,
+                        number: user?.address_number,
+                        complement: user?.address_complement,
+                        neighborhood: user?.address_neighborhood,
+                        city: user?.address_city,
+                        state: user?.address_state,
+                        zip: user?.address_zip,
+                      }) || 'Endereço não cadastrado'}
+                    </div>
+                  )}
+                </div>
+
                 {editMode && (
                   <div className="flex justify-end pt-4">
                     <Button onClick={handleSave} disabled={loading}>
@@ -316,27 +447,28 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   </p>
                 </div>
 
+                {/* Distribuição Real de Estrelas */}
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>5 estrelas</span>
-                    <span>0</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>4 estrelas</span>
-                    <span>0</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>3 estrelas</span>
-                    <span>0</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>2 estrelas</span>
-                    <span>0</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>1 estrela</span>
-                    <span>0</span>
-                  </div>
+                  {[5, 4, 3, 2, 1].map((stars) => {
+                    const starData = ratingDistribution.find(r => r.star_rating === stars);
+                    const count = starData?.count || 0;
+                    const percentage = user?.total_ratings > 0 
+                      ? (count / user.total_ratings) * 100 
+                      : 0;
+                    
+                    return (
+                      <div key={stars} className="flex items-center gap-2">
+                        <span className="text-sm w-16">{stars} estrelas</span>
+                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-yellow-400 transition-all"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                        <span className="text-sm text-muted-foreground w-8">{count}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -372,7 +504,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               </CardContent>
             </Card>
           </div>
-          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
