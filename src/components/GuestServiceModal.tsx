@@ -14,6 +14,13 @@ import { User, MessageCircle, Mail, Truck, Home, Package } from 'lucide-react';
 import { LocationFillButton } from './LocationFillButton';
 import { UserLocationSelector } from './UserLocationSelector';
 
+interface SubService {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  details?: string;
+}
 
 interface GuestServiceModalProps {
   isOpen: boolean;
@@ -42,7 +49,16 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
     origin_lat: undefined as number | undefined,
     origin_lng: undefined as number | undefined,
     destination_lat: undefined as number | undefined,
-    destination_lng: undefined as number | undefined
+    destination_lng: undefined as number | undefined,
+    cargoType: '',
+    cargoWeight: '',
+    cargoWeightUnit: 'kg' as 'kg' | 'ton',
+    cargoDimensions: {
+      length: '',
+      width: '',
+      height: ''
+    },
+    needsPackaging: false
   });
 
   const serviceInfo = {
@@ -51,12 +67,42 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
       description: 'Precisa de guincho, frete urbano ou mudança? Conectamos você com os melhores profissionais da sua região',
       icon: '🚛',
       subServices: [
-        { id: 'GUINCHO_LEVE', name: 'Guincho Leve', description: 'Para carros e motos', price: 'A partir de R$ 200' },
-        { id: 'GUINCHO_PESADO', name: 'Guincho Pesado', description: 'Para caminhões', price: 'A partir de R$ 200' },
-        { id: 'FRETE_URBANO_SIMPLES', name: 'Frete Urbano', description: 'Transporte de objetos', price: 'A partir de R$ 50' },
-        { id: 'MUDANCA_RESIDENCIAL', name: 'Mudança Residencial', description: 'Casa ou apartamento', price: 'A partir de R$ 200' },
-        { id: 'MUDANCA_COMERCIAL', name: 'Mudança Comercial', description: 'Escritórios e lojas', price: 'A partir de R$ 300' }
-      ],
+        { 
+          id: 'GUINCHO', 
+          name: 'Guincho', 
+          description: 'Para carros, motos e caminhões', 
+          price: 'A partir de R$ 200',
+          details: 'Reboque e socorro 24h para qualquer tipo de veículo'
+        },
+        { 
+          id: 'FRETE_MOTO', 
+          name: 'Frete por Moto', 
+          description: 'Entregas rápidas com motos e carretinhas', 
+          price: 'A partir de R$ 15',
+          details: 'Ideal para pequenas cargas até 150kg. Motos equipadas com carretinhas para maior capacidade.'
+        },
+        { 
+          id: 'FRETE_URBANO', 
+          name: 'Frete Urbano', 
+          description: 'Transporte de objetos', 
+          price: 'A partir de R$ 50',
+          details: 'Cargas até 1 tonelada'
+        },
+        { 
+          id: 'MUDANCA_RESIDENCIAL', 
+          name: 'Mudança Residencial', 
+          description: 'Casa ou apartamento', 
+          price: 'A partir de R$ 200',
+          details: 'Embalagem, desmontagem e montagem inclusos'
+        },
+        { 
+          id: 'MUDANCA_COMERCIAL', 
+          name: 'Mudança Comercial', 
+          description: 'Escritórios e lojas', 
+          price: 'A partir de R$ 300',
+          details: 'Profissionais especializados'
+        }
+      ] as SubService[],
       features: ['Atendimento 24h', 'Profissionais qualificados', 'Preços transparentes', 'Embalagem inclusa']
     },
     MUDANCA: {
@@ -85,11 +131,48 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar campos de carga se não for guincho
+    if (selectedSubService !== 'GUINCHO') {
+      if (!formData.cargoType) {
+        toast.error('Por favor, selecione o tipo de carga');
+        return;
+      }
+      if (!formData.cargoWeight) {
+        toast.error('Por favor, informe o peso aproximado da carga');
+        return;
+      }
+      
+      // Validar peso máximo para moto
+      if (selectedSubService === 'FRETE_MOTO') {
+        const weight = parseFloat(formData.cargoWeight);
+        const weightInKg = formData.cargoWeightUnit === 'ton' ? weight * 1000 : weight;
+        if (weightInKg > 150) {
+          toast.error('Frete por moto suporta cargas até 150kg. Escolha outro tipo de serviço.');
+          return;
+        }
+      }
+    }
+    
     setLoading(true);
 
     try {
+      // Dados completos da solicitação incluindo informações da carga
+      const requestData = {
+        ...formData,
+        serviceType: selectedSubService,
+        cargoInfo: selectedSubService !== 'GUINCHO' ? {
+          type: formData.cargoType,
+          weight: `${formData.cargoWeight}${formData.cargoWeightUnit}`,
+          dimensions: formData.cargoDimensions,
+          needsPackaging: formData.needsPackaging
+        } : null
+      };
+      
+      console.log('Dados da solicitação:', requestData);
+      
       await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success('Solicitação enviada! Entraremos em contato em breve.');
+      toast.success('Solicitação enviada! As informações da carga ficarão visíveis para os motoristas.');
       onClose();
     } catch (error) {
       toast.error('Erro ao enviar solicitação.');
@@ -124,7 +207,12 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                       <Card 
                         key={service.id} 
                         className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-primary"
-                        onClick={() => setSelectedSubService(service.id)}
+                        onClick={() => {
+                          setSelectedSubService(service.id);
+                          if (service.details) {
+                            toast.info(service.details, { duration: 3000 });
+                          }
+                        }}
                       >
                         <CardHeader className="pb-3">
                           <CardTitle className="text-lg">{service.name}</CardTitle>
@@ -204,6 +292,140 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                     )}
                   </div>
 
+                  {/* Campos de Informações da Carga */}
+                  {selectedSubService && selectedSubService !== 'GUINCHO' && (
+                    <>
+                      <Separator className="my-4" />
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                          📦 Informações da Carga
+                        </h4>
+                        
+                        {/* Tipo de Carga */}
+                        <div className="space-y-2">
+                          <Label htmlFor="cargoType">Tipo de Carga *</Label>
+                          <Select
+                            value={formData.cargoType}
+                            onValueChange={(value) => handleInputChange('cargoType', value)}
+                            required
+                          >
+                            <SelectTrigger id="cargoType">
+                              <SelectValue placeholder="Selecione o tipo de carga" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="DOCUMENTOS">Documentos e Papéis</SelectItem>
+                              <SelectItem value="ELETRONICOS">Eletrônicos</SelectItem>
+                              <SelectItem value="MOVEIS">Móveis</SelectItem>
+                              <SelectItem value="ELETRODOMESTICOS">Eletrodomésticos</SelectItem>
+                              <SelectItem value="ALIMENTOS">Alimentos</SelectItem>
+                              <SelectItem value="ROUPAS">Roupas e Tecidos</SelectItem>
+                              <SelectItem value="MATERIAIS_CONSTRUCAO">Materiais de Construção</SelectItem>
+                              <SelectItem value="PRODUTOS_LIMPEZA">Produtos de Limpeza</SelectItem>
+                              <SelectItem value="MEDICAMENTOS">Medicamentos</SelectItem>
+                              <SelectItem value="OUTROS">Outros</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Peso da Carga */}
+                        <div className="space-y-2">
+                          <Label htmlFor="cargoWeight">Peso Aproximado *</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="cargoWeight"
+                              type="number"
+                              value={formData.cargoWeight}
+                              onChange={(e) => handleInputChange('cargoWeight', e.target.value)}
+                              placeholder="Ex: 50"
+                              required
+                              className="flex-1"
+                              min="0"
+                              step="0.1"
+                            />
+                            <Select
+                              value={formData.cargoWeightUnit}
+                              onValueChange={(value) => setFormData(prev => ({ ...prev, cargoWeightUnit: value as 'kg' | 'ton' }))}
+                            >
+                              <SelectTrigger className="w-24">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="kg">kg</SelectItem>
+                                <SelectItem value="ton">ton</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {selectedSubService === 'FRETE_MOTO' && formData.cargoWeight && (
+                            <p className="text-xs text-muted-foreground">
+                              ⚠️ Motos com carretinha suportam até 150kg
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Dimensões (opcional) */}
+                        <div className="space-y-2">
+                          <Label>Dimensões (opcional)</Label>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <Input
+                                placeholder="Comp. (cm)"
+                                type="number"
+                                value={formData.cargoDimensions.length}
+                                onChange={(e) => setFormData(prev => ({
+                                  ...prev,
+                                  cargoDimensions: { ...prev.cargoDimensions, length: e.target.value }
+                                }))}
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <Input
+                                placeholder="Larg. (cm)"
+                                type="number"
+                                value={formData.cargoDimensions.width}
+                                onChange={(e) => setFormData(prev => ({
+                                  ...prev,
+                                  cargoDimensions: { ...prev.cargoDimensions, width: e.target.value }
+                                }))}
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <Input
+                                placeholder="Alt. (cm)"
+                                type="number"
+                                value={formData.cargoDimensions.height}
+                                onChange={(e) => setFormData(prev => ({
+                                  ...prev,
+                                  cargoDimensions: { ...prev.cargoDimensions, height: e.target.value }
+                                }))}
+                                min="0"
+                              />
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Ajuda o motorista a saber se a carga cabe no veículo
+                          </p>
+                        </div>
+
+                        {/* Necessita Embalagem */}
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="needsPackaging"
+                            checked={formData.needsPackaging}
+                            onChange={(e) => setFormData(prev => ({ ...prev, needsPackaging: e.target.checked }))}
+                            className="h-4 w-4 rounded border-gray-300"
+                          />
+                          <Label htmlFor="needsPackaging" className="font-normal cursor-pointer">
+                            Necessita embalagem especial ou proteção extra
+                          </Label>
+                        </div>
+                      </div>
+                      <Separator className="my-4" />
+                    </>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="description">Descrição *</Label>
                     <Textarea
@@ -211,6 +433,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                       value={formData.description}
                       onChange={(e) => handleInputChange('description', e.target.value)}
                       required
+                      placeholder="Descreva detalhes adicionais sobre a solicitação..."
                     />
                   </div>
 
