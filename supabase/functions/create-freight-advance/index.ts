@@ -159,12 +159,20 @@ serve(async (req) => {
         body: {
           user_id: freight.producer_id,
           title: 'Nova Solicitação de Adiantamento',
-          message: `O motorista solicitou um adiantamento de R$ ${(calculatedAmount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} para o frete de ${freight.cargo_type}. ATENÇÃO: O pagamento deve ser feito diretamente ao motorista. O pagamento pela plataforma ainda não está disponível.`,
+          message: `O motorista solicitou um adiantamento de R$ ${(calculatedAmount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} para o frete de ${freight.cargo_type}. 
+
+⚠️ IMPORTANTE: O pagamento deve ser acertado diretamente com o motorista através do chat do frete. A plataforma ainda não processa pagamentos de adiantamento.
+
+💬 Use o chat do frete para combinar a forma de pagamento.`,
           type: 'advance_request',
           data: {
             advance_id: advanceRecord.id,
             freight_id: freight_id,
-            amount: calculatedAmount
+            amount: calculatedAmount,
+            requires_action: true,
+            action_type: 'chat',
+            action_label: 'Ir para o chat do frete',
+            chat_freight_id: freight_id
           }
         }
       });
@@ -184,6 +192,21 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
+    // Capturar Response objects lançados pelo validateInput
+    if (error instanceof Response) {
+      const errorBody = await error.json();
+      const errorMessage = errorBody.error || 'Validation error';
+      logStep("VALIDATION ERROR", errorBody);
+      return new Response(JSON.stringify({ 
+        error: errorMessage,
+        details: errorBody.details 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: error.status || 400,
+      });
+    }
+    
+    // Tratamento normal para outros erros
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR in create-freight-advance", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {

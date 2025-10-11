@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, DollarSign, Percent, AlertTriangle } from "lucide-react";
+import { Loader2, DollarSign, Percent, AlertTriangle, MessageSquare } from "lucide-react";
 
 interface FreightAdvanceModalProps {
   isOpen: boolean;
@@ -37,6 +37,28 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
     
     try {
       const requestedAmount = calculatedAmount;
+      
+      // Validar valores antes de enviar
+      if (advanceType === "amount" && (isNaN(parseFloat(customAmount)) || parseFloat(customAmount) <= 0)) {
+        toast.error("Por favor, insira um valor válido para o adiantamento.");
+        setIsLoading(false);
+        setHasRequestedRecently(false);
+        return;
+      }
+
+      if (requestedAmount > freightPrice * 0.5) {
+        toast.error(`O adiantamento não pode exceder 50% do valor do frete (máx: R$ ${(freightPrice * 0.5).toFixed(2)})`);
+        setIsLoading(false);
+        setHasRequestedRecently(false);
+        return;
+      }
+
+      if (requestedAmount < 1) {
+        toast.error("O valor do adiantamento deve ser maior que R$ 1,00");
+        setIsLoading(false);
+        setHasRequestedRecently(false);
+        return;
+      }
       
       // Verificar solicitações duplicadas (mesmo valor nas últimas 2 horas)
       const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
@@ -79,14 +101,17 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
 
       if (error) throw error;
 
-      toast.success("Solicitação de adiantamento enviada ao produtor!");
+      toast.success("Solicitação enviada! O produtor foi notificado. Combine o pagamento no chat do frete.");
       onClose();
       
       // Reset após 30 segundos
       setTimeout(() => setHasRequestedRecently(false), 30000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating advance:', error);
-      toast.error("Erro ao criar solicitação de adiantamento. Tente novamente.");
+      const errorMessage = error?.message || error?.error || "Erro ao criar solicitação";
+      const errorDetails = error?.details ? 
+        "\n\n" + error.details.map((d: any) => `${d.field}: ${d.message}`).join("\n") : "";
+      toast.error(`${errorMessage}${errorDetails}`);
       setHasRequestedRecently(false);
     } finally {
       setIsLoading(false);
@@ -153,6 +178,21 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-6 max-h-[calc(90vh-160px)]">
+          {/* Aviso sobre pagamento direto */}
+          <Alert className="border-l-4 border-l-blue-500 bg-blue-50 border-blue-200">
+            <MessageSquare className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="ml-2">
+              <div className="font-semibold text-blue-800">
+                💬 Pagamento Direto com o Produtor
+              </div>
+              <div className="text-sm text-blue-700 mt-1">
+                Esta é apenas uma <strong>solicitação</strong> ao produtor. 
+                O pagamento deve ser combinado diretamente no chat do frete.
+                A plataforma ainda não processa pagamentos automáticos.
+              </div>
+            </AlertDescription>
+          </Alert>
+
           {/* Status das Solicitações Pendentes */}
           {pendingCount > 0 && (
             <Alert className={`border-l-4 ${
