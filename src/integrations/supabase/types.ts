@@ -3990,28 +3990,15 @@ export type Database = {
         }[]
       }
       get_freights_in_radius: {
-        Args: { driver_profile_id: string }
+        Args: { p_driver_id: string }
         Returns: {
           cargo_type: string
-          created_at: string
-          delivery_date: string
-          description: string
           destination_address: string
-          destination_city: string
-          destination_state: string
-          distance_km: number
           distance_m: number
-          id: string
+          freight_id: string
           origin_address: string
-          origin_city: string
-          origin_state: string
-          pickup_date: string
           price: number
-          producer_id: string
-          service_radius_km: number
-          status: Database["public"]["Enums"]["freight_status"]
-          urgency: Database["public"]["Enums"]["urgency_level"]
-          weight: number
+          status: string
         }[]
       }
       get_platform_stats: {
@@ -4176,26 +4163,15 @@ export type Database = {
         }[]
       }
       get_service_requests_in_radius: {
-        Args: { provider_profile_id: string }
+        Args: { p_provider_id: string }
         Returns: {
-          client_id: string
-          contact_name: string
-          contact_phone: string
-          created_at: string
+          destination_address: string
           distance_m: number
-          estimated_price: number
-          id: string
-          is_emergency: boolean
-          location_address: string
-          location_city: string
-          location_lat: number
-          location_lng: number
-          location_state: string
-          problem_description: string
-          service_radius_km: number
+          origin_address: string
+          price: number
+          request_id: string
           service_type: string
           status: string
-          urgency: string
         }[]
       }
       get_user_role: {
