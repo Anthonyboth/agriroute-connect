@@ -56,6 +56,7 @@ const Landing = () => {
   const [realStats, setRealStats] = useState({
     totalProducers: 0,
     totalDrivers: 0,
+    totalServiceProviders: 0,
     totalWeight: 0,
     completedFreights: 0,
     totalUsers: 0,
@@ -96,6 +97,7 @@ const Landing = () => {
         setRealStats({
           totalProducers: Number(row.produtores) || 355,
           totalDrivers: Number(row.motoristas) || 892,
+          totalServiceProviders: Number(row.prestadores) || 127,
           totalWeight: Math.round(Number(row.peso_total) || 2900),
           completedFreights: Number(row.fretes_entregues) || 2900,
           totalUsers: Number(row.total_usuarios) || 1247,
@@ -106,6 +108,7 @@ const Landing = () => {
         setRealStats({
           totalProducers: 355,
           totalDrivers: 892,
+          totalServiceProviders: 127,
           totalWeight: 2900,
           completedFreights: 2900,
           totalUsers: 1247,
@@ -117,6 +120,7 @@ const Landing = () => {
       setRealStats({
         totalProducers: 355,
         totalDrivers: 892,
+        totalServiceProviders: 127,
         totalWeight: 2900,
         completedFreights: 2900,
         totalUsers: 1247,
@@ -160,21 +164,30 @@ const Landing = () => {
   ];
 
   const stats = [
+    // Posição 1: Topo
     { 
       value: realStats.totalProducers > 0 ? `${realStats.totalProducers.toLocaleString()}` : '0', 
-      label: 'Produtores Conectados' 
+      label: 'Produtores Conectados'
     },
+    // Posição 2: Esquerda Superior
     { 
       value: realStats.totalDrivers > 0 ? `${realStats.totalDrivers.toLocaleString()}` : '0', 
-      label: 'Motoristas Ativos' 
+      label: 'Motoristas Ativos'
     },
+    // Posição 3: Direita Superior (NOVO)
+    { 
+      value: realStats.totalServiceProviders > 0 ? `${realStats.totalServiceProviders.toLocaleString()}` : '0', 
+      label: 'Prestadores de Serviços Ativos'
+    },
+    // Posição 4: Esquerda Inferior
     { 
       value: formatTonsCompactFromKg(realStats.totalWeight), 
-      label: 'Toneladas Transportadas' 
+      label: 'Toneladas Transportadas'
     },
+    // Posição 5: Direita Inferior
     { 
       value: realStats.averageRating > 0 ? `${realStats.averageRating.toFixed(1)}★` : '0★', 
-      label: 'Avaliação Média' 
+      label: 'Avaliação Média'
     }
   ];
 
@@ -297,17 +310,64 @@ const Landing = () => {
               Resultados que comprovam nossa excelência
             </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat) => (
-              <Card key={stat.label} className="text-center shadow-card">
+          {/* Layout Pentagonal */}
+          <div className="relative max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
+              
+              {/* Posição 1: Topo (center em desktop) */}
+              <Card className="col-span-2 md:col-span-3 text-center shadow-card mx-auto w-full md:w-1/3">
                 <CardContent className="p-6">
                   <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
-                    {stat.value}
+                    {stats[0].value}
                   </div>
-                  <div className="text-muted-foreground">{stat.label}</div>
+                  <div className="text-muted-foreground">{stats[0].label}</div>
                 </CardContent>
               </Card>
-            ))}
+              
+              {/* Posição 2: Esquerda Superior */}
+              <Card className="text-center shadow-card">
+                <CardContent className="p-6">
+                  <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
+                    {stats[1].value}
+                  </div>
+                  <div className="text-muted-foreground">{stats[1].label}</div>
+                </CardContent>
+              </Card>
+              
+              {/* Espaço vazio no mobile / Centro em desktop */}
+              <div className="hidden md:block"></div>
+              
+              {/* Posição 3: Direita Superior (NOVO) */}
+              <Card className="text-center shadow-card">
+                <CardContent className="p-6">
+                  <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
+                    {stats[2].value}
+                  </div>
+                  <div className="text-muted-foreground">{stats[2].label}</div>
+                </CardContent>
+              </Card>
+              
+              {/* Posição 4: Esquerda Inferior */}
+              <Card className="text-center shadow-card">
+                <CardContent className="p-6">
+                  <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
+                    {stats[3].value}
+                  </div>
+                  <div className="text-muted-foreground">{stats[3].label}</div>
+                </CardContent>
+              </Card>
+              
+              {/* Posição 5: Direita Inferior */}
+              <Card className="text-center shadow-card">
+                <CardContent className="p-6">
+                  <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
+                    {stats[4].value}
+                  </div>
+                  <div className="text-muted-foreground">{stats[4].label}</div>
+                </CardContent>
+              </Card>
+              
+            </div>
           </div>
         </div>
       </section>
