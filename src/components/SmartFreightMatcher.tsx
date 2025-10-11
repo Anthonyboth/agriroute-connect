@@ -79,7 +79,46 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         { p_driver_id: profile.id }
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao carregar fretes compatíveis:', error);
+        
+        // Fallback automático por cidade/estado se erro de geografia
+        if (error.code === '42704' || error.message?.includes('geography') || error.message?.includes('ST_')) {
+          toast.info('Usando busca por cidade/estado');
+          
+          // Buscar áreas ativas do motorista
+          const { data: areas } = await supabase
+            .from('driver_service_areas')
+            .select('city_name, state')
+            .eq('driver_id', profile.id)
+            .eq('is_active', true);
+          
+          if (areas && areas.length > 0) {
+            // Construir filtro OR para cidades/estados
+            const cityFilters = areas.map(a => 
+              `origin_city.ilike.%${a.city_name}%,origin_state.ilike.%${a.state}%,destination_city.ilike.%${a.city_name}%,destination_state.ilike.%${a.state}%`
+            ).join(',');
+            
+            // Buscar fretes OPEN que casem por cidade/estado
+            const { data: fallbackFreights } = await supabase
+              .from('freights')
+              .select('*')
+              .eq('status', 'OPEN')
+              .or(cityFilters);
+            
+            if (fallbackFreights) {
+              // Filtrar apenas fretes que ainda têm vagas disponíveis
+              const availableFreights = fallbackFreights.filter((f: any) => 
+                f.accepted_trucks < f.required_trucks
+              );
+              setCompatibleFreights(availableFreights as any);
+              return;
+            }
+          }
+        }
+        
+        throw error;
+      }
       // Filtrar pelos tipos de serviço que o motorista presta (CARGA, GUINCHO, MUDANCA)
       const allowedTypes = Array.isArray(profile?.service_types)
         ? (profile?.service_types as unknown as string[]).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA'].includes(t))

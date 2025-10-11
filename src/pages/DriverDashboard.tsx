@@ -248,7 +248,63 @@ const [showRegionModal, setShowRegionModal] = useState(false);
         { p_driver_id: profile.id }
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao carregar fretes:', error);
+        
+        // Fallback automático por cidade/estado se erro de geografia
+        if (error.code === '42704' || error.message?.includes('geography') || error.message?.includes('ST_')) {
+          toast.info('Usando busca por cidade/estado');
+          
+          // Buscar áreas ativas do motorista
+          const { data: areas } = await supabase
+            .from('driver_service_areas')
+            .select('city_name, state')
+            .eq('driver_id', profile.id)
+            .eq('is_active', true);
+          
+          if (areas && areas.length > 0) {
+            // Construir filtro OR para cidades/estados
+            const cityFilters = areas.map(a => 
+              `origin_city.ilike.%${a.city_name}%,origin_state.ilike.%${a.state}%,destination_city.ilike.%${a.city_name}%,destination_state.ilike.%${a.state}%`
+            ).join(',');
+            
+            // Buscar fretes OPEN que casem por cidade/estado
+            const { data: fallbackFreights } = await supabase
+              .from('freights')
+              .select('*')
+              .eq('status', 'OPEN')
+              .or(cityFilters)
+              .limit(100);
+            
+            if (fallbackFreights) {
+              // Filtrar apenas fretes que ainda têm vagas disponíveis
+              const availableFreights = fallbackFreights.filter((f: any) => 
+                f.accepted_trucks < f.required_trucks
+              );
+              
+              const formattedFreights = (availableFreights || []).map((f: any) => ({
+                id: f.id,
+                cargo_type: f.cargo_type,
+                weight: f.weight,
+                origin_address: f.origin_address,
+                destination_address: f.destination_address,
+                pickup_date: f.pickup_date,
+                delivery_date: f.delivery_date,
+                price: f.price,
+                urgency: f.urgency,
+                status: f.status,
+                distance_km: f.distance_km,
+                minimum_antt_price: f.minimum_antt_price,
+                service_type: f.service_type
+              }));
+              setAvailableFreights(formattedFreights);
+              return;
+            }
+          }
+        }
+        
+        throw error;
+      }
       
       // Mapear os dados para o formato esperado
       const formattedFreights = (freights || []).map((f: any) => ({
