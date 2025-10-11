@@ -363,35 +363,38 @@ const ProducerDashboard = () => {
 
   const handleAcceptProposal = async (proposalId: string) => {
     try {
-      // Busca a proposta no estado atual para obter o freight_id sem precisar de select().single()
-      const proposal = proposals.find(p => p.id === proposalId);
+      if (!profile?.id) {
+        toast.error('Erro: perfil não encontrado');
+        return;
+      }
 
-      // Atualiza o status da proposta
-      const { error: proposalError } = await supabase
-        .from('freight_proposals')
-        .update({ status: 'ACCEPTED' })
-        .eq('id', proposalId);
-      if (proposalError) throw proposalError;
+      // Usar nova edge function para aceitar proposta e criar assignment
+      const { data, error } = await supabase.functions.invoke('accept-freight-proposal', {
+        body: {
+          proposal_id: proposalId,
+          producer_id: profile.id
+        }
+      });
 
-      // Atualiza o status do frete para ACCEPTED e associa o motorista
-      if (proposal?.freight?.id) {
-        const { error: freightError } = await supabase
-          .from('freights')
-          .update({ 
-            status: 'ACCEPTED',
-            driver_id: proposal.driver_id 
-          })
-          .eq('id', proposal.freight.id)
-          .eq('producer_id', profile?.id || '');
-        
-        if (freightError) throw freightError;
+      if (error) {
+        console.error('Error accepting proposal:', error);
+        toast.error(error.message || 'Erro ao aceitar proposta');
+        return;
+      }
+
+      // Mostrar informações sobre vagas restantes
+      if (data?.remaining_trucks > 0) {
+        toast.success(
+          `Proposta aceita! Ainda ${data.remaining_trucks === 1 ? 'falta' : 'faltam'} ${data.remaining_trucks} ${data.remaining_trucks === 1 ? 'carreta' : 'carretas'}.`
+        );
+      } else {
+        toast.success('Proposta aceita! Todas as carretas foram contratadas.');
       }
 
       // Remove a proposta aceita imediatamente do estado local e atualiza lista de fretes
       setProposals(prev => prev.filter(proposal => proposal.id !== proposalId));
       fetchFreights();
       
-      toast.success('Proposta aceita com sucesso!');
     } catch (error) {
       console.error('Error accepting proposal:', error);
       toast.error('Erro ao aceitar proposta');

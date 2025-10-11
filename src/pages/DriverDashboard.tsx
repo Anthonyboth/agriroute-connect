@@ -17,6 +17,7 @@ import { SmartFreightMatcher } from '@/components/SmartFreightMatcher';
 import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
+import { MyAssignmentCard } from '@/components/MyAssignmentCard';
 
 import { DriverPayouts } from '@/components/DriverPayouts';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
@@ -111,6 +112,7 @@ const DriverDashboard = () => {
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
   const [counterOffers, setCounterOffers] = useState<any[]>([]);
   const [ongoingFreights, setOngoingFreights] = useState<Freight[]>([]);
+  const [myAssignments, setMyAssignments] = useState<any[]>([]);
   const [transportRequests, setTransportRequests] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('available');
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
@@ -383,6 +385,24 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     } catch (error) {
       console.error('Error fetching proposals:', error);
       toast.error('Erro ao carregar suas propostas');
+    }
+  }, [profile?.id, profile?.role]);
+
+  // Buscar assignments do motorista (fretes com valores individualizados)
+  const fetchMyAssignments = useCallback(async () => {
+    if (!profile?.id || profile.role !== 'MOTORISTA') return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('get-driver-assignments');
+      
+      if (error) {
+        console.error('Error fetching assignments:', error);
+        return;
+      }
+      
+      setMyAssignments(data?.assignments || []);
+    } catch (error) {
+      console.error('Error fetching assignments:', error);
     }
   }, [profile?.id, profile?.role]);
 
@@ -741,6 +761,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         await Promise.all([
           fetchAvailableFreights(),
           fetchMyProposals(),
+          fetchMyAssignments(),
           fetchOngoingFreights(),
           fetchTransportRequests(),
           fetchDriverCheckins(),
@@ -773,6 +794,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         fetchMyProposals();
       })
       .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'freight_assignments',
+        filter: `driver_id=eq.${profile.id}`
+      }, () => {
+        fetchMyAssignments();
+      })
+      .on('postgres_changes', {
         event: '*', 
         schema: 'public', 
         table: 'service_requests', 
@@ -1426,9 +1455,32 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             <div className="flex flex-col space-y-2 mb-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-base font-semibold">Em Andamento</h3>
-                <Badge variant="secondary" className="text-xs">{ongoingFreights.filter(f => ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length}</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  {(myAssignments?.length || 0) + ongoingFreights.filter(f => ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length}
+                </Badge>
               </div>
             </div>
+            
+            {/* Assignments (Fretes com valores individualizados) */}
+            {myAssignments && myAssignments.length > 0 && (
+              <div className="space-y-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-green-600" />
+                  <h4 className="text-sm font-semibold text-green-600">Seus Contratos Ativos</h4>
+                  <Badge variant="outline" className="text-xs">{myAssignments.length}</Badge>
+                </div>
+                {myAssignments.map((assignment) => (
+                  <MyAssignmentCard
+                    key={assignment.id}
+                    assignment={assignment}
+                    onAction={() => {
+                      setSelectedFreightId(assignment.freight_id);
+                      setShowDetails(true);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
             
             {ongoingFreights.filter(f => ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length > 0 ? (
               <div className="space-y-4">
@@ -1520,21 +1572,23 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
-                <Play className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                  Nenhum frete em andamento
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  Quando você aceitar um frete ou ele for aceito pelo produtor, aparecerá aqui
-                </p>
-                <Button 
-                  onClick={() => setActiveTab('available')}
-                  className="mt-2"
-                >
-                  Ver Fretes Disponíveis
-                </Button>
-              </div>
+              !myAssignments || myAssignments.length === 0 ? (
+                <div className="text-center py-12">
+                  <Play className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                    Nenhum frete em andamento
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    Quando você aceitar um frete ou ele for aceito pelo produtor, aparecerá aqui
+                  </p>
+                  <Button 
+                    onClick={() => setActiveTab('available')}
+                    className="mt-2"
+                  >
+                    Ver Fretes Disponíveis
+                  </Button>
+                </div>
+              ) : null
             )}
           </TabsContent>
 

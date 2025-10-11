@@ -10,6 +10,7 @@ import { FreightRatingModal } from './FreightRatingModal';
 import { AutoRatingModal } from './AutoRatingModal';
 import { FreightAdvanceModal } from './FreightAdvanceModal';
 import { FreightPaymentModal } from './FreightPaymentModal';
+import { FreightAssignmentsList } from './FreightAssignmentsList';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { format } from 'date-fns';
@@ -239,6 +240,16 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           </CardContent>
         </Card>
       </div>
+
+      {/* Assignments List (for multi-truck freights) */}
+      {freight.required_trucks > 1 && isFreightProducer && (
+        <FreightAssignmentsList
+          freightId={freight.id}
+          requiredTrucks={freight.required_trucks}
+          acceptedTrucks={freight.accepted_trucks}
+          isProducer={true}
+        />
+      )}
 
       {/* Participants */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

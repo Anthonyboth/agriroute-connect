@@ -429,7 +429,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Número de carretas necessárias para este frete. Quando todas forem contratadas, o frete será automaticamente fechado.
+                Número de carretas necessárias. Cada motorista pode aceitar por valores diferentes através do sistema de propostas.
               </p>
             </div>
           </div>

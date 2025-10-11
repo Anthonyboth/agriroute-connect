@@ -899,6 +899,91 @@ export type Database = {
           },
         ]
       }
+      freight_assignments: {
+        Row: {
+          accepted_at: string
+          agreed_price: number
+          antt_details: Json | null
+          created_at: string
+          delivered_at: string | null
+          delivery_date: string | null
+          driver_id: string
+          freight_id: string
+          id: string
+          metadata: Json | null
+          minimum_antt_price: number | null
+          notes: string | null
+          pickup_date: string | null
+          price_per_km: number | null
+          pricing_type: string
+          proposal_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string
+          agreed_price: number
+          antt_details?: Json | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_date?: string | null
+          driver_id: string
+          freight_id: string
+          id?: string
+          metadata?: Json | null
+          minimum_antt_price?: number | null
+          notes?: string | null
+          pickup_date?: string | null
+          price_per_km?: number | null
+          pricing_type: string
+          proposal_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string
+          agreed_price?: number
+          antt_details?: Json | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_date?: string | null
+          driver_id?: string
+          freight_id?: string
+          id?: string
+          metadata?: Json | null
+          minimum_antt_price?: number | null
+          notes?: string | null
+          pickup_date?: string | null
+          price_per_km?: number | null
+          pricing_type?: string
+          proposal_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_assignments_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_assignments_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "freight_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_attachments: {
         Row: {
           created_at: string
@@ -1411,12 +1496,14 @@ export type Database = {
           destination_state: string | null
           distance_km: number | null
           driver_id: string | null
+          drivers_assigned: string[] | null
           extra_fees: number | null
           extra_fees_description: string | null
           fiscal_documents_url: string | null
           flexible_dates: boolean | null
           high_performance: boolean | null
           id: string
+          is_full_booking: boolean | null
           is_scheduled: boolean | null
           last_location_update: string | null
           metadata: Json | null
@@ -1475,12 +1562,14 @@ export type Database = {
           destination_state?: string | null
           distance_km?: number | null
           driver_id?: string | null
+          drivers_assigned?: string[] | null
           extra_fees?: number | null
           extra_fees_description?: string | null
           fiscal_documents_url?: string | null
           flexible_dates?: boolean | null
           high_performance?: boolean | null
           id?: string
+          is_full_booking?: boolean | null
           is_scheduled?: boolean | null
           last_location_update?: string | null
           metadata?: Json | null
@@ -1539,12 +1628,14 @@ export type Database = {
           destination_state?: string | null
           distance_km?: number | null
           driver_id?: string | null
+          drivers_assigned?: string[] | null
           extra_fees?: number | null
           extra_fees_description?: string | null
           fiscal_documents_url?: string | null
           flexible_dates?: boolean | null
           high_performance?: boolean | null
           id?: string
+          is_full_booking?: boolean | null
           is_scheduled?: boolean | null
           last_location_update?: string | null
           metadata?: Json | null
