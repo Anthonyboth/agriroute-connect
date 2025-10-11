@@ -30,8 +30,7 @@ import { Wrench } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
-import { ServiceHistory } from '@/components/ServiceHistory';
-import { FreightHistory } from '@/components/FreightHistory';
+import { UnifiedHistory } from '@/components/UnifiedHistory';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 
 const ProducerDashboard = () => {
@@ -1352,17 +1351,7 @@ const ProducerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-4">
-            {/* Histórico de Fretes */}
-            <Card>
-              <CardContent className="pt-6">
-                <FreightHistory />
-              </CardContent>
-            </Card>
-
-            {/* Histórico de Serviços */}
-            <div className="mt-6">
-              <ServiceHistory />
-            </div>
+            <UnifiedHistory userRole="PRODUTOR" />
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4">

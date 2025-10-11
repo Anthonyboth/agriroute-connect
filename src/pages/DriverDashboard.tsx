@@ -42,8 +42,7 @@ import heroLogistics from '@/assets/hero-logistics.jpg';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
-import { ServiceHistory } from '@/components/ServiceHistory';
-import { FreightHistory } from '@/components/FreightHistory';
+import { UnifiedHistory } from '@/components/UnifiedHistory';
 
 interface Freight {
   id: string;
@@ -1918,17 +1917,7 @@ const [showRegionModal, setShowRegionModal] = useState(false);
           </TabsContent>
 
           <TabsContent value="historico" className="mt-6">
-            {/* Histórico de Fretes */}
-            <Card>
-              <CardContent className="pt-6">
-                <FreightHistory />
-              </CardContent>
-            </Card>
-
-            {/* Histórico de Serviços */}
-            <div className="mt-6">
-              <ServiceHistory />
-            </div>
+            <UnifiedHistory userRole="MOTORISTA" />
           </TabsContent>
 
         </Tabs>

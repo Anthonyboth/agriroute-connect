@@ -66,11 +66,7 @@ export const ServiceHistory: React.FC = () => {
     try {
       let query = supabase
         .from('service_requests')
-        .select(`
-          *,
-          client:profiles!service_requests_client_id_fkey(id, full_name),
-          provider:profiles!service_requests_provider_id_fkey(id, full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       // Se for prestador de serviços e estiver na tab "provided", filtrar apenas os fornecidos
@@ -85,15 +81,33 @@ export const ServiceHistory: React.FC = () => {
         query = query.or(`client_id.eq.${profile.id},provider_id.eq.${profile.id}`);
       }
 
-      const { data, error } = await query;
+      const { data: serviceRequests, error } = await query;
 
       if (error) throw error;
+
+      // Buscar dados dos clientes e prestadores separadamente
+      const clientIds = [...new Set(serviceRequests?.map(s => s.client_id).filter(Boolean) || [])];
+      const providerIds = [...new Set(serviceRequests?.map(s => s.provider_id).filter(Boolean) || [])];
+
+      const { data: clientProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', clientIds);
+
+      const { data: providerProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', providerIds);
+
+      // Mapear profiles por ID
+      const clientMap = new Map(clientProfiles?.map(p => [p.id, p]) || []);
+      const providerMap = new Map(providerProfiles?.map(p => [p.id, p]) || []);
       
-      // Transform data to match interface
-      const transformedData = (data || []).map(item => ({
+      // Combinar dados
+      const transformedData = (serviceRequests || []).map(item => ({
         ...item,
-        client: Array.isArray(item.client) && item.client.length > 0 ? item.client[0] : undefined,
-        provider: Array.isArray(item.provider) && item.provider.length > 0 ? item.provider[0] : undefined
+        client: item.client_id ? clientMap.get(item.client_id) : undefined,
+        provider: item.provider_id ? providerMap.get(item.provider_id) : undefined
       }));
       
       setServices(transformedData as ServiceRequest[]);
@@ -139,7 +153,19 @@ export const ServiceHistory: React.FC = () => {
       'VIDRACEIRO': 'Vidraceiro',
       'AR_CONDICIONADO': 'Ar Condicionado',
       'FREIOS': 'Freios',
-      'SUSPENSAO': 'Suspensão'
+      'SUSPENSAO': 'Suspensão',
+      'AGRONOMO': 'Agrônomo',
+      'VETERINARIO': 'Veterinário',
+      'MECANICO_AGRICOLA': 'Mecânico Agrícola',
+      'ELETRICISTA': 'Eletricista',
+      'ENCANADOR': 'Encanador',
+      'PEDREIRO': 'Pedreiro',
+      'PINTOR': 'Pintor',
+      'MARCENEIRO': 'Marceneiro',
+      'JARDINEIRO': 'Jardineiro',
+      'LIMPEZA': 'Limpeza',
+      'DEDETIZACAO': 'Dedetização',
+      'SEGURANCA': 'Segurança'
     };
     return typeMap[type] || type;
   };
