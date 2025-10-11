@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bell, Check, CheckCheck, Info, AlertTriangle, TrendingUp, Truck, DollarSign, CreditCard } from 'lucide-react';
+import { Bell, Check, CheckCheck, Info, AlertTriangle, TrendingUp, Truck, DollarSign, CreditCard, MessageSquare, Star, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -98,6 +98,20 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         return <Check className="h-5 w-5 text-green-600" />;
       case 'payment_completed':
         return <CreditCard className="h-5 w-5 text-emerald-600" />;
+      case 'chat_message':
+      case 'service_chat_message':
+        return <MessageSquare className="h-5 w-5 text-blue-600" />;
+      case 'proposal_received':
+        return <Package className="h-5 w-5 text-purple-600" />;
+      case 'freight_in_transit':
+        return <TrendingUp className="h-5 w-5 text-orange-600" />;
+      case 'delivery_confirmation_required':
+      case 'checkin_confirmation_required':
+        return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
+      case 'rating_pending':
+        return <Star className="h-5 w-5 text-amber-600" />;
+      case 'external_payment_proposed':
+        return <DollarSign className="h-5 w-5 text-green-600" />;
       case 'warning':
         return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
       case 'success':

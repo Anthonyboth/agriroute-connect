@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
 interface Message {
   id: string;
@@ -42,6 +43,14 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
   const [uploading, setUploading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { 
+    unreadServiceMessages, 
+    fetchUnreadServiceMessages, 
+    markServiceMessagesAsRead 
+  } = useUnreadMessages(currentUserProfile?.id);
+  
+  const unreadCount = unreadServiceMessages[serviceRequestId] || 0;
 
   // Buscar mensagens
   const fetchMessages = async () => {
@@ -141,6 +150,10 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
 
   useEffect(() => {
     fetchMessages();
+    fetchUnreadServiceMessages(serviceRequestId);
+    
+    // Marcar mensagens como lidas ao abrir o chat
+    markServiceMessagesAsRead(serviceRequestId);
 
     // Realtime subscription
     const channel = supabase
@@ -177,11 +190,16 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-lg">
           <MessageSquare className="h-5 w-5" />
           Chat do Serviço
         </CardTitle>
+        {unreadCount > 0 && (
+          <Badge variant="destructive">
+            {unreadCount} {unreadCount === 1 ? 'não lida' : 'não lidas'}
+          </Badge>
+        )}
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col p-4 space-y-4">

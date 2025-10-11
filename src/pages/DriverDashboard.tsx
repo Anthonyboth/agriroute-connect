@@ -121,7 +121,7 @@ const [selectedFreightForCheckin, setSelectedFreightForCheckin] = useState<strin
 const [initialCheckinType, setInitialCheckinType] = useState<string | null>(null);
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
 const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<Freight | null>(null);
-const [showRegionModal, setShowRegionModal] = useState(false);
+
   const [showLocationManager, setShowLocationManager] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   // Dialog para detalhes de serviços urbanos (GUINCHO/MUDANCA)
@@ -1139,32 +1139,15 @@ const [showRegionModal, setShowRegionModal] = useState(false);
                 Ver Fretes IA
               </Button>
               
-              <Dialog open={showRegionModal} onOpenChange={(open) => { if (!open) setShowRegionModal(false); }}>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="default"
-                    size="sm"
-                    className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
-                  >
-                    <MapPin className="mr-1 h-4 w-4" />
-                    Configurar Região
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Configurar Região de Atendimento</DialogTitle>
-                  </DialogHeader>
-                  <DriverRegionManager 
-                    driverId={profile?.id}
-                    onSave={() => {
-                      setShowRegionModal(false);
-                      fetchAvailableFreights();
-                      toast.success('Região configurada! Atualizando fretes disponíveis...');
-                    }}
-                    onClose={() => setShowRegionModal(false)}
-                  />
-                </DialogContent>
-              </Dialog>
+              <Button 
+                variant="default"
+                size="sm"
+                onClick={() => setActiveTab('cities')}
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+              >
+                <MapPin className="mr-1 h-4 w-4" />
+                Configurar Região
+              </Button>
               
               <Button 
                 variant="default"

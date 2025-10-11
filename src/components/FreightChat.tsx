@@ -9,6 +9,7 @@ import { Send, Image, MessageCircle, User, Truck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
 interface Message {
   id: string;
@@ -40,6 +41,14 @@ export const FreightChat: React.FC<FreightChatProps> = ({
   const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { 
+    unreadFreightMessages, 
+    fetchUnreadFreightMessages, 
+    markFreightMessagesAsRead 
+  } = useUnreadMessages(currentUserProfile?.id);
+  
+  const unreadCount = unreadFreightMessages[freightId] || 0;
 
   const fetchMessages = async () => {
     try {
@@ -152,6 +161,14 @@ export const FreightChat: React.FC<FreightChatProps> = ({
 
   useEffect(() => {
     fetchMessages();
+    fetchUnreadFreightMessages(freightId);
+    
+    // Marcar mensagens como lidas ao abrir o chat
+    markFreightMessagesAsRead(freightId);
+    fetchUnreadFreightMessages(freightId);
+    
+    // Marcar mensagens como lidas ao abrir o chat
+    markFreightMessagesAsRead(freightId);
 
     // Real-time subscription
     const channel = supabase
@@ -182,11 +199,16 @@ export const FreightChat: React.FC<FreightChatProps> = ({
 
   return (
     <Card className="h-[500px] flex flex-col">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5" />
           Chat do Frete
         </CardTitle>
+        {unreadCount > 0 && (
+          <Badge variant="destructive">
+            {unreadCount} {unreadCount === 1 ? 'não lida' : 'não lidas'}
+          </Badge>
+        )}
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col p-0">
