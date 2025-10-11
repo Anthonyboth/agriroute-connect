@@ -213,31 +213,55 @@ export const ServiceHistory: React.FC = () => {
           {/* Tabs principais para prestador de serviços */}
           {isPrestador && (
             <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as 'provided' | 'requested')} className="mb-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="provided">
-                  Serviços Fornecidos
-                </TabsTrigger>
-                <TabsTrigger value="requested">
-                  Serviços Solicitados
-                </TabsTrigger>
-              </TabsList>
+              <div className="w-full overflow-x-auto pb-2">
+                <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
+                  <TabsTrigger 
+                    value="provided"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
+                  >
+                    Serviços Fornecidos
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="requested"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
+                  >
+                    Serviços Solicitados
+                  </TabsTrigger>
+                </TabsList>
+              </div>
             </Tabs>
           )}
 
           {/* Tabs de filtro por status */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all">Todos ({services.length})</TabsTrigger>
-              <TabsTrigger value="open">
-                Ativos ({services.filter(s => ['OPEN', 'ACCEPTED', 'IN_PROGRESS'].includes(s.status)).length})
-              </TabsTrigger>
-              <TabsTrigger value="completed">
-                Concluídos ({services.filter(s => s.status === 'COMPLETED').length})
-              </TabsTrigger>
-              <TabsTrigger value="cancelled">
-                Cancelados ({services.filter(s => s.status === 'CANCELLED').length})
-              </TabsTrigger>
-            </TabsList>
+            <div className="w-full overflow-x-auto pb-2">
+              <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
+                <TabsTrigger 
+                  value="all"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
+                >
+                  Todos ({services.length})
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="open"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
+                >
+                  Ativos ({services.filter(s => ['OPEN', 'ACCEPTED', 'IN_PROGRESS'].includes(s.status)).length})
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="completed"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
+                >
+                  Concluídos ({services.filter(s => s.status === 'COMPLETED').length})
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="cancelled"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
+                >
+                  Cancelados ({services.filter(s => s.status === 'CANCELLED').length})
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value={activeTab} className="space-y-4 mt-4">
               {filteredServices.length === 0 ? (

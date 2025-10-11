@@ -174,18 +174,34 @@ export const FreightHistory: React.FC = () => {
 
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all">Todos ({freights.length})</TabsTrigger>
-              <TabsTrigger value="active">
-                Ativos ({freights.filter(f => ['OPEN', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).length})
-              </TabsTrigger>
-              <TabsTrigger value="completed">
-                Concluídos ({freights.filter(f => ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length})
-              </TabsTrigger>
-              <TabsTrigger value="cancelled">
-                Cancelados ({freights.filter(f => f.status === 'CANCELLED').length})
-              </TabsTrigger>
-            </TabsList>
+            <div className="w-full overflow-x-auto pb-2">
+              <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
+                <TabsTrigger 
+                  value="all"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
+                >
+                  Todos ({freights.length})
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="active"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
+                >
+                  Ativos ({freights.filter(f => ['OPEN', 'ACCEPTED', 'IN_TRANSIT'].includes(f.status)).length})
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="completed"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
+                >
+                  Concluídos ({freights.filter(f => ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length})
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="cancelled"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
+                >
+                  Cancelados ({freights.filter(f => f.status === 'CANCELLED').length})
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value={activeTab} className="space-y-4 mt-4">
               {filteredFreights.length === 0 ? (
