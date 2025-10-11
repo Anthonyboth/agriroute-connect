@@ -308,3 +308,20 @@
     background: hsl(var(--muted));
   }
 }
+
+/* Service Provider teal theme to differentiate from driver */
+.provider-theme {
+  --primary: 191 91% 36%;
+  --primary-foreground: 210 40% 98%;
+  --accent: 191 91% 36%;
+  --ring: 191 91% 36%;
+  --muted: 200 16% 92%;
+}
+
+.dark .provider-theme {
+  --primary: 191 91% 45%;
+  --primary-foreground: 210 40% 98%;
+  --accent: 191 91% 45%;
+  --ring: 191 91% 45%;
+  --muted: 200 16% 20%;
+}

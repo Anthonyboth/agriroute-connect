@@ -47,7 +47,7 @@ import { useServiceRequestCounts } from '@/hooks/useServiceRequestCounts';
 import { ContactInfoCard } from '@/components/ContactInfoCard';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
 import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
-import ServiceProviderHeroDashboard from '@/components/ServiceProviderHeroDashboard';
+
 import { LocationManager } from '@/components/LocationManager';
 import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
 import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
@@ -655,7 +655,7 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[40vh] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p>Carregando dashboard...</p>
@@ -665,7 +665,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       {/* Hero Section Compacto */}
       <section className="relative min-h-[200px] flex items-center justify-center overflow-hidden">
         <div 
@@ -690,14 +690,6 @@ export const ServiceProviderDashboard: React.FC = () => {
               >
                 <MapPin className="mr-1 h-4 w-4" />
                 Configurar Região
-              </Button>
-              <Button 
-                variant="default"
-                size="sm"
-                onClick={() => navigate('/services')}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
-              >
-                Solicitar Serviços
               </Button>
             </div>
           </div>
