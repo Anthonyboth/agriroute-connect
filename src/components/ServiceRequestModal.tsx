@@ -21,7 +21,7 @@ interface ServiceRequestModalProps {
   serviceId: string;
   serviceLabel: string;
   serviceDescription: string;
-  category: 'freight' | 'technical' | 'agricultural' | 'logistics';
+  category: 'freight' | 'technical' | 'agricultural' | 'logistics' | 'urban';
 }
 
 const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
@@ -88,10 +88,16 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
       icon: '📦',
       color: 'bg-orange-50 border-orange-200',
       features: ['Armazenamento seguro', 'Controle de estoque', 'Distribuição eficiente']
+    },
+    urban: {
+      title: 'Serviços Urbanos',
+      icon: '🏘️',
+      color: 'bg-purple-50 border-purple-200',
+      features: ['Atendimento local', 'Profissionais verificados', 'Agendamento rápido']
     }
   };
 
-  const info = categoryInfo[category];
+  const info = categoryInfo[category] ?? categoryInfo.technical;
 
   const urgencyLabels = {
     LOW: { label: 'Baixa', description: 'Pode aguardar alguns dias', color: 'bg-green-100 text-green-800' },
@@ -199,7 +205,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">
-            <span className="text-2xl">{info.icon}</span>
+            <span className="text-2xl">{info?.icon}</span>
             Solicitar {serviceLabel}
           </DialogTitle>
           <DialogDescription>{serviceDescription}</DialogDescription>
@@ -209,16 +215,16 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
           {!showRegisterForm ? (
             <>
               {/* Informações do Serviço */}
-              <Card className={`${info.color} border-2`}>
+              <Card className={`${info?.color} border-2`}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <span>{info.icon}</span>
-                    {info.title}
+                    <span>{info?.icon}</span>
+                    {info?.title}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {info.features.map((feature) => (
+                    {info?.features.map((feature) => (
                       <Badge key={feature} variant="secondary" className="text-xs">
                         {feature}
                       </Badge>

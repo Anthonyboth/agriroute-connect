@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ServiceRequestModal from './ServiceRequestModal';
 import { ServiceCatalogGrid } from './ServiceCatalogGrid';
 import { getServiceById } from '@/lib/service-types';
@@ -19,7 +19,7 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
     serviceId?: string;
     serviceLabel?: string;
     serviceDescription?: string;
-    category?: 'technical' | 'agricultural' | 'logistics';
+    category?: 'technical' | 'agricultural' | 'logistics' | 'urban';
   }>({ isOpen: false });
 
   const handleServiceRequest = (service: any) => {
@@ -41,6 +41,7 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
             <DialogTitle className="text-2xl font-bold text-center">
               Serviços Disponíveis
             </DialogTitle>
+            <DialogDescription className="sr-only">Selecione um serviço</DialogDescription>
           </DialogHeader>
 
           <ServiceCatalogGrid 
