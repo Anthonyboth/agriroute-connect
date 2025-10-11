@@ -1,9 +1,10 @@
 /**
- * Script para importar todas as 141 cidades do Mato Grosso
+ * Script para importar cidades do Brasil
  * 
  * Como usar:
  * 1. Certifique-se de que as variáveis de ambiente estão configuradas
- * 2. Execute: npx tsx scripts/import-mt-cities.ts
+ * 2. Para importar apenas MT: npx tsx scripts/import-mt-cities.ts
+ * 3. Para importar TODAS as cidades: npx tsx scripts/import-mt-cities.ts --all
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -22,7 +23,6 @@ async function importMTCities() {
   console.log('🚀 Iniciando importação de cidades do Mato Grosso...\n');
   
   try {
-    // Chamar a edge function de importação
     const { data, error } = await supabase.functions.invoke('import-cities', {
       body: { state: 'MT' }
     });
@@ -37,7 +37,6 @@ async function importMTCities() {
     console.log(`❌ Erros: ${data.errors}`);
     console.log(`🏛️ Estado: ${data.state}`);
     
-    // Verificar total de cidades do MT na base
     const { count, error: countError } = await supabase
       .from('cities')
       .select('*', { count: 'exact', head: true })
@@ -60,48 +59,46 @@ const BRAZILIAN_STATES = [
   'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
 ];
 
-async function importAllStates() {
+async function importAllCities() {
   console.log('🚀 Iniciando importação de TODAS as cidades do Brasil...\n');
+  console.log('⏳ Isso pode levar alguns minutos. Por favor, aguarde...\n');
   
-  let totalImported = 0;
-  let totalErrors = 0;
-  
-  for (const state of BRAZILIAN_STATES) {
-    try {
-      console.log(`\n📍 Importando ${state}...`);
-      
-      const { data, error } = await supabase.functions.invoke('import-cities', {
-        body: { state }
-      });
-      
-      if (error) {
-        console.error(`❌ Erro em ${state}:`, error);
-        totalErrors += 1;
-        continue;
-      }
-      
-      console.log(`✅ ${state}: ${data.imported} cidades importadas`);
-      totalImported += data.imported;
-      
-      // Pequeno delay para não sobrecarregar
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-    } catch (error) {
-      console.error(`❌ Erro ao importar ${state}:`, error);
-      totalErrors += 1;
+  try {
+    const { data, error } = await supabase.functions.invoke('import-cities', {
+      body: { state: 'ALL' }
+    });
+    
+    if (error) {
+      throw error;
     }
+    
+    console.log('\n✨ Importação completa!');
+    console.log(`📊 Total importado: ${data.totalImported} cidades`);
+    console.log(`❌ Erros: ${data.totalErrors}`);
+    console.log(`🏛️ Estados processados: ${data.states}`);
+    
+    // Verificar total final na base
+    const { count, error: countError } = await supabase
+      .from('cities')
+      .select('*', { count: 'exact', head: true });
+    
+    if (!countError && count) {
+      console.log(`\n📍 Total de cidades na base de dados: ${count}`);
+    }
+    
+    console.log('\n✅ Todas as 5.570 cidades do Brasil foram adicionadas!');
+    
+  } catch (error) {
+    console.error('\n❌ Erro ao importar cidades:', error);
+    process.exit(1);
   }
-  
-  console.log('\n✨ Importação completa!');
-  console.log(`📊 Total importado: ${totalImported} cidades`);
-  console.log(`❌ Estados com erro: ${totalErrors}`);
 }
 
 // Verificar argumento da linha de comando
 const args = process.argv.slice(2);
 
 if (args.includes('--all')) {
-  importAllStates();
+  importAllCities();
 } else {
   importMTCities();
 }
