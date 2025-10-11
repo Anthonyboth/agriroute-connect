@@ -3952,6 +3952,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      cities_needing_geocoding: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          state: string
+        }[]
+      }
       cleanup_expired_requests: {
         Args: Record<PropertyKey, never>
         Returns: undefined

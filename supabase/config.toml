@@ -131,3 +131,9 @@ verify_jwt = true
 
 [functions.withdraw-freight]
 verify_jwt = true
+
+[functions.import-cities]
+verify_jwt = true
+
+[functions.geocode-cities]
+verify_jwt = true
