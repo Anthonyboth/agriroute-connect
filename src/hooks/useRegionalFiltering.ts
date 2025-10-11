@@ -61,7 +61,7 @@ export const useRegionalFiltering = ({ userType, profileId }: RegionalFilteringP
         if (error) throw error;
         result = data || [];
       } else {
-        // Buscar solicitações de serviços no raio do prestador
+        // Buscar service_requests no raio do prestador
         const { data, error } = await supabase
           .rpc('get_service_requests_in_radius', { 
             p_provider_id: profileId 

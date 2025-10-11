@@ -43,27 +43,27 @@ export const useLocationFiltering = ({ userType }: LocationFilteringParams) => {
       if (profileError) throw profileError;
 
       if (userType === 'MOTORISTA') {
-        // Buscar fretes no raio do motorista usando a função melhorada
+        // Buscar fretes no raio do motorista
         const { data, error } = await supabase
           .rpc('get_freights_in_radius', { 
             p_driver_id: profile.id 
           });
         
         if (error) throw error;
-        // Mapear freight_id para id para compatibilidade com RegionalItem
+        // Mapear freight_id para id
         result = (data || []).map((item: any) => ({
           ...item,
           id: item.freight_id
         }));
       } else {
-        // Buscar solicitações de serviços no raio do prestador usando a função melhorada
+        // Buscar solicitações de serviços no raio do prestador
         const { data, error } = await supabase
           .rpc('get_service_requests_in_radius', { 
             p_provider_id: profile.id 
           });
         
         if (error) throw error;
-        // Mapear request_id para id para compatibilidade com RegionalItem
+        // Mapear request_id para id
         result = (data || []).map((item: any) => ({
           ...item,
           id: item.request_id
