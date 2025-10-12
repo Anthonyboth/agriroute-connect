@@ -53,16 +53,47 @@ export const useServiceRequestCounts = (providerId?: string) => {
         console.warn('Counts RPC fetch warning:', err);
       }
 
-      // Fallback: se cidade falhar, busca direta por pendentes OPEN sem provider
+      // Fallback: se cidade falhar, tentar filtrar por cidade/estado e tipos do perfil
       if (cityBasedRequests.length === 0) {
         try {
-          const { data: allPendingRequests, error: pendingError } = await supabase
-            .from('service_requests')
-            .select('id')
-            .is('provider_id', null)
-            .eq('status', 'OPEN');
-          if (!pendingError && allPendingRequests) {
-            cityBasedRequests = allPendingRequests.map((r) => ({ id: r.id }));
+          // Buscar dados do perfil do prestador
+          const { data: providerProfile, error: profileError } = await supabase
+            .from('profiles')
+            .select('current_city_name, current_state, service_types')
+            .eq('id', providerId)
+            .maybeSingle();
+
+          if (!profileError && providerProfile?.current_city_name && providerProfile?.current_state) {
+            let query = supabase
+              .from('service_requests')
+              .select('id, service_type')
+              .is('provider_id', null)
+              .eq('status', 'OPEN')
+              .ilike('city_name', providerProfile.current_city_name)
+              .ilike('state', providerProfile.current_state);
+
+            const types: string[] | undefined = Array.isArray(providerProfile.service_types)
+              ? (providerProfile.service_types as unknown as string[])
+              : undefined;
+
+            if (types && types.length > 0) {
+              query = query.in('service_type', types);
+            }
+
+            const { data: cityPending, error: pendingError } = await query;
+            if (!pendingError && cityPending) {
+              cityBasedRequests = cityPending.map((r) => ({ id: r.id }));
+            }
+
+            console.log('Counts fallback by profile city/state applied:', {
+              providerId,
+              city: providerProfile.current_city_name,
+              state: providerProfile.current_state,
+              typesCount: types?.length || 0,
+              matched: cityBasedRequests.length
+            });
+          } else {
+            console.warn('Counts fallback skipped: missing profile city/state', { providerId, profileError });
           }
         } catch (cityErr) {
           console.warn('City-based count failed, using fallback:', cityErr);
@@ -88,8 +119,7 @@ export const useServiceRequestCounts = (providerId?: string) => {
       const mergedPendingIds = new Set<string>();
       (cityBasedRequests || []).forEach((r: any) => mergedPendingIds.add(r.id));
       (compatibleRequests || []).forEach((r: any) => mergedPendingIds.add(r.request_id));
-      const pendingCount = mergedPendingIds.size;
-      const pending = pendingCount + ownPending;
+      const pending = mergedPendingIds.size; // Somente disponíveis para aceitar
       const total = (providerRequests || []).length;
 
       setCounts({
@@ -105,8 +135,7 @@ export const useServiceRequestCounts = (providerId?: string) => {
         completed,
         total,
         cityBasedPending: (cityBasedRequests || []).length,
-        compatiblePending: (compatibleRequests || []).length,
-        ownPending
+        compatiblePending: (compatibleRequests || []).length
       });
 
     } catch (error) {
@@ -139,11 +168,29 @@ export const useServiceRequestCounts = (providerId?: string) => {
       )
       .subscribe();
 
+    // Reagir a mudanças no perfil do prestador (cidade/estado/serviços)
+    const profilesChannel = supabase
+      .channel('profiles-counts-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${providerId}`
+        },
+        () => {
+          refreshCounts();
+        }
+      )
+      .subscribe();
+
     // Refresh automático a cada 15 segundos como backup
     const interval = setInterval(refreshCounts, 15000);
 
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(profilesChannel);
       clearInterval(interval);
     };
   }, [providerId]);

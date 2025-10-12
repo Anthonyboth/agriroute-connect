@@ -174,6 +174,26 @@ export const ServiceProviderDashboard: React.FC = () => {
       )
       .subscribe();
 
+    // Reagir a updates no perfil do prestador (cidade/estado/serviços)
+    const providerProfileId = getProviderProfileId();
+    const profilesChannel = supabase
+      .channel('profiles-provider-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: providerProfileId ? `id=eq.${providerProfileId}` : undefined as any
+        },
+        (payload) => {
+          console.log('Profile update detected for provider, refetching...', payload?.new?.id);
+          fetchServiceRequests();
+          refreshCounts();
+        }
+      )
+      .subscribe();
+
     // Refresh automático a cada 10 segundos como fallback
     const interval = setInterval(() => {
       fetchServiceRequests();
@@ -183,6 +203,7 @@ export const ServiceProviderDashboard: React.FC = () => {
 
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(profilesChannel);
       clearInterval(interval);
     };
   }, [user, profile]);
