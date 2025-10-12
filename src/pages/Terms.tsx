@@ -116,7 +116,7 @@ const Terms = () => {
                 <CardContent>
                   <ul className="space-y-2">
                     {section.content.map((item) => (
-                      <li key={itemIndex} className="text-muted-foreground leading-relaxed">
+                      <li key={item} className="text-muted-foreground leading-relaxed">
                         • {item}
                       </li>
                     ))}
@@ -144,7 +144,7 @@ const Terms = () => {
             <CardContent className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {prohibited.map((item) => (
-                  <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                  <div key={item} className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                     <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0"></div>
                     <span className="text-muted-foreground">{item}</span>
                   </div>
