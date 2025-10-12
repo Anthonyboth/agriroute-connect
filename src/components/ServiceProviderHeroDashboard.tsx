@@ -194,35 +194,39 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
       <div className="container mx-auto px-4 -mt-8 pb-8 relative z-10">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatsCard
-            icon={<MessageSquare className="h-6 w-6" />}
+            size="sm"
+            icon={<MessageSquare className="h-5 w-5" />}
             label="Disponível"
             value={stats.pending_requests}
             iconColor="text-green-600"
-            className="shadow-lg"
+            className="shadow-sm"
           />
 
           <StatsCard
-            icon={<Clock className="h-6 w-6" />}
+            size="sm"
+            icon={<Clock className="h-5 w-5" />}
             label="Ativas"
             value={stats.accepted_requests}
             iconColor="text-orange-600"
-            className="shadow-lg"
+            className="shadow-sm"
           />
 
           <StatsCard
-            icon={<CheckCircle className="h-6 w-6" />}
+            size="sm"
+            icon={<CheckCircle className="h-5 w-5" />}
             label="Concluídos"
             value={stats.completed_requests}
             iconColor="text-green-600"
-            className="shadow-lg"
+            className="shadow-sm"
           />
 
           <StatsCard
-            icon={<TrendingUp className="h-6 w-6" />}
+            size="sm"
+            icon={<TrendingUp className="h-5 w-5" />}
             label="Saldo"
             value={showEarnings ? 'R$ 0,00' : '****'}
             iconColor="text-blue-600"
-            className="shadow-lg"
+            className="shadow-sm"
             actionButton={
               <Button
                 variant="ghost"
