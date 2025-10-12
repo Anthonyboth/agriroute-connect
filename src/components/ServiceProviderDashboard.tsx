@@ -276,6 +276,24 @@ export const ServiceProviderDashboard: React.FC = () => {
         console.warn('⚠️ Compatible requests query failed:', compatibleError);
       }
 
+      // 2b. Fetch city-based fallback requests
+      console.log('🔍 Fetching city-based fallback requests...');
+      let cityRequests: any[] = [];
+      try {
+        const { data, error: cityError } = await supabase.rpc(
+          'get_service_requests_by_city',
+          { provider_profile_id: providerId }
+        );
+        if (cityError) {
+          console.warn('⚠️ Error fetching city-based requests:', cityError);
+        } else {
+          cityRequests = data || [];
+          console.log('✅ City-based requests found:', cityRequests.length);
+        }
+      } catch (cityErr) {
+        console.warn('⚠️ City-based query failed:', cityErr);
+      }
+
       // 3. Fetch provider's accepted requests (sem join problemático)
       const { data: providerRequests, error: providerError } = await supabase
         .from('service_requests')
@@ -291,7 +309,8 @@ export const ServiceProviderDashboard: React.FC = () => {
       // 4. Buscar perfis dos clientes separadamente
       const clientIds = [...new Set([
         ...(providerRequests || []).map(r => r.client_id),
-        ...(compatibleRequests || []).map(r => r.client_id)
+        ...(compatibleRequests || []).map(r => r.client_id),
+        ...(cityRequests || []).map((r: any) => r.client_id)
       ].filter(Boolean))];
 
       const clientsMap = new Map();
@@ -310,6 +329,10 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       // 5. Combinar e deduplicar por ID
       const byId = new Map<string, ServiceRequest>();
+      // Tipos de serviço do prestador (se definido no perfil)
+      const allowedTypes = Array.isArray(profile?.service_types)
+        ? (profile?.service_types as unknown as string[])
+        : undefined;
       
       // Adicionar solicitações aceitas pelo prestador
       (providerRequests || []).forEach((r: any) => {
@@ -357,6 +380,44 @@ export const ServiceProviderDashboard: React.FC = () => {
           byId.set(r.request_id, serviceRequest);
         }
       });
+
+      // Adicionar fallback por cidade (apenas OPEN, sem prestador e respeitando tipos)
+      let cityFallbackAdded = 0;
+      (cityRequests || []).forEach((r: any) => {
+        const typeOk = !allowedTypes || allowedTypes.includes(r.service_type);
+        const statusOk = r.status === 'OPEN';
+        if (!byId.has(r.id) && typeOk && statusOk) {
+          const client = clientsMap.get(r.client_id);
+          const serviceRequest: ServiceRequest = {
+            id: r.id,
+            service_type: r.service_type,
+            location_address: r.location_address,
+            city_name: r.city_name,
+            state: r.state,
+            problem_description: r.problem_description,
+            urgency: r.urgency,
+            contact_phone: r.contact_phone,
+            contact_name: r.contact_name,
+            status: r.status,
+            created_at: r.created_at,
+            location_lat: r.location_lat,
+            location_lng: r.location_lng,
+            vehicle_info: r.vehicle_info,
+            additional_info: r.additional_info,
+            is_emergency: r.is_emergency,
+            estimated_price: (r as any).estimated_price,
+            provider_id: null,
+            client_id: r.client_id,
+            profiles: client ? {
+              id: client.id,
+              full_name: client.full_name,
+              phone: client.phone
+            } : null
+          };
+          byId.set(r.id, serviceRequest);
+          cityFallbackAdded += 1;
+        }
+      });
       
       const allRequests = Array.from(byId.values());
       setRequests(allRequests);
@@ -366,6 +427,7 @@ export const ServiceProviderDashboard: React.FC = () => {
       console.log(`✅ Total requests loaded: ${allRequests.length}`, {
         acceptedByProvider: (providerRequests || []).length,
         compatiblePending: compatibleRequests.length,
+        cityFallbackPending: cityFallbackAdded,
         total: allRequests.length
       });
       
