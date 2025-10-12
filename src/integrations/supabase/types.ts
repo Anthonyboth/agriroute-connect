@@ -3675,6 +3675,47 @@ export type Database = {
         }
         Relationships: []
       }
+      user_cities: {
+        Row: {
+          city_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          radius_km: number
+          type: Database["public"]["Enums"]["user_city_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          radius_km?: number
+          type: Database["public"]["Enums"]["user_city_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          radius_km?: number
+          type?: Database["public"]["Enums"]["user_city_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_cities_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_loyalty: {
         Row: {
           completed_freights: number
@@ -4462,6 +4503,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_users_in_city: {
+        Args: {
+          p_city_id: string
+          p_include_nearby?: boolean
+          p_type: Database["public"]["Enums"]["user_city_type"]
+        }
+        Returns: {
+          city_id: string
+          city_name: string
+          city_state: string
+          distance_m: number
+          radius_km: number
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4499,6 +4555,28 @@ export type Database = {
           | { access_type: string; accessed_id: string; accessed_table: string }
           | { access_type: string; request_id: string }
         Returns: undefined
+      }
+      match_drivers_to_freight: {
+        Args: { p_freight_id: string }
+        Returns: {
+          city_match_type: string
+          distance_m: number
+          driver_id: string
+          driver_name: string
+          driver_rating: number
+          radius_km: number
+        }[]
+      }
+      match_providers_to_service: {
+        Args: { p_service_request_id: string }
+        Returns: {
+          distance_m: number
+          provider_id: string
+          provider_name: string
+          provider_rating: number
+          radius_km: number
+          service_types: string[]
+        }[]
       }
       process_freight_withdrawal: {
         Args: { driver_profile_id: string; freight_id_param: string }
@@ -4570,6 +4648,11 @@ export type Database = {
         | "unpaid"
         | "incomplete"
       urgency_level: "LOW" | "MEDIUM" | "HIGH"
+      user_city_type:
+        | "MOTORISTA_ORIGEM"
+        | "MOTORISTA_DESTINO"
+        | "PRESTADOR_SERVICO"
+        | "PRODUTOR_LOCALIZACAO"
       user_role: "PRODUTOR" | "MOTORISTA" | "ADMIN" | "PRESTADOR_SERVICOS"
       user_status: "PENDING" | "APPROVED" | "REJECTED"
       vehicle_type:
@@ -4743,6 +4826,12 @@ export const Constants = {
         "incomplete",
       ],
       urgency_level: ["LOW", "MEDIUM", "HIGH"],
+      user_city_type: [
+        "MOTORISTA_ORIGEM",
+        "MOTORISTA_DESTINO",
+        "PRESTADOR_SERVICO",
+        "PRODUTOR_LOCALIZACAO",
+      ],
       user_role: ["PRODUTOR", "MOTORISTA", "ADMIN", "PRESTADOR_SERVICOS"],
       user_status: ["PENDING", "APPROVED", "REJECTED"],
       vehicle_type: [
