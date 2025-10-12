@@ -309,6 +309,7 @@ export type Database = {
           available_date: string
           available_until_date: string | null
           city: string
+          city_id: string | null
           created_at: string
           driver_id: string
           id: string
@@ -320,6 +321,7 @@ export type Database = {
           available_date: string
           available_until_date?: string | null
           city: string
+          city_id?: string | null
           created_at?: string
           driver_id: string
           id?: string
@@ -331,6 +333,7 @@ export type Database = {
           available_date?: string
           available_until_date?: string | null
           city?: string
+          city_id?: string | null
           created_at?: string
           driver_id?: string
           id?: string
@@ -338,7 +341,22 @@ export type Database = {
           state?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "driver_availability_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_availability_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
+          },
+        ]
       }
       driver_notification_limits: {
         Row: {
@@ -1490,6 +1508,7 @@ export type Database = {
           description: string | null
           destination_address: string
           destination_city: string | null
+          destination_city_id: string | null
           destination_geog: unknown | null
           destination_lat: number | null
           destination_lng: number | null
@@ -1510,6 +1529,7 @@ export type Database = {
           minimum_antt_price: number | null
           origin_address: string
           origin_city: string | null
+          origin_city_id: string | null
           origin_geog: unknown | null
           origin_lat: number | null
           origin_lng: number | null
@@ -1556,6 +1576,7 @@ export type Database = {
           description?: string | null
           destination_address: string
           destination_city?: string | null
+          destination_city_id?: string | null
           destination_geog?: unknown | null
           destination_lat?: number | null
           destination_lng?: number | null
@@ -1576,6 +1597,7 @@ export type Database = {
           minimum_antt_price?: number | null
           origin_address: string
           origin_city?: string | null
+          origin_city_id?: string | null
           origin_geog?: unknown | null
           origin_lat?: number | null
           origin_lng?: number | null
@@ -1622,6 +1644,7 @@ export type Database = {
           description?: string | null
           destination_address?: string
           destination_city?: string | null
+          destination_city_id?: string | null
           destination_geog?: unknown | null
           destination_lat?: number | null
           destination_lng?: number | null
@@ -1642,6 +1665,7 @@ export type Database = {
           minimum_antt_price?: number | null
           origin_address?: string
           origin_city?: string | null
+          origin_city_id?: string | null
           origin_geog?: unknown | null
           origin_lat?: number | null
           origin_lng?: number | null
@@ -1674,11 +1698,39 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "freights_destination_city_id_fkey"
+            columns: ["destination_city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freights_destination_city_id_fkey"
+            columns: ["destination_city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
+          },
+          {
             foreignKeyName: "freights_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freights_origin_city_id_fkey"
+            columns: ["origin_city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freights_origin_city_id_fkey"
+            columns: ["origin_city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
           },
           {
             foreignKeyName: "freights_producer_id_fkey"
@@ -2104,6 +2156,7 @@ export type Database = {
       profiles: {
         Row: {
           address_city: string | null
+          address_city_id: string | null
           address_complement: string | null
           address_neighborhood: string | null
           address_number: string | null
@@ -2114,6 +2167,7 @@ export type Database = {
           antt_number: string | null
           aprovado: boolean | null
           background_check_status: string | null
+          base_city_id: string | null
           base_city_name: string | null
           base_lat: number | null
           base_lng: number | null
@@ -2179,6 +2233,7 @@ export type Database = {
         }
         Insert: {
           address_city?: string | null
+          address_city_id?: string | null
           address_complement?: string | null
           address_neighborhood?: string | null
           address_number?: string | null
@@ -2189,6 +2244,7 @@ export type Database = {
           antt_number?: string | null
           aprovado?: boolean | null
           background_check_status?: string | null
+          base_city_id?: string | null
           base_city_name?: string | null
           base_lat?: number | null
           base_lng?: number | null
@@ -2254,6 +2310,7 @@ export type Database = {
         }
         Update: {
           address_city?: string | null
+          address_city_id?: string | null
           address_complement?: string | null
           address_neighborhood?: string | null
           address_number?: string | null
@@ -2264,6 +2321,7 @@ export type Database = {
           antt_number?: string | null
           aprovado?: boolean | null
           background_check_status?: string | null
+          base_city_id?: string | null
           base_city_name?: string | null
           base_lat?: number | null
           base_lng?: number | null
@@ -2328,6 +2386,34 @@ export type Database = {
           vehicle_specifications?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_address_city_id_fkey"
+            columns: ["address_city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_address_city_id_fkey"
+            columns: ["address_city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
+          },
+          {
+            foreignKeyName: "profiles_base_city_id_fkey"
+            columns: ["base_city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_base_city_id_fkey"
+            columns: ["base_city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
+          },
           {
             foreignKeyName: "profiles_validated_by_fkey"
             columns: ["validated_by"]
@@ -3084,6 +3170,7 @@ export type Database = {
           additional_info: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
+          city_id: string | null
           city_lat: number | null
           city_lng: number | null
           city_name: string | null
@@ -3124,6 +3211,7 @@ export type Database = {
           additional_info?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          city_id?: string | null
           city_lat?: number | null
           city_lng?: number | null
           city_name?: string | null
@@ -3164,6 +3252,7 @@ export type Database = {
           additional_info?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          city_id?: string | null
           city_lat?: number | null
           city_lng?: number | null
           city_name?: string | null
@@ -3213,6 +3302,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
           },
         ]
       }
@@ -3714,6 +3817,13 @@ export type Database = {
             referencedRelation: "cities"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_cities_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
+          },
         ]
       }
       user_loyalty: {
@@ -4028,7 +4138,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      city_hierarchy: {
+        Row: {
+          active_freights_destination: number | null
+          active_freights_origin: number | null
+          active_services: number | null
+          city_id: string | null
+          city_name: string | null
+          city_state: string | null
+          lat: number | null
+          lng: number | null
+          total_drivers: number | null
+          total_producers: number | null
+          total_providers: number | null
+          total_users: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_service_request: {
@@ -4298,6 +4424,20 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_freights_in_city: {
+        Args: { p_city_id: string; p_type?: string }
+        Returns: {
+          cargo_type: string
+          created_at: string
+          destination_city: string
+          destination_state: string
+          freight_id: string
+          origin_city: string
+          origin_state: string
+          price: number
+          status: Database["public"]["Enums"]["freight_status"]
+        }[]
+      }
       get_freights_in_provider_region: {
         Args: { provider_user_id: string }
         Returns: {
@@ -4534,6 +4674,18 @@ export type Database = {
           status: string
         }[]
       }
+      get_services_in_city: {
+        Args: { p_city_id: string }
+        Returns: {
+          city_name: string
+          city_state: string
+          created_at: string
+          estimated_price: number
+          service_id: string
+          service_type: string
+          status: string
+        }[]
+      }
       get_user_rating_distribution: {
         Args: { p_user_id: string }
         Returns: {
@@ -4546,11 +4698,13 @@ export type Database = {
         Returns: Database["public"]["Enums"]["user_role"]
       }
       get_users_in_city: {
-        Args: {
-          p_city_id: string
-          p_include_nearby?: boolean
-          p_type: Database["public"]["Enums"]["user_city_type"]
-        }
+        Args:
+          | { p_city_id: string }
+          | {
+              p_city_id: string
+              p_include_nearby?: boolean
+              p_type: Database["public"]["Enums"]["user_city_type"]
+            }
         Returns: {
           city_id: string
           city_name: string
