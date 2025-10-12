@@ -710,7 +710,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                   <Clock className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Disponíveis
+                      Pendentes
                     </p>
                     <p className="text-lg font-bold leading-tight mt-1">{counts.pending}</p>
                   </div>
