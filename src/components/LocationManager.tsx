@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Settings, Check, AlertCircle, Navigation } from 'lucide-react';
@@ -11,40 +9,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLocationPermission } from '@/hooks/useLocationPermission';
+import { CitySelector } from './CitySelector';
 
 interface LocationManagerProps {
   onClose?: () => void;
 }
 
-const BRAZILIAN_STATES = [
-  { code: 'AC', name: 'Acre' },
-  { code: 'AL', name: 'Alagoas' },
-  { code: 'AP', name: 'Amapá' },
-  { code: 'AM', name: 'Amazonas' },
-  { code: 'BA', name: 'Bahia' },
-  { code: 'CE', name: 'Ceará' },
-  { code: 'DF', name: 'Distrito Federal' },
-  { code: 'ES', name: 'Espírito Santo' },
-  { code: 'GO', name: 'Goiás' },
-  { code: 'MA', name: 'Maranhão' },
-  { code: 'MT', name: 'Mato Grosso' },
-  { code: 'MS', name: 'Mato Grosso do Sul' },
-  { code: 'MG', name: 'Minas Gerais' },
-  { code: 'PA', name: 'Pará' },
-  { code: 'PB', name: 'Paraíba' },
-  { code: 'PR', name: 'Paraná' },
-  { code: 'PE', name: 'Pernambuco' },
-  { code: 'PI', name: 'Piauí' },
-  { code: 'RJ', name: 'Rio de Janeiro' },
-  { code: 'RN', name: 'Rio Grande do Norte' },
-  { code: 'RS', name: 'Rio Grande do Sul' },
-  { code: 'RO', name: 'Rondônia' },
-  { code: 'RR', name: 'Roraima' },
-  { code: 'SC', name: 'Santa Catarina' },
-  { code: 'SP', name: 'São Paulo' },
-  { code: 'SE', name: 'Sergipe' },
-  { code: 'TO', name: 'Tocantins' },
-];
 
 export const LocationManager: React.FC<LocationManagerProps> = ({ onClose }) => {
   const { profile } = useAuth();
@@ -52,64 +22,52 @@ export const LocationManager: React.FC<LocationManagerProps> = ({ onClose }) => 
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [baseCityName, setBaseCityName] = useState('');
-  const [baseState, setBaseState] = useState('');
-  const [baseLat, setBaseLat] = useState<number | null>(null);
-  const [baseLng, setBaseLng] = useState<number | null>(null);
+  const [cityId, setCityId] = useState<string | null>(null);
+  const [city, setCity] = useState({ city: '', state: '' });
   const [serviceRadius, setServiceRadius] = useState(100);
-  const [locationEnabled, setLocationEnabled] = useState(false);
 
   // Carregar dados atuais do perfil
   useEffect(() => {
-    if (profile) {
-      const profileAny = profile as any;
-      setBaseCityName(profileAny.base_city_name || '');
-      setBaseState(profileAny.base_state || '');
-      setBaseLat(profileAny.base_lat || null);
-      setBaseLng(profileAny.base_lng || null);
-      setServiceRadius(profileAny.service_radius_km || 100);
-      setLocationEnabled(profileAny.location_enabled || false);
-    }
+    const loadProfile = async () => {
+      if (profile?.id) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('base_city_id, base_city_name, base_state, service_radius_km, cities(name, state)')
+          .eq('id', profile.id)
+          .single();
+
+        if (data) {
+          setCityId(data.base_city_id);
+          setCity({
+            city: data.base_city_name || '',
+            state: data.base_state || ''
+          });
+          setServiceRadius(data.service_radius_km || 100);
+        }
+      }
+    };
+    loadProfile();
   }, [profile]);
 
-  // Usar coordenadas atuais quando disponível
-  useEffect(() => {
-    if (coords && (!baseLat || !baseLng)) {
-      setBaseLat(coords.latitude);
-      setBaseLng(coords.longitude);
-    }
-  }, [coords, baseLat, baseLng]);
-
-  const handleUseCurrentLocation = async () => {
-    setLoading(true);
-    try {
-      const success = await requestLocation();
-      if (success && coords) {
-        setBaseLat(coords.latitude);
-        setBaseLng(coords.longitude);
-        toast.success('Localização atual capturada com sucesso!');
-      } else {
-        toast.error('Não foi possível obter sua localização');
+  const handleCityChange = async (newCity: { city: string; state: string }) => {
+    setCity(newCity);
+    
+    // Buscar city_id
+    if (newCity.city && newCity.state) {
+      const { data } = await supabase
+        .rpc('search_cities', { search_term: newCity.city, limit_count: 1 });
+      
+      if (data && data.length > 0 && data[0].state === newCity.state) {
+        setCityId(data[0].id);
       }
-    } catch (error) {
-      console.error('Error getting location:', error);
-      toast.error('Erro ao obter localização');
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleSaveLocation = async () => {
     if (!profile?.id) return;
 
-    // Validações básicas
-    if (!baseCityName.trim()) {
-      toast.error('Por favor, informe a cidade base');
-      return;
-    }
-
-    if (!baseState) {
-      toast.error('Por favor, selecione o estado');
+    if (!city.city || !city.state) {
+      toast.error('Por favor, selecione uma cidade válida');
       return;
     }
 
@@ -118,17 +76,28 @@ export const LocationManager: React.FC<LocationManagerProps> = ({ onClose }) => 
       return;
     }
 
+    // Se não temos city_id, buscar novamente
+    let finalCityId = cityId;
+    if (!finalCityId) {
+      const { data } = await supabase.rpc('search_cities', { 
+        search_term: city.city, 
+        limit_count: 1 
+      });
+      
+      if (data && data.length > 0 && data[0].state === city.state) {
+        finalCityId = data[0].id;
+      }
+    }
+
     setSaving(true);
     try {
       const { error } = await supabase
         .from('profiles')
         .update({
-          base_city_name: baseCityName.trim(),
-          base_state: baseState,
-          base_lat: baseLat,
-          base_lng: baseLng,
-          service_radius_km: serviceRadius,
-          location_enabled: locationEnabled
+          base_city_id: finalCityId,
+          base_city_name: city.city.trim(),
+          base_state: city.state,
+          service_radius_km: serviceRadius
         })
         .eq('id', profile.id);
 
@@ -151,7 +120,7 @@ export const LocationManager: React.FC<LocationManagerProps> = ({ onClose }) => 
     return 'text-red-600';
   };
 
-  const hasValidLocation = baseLat && baseLng;
+  const hasValidLocation = city.city && city.state;
 
   return (
     <div className="space-y-6">
@@ -180,7 +149,7 @@ export const LocationManager: React.FC<LocationManagerProps> = ({ onClose }) => 
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {hasValidLocation 
-                    ? `${baseCityName}, ${baseState} - Raio: ${serviceRadius}km`
+                    ? `${city.city}, ${city.state} - Raio: ${serviceRadius}km`
                     : 'Configure sua região de atendimento abaixo'
                   }
                 </p>
@@ -193,84 +162,15 @@ export const LocationManager: React.FC<LocationManagerProps> = ({ onClose }) => 
             )}
           </div>
 
-          {/* Configuração da Cidade Base */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="city">Cidade Base *</Label>
-              <Input
-                id="city"
-                placeholder="Ex: Primavera do Leste"
-                value={baseCityName}
-                onChange={(e) => setBaseCityName(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="state">Estado *</Label>
-              <Select value={baseState} onValueChange={setBaseState}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BRAZILIAN_STATES.map((state) => (
-                    <SelectItem key={state.code} value={state.code}>
-                      {state.name} ({state.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Coordenadas e Localização Atual */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label>Coordenadas Geográficas</Label>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleUseCurrentLocation}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                <Navigation className="h-4 w-4" />
-                {loading ? 'Obtendo...' : 'Usar Localização Atual'}
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="lat">Latitude</Label>
-                <Input
-                  id="lat"
-                  type="number"
-                  step="any"
-                  placeholder="Ex: -15.5561"
-                  value={baseLat || ''}
-                  onChange={(e) => setBaseLat(e.target.value ? parseFloat(e.target.value) : null)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lng">Longitude</Label>
-                <Input
-                  id="lng"
-                  type="number"
-                  step="any"
-                  placeholder="Ex: -54.2964"
-                  value={baseLng || ''}
-                  onChange={(e) => setBaseLng(e.target.value ? parseFloat(e.target.value) : null)}
-                />
-              </div>
-            </div>
-
-            {!hasPermission && (
-              <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                <p className="text-sm text-orange-800">
-                  <AlertCircle className="h-4 w-4 inline mr-1" />
-                  Para usar sua localização atual, permita o acesso à localização no navegador.
-                </p>
-              </div>
-            )}
+          {/* Seletor de Cidade */}
+          <div className="space-y-2">
+            <CitySelector
+              value={city}
+              onChange={handleCityChange}
+              label="Cidade Base"
+              placeholder="Digite sua cidade..."
+              required
+            />
           </div>
 
           {/* Raio de Atendimento */}
@@ -311,7 +211,7 @@ export const LocationManager: React.FC<LocationManagerProps> = ({ onClose }) => 
           <div className="flex gap-3 pt-4">
             <Button 
               onClick={handleSaveLocation} 
-              disabled={saving || !baseCityName || !baseState}
+              disabled={saving || !city.city || !city.state}
               className="flex-1"
             >
               {saving ? 'Salvando...' : 'Salvar Configurações'}

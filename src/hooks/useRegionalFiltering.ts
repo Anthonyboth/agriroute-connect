@@ -22,13 +22,13 @@ export const useRegionalFiltering = ({ userType, profileId }: RegionalFilteringP
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('base_city_name, base_state, base_lat, base_lng, service_radius_km')
+        .select('base_city_id, base_city_name, base_state, base_lat, base_lng, service_radius_km, cities(name, state, lat, lng)')
         .eq('id', profileId)
         .single();
 
       if (error) throw error;
 
-      const hasLocation = !!(profile.base_lat && profile.base_lng && profile.base_city_name);
+      const hasLocation = !!(profile.base_city_id || (profile.base_lat && profile.base_lng && profile.base_city_name));
       setRegionConfig({
         city: profile.base_city_name || '',
         state: profile.base_state || '',

@@ -29,6 +29,7 @@ export const LocationValidationModal: React.FC<LocationValidationModalProps> = (
   requiredForAction = "continuar"
 }) => {
   const [city, setCity] = useState({ city: '', state: '' });
+  const [cityId, setCityId] = useState<string | null>(null);
   const [radius, setRadius] = useState(50);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -43,13 +44,14 @@ export const LocationValidationModal: React.FC<LocationValidationModalProps> = (
       try {
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('base_city_name, base_state, service_radius_km')
+          .select('base_city_id, base_city_name, base_state, service_radius_km')
           .eq('user_id', user.id)
           .single();
 
         if (error) throw error;
 
         if (profile.base_city_name && profile.base_state) {
+          setCityId(profile.base_city_id);
           setCity({
             city: profile.base_city_name,
             state: profile.base_state
@@ -66,6 +68,20 @@ export const LocationValidationModal: React.FC<LocationValidationModalProps> = (
     checkExistingLocation();
   }, [user, isOpen]);
 
+  const handleCityChange = async (newCity: { city: string; state: string }) => {
+    setCity(newCity);
+    
+    // Buscar city_id
+    if (newCity.city && newCity.state) {
+      const { data } = await supabase
+        .rpc('search_cities', { search_term: newCity.city, limit_count: 1 });
+      
+      if (data && data.length > 0 && data[0].state === newCity.state) {
+        setCityId(data[0].id);
+      }
+    }
+  };
+
   const handleSaveLocation = async () => {
     if (!city.city || !city.state) {
       toast.error('Por favor, selecione uma cidade válida');
@@ -77,12 +93,25 @@ export const LocationValidationModal: React.FC<LocationValidationModalProps> = (
       return;
     }
 
+    // Se não temos city_id, buscar
+    let finalCityId = cityId;
+    if (!finalCityId) {
+      const { data } = await supabase.rpc('search_cities', { 
+        search_term: city.city, 
+        limit_count: 1 
+      });
+      
+      if (data && data.length > 0 && data[0].state === city.state) {
+        finalCityId = data[0].id;
+      }
+    }
+
     setIsSaving(true);
     try {
-      // Atualizar perfil do usuário
       const { error } = await supabase
         .from('profiles')
         .update({
+          base_city_id: finalCityId,
           base_city_name: city.city,
           base_state: city.state,
           service_radius_km: radius,
@@ -142,7 +171,7 @@ export const LocationValidationModal: React.FC<LocationValidationModalProps> = (
           <div className="space-y-4">
             <CitySelector
               value={city}
-              onChange={setCity}
+              onChange={handleCityChange}
               label="Sua Cidade Base"
               placeholder="Digite sua cidade..."
               required

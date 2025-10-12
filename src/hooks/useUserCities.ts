@@ -39,8 +39,11 @@ export function useUserCities() {
           radius_km,
           is_active,
           cities (
+            id,
             name,
-            state
+            state,
+            lat,
+            lng
           )
         `)
         .eq('user_id', user.id)

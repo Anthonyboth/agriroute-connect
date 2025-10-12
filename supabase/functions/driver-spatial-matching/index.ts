@@ -101,25 +101,26 @@ serve(async (req) => {
     if (req.method === 'POST') {
       logStep("Starting driver spatial matching", { driverId });
       
-      // Build/refresh matches based on driver service areas
+      // Build/refresh matches based on user_cities
       const { data: areas, error: areasErr } = await supabase
-        .from('driver_service_areas')
-        .select('*')
-        .eq('driver_id', driverId)
+        .from('user_cities')
+        .select('*, cities(name, state, lat, lng)')
+        .eq('user_id', driverId)
+        .eq('type', 'MOTORISTA_ORIGEM')
         .eq('is_active', true);
 
       if (areasErr) {
-        logStep("Error fetching driver service areas", areasErr);
+        logStep("Error fetching user cities", areasErr);
         throw areasErr;
       }
 
-      logStep("Driver service areas found", { count: areas?.length || 0 });
+      logStep("User cities found", { count: areas?.length || 0 });
 
       // No areas: nothing to match
       if (!areas || areas.length === 0) {
-        logStep("No active service areas found for driver");
+        logStep("No active cities found for driver");
         const result = await fetchMatches();
-        return new Response(JSON.stringify({ success: true, ...result, note: 'no_active_areas' }), {
+        return new Response(JSON.stringify({ success: true, ...result, note: 'no_active_cities' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -151,12 +152,13 @@ serve(async (req) => {
         let matchType: 'SPATIAL_RADIUS' | 'CITY_MATCH' | null = null;
 
         for (const a of areas) {
-          const areaLat = Number(a.lat);
-          const areaLng = Number(a.lng);
+          const cityData = (a as any).cities;
+          const areaLat = cityData?.lat ? Number(cityData.lat) : null;
+          const areaLng = cityData?.lng ? Number(cityData.lng) : null;
           const radiusKm = Number(a.radius_km || 50);
 
           if (typeof flat === 'number' && typeof flng === 'number' &&
-              !isNaN(areaLat) && !isNaN(areaLng) && !isNaN(radiusKm)) {
+              areaLat !== null && areaLng !== null && !isNaN(radiusKm)) {
             const distance = haversine(flat, flng, areaLat, areaLng);
             const within = distance <= radiusKm * 1000; // km -> m
             if (within) {
@@ -166,15 +168,16 @@ serve(async (req) => {
                 matchType = 'SPATIAL_RADIUS';
               }
             }
-          } else {
-            // Fallback: match by city/state equality (case-insensitive)
-            const sameCity = origin_city && a.city_name && String(origin_city).toLowerCase() === String(a.city_name).toLowerCase();
-            const sameState = !origin_state || !a.state || String(origin_state).toLowerCase() === String(a.state).toLowerCase();
-            if (sameCity && sameState) {
-              bestDistance = 0;
-              matchingArea = a;
-              matchType = 'CITY_MATCH';
-              break; // city match is enough
+          } else if (cityData) {
+            // Fallback: match by city_id
+            if (origin_city && cityData.name && String(origin_city).toLowerCase() === String(cityData.name).toLowerCase()) {
+              const sameState = !origin_state || String(origin_state).toLowerCase() === String(cityData.state || '').toLowerCase();
+              if (sameState) {
+                bestDistance = 0;
+                matchingArea = a;
+                matchType = 'CITY_MATCH';
+                break;
+              }
             }
           }
         }

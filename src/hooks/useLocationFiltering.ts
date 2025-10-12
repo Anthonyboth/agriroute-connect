@@ -128,19 +128,20 @@ export const useLocationFiltering = ({ userType }: LocationFilteringParams) => {
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('base_city_name, base_state, base_lat, base_lng, service_radius_km')
+        .select('base_city_id, base_city_name, base_state, base_lat, base_lng, service_radius_km, cities(name, state, lat, lng)')
         .eq('user_id', user.id)
         .single();
 
       if (error) throw error;
 
       return {
+        cityId: profile.base_city_id || null,
         city: profile.base_city_name || '',
         state: profile.base_state || '',
         lat: profile.base_lat,
         lng: profile.base_lng,
         radius: profile.service_radius_km || 50,
-        hasLocation: !!(profile.base_lat && profile.base_lng && profile.base_city_name)
+        hasLocation: !!(profile.base_city_id || (profile.base_lat && profile.base_lng && profile.base_city_name))
       };
     } catch (error) {
       console.error('Erro ao obter configuração de localização:', error);
