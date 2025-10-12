@@ -4323,7 +4323,6 @@ export type Database = {
       find_drivers_by_origin: {
         Args: { freight_uuid: string }
         Returns: {
-          city_name: string
           distance_m: number
           driver_area_id: string
           driver_id: string
@@ -4334,7 +4333,6 @@ export type Database = {
       find_drivers_by_route: {
         Args: { freight_uuid: string }
         Returns: {
-          city_name: string
           distance_to_route_m: number
           driver_area_id: string
           driver_id: string

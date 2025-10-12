@@ -258,17 +258,20 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         if (error.code === '42704' || error.message?.includes('geography') || error.message?.includes('ST_')) {
           toast.info('Usando busca por cidade/estado');
           
-          // Buscar áreas ativas do motorista
+          // Buscar cidades ativas do motorista
           const { data: areas } = await supabase
-            .from('driver_service_areas')
-            .select('city_name, state')
-            .eq('driver_id', profile.id)
+            .from('user_cities')
+            .select(`
+              cities!inner(name, state)
+            `)
+            .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+            .eq('type', 'MOTORISTA_ORIGEM')
             .eq('is_active', true);
           
           if (areas && areas.length > 0) {
             // Construir filtro OR para cidades/estados
-            const cityFilters = areas.map(a => 
-              `origin_city.ilike.%${a.city_name}%,origin_state.ilike.%${a.state}%,destination_city.ilike.%${a.city_name}%,destination_state.ilike.%${a.state}%`
+            const cityFilters = areas.map((a: any) => 
+              `origin_city.ilike.%${a.cities.name}%,origin_state.ilike.%${a.cities.state}%,destination_city.ilike.%${a.cities.name}%,destination_state.ilike.%${a.cities.state}%`
             ).join(',');
             
             // Buscar fretes OPEN que casem por cidade/estado

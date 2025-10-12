@@ -77,27 +77,32 @@ serve(async (req) => {
           console.error('Error fetching driver profiles:', profileError);
         }
 
-        // Get service area details
+        // Get user cities details (new system)
         const areaIds = (matchResults || []).map((match: any) => match.driver_area_id);
-        const { data: serviceAreas, error: areaError } = await supabaseClient
-          .from('driver_service_areas')
-          .select('id, city_name, radius_km')
+        const { data: userCities, error: areaError } = await supabaseClient
+          .from('user_cities')
+          .select(`
+            id, 
+            radius_km,
+            cities!inner(name, state)
+          `)
           .in('id', areaIds);
 
         if (areaError) {
-          console.error('Error fetching service areas:', areaError);
+          console.error('Error fetching user cities:', areaError);
         }
 
         // Enrich match data
         enrichedMatches = (matchResults || []).map((match: any) => {
           const driverProfile = driverProfiles?.find(p => p.id === match.driver_id);
-          const serviceArea = serviceAreas?.find(a => a.id === match.driver_area_id);
+          const userCity = userCities?.find((uc: any) => uc.id === match.driver_area_id);
 
           return {
             ...match,
             driver_name: driverProfile?.full_name || 'Unknown Driver',
-            city_name: serviceArea?.city_name || '',
-            radius_km: serviceArea?.radius_km || 0
+            city_name: userCity?.cities?.name || '',
+            state: userCity?.cities?.state || '',
+            radius_km: userCity?.radius_km || 0
           };
         });
       }
@@ -203,7 +208,10 @@ serve(async (req) => {
         .from('freight_matches')
         .select(`
           *,
-          driver_service_areas(city_name, radius_km),
+          user_cities!inner(
+            radius_km,
+            cities!inner(name, state)
+          ),
           profiles(full_name)
         `)
         .eq('freight_id', freight_id)
