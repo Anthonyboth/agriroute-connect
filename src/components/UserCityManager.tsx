@@ -44,8 +44,8 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
   const [cities, setCities] = useState<UserCity[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCity, setSelectedCity] = useState<{ name: string; state: string; id: string } | null>(null);
-  const [selectedType, setSelectedType] = useState<string>('');
+  const [selectedCity, setSelectedCity] = useState<{ city: string; state: string; id?: string } | null>(null);
+  const [selectedType, setSelectedType] = useState<UserCity['type'] | ''>('');
   const [radius, setRadius] = useState(50);
 
   useEffect(() => {
@@ -105,13 +105,12 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
     try {
       const { error } = await supabase
         .from('user_cities')
-        .insert({
-          user_id: user.id,
+        .insert([{
           city_id: selectedCity.id,
           type: selectedType,
           radius_km: radius,
           is_active: true
-        });
+        }]);
 
       if (error) {
         if (error.code === '23505') {
@@ -300,9 +299,18 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
             <div>
               <label className="text-sm font-medium mb-2 block">Cidade</label>
               <CitySelector
-                value={selectedCity ? `${selectedCity.name}, ${selectedCity.state}` : ''}
-                onChange={(city) => setSelectedCity(city)}
+                value={selectedCity ? { city: selectedCity.city, state: selectedCity.state } : undefined}
+                onChange={(city) => setSelectedCity({ 
+                  city: city.city, 
+                  state: city.state
+                })}
+                placeholder="Digite o nome da cidade..."
               />
+              {selectedCity && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Selecionada: {selectedCity.city}, {selectedCity.state}
+                </p>
+              )}
             </div>
 
             <div>
