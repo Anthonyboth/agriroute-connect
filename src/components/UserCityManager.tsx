@@ -44,7 +44,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
   const [cities, setCities] = useState<UserCity[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCity, setSelectedCity] = useState<{ city: string; state: string; id?: string } | null>(null);
+  const [selectedCity, setSelectedCity] = useState<{ city: string; state: string } | null>(null);
   const [selectedType, setSelectedType] = useState<UserCity['type'] | ''>('');
   const [radius, setRadius] = useState(50);
 
@@ -103,11 +103,25 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
     }
 
     try {
+      // Buscar o ID da cidade no banco de dados
+      const { data: cityData, error: cityError } = await supabase
+        .from('cities')
+        .select('id')
+        .eq('name', selectedCity.city)
+        .eq('state', selectedCity.state)
+        .single();
+
+      if (cityError || !cityData) {
+        toast.error('Cidade não encontrada no banco de dados');
+        return;
+      }
+
       const { error } = await supabase
         .from('user_cities')
         .insert([{
-          city_id: selectedCity.id,
-          type: selectedType,
+          user_id: user.id,
+          city_id: cityData.id,
+          type: selectedType as UserCity['type'],
           radius_km: radius,
           is_active: true
         }]);
@@ -315,7 +329,10 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
 
             <div>
               <label className="text-sm font-medium mb-2 block">Tipo de Uso</label>
-              <Select value={selectedType} onValueChange={setSelectedType}>
+              <Select 
+                value={selectedType} 
+                onValueChange={(value) => setSelectedType(value as UserCity['type'])}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
