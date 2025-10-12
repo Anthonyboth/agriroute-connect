@@ -62,9 +62,9 @@ serve(async (req) => {
 
       console.log(`Starting spatial matching for service request: ${requestId}`);
 
-      // Execute the spatial matching function
+      // Execute the spatial matching function using user_cities
       const { data: matchResults, error: matchError } = await supabaseClient
-        .rpc('execute_service_matching', { 
+        .rpc('execute_service_matching_with_user_cities', { 
           p_service_request_id: requestId,
           p_request_lat: request_lat,
           p_request_lng: request_lng,
@@ -96,28 +96,36 @@ serve(async (req) => {
           console.error('Error fetching provider profiles:', profileError);
         }
 
-        // Get service area details
-        const areaIds = (matchResults || []).map((match: any) => match.provider_area_id);
-        const { data: serviceAreas, error: areaError } = await supabaseClient
-          .from('service_provider_areas')
-          .select('id, city_name, radius_km, service_types')
-          .in('id', areaIds);
+        // Get user_cities details
+        const cityIds = (matchResults || []).map((match: any) => match.provider_city_id);
+        const { data: userCities, error: cityError } = await supabaseClient
+          .from('user_cities')
+          .select(`
+            id,
+            radius_km,
+            cities (
+              name,
+              state
+            )
+          `)
+          .in('id', cityIds);
 
-        if (areaError) {
-          console.error('Error fetching service areas:', areaError);
+        if (cityError) {
+          console.error('Error fetching user cities:', cityError);
         }
 
         // Enrich match data
         enrichedMatches = (matchResults || []).map((match: any) => {
           const providerProfile = providerProfiles?.find(p => p.id === match.provider_id);
-          const serviceArea = serviceAreas?.find(a => a.id === match.provider_area_id);
+          const userCity = userCities?.find((uc: any) => uc.id === match.provider_city_id);
+          const city = (userCity as any)?.cities;
 
           return {
             ...match,
             provider_name: providerProfile?.full_name || 'Prestador Desconhecido',
-            city_name: serviceArea?.city_name || '',
-            radius_km: serviceArea?.radius_km || 0,
-            service_types: serviceArea?.service_types || []
+            city_name: city ? `${city.name}, ${city.state}` : '',
+            radius_km: userCity?.radius_km || 0,
+            service_types: [] // Service types are now in profiles, not user_cities
           };
         });
       }
@@ -247,8 +255,11 @@ serve(async (req) => {
         .from('service_matches')
         .select(`
           *,
-          service_provider_areas(city_name, radius_km, service_types),
-          profiles(full_name)
+          user_cities!provider_area_id(
+            radius_km,
+            cities(name, state)
+          ),
+          profiles!provider_id(full_name)
         `)
         .eq('service_request_id', requestId)
         .order('service_compatibility_score', { ascending: false })

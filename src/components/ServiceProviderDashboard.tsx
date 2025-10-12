@@ -278,42 +278,25 @@ export const ServiceProviderDashboard: React.FC = () => {
         console.warn('⚠️ Spatial matching failed (non-critical):', spatialError);
       }
 
-      // 2. Fetch compatible requests using RPC
-      console.log('🔍 Fetching compatible service requests...');
-      let compatibleRequests: any[] = [];
+      // 2. Fetch requests based on provider cities using new RPC
+      console.log('🔍 Fetching service requests for provider cities...');
+      let cityBasedRequests: any[] = [];
       try {
-        const { data, error: compatibleError } = await supabase.rpc(
-          'get_compatible_service_requests_for_provider',
+        const { data, error: cityError } = await supabase.rpc(
+          'get_service_requests_for_provider_cities',
           { p_provider_id: providerId }
         );
 
-        if (compatibleError) {
-          console.warn('⚠️ Error fetching compatible requests:', compatibleError);
-        } else {
-          compatibleRequests = data || [];
-          console.log('✅ Compatible requests found:', compatibleRequests.length);
-        }
-      } catch (compatibleError) {
-        console.warn('⚠️ Compatible requests query failed:', compatibleError);
-      }
-
-      // 2b. Fetch city-based fallback requests
-      console.log('🔍 Fetching city-based fallback requests...');
-      let cityRequests: any[] = [];
-      try {
-        const { data, error: cityError } = await supabase.rpc(
-          'get_service_requests_by_city',
-          { provider_profile_id: providerId }
-        );
         if (cityError) {
           console.warn('⚠️ Error fetching city-based requests:', cityError);
         } else {
-          cityRequests = data || [];
-          console.log('✅ City-based requests found:', cityRequests.length);
+          cityBasedRequests = data || [];
+          console.log('✅ City-based requests found:', cityBasedRequests.length);
         }
-      } catch (cityErr) {
-        console.warn('⚠️ City-based query failed:', cityErr);
+      } catch (cityError) {
+        console.warn('⚠️ City-based requests query failed:', cityError);
       }
+
 
       // 3. Fetch provider's accepted requests (sem join problemático)
       const { data: providerRequests, error: providerError } = await supabase
@@ -330,8 +313,7 @@ export const ServiceProviderDashboard: React.FC = () => {
       // 4. Buscar perfis dos clientes separadamente
       const clientIds = [...new Set([
         ...(providerRequests || []).map(r => r.client_id),
-        ...(compatibleRequests || []).map(r => r.client_id),
-        ...(cityRequests || []).map((r: any) => r.client_id)
+        ...(cityBasedRequests || []).map(r => r.client_id)
       ].filter(Boolean))];
 
       const clientsMap = new Map();
@@ -368,8 +350,8 @@ export const ServiceProviderDashboard: React.FC = () => {
         } as ServiceRequest);
       });
       
-      // Adicionar solicitações compatíveis (pendentes)
-      (compatibleRequests || []).forEach((r: any) => {
+      // Adicionar solicitações baseadas em cidades (pendentes)
+      (cityBasedRequests || []).forEach((r: any) => {
         if (!byId.has(r.request_id)) {
           const client = clientsMap.get(r.client_id);
           const serviceRequest: ServiceRequest = {
@@ -401,44 +383,6 @@ export const ServiceProviderDashboard: React.FC = () => {
           byId.set(r.request_id, serviceRequest);
         }
       });
-
-      // Adicionar fallback por cidade (apenas OPEN, sem prestador e respeitando tipos)
-      let cityFallbackAdded = 0;
-      (cityRequests || []).forEach((r: any) => {
-        const typeOk = !allowedTypes || allowedTypes.includes(r.service_type);
-        const statusOk = r.status === 'OPEN';
-        if (!byId.has(r.id) && typeOk && statusOk) {
-          const client = clientsMap.get(r.client_id);
-          const serviceRequest: ServiceRequest = {
-            id: r.id,
-            service_type: r.service_type,
-            location_address: r.location_address,
-            city_name: r.city_name,
-            state: r.state,
-            problem_description: r.problem_description,
-            urgency: r.urgency,
-            contact_phone: r.contact_phone,
-            contact_name: r.contact_name,
-            status: r.status,
-            created_at: r.created_at,
-            location_lat: r.location_lat,
-            location_lng: r.location_lng,
-            vehicle_info: r.vehicle_info,
-            additional_info: r.additional_info,
-            is_emergency: r.is_emergency,
-            estimated_price: (r as any).estimated_price,
-            provider_id: null,
-            client_id: r.client_id,
-            profiles: client ? {
-              id: client.id,
-              full_name: client.full_name,
-              phone: client.phone
-            } : null
-          };
-          byId.set(r.id, serviceRequest);
-          cityFallbackAdded += 1;
-        }
-      });
       
       const allRequests = Array.from(byId.values());
       setRequests(allRequests);
@@ -447,8 +391,7 @@ export const ServiceProviderDashboard: React.FC = () => {
       
       console.log(`✅ Total requests loaded: ${allRequests.length}`, {
         acceptedByProvider: (providerRequests || []).length,
-        compatiblePending: compatibleRequests.length,
-        cityFallbackPending: cityFallbackAdded,
+        cityBasedPending: (cityBasedRequests || []).length,
         total: allRequests.length
       });
       

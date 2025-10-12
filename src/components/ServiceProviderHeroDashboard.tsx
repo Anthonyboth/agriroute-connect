@@ -19,7 +19,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
-import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
+import { UserCityManager } from '@/components/UserCityManager';
 import { ServicesModal } from '@/components/ServicesModal';
 import { useToast } from '@/hooks/use-toast';
 
@@ -235,10 +235,10 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
           <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
-              Gerenciar Áreas de Atendimento
+              Gerenciar Cidades de Atendimento
             </DialogTitle>
           </DialogHeader>
-          <ServiceProviderAreasManager />
+          <UserCityManager userRole="PRESTADOR_SERVICOS" />
         </DialogContent>
       </Dialog>
 
