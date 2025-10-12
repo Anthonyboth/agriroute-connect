@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { CitySelector } from './CitySelector';
 import { StructuredAddressInput } from './StructuredAddressInput';
 import { getCityId } from '@/lib/city-utils';
+import { showErrorToast } from '@/lib/error-handler';
 
 interface ServiceRequestModalProps {
   isOpen: boolean;
@@ -109,6 +110,14 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verificar autenticação antes de continuar
+    if (!profile?.id) {
+      toast.error('Você precisa estar logado para solicitar um serviço.');
+      setShowRegisterForm(true);
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -158,26 +167,8 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
       // Latitude/longitude não são obrigatórios; cidade e endereço estruturado bastam para o match por cidade.
 
       // Criar solicitação de serviço na tabela service_requests
-      console.log('Tentando inserir service request com dados:', {
-        client_id: '00000000-0000-0000-0000-000000000000',
-        service_type: serviceId,
-        contact_name: formData.name,
-        contact_phone: formData.phone,
-        location_address: formData.location_address,
-        location_lat: formData.location_lat,
-        location_lng: formData.location_lng,
-        city_name: formData.city || null,
-        state: formData.state || null,
-        city_id: cityId,
-        problem_description: formData.description,
-        urgency: formData.urgency,
-        preferred_datetime: formData.preferred_time ? new Date().toISOString() : null,
-        additional_info: formData.additional_info || null,
-        status: 'OPEN'
-      });
-
       const { data, error } = await supabase.from('service_requests').insert({
-        client_id: profile?.id || '00000000-0000-0000-0000-000000000000', // Usar ID do perfil se logado
+        client_id: profile.id,
         service_type: serviceId,
         contact_name: formData.name,
         contact_phone: formData.phone,
@@ -193,17 +184,9 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         additional_info: formData.additional_info || null,
         status: 'OPEN'
       });
-
-      console.log('Resultado da inserção:', { data, error });
 
       if (error) {
-        console.error('Erro detalhado ao criar solicitação:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        toast.error('Erro ao enviar solicitação. Tente novamente.');
+        showErrorToast(toast, 'Erro ao enviar solicitação', error);
         return;
       }
 

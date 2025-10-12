@@ -204,6 +204,14 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verificar autenticação antes de criar frete
+    if (!userProfile?.id) {
+      toast.error('Faça login como produtor para criar um frete.');
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
 
     try {

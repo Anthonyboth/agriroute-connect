@@ -12,6 +12,7 @@ import {
   Wrench
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import ServiceRequestModal from '@/components/ServiceRequestModal';
@@ -45,6 +46,11 @@ const Services: React.FC = () => {
 
   const handleFreightRequest = (type: 'CARGA' | 'GUINCHO' | 'MUDANCA') => {
     if (type === 'CARGA') {
+      if (!profile) {
+        toast.error('Faça login para criar um frete de carga');
+        navigate('/auth');
+        return;
+      }
       setShowFreightModal(true);
     } else if (type === 'MUDANCA') {
       setShowMudancaModal(true);
