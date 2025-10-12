@@ -10,8 +10,7 @@ import { FreightCard } from '@/components/FreightCard';
 import { VehicleManager } from '@/components/VehicleManager';
 import { FreightDetails } from '@/components/FreightDetails';
 import { DriverAvailabilityCalendar } from '@/components/DriverAvailabilityCalendar';
-import DriverServiceAreasManager from '@/components/DriverServiceAreasManager';
-import { DriverCityManager } from '@/components/DriverCityManager';
+import { UserCityManager } from '@/components/UserCityManager';
 import { DriverAvailabilityAreasManager } from '@/components/DriverAvailabilityAreasManager';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { SmartFreightMatcher } from '@/components/SmartFreightMatcher';
@@ -1557,9 +1556,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           </TabsContent>
 
           <TabsContent value="cities" className="space-y-4">
-            <DriverCityManager 
-              driverId={profile?.id || ''}
-              onCitiesUpdate={(cities) => {
+            <UserCityManager 
+              userRole="MOTORISTA"
+              onCitiesUpdate={() => {
                 // Atualizar fretes disponíveis quando cidades forem atualizadas
                 fetchAvailableFreights();
                 toast.success('Configuração de cidades atualizada!');

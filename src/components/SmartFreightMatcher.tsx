@@ -37,7 +37,7 @@ interface SmartFreightMatcherProps {
 export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   onFreightAction
 }) => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
   const [towingRequests, setTowingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,6 +49,33 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       fetchCompatibleFreights();
     }
   }, [profile]);
+
+  // Realtime: Ouvir mudanças em user_cities e recarregar fretes automaticamente
+  useEffect(() => {
+    if (!profile?.id || !user?.id) return;
+
+    const channel = supabase
+      .channel('user-cities-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_cities',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('user_cities mudou:', payload);
+          toast.info('Suas cidades de atendimento foram atualizadas. Recarregando fretes...');
+          fetchCompatibleFreights();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.id, user?.id]);
 
   const fetchCompatibleFreights = async () => {
     if (!profile?.id) return;
@@ -83,43 +110,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
 
       if (error) {
         console.error('Erro ao carregar fretes compatíveis:', error);
-        
-        // Fallback automático por cidade/estado se erro de geografia
-        if (error.code === '42704' || error.message?.includes('geography') || error.message?.includes('ST_')) {
-          toast.info('Usando busca por cidade/estado');
-          
-          // Buscar áreas ativas do motorista
-          const { data: areas } = await supabase
-            .from('driver_service_areas')
-            .select('city_name, state')
-            .eq('driver_id', profile.id)
-            .eq('is_active', true);
-          
-          if (areas && areas.length > 0) {
-            // Construir filtro OR para cidades/estados
-            const cityFilters = areas.map(a => 
-              `origin_city.ilike.%${a.city_name}%,origin_state.ilike.%${a.state}%,destination_city.ilike.%${a.city_name}%,destination_state.ilike.%${a.state}%`
-            ).join(',');
-            
-            // Buscar fretes OPEN que casem por cidade/estado
-            const { data: fallbackFreights } = await supabase
-              .from('freights')
-              .select('*')
-              .eq('status', 'OPEN')
-              .or(cityFilters);
-            
-            if (fallbackFreights) {
-              // Filtrar apenas fretes que ainda têm vagas disponíveis
-              const availableFreights = fallbackFreights.filter((f: any) => 
-                f.accepted_trucks < f.required_trucks
-              );
-              setCompatibleFreights(availableFreights as any);
-              return;
-            }
-          }
-        }
-        
-        throw error;
+        toast.error('Erro ao carregar fretes compatíveis. Verifique se você configurou suas cidades de atendimento.');
+        setCompatibleFreights([]);
+        return;
       }
       // Filtrar pelos tipos de serviço que o motorista presta (CARGA, GUINCHO, MUDANCA)
       const allowedTypes = Array.isArray(profile?.service_types)

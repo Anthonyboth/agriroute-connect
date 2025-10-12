@@ -35,6 +35,14 @@ interface DriverServiceAreasManagerProps {
 }
 
 const DriverServiceAreasManager = ({ onAreasUpdate }: DriverServiceAreasManagerProps) => {
+  // ⚠️ COMPONENTE DEPRECIADO
+  // Use UserCityManager com userRole="MOTORISTA" ao invés deste componente
+  // Este componente será removido em versões futuras
+  
+  useEffect(() => {
+    console.warn('⚠️ DriverServiceAreasManager está DEPRECIADO. Use UserCityManager com userRole="MOTORISTA"');
+  }, []);
+
   const [serviceAreas, setServiceAreas] = useState<DriverServiceArea[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);

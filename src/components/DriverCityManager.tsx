@@ -16,6 +16,14 @@ export const DriverCityManager: React.FC<DriverCityManagerProps> = ({
   driverId,
   onCitiesUpdate
 }) => {
+  // ⚠️ COMPONENTE DEPRECIADO
+  // Use UserCityManager com userRole="MOTORISTA" ao invés deste componente
+  // Este componente será removido em versões futuras
+  
+  useEffect(() => {
+    console.warn('⚠️ DriverCityManager está DEPRECIADO. Use UserCityManager com userRole="MOTORISTA"');
+  }, []);
+
   const [serviceCities, setServiceCities] = useState<string[]>([]);
   const [currentCity, setCurrentCity] = useState<{city: string, state: string} | null>(null);
   const [isAddingCity, setIsAddingCity] = useState(false);

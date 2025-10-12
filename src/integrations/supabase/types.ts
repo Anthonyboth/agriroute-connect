@@ -4396,9 +4396,10 @@ export type Database = {
           pickup_date: string
           price: number
           price_per_km: number
+          pricing_type: string
           required_trucks: number
           service_type: string
-          status: string
+          status: Database["public"]["Enums"]["freight_status"]
           urgency: string
           weight: number
         }[]
