@@ -798,6 +798,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         {/* Stats Cards Compactos - Navegáveis */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatsCard
+            size="sm"
             icon={<Clock className="h-5 w-5" />}
             iconColor="text-primary"
             label="Disponíveis"
@@ -806,6 +807,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           />
 
           <StatsCard
+            size="sm"
             icon={<Play className="h-5 w-5" />}
             iconColor="text-orange-500"
             label="Ativas"
@@ -814,6 +816,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           />
 
           <StatsCard
+            size="sm"
             icon={<CheckCircle className="h-5 w-5" />}
             iconColor="text-green-500"
             label="Concluídas"
@@ -822,6 +825,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           />
 
           <StatsCard
+            size="sm"
             icon={<TrendingUp className="h-5 w-5" />}
             iconColor="text-blue-500"
             label="Saldo"

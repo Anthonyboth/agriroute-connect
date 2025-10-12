@@ -863,6 +863,7 @@ const ProducerDashboard = () => {
         {/* Stats Cards Compactos - Navegáveis */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
           <StatsCard
+            size="sm"
             icon={<Package className="h-5 w-5" />}
             iconColor="text-blue-500"
             label="Abertos"
@@ -871,6 +872,7 @@ const ProducerDashboard = () => {
           />
 
           <StatsCard
+            size="sm"
             icon={<Play className="h-5 w-5" />}
             iconColor="text-orange-500"
             label="Andamento"
@@ -879,6 +881,7 @@ const ProducerDashboard = () => {
           />
 
           <StatsCard
+            size="sm"
             icon={<Clock className="h-5 w-5" />}
             iconColor="text-amber-500"
             label="P/ Confirmar"
@@ -887,6 +890,7 @@ const ProducerDashboard = () => {
           />
 
           <StatsCard
+            size="sm"
             icon={<Users className="h-5 w-5" />}
             iconColor="text-purple-500"
             label="Propostas"
@@ -895,6 +899,7 @@ const ProducerDashboard = () => {
           />
 
           <StatsCard
+            size="sm"
             icon={<CreditCard className="h-5 w-5" />}
             iconColor="text-green-500"
             label="Pagamentos"
@@ -903,6 +908,7 @@ const ProducerDashboard = () => {
           />
 
           <StatsCard
+            size="sm"
             icon={<Wrench className="h-5 w-5" />}
             iconColor="text-teal-500"
             label="Serviços"
