@@ -48,7 +48,12 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCity, setSelectedCity] = useState<{ city: string; state: string } | null>(null);
-  const [selectedType, setSelectedType] = useState<UserCity['type'] | ''>('');
+  const [selectedType, setSelectedType] = useState<UserCity['type'] | ''>(() => {
+    // Auto-selecionar tipo baseado no userRole
+    if (userRole === 'PRESTADOR_SERVICOS') return 'PRESTADOR_SERVICO';
+    if (userRole === 'PRODUTOR') return 'PRODUTOR_LOCALIZACAO';
+    return '';
+  });
   const [radius, setRadius] = useState(50);
 
   useEffect(() => {
@@ -103,7 +108,10 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
 
   const handleAddCity = async () => {
     if (!selectedCity || !selectedType || !user) {
-      toast.error('Selecione uma cidade e tipo');
+      toast.error(userRole === 'MOTORISTA' 
+        ? 'Selecione uma cidade e tipo' 
+        : 'Selecione uma cidade'
+      );
       return;
     }
 
@@ -162,7 +170,14 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
       toast.success('Cidade adicionada com sucesso!');
       setIsDialogOpen(false);
       setSelectedCity(null);
-      setSelectedType('');
+      // Reset tipo baseado no userRole
+      if (userRole === 'MOTORISTA') {
+        setSelectedType('');
+      } else if (userRole === 'PRESTADOR_SERVICOS') {
+        setSelectedType('PRESTADOR_SERVICO');
+      } else if (userRole === 'PRODUTOR') {
+        setSelectedType('PRODUTOR_LOCALIZACAO');
+      }
       setRadius(50);
       fetchUserCities();
       onCitiesUpdate?.();
@@ -368,9 +383,12 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Adicionar Cidade</DialogTitle>
-            <DialogDescription>
-              Selecione a cidade, tipo de uso e o raio de atendimento
-            </DialogDescription>
+          <DialogDescription>
+            {userRole === 'PRESTADOR_SERVICOS' || userRole === 'PRODUTOR'
+              ? 'Selecione a cidade e o raio de atendimento'
+              : 'Selecione a cidade, tipo de uso e o raio de atendimento'
+            }
+          </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
@@ -391,24 +409,27 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
               )}
             </div>
 
-            <div>
-              <Label>Tipo de Uso</Label>
-              <Select 
-                value={selectedType} 
-                onValueChange={(value) => setSelectedType(value as UserCity['type'])}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {typeOptions.map(type => (
-                    <SelectItem key={type} value={type}>
-                      {TYPE_LABELS[type as keyof typeof TYPE_LABELS]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Mostrar apenas para MOTORISTA (origem/destino) */}
+            {userRole === 'MOTORISTA' && (
+              <div>
+                <Label>Tipo de Uso</Label>
+                <Select 
+                  value={selectedType} 
+                  onValueChange={(value) => setSelectedType(value as UserCity['type'])}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {typeOptions.map(type => (
+                      <SelectItem key={type} value={type}>
+                        {TYPE_LABELS[type as keyof typeof TYPE_LABELS]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div>
               <Label>
@@ -432,7 +453,14 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
             <Button variant="outline" onClick={() => {
               setIsDialogOpen(false);
               setSelectedCity(null);
-              setSelectedType('');
+              // Reset tipo baseado no userRole
+              if (userRole === 'MOTORISTA') {
+                setSelectedType('');
+              } else if (userRole === 'PRESTADOR_SERVICOS') {
+                setSelectedType('PRESTADOR_SERVICO');
+              } else if (userRole === 'PRODUTOR') {
+                setSelectedType('PRODUTOR_LOCALIZACAO');
+              }
               setRadius(50);
             }}>
               Cancelar
