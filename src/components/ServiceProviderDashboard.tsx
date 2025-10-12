@@ -236,12 +236,14 @@ export const ServiceProviderDashboard: React.FC = () => {
       // 1. Execute spatial matching (não crítico se falhar)
       console.log('🔍 Executing spatial matching for provider...');
       try {
+        const { data: { session } } = await supabase.auth.getSession();
         const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
           'provider-spatial-matching',
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': session?.access_token ? `Bearer ${session.access_token}` : ''
             }
           }
         );

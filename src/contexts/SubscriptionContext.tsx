@@ -66,7 +66,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setState(prev => ({ ...prev, loading: true }));
       
-      const { data, error } = await supabase.functions.invoke('check-subscription');
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
+        headers: {
+          'Authorization': session.data.session?.access_token ? `Bearer ${session.data.session.access_token}` : ''
+        }
+      });
       
       if (error) throw error;
 

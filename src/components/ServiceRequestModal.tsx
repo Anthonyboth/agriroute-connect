@@ -136,7 +136,14 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         return;
       }
 
-// Latitude/longitude não são obrigatórios; cidade e endereço estruturado bastam para o match por cidade.
+// Garantir cidade e estado para matching por cidade
+      if (!formData.city || !formData.state) {
+        toast.error('Por favor, selecione a cidade e o estado do atendimento');
+        setLoading(false);
+        return;
+      }
+
+      // Latitude/longitude não são obrigatórios; cidade e endereço estruturado bastam para o match por cidade.
 
       // Criar solicitação de serviço na tabela service_requests
       console.log('Tentando inserir service request com dados:', {
@@ -147,8 +154,8 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         location_address: formData.location_address,
         location_lat: formData.location_lat,
         location_lng: formData.location_lng,
-        location_city: formData.city || null,
-        location_state: formData.state || null,
+        city_name: formData.city || null,
+        state: formData.state || null,
         problem_description: formData.description,
         urgency: formData.urgency,
         preferred_datetime: formData.preferred_time ? new Date().toISOString() : null,
@@ -164,8 +171,8 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         location_address: formData.location_address,
         location_lat: formData.location_lat,
         location_lng: formData.location_lng,
-        location_city: formData.city || null,
-        location_state: formData.state || null,
+        city_name: formData.city || null,
+        state: formData.state || null,
         problem_description: formData.description,
         urgency: formData.urgency,
         preferred_datetime: formData.preferred_time ? new Date().toISOString() : null,

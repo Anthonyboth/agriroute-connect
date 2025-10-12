@@ -230,12 +230,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
     try {
       // Primeiro executar o matching espacial para atualizar os matches
+      const { data: { session } } = await supabase.auth.getSession();
       const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
         'driver-spatial-matching',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': session?.access_token ? `Bearer ${session.access_token}` : ''
           }
         }
       );

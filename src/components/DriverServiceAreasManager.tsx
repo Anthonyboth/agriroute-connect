@@ -74,8 +74,12 @@ const DriverServiceAreasManager = ({ onAreasUpdate }: DriverServiceAreasManagerP
   const refreshMatches = async () => {
     try {
       // Refresh freight matches after area changes
+      const { data: { session } } = await supabase.auth.getSession();
       await supabase.functions.invoke('driver-spatial-matching', {
         method: 'POST',
+        headers: {
+          'Authorization': session?.access_token ? `Bearer ${session.access_token}` : ''
+        },
         body: { refresh: true }
       });
       

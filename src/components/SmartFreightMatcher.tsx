@@ -56,12 +56,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     setLoading(true);
     try {
       // Primeiro executar o matching espacial baseado nas áreas de serviço
+      const { data: { session } } = await supabase.auth.getSession();
       const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
         'driver-spatial-matching',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': session?.access_token ? `Bearer ${session.access_token}` : ''
           }
         }
       );
