@@ -30,14 +30,14 @@ export const StatsCard: React.FC<StatsCardProps> = ({
       )}
       onClick={onClick}
     >
-      <CardContent className="p-6 flex flex-col items-center justify-center text-center min-h-[140px]">
-        <div className={cn("mb-3", iconColor)}>
+      <CardContent className="p-4 flex flex-col items-center justify-center text-center min-h-[100px]">
+        <div className={cn("mb-2", iconColor)}>
           {icon}
         </div>
-        <p className="text-3xl md:text-4xl font-bold leading-tight mb-2">
+        <p className="text-2xl md:text-3xl font-bold leading-tight mb-1">
           {value}
         </p>
-        <p className="text-sm font-medium text-muted-foreground">
+        <p className="text-xs md:text-sm font-medium text-muted-foreground">
           {label}
         </p>
         {actionButton && <div className="mt-2">{actionButton}</div>}
