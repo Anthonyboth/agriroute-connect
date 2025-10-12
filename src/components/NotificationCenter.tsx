@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bell, Check, CheckCheck, Info, AlertTriangle, TrendingUp, Truck, DollarSign, CreditCard, MessageSquare, Star, Package } from 'lucide-react';
+import { Bell, Check, CheckCheck, Info, AlertTriangle, TrendingUp, Truck, DollarSign, CreditCard, MessageSquare, Star, Package, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { FreightRatingModal } from './FreightRatingModal';
 
 interface Notification {
   id: string;
@@ -30,8 +32,11 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 }) => {
   const { profile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && profile) {
@@ -84,6 +89,125 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     } catch (error: any) {
       console.error('Error marking notification as read:', error);
     }
+  };
+
+  const getDashboardRoute = (role?: string) => {
+    switch (role) {
+      case 'driver':
+        return '/dashboard/driver';
+      case 'producer':
+        return '/dashboard/producer';
+      case 'service_provider':
+        return '/dashboard/service-provider';
+      default:
+        return '/';
+    }
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    // Marcar como lida
+    if (!notification.read) {
+      await markAsRead(notification.id);
+    }
+    
+    const { type, data } = notification;
+    
+    // Lógica de navegação baseada no tipo
+    switch (type) {
+      case 'rating_pending':
+        if (data?.freight_id) {
+          setSelectedFreightId(data.freight_id);
+          setRatingModalOpen(true);
+          onClose();
+        }
+        break;
+        
+      case 'freight_accepted':
+      case 'proposal_received':
+      case 'advance_request':
+      case 'advance_approved':
+      case 'advance_rejected':
+      case 'delivery_confirmation_required':
+      case 'checkin_confirmation_required':
+      case 'freight_in_transit':
+      case 'freight_created':
+      case 'external_payment_proposed':
+        if (data?.freight_id) {
+          onClose();
+          const dashboardRoute = getDashboardRoute(profile?.role);
+          navigate(dashboardRoute, { 
+            state: { 
+              openFreightId: data.freight_id,
+              notificationType: type 
+            } 
+          });
+        }
+        break;
+        
+      case 'chat_message':
+        if (data?.freight_id) {
+          onClose();
+          const dashboardRoute = getDashboardRoute(profile?.role);
+          navigate(dashboardRoute, { 
+            state: { 
+              openChatFreightId: data.freight_id 
+            } 
+          });
+        }
+        break;
+        
+      case 'service_chat_message':
+        if (data?.service_request_id) {
+          onClose();
+          navigate('/dashboard/service-provider', {
+            state: {
+              openServiceChat: data.service_request_id
+            }
+          });
+        }
+        break;
+        
+      case 'payment_completed':
+      case 'payment_confirmation':
+        onClose();
+        const dashboardRoute = getDashboardRoute(profile?.role);
+        navigate(dashboardRoute, {
+          state: {
+            openPaymentHistory: true
+          }
+        });
+        break;
+        
+      // Para notificações genéricas, apenas marca como lida
+      case 'info':
+      case 'warning':
+      case 'success':
+      case 'error':
+      default:
+        // Apenas marca como lida, sem navegação
+        break;
+    }
+  };
+
+  const isActionableNotification = (type: string) => {
+    const actionableTypes = [
+      'rating_pending',
+      'freight_accepted',
+      'proposal_received',
+      'advance_request',
+      'advance_approved',
+      'advance_rejected',
+      'delivery_confirmation_required',
+      'checkin_confirmation_required',
+      'freight_in_transit',
+      'freight_created',
+      'external_payment_proposed',
+      'chat_message',
+      'service_chat_message',
+      'payment_completed',
+      'payment_confirmation'
+    ];
+    return actionableTypes.includes(type);
   };
 
   const getNotificationIcon = (type: string) => {
@@ -170,12 +294,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               {notifications.map((notification) => (
                 <Card 
                   key={notification.id}
-                  className={`cursor-pointer transition-colors ${
+                  className={`cursor-pointer transition-all hover:scale-[1.01] ${
                     !notification.read 
                       ? 'bg-primary/5 border-primary/20' 
                       : 'hover:bg-muted/50'
                   }`}
-                  onClick={() => !notification.read && markAsRead(notification.id)}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
@@ -207,6 +331,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                           {notification.message}
                         </p>
                       </div>
+
+                      {isActionableNotification(notification.type) && (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -221,6 +349,23 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           </Button>
         </div>
       </DialogContent>
+
+      {ratingModalOpen && selectedFreightId && (
+        <FreightRatingModal
+          isOpen={ratingModalOpen}
+          onClose={() => {
+            setRatingModalOpen(false);
+            setSelectedFreightId(null);
+          }}
+          freightId={selectedFreightId}
+          userRole={profile?.role === 'MOTORISTA' ? 'MOTORISTA' : 'PRODUTOR'}
+          onRatingSubmitted={() => {
+            setRatingModalOpen(false);
+            setSelectedFreightId(null);
+            fetchNotifications();
+          }}
+        />
+      )}
     </Dialog>
   );
 };
