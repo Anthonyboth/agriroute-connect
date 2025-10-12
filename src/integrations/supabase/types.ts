@@ -3199,7 +3199,22 @@ export type Database = {
           urgency?: string
           vehicle_info?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_service_requests_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_service_requests_provider"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscribers: {
         Row: {
@@ -4204,6 +4219,7 @@ export type Database = {
         Returns: {
           additional_info: string
           city_name: string
+          client_id: string
           contact_name: string
           contact_phone: string
           created_at: string

@@ -223,71 +223,108 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   const fetchServiceRequests = async () => {
     const providerId = getProviderProfileId();
-    if (!providerId) return;
+    if (!providerId) {
+      console.warn('⚠️ Provider ID not found');
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
 
-      // 🆕 1. EXECUTAR MATCHING ESPACIAL PRIMEIRO
+      // 1. Execute spatial matching (não crítico se falhar)
       console.log('🔍 Executing spatial matching for provider...');
-      const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
-        'provider-spatial-matching',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+      try {
+        const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
+          'provider-spatial-matching',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            }
           }
+        );
+
+        if (spatialError) {
+          console.warn('⚠️ Spatial matching warning:', spatialError);
+        } else {
+          console.log('✅ Spatial matching completed:', spatialData);
         }
-      );
-
-      if (spatialError) {
-        console.warn('⚠️ Erro no matching espacial:', spatialError);
-      } else {
-        console.log('✅ Spatial matching completed:', spatialData);
+      } catch (spatialError) {
+        console.warn('⚠️ Spatial matching failed (non-critical):', spatialError);
       }
 
-      // 🆕 2. BUSCAR SOLICITAÇÕES COMPATÍVEIS USANDO A NOVA RPC
+      // 2. Fetch compatible requests using RPC
       console.log('🔍 Fetching compatible service requests...');
-      const { data: compatibleRequests, error: compatibleError } = await supabase.rpc(
-        'get_compatible_service_requests_for_provider',
-        { p_provider_id: providerId }
-      );
+      let compatibleRequests: any[] = [];
+      try {
+        const { data, error: compatibleError } = await supabase.rpc(
+          'get_compatible_service_requests_for_provider',
+          { p_provider_id: providerId }
+        );
 
-      if (compatibleError) {
-        console.error('❌ Erro ao buscar solicitações compatíveis:', compatibleError);
-        throw compatibleError;
+        if (compatibleError) {
+          console.warn('⚠️ Error fetching compatible requests:', compatibleError);
+        } else {
+          compatibleRequests = data || [];
+          console.log('✅ Compatible requests found:', compatibleRequests.length);
+        }
+      } catch (compatibleError) {
+        console.warn('⚠️ Compatible requests query failed:', compatibleError);
       }
 
-      console.log('✅ Compatible requests found:', compatibleRequests?.length || 0);
-
-      // 3. BUSCAR SOLICITAÇÕES JÁ ACEITAS/EM ANDAMENTO DO PRESTADOR
+      // 3. Fetch provider's accepted requests (sem join problemático)
       const { data: providerRequests, error: providerError } = await supabase
         .from('service_requests')
-        .select(`
-          *,
-          profiles:client_id (
-            full_name,
-            phone
-          )
-        `)
+        .select('*')
         .eq('provider_id', providerId)
         .order('created_at', { ascending: false });
 
-      if (providerError) throw providerError;
+      if (providerError) {
+        console.error('❌ Error fetching provider requests:', providerError);
+        throw providerError;
+      }
 
-      console.log('✅ Provider\'s accepted requests found:', providerRequests?.length || 0);
+      // 4. Buscar perfis dos clientes separadamente
+      const clientIds = [...new Set([
+        ...(providerRequests || []).map(r => r.client_id),
+        ...(compatibleRequests || []).map(r => r.client_id)
+      ].filter(Boolean))];
 
-      // 4. COMBINAR E DEDUPLICAR
+      const clientsMap = new Map();
+      if (clientIds.length > 0) {
+        const { data: clients, error: clientsError } = await supabase
+          .from('profiles')
+          .select('id, full_name, phone')
+          .in('id', clientIds);
+
+        if (!clientsError && clients) {
+          clients.forEach(client => {
+            clientsMap.set(client.id, client);
+          });
+        }
+      }
+
+      // 5. Combinar e deduplicar por ID
       const byId = new Map<string, ServiceRequest>();
       
-      // Adicionar solicitações do prestador (já aceitas)
+      // Adicionar solicitações aceitas pelo prestador
       (providerRequests || []).forEach((r: any) => {
-        byId.set(r.id, r as ServiceRequest);
+        const client = clientsMap.get(r.client_id);
+        byId.set(r.id, {
+          ...r,
+          profiles: client ? {
+            id: client.id,
+            full_name: client.full_name,
+            phone: client.phone
+          } : null
+        } as ServiceRequest);
       });
       
       // Adicionar solicitações compatíveis (pendentes)
       (compatibleRequests || []).forEach((r: any) => {
         if (!byId.has(r.request_id)) {
+          const client = clientsMap.get(r.client_id);
           const serviceRequest: ServiceRequest = {
             id: r.request_id,
             service_type: r.service_type,
@@ -307,8 +344,12 @@ export const ServiceProviderDashboard: React.FC = () => {
             is_emergency: r.is_emergency,
             estimated_price: r.estimated_price,
             provider_id: null,
-            client_id: null,
-            profiles: null
+            client_id: r.client_id,
+            profiles: client ? {
+              id: client.id,
+              full_name: client.full_name,
+              phone: client.phone
+            } : null
           };
           byId.set(r.request_id, serviceRequest);
         }
@@ -317,22 +358,22 @@ export const ServiceProviderDashboard: React.FC = () => {
       const allRequests = Array.from(byId.values());
       setRequests(allRequests);
       setLastRefresh(new Date());
+      setLoading(false);
       
-      console.log(`✅ Total requests loaded: ${allRequests.length} (intelligent matching)`, {
+      console.log(`✅ Total requests loaded: ${allRequests.length}`, {
         acceptedByProvider: (providerRequests || []).length,
-        compatiblePending: (compatibleRequests || []).length,
+        compatiblePending: compatibleRequests.length,
         total: allRequests.length
       });
       
     } catch (error: any) {
       console.error('❌ Error fetching service requests:', error);
+      setLoading(false);
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar as solicitações",
+        title: "Erro ao carregar solicitações",
+        description: "Não foi possível carregar as solicitações. Tente novamente.",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -712,7 +753,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           <Button 
             variant="ghost" 
             className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
-            onClick={() => setActiveTab('active')}
+            onClick={() => setActiveTab('accepted')}
           >
             <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
               <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
@@ -969,10 +1010,44 @@ export const ServiceProviderDashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
-                <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">Nenhuma solicitação pendente.</p>
-              </div>
+              <Card className="p-8 text-center space-y-4">
+                {counts.pending === 0 ? (
+                  <>
+                    <Settings className="w-16 h-16 mx-auto text-muted-foreground" />
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Configure seu perfil</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Para começar a receber solicitações, você precisa:
+                      </p>
+                      <ul className="text-left max-w-md mx-auto space-y-2 mb-6 text-sm">
+                        <li className="flex items-start">
+                          <span className="mr-2">✓</span>
+                          <span>Configurar as regiões onde você atende</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="mr-2">✓</span>
+                          <span>Definir os tipos de serviço que oferece</span>
+                        </li>
+                      </ul>
+                      <div className="flex gap-3 justify-center flex-wrap">
+                        <Button onClick={() => setActiveTab('cities')}>
+                          <MapPin className="w-4 h-4 mr-2" />
+                          Configurar Regiões
+                        </Button>
+                        <Button onClick={() => setActiveTab('services')} variant="outline">
+                          <Wrench className="w-4 h-4 mr-2" />
+                          Configurar Serviços
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <Clock className="w-16 h-16 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">Nenhuma solicitação disponível no momento</p>
+                  </div>
+                )}
+              </Card>
             )}
           </TabsContent>
 
