@@ -309,19 +309,19 @@
   }
 }
 
-/* Service Provider teal theme to differentiate from driver */
+/* Service Provider green theme to differentiate from driver */
 .provider-theme {
-  --primary: 191 91% 36%;
+  --primary: 142 71% 40%;
   --primary-foreground: 210 40% 98%;
-  --accent: 191 91% 36%;
-  --ring: 191 91% 36%;
-  --muted: 200 16% 92%;
+  --accent: 142 71% 40%;
+  --ring: 142 71% 40%;
+  --muted: 142 20% 92%;
 }
 
 .dark .provider-theme {
-  --primary: 191 91% 45%;
+  --primary: 142 71% 50%;
   --primary-foreground: 210 40% 98%;
-  --accent: 191 91% 45%;
-  --ring: 191 91% 45%;
-  --muted: 200 16% 20%;
+  --accent: 142 71% 50%;
+  --ring: 142 71% 50%;
+  --muted: 142 16% 20%;
 }
