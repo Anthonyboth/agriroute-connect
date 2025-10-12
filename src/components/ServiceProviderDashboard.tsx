@@ -683,12 +683,12 @@ export const ServiceProviderDashboard: React.FC = () => {
             <p className="text-sm md:text-base mb-4 opacity-90">
               Sistema IA conecta você com clientes
             </p>
-            <div className="flex items-center justify-center gap-3 flex-wrap">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
               <Button 
                 variant="default"
                 size="sm"
                 onClick={() => setActiveTab('cities')}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
               >
                 <MapPin className="mr-1 h-4 w-4" />
                 Configurar Região
@@ -697,7 +697,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                 variant="default"
                 size="sm"
                 onClick={() => setActiveTab('services')}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
               >
                 <Wrench className="mr-1 h-4 w-4" />
                 Configurar Serviços
@@ -706,7 +706,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                 variant="default"
                 size="sm"
                 onClick={() => setServicesModalOpen(true)}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
               >
                 <Package className="mr-1 h-4 w-4" />
                 Solicitar Serviço
@@ -826,38 +826,59 @@ export const ServiceProviderDashboard: React.FC = () => {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full overflow-x-auto pb-2">
-            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
-              <TabsTrigger value="pending" className="text-xs">
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground min-w-fit">
+              <TabsTrigger 
+                value="pending" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
                 <Brain className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Disponível</span>
                 <span className="sm:hidden">Disp</span>
               </TabsTrigger>
-              <TabsTrigger value="accepted" className="text-xs">
+              <TabsTrigger 
+                value="accepted" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
                 <Play className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Em Andamento</span>
                 <span className="sm:hidden">Ativo</span>
               </TabsTrigger>
-              <TabsTrigger value="completed" className="text-xs">
+              <TabsTrigger 
+                value="completed" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Concluídos</span>
                 <span className="sm:hidden">Ok</span>
               </TabsTrigger>
-              <TabsTrigger value="services" className="text-xs">
+              <TabsTrigger 
+                value="services" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
                 <Settings className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Serviços</span>
                 <span className="sm:hidden">Serv</span>
               </TabsTrigger>
-              <TabsTrigger value="payouts" className="text-xs">
+              <TabsTrigger 
+                value="payouts" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
                 <Banknote className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Saldo</span>
                 <span className="sm:hidden">Saldo</span>
               </TabsTrigger>
-              <TabsTrigger value="cities" className="text-xs">
+              <TabsTrigger 
+                value="cities" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
                 <MapPin className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Cidades</span>
                 <span className="sm:hidden">Cid</span>
               </TabsTrigger>
-              <TabsTrigger value="history" className="text-xs">
+              <TabsTrigger 
+                value="history" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Histórico</span>
                 <span className="sm:hidden">Hist</span>
