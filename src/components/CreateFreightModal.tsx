@@ -17,6 +17,7 @@ import { LocationFillButton } from './LocationFillButton';
 import { CitySelector } from './CitySelector';
 import { StructuredAddressInput } from './StructuredAddressInput';
 import { freightSchema, validateInput } from '@/lib/validations';
+import { getCityId } from '@/lib/city-utils';
 
 interface CreateFreightModalProps {
   onFreightCreated: () => void;
@@ -36,11 +37,13 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     origin_address: '',
     origin_city: '',
     origin_state: '',
+    origin_city_id: undefined as string | undefined,
     origin_lat: undefined as number | undefined,
     origin_lng: undefined as number | undefined,
     destination_address: '',
     destination_city: '',
     destination_state: '',
+    destination_city_id: undefined as string | undefined,
     destination_lat: undefined as number | undefined,
     destination_lng: undefined as number | undefined,
     price: '',
@@ -243,6 +246,17 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         destState
       );
 
+      // Buscar city_ids para origem e destino
+      const originCityId = formData.origin_city_id || await getCityId(formData.origin_city, formData.origin_state);
+      const destinationCityId = formData.destination_city_id || await getCityId(formData.destination_city, formData.destination_state);
+
+      if (!originCityId || !destinationCityId) {
+        console.warn('⚠️ city_id não encontrado:', {
+          origin: { city: formData.origin_city, state: formData.origin_state, id: originCityId },
+          destination: { city: formData.destination_city, state: formData.destination_state, id: destinationCityId }
+        });
+      }
+
       const freightData = {
         producer_id: userProfile.id,
         cargo_type: formData.cargo_type,
@@ -250,11 +264,13 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         origin_address: formData.origin_address,
         origin_city: formData.origin_city,
         origin_state: formData.origin_state,
+        origin_city_id: originCityId,
         origin_lat: formData.origin_lat,
         origin_lng: formData.origin_lng,
         destination_address: formData.destination_address,
         destination_city: formData.destination_city,
         destination_state: formData.destination_state,
+        destination_city_id: destinationCityId,
         destination_lat: formData.destination_lat,
         destination_lng: formData.destination_lng,
         distance_km: distance,
@@ -311,11 +327,13 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         origin_address: '',
         origin_city: '',
         origin_state: '',
+        origin_city_id: undefined,
         origin_lat: undefined,
         origin_lng: undefined,
         destination_address: '',
         destination_city: '',
         destination_state: '',
+        destination_city_id: undefined,
         destination_lat: undefined,
         destination_lng: undefined,
         price: '',
@@ -440,6 +458,9 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     onChange={(city) => {
       handleInputChange('origin_city', city.city);
       handleInputChange('origin_state', city.state);
+      if (city.id) {
+        handleInputChange('origin_city_id', city.id);
+      }
       if (city.lat && city.lng) {
         handleInputChange('origin_lat', String(city.lat));
         handleInputChange('origin_lng', String(city.lng));
@@ -464,6 +485,9 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     onChange={(city) => {
       handleInputChange('destination_city', city.city);
       handleInputChange('destination_state', city.state);
+      if (city.id) {
+        handleInputChange('destination_city_id', city.id);
+      }
       if (city.lat && city.lng) {
         handleInputChange('destination_lat', String(city.lat));
         handleInputChange('destination_lng', String(city.lng));

@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { CitySelector } from './CitySelector';
 import { StructuredAddressInput } from './StructuredAddressInput';
+import { getCityId } from '@/lib/city-utils';
 
 interface ServiceRequestModalProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     location_lng: undefined as number | undefined,
     city: '',
     state: '',
+    city_id: undefined as string | undefined,
     description: '',
     urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
     preferred_time: '',
@@ -143,6 +145,16 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         return;
       }
 
+      // Buscar city_id se não foi fornecido
+      const cityId = formData.city_id || await getCityId(formData.city, formData.state);
+
+      if (!cityId) {
+        console.warn('⚠️ city_id não encontrado para:', {
+          city: formData.city,
+          state: formData.state
+        });
+      }
+
       // Latitude/longitude não são obrigatórios; cidade e endereço estruturado bastam para o match por cidade.
 
       // Criar solicitação de serviço na tabela service_requests
@@ -156,6 +168,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         location_lng: formData.location_lng,
         city_name: formData.city || null,
         state: formData.state || null,
+        city_id: cityId,
         problem_description: formData.description,
         urgency: formData.urgency,
         preferred_datetime: formData.preferred_time ? new Date().toISOString() : null,
@@ -173,6 +186,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         location_lng: formData.location_lng,
         city_name: formData.city || null,
         state: formData.state || null,
+        city_id: cityId,
         problem_description: formData.description,
         urgency: formData.urgency,
         preferred_datetime: formData.preferred_time ? new Date().toISOString() : null,
@@ -289,6 +303,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                         ...prev,
                         city: city.city,
                         state: city.state,
+                        city_id: city.id,
                         location_lat: city.lat,
                         location_lng: city.lng
                       }));

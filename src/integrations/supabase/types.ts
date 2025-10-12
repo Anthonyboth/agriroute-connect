@@ -4384,12 +4384,18 @@ export type Database = {
           created_at: string
           delivery_date: string
           destination_address: string
+          destination_city: string
+          destination_state: string
           distance_km: number
           freight_id: string
+          match_distance_m: number
           minimum_antt_price: number
           origin_address: string
+          origin_city: string
+          origin_state: string
           pickup_date: string
           price: number
+          price_per_km: number
           required_trucks: number
           service_type: string
           status: string
