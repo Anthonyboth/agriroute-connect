@@ -54,6 +54,7 @@ import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderS
 import { ProviderCityManager } from '@/components/ProviderCityManager';
 import { ServiceHistory } from '@/components/ServiceHistory';
 import heroLogistics from '@/assets/hero-logistics.jpg';
+import { ServicesModal } from '@/components/ServicesModal';
 
 interface ServiceRequest {
   id: string;
@@ -112,6 +113,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [servicesModalOpen, setServicesModalOpen] = useState(false);
 
   const getProviderProfileId = () => {
     if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
@@ -681,7 +683,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             <p className="text-sm md:text-base mb-4 opacity-90">
               Sistema IA conecta você com clientes
             </p>
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-3 flex-wrap">
               <Button 
                 variant="default"
                 size="sm"
@@ -690,6 +692,24 @@ export const ServiceProviderDashboard: React.FC = () => {
               >
                 <MapPin className="mr-1 h-4 w-4" />
                 Configurar Região
+              </Button>
+              <Button 
+                variant="default"
+                size="sm"
+                onClick={() => setActiveTab('services')}
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
+              >
+                <Wrench className="mr-1 h-4 w-4" />
+                Configurar Serviços
+              </Button>
+              <Button 
+                variant="default"
+                size="sm"
+                onClick={() => setServicesModalOpen(true)}
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2"
+              >
+                <Package className="mr-1 h-4 w-4" />
+                Solicitar Serviço
               </Button>
             </div>
           </div>
@@ -1245,6 +1265,12 @@ export const ServiceProviderDashboard: React.FC = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Modal de Solicitar Serviços */}
+        <ServicesModal 
+          isOpen={servicesModalOpen}
+          onClose={() => setServicesModalOpen(false)}
+        />
       </div>
     </div>
   );
