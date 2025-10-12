@@ -28,7 +28,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
       className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
       onClick={onClick}
     >
-      <Card className={cn("w-full shadow-sm border-2 hover:border-primary focus-within:border-primary active:border-primary transition-all", className)}>
+      <Card className={cn("w-full shadow-sm border-2 hover:border-emerald-300 focus-within:border-emerald-300 active:border-emerald-300 transition-all", className)}>
         <CardContent className="p-3 flex items-center justify-center min-h-[80px]">
           <div className="flex items-start gap-2 w-full">
             <div className={cn("flex-shrink-0 mt-0.5", iconColor)}>
