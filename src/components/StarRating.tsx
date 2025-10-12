@@ -36,7 +36,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
     const isHalfFilled = fillValue >= 0.5 && fillValue < 1;
     
     return (
-      <div key={index} className="relative inline-block">
+      <div key={starValue} className="relative inline-block">
         {/* Background star (empty) */}
         <Star 
           className={cn(

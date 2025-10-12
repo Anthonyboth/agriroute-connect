@@ -33,7 +33,7 @@ export const InteractiveStarRating: React.FC<InteractiveStarRatingProps> = ({
     
     return (
       <button
-        key={index}
+        key={starValue}
         type="button"
         onClick={() => handleStarClick(starValue)}
         className={cn(

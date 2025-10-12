@@ -222,7 +222,7 @@ const Status = () => {
             {services.map((service, index) => {
               const StatusIcon = getStatusIcon(service.status);
               return (
-                <Card key={index} className="shadow-card hover:shadow-glow transition-smooth">
+                <Card key={service.name} className="shadow-card hover:shadow-glow transition-smooth">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -271,7 +271,7 @@ const Status = () => {
 
           <div className="max-w-4xl mx-auto space-y-4">
             {incidents.map((incident, index) => (
-              <Card key={index} className="shadow-card">
+              <Card key={`${incident.date}-${incident.title}`} className="shadow-card">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <h3 className="text-lg font-semibold text-foreground">

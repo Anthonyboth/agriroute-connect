@@ -19,6 +19,8 @@ export function StripePaymentForm({ amount, onSuccess, onCancel }: StripePayment
   useEffect(() => {
     if (!stripe) return;
 
+    let isMounted = true;
+
     const clientSecret = new URLSearchParams(window.location.search).get(
       'payment_intent_client_secret'
     );
@@ -26,6 +28,7 @@ export function StripePaymentForm({ amount, onSuccess, onCancel }: StripePayment
     if (!clientSecret) return;
 
     stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
+      if (!isMounted) return;
       switch (paymentIntent?.status) {
         case 'succeeded':
           setMessage('Pagamento realizado com sucesso!');
@@ -42,6 +45,10 @@ export function StripePaymentForm({ amount, onSuccess, onCancel }: StripePayment
           break;
       }
     });
+
+    return () => {
+      isMounted = false;
+    };
   }, [stripe, onSuccess]);
 
   const handleSubmit = async (event: React.FormEvent) => {

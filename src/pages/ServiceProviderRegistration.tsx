@@ -95,7 +95,7 @@ const ServiceProviderRegistration = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {requiredDocuments.map((doc, index) => (
-                    <div key={index} className="flex items-center space-x-3">
+                    <div key={doc} className="flex items-center space-x-3">
                       <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                       <span className="text-sm">{doc}</span>
                     </div>
@@ -126,7 +126,7 @@ const ServiceProviderRegistration = () => {
                     'Suspensão'
                   ].map((service, index) => (
                     <div 
-                      key={index}
+                      key={service}
                       className="p-3 bg-primary/5 rounded-lg text-center text-sm font-medium"
                     >
                       {service}

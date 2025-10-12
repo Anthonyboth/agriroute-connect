@@ -72,7 +72,7 @@ const Subscription: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               {benefits.map((benefit, index) => (
-                <div key={index} className="flex items-start gap-3">
+                <div key={benefit.title} className="flex items-start gap-3">
                   <div className="text-primary mt-1">
                     {benefit.icon}
                   </div>

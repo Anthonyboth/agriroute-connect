@@ -30,6 +30,7 @@ export function FreightPaymentModal({
   const [isLoading, setIsLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [isUnmounting, setIsUnmounting] = useState(false);
 
   const remainingAmount = freightPrice - advancesTotal;
 
@@ -87,8 +88,12 @@ export function FreightPaymentModal({
   };
 
   const handlePaymentCancel = () => {
-    setShowPaymentForm(false);
-    setClientSecret(null);
+    setIsUnmounting(true);
+    setTimeout(() => {
+      setShowPaymentForm(false);
+      setClientSecret(null);
+      setIsUnmounting(false);
+    }, 300);
   };
 
   const paymentMethods = [
@@ -254,13 +259,15 @@ export function FreightPaymentModal({
             </div>
           </div>
         ) : (
-          <StripePaymentProvider clientSecret={clientSecret || undefined}>
-            <StripePaymentForm 
-              amount={remainingAmount}
-              onSuccess={handlePaymentSuccess}
-              onCancel={handlePaymentCancel}
-            />
-          </StripePaymentProvider>
+          <div className={isUnmounting ? 'opacity-0 transition-opacity duration-300' : 'transition-opacity duration-300'}>
+            <StripePaymentProvider clientSecret={clientSecret || undefined}>
+              <StripePaymentForm 
+                amount={remainingAmount}
+                onSuccess={handlePaymentSuccess}
+                onCancel={handlePaymentCancel}
+              />
+            </StripePaymentProvider>
+          </div>
         )}
       </DialogContent>
     </Dialog>
