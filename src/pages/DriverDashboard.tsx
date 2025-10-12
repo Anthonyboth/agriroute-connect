@@ -31,6 +31,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote, Star, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useGPSMonitoring } from '@/hooks/useGPSMonitoring';
+import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { TrackingConsentModal } from '@/components/TrackingConsentModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Wrench } from 'lucide-react';
@@ -117,7 +118,7 @@ const DriverDashboard = () => {
   const [activeTab, setActiveTab] = useState('available');
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [showEarnings, setShowEarnings] = useState(true);
+  const { visible: showEarnings, toggle: toggleEarnings } = useEarningsVisibility(false);
 const [showCheckinModal, setShowCheckinModal] = useState(false);
 const [selectedFreightForCheckin, setSelectedFreightForCheckin] = useState<string | null>(null);
 const [initialCheckinType, setInitialCheckinType] = useState<string | null>(null);
@@ -1250,7 +1251,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowEarnings(!showEarnings);
+                  toggleEarnings();
                 }}
                 className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
               >

@@ -45,6 +45,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useServiceRequestCounts } from '@/hooks/useServiceRequestCounts';
+import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { ContactInfoCard } from '@/components/ContactInfoCard';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
 import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
@@ -112,7 +113,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('pending');
   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [showEarnings, setShowEarnings] = useState(true);
+  const { visible: showEarnings, toggle: toggleEarnings } = useEarningsVisibility(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
@@ -845,7 +846,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowEarnings(!showEarnings);
+                  toggleEarnings();
                 }}
                 className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
               >

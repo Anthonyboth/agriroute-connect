@@ -22,6 +22,7 @@ import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderS
 import { UserCityManager } from '@/components/UserCityManager';
 import { ServicesModal } from '@/components/ServicesModal';
 import { useToast } from '@/hooks/use-toast';
+import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 
 interface ServiceProviderStats {
   total_requests: number;
@@ -41,7 +42,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
     completed_requests: 0,
     total_earnings: 0
   });
-  const [showEarnings, setShowEarnings] = useState(true);
+  const { visible: showEarnings, toggle: toggleEarnings } = useEarningsVisibility(false);
   const [showServiceTypesModal, setShowServiceTypesModal] = useState(false);
   const [showAreasModal, setShowAreasModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -233,7 +234,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowEarnings(!showEarnings);
+                  toggleEarnings();
                 }}
                 className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
               >
