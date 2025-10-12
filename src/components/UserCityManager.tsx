@@ -6,14 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { MapPin, Plus, Trash2, CheckCircle, XCircle, Settings } from 'lucide-react';
+import { MapPin, Plus, Trash2, CheckCircle, XCircle, Info } from 'lucide-react';
 import { CitySelector } from './CitySelector';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { getProviderVisibleServices, getServiceById } from '@/lib/service-types';
+import { getServiceById } from '@/lib/service-types';
 
 interface UserCity {
   id: string;
@@ -52,8 +50,6 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
   const [selectedCity, setSelectedCity] = useState<{ city: string; state: string } | null>(null);
   const [selectedType, setSelectedType] = useState<UserCity['type'] | ''>('');
   const [radius, setRadius] = useState(50);
-  const [selectedServiceTypes, setSelectedServiceTypes] = useState<string[]>([]);
-  const [editingCityId, setEditingCityId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -111,12 +107,6 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
       return;
     }
 
-    // Validar service_types para prestadores de serviço
-    if (userRole === 'PRESTADOR_SERVICOS' && selectedServiceTypes.length === 0) {
-      toast.error('Selecione pelo menos um tipo de serviço');
-      return;
-    }
-
     try {
       // Buscar o ID da cidade no banco de dados
       const { data: cityData, error: cityError } = await supabase
@@ -131,6 +121,18 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
         return;
       }
 
+      // Buscar service_types atuais do perfil para prestadores
+      let profileServiceTypes: string[] = [];
+      if (userRole === 'PRESTADOR_SERVICOS') {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('service_types')
+          .eq('user_id', user.id)
+          .single();
+        
+        profileServiceTypes = profileData?.service_types || [];
+      }
+
       const insertData: any = {
         user_id: user.id,
         city_id: cityData.id,
@@ -139,9 +141,9 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
         is_active: true
       };
 
-      // Adicionar service_types apenas para prestadores de serviço
+      // Copiar service_types do perfil para prestadores
       if (userRole === 'PRESTADOR_SERVICOS') {
-        insertData.service_types = selectedServiceTypes;
+        insertData.service_types = profileServiceTypes;
       }
 
       const { error } = await supabase
@@ -162,7 +164,6 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
       setSelectedCity(null);
       setSelectedType('');
       setRadius(50);
-      setSelectedServiceTypes([]);
       fetchUserCities();
       onCitiesUpdate?.();
     } catch (error) {
@@ -226,38 +227,6 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
     }
   };
 
-  const handleUpdateServiceTypes = async (cityId: string, newServiceTypes: string[]) => {
-    if (newServiceTypes.length === 0) {
-      toast.error('Selecione pelo menos um tipo de serviço');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('user_cities')
-        .update({ service_types: newServiceTypes })
-        .eq('id', cityId);
-
-      if (error) throw error;
-
-      toast.success('Tipos de serviço atualizados!');
-      setEditingCityId(null);
-      fetchUserCities();
-      onCitiesUpdate?.();
-    } catch (error) {
-      console.error('Erro ao atualizar tipos de serviço:', error);
-      toast.error('Erro ao atualizar tipos de serviço');
-    }
-  };
-
-  const toggleServiceType = (serviceId: string) => {
-    setSelectedServiceTypes(prev => 
-      prev.includes(serviceId) 
-        ? prev.filter(id => id !== serviceId)
-        : [...prev, serviceId]
-    );
-  };
-
   if (loading) {
     return (
       <Card>
@@ -283,9 +252,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
                 Minhas Cidades de Atendimento
               </CardTitle>
               <CardDescription>
-                {userRole === 'PRESTADOR_SERVICOS' 
-                  ? 'Gerencie as cidades e serviços que você oferece (cada cidade pode ter diferentes serviços)'
-                  : 'Gerencie as cidades onde você atua (raio máximo: 300km por cidade)'}
+                Gerencie as cidades onde você atua e defina o raio de atendimento (máximo: 300km por cidade)
               </CardDescription>
             </div>
             <Button onClick={() => setIsDialogOpen(true)} size="sm">
@@ -295,6 +262,20 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
           </div>
         </CardHeader>
         <CardContent>
+          {userRole === 'PRESTADOR_SERVICOS' && (
+            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+              <div className="flex items-start gap-2 text-blue-700 dark:text-blue-300">
+                <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="font-medium block">Gerenciamento de Serviços</span>
+                  <p className="text-blue-600 dark:text-blue-400 text-sm mt-1">
+                    Os tipos de serviço são configurados na aba <strong>"Serviços"</strong> ou no botão <strong>"Configurar Serviços"</strong> e aplicados automaticamente a todas as suas cidades de atendimento.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {cities.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <MapPin className="h-12 w-12 mx-auto mb-4 opacity-20" />
@@ -356,42 +337,22 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
                       />
                     </div>
 
-                    {/* Exibir tipos de serviço para PRESTADOR_SERVICOS */}
-                    {userRole === 'PRESTADOR_SERVICOS' && (
+                    {/* Exibir tipos de serviço para PRESTADOR_SERVICOS (read-only) */}
+                    {userRole === 'PRESTADOR_SERVICOS' && city.service_types && city.service_types.length > 0 && (
                       <div className="mt-4 pt-4 border-t">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Serviços oferecidos nesta cidade:
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditingCityId(city.id);
-                              setSelectedServiceTypes(city.service_types || []);
-                            }}
-                            className="h-7 px-2"
-                          >
-                            <Settings className="w-3 h-3 mr-1" />
-                            {city.service_types && city.service_types.length > 0 ? 'Editar' : 'Adicionar'}
-                          </Button>
+                        <span className="text-sm font-medium text-muted-foreground block mb-2">
+                          Serviços oferecidos:
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {city.service_types.map((typeId) => {
+                            const service = getServiceById(typeId);
+                            return service ? (
+                              <Badge key={typeId} variant="secondary" className="text-xs">
+                                {service.label}
+                              </Badge>
+                            ) : null;
+                          })}
                         </div>
-                        {city.service_types && city.service_types.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {city.service_types.map((typeId) => {
-                              const service = getServiceById(typeId);
-                              return service ? (
-                                <Badge key={typeId} variant="secondary" className="text-xs">
-                                  {service.label}
-                                </Badge>
-                              ) : null;
-                            })}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            Nenhum serviço definido - clique em "Adicionar" para configurar
-                          </p>
-                        )}
                       </div>
                     )}
                   </CardContent>
@@ -408,9 +369,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
           <DialogHeader>
             <DialogTitle>Adicionar Cidade</DialogTitle>
             <DialogDescription>
-              {userRole === 'PRESTADOR_SERVICOS' 
-                ? 'Selecione a cidade, os serviços que você oferece e o raio de atendimento'
-                : 'Selecione a cidade, tipo de uso e o raio de atendimento'}
+              Selecione a cidade, tipo de uso e o raio de atendimento
             </DialogDescription>
           </DialogHeader>
           
@@ -467,137 +426,19 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
                 Você receberá solicitações dentro deste raio da cidade selecionada
               </p>
             </div>
-
-            {userRole === 'PRESTADOR_SERVICOS' && (
-              <div className="space-y-3">
-                <Label>Tipos de Serviço Oferecidos Nesta Cidade *</Label>
-                <p className="text-sm text-muted-foreground">
-                  Selecione os serviços que você oferece especificamente nesta cidade
-                </p>
-                <ScrollArea className="h-[300px] border rounded-md p-4">
-                  <div className="space-y-2">
-                    {getProviderVisibleServices().map((service) => (
-                      <div key={service.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`service-${service.id}`}
-                          checked={selectedServiceTypes.includes(service.id)}
-                          onCheckedChange={() => toggleServiceType(service.id)}
-                        />
-                        <label
-                          htmlFor={`service-${service.id}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
-                        >
-                          {React.createElement(service.icon, { className: 'w-4 h-4' })}
-                          {service.label}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-                {selectedServiceTypes.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {selectedServiceTypes.map(typeId => {
-                      const service = getServiceById(typeId);
-                      return service ? (
-                        <Badge key={typeId} variant="secondary" className="text-xs">
-                          {service.label}
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-4">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  setIsDialogOpen(false);
-                  setSelectedCity(null);
-                  setSelectedType('');
-                  setRadius(50);
-                  setSelectedServiceTypes([]);
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={handleAddCity}
-                disabled={!selectedCity || !selectedType || (userRole === 'PRESTADOR_SERVICOS' && selectedServiceTypes.length === 0)}
-              >
-                Adicionar
-              </Button>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog para editar service_types */}
-      <Dialog open={editingCityId !== null} onOpenChange={(open) => !open && setEditingCityId(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Editar Tipos de Serviço</DialogTitle>
-            <DialogDescription>
-              Selecione os serviços que você oferece nesta cidade
-            </DialogDescription>
-          </DialogHeader>
-          
-          <ScrollArea className="h-[400px] border rounded-md p-4">
-            <div className="space-y-2">
-              {getProviderVisibleServices().map((service) => (
-                <div key={service.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`edit-service-${service.id}`}
-                    checked={selectedServiceTypes.includes(service.id)}
-                    onCheckedChange={() => toggleServiceType(service.id)}
-                  />
-                  <label
-                    htmlFor={`edit-service-${service.id}`}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
-                  >
-                    {React.createElement(service.icon, { className: 'w-4 h-4' })}
-                    {service.label}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-
-          {selectedServiceTypes.length > 0 && (
-            <div className="border-t pt-3">
-              <p className="text-sm font-medium mb-2">Selecionados:</p>
-              <div className="flex flex-wrap gap-1">
-                {selectedServiceTypes.map(typeId => {
-                  const service = getServiceById(typeId);
-                  return service ? (
-                    <Badge key={typeId} variant="secondary" className="text-xs">
-                      {service.label}
-                    </Badge>
-                  ) : null;
-                })}
-              </div>
-            </div>
-          )}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => {
-              setEditingCityId(null);
-              setSelectedServiceTypes([]);
+              setIsDialogOpen(false);
+              setSelectedCity(null);
+              setSelectedType('');
+              setRadius(50);
             }}>
               Cancelar
             </Button>
-            <Button 
-              onClick={() => {
-                if (editingCityId) {
-                  handleUpdateServiceTypes(editingCityId, selectedServiceTypes);
-                }
-              }}
-              disabled={selectedServiceTypes.length === 0}
-            >
-              Salvar
+            <Button onClick={handleAddCity}>
+              Adicionar Cidade
             </Button>
           </DialogFooter>
         </DialogContent>
