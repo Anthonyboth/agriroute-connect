@@ -20,6 +20,7 @@ import {
   CarouselContent, 
   CarouselItem 
 } from "@/components/ui/carousel";
+import { StatsPentagon } from "@/components/StatsPentagon";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -314,78 +315,7 @@ const Landing = () => {
           {/* Layout Pentagonal com Contorno Preto */}
           <div className="relative max-w-5xl mx-auto px-4">
             {/* Desktop: Pentágono com contorno preto sólido */}
-            <div className="hidden md:block relative h-[520px]">
-              {/* SVG com path único formando pentágono */}
-              <svg 
-                className="absolute inset-0 w-full h-full pointer-events-none"
-                viewBox="0 0 100 100"
-                preserveAspectRatio="xMidYMid meet"
-                style={{ zIndex: 0 }}
-              >
-                <path 
-                  d="M50,12 L82,40 L68,85 L32,85 L18,40 Z"
-                  fill="none"
-                  stroke="#111"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke"
-                  shapeRendering="geometricPrecision"
-                />
-              </svg>
-              
-              {/* Estatísticas posicionadas fora dos vértices */}
-              
-              {/* Posição 1: Topo */}
-              <div className="absolute top-[2%] left-1/2 -translate-x-1/2 text-center" style={{ zIndex: 10 }}>
-                <div className="text-3xl md:text-4xl font-extrabold text-primary mb-1">
-                  {stats[0].value}
-                </div>
-                <div className="text-sm md:text-base text-muted-foreground font-medium">
-                  {stats[0].label}
-                </div>
-              </div>
-              
-              {/* Posição 2: Esquerda Superior */}
-              <div className="absolute top-[36%] left-[8%] text-left" style={{ zIndex: 10 }}>
-                <div className="text-3xl md:text-4xl font-extrabold text-primary mb-1">
-                  {stats[1].value}
-                </div>
-                <div className="text-sm md:text-base text-muted-foreground font-medium">
-                  {stats[1].label}
-                </div>
-              </div>
-              
-              {/* Posição 3: Direita Superior */}
-              <div className="absolute top-[36%] right-[8%] text-left" style={{ zIndex: 10 }}>
-                <div className="text-3xl md:text-4xl font-extrabold text-primary mb-1">
-                  {stats[2].value}
-                </div>
-                <div className="text-sm md:text-base text-muted-foreground font-medium">
-                  {stats[2].label}
-                </div>
-              </div>
-              
-              {/* Posição 4: Base Esquerda */}
-              <div className="absolute bottom-[2%] left-[22%] text-left" style={{ zIndex: 10 }}>
-                <div className="text-3xl md:text-4xl font-extrabold text-primary mb-1">
-                  {stats[3].value}
-                </div>
-                <div className="text-sm md:text-base text-muted-foreground font-medium">
-                  {stats[3].label}
-                </div>
-              </div>
-              
-              {/* Posição 5: Base Direita */}
-              <div className="absolute bottom-[2%] right-[22%] text-left" style={{ zIndex: 10 }}>
-                <div className="text-3xl md:text-4xl font-extrabold text-primary mb-1">
-                  {stats[4].value}
-                </div>
-                <div className="text-sm md:text-base text-muted-foreground font-medium">
-                  {stats[4].label}
-                </div>
-              </div>
-            </div>
+<StatsPentagon items={stats} />
             
             {/* Mobile: Grid simples sem linhas */}
             <div className="md:hidden grid grid-cols-1 gap-6">
