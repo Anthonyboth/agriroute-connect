@@ -194,16 +194,40 @@ export const ServiceProviderDashboard: React.FC = () => {
       )
       .subscribe();
 
-    // Refresh automático a cada 10 segundos como fallback
+    // Subscription para user_cities do prestador
+    const userCitiesChannel = supabase
+      .channel('provider-user-cities-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'user_cities',
+          filter: `user_id=eq.${user?.id}`
+        },
+        (payload) => {
+          console.log('🏙️ user_cities mudou para prestador:', payload);
+          toast({
+            title: "Cidades atualizadas",
+            description: "Suas cidades de atendimento foram atualizadas. Recarregando serviços...",
+          });
+          fetchServiceRequests();
+          refreshCounts();
+        }
+      )
+      .subscribe();
+
+    // Refresh automático a cada 30 segundos como fallback
     const interval = setInterval(() => {
       fetchServiceRequests();
       refreshCounts();
       fetchTotalEarnings();
-    }, 10000);
+    }, 30000); // 30 segundos ao invés de 10
 
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(userCitiesChannel);
       clearInterval(interval);
     };
   }, [user, profile]);
@@ -253,6 +277,11 @@ export const ServiceProviderDashboard: React.FC = () => {
 
     try {
       setLoading(true);
+      
+      console.log('🔍 [ServiceProviderDashboard] Fetching requests...', {
+        providerId,
+        timestamp: new Date().toISOString()
+      });
 
       // 1. Execute spatial matching (não crítico se falhar)
       console.log('🔍 Executing spatial matching for provider...');
