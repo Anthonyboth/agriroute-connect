@@ -17,6 +17,11 @@ export const ProviderCityManager: React.FC<ProviderCityManagerProps> = ({
   onCitiesUpdate
 }) => {
   const { toast } = useToast();
+
+  // DEPRECATION WARNING
+  useEffect(() => {
+    console.warn('⚠️ DEPRECATED: ProviderCityManager está obsoleto. Use UserCityManager com userRole="PRESTADOR_SERVICOS" em vez disso.');
+  }, []);
   const [serviceCities, setServiceCities] = useState<string[]>([]);
   const [currentCity, setCurrentCity] = useState<{city: string, state: string} | null>(null);
   const [isAddingCity, setIsAddingCity] = useState(false);
@@ -156,9 +161,10 @@ export const ProviderCityManager: React.FC<ProviderCityManagerProps> = ({
         <CardTitle className="flex items-center gap-2">
           <MapPin className="h-5 w-5" />
           Cidades de Atendimento
+          <Badge variant="destructive" className="text-xs">OBSOLETO</Badge>
         </CardTitle>
         <CardDescription>
-          Configure as cidades onde você oferece seus serviços. Você receberá apenas solicitações dessas cidades.
+          ⚠️ Este componente está obsoleto. Use UserCityManager em vez disso.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

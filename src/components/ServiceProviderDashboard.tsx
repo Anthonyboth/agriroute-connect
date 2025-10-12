@@ -52,7 +52,7 @@ import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
 import { LocationManager } from '@/components/LocationManager';
 import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
 import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
-import { ProviderCityManager } from '@/components/ProviderCityManager';
+import { UserCityManager } from '@/components/UserCityManager';
 import { ServiceHistory } from '@/components/ServiceHistory';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 import { ServicesModal } from '@/components/ServicesModal';
@@ -1188,10 +1188,10 @@ export const ServiceProviderDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="cities" className="space-y-4">
-            <ProviderCityManager 
-              providerId={getProviderProfileId() || ''} 
-              onCitiesUpdate={(cities) => {
-                console.log('Provider cities updated:', cities);
+            <UserCityManager 
+              userRole="PRESTADOR_SERVICOS"
+              onCitiesUpdate={() => {
+                console.log('Provider cities updated via UserCityManager');
                 // Recarregar solicitações quando cidades forem atualizadas
                 fetchServiceRequests();
                 refreshCounts();
