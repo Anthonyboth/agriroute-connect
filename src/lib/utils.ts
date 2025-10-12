@@ -42,3 +42,28 @@ export function formatTonsCompactFromKg(kg: number): string {
 
   return `${formatted}${suffix} ton`;
 }
+
+/**
+ * Cria uma função debounced que atrasa a invocação até após `wait` milissegundos
+ * terem passado desde a última vez que foi invocada.
+ * 
+ * @param func - A função a ser debounced
+ * @param wait - Os milissegundos a atrasar
+ * @returns Uma versão debounced da função
+ */
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout;
+  
+  return function executedFunction(...args: Parameters<T>) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}

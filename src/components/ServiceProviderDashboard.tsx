@@ -207,12 +207,21 @@ export const ServiceProviderDashboard: React.FC = () => {
         },
         (payload) => {
           console.log('🏙️ user_cities mudou para prestador:', payload);
-          toast({
-            title: "Cidades atualizadas",
-            description: "Suas cidades de atendimento foram atualizadas. Recarregando serviços...",
-          });
-          fetchServiceRequests();
-          refreshCounts();
+          
+          // Filtrar apenas mudanças que afetam matching
+          const relevantChanges = ['INSERT', 'DELETE'];
+          const isActiveToggle = payload.eventType === 'UPDATE' && 
+            payload.old?.is_active !== payload.new?.is_active;
+          
+          if (relevantChanges.includes(payload.eventType) || isActiveToggle) {
+            toast({
+              title: "Cidades atualizadas",
+              description: "Recarregando serviços...",
+            });
+            fetchServiceRequests();
+            refreshCounts();
+          }
+          // Ignorar updates de radius_km - não afetam disponibilidade
         }
       )
       .subscribe();

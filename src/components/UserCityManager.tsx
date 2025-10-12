@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { getServiceById } from '@/lib/service-types';
+import { debounce } from '@/lib/utils';
 
 interface UserCity {
   id: string;
@@ -223,23 +224,35 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
     }
   };
 
-  const handleUpdateRadius = async (cityId: string, newRadius: number) => {
-    try {
-      const { error } = await supabase
-        .from('user_cities')
-        .update({ radius_km: newRadius })
-        .eq('id', cityId);
+  // Função debounced para atualizar raio no banco
+  const debouncedUpdateRadiusInDB = useCallback(
+    debounce(async (cityId: string, newRadius: number) => {
+      try {
+        const { error } = await supabase
+          .from('user_cities')
+          .update({ radius_km: newRadius })
+          .eq('id', cityId);
 
-      if (error) throw error;
+        if (error) throw error;
+      } catch (error) {
+        console.error('Erro ao atualizar raio:', error);
+        toast.error('Erro ao atualizar raio');
+        // Reverter mudança em caso de erro
+        fetchUserCities();
+      }
+    }, 500), // Aguarda 500ms após último movimento
+    []
+  );
 
-      setCities(prev => prev.map(c => 
-        c.id === cityId ? { ...c, radius_km: newRadius } : c
-      ));
-      onCitiesUpdate?.();
-    } catch (error) {
-      console.error('Erro ao atualizar raio:', error);
-      toast.error('Erro ao atualizar raio');
-    }
+  const handleUpdateRadius = (cityId: string, newRadius: number) => {
+    // Atualizar UI instantaneamente para feedback visual imediato
+    setCities(prev => prev.map(c => 
+      c.id === cityId ? { ...c, radius_km: newRadius } : c
+    ));
+
+    // Salvar no banco com debounce (aguarda usuário parar de arrastar)
+    debouncedUpdateRadiusInDB(cityId, newRadius);
+    // ✅ Não chama onCitiesUpdate - ajustar raio não requer refetch de serviços/fretes
   };
 
   if (loading) {
