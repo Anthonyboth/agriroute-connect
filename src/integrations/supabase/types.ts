@@ -3785,6 +3785,7 @@ export type Database = {
           id: string
           is_active: boolean
           radius_km: number
+          service_types: string[] | null
           type: Database["public"]["Enums"]["user_city_type"]
           updated_at: string
           user_id: string
@@ -3795,6 +3796,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           radius_km?: number
+          service_types?: string[] | null
           type: Database["public"]["Enums"]["user_city_type"]
           updated_at?: string
           user_id: string
@@ -3805,6 +3807,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           radius_km?: number
+          service_types?: string[] | null
           type?: Database["public"]["Enums"]["user_city_type"]
           updated_at?: string
           user_id?: string
@@ -4516,6 +4519,17 @@ export type Database = {
           status: string
           urgency: string
           vehicle_info: string
+        }[]
+      }
+      get_provider_services_by_city: {
+        Args: { p_provider_id: string }
+        Returns: {
+          city_id: string
+          city_name: string
+          city_state: string
+          is_active: boolean
+          radius_km: number
+          service_types: string[]
         }[]
       }
       get_public_service_requests: {
