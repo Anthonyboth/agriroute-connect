@@ -314,7 +314,7 @@ const Landing = () => {
           {/* Layout Pentagonal com SVG Lines */}
           <div className="relative max-w-5xl mx-auto px-4">
             {/* Desktop: Pentágono com linhas SVG */}
-            <div className="hidden md:block relative h-[600px]">
+            <div className="hidden md:block relative h-[550px]">
               {/* SVG com linhas conectando os 5 pontos */}
               <svg 
                 className="absolute inset-0 w-full h-full pointer-events-none"
@@ -322,43 +322,43 @@ const Landing = () => {
               >
                 <defs>
                   <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style={{ stopColor: 'hsl(142 71% 45%)', stopOpacity: 0.3 }} />
-                    <stop offset="50%" style={{ stopColor: 'hsl(142 71% 45%)', stopOpacity: 0.6 }} />
-                    <stop offset="100%" style={{ stopColor: 'hsl(142 71% 45%)', stopOpacity: 0.3 }} />
+                    <stop offset="0%" style={{ stopColor: 'hsl(142 71% 45%)', stopOpacity: 0.7 }} />
+                    <stop offset="50%" style={{ stopColor: 'hsl(142 71% 45%)', stopOpacity: 0.9 }} />
+                    <stop offset="100%" style={{ stopColor: 'hsl(142 71% 45%)', stopOpacity: 0.7 }} />
                   </linearGradient>
                 </defs>
                 
                 {/* Linhas do pentágono */}
-                {/* Linha 1: Topo → Esquerda Superior */}
-                <line x1="50%" y1="10%" x2="15%" y2="35%" 
-                  stroke="url(#lineGradient)" strokeWidth="2" strokeDasharray="5,5"
+                {/* Linha 1: Topo → Esquerda */}
+                <line x1="50%" y1="20%" x2="28%" y2="45%" 
+                  stroke="url(#lineGradient)" strokeWidth="3" strokeDasharray="8,4"
                   className="animate-pulse" />
                 
-                {/* Linha 2: Esquerda Superior → Esquerda Inferior */}
-                <line x1="15%" y1="35%" x2="25%" y2="75%" 
-                  stroke="url(#lineGradient)" strokeWidth="2" strokeDasharray="5,5"
+                {/* Linha 2: Esquerda → Base Esquerda */}
+                <line x1="28%" y1="45%" x2="38%" y2="75%" 
+                  stroke="url(#lineGradient)" strokeWidth="3" strokeDasharray="8,4"
                   className="animate-pulse" />
                 
-                {/* Linha 3: Esquerda Inferior → Direita Inferior */}
-                <line x1="25%" y1="75%" x2="75%" y2="75%" 
-                  stroke="url(#lineGradient)" strokeWidth="2" strokeDasharray="5,5"
+                {/* Linha 3: Base Esquerda → Base Direita */}
+                <line x1="38%" y1="75%" x2="62%" y2="75%" 
+                  stroke="url(#lineGradient)" strokeWidth="3" strokeDasharray="8,4"
                   className="animate-pulse" />
                 
-                {/* Linha 4: Direita Inferior → Direita Superior */}
-                <line x1="75%" y1="75%" x2="85%" y2="35%" 
-                  stroke="url(#lineGradient)" strokeWidth="2" strokeDasharray="5,5"
+                {/* Linha 4: Base Direita → Direita */}
+                <line x1="62%" y1="75%" x2="72%" y2="45%" 
+                  stroke="url(#lineGradient)" strokeWidth="3" strokeDasharray="8,4"
                   className="animate-pulse" />
                 
-                {/* Linha 5: Direita Superior → Topo */}
-                <line x1="85%" y1="35%" x2="50%" y2="10%" 
-                  stroke="url(#lineGradient)" strokeWidth="2" strokeDasharray="5,5"
+                {/* Linha 5: Direita → Topo */}
+                <line x1="72%" y1="45%" x2="50%" y2="20%" 
+                  stroke="url(#lineGradient)" strokeWidth="3" strokeDasharray="8,4"
                   className="animate-pulse" />
               </svg>
               
               {/* Cards posicionados nos vértices do pentágono */}
               
-              {/* Posição 1: Topo (50%, 5%) */}
-              <div className="absolute top-[5%] left-1/2 transform -translate-x-1/2 w-64 pentagon-card" style={{ zIndex: 10 }}>
+              {/* Posição 1: Topo */}
+              <div className="absolute top-[15%] left-1/2 transform -translate-x-1/2 w-64 pentagon-card" style={{ zIndex: 10 }}>
                 <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
                   <CardContent className="p-6">
                     <div className="text-4xl font-bold text-primary mb-2">
@@ -371,8 +371,8 @@ const Landing = () => {
                 </Card>
               </div>
               
-              {/* Posição 2: Esquerda Superior (10%, 30%) */}
-              <div className="absolute top-[30%] left-[10%] w-64 pentagon-card" style={{ zIndex: 10 }}>
+              {/* Posição 2: Esquerda */}
+              <div className="absolute top-[42%] left-[20%] w-64 pentagon-card" style={{ zIndex: 10 }}>
                 <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
                   <CardContent className="p-6">
                     <div className="text-4xl font-bold text-primary mb-2">
@@ -385,8 +385,8 @@ const Landing = () => {
                 </Card>
               </div>
               
-              {/* Posição 3: Direita Superior (right: 10%, 30%) */}
-              <div className="absolute top-[30%] right-[10%] w-64 pentagon-card" style={{ zIndex: 10 }}>
+              {/* Posição 3: Direita */}
+              <div className="absolute top-[42%] right-[20%] w-64 pentagon-card" style={{ zIndex: 10 }}>
                 <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
                   <CardContent className="p-6">
                     <div className="text-4xl font-bold text-primary mb-2">
@@ -399,8 +399,8 @@ const Landing = () => {
                 </Card>
               </div>
               
-              {/* Posição 4: Esquerda Inferior (20%, bottom: 5%) */}
-              <div className="absolute bottom-[5%] left-[20%] w-64 pentagon-card" style={{ zIndex: 10 }}>
+              {/* Posição 4: Base Esquerda */}
+              <div className="absolute bottom-[10%] left-[30%] w-64 pentagon-card" style={{ zIndex: 10 }}>
                 <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
                   <CardContent className="p-6">
                     <div className="text-4xl font-bold text-primary mb-2">
@@ -413,8 +413,8 @@ const Landing = () => {
                 </Card>
               </div>
               
-              {/* Posição 5: Direita Inferior (right: 20%, bottom: 5%) */}
-              <div className="absolute bottom-[5%] right-[20%] w-64 pentagon-card" style={{ zIndex: 10 }}>
+              {/* Posição 5: Base Direita */}
+              <div className="absolute bottom-[10%] right-[30%] w-64 pentagon-card" style={{ zIndex: 10 }}>
                 <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
                   <CardContent className="p-6">
                     <div className="text-4xl font-bold text-primary mb-2">
