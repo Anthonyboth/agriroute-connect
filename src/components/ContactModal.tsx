@@ -54,6 +54,9 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
                   <Mail className="h-6 w-6 text-accent-foreground" />
                 </div>
                 <h3 className="font-semibold mb-2">E-mail</h3>
+                <p className="text-sm font-mono text-foreground mb-2">
+                  agrirouteconnect@gmail.com
+                </p>
                 <p className="text-sm text-muted-foreground mb-4">
                   Envie sua mensagem por e-mail
                 </p>

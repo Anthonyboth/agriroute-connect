@@ -481,13 +481,6 @@ const Landing = () => {
               <p className="text-muted-foreground mb-4">
                 Conectando pessoas no agronegócio brasileiro.
               </p>
-              {(realStats.totalUsers > 0 || realStats.averageRating > 0) && (
-                <div className="flex space-x-4 text-sm text-muted-foreground">
-                  {realStats.totalUsers > 0 && <span>{realStats.totalUsers.toLocaleString()} usuários</span>}
-                  {realStats.totalUsers > 0 && realStats.averageRating > 0 && <span>•</span>}
-                  {realStats.averageRating > 0 && <span>{realStats.averageRating.toFixed(1)}★ avaliação</span>}
-                </div>
-              )}
             </div>
             
             <div>
@@ -563,11 +556,11 @@ const Landing = () => {
         onClose={() => setServicesModal(false)}
       />
 
-      {howItWorksModal.userType && (
+      {howItWorksModal.isOpen && (
         <HowItWorksModal
           isOpen={howItWorksModal.isOpen}
           onClose={closeHowItWorksModal}
-          userType={howItWorksModal.userType}
+          userType={howItWorksModal.userType || 'PRODUTOR'}
           onProceed={handleProceedToDashboard}
         />
       )}

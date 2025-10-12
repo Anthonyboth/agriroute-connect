@@ -11,61 +11,11 @@ const Press = () => {
 
   const pressReleases = [
     {
-      title: 'AgriRoute: Plataforma de Conexão Rural',
-      date: 'Atualizado em 2024',
+      title: 'AgriRoute - Plataforma de Conexão no Agronegócio',
+      date: new Date().getFullYear().toString(),
       category: 'Sobre',
-      summary: 'A AgriRoute é uma plataforma de demonstração que conecta produtores rurais e motoristas, facilitando o transporte de produtos agrícolas de forma eficiente.',
+      summary: 'A AgriRoute é uma plataforma que conecta produtores rurais, motoristas e prestadores de serviços, facilitando o transporte de produtos agrícolas e a contratação de serviços especializados de forma eficiente e transparente.',
       downloadUrl: '#'
-    },
-    {
-      title: 'Sistema de Avaliações Implementado',
-      date: 'Funcionalidade Atual',
-      category: 'Produto',
-      summary: 'Plataforma conta com sistema de avaliações que permite maior transparência entre produtores e transportadores.',
-      downloadUrl: '#'
-    },
-    {
-      title: 'Funcionalidades da Plataforma',
-      date: 'Recursos Disponíveis',
-      category: 'Recursos',
-      summary: 'Sistema completo com gestão de fretes, geolocalização, chat integrado, pagamentos e dashboard para diferentes tipos de usuários.',
-      downloadUrl: '#'
-    }
-  ];
-
-  const mediaKit = [
-    {
-      title: 'Logos e Identidade Visual',
-      description: 'Logos em alta resolução, paleta de cores e guias de uso da marca',
-      format: 'ZIP (PNG, SVG, PDF)',
-      size: '12 MB'
-    },
-    {
-      title: 'Fotos Oficiais',
-      description: 'Banco de imagens da plataforma, equipe e operações',
-      format: 'ZIP (JPG)',
-      size: '45 MB'
-    },
-    {
-      title: 'Dados e Estatísticas',
-      description: 'Números atualizados sobre usuários, transações e crescimento',
-      format: 'PDF',
-      size: '2 MB'
-    },
-    {
-      title: 'Biografia dos Executivos',
-      description: 'Perfis profissionais da liderança da AgriRoute',
-      format: 'PDF',
-      size: '1 MB'
-    }
-  ];
-
-  const awards = [
-    {
-      title: 'Aplicativo de Logística Agrícola',
-      organization: 'Plataforma Digital',
-      date: '2024',
-      description: 'Aplicativo completo para conexão entre produtores rurais e transportadores'
     }
   ];
 
@@ -170,79 +120,6 @@ const Press = () => {
         </div>
       </section>
 
-      {/* Media Kit */}
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">
-              Kit de Imprensa
-            </h2>
-            <p className="text-muted-foreground">
-              Recursos visuais e informativos para veículos de comunicação
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {mediaKit.map((item) => (
-              <Card key={item.title} className="shadow-card hover:shadow-glow transition-smooth">
-                <CardHeader>
-                  <CardTitle className="text-lg">{item.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    {item.description}
-                  </p>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                    <span>Formato: {item.format}</span>
-                    <span>Tamanho: {item.size}</span>
-                  </div>
-                  <Button className="w-full gradient-primary text-primary-foreground">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Awards */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">
-              Sobre o Projeto
-            </h2>
-            <p className="text-muted-foreground">
-              Informações sobre a plataforma AgriRoute
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {awards.map((award) => (
-              <Card key={award.title} className="shadow-card text-center">
-                <CardContent className="p-6">
-                  <Trophy className="h-12 w-12 text-warning mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {award.title}
-                  </h3>
-                  <p className="text-sm text-primary mb-2">
-                    {award.organization}
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    {award.date}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {award.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Contact Press */}
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
@@ -277,20 +154,6 @@ const Press = () => {
         </div>
       </section>
 
-      {/* Newsletter Signup */}
-      <section className="py-12">
-        <div className="container mx-auto px-4 text-center">
-          <h3 className="text-xl font-semibold text-foreground mb-4">
-            Newsletter para Jornalistas
-          </h3>
-          <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Receba em primeira mão comunicados, novidades e dados exclusivos da AgriRoute
-          </p>
-          <Button variant="outline" className="border-primary text-primary">
-            Inscrever-se na Newsletter
-          </Button>
-        </div>
-      </section>
     </div>
   );
 };

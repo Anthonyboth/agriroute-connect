@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -14,53 +14,15 @@ import { useToast } from '@/hooks/use-toast';
 const Careers = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [selectedJob, setSelectedJob] = useState<any>(null);
   const [applicationModal, setApplicationModal] = useState(false);
   const [applicationData, setApplicationData] = useState({
     name: '',
     email: '',
     phone: '',
-    position: '',
     experience: '',
     motivation: '',
     resume: null as File | null
   });
-
-  const jobOpenings = [
-    {
-      id: 1,
-      title: "Desenvolvedor Full Stack",
-      department: "Tecnologia",
-      location: "Cuiabá, MT / Remoto",
-      type: "CLT",
-      level: "Pleno",
-      description: "Buscamos um desenvolvedor experiente em React, Node.js e banco de dados para expandir nossa plataforma.",
-      requirements: ["3+ anos em desenvolvimento web", "React e TypeScript", "Node.js e PostgreSQL", "Experiência com APIs REST"],
-      benefits: ["Salário competitivo", "Plano de saúde", "Vale alimentação", "Flexibilidade de horário"]
-    },
-    {
-      id: 2,
-      title: "Especialista em Agronegócio",
-      department: "Produto",
-      location: "Campo Grande, MS",
-      type: "CLT",
-      level: "Senior",
-      description: "Profissional com experiência no agronegócio para liderar estratégias de produto e relacionamento com clientes.",
-      requirements: ["Formação em Agronomia ou áreas afins", "5+ anos no agronegócio", "Conhecimento em logística", "Inglês fluente"],
-      benefits: ["Salário competitivo", "Carro da empresa", "Plano de saúde premium", "Participação nos lucros"]
-    },
-    {
-      id: 3,
-      title: "Analista de Marketing Digital",
-      department: "Marketing",
-      location: "Remoto",
-      type: "CLT",
-      level: "Júnior",
-      description: "Oportunidade para crescer na área de marketing digital, focando em campanhas para o agronegócio.",
-      requirements: ["Formação em Marketing ou área relacionada", "Conhecimento em Google Ads e Facebook Ads", "Experiência com Analytics", "Criatividade e proatividade"],
-      benefits: ["Salário competitivo", "Vale alimentação", "Cursos e certificações", "Horário flexível"]
-    }
-  ];
 
   const values = [
     {
@@ -99,16 +61,13 @@ const Careers = () => {
       name: '',
       email: '',
       phone: '',
-      position: '',
       experience: '',
       motivation: '',
       resume: null
     });
   };
 
-  const openApplication = (job: any) => {
-    setSelectedJob(job);
-    setApplicationData(prev => ({ ...prev, position: job.title }));
+  const openApplication = () => {
     setApplicationModal(true);
   };
 
@@ -163,67 +122,6 @@ const Careers = () => {
           </div>
         </section>
 
-        {/* Job Openings */}
-        <section className="mb-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Vagas Abertas</h2>
-            <p className="text-muted-foreground">Encontre a oportunidade perfeita para sua carreira</p>
-          </div>
-          
-          <div className="space-y-6">
-            {jobOpenings.map((job) => (
-              <Card key={job.id} className="hover:shadow-glow transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-3 mb-3">
-                        <h3 className="text-xl font-semibold">{job.title}</h3>
-                        <Badge variant="secondary">{job.level}</Badge>
-                        <Badge variant="outline">{job.type}</Badge>
-                      </div>
-                      
-                      <div className="flex items-center gap-4 text-muted-foreground text-sm mb-4">
-                        <span className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          {job.department}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {job.location}
-                        </span>
-                      </div>
-                      
-                      <p className="text-muted-foreground mb-4">{job.description}</p>
-                      
-                      <div className="flex flex-wrap gap-2">
-                        {job.requirements.slice(0, 3).map((req) => (
-                          <Badge key={req} variant="outline" className="text-xs">
-                            {req}
-                          </Badge>
-                        ))}
-                        {job.requirements.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{job.requirements.length - 3} mais
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="mt-6 lg:mt-0 lg:ml-6">
-                      <Button 
-                        onClick={() => openApplication(job)}
-                        className="gradient-primary text-primary-foreground w-full lg:w-auto"
-                      >
-                        Candidatar-se
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
         {/* Benefits Section */}
         <section className="mb-16">
           <Card className="bg-gradient-to-r from-primary/5 to-secondary/5">
@@ -258,12 +156,16 @@ const Careers = () => {
               <p className="text-muted-foreground mb-6">
                 Envie seu currículo e nos conte sobre seu interesse em fazer parte da nossa equipe.
               </p>
-              <Button variant="outline" className="flex items-center gap-2 mx-auto"
-                onClick={() => window.open('mailto:agrirouteconnect@gmail.com', '_blank')}
+              <Button 
+                className="flex items-center gap-2 mx-auto gradient-primary text-primary-foreground"
+                onClick={() => openApplication()}
               >
-                <Mail className="h-4 w-4" />
-                agrirouteconnect@gmail.com
+                <FileText className="h-4 w-4" />
+                Enviar Currículo
               </Button>
+              <p className="text-sm text-muted-foreground mt-4">
+                Contato: agrirouteconnect@gmail.com
+              </p>
             </CardContent>
           </Card>
         </section>
@@ -273,7 +175,7 @@ const Careers = () => {
       <Dialog open={applicationModal} onOpenChange={setApplicationModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Candidatar-se para: {selectedJob?.title}</DialogTitle>
+            <DialogTitle>Enviar Candidatura Espontânea</DialogTitle>
           </DialogHeader>
           
           <form onSubmit={handleApplicationSubmit} className="space-y-6">
