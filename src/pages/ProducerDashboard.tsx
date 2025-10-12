@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatsCard } from '@/components/ui/stats-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -861,112 +862,53 @@ const ProducerDashboard = () => {
       <div className="container max-w-7xl mx-auto py-4 px-4 pb-8">
         {/* Stats Cards Compactos - Navegáveis */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<Package className="h-5 w-5" />}
+            iconColor="text-blue-500"
+            label="Abertos"
+            value={statistics.openFreights}
             onClick={() => setActiveTab('open')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <Package className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Abertos
-                    </p>
-                    <p className="text-lg font-bold leading-tight mt-1">{statistics.openFreights}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
+          />
 
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<Play className="h-5 w-5" />}
+            iconColor="text-orange-500"
+            label="Andamento"
+            value={statistics.activeFreights}
             onClick={() => setActiveTab('ongoing')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <Play className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Andamento
-                    </p>
-                    <p className="text-lg font-bold leading-tight mt-1">{statistics.activeFreights}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
+          />
 
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<Clock className="h-5 w-5" />}
+            iconColor="text-amber-500"
+            label="P/ Confirmar"
+            value={statistics.pendingConfirmation}
             onClick={() => setActiveTab('confirm-delivery')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <Clock className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      P/ Confirmar
-                    </p>
-                    <p className="text-lg font-bold leading-tight mt-1">{statistics.pendingConfirmation}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
+          />
 
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<Users className="h-5 w-5" />}
+            iconColor="text-purple-500"
+            label="Propostas"
+            value={statistics.pendingProposals}
             onClick={() => setActiveTab('proposals')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <Users className="h-5 w-5 text-purple-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Propostas
-                    </p>
-                    <p className="text-lg font-bold leading-tight mt-1">{statistics.pendingProposals}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
+          />
 
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<CreditCard className="h-5 w-5" />}
+            iconColor="text-green-500"
+            label="Pagamentos"
+            value={statistics.pendingPayments}
             onClick={() => setActiveTab('payments')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <CreditCard className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Pagamentos
-                    </p>
-                    <p className="text-lg font-bold leading-tight mt-1">{statistics.pendingPayments}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
+          />
 
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<Wrench className="h-5 w-5" />}
+            iconColor="text-teal-500"
+            label="Serviços"
+            value={statistics.openServices || 0}
             onClick={() => {
               setActiveTab('history');
-              // Timeout para permitir que a tab 'history' seja renderizada primeiro
               setTimeout(() => {
                 const servicesTab = document.querySelector('[data-value="services"]') as HTMLElement;
                 if (servicesTab) {
@@ -974,22 +916,7 @@ const ProducerDashboard = () => {
                 }
               }, 100);
             }}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <Wrench className="h-5 w-5 text-teal-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Serviços
-                    </p>
-                    <p className="text-lg font-bold leading-tight mt-1">{statistics.openServices || 0}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
-
+          />
         </div>
 
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatsCard } from '@/components/ui/stats-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -1205,101 +1206,50 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       <div className="container max-w-7xl mx-auto py-4 px-4">
         {/* Stats Cards Compactos - Navegáveis */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<MapPin className="h-5 w-5" />}
+            iconColor="text-primary"
+            label="Disponíveis"
+            value={statistics.availableCount}
             onClick={() => setActiveTab('available')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Disponíveis
-                    </p>
-                    <p className="text-lg font-bold leading-tight mt-1">{statistics.availableCount}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
+          />
 
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<Clock className="h-5 w-5" />}
+            iconColor="text-orange-500"
+            label="Ativas"
+            value={statistics.activeTrips}
             onClick={() => setActiveTab('ongoing')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <Clock className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Ativas
-                    </p>
-                    <p className="text-lg font-bold leading-tight mt-1">{statistics.activeTrips}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
+          />
 
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<CheckCircle className="h-5 w-5" />}
+            iconColor="text-green-500"
+            label="Propostas"
+            value={statistics.pendingProposals}
             onClick={() => setActiveTab('my-trips')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Propostas
-                    </p>
-                    <p className="text-lg font-bold leading-tight mt-1">{statistics.pendingProposals}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
+          />
 
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<TrendingUp className="h-5 w-5" />}
+            iconColor="text-blue-500"
+            label="Saldo"
+            value={showEarnings ? 'R$ 0,00' : '****'}
             onClick={() => setActiveTab('advances')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Saldo
-                    </p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <p className="text-lg font-bold leading-tight">
-                        {showEarnings ? 'R$ 0,00' : '****'}
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowEarnings(!showEarnings);
-                        }}
-                        className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-                      >
-                        {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
-
+            actionButton={
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowEarnings(!showEarnings);
+                }}
+                className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+              >
+                {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+              </Button>
+            }
+          />
         </div>
 
         {/* FreightLimitTracker compacto */}

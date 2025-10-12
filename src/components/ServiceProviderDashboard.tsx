@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatsCard } from '@/components/ui/stats-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -730,108 +731,58 @@ export const ServiceProviderDashboard: React.FC = () => {
       <div className="container max-w-7xl mx-auto py-4 px-4">
         {/* Stats Cards Compactos - Navegáveis */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<Clock className="h-5 w-5" />}
+            iconColor="text-primary"
+            label="Disponíveis"
+            value={counts.pending}
             onClick={() => setActiveTab('pending')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <Clock className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Disponíveis
-                    </p>
-                    <p className="text-lg font-bold leading-tight mt-1">{counts.pending}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
+          />
 
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<Play className="h-5 w-5" />}
+            iconColor="text-orange-500"
+            label="Ativas"
+            value={counts.accepted}
             onClick={() => setActiveTab('accepted')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <Play className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Ativas
-                    </p>
-                    <p className="text-lg font-bold leading-tight mt-1">{counts.accepted}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
+          />
 
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<CheckCircle className="h-5 w-5" />}
+            iconColor="text-green-500"
+            label="Concluídas"
+            value={counts.completed}
             onClick={() => setActiveTab('completed')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Concluídas
-                    </p>
-                    <p className="text-lg font-bold leading-tight mt-1">{counts.completed}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
+          />
 
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto shadow-sm hover:shadow-md transition-shadow"
+          <StatsCard
+            icon={<TrendingUp className="h-5 w-5" />}
+            iconColor="text-blue-500"
+            label="Saldo"
+            value={showEarnings 
+              ? new Intl.NumberFormat('pt-BR', { 
+                  style: 'currency', 
+                  currency: 'BRL',
+                  notation: 'compact',
+                  maximumFractionDigits: 0
+                }).format(totalEarnings)
+              : '****'
+            }
             onClick={() => setActiveTab('earnings')}
-          >
-            <Card className="w-full shadow-sm border-2 hover:border-primary/20 transition-colors">
-              <CardContent className="p-3 flex items-center justify-center min-h-[70px]">
-                <div className="flex items-start gap-2 w-full">
-                  <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
-                      Saldo
-                    </p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <p className="text-lg font-bold leading-tight">
-                        {showEarnings 
-                           ? new Intl.NumberFormat('pt-BR', { 
-                               style: 'currency', 
-                               currency: 'BRL',
-                               notation: 'compact',
-                               maximumFractionDigits: 0
-                             }).format(totalEarnings)
-                          : '****'
-                        }
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowEarnings(!showEarnings);
-                        }}
-                        className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-                      >
-                        {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Button>
+            actionButton={
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowEarnings(!showEarnings);
+                }}
+                className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+              >
+                {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+              </Button>
+            }
+          />
         </div>
 
         {/* Tabs */}
