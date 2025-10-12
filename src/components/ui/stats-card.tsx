@@ -30,17 +30,17 @@ export const StatsCard: React.FC<StatsCardProps> = ({
       )}
       onClick={onClick}
     >
-      <CardContent className="p-3 flex items-center justify-center min-h-[80px]">
-        <div className="flex items-start gap-2 w-full">
-          <div className={cn("flex-shrink-0 mt-0.5", iconColor)}>
+      <CardContent className="p-6 flex items-center justify-center min-h-[120px]">
+        <div className="flex items-start gap-3 w-full">
+          <div className={cn("flex-shrink-0 mt-1", iconColor)}>
             {icon}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-muted-foreground truncate leading-tight">
+            <p className="text-sm font-medium text-muted-foreground truncate leading-tight mb-2">
               {label}
             </p>
-            <div className="flex items-center gap-1 mt-1">
-              <p className="text-lg font-bold leading-tight">
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-2xl font-bold leading-tight">
                 {value}
               </p>
               {actionButton}
