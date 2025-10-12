@@ -300,9 +300,9 @@ const Landing = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-muted/30">
+      <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               Nossos Números
             </h2>
@@ -310,63 +310,136 @@ const Landing = () => {
               Resultados que comprovam nossa excelência
             </p>
           </div>
-          {/* Layout Pentagonal */}
-          <div className="relative max-w-4xl mx-auto">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
+          
+          {/* Layout Pentagonal com SVG Lines */}
+          <div className="relative max-w-5xl mx-auto px-4">
+            {/* Desktop: Pentágono com linhas SVG */}
+            <div className="hidden md:block relative h-[600px]">
+              {/* SVG com linhas conectando os 5 pontos */}
+              <svg 
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{ zIndex: 0 }}
+              >
+                <defs>
+                  <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style={{ stopColor: 'hsl(142 71% 45%)', stopOpacity: 0.3 }} />
+                    <stop offset="50%" style={{ stopColor: 'hsl(142 71% 45%)', stopOpacity: 0.6 }} />
+                    <stop offset="100%" style={{ stopColor: 'hsl(142 71% 45%)', stopOpacity: 0.3 }} />
+                  </linearGradient>
+                </defs>
+                
+                {/* Linhas do pentágono */}
+                {/* Linha 1: Topo → Esquerda Superior */}
+                <line x1="50%" y1="10%" x2="15%" y2="35%" 
+                  stroke="url(#lineGradient)" strokeWidth="2" strokeDasharray="5,5"
+                  className="animate-pulse" />
+                
+                {/* Linha 2: Esquerda Superior → Esquerda Inferior */}
+                <line x1="15%" y1="35%" x2="25%" y2="75%" 
+                  stroke="url(#lineGradient)" strokeWidth="2" strokeDasharray="5,5"
+                  className="animate-pulse" />
+                
+                {/* Linha 3: Esquerda Inferior → Direita Inferior */}
+                <line x1="25%" y1="75%" x2="75%" y2="75%" 
+                  stroke="url(#lineGradient)" strokeWidth="2" strokeDasharray="5,5"
+                  className="animate-pulse" />
+                
+                {/* Linha 4: Direita Inferior → Direita Superior */}
+                <line x1="75%" y1="75%" x2="85%" y2="35%" 
+                  stroke="url(#lineGradient)" strokeWidth="2" strokeDasharray="5,5"
+                  className="animate-pulse" />
+                
+                {/* Linha 5: Direita Superior → Topo */}
+                <line x1="85%" y1="35%" x2="50%" y2="10%" 
+                  stroke="url(#lineGradient)" strokeWidth="2" strokeDasharray="5,5"
+                  className="animate-pulse" />
+              </svg>
               
-              {/* Posição 1: Topo (center em desktop) */}
-              <Card className="col-span-2 md:col-span-3 text-center shadow-card mx-auto w-full md:w-1/3">
-                <CardContent className="p-6">
-                  <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
-                    {stats[0].value}
-                  </div>
-                  <div className="text-muted-foreground">{stats[0].label}</div>
-                </CardContent>
-              </Card>
+              {/* Cards posicionados nos vértices do pentágono */}
               
-              {/* Posição 2: Esquerda Superior */}
-              <Card className="text-center shadow-card">
-                <CardContent className="p-6">
-                  <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
-                    {stats[1].value}
-                  </div>
-                  <div className="text-muted-foreground">{stats[1].label}</div>
-                </CardContent>
-              </Card>
+              {/* Posição 1: Topo (50%, 5%) */}
+              <div className="absolute top-[5%] left-1/2 transform -translate-x-1/2 w-64 pentagon-card" style={{ zIndex: 10 }}>
+                <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
+                  <CardContent className="p-6">
+                    <div className="text-4xl font-bold text-primary mb-2">
+                      {stats[0].value}
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium">
+                      {stats[0].label}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
               
-              {/* Espaço vazio no mobile / Centro em desktop */}
-              <div className="hidden md:block"></div>
+              {/* Posição 2: Esquerda Superior (10%, 30%) */}
+              <div className="absolute top-[30%] left-[10%] w-64 pentagon-card" style={{ zIndex: 10 }}>
+                <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
+                  <CardContent className="p-6">
+                    <div className="text-4xl font-bold text-primary mb-2">
+                      {stats[1].value}
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium">
+                      {stats[1].label}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
               
-              {/* Posição 3: Direita Superior (NOVO) */}
-              <Card className="text-center shadow-card">
-                <CardContent className="p-6">
-                  <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
-                    {stats[2].value}
-                  </div>
-                  <div className="text-muted-foreground">{stats[2].label}</div>
-                </CardContent>
-              </Card>
+              {/* Posição 3: Direita Superior (right: 10%, 30%) */}
+              <div className="absolute top-[30%] right-[10%] w-64 pentagon-card" style={{ zIndex: 10 }}>
+                <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
+                  <CardContent className="p-6">
+                    <div className="text-4xl font-bold text-primary mb-2">
+                      {stats[2].value}
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium">
+                      {stats[2].label}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
               
-              {/* Posição 4: Esquerda Inferior */}
-              <Card className="text-center shadow-card">
-                <CardContent className="p-6">
-                  <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
-                    {stats[3].value}
-                  </div>
-                  <div className="text-muted-foreground">{stats[3].label}</div>
-                </CardContent>
-              </Card>
+              {/* Posição 4: Esquerda Inferior (20%, bottom: 5%) */}
+              <div className="absolute bottom-[5%] left-[20%] w-64 pentagon-card" style={{ zIndex: 10 }}>
+                <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
+                  <CardContent className="p-6">
+                    <div className="text-4xl font-bold text-primary mb-2">
+                      {stats[3].value}
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium">
+                      {stats[3].label}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
               
-              {/* Posição 5: Direita Inferior */}
-              <Card className="text-center shadow-card">
-                <CardContent className="p-6">
-                  <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
-                    {stats[4].value}
-                  </div>
-                  <div className="text-muted-foreground">{stats[4].label}</div>
-                </CardContent>
-              </Card>
-              
+              {/* Posição 5: Direita Inferior (right: 20%, bottom: 5%) */}
+              <div className="absolute bottom-[5%] right-[20%] w-64 pentagon-card" style={{ zIndex: 10 }}>
+                <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
+                  <CardContent className="p-6">
+                    <div className="text-4xl font-bold text-primary mb-2">
+                      {stats[4].value}
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium">
+                      {stats[4].label}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+            
+            {/* Mobile: Grid simples sem linhas */}
+            <div className="md:hidden grid grid-cols-1 gap-6">
+              {stats.map((stat, index) => (
+                <Card key={index} className="text-center shadow-card">
+                  <CardContent className="p-6">
+                    <div className="text-4xl font-bold text-primary mb-2">
+                      {stat.value}
+                    </div>
+                    <div className="text-muted-foreground">{stat.label}</div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         </div>
