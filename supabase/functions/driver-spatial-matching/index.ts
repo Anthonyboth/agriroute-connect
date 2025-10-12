@@ -105,7 +105,7 @@ serve(async (req) => {
       const { data: areas, error: areasErr } = await supabase
         .from('user_cities')
         .select('*, cities(name, state, lat, lng)')
-        .eq('user_id', driverId)
+        .eq('user_id', user.id)
         .eq('type', 'MOTORISTA_ORIGEM')
         .eq('is_active', true);
 
