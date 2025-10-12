@@ -1273,9 +1273,16 @@ export const ServiceProviderDashboard: React.FC = () => {
                     <MapPin className="h-4 w-4" />
                     Localização
                   </h4>
-                  <p className="text-sm bg-muted p-3 rounded-lg">
-                    {selectedRequest.location_address}
-                  </p>
+                  <div className="text-sm bg-muted p-3 rounded-lg space-y-1">
+                    <p>{selectedRequest.location_address}</p>
+                    {(selectedRequest.city_name || selectedRequest.state) && (
+                      <p className="text-muted-foreground font-medium">
+                        {selectedRequest.city_name}
+                        {selectedRequest.city_name && selectedRequest.state && ' - '}
+                        {selectedRequest.state}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Informações do Veículo (se houver) */}
