@@ -110,14 +110,6 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Verificar autenticação antes de continuar
-    if (!profile?.id) {
-      toast.error('Você precisa estar logado para solicitar um serviço.');
-      setShowRegisterForm(true);
-      return;
-    }
-    
     setLoading(true);
 
     try {
@@ -168,7 +160,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
 
       // Criar solicitação de serviço na tabela service_requests
       const { data, error } = await supabase.from('service_requests').insert({
-        client_id: profile.id,
+        client_id: profile?.id || null, // NULL se não estiver logado
         service_type: serviceId,
         contact_name: formData.name,
         contact_phone: formData.phone,
@@ -214,6 +206,14 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
           </DialogTitle>
           <DialogDescription>{serviceDescription}</DialogDescription>
         </DialogHeader>
+
+        {!profile && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-800">
+              💡 <strong>Dica:</strong> Crie uma conta para acompanhar suas solicitações e ter acesso ao histórico!
+            </p>
+          </div>
+        )}
 
         <div className="space-y-6">
           {!showRegisterForm ? (

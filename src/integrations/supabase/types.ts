@@ -3175,7 +3175,7 @@ export type Database = {
           city_lng: number | null
           city_name: string | null
           client_comment: string | null
-          client_id: string
+          client_id: string | null
           client_rating: number | null
           completed_at: string | null
           contact_name: string | null
@@ -3216,7 +3216,7 @@ export type Database = {
           city_lng?: number | null
           city_name?: string | null
           client_comment?: string | null
-          client_id: string
+          client_id?: string | null
           client_rating?: number | null
           completed_at?: string | null
           contact_name?: string | null
@@ -3257,7 +3257,7 @@ export type Database = {
           city_lng?: number | null
           city_name?: string | null
           client_comment?: string | null
-          client_id?: string
+          client_id?: string | null
           client_rating?: number | null
           completed_at?: string | null
           contact_name?: string | null
