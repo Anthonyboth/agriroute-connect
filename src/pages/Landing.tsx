@@ -311,120 +311,79 @@ const Landing = () => {
             </p>
           </div>
           
-          {/* Layout Pentagonal com SVG Lines */}
+          {/* Layout Pentagonal com Contorno Preto */}
           <div className="relative max-w-5xl mx-auto px-4">
-            {/* Desktop: Pentágono com linhas SVG */}
-            <div className="hidden md:block relative h-[550px]">
-              {/* SVG com linhas conectando os 5 pontos */}
+            {/* Desktop: Pentágono com contorno preto sólido */}
+            <div className="hidden md:block relative h-[520px]">
+              {/* SVG com path único formando pentágono */}
               <svg 
                 className="absolute inset-0 w-full h-full pointer-events-none"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="xMidYMid meet"
                 style={{ zIndex: 0 }}
               >
-                <defs>
-                  <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style={{ stopColor: 'hsl(142 71% 45%)', stopOpacity: 0.7 }} />
-                    <stop offset="50%" style={{ stopColor: 'hsl(142 71% 45%)', stopOpacity: 0.9 }} />
-                    <stop offset="100%" style={{ stopColor: 'hsl(142 71% 45%)', stopOpacity: 0.7 }} />
-                  </linearGradient>
-                </defs>
-                
-                {/* Linhas do pentágono */}
-                {/* Linha 1: Topo → Esquerda */}
-                <line x1="50%" y1="20%" x2="28%" y2="45%" 
-                  stroke="url(#lineGradient)" strokeWidth="3" strokeDasharray="8,4"
-                  className="animate-pulse" />
-                
-                {/* Linha 2: Esquerda → Base Esquerda */}
-                <line x1="28%" y1="45%" x2="38%" y2="75%" 
-                  stroke="url(#lineGradient)" strokeWidth="3" strokeDasharray="8,4"
-                  className="animate-pulse" />
-                
-                {/* Linha 3: Base Esquerda → Base Direita */}
-                <line x1="38%" y1="75%" x2="62%" y2="75%" 
-                  stroke="url(#lineGradient)" strokeWidth="3" strokeDasharray="8,4"
-                  className="animate-pulse" />
-                
-                {/* Linha 4: Base Direita → Direita */}
-                <line x1="62%" y1="75%" x2="72%" y2="45%" 
-                  stroke="url(#lineGradient)" strokeWidth="3" strokeDasharray="8,4"
-                  className="animate-pulse" />
-                
-                {/* Linha 5: Direita → Topo */}
-                <line x1="72%" y1="45%" x2="50%" y2="20%" 
-                  stroke="url(#lineGradient)" strokeWidth="3" strokeDasharray="8,4"
-                  className="animate-pulse" />
+                <path 
+                  d="M50,12 L82,40 L68,85 L32,85 L18,40 Z"
+                  fill="none"
+                  stroke="#111"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                  shapeRendering="geometricPrecision"
+                />
               </svg>
               
-              {/* Cards posicionados nos vértices do pentágono */}
+              {/* Estatísticas posicionadas fora dos vértices */}
               
               {/* Posição 1: Topo */}
-              <div className="absolute top-[15%] left-1/2 transform -translate-x-1/2 w-64 pentagon-card" style={{ zIndex: 10 }}>
-                <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
-                  <CardContent className="p-6">
-                    <div className="text-4xl font-bold text-primary mb-2">
-                      {stats[0].value}
-                    </div>
-                    <div className="text-sm text-muted-foreground font-medium">
-                      {stats[0].label}
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="absolute top-[2%] left-1/2 -translate-x-1/2 text-center" style={{ zIndex: 10 }}>
+                <div className="text-3xl md:text-4xl font-extrabold text-primary mb-1">
+                  {stats[0].value}
+                </div>
+                <div className="text-sm md:text-base text-muted-foreground font-medium">
+                  {stats[0].label}
+                </div>
               </div>
               
-              {/* Posição 2: Esquerda */}
-              <div className="absolute top-[42%] left-[20%] w-64 pentagon-card" style={{ zIndex: 10 }}>
-                <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
-                  <CardContent className="p-6">
-                    <div className="text-4xl font-bold text-primary mb-2">
-                      {stats[1].value}
-                    </div>
-                    <div className="text-sm text-muted-foreground font-medium">
-                      {stats[1].label}
-                    </div>
-                  </CardContent>
-                </Card>
+              {/* Posição 2: Esquerda Superior */}
+              <div className="absolute top-[36%] left-[8%] text-left" style={{ zIndex: 10 }}>
+                <div className="text-3xl md:text-4xl font-extrabold text-primary mb-1">
+                  {stats[1].value}
+                </div>
+                <div className="text-sm md:text-base text-muted-foreground font-medium">
+                  {stats[1].label}
+                </div>
               </div>
               
-              {/* Posição 3: Direita */}
-              <div className="absolute top-[42%] right-[20%] w-64 pentagon-card" style={{ zIndex: 10 }}>
-                <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
-                  <CardContent className="p-6">
-                    <div className="text-4xl font-bold text-primary mb-2">
-                      {stats[2].value}
-                    </div>
-                    <div className="text-sm text-muted-foreground font-medium">
-                      {stats[2].label}
-                    </div>
-                  </CardContent>
-                </Card>
+              {/* Posição 3: Direita Superior */}
+              <div className="absolute top-[36%] right-[8%] text-left" style={{ zIndex: 10 }}>
+                <div className="text-3xl md:text-4xl font-extrabold text-primary mb-1">
+                  {stats[2].value}
+                </div>
+                <div className="text-sm md:text-base text-muted-foreground font-medium">
+                  {stats[2].label}
+                </div>
               </div>
               
               {/* Posição 4: Base Esquerda */}
-              <div className="absolute bottom-[10%] left-[30%] w-64 pentagon-card" style={{ zIndex: 10 }}>
-                <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
-                  <CardContent className="p-6">
-                    <div className="text-4xl font-bold text-primary mb-2">
-                      {stats[3].value}
-                    </div>
-                    <div className="text-sm text-muted-foreground font-medium">
-                      {stats[3].label}
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="absolute bottom-[2%] left-[22%] text-left" style={{ zIndex: 10 }}>
+                <div className="text-3xl md:text-4xl font-extrabold text-primary mb-1">
+                  {stats[3].value}
+                </div>
+                <div className="text-sm md:text-base text-muted-foreground font-medium">
+                  {stats[3].label}
+                </div>
               </div>
               
               {/* Posição 5: Base Direita */}
-              <div className="absolute bottom-[10%] right-[30%] w-64 pentagon-card" style={{ zIndex: 10 }}>
-                <Card className="text-center shadow-card hover:shadow-glow transition-all duration-300 bg-card/95 backdrop-blur-sm">
-                  <CardContent className="p-6">
-                    <div className="text-4xl font-bold text-primary mb-2">
-                      {stats[4].value}
-                    </div>
-                    <div className="text-sm text-muted-foreground font-medium">
-                      {stats[4].label}
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="absolute bottom-[2%] right-[22%] text-left" style={{ zIndex: 10 }}>
+                <div className="text-3xl md:text-4xl font-extrabold text-primary mb-1">
+                  {stats[4].value}
+                </div>
+                <div className="text-sm md:text-base text-muted-foreground font-medium">
+                  {stats[4].label}
+                </div>
               </div>
             </div>
             
