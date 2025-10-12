@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { StatsCard } from '@/components/ui/stats-card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Settings, 
@@ -169,76 +170,50 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
       {/* Stats Cards */}
       <div className="container mx-auto px-4 -mt-8 pb-8 relative z-10">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="shadow-lg border-0 bg-white">
-            <CardContent className="p-4">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <MessageSquare className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">Disponível</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.pending_requests}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatsCard
+            icon={<MessageSquare className="h-6 w-6" />}
+            label="Disponível"
+            value={stats.pending_requests}
+            iconColor="text-green-600"
+            className="shadow-lg"
+          />
 
-          <Card className="shadow-lg border-0 bg-white">
-            <CardContent className="p-4">
-              <div className="flex items-center">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Clock className="h-6 w-6 text-orange-600" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">Ativas</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.accepted_requests}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatsCard
+            icon={<Clock className="h-6 w-6" />}
+            label="Ativas"
+            value={stats.accepted_requests}
+            iconColor="text-orange-600"
+            className="shadow-lg"
+          />
 
-          <Card className="shadow-lg border-0 bg-white">
-            <CardContent className="p-4">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">Concluídos</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.completed_requests}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatsCard
+            icon={<CheckCircle className="h-6 w-6" />}
+            label="Concluídos"
+            value={stats.completed_requests}
+            iconColor="text-green-600"
+            className="shadow-lg"
+          />
 
-          <Card className="shadow-lg border-0 bg-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <TrendingUp className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-600">Saldo</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {showEarnings 
-                        ? 'R$ 0,00'
-                        : '****'
-                      }
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowEarnings(!showEarnings)}
-                  className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
-                >
-                  {showEarnings ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <StatsCard
+            icon={<TrendingUp className="h-6 w-6" />}
+            label="Saldo"
+            value={showEarnings ? 'R$ 0,00' : '****'}
+            iconColor="text-blue-600"
+            className="shadow-lg"
+            actionButton={
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowEarnings(!showEarnings);
+                }}
+                className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
+              >
+                {showEarnings ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </Button>
+            }
+          />
         </div>
       </div>
 
