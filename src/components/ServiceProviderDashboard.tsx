@@ -63,6 +63,10 @@ interface ServiceRequest {
   service_type: string;
   location_address: string;
   location_address_safe?: string;
+  city_name?: string;
+  state?: string;
+  location_lat?: number;
+  location_lng?: number;
   problem_description: string;
   vehicle_info?: string;
   urgency: string;
@@ -222,147 +226,113 @@ export const ServiceProviderDashboard: React.FC = () => {
     if (!providerId) return;
 
     try {
-      // Buscar tipos de serviço do prestador (preferir profiles.service_types; fallback para service_providers.service_type)
-      // IMPORTANTE: Filtrar apenas serviços não relacionados a transporte (freight)
-      let providerServiceTypes: string[] | null = null;
-      // Tentar via profiles
-      const { data: profileData, error: profileErr } = await supabase
-        .from('profiles')
-        .select('service_types')
-        .eq('id', providerId)
-        .single();
-      if (!profileErr && profileData?.service_types && Array.isArray(profileData.service_types)) {
-        const allTypes = profileData.service_types as unknown as string[];
-        console.log('🔧 PRESTADOR - Tipos de serviço brutos:', allTypes);
-        // Filtrar apenas serviços que não são de transporte/freight
-        providerServiceTypes = allTypes.filter(type => !['CARGA', 'GUINCHO', 'MUDANCA', 'FRETE_MOTO'].includes(type));
-        console.log('🔧 PRESTADOR - Tipos filtrados (sem transporte):', providerServiceTypes);
-      } else {
-        // Fallback legado: tabela service_providers com único service_type
-        const { data: providerData, error: providerDataError } = await supabase
-          .from('service_providers')
-          .select('service_type')
-          .eq('profile_id', providerId)
-          .single();
-        if (!providerDataError && providerData?.service_type) {
-          console.log('🔧 PRESTADOR - Service type legado:', providerData.service_type);
-          // Filtrar apenas se não for serviço de transporte
-          if (!['CARGA', 'GUINCHO', 'MUDANCA', 'FRETE_MOTO'].includes(providerData.service_type)) {
-            providerServiceTypes = [providerData.service_type];
-            console.log('🔧 PRESTADOR - Service type aceito:', providerServiceTypes);
-          } else {
-            providerServiceTypes = []; // Não mostrar serviços de transporte
-            console.log('🔧 PRESTADOR - Service type rejeitado (é transporte)');
+      setLoading(true);
+
+      // 🆕 1. EXECUTAR MATCHING ESPACIAL PRIMEIRO
+      console.log('🔍 Executing spatial matching for provider...');
+      const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
+        'provider-spatial-matching',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           }
         }
-      }
-      // Se não houver tipos configurados ou todos foram filtrados, usar apenas serviços técnicos/agrícolas/logística
-      const hasTypeFilter = Array.isArray(providerServiceTypes) && providerServiceTypes.length > 0;
+      );
 
-      // Buscar solicitações do prestador (aceitas/em andamento/concluídas)
+      if (spatialError) {
+        console.warn('⚠️ Erro no matching espacial:', spatialError);
+      } else {
+        console.log('✅ Spatial matching completed:', spatialData);
+      }
+
+      // 🆕 2. BUSCAR SOLICITAÇÕES COMPATÍVEIS USANDO A NOVA RPC
+      console.log('🔍 Fetching compatible service requests...');
+      const { data: compatibleRequests, error: compatibleError } = await supabase.rpc(
+        'get_compatible_service_requests_for_provider',
+        { p_provider_id: providerId }
+      );
+
+      if (compatibleError) {
+        console.error('❌ Erro ao buscar solicitações compatíveis:', compatibleError);
+        throw compatibleError;
+      }
+
+      console.log('✅ Compatible requests found:', compatibleRequests?.length || 0);
+
+      // 3. BUSCAR SOLICITAÇÕES JÁ ACEITAS/EM ANDAMENTO DO PRESTADOR
       const { data: providerRequests, error: providerError } = await supabase
         .from('service_requests')
-        .select('*')
+        .select(`
+          *,
+          profiles:client_id (
+            full_name,
+            phone
+          )
+        `)
         .eq('provider_id', providerId)
         .order('created_at', { ascending: false });
 
       if (providerError) throw providerError;
 
-      // Buscar solicitações pendentes por cidade usando a nova função
-      const { data: cityBasedRequests, error: cityError } = await supabase
-        .rpc('get_service_requests_by_city', {
-          provider_profile_id: providerId
-        });
+      console.log('✅ Provider\'s accepted requests found:', providerRequests?.length || 0);
 
-      if (cityError) {
-        console.warn('City-based search failed, falling back to direct search:', cityError);
-        
-        // Fallback: busca direta por solicitações pendentes (filtra por tipo se houver)
-        let directQuery = supabase
-          .from('service_requests')
-          .select('*') 
-          .is('provider_id', null)
-          .eq('status', 'OPEN')
-          // Sempre excluir serviços de transporte do painel de prestadores
-          .not('service_type', 'in', '(CARGA,GUINCHO,MUDANCA,FRETE_MOTO)');
-        if (hasTypeFilter && providerServiceTypes && providerServiceTypes.length > 0) {
-          directQuery = directQuery.in('service_type', providerServiceTypes);
-        }
-        const { data: directPendingRequests, error: directPendingError } = await directQuery
-          .order('created_at', { ascending: true }); // Mais antigas primeiro
-
-        console.log('🔧 PRESTADOR - Busca direta excluindo transporte:', directPendingRequests?.length || 0);
-        console.log('🔧 PRESTADOR - Tipos encontrados na busca direta:', directPendingRequests?.map(r => r.service_type));
-
-        if (directPendingError) throw directPendingError;
-
-        // Combinar resultados
-        const byId = new Map<string, ServiceRequest>();
-        (providerRequests || []).forEach((r: any) => byId.set(r.id, r as ServiceRequest));
-        
-        (directPendingRequests || []).forEach((r: any) => {
-          const serviceRequest: ServiceRequest = {
-            ...r,
-            provider_id: null,
-            profiles: null
-          };
-          byId.set(r.id, serviceRequest);
-        });
-        
-        const allRequests = Array.from(byId.values());
-        setRequests(allRequests);
-        setLastRefresh(new Date());
-        setLoading(false);
-        
-        console.log(`Loaded ${allRequests.length} service requests (fallback mode + service type filtered)`, {
-          providerRequests: (providerRequests || []).length,
-          directPending: (directPendingRequests || []).length,
-          providerServiceTypes: providerServiceTypes
-        });
-        
-        return;
-      }
-
-      // Usar resultados da busca por cidade, filtrando pelos tipos do prestador (se houver)
-      const pendingCityRequests = (cityBasedRequests || [])
-        .filter((r: any) => !hasTypeFilter || (providerServiceTypes as string[]).includes(r.service_type))
-        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); // Mais antigas primeiro
-
-      // Combinar e deduplicar por id
+      // 4. COMBINAR E DEDUPLICAR
       const byId = new Map<string, ServiceRequest>();
       
-      // Adicionar solicitações do prestador
-      (providerRequests || []).forEach((r: any) => byId.set(r.id, r as ServiceRequest));
+      // Adicionar solicitações do prestador (já aceitas)
+      (providerRequests || []).forEach((r: any) => {
+        byId.set(r.id, r as ServiceRequest);
+      });
       
-      // Adicionar solicitações pendentes baseadas em cidade
-      pendingCityRequests.forEach((r: any) => {
-        const serviceRequest: ServiceRequest = {
-          ...r,
-          provider_id: null,
-          profiles: null // Dados de contato só ficam disponíveis após aceitar
-        };
-        byId.set(r.id, serviceRequest);
+      // Adicionar solicitações compatíveis (pendentes)
+      (compatibleRequests || []).forEach((r: any) => {
+        if (!byId.has(r.request_id)) {
+          const serviceRequest: ServiceRequest = {
+            id: r.request_id,
+            service_type: r.service_type,
+            location_address: r.location_address,
+            city_name: r.city_name,
+            state: r.state,
+            problem_description: r.problem_description,
+            urgency: r.urgency,
+            contact_phone: r.contact_phone,
+            contact_name: r.contact_name,
+            status: r.status,
+            created_at: r.created_at,
+            location_lat: r.location_lat,
+            location_lng: r.location_lng,
+            vehicle_info: r.vehicle_info,
+            additional_info: r.additional_info,
+            is_emergency: r.is_emergency,
+            estimated_price: r.estimated_price,
+            provider_id: null,
+            client_id: null,
+            profiles: null
+          };
+          byId.set(r.request_id, serviceRequest);
+        }
       });
       
       const allRequests = Array.from(byId.values());
       setRequests(allRequests);
       setLastRefresh(new Date());
-      setLoading(false);
       
-      console.log(`Loaded ${allRequests.length} service requests (city-based + service type filtered)`, {
-        providerRequests: (providerRequests || []).length,
-        cityBasedPending: pendingCityRequests.length,
-        providerServiceTypes: providerServiceTypes
+      console.log(`✅ Total requests loaded: ${allRequests.length} (intelligent matching)`, {
+        acceptedByProvider: (providerRequests || []).length,
+        compatiblePending: (compatibleRequests || []).length,
+        total: allRequests.length
       });
       
     } catch (error: any) {
-      console.error('Error fetching service requests:', error);
-      setLoading(false);
+      console.error('❌ Error fetching service requests:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar as solicitações",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -4199,6 +4199,28 @@ export type Database = {
           weight: number
         }[]
       }
+      get_compatible_service_requests_for_provider: {
+        Args: { p_provider_id: string }
+        Returns: {
+          additional_info: string
+          city_name: string
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          estimated_price: number
+          is_emergency: boolean
+          location_address: string
+          location_lat: number
+          location_lng: number
+          problem_description: string
+          request_id: string
+          service_type: string
+          state: string
+          status: string
+          urgency: string
+          vehicle_info: string
+        }[]
+      }
       get_current_user_safe: {
         Args: Record<PropertyKey, never>
         Returns: string
