@@ -9,7 +9,7 @@ import HowItWorksModal from '@/components/HowItWorksModal';
 import { ServicesModal } from '@/components/ServicesModal';
 import { ContactModal } from '@/components/ContactModal';
 import ReportModal from '@/components/ReportModal';
-import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail } from 'lucide-react';
+import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail, CheckCircle2 } from 'lucide-react';
 import heroImage from '@/assets/hero-logistics.jpg';
 import agriRouteLogo from '@/assets/agriroute-full-logo.png';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +20,7 @@ import {
   CarouselContent, 
   CarouselItem 
 } from "@/components/ui/carousel";
-import { StatsPentagon } from "@/components/StatsPentagon";
+import { StatsCard } from '@/components/ui/stats-card';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -164,33 +164,6 @@ const Landing = () => {
     }
   ];
 
-  const stats = [
-    // Posição 1: Topo
-    { 
-      value: realStats.totalProducers > 0 ? `${realStats.totalProducers.toLocaleString()}` : '0', 
-      label: 'Produtores Conectados'
-    },
-    // Posição 2: Esquerda Superior
-    { 
-      value: realStats.totalDrivers > 0 ? `${realStats.totalDrivers.toLocaleString()}` : '0', 
-      label: 'Motoristas Ativos'
-    },
-    // Posição 3: Direita Superior (NOVO)
-    { 
-      value: realStats.totalServiceProviders > 0 ? `${realStats.totalServiceProviders.toLocaleString()}` : '0', 
-      label: 'Prestadores de Serviços Ativos'
-    },
-    // Posição 4: Esquerda Inferior
-    { 
-      value: formatTonsCompactFromKg(realStats.totalWeight), 
-      label: 'Toneladas Transportadas'
-    },
-    // Posição 5: Direita Inferior
-    { 
-      value: realStats.averageRating > 0 ? `${realStats.averageRating.toFixed(1)}★` : '0★', 
-      label: 'Avaliação Média'
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -312,23 +285,81 @@ const Landing = () => {
             </p>
           </div>
           
-          {/* Layout Pentagonal com Contorno Preto */}
-          <div className="relative max-w-5xl mx-auto px-4">
-            {/* Desktop: Pentágono com contorno preto sólido */}
-<StatsPentagon items={stats} />
+          {/* Grid 3-2 Layout */}
+          <div className="max-w-5xl mx-auto px-4">
+            {/* Desktop: Grid 3-2 */}
+            <div className="hidden md:block space-y-6">
+              {/* First row: 3 cards */}
+              <div className="grid grid-cols-3 gap-6">
+                <StatsCard
+                  icon={<Users className="w-7 h-7" />}
+                  label="Produtores Conectados"
+                  value={realStats.totalProducers.toLocaleString('pt-BR')}
+                  iconColor="text-primary"
+                />
+                <StatsCard
+                  icon={<Truck className="w-7 h-7" />}
+                  label="Motoristas Ativos"
+                  value={realStats.totalDrivers.toLocaleString('pt-BR')}
+                  iconColor="text-emerald-600"
+                />
+                <StatsCard
+                  icon={<Wrench className="w-7 h-7" />}
+                  label="Prestadores Ativos"
+                  value={realStats.totalServiceProviders.toLocaleString('pt-BR')}
+                  iconColor="text-blue-600"
+                />
+              </div>
+              
+              {/* Second row: 2 cards centered */}
+              <div className="grid grid-cols-2 gap-6 max-w-3xl mx-auto">
+                <StatsCard
+                  icon={<Truck className="w-7 h-7" />}
+                  label="Toneladas Transportadas"
+                  value={formatTonsCompactFromKg(realStats.totalWeight)}
+                  iconColor="text-amber-600"
+                />
+                <StatsCard
+                  icon={<Star className="w-7 h-7 fill-amber-500 text-amber-500" />}
+                  label="Avaliação Média"
+                  value={realStats.averageRating > 0 ? `${realStats.averageRating.toFixed(1)} ★` : '0 ★'}
+                  iconColor="text-amber-500"
+                />
+              </div>
+            </div>
             
-            {/* Mobile: Grid simples sem linhas */}
-            <div className="md:hidden grid grid-cols-1 gap-6">
-              {stats.map((stat, index) => (
-                <Card key={index} className="text-center shadow-card">
-                  <CardContent className="p-6">
-                    <div className="text-4xl font-bold text-primary mb-2">
-                      {stat.value}
-                    </div>
-                    <div className="text-muted-foreground">{stat.label}</div>
-                  </CardContent>
-                </Card>
-              ))}
+            {/* Mobile: Grid simples */}
+            <div className="md:hidden grid grid-cols-1 gap-4">
+              <StatsCard
+                icon={<Users className="w-6 h-6" />}
+                label="Produtores Conectados"
+                value={realStats.totalProducers.toLocaleString('pt-BR')}
+                iconColor="text-primary"
+              />
+              <StatsCard
+                icon={<Truck className="w-6 h-6" />}
+                label="Motoristas Ativos"
+                value={realStats.totalDrivers.toLocaleString('pt-BR')}
+                iconColor="text-emerald-600"
+              />
+              <StatsCard
+                icon={<Wrench className="w-6 h-6" />}
+                label="Prestadores Ativos"
+                value={realStats.totalServiceProviders.toLocaleString('pt-BR')}
+                iconColor="text-blue-600"
+              />
+              <StatsCard
+                icon={<Truck className="w-6 h-6" />}
+                label="Toneladas Transportadas"
+                value={formatTonsCompactFromKg(realStats.totalWeight)}
+                iconColor="text-amber-600"
+              />
+              <StatsCard
+                icon={<Star className="w-6 h-6 fill-amber-500 text-amber-500" />}
+                label="Avaliação Média"
+                value={realStats.averageRating > 0 ? `${realStats.averageRating.toFixed(1)} ★` : '0 ★'}
+                iconColor="text-amber-500"
+              />
             </div>
           </div>
         </div>
