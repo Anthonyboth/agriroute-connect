@@ -1,5 +1,6 @@
 import { useTheme } from "next-themes"
 import { Toaster as Sonner, toast } from "sonner"
+import { X } from "lucide-react"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
@@ -21,14 +22,14 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "relative group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg pl-8",
+            "relative group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg pl-6",
           description: "group-[.toast]:text-muted-foreground",
           actionButton:
             "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
           cancelButton:
             "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
           closeButton:
-            "absolute top-2 left-2 !right-auto !w-5 !h-5 p-0.5 !bg-transparent !opacity-100 text-red-500 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors",
+            "absolute left-2 top-2 grid place-items-center p-0 m-0 h-4 w-4 text-foreground/70 hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground !bg-transparent !border-0 !shadow-none ring-0 outline-none [-webkit-tap-highlight-color:transparent]",
         },
       }}
       {...props}
