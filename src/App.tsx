@@ -94,6 +94,29 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   if (isAuthenticated && profile) {
     const currentPath = window.location.pathname;
     
+    // Check if user is a transport company
+    const checkTransportCompany = async () => {
+      const { data: transportCompanyData } = await supabase
+        .from('transport_companies')
+        .select('id')
+        .eq('profile_id', profile.id)
+        .maybeSingle();
+
+      const isCompany = !!transportCompanyData;
+      const isTransportMode = profile.active_mode === 'TRANSPORTADORA';
+
+      // Redirect to company dashboard if user is transport company
+      if ((isCompany || isTransportMode) && currentPath === '/dashboard/driver') {
+        return true; // Signal that redirect is needed
+      }
+      return false;
+    };
+
+    // Check synchronously for immediate redirects
+    if (currentPath === '/dashboard/driver' && profile.active_mode === 'TRANSPORTADORA') {
+      return <Navigate to="/dashboard/company" replace />;
+    }
+    
     // Only redirect if user is on a specific dashboard that doesn't match their role
     if (currentPath === '/dashboard/producer' && profile.role !== 'PRODUTOR') {
       return <Navigate to={profile.role === 'MOTORISTA' ? '/dashboard/driver' : profile.role === 'ADMIN' ? '/admin' : '/dashboard/service-provider'} replace />;

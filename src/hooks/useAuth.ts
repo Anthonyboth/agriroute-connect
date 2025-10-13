@@ -224,11 +224,29 @@ export const useAuth = () => {
       }
     });
 
+    // Subscribe to profile changes (active_mode updates)
+    const profileChannel = supabase
+      .channel('profile_changes')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: session?.user ? `user_id=eq.${session.user.id}` : undefined
+      }, (payload) => {
+        if (!mountedRef.current) return;
+        const newProfile = payload.new as UserProfile;
+        if (newProfile.active_mode !== profile?.active_mode) {
+          fetchProfile(newProfile.user_id);
+        }
+      })
+      .subscribe();
+
     return () => {
       mountedRef.current = false;
       subscription.unsubscribe();
+      profileChannel.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, [fetchProfile, session?.user, profile?.active_mode]);
 
   // Cleanup ref on unmount
   useEffect(() => {

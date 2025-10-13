@@ -57,6 +57,13 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
         onModeChange(newMode);
       }
 
+      // Navegar para o dashboard correto
+      if (newMode === 'TRANSPORTADORA') {
+        navigate('/dashboard/company');
+      } else {
+        navigate('/dashboard/driver');
+      }
+
       // Recarregar a página para aplicar as mudanças
       window.location.reload();
     } catch (error) {

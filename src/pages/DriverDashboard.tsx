@@ -99,19 +99,64 @@ const DriverDashboard = () => {
   const { isCompanyDriver, companyName, companyId, canAcceptFreights, canManageVehicles } = useCompanyDriver();
   const navigate = useNavigate();
 
-  // Redirect service providers to their correct dashboard
+  // Redirect to correct dashboard based on role and mode
   React.useEffect(() => {
-    if (profile?.role === 'PRESTADOR_SERVICOS') {
+    if (!profile?.id) return;
+
+    // Check if user is in transport company mode
+    const checkTransportMode = async () => {
+      if (profile.active_mode === 'TRANSPORTADORA') {
+        navigate('/dashboard/company', { replace: true });
+        return;
+      }
+
+      // Also check if user has a transport company record
+      const { data } = await supabase
+        .from('transport_companies')
+        .select('id')
+        .eq('profile_id', profile.id)
+        .maybeSingle();
+
+      if (data) {
+        navigate('/dashboard/company', { replace: true });
+        return;
+      }
+    };
+
+    checkTransportMode();
+
+    // Redirect service providers
+    if (profile.role === 'PRESTADOR_SERVICOS') {
       navigate('/dashboard/service-provider', { replace: true });
       return;
     }
-    if (profile?.role && profile.role !== 'MOTORISTA') {
+
+    // Redirect other roles
+    if (profile.role && profile.role !== 'MOTORISTA') {
       const correctRoute = profile.role === 'PRODUTOR' ? '/dashboard/producer' : 
                           profile.role === 'ADMIN' ? '/admin' : '/';
       navigate(correctRoute, { replace: true });
       return;
     }
-  }, [profile?.role, navigate]);
+  }, [profile?.id, profile?.role, profile?.active_mode, navigate]);
+  
+  // Check if user is a transport company
+  React.useEffect(() => {
+    const checkTransportCompany = async () => {
+      if (!profile?.id) return;
+
+      const { data } = await supabase
+        .from('transport_companies')
+        .select('id')
+        .eq('profile_id', profile.id)
+        .maybeSingle();
+
+      setIsTransportCompany(!!data || profile.active_mode === 'TRANSPORTADORA');
+    };
+
+    checkTransportCompany();
+  }, [profile?.id, profile?.active_mode]);
+  
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
   const [counterOffers, setCounterOffers] = useState<any[]>([]);
@@ -130,6 +175,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
   const [showLocationManager, setShowLocationManager] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
+  const [isTransportCompany, setIsTransportCompany] = useState(false);
   // Dialog para detalhes de serviços urbanos (GUINCHO/MUDANCA)
   const [showServiceRequestDialog, setShowServiceRequestDialog] = useState(false);
   const [selectedServiceRequest, setSelectedServiceRequest] = useState<Freight | null>(null);
@@ -1013,8 +1059,17 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           toast.success('Proposta enviada com sucesso!');
         } else if (action === 'accept') {
-          // ✅ FASE 1 - CRÍTICO: Verificar location_enabled ANTES de aceitar
-          if (!profile.location_enabled) {
+          // Check if user is a transport company
+          const { data: transportCompanyData } = await supabase
+            .from('transport_companies')
+            .select('id')
+            .eq('profile_id', profile.id)
+            .maybeSingle();
+
+          const isTransportCompany = !!transportCompanyData || profile.active_mode === 'TRANSPORTADORA';
+
+          // Only require location for non-transport companies
+          if (!isTransportCompany && !profile.location_enabled) {
             toast.error('❌ Você precisa ativar a localização para aceitar fretes', {
               description: 'Vá em Configurações → Localização para ativar'
             });
@@ -1451,8 +1506,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </div>
           )}
 
-          {/* ✅ FASE 4 - Alerta de Localização Desativada */}
-          {!profile?.location_enabled && (
+          {/* ✅ FASE 4 - Alerta de Localização Desativada (apenas para motoristas independentes) */}
+          {!isTransportCompany && !profile?.location_enabled && (
             <Alert variant="destructive" className="mb-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Localização Desativada</AlertTitle>
