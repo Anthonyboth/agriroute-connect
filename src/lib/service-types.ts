@@ -107,7 +107,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   {
     id: 'AUTO_ELETRICA',
     label: 'Auto Elétrica',
-    description: 'Reparo e manutenção de sistemas elétricos automotivos',
+    description: 'Sistemas elétricos para todos os tipos de autos, desde carros até máquinas agrícolas',
     icon: Car,
     color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
     category: 'technical',
@@ -145,9 +145,9 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
-    id: 'ELETRICISTA',
-    label: 'Eletricista',
-    description: 'Instalações e manutenção elétrica (veículos, propriedades rurais e prediais)',
+    id: 'AUTOMACAO_INDUSTRIAL',
+    label: 'Automação Industrial',
+    description: 'Automação de processos industriais e sistemas de controle',
     icon: Zap,
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     category: 'urban',
@@ -157,10 +157,10 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   // Aliases para compatibilidade com dados antigos
   {
     id: 'ELETRICISTA_AUTOMOTIVO',
-    label: 'Eletricista Automotivo',
-    description: 'Instalações e manutenção elétrica automotiva',
-    icon: Zap,
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    label: 'Auto Elétrica',
+    description: 'Sistemas elétricos para todos os tipos de autos, desde carros até máquinas agrícolas',
+    icon: Car,
+    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
     category: 'urban',
     clientVisible: true,
     providerVisible: true,
@@ -169,7 +169,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   {
     id: 'ELETRICA',
     label: 'Elétrica',
-    description: 'Serviços elétricos em geral',
+    description: 'Serviços elétricos em geral urbanos e rurais',
     icon: Zap,
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     category: 'urban',
