@@ -131,7 +131,7 @@ const CompleteProfile = () => {
         antt_number: (profile as any).antt_number || '',
         cooperative: (profile as any).cooperative || '',
         fixed_address: (profile as any).fixed_address || '',
-        cnh_expiry_date: (profile as any).cnh_expiry_date || '',
+        cnh_expiry_date: (profile as any).cnh_expiry_date || null,
       });
 
       // Fetch vehicles for drivers
@@ -414,6 +414,17 @@ const CompleteProfile = () => {
     setLoading(true);
 
     try {
+      // Helper function to clean empty fields
+      const cleanEmptyFields = (data: any) => {
+        const cleaned = { ...data };
+        Object.keys(cleaned).forEach(key => {
+          if (cleaned[key] === '' || cleaned[key] === undefined) {
+            cleaned[key] = null;
+          }
+        });
+        return cleaned;
+      };
+
       // Salvar metadata com as fotos de placas
       const platePhotosMetadata = platePhotos.map(p => ({
         type: p.type,
@@ -421,30 +432,63 @@ const CompleteProfile = () => {
         url: p.url
       }));
 
+      // Preparar dados base (obrigatórios para todos)
+      const baseUpdateData = {
+        full_name: profileData.full_name,
+        phone: profileData.phone,
+        cpf_cnpj: profileData.cpf_cnpj,
+        fixed_address: profileData.fixed_address,
+        selfie_url: documentUrls.selfie,
+        document_photo_url: documentUrls.document_photo,
+        address_proof_url: documentUrls.address_proof,
+        location_enabled: locationEnabled,
+        metadata: {
+          ...((profile as any).metadata || {}),
+          plate_photos: platePhotosMetadata,
+          vehicle_registration_skipped: skipVehicleRegistration,
+          terms_acceptance: {
+            documents_responsibility: acceptedDocumentsResponsibility ? new Date().toISOString() : null,
+            terms_of_use: acceptedTermsOfUse ? new Date().toISOString() : null,
+            privacy_policy: acceptedPrivacyPolicy ? new Date().toISOString() : null,
+            user_agent: navigator.userAgent
+          }
+        }
+      };
+
+      // Adicionar campos específicos baseado no tipo de perfil
+      let updateData: any = { ...baseUpdateData };
+
+      if (!isTransportCompany) {
+        // Campos específicos de motorista comum
+        updateData = {
+          ...updateData,
+          rntrc: profileData.rntrc || null,
+          cnh_category: (profileData as any).cnh_category || null,
+          cnh_expiry_date: profileData.cnh_expiry_date || null,
+          cnh_photo_url: documentUrls.cnh || null,
+          truck_documents_url: documentUrls.truck_documents || null,
+          truck_photo_url: documentUrls.truck_photo || null,
+          license_plate_photo_url: documentUrls.license_plate || null,
+          antt_number: profileData.antt_number || null,
+          cooperative: profileData.cooperative || null,
+        };
+      }
+
+      // Para produtores, adicionar campos específicos
+      if (profile.role === 'PRODUTOR') {
+        updateData = {
+          ...updateData,
+          farm_name: profileData.farm_name || null,
+          farm_address: profileData.farm_address || null,
+          farm_lat: profileData.farm_lat || null,
+          farm_lng: profileData.farm_lng || null,
+          contact_phone: profileData.contact_phone || null,
+        };
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({
-          ...profileData,
-          selfie_url: documentUrls.selfie,
-          document_photo_url: documentUrls.document_photo,
-          cnh_photo_url: documentUrls.cnh,
-          truck_documents_url: documentUrls.truck_documents,
-          truck_photo_url: documentUrls.truck_photo,
-          license_plate_photo_url: documentUrls.license_plate,
-          address_proof_url: documentUrls.address_proof,
-          location_enabled: locationEnabled,
-          metadata: {
-            ...((profile as any).metadata || {}),
-            plate_photos: platePhotosMetadata,
-            vehicle_registration_skipped: skipVehicleRegistration,
-            terms_acceptance: {
-              documents_responsibility: acceptedDocumentsResponsibility ? new Date().toISOString() : null,
-              terms_of_use: acceptedTermsOfUse ? new Date().toISOString() : null,
-              privacy_policy: acceptedPrivacyPolicy ? new Date().toISOString() : null,
-              user_agent: navigator.userAgent
-            }
-          }
-        })
+        .update(cleanEmptyFields(updateData))
         .eq('user_id', profile.user_id);
 
       if (error) throw error;
