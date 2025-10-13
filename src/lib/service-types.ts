@@ -50,184 +50,6 @@ export interface ServiceType {
 }
 
 export const ALL_SERVICE_TYPES: ServiceType[] = [
-  // TODOS OS SERVIÇOS AGORA SÃO VISÍVEIS PARA TODOS OS TIPOS DE USUÁRIOS
-  // Prestadores podem marcar serviços oferecidos, clientes/motoristas podem solicitar
-  
-  // ==================== SERVIÇOS DE FRETE (Ordem Alfabética) ====================
-  {
-    id: 'CARGA',
-    label: 'Transporte de Carga',
-    description: 'Soja, milho, fertilizantes e outros produtos agrícolas',
-    icon: Truck,
-    color: 'bg-primary/10 text-primary border-primary/20',
-    category: 'freight',
-    clientVisible: true,
-    providerVisible: false
-  },
-  {
-    id: 'FRETE_MOTO',
-    label: 'Frete por Moto',
-    description: 'Entregas rápidas e pequenos fretes urbanos',
-    icon: Bike,
-    color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'freight',
-    clientVisible: true,
-    providerVisible: false
-  },
-  {
-    id: 'GUINCHO',
-    label: 'Guincho e Socorro 24h',
-    description: 'Reboque, socorro e assistência emergencial para veículos 24 horas',
-    icon: Wrench,
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
-    category: 'freight',
-    clientVisible: true,
-    providerVisible: false
-  },
-  {
-    id: 'MUDANCA',
-    label: 'Mudanças e Frete Urbano',
-    description: 'Mudanças residenciais, comerciais e fretes urbanos',
-    icon: Home,
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    category: 'freight',
-    clientVisible: true,
-    providerVisible: false
-  },
-
-  // ==================== SERVIÇOS TÉCNICOS (Ordem Alfabética) ====================
-  {
-    id: 'ASSISTENCIA_TECNICA',
-    label: 'Assistência Técnica Agrícola',
-    description: 'Suporte técnico especializado para produção agrícola',
-    icon: Settings,
-    color: 'bg-primary/10 text-primary border-primary/20',
-    category: 'technical',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'AUTO_ELETRICA',
-    label: 'Auto Elétrica',
-    description: 'Sistemas elétricos para todos os tipos de autos, desde carros até máquinas agrícolas',
-    icon: Car,
-    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    category: 'technical',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'BORRACHEIRO',
-    label: 'Borracharia',
-    description: 'Troca e reparo de pneus (veículos, tratores e implementos)',
-    icon: Shield,
-    color: 'bg-slate-100 text-slate-800 border-slate-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'CHAVEIRO',
-    label: 'Chaveiro',
-    description: 'Abertura de veículos travados',
-    icon: Key,
-    color: 'bg-amber-100 text-amber-800 border-amber-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'CFTV_SEGURANCA',
-    label: 'Técnico em CFTV e Segurança Eletrônica',
-    description: 'Instalação de câmeras de segurança, sistemas de monitoramento e equipamentos de proteção eletrônica',
-    icon: Camera,
-    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'CONSULTORIA_TI',
-    label: 'Consultoria em T.I',
-    description: 'Passagem de cabos, instalação e configuração de equipamentos de internet e redes',
-    icon: Wifi,
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'CONSULTORIA_RURAL',
-    label: 'Consultoria Rural',
-    description: 'Consultoria especializada em gestão rural e produtividade',
-    icon: Users,
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    category: 'technical',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'AUTOMACAO_INDUSTRIAL',
-    label: 'Automação Industrial',
-    description: 'Automação de processos industriais e sistemas de controle',
-    icon: Zap,
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'MANUTENCAO_BALANCAS',
-    label: 'Manutenção de Balanças',
-    description: 'Manutenção, calibração e reparo de balanças rodoviárias e de grãos',
-    icon: Scale,
-    color: 'bg-purple-100 text-purple-800 border-purple-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'MANUTENCAO_REVISAO_GPS',
-    label: 'Manutenção e Revisão GPS',
-    description: 'Manutenção, atualização e calibração de sistemas GPS agrícolas',
-    icon: Satellite,
-    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'MECANICO',
-    label: 'Mecânico',
-    description: 'Reparos mecânicos para todos os tipos de veículos, desde carros até máquinas agrícolas',
-    icon: Wrench,
-    color: 'bg-gray-100 text-gray-800 border-gray-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'MECANICO_INDUSTRIAL',
-    label: 'Mecânico Industrial',
-    description: 'Manutenção e reparo de equipamentos industriais e sistemas mecânicos',
-    icon: Settings,
-    color: 'bg-slate-100 text-slate-800 border-slate-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'SERVICOS_VETERINARIOS',
-    label: 'Serviços Veterinários',
-    description: 'Atendimento veterinário e cuidados com o rebanho',
-    icon: Stethoscope,
-    color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'technical',
-    clientVisible: true,
-    providerVisible: true
-  },
-
-  // ==================== SERVIÇOS AGRÍCOLAS (Ordem Alfabética) ====================
   {
     id: 'ADUBACAO_CALCARIO',
     label: 'Adubação e Calagem',
@@ -259,12 +81,72 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
+    id: 'ARMAZENAGEM',
+    label: 'Armazenagem',
+    description: 'Serviços de armazenamento de grãos e insumos',
+    icon: Package,
+    color: 'bg-rose-100 text-rose-800 border-rose-200',
+    category: 'logistics',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'ASSISTENCIA_TECNICA',
+    label: 'Assistência Técnica Agrícola',
+    description: 'Suporte técnico especializado para produção agrícola',
+    icon: Settings,
+    color: 'bg-primary/10 text-primary border-primary/20',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'AUTO_ELETRICA',
+    label: 'Auto Elétrica',
+    description: 'Sistemas elétricos para todos os tipos de autos, desde carros até máquinas agrícolas',
+    icon: Car,
+    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'AUTOMACAO_INDUSTRIAL',
+    label: 'Automação Industrial',
+    description: 'Automação de processos industriais e sistemas de controle',
+    icon: Zap,
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'BORRACHEIRO',
+    label: 'Borracharia',
+    description: 'Troca e reparo de pneus (veículos, tratores e implementos)',
+    icon: Shield,
+    color: 'bg-slate-100 text-slate-800 border-slate-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
     id: 'CARREGAMENTO_DESCARREGAMENTO',
     label: 'Carregamento e Descarregamento',
     description: 'Pessoas para carregamento e descarregamento de caminhões',
     icon: Users2,
     color: 'bg-amber-100 text-amber-800 border-amber-200',
     category: 'agricultural',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'CHAVEIRO',
+    label: 'Chaveiro',
+    description: 'Abertura de veículos travados',
+    icon: Key,
+    color: 'bg-amber-100 text-amber-800 border-amber-200',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -289,12 +171,42 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
+    id: 'COMBUSTIVEL',
+    label: 'Combustível',
+    description: 'Entrega de combustível TRR (Transporte Rodoviário de Reabastecimento)',
+    icon: Fuel,
+    color: 'bg-green-100 text-green-800 border-green-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
     id: 'COMPRA_ENTREGA_PECAS',
     label: 'Compra e Entrega de Peças Agrícolas',
     description: 'Serviço para lojas agrícolas - Busca e entrega de peças e componentes para máquinas agrícolas',
     icon: Box,
     color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
     category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'CONSULTORIA_TI',
+    label: 'Consultoria em T.I',
+    description: 'Passagem de cabos, instalação e configuração de equipamentos de internet e redes',
+    icon: Wifi,
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'CONSULTORIA_RURAL',
+    label: 'Consultoria Rural',
+    description: 'Consultoria especializada em gestão rural e produtividade',
+    icon: Users,
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    category: 'technical',
     clientVisible: true,
     providerVisible: true
   },
@@ -319,12 +231,62 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
+    id: 'FRETE_MOTO',
+    label: 'Frete por Moto',
+    description: 'Entregas rápidas e pequenos fretes urbanos',
+    icon: Bike,
+    color: 'bg-green-100 text-green-800 border-green-200',
+    category: 'freight',
+    clientVisible: true,
+    providerVisible: false
+  },
+  {
+    id: 'GUINDASTE',
+    label: 'Guindaste',
+    description: 'Elevação e movimentação de cargas pesadas',
+    icon: Package,
+    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'GUINCHO',
+    label: 'Guincho e Socorro 24h',
+    description: 'Reboque, socorro e assistência emergencial para veículos 24 horas',
+    icon: Wrench,
+    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    category: 'freight',
+    clientVisible: true,
+    providerVisible: false
+  },
+  {
     id: 'LIMPEZA_DESASSOREAMENTO_REPRESAS',
     label: 'Limpeza e Desassoreamento de Represas',
     description: 'Limpeza e manutenção de represas e reservatórios',
     icon: Waves,
     color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'agricultural',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'MANUTENCAO_BALANCAS',
+    label: 'Manutenção de Balanças',
+    description: 'Manutenção, calibração e reparo de balanças rodoviárias e de grãos',
+    icon: Scale,
+    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'MANUTENCAO_REVISAO_GPS',
+    label: 'Manutenção e Revisão GPS',
+    description: 'Manutenção, atualização e calibração de sistemas GPS agrícolas',
+    icon: Satellite,
+    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
@@ -337,6 +299,36 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     category: 'agricultural',
     clientVisible: true,
     providerVisible: true
+  },
+  {
+    id: 'MECANICO',
+    label: 'Mecânico',
+    description: 'Reparos mecânicos para todos os tipos de veículos, desde carros até máquinas agrícolas',
+    icon: Wrench,
+    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'MECANICO_INDUSTRIAL',
+    label: 'Mecânico Industrial',
+    description: 'Manutenção e reparo de equipamentos industriais e sistemas mecânicos',
+    icon: Settings,
+    color: 'bg-slate-100 text-slate-800 border-slate-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'MUDANCA',
+    label: 'Mudanças e Frete Urbano',
+    description: 'Mudanças residenciais, comerciais e fretes urbanos',
+    icon: Home,
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    category: 'freight',
+    clientVisible: true,
+    providerVisible: false
   },
   {
     id: 'OPERADOR_MAQUINAS',
@@ -379,6 +371,26 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
+    id: 'SERVICOS_VETERINARIOS',
+    label: 'Serviços Veterinários',
+    description: 'Atendimento veterinário e cuidados com o rebanho',
+    icon: Stethoscope,
+    color: 'bg-green-100 text-green-800 border-green-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'CFTV_SEGURANCA',
+    label: 'Técnico em CFTV e Segurança Eletrônica',
+    description: 'Instalação de câmeras de segurança, sistemas de monitoramento e equipamentos de proteção eletrônica',
+    icon: Camera,
+    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
     id: 'TERRAPLENAGEM',
     label: 'Terraplenagem',
     description: 'Serviços de terraplanagem e movimentação de terra',
@@ -408,34 +420,22 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     clientVisible: true,
     providerVisible: true
   },
-
-  // ==================== SERVIÇOS DE LOGÍSTICA (Ordem Alfabética) ====================
   {
-    id: 'ARMAZENAGEM',
-    label: 'Armazenagem',
-    description: 'Serviços de armazenamento de grãos e insumos',
-    icon: Package,
-    color: 'bg-rose-100 text-rose-800 border-rose-200',
-    category: 'logistics',
+    id: 'CARGA',
+    label: 'Transporte de Carga',
+    description: 'Soja, milho, fertilizantes e outros produtos agrícolas',
+    icon: Truck,
+    color: 'bg-primary/10 text-primary border-primary/20',
+    category: 'freight',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: false
   },
   {
-    id: 'COMBUSTIVEL',
-    label: 'Combustível',
-    description: 'Entrega de combustível TRR (Transporte Rodoviário de Reabastecimento)',
-    icon: Fuel,
-    color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'GUINDASTE',
-    label: 'Guindaste',
-    description: 'Elevação e movimentação de cargas pesadas',
-    icon: Package,
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    id: 'OUTROS',
+    label: 'Outros',
+    description: 'Outros serviços não listados',
+    icon: MoreHorizontal,
+    color: 'bg-gray-100 text-gray-800 border-gray-200',
     category: 'urban',
     clientVisible: true,
     providerVisible: true
