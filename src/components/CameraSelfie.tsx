@@ -233,14 +233,14 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
   const showOptions = !isStreaming && !currentImage;
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
+    <Card className="w-full max-w-md mx-auto max-h-[90vh] flex flex-col">
+      <CardHeader className="flex-shrink-0">
         <CardTitle className="flex items-center gap-2">
           <Camera className="h-5 w-5" />
           Selfie para Verificação
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 overflow-y-auto flex-1">
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
@@ -248,7 +248,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
           </AlertDescription>
         </Alert>
 
-        <div className="relative bg-muted rounded-lg overflow-hidden aspect-[4/3]">
+        <div className="relative bg-muted rounded-lg overflow-hidden min-h-[300px] max-h-[50vh]">
           {showOptions && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
               <Button onClick={startCamera} size="lg" className="w-full">

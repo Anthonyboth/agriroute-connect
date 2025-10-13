@@ -319,10 +319,19 @@ const CompleteProfile = () => {
 
     // Validate step 2 requirements - documents
     if (currentStep === 2) {
+      console.log('🔍 Validando documentos - Step 2:', { documentUrls });
+      
       if (!documentUrls.selfie || !documentUrls.document_photo) {
         toast.error('Por favor, envie sua selfie e foto do documento');
+        console.error('❌ Documentos faltando:', { 
+          selfie: !!documentUrls.selfie, 
+          document_photo: !!documentUrls.document_photo 
+        });
         return;
       }
+      
+      console.log('✅ Documentos validados com sucesso');
+      
       // For producers - allow access with basic requirements
       if (profile.role === 'PRODUTOR' || profile.role === 'PRESTADOR_SERVICOS') {
         await finalizeProfile();
@@ -410,6 +419,16 @@ const CompleteProfile = () => {
   };
 
   const finalizeProfile = async () => {
+    console.log('🚀 Iniciando finalização do perfil...');
+    console.log('📋 Dados do perfil:', profileData);
+    console.log('📄 URLs dos documentos:', documentUrls);
+
+    // Validação final de selfie
+    if (!documentUrls.selfie) {
+      toast.error('Selfie não foi enviada. Por favor, tire uma selfie antes de continuar.');
+      console.error('❌ Selfie ausente na finalização');
+      return;
+    }
 
     setLoading(true);
 
@@ -486,12 +505,19 @@ const CompleteProfile = () => {
         };
       }
 
+      console.log('💾 Salvando no banco de dados:', updateData);
+
       const { error } = await supabase
         .from('profiles')
         .update(cleanEmptyFields(updateData))
         .eq('user_id', profile.user_id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao salvar perfil:', error);
+        throw error;
+      }
+      
+      console.log('✅ Perfil salvo com sucesso!');
 
       // Trigger automatic approval process
       AutomaticApprovalService.triggerApprovalProcess(profile.id);
@@ -723,14 +749,31 @@ const CompleteProfile = () => {
 
                 <div className="space-y-2">
                   <Label>Selfie *</Label>
-                  {documentUrls.selfie && (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Selfie capturada</span>
+                  {documentUrls.selfie ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-green-600">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="font-medium">Selfie capturada com sucesso!</span>
+                      </div>
+                      <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-green-500">
+                        <img 
+                          src={documentUrls.selfie} 
+                          alt="Selfie Preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-amber-600">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>Selfie ainda não capturada</span>
                     </div>
                   )}
-                  <Button onClick={() => setShowSelfieModal(true)} variant="secondary">
-                    Capturar Selfie
+                  <Button 
+                    onClick={() => setShowSelfieModal(true)} 
+                    variant={documentUrls.selfie ? "outline" : "secondary"}
+                  >
+                    {documentUrls.selfie ? 'Refazer Selfie' : 'Capturar Selfie'}
                   </Button>
 
                   <Dialog open={showSelfieModal} onOpenChange={setShowSelfieModal}>
@@ -740,25 +783,40 @@ const CompleteProfile = () => {
                       </DialogHeader>
                       <CameraSelfie autoStart
                         onCapture={async (blob, uploadMethod) => {
+                          console.log('📸 Selfie capturada, iniciando upload...');
                           try {
+                            toast.loading('Enviando selfie...', { id: 'selfie-upload' });
+                            
                             const { data: { user } } = await supabase.auth.getUser();
                             if (!user) {
-                              toast.error('Faça login para enviar a selfie.');
+                              toast.error('Faça login para enviar a selfie.', { id: 'selfie-upload' });
                               return;
                             }
                             
                             const path = `${user.id}/identity_selfie_${Date.now()}.jpg`;
+                            console.log('📁 Fazendo upload para:', path);
+                            
                             const { error: uploadError } = await supabase.storage
                               .from('profile-photos')
                               .upload(path, blob, { contentType: 'image/jpeg' });
                             
-                            if (uploadError) throw uploadError;
+                            if (uploadError) {
+                              console.error('❌ Erro no upload:', uploadError);
+                              throw uploadError;
+                            }
+
+                            console.log('✅ Upload concluído com sucesso');
 
                             // URL assinada para visualização (bucket é privado)
                             const { data: signedData, error: signedErr } = await supabase.storage
                               .from('profile-photos')
                               .createSignedUrl(path, 60 * 60 * 24); // 24h
-                            if (signedErr) throw signedErr;
+                            if (signedErr) {
+                              console.error('❌ Erro ao criar URL assinada:', signedErr);
+                              throw signedErr;
+                            }
+
+                            console.log('🔗 URL assinada criada:', signedData.signedUrl);
 
                             // Salvar na tabela identity_selfies (mantemos o caminho do arquivo)
                             const { error: dbError } = await supabase
@@ -770,14 +828,26 @@ const CompleteProfile = () => {
                                 verification_status: 'PENDING'
                               }, { onConflict: 'user_id' });
 
-                            if (dbError) throw dbError;
+                            if (dbError) {
+                              console.error('❌ Erro ao salvar no DB:', dbError);
+                              throw dbError;
+                            }
 
-                            setDocumentUrls(prev => ({ ...prev, selfie: signedData?.signedUrl || '' }));
-                            toast.success(`Selfie ${uploadMethod === 'CAMERA' ? 'capturada' : 'enviada da galeria'} com sucesso!`);
+
+                            console.log('💾 Selfie salva no banco de dados');
+
+                            // Atualizar o estado com a URL assinada
+                            setDocumentUrls(prev => {
+                              const updated = { ...prev, selfie: signedData?.signedUrl || '' };
+                              console.log('🔄 Estado atualizado:', updated);
+                              return updated;
+                            });
+                            
+                            toast.success(`✅ Selfie ${uploadMethod === 'CAMERA' ? 'capturada' : 'enviada da galeria'} com sucesso!`, { id: 'selfie-upload' });
                             setShowSelfieModal(false);
                           } catch (err) {
-                            console.error('Erro ao enviar selfie:', err);
-                            toast.error('Erro ao enviar selfie. Tente novamente.');
+                            console.error('❌ Erro ao enviar selfie:', err);
+                            toast.error('Erro ao enviar selfie. Tente novamente.', { id: 'selfie-upload' });
                           }
                         }}
                         onCancel={() => setShowSelfieModal(false)}
