@@ -329,6 +329,16 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
+    id: 'MAO_OBRA_SAFRISTA',
+    label: 'Mão de Obra Safrista',
+    description: 'Contratação temporária de trabalhadores para época de safra agrícola',
+    icon: Users2,
+    color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    category: 'agricultural',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
     id: 'OPERADOR_MAQUINAS',
     label: 'Operador de Máquinas',
     description: 'Operação de tratores, colheitadeiras e implementos',
