@@ -5151,6 +5151,10 @@ export type Database = {
         Args: { p_company_id: string; p_user_id: string }
         Returns: boolean
       }
+      is_current_user_producer_of_freight: {
+        Args: { p_freight_id: string }
+        Returns: boolean
+      }
       is_freight_owner: {
         Args: { freight_id: string; user_profile_id: string }
         Returns: boolean

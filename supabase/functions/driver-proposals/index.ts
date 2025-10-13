@@ -72,11 +72,20 @@ serve(async (req) => {
       const { data: freightsData, error: freErr } = await supabase
         .from("freights")
         .select(
-          `*, producer:profiles!producer_id(id,full_name,contact_phone,role)`
+          `*, producer:profiles!freights_producer_id_fkey(id,full_name,contact_phone,role)`
         )
         .in("id", freightIds);
-      if (freErr) throw freErr;
-      freights = freightsData ?? [];
+      if (freErr) {
+        console.error("driver-proposals: error fetching freights with embeds", freErr);
+        // Fallback: fetch basic freight data without embeds
+        const { data: basicFreights } = await supabase
+          .from("freights")
+          .select("*")
+          .in("id", freightIds);
+        freights = basicFreights ?? [];
+      } else {
+        freights = freightsData ?? [];
+      }
     }
 
     const freightById = new Map((freights ?? []).map((f: any) => [f.id, f]));
@@ -96,16 +105,42 @@ serve(async (req) => {
     // Fallback: also include freights where driver_id = driverId (covers manual assignments)
     const { data: driverFreights, error: dfErr } = await supabase
       .from("freights")
-      .select(`*, producer:profiles!producer_id(id,full_name,contact_phone,role)`)
+      .select(`*, producer:profiles!freights_producer_id_fkey(id,full_name,contact_phone,role)`)
       .eq("driver_id", driverId)
       .order("updated_at", { ascending: false })
       .limit(100);
     if (dfErr) {
-      // Log but do not fail the whole response
       console.error("driver-proposals: error fetching driver freights", dfErr);
     }
 
-    const mergedOngoing = [...ongoingFreights, ...(driverFreights ?? [])];
+    // CRITICAL: Include freights via freight_assignments (transportadora scenarios)
+    const { data: assignmentData, error: assignErr } = await supabase
+      .from("freight_assignments")
+      .select(`
+        freight:freights!inner(*, producer:profiles!freights_producer_id_fkey(id,full_name,contact_phone,role)),
+        status,
+        agreed_price,
+        accepted_at
+      `)
+      .eq("driver_id", driverId)
+      .in("status", ["ACCEPTED", "LOADING", "LOADED", "IN_TRANSIT", "DELIVERED_PENDING_CONFIRMATION"])
+      .order("accepted_at", { ascending: false })
+      .limit(100);
+
+    if (assignErr) {
+      console.error("driver-proposals: error fetching assignment freights", assignErr);
+    }
+
+    // Extract freights from assignments and use agreed_price as price if available
+    const assignmentFreights = (assignmentData ?? []).map((a: any) => {
+      const freight = a.freight;
+      if (a.agreed_price) {
+        freight.price = a.agreed_price;
+      }
+      return freight;
+    });
+
+    const mergedOngoing = [...ongoingFreights, ...(driverFreights ?? []), ...(assignmentFreights ?? [])];
     // Deduplicate by id and keep the freshest
     const seen = new Set<string>();
     ongoingFreights = mergedOngoing.filter((f: any) => {

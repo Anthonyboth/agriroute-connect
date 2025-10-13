@@ -422,7 +422,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       // Buscar fretes vinculados ao motorista diretamente
       const { data: freightData, error: freightError } = await supabase
         .from('freights')
-        .select('*')
+        .select('*, producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, role)')
         .eq('driver_id', profile.id)
         .order('updated_at', { ascending: false })
         .limit(100);
@@ -431,6 +431,33 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         console.error('❌ Erro buscando fretes diretos:', freightError);
         throw freightError;
       }
+
+      // Buscar fretes via freight_assignments (transportadora scenarios)
+      const { data: assignmentData, error: assignmentError } = await supabase
+        .from('freight_assignments')
+        .select(`
+          freight:freights(*, producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, role)),
+          status,
+          agreed_price,
+          accepted_at
+        `)
+        .eq('driver_id', profile.id)
+        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
+        .order('accepted_at', { ascending: false })
+        .limit(100);
+
+      if (assignmentError) {
+        console.error('❌ Erro buscando assignments:', assignmentError);
+      }
+
+      // Extract and map assignment freights, using agreed_price as price
+      const assignmentFreights = (assignmentData ?? []).map((a: any) => {
+        const freight = a.freight;
+        if (a.agreed_price) {
+          freight.price = a.agreed_price;
+        }
+        return freight;
+      });
       
       // Buscar service_requests aceitos pelo motorista
       const { data: serviceData, error: serviceError } = await supabase
@@ -443,7 +470,6 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
       if (serviceError) {
         console.error('❌ Erro buscando serviços aceitos:', serviceError);
-        // Não throw aqui, apenas log o erro
       }
       
       // Converter service_requests para formato de frete
@@ -473,13 +499,22 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         additional_info: service.additional_info,
       }));
       
-      // Combinar fretes tradicionais com serviços aceitos
-      const allOngoing = [...(freightData || []), ...convertedServices];
+      // Combinar fretes diretos, assignments e serviços aceitos
+      const allOngoing = [...(freightData || []), ...(assignmentFreights || []), ...convertedServices];
+      
+      // Deduplicate by id
+      const seen = new Set();
+      const dedupedOngoing = allOngoing.filter((item: any) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      });
       
       console.log('📦 Fretes diretos encontrados:', freightData?.length || 0);
+      console.log('🚚 Fretes via assignments encontrados:', assignmentFreights?.length || 0);
       console.log('🔧 Serviços aceitos encontrados:', serviceData?.length || 0);
-      console.log('📊 Total de itens ativos:', allOngoing.length);
-      setOngoingFreights(allOngoing);
+      console.log('📊 Total de itens ativos (deduplicado):', dedupedOngoing.length);
+      setOngoingFreights(dedupedOngoing);
 
       // Verificar checkins para cada frete tradicional
       if (freightData && freightData.length > 0) {
