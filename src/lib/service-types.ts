@@ -154,29 +154,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     clientVisible: true,
     providerVisible: true
   },
-  // Aliases para compatibilidade com dados antigos
-  {
-    id: 'ELETRICISTA_AUTOMOTIVO',
-    label: 'Auto Elétrica',
-    description: 'Sistemas elétricos para todos os tipos de autos, desde carros até máquinas agrícolas',
-    icon: Car,
-    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true,
-    showOnlyInAllTab: true
-  },
-  {
-    id: 'ELETRICA',
-    label: 'Elétrica',
-    description: 'Serviços elétricos em geral urbanos e rurais',
-    icon: Zap,
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true,
-    showOnlyInAllTab: true
-  },
   {
     id: 'MANUTENCAO_BALANCAS',
     label: 'Manutenção de Balanças',
@@ -217,18 +194,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     clientVisible: true,
     providerVisible: true
   },
-  // Alias para compatibilidade
-  {
-    id: 'MECANICO_AUTOMOTIVO',
-    label: 'Mecânico',
-    description: 'Reparos mecânicos para todos os tipos de veículos, desde carros até máquinas agrícolas',
-    icon: Wrench,
-    color: 'bg-gray-100 text-gray-800 border-gray-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true,
-    showOnlyInAllTab: true
-  },
   {
     id: 'SERVICOS_VETERINARIOS',
     label: 'Serviços Veterinários',
@@ -238,17 +203,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     category: 'technical',
     clientVisible: true,
     providerVisible: true
-  },
-  {
-    id: 'OUTROS',
-    label: 'Outros',
-    description: 'Outros serviços especializados não listados acima',
-    icon: MoreHorizontal,
-    color: 'bg-neutral-100 text-neutral-800 border-neutral-200',
-    category: 'technical',
-    clientVisible: true,
-    providerVisible: true,
-    showOnlyInAllTab: true
   },
 
   // ==================== SERVIÇOS AGRÍCOLAS (Ordem Alfabética) ====================
@@ -312,18 +266,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     clientVisible: true,
     providerVisible: true
   },
-  // Aliases para compatibilidade
-  {
-    id: 'COLHEITA_MECANIZADA',
-    label: 'Colheita e Plantio Terceirizada',
-    description: 'Serviços terceirizados de colheita e plantio mecanizado com equipamentos modernos',
-    icon: Wheat,
-    color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true,
-    showOnlyInAllTab: true
-  },
   {
     id: 'COMPRA_ENTREGA_PECAS',
     label: 'Compra e Entrega de Peças Agrícolas',
@@ -365,17 +307,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
-    id: 'MECANICO_AGRICOLA',
-    label: 'Mecânico',
-    description: 'Reparos mecânicos para todos os tipos de veículos, desde carros até máquinas agrícolas',
-    icon: Wrench,
-    color: 'bg-gray-100 text-gray-800 border-gray-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true,
-    showOnlyInAllTab: true
-  },
-  {
     id: 'OPERADOR_MAQUINAS',
     label: 'Operador de Máquinas',
     description: 'Operação de tratores, colheitadeiras e implementos',
@@ -396,17 +327,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
-    id: 'PLANTIO_MECANIZADO',
-    label: 'Colheita e Plantio Terceirizada',
-    description: 'Serviços terceirizados de colheita e plantio mecanizado com equipamentos modernos',
-    icon: Wheat,
-    color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true,
-    showOnlyInAllTab: true
-  },
-  {
     id: 'PULVERIZACAO_DRONE',
     label: 'Pulverização por Drone',
     description: 'Aplicação de defensivos e fertilizantes via drone',
@@ -425,17 +345,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     category: 'agricultural',
     clientVisible: true,
     providerVisible: true
-  },
-  {
-    id: 'SOCORRO_MECANICO_24H',
-    label: 'Guincho e Socorro 24h',
-    description: 'Reboque, socorro e assistência emergencial para veículos 24 horas',
-    icon: Wrench,
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true,
-    showOnlyInAllTab: true
   },
   {
     id: 'TERRAPLENAGEM',
