@@ -59,7 +59,7 @@ export const ContactInfoCard: React.FC<ContactInfoProps> = ({
           {phone && (
             <div className="flex items-center text-sm text-blue-700">
               <Phone className="h-3 w-3 mr-2 flex-shrink-0" />
-              <span><strong>Telefone:</strong> {formatPhone(phone)}</span>
+              <span><strong>Telefone WhatsApp:</strong> {formatPhone(phone)}</span>
             </div>
           )}
           

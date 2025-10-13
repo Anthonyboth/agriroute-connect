@@ -539,7 +539,7 @@ const CompleteProfile = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone *</Label>
+                    <Label htmlFor="phone">Telefone WhatsApp *</Label>
                     <Input
                       id="phone"
                       type="tel"

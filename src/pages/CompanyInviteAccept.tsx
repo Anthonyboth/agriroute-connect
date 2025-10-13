@@ -243,7 +243,7 @@ const CompanyInviteAccept: React.FC = () => {
             </div>
 
             <div>
-              <Label htmlFor="phone">Telefone *</Label>
+              <Label htmlFor="phone">Telefone WhatsApp *</Label>
               <Input
                 id="phone"
                 value={formData.phone}
