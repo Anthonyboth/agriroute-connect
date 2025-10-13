@@ -34,7 +34,13 @@ import {
   Car,
   Bike,
   Camera,
-  Wifi
+  Wifi,
+  ShoppingCart,
+  Laptop,
+  Navigation,
+  Factory,
+  PawPrint,
+  Map
 } from 'lucide-react';
 
 export interface ServiceType {
@@ -715,6 +721,171 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Sistemas elétricos para todos os tipos de autos, desde carros até máquinas agrícolas',
     icon: Car,
     color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'BORRACHEIRO_URB',
+    label: 'Borracharia',
+    description: 'Serviços de borracharia, troca de pneus e reparos',
+    icon: Wrench,
+    color: 'bg-slate-100 text-slate-800 border-slate-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'CARREGAMENTO_DESCARREGAMENTO_URB',
+    label: 'Carregamento e Descarregamento',
+    description: 'Serviços de carregamento e descarregamento de mercadorias',
+    icon: Package,
+    color: 'bg-amber-100 text-amber-800 border-amber-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'CHAVEIRO_URB',
+    label: 'Chaveiro',
+    description: 'Serviços de chaveiro e reparos de fechaduras',
+    icon: Key,
+    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'COMPRA_ENTREGA_PECAS_URB',
+    label: 'Compra e Entrega de Peças Agrícolas',
+    description: 'Compra e entrega de peças agrícolas e equipamentos',
+    icon: ShoppingCart,
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'CONSULTORIA_TI_URB',
+    label: 'Consultoria em T.I',
+    description: 'Consultoria em tecnologia da informação e sistemas',
+    icon: Laptop,
+    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'ENERGIA_SOLAR_URB',
+    label: 'Energia Solar',
+    description: 'Instalação e manutenção de sistemas de energia solar',
+    icon: Sun,
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'MANUTENCAO_BALANCAS_URB',
+    label: 'Manutenção de Balanças',
+    description: 'Manutenção e calibração de balanças',
+    icon: Scale,
+    color: 'bg-teal-100 text-teal-800 border-teal-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'MANUTENCAO_REVISAO_GPS_URB',
+    label: 'Manutenção e Revisão GPS',
+    description: 'Manutenção e revisão de sistemas GPS',
+    icon: Navigation,
+    color: 'bg-sky-100 text-sky-800 border-sky-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'MECANICO_URB',
+    label: 'Mecânico',
+    description: 'Serviços de mecânica geral',
+    icon: Wrench,
+    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'MECANICO_INDUSTRIAL_URB',
+    label: 'Mecânico Industrial',
+    description: 'Manutenção e reparos de equipamentos industriais',
+    icon: Factory,
+    color: 'bg-stone-100 text-stone-800 border-stone-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'SERVICOS_VETERINARIOS_URB',
+    label: 'Serviços Veterinários',
+    description: 'Serviços veterinários e cuidados com animais',
+    icon: PawPrint,
+    color: 'bg-pink-100 text-pink-800 border-pink-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'CFTV_SEGURANCA_URB',
+    label: 'Técnico em CFTV e Segurança Eletrônica',
+    description: 'Instalação e manutenção de sistemas CFTV e segurança',
+    icon: Camera,
+    color: 'bg-red-100 text-red-800 border-red-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'TERRAPLENAGEM_URB',
+    label: 'Terraplenagem',
+    description: 'Serviços de terraplenagem e movimentação de terra',
+    icon: Mountain,
+    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'TOPOGRAFIA_RURAL_URB',
+    label: 'Topografia',
+    description: 'Serviços de topografia e levantamento topográfico',
+    icon: Map,
+    color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true,
+    hideFromAllTab: true
+  },
+  {
+    id: 'TORNEARIA_SOLDA_REPAROS_URB',
+    label: 'Tornearia, Solda e Reparos',
+    description: 'Serviços de tornearia, solda e reparos mecânicos',
+    icon: Hammer,
+    color: 'bg-zinc-100 text-zinc-800 border-zinc-200',
     category: 'urban',
     clientVisible: true,
     providerVisible: true,
