@@ -2513,6 +2513,7 @@ export type Database = {
           license_plate_photo_url: string | null
           live_cargo_experience: boolean | null
           location_enabled: boolean | null
+          metadata: Json | null
           phone: string | null
           profile_photo_url: string | null
           rating: number | null
@@ -2591,6 +2592,7 @@ export type Database = {
           license_plate_photo_url?: string | null
           live_cargo_experience?: boolean | null
           location_enabled?: boolean | null
+          metadata?: Json | null
           phone?: string | null
           profile_photo_url?: string | null
           rating?: number | null
@@ -2669,6 +2671,7 @@ export type Database = {
           license_plate_photo_url?: string | null
           live_cargo_experience?: boolean | null
           location_enabled?: boolean | null
+          metadata?: Json | null
           phone?: string | null
           profile_photo_url?: string | null
           rating?: number | null
