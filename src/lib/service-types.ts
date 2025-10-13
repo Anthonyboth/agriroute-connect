@@ -86,7 +86,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Serviços de armazenamento de grãos e insumos',
     icon: Package,
     color: 'bg-rose-100 text-rose-800 border-rose-200',
-    category: 'logistics',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -96,7 +96,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Suporte técnico especializado para produção agrícola',
     icon: Settings,
     color: 'bg-primary/10 text-primary border-primary/20',
-    category: 'technical',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -106,7 +106,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Sistemas elétricos para todos os tipos de autos, desde carros até máquinas agrícolas',
     icon: Car,
     color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    category: 'technical',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -116,7 +116,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Automação de processos industriais e sistemas de controle',
     icon: Zap,
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -126,7 +126,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Troca e reparo de pneus (veículos, tratores e implementos)',
     icon: Shield,
     color: 'bg-slate-100 text-slate-800 border-slate-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -146,7 +146,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Abertura de veículos travados',
     icon: Key,
     color: 'bg-amber-100 text-amber-800 border-amber-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -176,7 +176,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Entrega de combustível TRR (Transporte Rodoviário de Reabastecimento)',
     icon: Fuel,
     color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -186,7 +186,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Serviço para lojas agrícolas - Busca e entrega de peças e componentes para máquinas agrícolas',
     icon: Box,
     color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -196,7 +196,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Passagem de cabos, instalação e configuração de equipamentos de internet e redes',
     icon: Wifi,
     color: 'bg-blue-100 text-blue-800 border-blue-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -206,7 +206,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Consultoria especializada em gestão rural e produtividade',
     icon: Users,
     color: 'bg-blue-100 text-blue-800 border-blue-200',
-    category: 'technical',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -226,7 +226,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Instalação e manutenção de sistemas de energia solar fotovoltaica',
     icon: Sun,
     color: 'bg-sky-100 text-sky-800 border-sky-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -246,7 +246,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Elevação e movimentação de cargas pesadas',
     icon: Package,
     color: 'bg-orange-100 text-orange-800 border-orange-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -256,7 +256,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Reboque, socorro e assistência emergencial para veículos 24 horas',
     icon: Wrench,
     color: 'bg-orange-100 text-orange-800 border-orange-200',
-    category: 'freight',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: false
   },
@@ -276,7 +276,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Manutenção, calibração e reparo de balanças rodoviárias e de grãos',
     icon: Scale,
     color: 'bg-purple-100 text-purple-800 border-purple-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -286,7 +286,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Manutenção, atualização e calibração de sistemas GPS agrícolas',
     icon: Satellite,
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -296,7 +296,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Reparos mecânicos para todos os tipos de veículos, desde carros até máquinas agrícolas',
     icon: Wrench,
     color: 'bg-gray-100 text-gray-800 border-gray-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -306,7 +306,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Manutenção e reparo de equipamentos industriais e sistemas mecânicos',
     icon: Settings,
     color: 'bg-slate-100 text-slate-800 border-slate-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -366,7 +366,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Atendimento veterinário e cuidados com o rebanho',
     icon: Stethoscope,
     color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'technical',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -376,7 +376,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Instalação de câmeras de segurança, sistemas de monitoramento e equipamentos de proteção eletrônica',
     icon: Camera,
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -386,13 +386,13 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Serviços de terraplanagem e movimentação de terra',
     icon: Mountain,
     color: 'bg-orange-100 text-orange-800 border-orange-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
   {
     id: 'TOPOGRAFIA_RURAL',
-    label: 'Topografia Rural',
+    label: 'Topografia',
     description: 'Serviços de topografia e levantamento topográfico',
     icon: MapPin,
     color: 'bg-violet-100 text-violet-800 border-violet-200',
@@ -406,7 +406,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Serviços de tornearia, solda e reparos mecânicos',
     icon: Hammer,
     color: 'bg-zinc-100 text-zinc-800 border-zinc-200',
-    category: 'urban',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
@@ -416,7 +416,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Soja, milho, fertilizantes e outros produtos agrícolas',
     icon: Truck,
     color: 'bg-primary/10 text-primary border-primary/20',
-    category: 'freight',
+    category: 'agricultural',
     clientVisible: true,
     providerVisible: false
   },
