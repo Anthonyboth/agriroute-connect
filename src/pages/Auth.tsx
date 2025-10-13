@@ -355,11 +355,9 @@ const Auth = () => {
                       value={role === 'MOTORISTA' && !driverType ? 'MOTORISTA/TRANSPORTADORA' : role} 
                       onValueChange={(value) => {
                         if (value === 'MOTORISTA/TRANSPORTADORA') {
-                          setSignupStep('driver-type');
                           setRole('MOTORISTA');
                         } else {
                           setRole(value as 'PRODUTOR' | 'PRESTADOR_SERVICOS');
-                          setSignupStep('form');
                           setDriverType(null);
                         }
                       }}
@@ -373,6 +371,23 @@ const Auth = () => {
                         <SelectItem value="PRESTADOR_SERVICOS">Prestador de Serviços</SelectItem>
                       </SelectContent>
                     </Select>
+                    
+                    {/* Botão Continuar - aparece quando um tipo é selecionado */}
+                    {role && (
+                      <Button 
+                        type="button"
+                        className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold"
+                        onClick={() => {
+                          if (role === 'MOTORISTA') {
+                            setSignupStep('driver-type');
+                          } else {
+                            setSignupStep('form');
+                          }
+                        }}
+                      >
+                        Continuar
+                      </Button>
+                    )}
                   </div>
                 )}
 
