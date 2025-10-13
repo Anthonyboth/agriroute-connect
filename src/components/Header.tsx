@@ -29,7 +29,7 @@ interface User {
 }
 
 interface HeaderProps {
-  user: User;
+  user?: User;
   onLogout: () => void;
   onMenuClick?: () => void;
   notifications?: number;
@@ -45,18 +45,21 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const getUserInitials = (name: string) => {
+  const getUserInitials = (name?: string) => {
+    if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const getRoleBadge = (role: string, activeMode?: string) => {
+  const getRoleBadge = (role?: string, activeMode?: string) => {
+    if (!role) return 'Usuário';
     if (activeMode === 'TRANSPORTADORA') return 'Transportadora';
     if (role === 'PRODUTOR') return 'Produtor';
     if (role === 'PRESTADOR') return 'Prestador de Serviço';
     return 'Motorista';
   };
 
-  const getRoleColor = (role: string) => {
+  const getRoleColor = (role?: string) => {
+    if (!role) return "bg-gray-500";
     if (role === 'PRODUTOR') return 'bg-primary/10 text-primary';
     if (role === 'PRESTADOR') return 'bg-blue-600 text-white font-medium';
     return 'bg-accent/10 text-accent';
@@ -74,7 +77,7 @@ const Header: React.FC<HeaderProps> = ({
   // Verificar se é transportadora
   React.useEffect(() => {
     const checkCompany = async () => {
-      if (user.role === 'MOTORISTA' && userProfile) {
+      if (user?.role === 'MOTORISTA' && userProfile) {
         const { data } = await supabase
           .from('transport_companies')
           .select('id')
@@ -86,12 +89,12 @@ const Header: React.FC<HeaderProps> = ({
     };
     
     checkCompany();
-  }, [user.role, userProfile]);
+  }, [user?.role, userProfile]);
 
   const menuItems = [
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
     { icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) },
-    ...(user.role !== 'PRODUTOR' ? [{ icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) }] : []),
+    ...(user?.role !== 'PRODUTOR' ? [{ icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) }] : []),
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
   ];
 
@@ -107,8 +110,8 @@ const Header: React.FC<HeaderProps> = ({
                 <span className="text-2xl font-bold text-foreground">AgriRoute</span>
               </div>
               <div className="hidden sm:block">
-                <Badge className={getRoleColor(user.role)}>
-                  {getRoleBadge(user.role, userProfile?.active_mode)}
+                <Badge className={getRoleColor(user?.role)}>
+                  {getRoleBadge(user?.role, userProfile?.active_mode)}
                 </Badge>
               </div>
             </div>
@@ -136,7 +139,7 @@ const Header: React.FC<HeaderProps> = ({
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="gradient-primary text-primary-foreground">
-                        {getUserInitials(user.name)}
+                        {getUserInitials(user?.name)}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -144,9 +147,9 @@ const Header: React.FC<HeaderProps> = ({
                 <DropdownMenuContent className="w-56" align="end">
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium text-sm">{user.name}</p>
+                      <p className="font-medium text-sm">{user?.name ?? 'Usuário'}</p>
                       <p className="w-[200px] truncate text-xs text-muted-foreground">
-                        {getRoleBadge(user.role, userProfile?.active_mode)}
+                        {getRoleBadge(user?.role, userProfile?.active_mode)}
                       </p>
                     </div>
                   </div>
@@ -168,7 +171,7 @@ const Header: React.FC<HeaderProps> = ({
                       {item.label}
                     </DropdownMenuItem>
                   ))}
-                  {user.role === 'MOTORISTA' && (
+                  {user?.role === 'MOTORISTA' && (
                     <>
                       <DropdownMenuSeparator />
                       <div className="px-2 py-1.5">
@@ -199,13 +202,13 @@ const Header: React.FC<HeaderProps> = ({
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-12 w-12">
                         <AvatarFallback className="gradient-primary text-primary-foreground">
-                          {getUserInitials(user.name)}
+                          {getUserInitials(user?.name)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{user.name}</p>
-                        <Badge className={getRoleColor(user.role)}>
-                          {getRoleBadge(user.role, userProfile?.active_mode)}
+                        <p className="font-medium">{user?.name ?? 'Usuário'}</p>
+                        <Badge className={getRoleColor(user?.role)}>
+                          {getRoleBadge(user?.role, userProfile?.active_mode)}
                         </Badge>
                       </div>
                     </div>

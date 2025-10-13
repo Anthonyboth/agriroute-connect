@@ -107,21 +107,22 @@ const CompanyDashboard = () => {
     handleProfileSwitch();
   }, [company, isLoadingCompany, profile?.id, profiles, switchProfile]);
 
+  // Show loading state without Header to avoid user=undefined error
   if (isLoadingCompany || isSwitchingProfile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-        <Header user={profile ? { ...profile, name: profile.full_name, role: profile.role as any } : undefined} onLogout={signOut} />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <Building2 className="h-16 w-16 mx-auto mb-4 text-primary animate-pulse" />
-            <p className="text-lg text-muted-foreground">
-              {isSwitchingProfile ? 'Carregando painel da Transportadora...' : 'Carregando...'}
-            </p>
+      <div className="min-h-screen bg-background">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center space-y-4">
+            <Building2 className="h-12 w-12 text-primary mx-auto animate-pulse" />
+            <p className="text-muted-foreground">Carregando painel da Transportadora...</p>
           </div>
         </div>
       </div>
     );
   }
+
+  // Ensure we have a valid profile before rendering
+  if (!profile) return null;
 
   // Se não há empresa e não há perfil TRANSPORTADORA, mostrar CTA
   if (!company && !profiles.find(p => p.role === 'TRANSPORTADORA')) {
