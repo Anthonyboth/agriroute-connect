@@ -921,8 +921,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     const acceptedProposals = myProposals.filter(p => p.status === 'ACCEPTED');
     const pendingProposalsCount = myProposals.filter(p => p.status === 'PENDING').length;
 
-    // Contar fretes ativos baseado nos fretes em andamento (que incluem ACCEPTED, LOADED, IN_TRANSIT)
-    const activeStatuses = ['ACCEPTED', 'LOADED', 'IN_TRANSIT'];
+    // Contar fretes ativos baseado nos fretes em andamento (inclui todos os status de fretes/serviços em progresso)
+    const activeStatuses = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION', 'IN_PROGRESS'];
     const activeTripsCount = ongoingFreights.filter(freight => 
       activeStatuses.includes(freight.status)
     ).length;
