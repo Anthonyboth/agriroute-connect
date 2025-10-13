@@ -429,6 +429,269 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     category: 'urban',
     clientVisible: true,
     providerVisible: true
+  },
+  // ========== DUPLICATAS PARA LOGÍSTICA ==========
+  {
+    id: 'ARMAZENAGEM_LOG',
+    label: 'Armazenagem',
+    description: 'Serviços de armazenamento de grãos e insumos',
+    icon: Package,
+    color: 'bg-rose-100 text-rose-800 border-rose-200',
+    category: 'logistics',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'GUINDASTE_LOG',
+    label: 'Guindaste',
+    description: 'Elevação e movimentação de cargas pesadas',
+    icon: Package,
+    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    category: 'logistics',
+    clientVisible: true,
+    providerVisible: true
+  },
+  // ========== DUPLICATAS PARA SERVIÇOS TÉCNICOS ==========
+  {
+    id: 'ASSISTENCIA_TECNICA_TECH',
+    label: 'Assistência Técnica Agrícola',
+    description: 'Suporte técnico especializado para produção agrícola',
+    icon: Settings,
+    color: 'bg-primary/10 text-primary border-primary/20',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'AUTO_ELETRICA_TECH',
+    label: 'Auto Elétrica',
+    description: 'Sistemas elétricos para todos os tipos de autos, desde carros até máquinas agrícolas',
+    icon: Car,
+    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'CONSULTORIA_RURAL_TECH',
+    label: 'Consultoria Rural',
+    description: 'Consultoria especializada em gestão rural e produtividade',
+    icon: Users,
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'ANALISE_SOLO_TECH',
+    label: 'Análise de Solo',
+    description: 'Serviço laboratorial feito por laboratórios - Coleta e análise de amostras de solo para correção',
+    icon: TestTube,
+    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'AUTOMACAO_INDUSTRIAL_TECH',
+    label: 'Automação Industrial',
+    description: 'Automação de processos industriais e sistemas de controle',
+    icon: Zap,
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'BORRACHEIRO_TECH',
+    label: 'Borracharia',
+    description: 'Troca e reparo de pneus (veículos, tratores e implementos)',
+    icon: Shield,
+    color: 'bg-slate-100 text-slate-800 border-slate-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'CHAVEIRO_TECH',
+    label: 'Chaveiro',
+    description: 'Abertura de veículos travados',
+    icon: Key,
+    color: 'bg-amber-100 text-amber-800 border-amber-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'CLASSIFICACAO_GRAOS_TECH',
+    label: 'Classificação de Grãos',
+    description: 'Classificação e análise de qualidade de grãos',
+    icon: Scale,
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'CONSTRUCAO_MANUTENCAO_CERCAS_TECH',
+    label: 'Construção e Manutenção de Cercas',
+    description: 'Instalação e manutenção de cercas rurais',
+    icon: Fence,
+    color: 'bg-stone-100 text-stone-800 border-stone-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'CONSULTORIA_TI_TECH',
+    label: 'Consultoria em T.I',
+    description: 'Passagem de cabos, instalação e configuração de equipamentos de internet e redes',
+    icon: Wifi,
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'ENERGIA_SOLAR_TECH',
+    label: 'Energia Solar',
+    description: 'Instalação e manutenção de sistemas de energia solar fotovoltaica',
+    icon: Sun,
+    color: 'bg-sky-100 text-sky-800 border-sky-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'LIMPEZA_DESASSOREAMENTO_REPRESAS_TECH',
+    label: 'Limpeza e Desassoreamento de Represas',
+    description: 'Limpeza e manutenção de represas e reservatórios',
+    icon: Waves,
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'MANUTENCAO_BALANCAS_TECH',
+    label: 'Manutenção de Balanças',
+    description: 'Manutenção, calibração e reparo de balanças rodoviárias e de grãos',
+    icon: Scale,
+    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'MANUTENCAO_REVISAO_GPS_TECH',
+    label: 'Manutenção e Revisão GPS',
+    description: 'Manutenção, atualização e calibração de sistemas GPS agrícolas',
+    icon: Satellite,
+    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'MECANICO_TECH',
+    label: 'Mecânico',
+    description: 'Reparos mecânicos para todos os tipos de veículos, desde carros até máquinas agrícolas',
+    icon: Wrench,
+    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'MECANICO_INDUSTRIAL_TECH',
+    label: 'Mecânico Industrial',
+    description: 'Manutenção e reparo de equipamentos industriais e sistemas mecânicos',
+    icon: Settings,
+    color: 'bg-slate-100 text-slate-800 border-slate-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'OPERADOR_MAQUINAS_TECH',
+    label: 'Operador de Máquinas',
+    description: 'Operação de tratores, colheitadeiras e implementos',
+    icon: Wrench,
+    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'PIVO_IRRIGACAO_TECH',
+    label: 'Pivô Irrigação (Instalação e Manutenção)',
+    description: 'Instalação, manutenção e reparo de sistemas de irrigação por pivô',
+    icon: Droplets,
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'PULVERIZACAO_DRONE_TECH',
+    label: 'Pulverização por Drone',
+    description: 'Aplicação de defensivos e fertilizantes via drone',
+    icon: Plane,
+    color: 'bg-teal-100 text-teal-800 border-teal-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'SERVICOS_VETERINARIOS_TECH',
+    label: 'Serviços Veterinários',
+    description: 'Atendimento veterinário e cuidados com o rebanho',
+    icon: Stethoscope,
+    color: 'bg-green-100 text-green-800 border-green-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'CFTV_SEGURANCA_TECH',
+    label: 'Técnico em CFTV e Segurança Eletrônica',
+    description: 'Instalação de câmeras de segurança, sistemas de monitoramento e equipamentos de proteção eletrônica',
+    icon: Camera,
+    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'TOPOGRAFIA_RURAL_TECH',
+    label: 'Topografia',
+    description: 'Serviços de topografia e levantamento topográfico',
+    icon: MapPin,
+    color: 'bg-violet-100 text-violet-800 border-violet-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'TORNEARIA_SOLDA_REPAROS_TECH',
+    label: 'Tornearia, Solda e Reparos',
+    description: 'Serviços de tornearia, solda e reparos mecânicos',
+    icon: Hammer,
+    color: 'bg-zinc-100 text-zinc-800 border-zinc-200',
+    category: 'technical',
+    clientVisible: true,
+    providerVisible: true
+  },
+  // ========== DUPLICATAS PARA SERVIÇOS URBANOS ==========
+  {
+    id: 'AUTO_ELETRICA_URB',
+    label: 'Auto Elétrica',
+    description: 'Sistemas elétricos para todos os tipos de autos, desde carros até máquinas agrícolas',
+    icon: Car,
+    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
   }
 ];
 
