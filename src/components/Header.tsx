@@ -18,6 +18,7 @@ import { AccountSwitcher } from '@/components/AccountSwitcher';
 import { AddProfileModal } from '@/components/AddProfileModal';
 import SubscriptionPlans from '@/components/SubscriptionPlans';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CompanyModeToggle } from '@/components/CompanyModeToggle';
 
 interface User {
   name: string;
@@ -46,7 +47,8 @@ const Header: React.FC<HeaderProps> = ({
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const getRoleBadge = (role: string) => {
+  const getRoleBadge = (role: string, activeMode?: string) => {
+    if (activeMode === 'TRANSPORTADORA') return 'Transportadora';
     if (role === 'PRODUTOR') return 'Produtor';
     if (role === 'PRESTADOR') return 'Prestador de Serviço';
     return 'Motorista';
@@ -85,7 +87,7 @@ const Header: React.FC<HeaderProps> = ({
               </div>
               <div className="hidden sm:block">
                 <Badge className={getRoleColor(user.role)}>
-                  {getRoleBadge(user.role)}
+                  {getRoleBadge(user.role, userProfile?.active_mode)}
                 </Badge>
               </div>
             </div>
@@ -123,7 +125,7 @@ const Header: React.FC<HeaderProps> = ({
                     <div className="flex flex-col space-y-1 leading-none">
                       <p className="font-medium text-sm">{user.name}</p>
                       <p className="w-[200px] truncate text-xs text-muted-foreground">
-                        {getRoleBadge(user.role)}
+                        {getRoleBadge(user.role, userProfile?.active_mode)}
                       </p>
                     </div>
                   </div>
@@ -134,6 +136,14 @@ const Header: React.FC<HeaderProps> = ({
                       {item.label}
                     </DropdownMenuItem>
                   ))}
+                  {user.role === 'MOTORISTA' && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <div className="px-2 py-1.5">
+                        <CompanyModeToggle currentMode={userProfile?.active_mode} />
+                      </div>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onLogout} className="text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -163,7 +173,7 @@ const Header: React.FC<HeaderProps> = ({
                       <div>
                         <p className="font-medium">{user.name}</p>
                         <Badge className={getRoleColor(user.role)}>
-                          {getRoleBadge(user.role)}
+                          {getRoleBadge(user.role, userProfile?.active_mode)}
                         </Badge>
                       </div>
                     </div>

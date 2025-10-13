@@ -60,9 +60,9 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
 
       if (error) throw error;
 
-      // Filtrar apenas perfis de MOTORISTA e PRODUTOR
+      // Filtrar apenas perfis de MOTORISTA, PRODUTOR e TRANSPORTADORA
       const filteredProfiles = (userProfiles || []).filter(p => 
-        p.role === 'MOTORISTA' || p.role === 'PRODUTOR'
+        p.role === 'MOTORISTA' || p.role === 'PRODUTOR' || p.role === 'TRANSPORTADORA'
       );
       setProfiles(filteredProfiles);
     } catch (error) {

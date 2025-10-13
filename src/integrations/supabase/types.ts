@@ -439,7 +439,9 @@ export type Database = {
           invite_code: string
           invite_type: string
           invited_by: string
+          invited_driver_id: string | null
           invited_email: string | null
+          registration_data: Json | null
           status: string | null
           updated_at: string | null
         }
@@ -453,7 +455,9 @@ export type Database = {
           invite_code?: string
           invite_type: string
           invited_by: string
+          invited_driver_id?: string | null
           invited_email?: string | null
+          registration_data?: Json | null
           status?: string | null
           updated_at?: string | null
         }
@@ -467,7 +471,9 @@ export type Database = {
           invite_code?: string
           invite_type?: string
           invited_by?: string
+          invited_driver_id?: string | null
           invited_email?: string | null
+          registration_data?: Json | null
           status?: string | null
           updated_at?: string | null
         }
@@ -489,6 +495,13 @@ export type Database = {
           {
             foreignKeyName: "company_invites_invited_by_fkey"
             columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_invites_invited_driver_id_fkey"
+            columns: ["invited_driver_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2450,6 +2463,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_mode: string | null
           address_city: string | null
           address_city_id: string | null
           address_complement: string | null
@@ -2527,6 +2541,7 @@ export type Database = {
           vehicle_specifications: string | null
         }
         Insert: {
+          active_mode?: string | null
           address_city?: string | null
           address_city_id?: string | null
           address_complement?: string | null
@@ -2604,6 +2619,7 @@ export type Database = {
           vehicle_specifications?: string | null
         }
         Update: {
+          active_mode?: string | null
           address_city?: string | null
           address_city_id?: string | null
           address_complement?: string | null
@@ -4556,6 +4572,26 @@ export type Database = {
           total_users: number | null
         }
         Relationships: []
+      }
+      company_invite_links: {
+        Row: {
+          company_id: string | null
+          company_name: string | null
+          id: string | null
+          invite_code: string | null
+          invite_link: string | null
+          invite_type: string | null
+          invited_email: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_invites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {

@@ -62,7 +62,7 @@ export const CompanyInviteModal: React.FC<CompanyInviteModalProps> = ({
 
     try {
       const invite = await createInvite({ invite_type: 'LINK' });
-      const link = `${window.location.origin}/aceitar-convite/${invite.invite_code}`;
+      const link = `${window.location.origin}/company-invite/${invite.invite_code}`;
       setGeneratedLink(link);
       toast.success('Link gerado com sucesso!');
     } catch (error) {
