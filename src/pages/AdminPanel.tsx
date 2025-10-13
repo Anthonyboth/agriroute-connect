@@ -19,7 +19,7 @@ interface Profile {
   full_name: string;
   phone: string;
   cpf_cnpj: string;
-  role: 'PRODUTOR' | 'MOTORISTA' | 'ADMIN' | 'PRESTADOR_SERVICOS';
+  role: 'PRODUTOR' | 'MOTORISTA' | 'ADMIN' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA';
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   created_at: string;
   document_validation_status?: string;

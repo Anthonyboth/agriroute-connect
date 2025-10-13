@@ -8,7 +8,7 @@ interface UserProfile {
   full_name: string;
   phone: string;
   document: string;
-  role: 'PRODUTOR' | 'MOTORISTA' | 'ADMIN' | 'PRESTADOR_SERVICOS';
+  role: 'PRODUTOR' | 'MOTORISTA' | 'ADMIN' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA';
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   selfie_url?: string;
   document_photo_url?: string;
