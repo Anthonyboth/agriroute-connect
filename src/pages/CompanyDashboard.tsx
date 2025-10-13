@@ -32,7 +32,29 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Settings, DollarSign, Package, Calendar, Eye, EyeOff, Banknote, Star, MessageSquare, AlertTriangle, Users, Building2, BarChart, Link2, UserPlus, Wrench } from 'lucide-react';
+import { 
+  MapPin, 
+  TrendingUp, 
+  Truck, 
+  Clock, 
+  CheckCircle, 
+  Settings, 
+  DollarSign, 
+  Package, 
+  Calendar, 
+  Eye, 
+  EyeOff, 
+  Banknote, 
+  Star, 
+  MessageSquare, 
+  AlertTriangle, 
+  Users, 
+  Building2, 
+  BarChart, 
+  Link2, 
+  UserPlus, 
+  Wrench 
+} from 'lucide-react';
 import { useGPSMonitoring } from '@/hooks/useGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { TrackingConsentModal } from '@/components/TrackingConsentModal';
