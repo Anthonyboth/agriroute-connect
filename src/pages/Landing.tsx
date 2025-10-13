@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import AuthModal from '@/components/AuthModal';
 import MudancaModal from '@/components/MudancaModal';
@@ -139,12 +140,32 @@ const fetchRealStats = async () => {
     }
   };
 
-  // Verificar se é transportadora e redirecionar
+  const { profiles, switchProfile } = useAuth();
+
+  // Auto-switch para TRANSPORTADORA quando houver perfil TRANSPORTADORA
   useEffect(() => {
     const checkAndRedirect = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      // Buscar perfil TRANSPORTADORA se houver múltiplos perfis
+      const transportProfile = profiles.find(p => p.role === 'TRANSPORTADORA');
+      if (transportProfile) {
+        // Verificar se existe registro em transport_companies
+        const { data: company } = await supabase
+          .from('transport_companies')
+          .select('id')
+          .eq('profile_id', transportProfile.id)
+          .maybeSingle();
+
+        if (company) {
+          await switchProfile(transportProfile.id);
+          navigate('/dashboard/company', { replace: true });
+          return;
+        }
+      }
+
+      // Verificar perfil atual
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, role, active_mode')
@@ -153,20 +174,20 @@ const fetchRealStats = async () => {
 
       if (!profile) return;
 
-      // Verificar se é transportadora
-      const { data: company } = await supabase
+      // Verificar se é transportadora pelo active_mode ou por registro
+      const { data: currentCompany } = await supabase
         .from('transport_companies')
         .select('id')
         .eq('profile_id', profile.id)
         .maybeSingle();
 
-      if (company || profile.active_mode === 'TRANSPORTADORA') {
+      if (currentCompany || profile.active_mode === 'TRANSPORTADORA') {
         navigate('/dashboard/company', { replace: true });
       }
     };
 
     checkAndRedirect();
-  }, [navigate]);
+  }, [navigate, profiles, switchProfile]);
 
   useEffect(() => {
     fetchRealStats();

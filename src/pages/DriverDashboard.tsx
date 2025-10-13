@@ -432,21 +432,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     // Don't fetch if user is not a driver
     if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
-    console.log('🔍 Buscando propostas do motorista:', profile.id);
     try {
       const { data, error } = await (supabase as any).functions.invoke('driver-proposals');
       if (error) {
-        console.error('❌ Erro na edge function driver-proposals:', error);
         throw error;
       }
 
-      console.log('✅ Dados retornados da edge function:', data);
       const proposals = (data?.proposals as any[]) || [];
       const ongoing = (data?.ongoingFreights as any[]) || [];
-      
-      console.log('📋 Propostas encontradas:', proposals.length);
-      console.log('🚛 Fretes em andamento encontrados:', ongoing.length);
-      console.log('📊 Detalhes dos fretes em andamento:', ongoing);
       
       setMyProposals(proposals);
       // Preservar serviços aceitos (service_requests) já no estado e mesclar com fretes em andamento da edge function
@@ -474,7 +467,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       }
     } catch (error) {
       console.error('Error fetching proposals:', error);
-      toast.error('Erro ao carregar suas propostas');
+      // Só mostrar toast se for motorista
+      if (profile?.role === 'MOTORISTA') {
+        toast.error('Erro ao carregar suas propostas');
+      }
     }
   }, [profile?.id, profile?.role]);
 

@@ -72,38 +72,85 @@ import { UnifiedHistory } from '@/components/UnifiedHistory';
 import { CompanyInviteModal } from '@/components/CompanyInviteModal';
 
 const CompanyDashboard = () => {
-  const { profile, signOut } = useAuth();
+  const { profile, profiles, switchProfile, signOut } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
-  const { company, isTransportCompany, isLoadingCompany } = useTransportCompany();
+  const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
+  const { company, isLoadingCompany } = useTransportCompany();
 
-  // Redirecionar se não for transportadora
+  // Auto-switch para perfil TRANSPORTADORA se necessário
   useEffect(() => {
-    if (!isLoadingCompany && !isTransportCompany) {
-      toast.error('Acesso negado. Apenas transportadoras podem acessar esta página.');
-      navigate('/dashboard/driver');
-    }
-  }, [isTransportCompany, isLoadingCompany, navigate]);
+    if (isLoadingCompany) return;
 
-  if (isLoadingCompany) {
+    const handleProfileSwitch = async () => {
+      // Se não há empresa, procurar perfil TRANSPORTADORA
+      if (!company) {
+        const transportProfile = profiles.find(p => p.role === 'TRANSPORTADORA');
+        
+        // Se existe perfil TRANSPORTADORA mas não é o ativo, fazer switch
+        if (transportProfile && profile?.id !== transportProfile.id) {
+          setIsSwitchingProfile(true);
+          await switchProfile(transportProfile.id);
+          // O useTransportCompany vai recarregar automaticamente
+          return;
+        }
+        
+        // Se não existe perfil TRANSPORTADORA, não redirecionar
+        // Mostraremos um CTA para criar a transportadora
+      }
+      setIsSwitchingProfile(false);
+    };
+
+    handleProfileSwitch();
+  }, [company, isLoadingCompany, profile?.id, profiles, switchProfile]);
+
+  if (isLoadingCompany || isSwitchingProfile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <Header user={profile ? { ...profile, name: profile.full_name, role: profile.role as any } : undefined} onLogout={signOut} />
+        <Header user={profile ? { ...profile, name: profile.full_name, role: profile.role as any } : undefined} onLogout={signOut} />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <Truck className="h-16 w-16 mx-auto mb-4 text-primary animate-pulse" />
-            <p className="text-lg text-muted-foreground">Carregando...</p>
+            <Building2 className="h-16 w-16 mx-auto mb-4 text-primary animate-pulse" />
+            <p className="text-lg text-muted-foreground">
+              {isSwitchingProfile ? 'Carregando painel da Transportadora...' : 'Carregando...'}
+            </p>
           </div>
         </div>
       </div>
     );
   }
 
-  if (!isTransportCompany) {
-    return null;
+  // Se não há empresa e não há perfil TRANSPORTADORA, mostrar CTA
+  if (!company && !profiles.find(p => p.role === 'TRANSPORTADORA')) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        <Header user={profile ? { ...profile, name: profile.full_name, role: profile.role as any } : undefined} onLogout={signOut} />
+        <div className="container mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-6 w-6" />
+                Crie sua Transportadora
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                Para acessar o painel da transportadora, você precisa criar ou ativar sua conta de transportadora.
+              </p>
+              <Button 
+                onClick={() => navigate('/transport-company/registration')}
+                className="w-full"
+              >
+                Criar Transportadora
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   return (
