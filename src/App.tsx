@@ -113,8 +113,30 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
 
 const RedirectIfAuthed = () => {
   const { isAuthenticated, profile, loading, profiles } = useAuth();
+  const [isCheckingCompany, setIsCheckingCompany] = React.useState(true);
+  const [isCompany, setIsCompany] = React.useState(false);
   
-  if (loading) {
+  // Verificar se é transportadora
+  React.useEffect(() => {
+    const checkCompany = async () => {
+      if (profile?.role === 'MOTORISTA') {
+        const { data } = await supabase
+          .from('transport_companies')
+          .select('id')
+          .eq('profile_id', profile.id)
+          .maybeSingle();
+        
+        setIsCompany(!!data);
+      }
+      setIsCheckingCompany(false);
+    };
+    
+    if (profile) {
+      checkCompany();
+    }
+  }, [profile]);
+  
+  if (loading || isCheckingCompany) {
     return <ComponentLoader />;
   }
   
@@ -127,6 +149,11 @@ const RedirectIfAuthed = () => {
       return <Navigate to="/complete-profile" replace />;
     }
     return <ComponentLoader />; // aguardando resolução do perfil
+  }
+  
+  // Redirecionar transportadoras
+  if (isCompany) {
+    return <Navigate to="/dashboard/company" replace />;
   }
   
   let to = "/";

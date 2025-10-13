@@ -5,14 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Mail, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Mail, Eye, EyeOff, Truck, Building2, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
 import { validateDocument } from '@/utils/cpfValidator';
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
 import { userRegistrationSchema, validateInput } from '@/lib/validations';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 const Auth = () => {
@@ -28,6 +31,18 @@ const Auth = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const navigate = useNavigate();
+
+  // Estados para fluxo multi-step de cadastro
+  const [signupStep, setSignupStep] = useState<'role-selection' | 'driver-type' | 'form'>('role-selection');
+  const [driverType, setDriverType] = useState<'MOTORISTA' | 'TRANSPORTADORA' | null>(null);
+  
+  // Estados extras para transportadora
+  const [companyName, setCompanyName] = useState('');
+  const [companyFantasyName, setCompanyFantasyName] = useState('');
+  const [companyCNPJ, setCompanyCNPJ] = useState('');
+  const [companyANTT, setCompanyANTT] = useState('');
+  const [companyAddress, setCompanyAddress] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     // Remove automatic redirect from auth page - let RedirectIfAuthed handle it
@@ -46,14 +61,35 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Validate input using Zod schema
+    // Se for transportadora e não aceitou os termos
+    if (driverType === 'TRANSPORTADORA' && !acceptedTerms) {
+      toast.error('Você deve aceitar os Termos de Uso para Transportadoras');
+      setLoading(false);
+      return;
+    }
+
+    // Validação básica
+    if (driverType === 'TRANSPORTADORA') {
+      if (!companyName || !companyCNPJ || !companyANTT || !companyAddress) {
+        toast.error('Preencha todos os campos obrigatórios da transportadora');
+        setLoading(false);
+        return;
+      }
+      if (!validateDocument(companyCNPJ)) {
+        toast.error('CNPJ inválido');
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Validate input usando Zod schema
     const validation = validateInput(userRegistrationSchema, {
       full_name: fullName,
       email,
       password,
       phone,
-      document,
-      role
+      document: driverType === 'TRANSPORTADORA' ? companyCNPJ : document,
+      role: driverType === 'TRANSPORTADORA' ? 'MOTORISTA' : role
     });
     
     if (validation.success === false) {
@@ -63,16 +99,17 @@ const Auth = () => {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/confirm-email`,
           data: {
             full_name: fullName,
-            role,
+            role: driverType === 'TRANSPORTADORA' ? 'MOTORISTA' : role,
             phone,
-            document
+            document: driverType === 'TRANSPORTADORA' ? companyCNPJ : document,
+            is_transport_company: driverType === 'TRANSPORTADORA'
           }
         }
       });
@@ -83,9 +120,42 @@ const Auth = () => {
         } else {
           toast.error('Erro na autenticação. Verifique suas credenciais.');
         }
-      } else {
-        toast.success('Pré-cadastro realizado! Verifique seu email para continuar.');
+        setLoading(false);
+        return;
       }
+
+      // Se for transportadora, criar registro na tabela transport_companies
+      if (driverType === 'TRANSPORTADORA' && data?.user) {
+        // Aguardar criação do perfil (trigger handle_new_user)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Buscar o profile_id
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', data.user.id)
+          .single();
+
+        if (profileData) {
+          const { error: companyError } = await supabase
+            .from('transport_companies')
+            .insert({
+              profile_id: profileData.id,
+              company_name: companyName,
+              company_cnpj: companyCNPJ,
+              antt_registration: companyANTT,
+              address: companyAddress,
+              status: 'PENDING'
+            });
+
+          if (companyError) {
+            console.error('Erro ao criar transportadora:', companyError);
+            toast.warning('Cadastro criado, mas houve erro ao criar transportadora. Entre em contato com o suporte.');
+          }
+        }
+      }
+
+      toast.success('Pré-cadastro realizado! Verifique seu email para continuar.');
     } catch (error) {
       toast.error('Erro no cadastro');
     } finally {
@@ -277,90 +347,279 @@ const Auth = () => {
             
             <TabsContent value="register">
               <div className="space-y-4">
-                
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Nome Completo</Label>
-                    <Input
-                      id="fullName"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Senha</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        minLength={8}
-                        className="pr-10"
-                      />
-                      <button
-                        type="button"
-                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input
-                      id="phone"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="(11) 99999-9999"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="document">CPF/CNPJ *</Label>
-                    <Input
-                      id="document"
-                      value={document}
-                      onChange={(e) => setDocument(e.target.value)}
-                      placeholder="000.000.000-00 ou 00.000.000/0001-00"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
+                {/* Step 1: Seleção de Role */}
+                {signupStep === 'role-selection' && (
+                  <div className="space-y-4">
                     <Label htmlFor="role">Tipo de Usuário</Label>
-                    <Select value={role} onValueChange={(value: 'PRODUTOR' | 'MOTORISTA' | 'PRESTADOR_SERVICOS') => setRole(value)}>
+                    <Select 
+                      value={role === 'MOTORISTA' && !driverType ? 'MOTORISTA/TRANSPORTADORA' : role} 
+                      onValueChange={(value) => {
+                        if (value === 'MOTORISTA/TRANSPORTADORA') {
+                          setSignupStep('driver-type');
+                          setRole('MOTORISTA');
+                        } else {
+                          setRole(value as 'PRODUTOR' | 'PRESTADOR_SERVICOS');
+                          setSignupStep('form');
+                          setDriverType(null);
+                        }
+                      }}
+                    >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Selecione o tipo de usuário" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="PRODUTOR">Produtor/Contratante</SelectItem>
-                        <SelectItem value="MOTORISTA">Motorista</SelectItem>
+                        <SelectItem value="MOTORISTA/TRANSPORTADORA">Motorista/Transportadora</SelectItem>
                         <SelectItem value="PRESTADOR_SERVICOS">Prestador de Serviços</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button type="submit" className="w-full h-12" disabled={loading}>
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Cadastrar
-                  </Button>
-                </form>
+                )}
+
+                {/* Step 2: Escolha entre Motorista ou Transportadora */}
+                {signupStep === 'driver-type' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSignupStep('role-selection');
+                          setDriverType(null);
+                        }}
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-1" />
+                        Voltar
+                      </Button>
+                    </div>
+                    
+                    <h3 className="font-semibold text-lg">Escolha o tipo de cadastro:</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card 
+                        className="cursor-pointer hover:border-primary transition-colors"
+                        onClick={() => {
+                          setDriverType('MOTORISTA');
+                          setSignupStep('form');
+                        }}
+                      >
+                        <CardHeader>
+                          <Truck className="h-12 w-12 text-primary mb-2" />
+                          <CardTitle>Sou Motorista</CardTitle>
+                          <CardDescription>
+                            Motorista individual com CPF ou CNPJ
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
+                      
+                      <Card 
+                        className="cursor-pointer hover:border-primary transition-colors"
+                        onClick={() => {
+                          setDriverType('TRANSPORTADORA');
+                          setSignupStep('form');
+                        }}
+                      >
+                        <CardHeader>
+                          <Building2 className="h-12 w-12 text-primary mb-2" />
+                          <CardTitle>Sou Transportadora</CardTitle>
+                          <CardDescription>
+                            Empresa de transporte (2 ou mais carretas)
+                          </CardDescription>
+                          <Badge variant="secondary" className="w-fit mt-2">2+ carretas</Badge>
+                        </CardHeader>
+                      </Card>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Formulário de Cadastro */}
+                {signupStep === 'form' && (
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (driverType) {
+                            setSignupStep('driver-type');
+                          } else {
+                            setSignupStep('role-selection');
+                          }
+                        }}
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-1" />
+                        Voltar
+                      </Button>
+                    </div>
+
+                    {driverType === 'TRANSPORTADORA' && (
+                      <Alert>
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Cadastro de Transportadora</AlertTitle>
+                        <AlertDescription>
+                          Este tipo de cadastro é para empresas com 2 ou mais carretas
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">{driverType === 'TRANSPORTADORA' ? 'Nome do Responsável' : 'Nome Completo'}</Label>
+                      <Input
+                        id="fullName"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    {driverType === 'TRANSPORTADORA' && (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="companyName">Razão Social *</Label>
+                          <Input
+                            id="companyName"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                            required
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="companyFantasyName">Nome Fantasia</Label>
+                          <Input
+                            id="companyFantasyName"
+                            value={companyFantasyName}
+                            onChange={(e) => setCompanyFantasyName(e.target.value)}
+                          />
+                        </div>
+                      </>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Senha</Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          minLength={8}
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Telefone</Label>
+                      <Input
+                        id="phone"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="(11) 99999-9999"
+                        required
+                      />
+                    </div>
+
+                    {driverType === 'TRANSPORTADORA' ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="companyCNPJ">CNPJ *</Label>
+                          <Input
+                            id="companyCNPJ"
+                            value={companyCNPJ}
+                            onChange={(e) => setCompanyCNPJ(e.target.value)}
+                            placeholder="00.000.000/0001-00"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="companyANTT">ANTT *</Label>
+                          <Input
+                            id="companyANTT"
+                            value={companyANTT}
+                            onChange={(e) => setCompanyANTT(e.target.value)}
+                            placeholder="Número de registro ANTT"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="companyAddress">Endereço Completo *</Label>
+                          <Input
+                            id="companyAddress"
+                            value={companyAddress}
+                            onChange={(e) => setCompanyAddress(e.target.value)}
+                            placeholder="Rua, Número, Bairro, Cidade, Estado"
+                            required
+                          />
+                        </div>
+
+                        <div className="flex items-start space-x-2">
+                          <Checkbox
+                            id="terms"
+                            checked={acceptedTerms}
+                            onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                          />
+                          <label
+                            htmlFor="terms"
+                            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            Li e aceito os{' '}
+                            <a 
+                              href="/termos" 
+                              target="_blank" 
+                              className="text-primary hover:underline"
+                            >
+                              Termos de Uso para Transportadoras
+                            </a>
+                            {' '}*
+                          </label>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="document">CPF/CNPJ *</Label>
+                        <Input
+                          id="document"
+                          value={document}
+                          onChange={(e) => setDocument(e.target.value)}
+                          placeholder="000.000.000-00 ou 00.000.000/0001-00"
+                          required
+                        />
+                      </div>
+                    )}
+                    
+                    <Button type="submit" className="w-full h-12" disabled={loading}>
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Cadastrar
+                    </Button>
+                  </form>
+                )}
               </div>
             </TabsContent>
 
