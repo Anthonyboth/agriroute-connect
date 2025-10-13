@@ -26,7 +26,7 @@ interface UserCity {
 }
 
 interface UserCityManagerProps {
-  userRole: 'MOTORISTA' | 'PRESTADOR_SERVICOS' | 'PRODUTOR';
+  userRole: 'MOTORISTA' | 'PRESTADOR_SERVICOS' | 'PRODUTOR' | 'TRANSPORTADORA';
   onCitiesUpdate?: () => void;
 }
 

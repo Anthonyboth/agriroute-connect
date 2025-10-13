@@ -304,6 +304,197 @@ export type Database = {
         }
         Relationships: []
       }
+      company_drivers: {
+        Row: {
+          accepted_at: string | null
+          can_accept_freights: boolean | null
+          can_manage_vehicles: boolean | null
+          company_id: string
+          created_at: string | null
+          driver_profile_id: string
+          id: string
+          invited_at: string | null
+          invited_by: string | null
+          notes: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          can_accept_freights?: boolean | null
+          can_manage_vehicles?: boolean | null
+          company_id: string
+          created_at?: string | null
+          driver_profile_id: string
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          can_accept_freights?: boolean | null
+          can_manage_vehicles?: boolean | null
+          company_id?: string
+          created_at?: string | null
+          driver_profile_id?: string
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_drivers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_drivers_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_drivers_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_internal_messages: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          image_url: string | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
+          message: string
+          message_type: string | null
+          read_at: string | null
+          sender_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          message: string
+          message_type?: string | null
+          read_at?: string | null
+          sender_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          message?: string
+          message_type?: string | null
+          read_at?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_internal_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_internal_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          company_id: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          invite_code: string
+          invite_type: string
+          invited_by: string
+          invited_email: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          company_id: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          invite_code?: string
+          invite_type: string
+          invited_by: string
+          invited_email?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          company_id?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          invite_code?: string
+          invite_type?: string
+          invited_by?: string
+          invited_email?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_invites_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_invites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_availability: {
         Row: {
           available_date: string
@@ -922,6 +1113,7 @@ export type Database = {
           accepted_at: string
           agreed_price: number
           antt_details: Json | null
+          company_id: string | null
           created_at: string
           delivered_at: string | null
           delivery_date: string | null
@@ -937,11 +1129,13 @@ export type Database = {
           proposal_id: string | null
           status: string
           updated_at: string
+          vehicle_id: string | null
         }
         Insert: {
           accepted_at?: string
           agreed_price: number
           antt_details?: Json | null
+          company_id?: string | null
           created_at?: string
           delivered_at?: string | null
           delivery_date?: string | null
@@ -957,11 +1151,13 @@ export type Database = {
           proposal_id?: string | null
           status?: string
           updated_at?: string
+          vehicle_id?: string | null
         }
         Update: {
           accepted_at?: string
           agreed_price?: number
           antt_details?: Json | null
+          company_id?: string | null
           created_at?: string
           delivered_at?: string | null
           delivery_date?: string | null
@@ -977,8 +1173,16 @@ export type Database = {
           proposal_id?: string | null
           status?: string
           updated_at?: string
+          vehicle_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "freight_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "freight_assignments_driver_id_fkey"
             columns: ["driver_id"]
@@ -998,6 +1202,13 @@ export type Database = {
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "freight_proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_assignments_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -1044,6 +1255,51 @@ export type Database = {
           {
             foreignKeyName: "freight_attachments_uploaded_by_fkey"
             columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freight_chat_participants: {
+        Row: {
+          freight_id: string
+          id: string
+          is_active: boolean | null
+          joined_at: string | null
+          left_at: string | null
+          participant_id: string
+          participant_type: string
+        }
+        Insert: {
+          freight_id: string
+          id?: string
+          is_active?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          participant_id: string
+          participant_type: string
+        }
+        Update: {
+          freight_id?: string
+          id?: string
+          is_active?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          participant_id?: string
+          participant_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_chat_participants_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_chat_participants_participant_id_fkey"
+            columns: ["participant_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1186,39 +1442,51 @@ export type Database = {
           freight_id: string
           id: string
           image_url: string | null
+          is_location_request: boolean | null
           location_address: string | null
           location_lat: number | null
           location_lng: number | null
           message: string
           message_type: string
           read_at: string | null
+          request_responded_at: string | null
           sender_id: string
+          target_driver_id: string | null
+          target_vehicle_id: string | null
         }
         Insert: {
           created_at?: string
           freight_id: string
           id?: string
           image_url?: string | null
+          is_location_request?: boolean | null
           location_address?: string | null
           location_lat?: number | null
           location_lng?: number | null
           message: string
           message_type?: string
           read_at?: string | null
+          request_responded_at?: string | null
           sender_id: string
+          target_driver_id?: string | null
+          target_vehicle_id?: string | null
         }
         Update: {
           created_at?: string
           freight_id?: string
           id?: string
           image_url?: string | null
+          is_location_request?: boolean | null
           location_address?: string | null
           location_lat?: number | null
           location_lng?: number | null
           message?: string
           message_type?: string
           read_at?: string | null
+          request_responded_at?: string | null
           sender_id?: string
+          target_driver_id?: string | null
+          target_vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -1233,6 +1501,20 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_messages_target_driver_id_fkey"
+            columns: ["target_driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_messages_target_vehicle_id_fkey"
+            columns: ["target_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -1493,11 +1775,13 @@ export type Database = {
       }
       freights: {
         Row: {
+          accepted_by_company: boolean | null
           accepted_trucks: number
           cargo_category_antt: string | null
           cargo_type: string
           commission_amount: number | null
           commission_rate: number | null
+          company_id: string | null
           created_at: string
           current_lat: number | null
           current_lng: number | null
@@ -1561,11 +1845,13 @@ export type Database = {
           weight: number
         }
         Insert: {
+          accepted_by_company?: boolean | null
           accepted_trucks?: number
           cargo_category_antt?: string | null
           cargo_type: string
           commission_amount?: number | null
           commission_rate?: number | null
+          company_id?: string | null
           created_at?: string
           current_lat?: number | null
           current_lng?: number | null
@@ -1629,11 +1915,13 @@ export type Database = {
           weight: number
         }
         Update: {
+          accepted_by_company?: boolean | null
           accepted_trucks?: number
           cargo_category_antt?: string | null
           cargo_type?: string
           commission_amount?: number | null
           commission_rate?: number | null
+          company_id?: string | null
           created_at?: string
           current_lat?: number | null
           current_lng?: number | null
@@ -1697,6 +1985,13 @@ export type Database = {
           weight?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "freights_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "freights_destination_city_id_fkey"
             columns: ["destination_city_id"]
@@ -3554,6 +3849,87 @@ export type Database = {
         }
         Relationships: []
       }
+      transport_companies: {
+        Row: {
+          address: string | null
+          antt_document_url: string | null
+          antt_registration: string | null
+          approved_at: string | null
+          approved_by: string | null
+          city: string | null
+          cnpj_document_url: string | null
+          company_cnpj: string
+          company_name: string
+          created_at: string | null
+          id: string
+          municipal_registration: string | null
+          profile_id: string
+          state: string | null
+          state_registration: string | null
+          status: string | null
+          updated_at: string | null
+          validation_notes: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          antt_document_url?: string | null
+          antt_registration?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          city?: string | null
+          cnpj_document_url?: string | null
+          company_cnpj: string
+          company_name: string
+          created_at?: string | null
+          id?: string
+          municipal_registration?: string | null
+          profile_id: string
+          state?: string | null
+          state_registration?: string | null
+          status?: string | null
+          updated_at?: string | null
+          validation_notes?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          antt_document_url?: string | null
+          antt_registration?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          city?: string | null
+          cnpj_document_url?: string | null
+          company_cnpj?: string
+          company_name?: string
+          created_at?: string | null
+          id?: string
+          municipal_registration?: string | null
+          profile_id?: string
+          state?: string | null
+          state_registration?: string | null
+          status?: string | null
+          updated_at?: string | null
+          validation_notes?: string | null
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_companies_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_companies_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_locations: {
         Row: {
           accuracy: number | null
@@ -4067,7 +4443,9 @@ export type Database = {
       }
       vehicles: {
         Row: {
+          assigned_driver_id: string | null
           axle_count: number
+          company_id: string | null
           created_at: string
           crlv_expiry_date: string | null
           crlv_url: string | null
@@ -4077,6 +4455,7 @@ export type Database = {
           inspection_certificate_url: string | null
           insurance_document_url: string | null
           insurance_expiry_date: string | null
+          is_company_vehicle: boolean | null
           last_inspection_date: string | null
           license_plate: string
           max_capacity_tons: number
@@ -4088,7 +4467,9 @@ export type Database = {
           vehicle_validation_status: string | null
         }
         Insert: {
+          assigned_driver_id?: string | null
           axle_count?: number
+          company_id?: string | null
           created_at?: string
           crlv_expiry_date?: string | null
           crlv_url?: string | null
@@ -4098,6 +4479,7 @@ export type Database = {
           inspection_certificate_url?: string | null
           insurance_document_url?: string | null
           insurance_expiry_date?: string | null
+          is_company_vehicle?: boolean | null
           last_inspection_date?: string | null
           license_plate: string
           max_capacity_tons: number
@@ -4109,7 +4491,9 @@ export type Database = {
           vehicle_validation_status?: string | null
         }
         Update: {
+          assigned_driver_id?: string | null
           axle_count?: number
+          company_id?: string | null
           created_at?: string
           crlv_expiry_date?: string | null
           crlv_url?: string | null
@@ -4119,6 +4503,7 @@ export type Database = {
           inspection_certificate_url?: string | null
           insurance_document_url?: string | null
           insurance_expiry_date?: string | null
+          is_company_vehicle?: boolean | null
           last_inspection_date?: string | null
           license_plate?: string
           max_capacity_tons?: number
@@ -4130,6 +4515,20 @@ export type Database = {
           vehicle_validation_status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vehicles_assigned_driver_id_fkey"
+            columns: ["assigned_driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vehicles_driver_id_fkey"
             columns: ["driver_id"]
@@ -4375,6 +4774,10 @@ export type Database = {
           p_period_start: string
           p_report_type: string
         }
+        Returns: string
+      }
+      generate_invite_code: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       get_compatible_freights_for_driver: {
@@ -4725,11 +5128,11 @@ export type Database = {
               p_type: Database["public"]["Enums"]["user_city_type"]
             }
         Returns: {
-          city_id: string
           city_name: string
           city_state: string
-          distance_m: number
-          radius_km: number
+          full_name: string
+          rating: number
+          role: Database["public"]["Enums"]["user_role"]
           user_id: string
         }[]
       }
@@ -4744,6 +5147,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_company_driver: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_freight_owner: {
         Args: { freight_id: string; user_profile_id: string }
         Returns: boolean
@@ -4754,6 +5161,10 @@ export type Database = {
       }
       is_service_compatible: {
         Args: { driver_service_types: string[]; freight_service_type: string }
+        Returns: boolean
+      }
+      is_transport_company: {
+        Args: { p_user_id: string }
         Returns: boolean
       }
       log_security_event: {
@@ -4868,7 +5279,12 @@ export type Database = {
         | "MOTORISTA_DESTINO"
         | "PRESTADOR_SERVICO"
         | "PRODUTOR_LOCALIZACAO"
-      user_role: "PRODUTOR" | "MOTORISTA" | "ADMIN" | "PRESTADOR_SERVICOS"
+      user_role:
+        | "PRODUTOR"
+        | "MOTORISTA"
+        | "ADMIN"
+        | "PRESTADOR_SERVICOS"
+        | "TRANSPORTADORA"
       user_status: "PENDING" | "APPROVED" | "REJECTED"
       vehicle_type:
         | "TRUCK"
@@ -5047,7 +5463,13 @@ export const Constants = {
         "PRESTADOR_SERVICO",
         "PRODUTOR_LOCALIZACAO",
       ],
-      user_role: ["PRODUTOR", "MOTORISTA", "ADMIN", "PRESTADOR_SERVICOS"],
+      user_role: [
+        "PRODUTOR",
+        "MOTORISTA",
+        "ADMIN",
+        "PRESTADOR_SERVICOS",
+        "TRANSPORTADORA",
+      ],
       user_status: ["PENDING", "APPROVED", "REJECTED"],
       vehicle_type: [
         "TRUCK",

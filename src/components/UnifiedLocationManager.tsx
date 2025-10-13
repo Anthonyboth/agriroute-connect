@@ -34,7 +34,7 @@ interface ServiceAreaFormData {
 }
 
 interface UnifiedLocationManagerProps {
-  userType: 'MOTORISTA' | 'PRESTADOR_SERVICOS' | 'PRODUTOR';
+  userType: 'MOTORISTA' | 'PRESTADOR_SERVICOS' | 'PRODUTOR' | 'TRANSPORTADORA';
   onAreasUpdate?: () => void;
 }
 

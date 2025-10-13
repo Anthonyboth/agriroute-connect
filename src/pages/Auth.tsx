@@ -21,7 +21,7 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<'PRODUTOR' | 'MOTORISTA' | 'PRESTADOR_SERVICOS'>('PRODUTOR');
+  const [role, setRole] = useState<'PRODUTOR' | 'MOTORISTA' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA'>('PRODUTOR');
   const [phone, setPhone] = useState('');
   const [document, setDocument] = useState('');
   const [showPassword, setShowPassword] = useState(false);
