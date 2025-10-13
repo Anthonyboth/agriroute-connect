@@ -13,6 +13,7 @@ import CompleteProfile from "./pages/CompleteProfile";
 import AdminPanel from "./pages/AdminPanel";
 import ProducerDashboard from "./pages/ProducerDashboard";
 import DriverDashboard from "./pages/DriverDashboard";
+import CompanyDashboard from "./pages/CompanyDashboard";
 import ServiceProviderDashboard from "./pages/ServiceProviderDashboard";
 import ServiceProviderRegistration from "./pages/ServiceProviderRegistration";
 import Services from "./pages/Services";
@@ -199,15 +200,23 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/dashboard/service-provider" 
-              element={
-                <ProtectedRoute requiresAuth requiresApproval>
-                  <ServiceProviderDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route path="/services" element={<Services />} />
+          <Route 
+            path="/dashboard/service-provider" 
+            element={
+              <ProtectedRoute requiresAuth requiresApproval>
+                <ServiceProviderDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/dashboard/company" 
+            element={
+              <ProtectedRoute requiresAuth requiresApproval>
+                <CompanyDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="/services" element={<Services />} />
             <Route path="/subscription" element={<Subscription />} />
             <Route path="/plans" element={
               <ProtectedRoute requiresAuth>
