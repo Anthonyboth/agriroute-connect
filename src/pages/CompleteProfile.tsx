@@ -338,23 +338,29 @@ const CompleteProfile = () => {
    if (currentStep === 3 && profile.role === 'MOTORISTA') {
      const missingDocs = [];
      
-     if (!documentUrls.cnh) missingDocs.push('CNH');
-     if (!documentUrls.address_proof) missingDocs.push('Comprovante de residência');
-     
-        // Se não pulou o cadastro de veículos, validar fotos de placa e veículos
-        if (!skipVehicleRegistration) {
-          // Verificar se pelo menos a placa do cavalo foi enviada
-          const tractorPlate = platePhotos.find(p => p.type === 'TRACTOR');
-          if (!tractorPlate?.url) missingDocs.push('Foto da placa do cavalo');
-          
-          // Exigir pelo menos 1 veículo cadastrado
-          if (vehicles.length === 0) {
-            missingDocs.push('Cadastro de pelo menos um veículo');
-          }
-        }
+     // TRANSPORTADORAS: só exigir comprovante de endereço
+     if (isTransportCompany) {
+       if (!documentUrls.address_proof) missingDocs.push('Comprovante de endereço');
+     } 
+     // MOTORISTAS COMUNS: exigir CNH + veículos
+     else {
+       if (!documentUrls.cnh) missingDocs.push('CNH');
+       if (!documentUrls.address_proof) missingDocs.push('Comprovante de residência');
+       
+       // Se não pulou o cadastro de veículos, validar fotos de placa e veículos
+       if (!skipVehicleRegistration) {
+         const tractorPlate = platePhotos.find(p => p.type === 'TRACTOR');
+         if (!tractorPlate?.url) missingDocs.push('Foto da placa do cavalo');
+         
+         if (vehicles.length === 0) {
+           missingDocs.push('Cadastro de pelo menos um veículo');
+         }
+       }
+     }
      
      if (missingDocs.length > 0) {
-       toast.error(`Documentos faltando: ${missingDocs.join(', ')}`);
+       const docType = isTransportCompany ? 'para transportadora' : 'para motorista';
+       toast.error(`Documentos faltando ${docType}: ${missingDocs.join(', ')}`);
        return;
      }
 
@@ -374,8 +380,8 @@ const CompleteProfile = () => {
        return;
      }
 
-     // ✅ FASE 2 - ALTO: Validar vencimento de CNH
-     if (profileData.cnh_expiry_date) {
+     // ✅ Validar vencimento de CNH APENAS para motoristas comuns
+     if (!isTransportCompany && profileData.cnh_expiry_date) {
        const expiryDate = new Date(profileData.cnh_expiry_date);
        const today = new Date();
        const daysUntilExpiry = Math.floor((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -800,16 +806,19 @@ const CompleteProfile = () => {
                   </Alert>
                 )}
 
-                <DocumentUpload
-                  label="CNH (Carteira Nacional de Habilitação)"
-                  fileType="cnh"
-                  bucketName="driver-documents"
-                  onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, cnh: url }))}
-                  required
-                />
+                {/* CNH e placas apenas para motoristas comuns */}
+                {!isTransportCompany && (
+                  <>
+                    <DocumentUpload
+                      label="CNH (Carteira Nacional de Habilitação)"
+                      fileType="cnh"
+                      bucketName="driver-documents"
+                      onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, cnh: url }))}
+                      required
+                    />
 
-                {/* Sistema de múltiplas fotos de placas */}
-                <div className="space-y-3">
+                    {/* Sistema de múltiplas fotos de placas */}
+                    <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label>Fotos das Placas *</Label>
                     <Button
@@ -867,10 +876,12 @@ const CompleteProfile = () => {
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Adicione fotos de todas as placas do conjunto (cavalo + carretas)
-                  </p>
-                </div>
+                      <p className="text-xs text-muted-foreground">
+                        Adicione fotos de todas as placas do conjunto (cavalo + carretas)
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 <DocumentUpload
                   label="Comprovante de Endereço"
@@ -881,13 +892,16 @@ const CompleteProfile = () => {
                   accept="image/*,application/pdf"
                 />
 
-                <LocationPermission
-                  onPermissionChange={setLocationEnabled}
-                  required
-                />
+                {!isTransportCompany && (
+                  <LocationPermission
+                    onPermissionChange={setLocationEnabled}
+                    required
+                  />
+                )}
 
-                {/* Vehicle Registration */}
-                <div className="space-y-4 border-t pt-4">
+                {/* Vehicle Registration - apenas se não pulou */}
+                {!skipVehicleRegistration && !isTransportCompany && (
+                  <div className="space-y-4 border-t pt-4">
                   <h4 className="text-md font-semibold">Cadastro de Veículos</h4>
                   
                   {vehicles.length > 0 && (
@@ -1023,6 +1037,7 @@ const CompleteProfile = () => {
                     </Button>
                   </div>
                 </div>
+                )}
 
                 {/* Seção de Aceite de Termos e Responsabilidades */}
                 <Card className="border-2 border-primary/20 bg-primary/5">
