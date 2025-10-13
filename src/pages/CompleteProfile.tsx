@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +18,7 @@ import { CameraSelfie } from '@/components/CameraSelfie';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AddressInput } from '@/components/AddressInput';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
-import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building, Plus, X } from 'lucide-react';
+import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building, Plus, X, Shield } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { validateDocument } from '@/utils/cpfValidator';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
@@ -75,6 +76,9 @@ const CompleteProfile = () => {
   const [platePhotos, setPlatePhotos] = useState<PlatePhoto[]>([
     { id: '1', type: 'TRACTOR', url: '', label: 'Placa do Cavalo (Trator)' }
   ]);
+  const [acceptedDocumentsResponsibility, setAcceptedDocumentsResponsibility] = useState(false);
+  const [acceptedTermsOfUse, setAcceptedTermsOfUse] = useState(false);
+  const [acceptedPrivacyPolicy, setAcceptedPrivacyPolicy] = useState(false);
 
 
   useEffect(() => {
@@ -351,6 +355,22 @@ const CompleteProfile = () => {
        return;
      }
 
+     // Verificar aceites obrigatórios
+     if (!acceptedDocumentsResponsibility) {
+       toast.error('Você deve declarar a veracidade dos documentos enviados');
+       return;
+     }
+     
+     if (!acceptedTermsOfUse) {
+       toast.error('Você deve aceitar os Termos de Uso para continuar');
+       return;
+     }
+     
+     if (!acceptedPrivacyPolicy) {
+       toast.error('Você deve aceitar a Política de Privacidade para continuar');
+       return;
+     }
+
      // ✅ FASE 2 - ALTO: Validar vencimento de CNH
      if (profileData.cnh_expiry_date) {
        const expiryDate = new Date(profileData.cnh_expiry_date);
@@ -407,7 +427,13 @@ const CompleteProfile = () => {
           metadata: {
             ...((profile as any).metadata || {}),
             plate_photos: platePhotosMetadata,
-            vehicle_registration_skipped: skipVehicleRegistration
+            vehicle_registration_skipped: skipVehicleRegistration,
+            terms_acceptance: {
+              documents_responsibility: acceptedDocumentsResponsibility ? new Date().toISOString() : null,
+              terms_of_use: acceptedTermsOfUse ? new Date().toISOString() : null,
+              privacy_policy: acceptedPrivacyPolicy ? new Date().toISOString() : null,
+              user_agent: navigator.userAgent
+            }
           }
         })
         .eq('user_id', profile.user_id);
@@ -994,6 +1020,124 @@ const CompleteProfile = () => {
                     </Button>
                   </div>
                 </div>
+
+                {/* Seção de Aceite de Termos e Responsabilidades */}
+                <Card className="border-2 border-primary/20 bg-primary/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Shield className="h-5 w-5 text-primary" />
+                      Termos e Responsabilidades
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <AlertTitle className="text-amber-900 dark:text-amber-100">
+                        Declaração Obrigatória
+                      </AlertTitle>
+                      <AlertDescription className="text-amber-800 dark:text-amber-200">
+                        Antes de finalizar seu cadastro, você deve ler e aceitar os termos abaixo. 
+                        Esta é uma etapa obrigatória para garantir a segurança e conformidade da plataforma.
+                      </AlertDescription>
+                    </Alert>
+
+                    <div className="space-y-4 mt-4">
+                      {/* Checkbox 1: Responsabilidade pelos Documentos */}
+                      <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                        <Checkbox
+                          id="documents-responsibility"
+                          checked={acceptedDocumentsResponsibility}
+                          onCheckedChange={(checked) => setAcceptedDocumentsResponsibility(checked === true)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <label
+                            htmlFor="documents-responsibility"
+                            className="text-sm font-medium leading-relaxed cursor-pointer"
+                          >
+                            Declaro que todas as imagens e documentos enviados são verdadeiros, autênticos e de minha 
+                            propriedade. Estou ciente de que o envio de documentos falsos ou de terceiros sem autorização 
+                            constitui crime e pode resultar em responsabilização civil e criminal, além do banimento 
+                            permanente da plataforma.
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Checkbox 2: Termos de Uso */}
+                      <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                        <Checkbox
+                          id="terms-of-use"
+                          checked={acceptedTermsOfUse}
+                          onCheckedChange={(checked) => setAcceptedTermsOfUse(checked === true)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <label
+                            htmlFor="terms-of-use"
+                            className="text-sm font-medium leading-relaxed cursor-pointer"
+                          >
+                            Li e aceito integralmente os{' '}
+                            <a 
+                              href="/termos" 
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline font-semibold"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Termos de Uso
+                            </a>
+                            {' '}da plataforma AgriRoute, incluindo todas as cláusulas sobre direitos, 
+                            obrigações e responsabilidades.
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Checkbox 3: Política de Privacidade */}
+                      <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                        <Checkbox
+                          id="privacy-policy"
+                          checked={acceptedPrivacyPolicy}
+                          onCheckedChange={(checked) => setAcceptedPrivacyPolicy(checked === true)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <label
+                            htmlFor="privacy-policy"
+                            className="text-sm font-medium leading-relaxed cursor-pointer"
+                          >
+                            Li e aceito a{' '}
+                            <a 
+                              href="/privacidade" 
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline font-semibold"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Política de Privacidade
+                            </a>
+                            {' '}e autorizo o tratamento dos meus dados pessoais conforme descrito, 
+                            em conformidade com a Lei Geral de Proteção de Dados (LGPD).
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Informação Adicional */}
+                      <div className="text-xs text-muted-foreground mt-4 p-3 bg-muted/50 rounded-md">
+                        <p className="flex items-start gap-2">
+                          <FileText className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          <span>
+                            <strong>Importante:</strong> Ao aceitar estes termos, você está criando um vínculo 
+                            legal com a AgriRoute. Recomendamos que leia atentamente todos os documentos antes 
+                            de prosseguir. Em caso de dúvidas, entre em contato com nosso suporte em{' '}
+                            <a href="mailto:agrirouteconnect@gmail.com" className="text-primary hover:underline">
+                              agrirouteconnect@gmail.com
+                            </a>
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <div className="flex justify-between">
                   <Button 
