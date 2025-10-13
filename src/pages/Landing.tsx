@@ -139,6 +139,35 @@ const fetchRealStats = async () => {
     }
   };
 
+  // Verificar se é transportadora e redirecionar
+  useEffect(() => {
+    const checkAndRedirect = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, role, active_mode')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (!profile) return;
+
+      // Verificar se é transportadora
+      const { data: company } = await supabase
+        .from('transport_companies')
+        .select('id')
+        .eq('profile_id', profile.id)
+        .maybeSingle();
+
+      if (company || profile.active_mode === 'TRANSPORTADORA') {
+        navigate('/dashboard/company', { replace: true });
+      }
+    };
+
+    checkAndRedirect();
+  }, [navigate]);
+
   useEffect(() => {
     fetchRealStats();
 

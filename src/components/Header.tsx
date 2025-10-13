@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,7 +10,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard } from 'lucide-react';
+import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, Building2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { UserProfileModal } from '@/components/UserProfileModal';
@@ -66,6 +68,25 @@ const Header: React.FC<HeaderProps> = ({
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   const [showAddProfile, setShowAddProfile] = useState(false);
   const [showPlanos, setShowPlanos] = useState(false);
+
+  const [isTransportCompany, setIsTransportCompany] = React.useState(false);
+
+  // Verificar se é transportadora
+  React.useEffect(() => {
+    const checkCompany = async () => {
+      if (user.role === 'MOTORISTA' && userProfile) {
+        const { data } = await supabase
+          .from('transport_companies')
+          .select('id')
+          .eq('profile_id', userProfile.id)
+          .maybeSingle();
+        
+        setIsTransportCompany(!!data || userProfile.active_mode === 'TRANSPORTADORA');
+      }
+    };
+    
+    checkCompany();
+  }, [user.role, userProfile]);
 
   const menuItems = [
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
@@ -130,6 +151,17 @@ const Header: React.FC<HeaderProps> = ({
                     </div>
                   </div>
                   <DropdownMenuSeparator />
+                  {isTransportCompany && (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard/company" className="flex items-center cursor-pointer">
+                          <Building2 className="mr-2 h-4 w-4" />
+                          Painel da Transportadora
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   {menuItems.map((item) => (
                     <DropdownMenuItem key={item.label} onClick={item.action}>
                       <item.icon className="mr-2 h-4 w-4" />

@@ -32,12 +32,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Settings, DollarSign, Package, Calendar, Eye, EyeOff, Banknote, Star, MessageSquare, AlertTriangle, Users, Building2, BarChart, Link2 } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Settings, DollarSign, Package, Calendar, Eye, EyeOff, Banknote, Star, MessageSquare, AlertTriangle, Users, Building2, BarChart, Link2, UserPlus, Wrench } from 'lucide-react';
 import { useGPSMonitoring } from '@/hooks/useGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { TrackingConsentModal } from '@/components/TrackingConsentModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Wrench } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
@@ -48,6 +47,7 @@ import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
+import { CompanyInviteModal } from '@/components/CompanyInviteModal';
 
 const CompanyDashboard = () => {
   const { profile, signOut } = useAuth();
@@ -55,6 +55,7 @@ const CompanyDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const { company, isTransportCompany, isLoadingCompany } = useTransportCompany();
 
   // Redirecionar se não for transportadora
@@ -119,6 +120,14 @@ const CompanyDashboard = () => {
             )}
             
             <div className="flex flex-wrap justify-center gap-3">
+              <Button 
+                onClick={() => setInviteModalOpen(true)}
+                className="gradient-primary text-primary-foreground font-semibold rounded-full px-6 py-2.5 w-full sm:w-auto shadow-glow hover:scale-105 transition-bounce"
+              >
+                <UserPlus className="mr-2 h-5 w-5" />
+                Convidar Motoristas
+              </Button>
+              
               <Button 
                 variant="default"
                 size="sm"
@@ -286,6 +295,10 @@ const CompanyDashboard = () => {
         onClose={() => setServicesModalOpen(false)}
       />
 
+      <CompanyInviteModal
+        open={inviteModalOpen}
+        onOpenChange={setInviteModalOpen}
+      />
       
     </div>
   );

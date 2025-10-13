@@ -151,7 +151,8 @@ const RedirectIfAuthed = () => {
           .eq('profile_id', profile.id)
           .maybeSingle();
         
-        setIsCompany(!!data);
+        const isCompanyUser = !!data || profile.active_mode === 'TRANSPORTADORA';
+        setIsCompany(isCompanyUser);
         setIsCheckingCompany(false);
       }
     };
