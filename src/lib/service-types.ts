@@ -47,6 +47,7 @@ export interface ServiceType {
   clientVisible: boolean; // Se aparece para clientes solicitarem
   providerVisible: boolean; // Se aparece para prestadores oferecerem
   showOnlyInAllTab?: boolean; // Se aparece apenas na aba "Todos os Serviços"
+  hideFromAllTab?: boolean; // Se true, não aparece na aba "Todos os Serviços"
 }
 
 export const ALL_SERVICE_TYPES: ServiceType[] = [
@@ -439,7 +440,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-rose-100 text-rose-800 border-rose-200',
     category: 'logistics',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'GUINDASTE_LOG',
@@ -449,7 +451,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-orange-100 text-orange-800 border-orange-200',
     category: 'logistics',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   // ========== DUPLICATAS PARA SERVIÇOS TÉCNICOS ==========
   {
@@ -460,7 +463,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-primary/10 text-primary border-primary/20',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'AUTO_ELETRICA_TECH',
@@ -470,7 +474,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'CONSULTORIA_RURAL_TECH',
@@ -480,7 +485,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'ANALISE_SOLO_TECH',
@@ -490,7 +496,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-purple-100 text-purple-800 border-purple-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'AUTOMACAO_INDUSTRIAL_TECH',
@@ -500,7 +507,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'BORRACHEIRO_TECH',
@@ -510,7 +518,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-slate-100 text-slate-800 border-slate-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'CHAVEIRO_TECH',
@@ -520,7 +529,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-amber-100 text-amber-800 border-amber-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'CLASSIFICACAO_GRAOS_TECH',
@@ -530,7 +540,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'CONSTRUCAO_MANUTENCAO_CERCAS_TECH',
@@ -540,7 +551,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-stone-100 text-stone-800 border-stone-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'CONSULTORIA_TI_TECH',
@@ -550,7 +562,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'ENERGIA_SOLAR_TECH',
@@ -560,7 +573,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-sky-100 text-sky-800 border-sky-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'LIMPEZA_DESASSOREAMENTO_REPRESAS_TECH',
@@ -570,7 +584,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'MANUTENCAO_BALANCAS_TECH',
@@ -580,7 +595,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-purple-100 text-purple-800 border-purple-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'MANUTENCAO_REVISAO_GPS_TECH',
@@ -590,7 +606,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'MECANICO_TECH',
@@ -600,7 +617,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-gray-100 text-gray-800 border-gray-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'MECANICO_INDUSTRIAL_TECH',
@@ -610,7 +628,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-slate-100 text-slate-800 border-slate-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'OPERADOR_MAQUINAS_TECH',
@@ -620,7 +639,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'PIVO_IRRIGACAO_TECH',
@@ -630,7 +650,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'PULVERIZACAO_DRONE_TECH',
@@ -640,7 +661,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-teal-100 text-teal-800 border-teal-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'SERVICOS_VETERINARIOS_TECH',
@@ -650,7 +672,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-green-100 text-green-800 border-green-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'CFTV_SEGURANCA_TECH',
@@ -660,7 +683,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'TOPOGRAFIA_RURAL_TECH',
@@ -670,7 +694,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-violet-100 text-violet-800 border-violet-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   {
     id: 'TORNEARIA_SOLDA_REPAROS_TECH',
@@ -680,7 +705,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-zinc-100 text-zinc-800 border-zinc-200',
     category: 'technical',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   },
   // ========== DUPLICATAS PARA SERVIÇOS URBANOS ==========
   {
@@ -691,7 +717,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
     category: 'urban',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    hideFromAllTab: true
   }
 ];
 

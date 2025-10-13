@@ -60,7 +60,9 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
       const matchesSearch = service.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            service.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
-      const showInCurrentTab = !service.showOnlyInAllTab || selectedCategory === 'all';
+      const showInCurrentTab = selectedCategory === 'all' 
+        ? !service.hideFromAllTab  // Na aba "Todos", ocultar se hideFromAllTab é true
+        : (!service.showOnlyInAllTab || selectedCategory === 'all'); // Nas outras abas, lógica original
       return matchesSearch && matchesCategory && showInCurrentTab;
     })
     .sort((a, b) => {
