@@ -17,12 +17,21 @@ import { CameraSelfie } from '@/components/CameraSelfie';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AddressInput } from '@/components/AddressInput';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
-import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building } from 'lucide-react';
+import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building, Plus, X } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { validateDocument } from '@/utils/cpfValidator';
+import { useTransportCompany } from '@/hooks/useTransportCompany';
+
+type PlatePhoto = {
+  id: string;
+  type: 'TRACTOR' | 'TRAILER';
+  url: string;
+  label: string;
+};
 
 const CompleteProfile = () => {
   const { profile, loading: authLoading, isAuthenticated } = useAuth();
+  const { company, isTransportCompany } = useTransportCompany();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -61,6 +70,11 @@ const CompleteProfile = () => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<string | null>(null);
   const [showSelfieModal, setShowSelfieModal] = useState(false);
+  const [skipVehicleRegistration, setSkipVehicleRegistration] = useState(false);
+  const [showVehicleChoice, setShowVehicleChoice] = useState(true);
+  const [platePhotos, setPlatePhotos] = useState<PlatePhoto[]>([
+    { id: '1', type: 'TRACTOR', url: '', label: 'Placa do Cavalo (Trator)' }
+  ]);
 
 
   useEffect(() => {
@@ -85,6 +99,18 @@ const CompleteProfile = () => {
         license_plate: profile.license_plate_photo_url || '',
         address_proof: profile.address_proof_url || ''
       });
+      
+      // Load plate photos from metadata
+      const metadata = (profile as any).metadata;
+      if (metadata?.plate_photos) {
+        setPlatePhotos(metadata.plate_photos);
+      }
+      
+      // Load vehicle registration skip status
+      if (metadata?.vehicle_registration_skipped) {
+        setSkipVehicleRegistration(true);
+        setShowVehicleChoice(false);
+      }
       setLocationEnabled(profile.location_enabled || false);
       
       // Load profile data with safe access
@@ -311,10 +337,14 @@ const CompleteProfile = () => {
      if (!documentUrls.cnh) missingDocs.push('CNH');
      if (!documentUrls.address_proof) missingDocs.push('Comprovante de residência');
      
-     // ✅ FASE 2 - ALTO: Tornar fotos de veículo obrigatórias
-     if (!documentUrls.truck_photo) missingDocs.push('Foto do veículo');
-     if (!documentUrls.truck_documents) missingDocs.push('CRLV do veículo');
-     if (!documentUrls.license_plate) missingDocs.push('Foto da placa');
+     // Verificar se pelo menos a placa do cavalo foi enviada
+     const tractorPlate = platePhotos.find(p => p.type === 'TRACTOR');
+     if (!tractorPlate?.url) missingDocs.push('Foto da placa do cavalo');
+     
+     // Se não pulou o cadastro de veículos, exigir pelo menos 1
+     if (!skipVehicleRegistration && vehicles.length === 0) {
+       missingDocs.push('Cadastro de pelo menos um veículo');
+     }
      
      if (missingDocs.length > 0) {
        toast.error(`Documentos faltando: ${missingDocs.join(', ')}`);
@@ -355,6 +385,13 @@ const CompleteProfile = () => {
     setLoading(true);
 
     try {
+      // Salvar metadata com as fotos de placas
+      const platePhotosMetadata = platePhotos.map(p => ({
+        type: p.type,
+        label: p.label,
+        url: p.url
+      }));
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -366,7 +403,12 @@ const CompleteProfile = () => {
           truck_photo_url: documentUrls.truck_photo,
           license_plate_photo_url: documentUrls.license_plate,
           address_proof_url: documentUrls.address_proof,
-          location_enabled: locationEnabled
+          location_enabled: locationEnabled,
+          metadata: {
+            ...((profile as any).metadata || {}),
+            plate_photos: platePhotosMetadata,
+            vehicle_registration_skipped: skipVehicleRegistration
+          }
         })
         .eq('user_id', profile.user_id);
 
@@ -692,6 +734,43 @@ const CompleteProfile = () => {
                   <h3 className="text-lg font-semibold">Documentos e Veículos</h3>
                 </div>
 
+                {/* Alert para transportadoras escolherem quando cadastrar veículos */}
+                {showVehicleChoice && isTransportCompany && (
+                  <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900">
+                    <Truck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <AlertTitle className="text-amber-900 dark:text-amber-100">
+                      Cadastro de Veículos
+                    </AlertTitle>
+                    <AlertDescription className="text-amber-800 dark:text-amber-200">
+                      <p className="mb-3">
+                        Como transportadora, você pode cadastrar seus veículos agora ou adicionar depois que seu cadastro for aprovado.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={() => {
+                            setSkipVehicleRegistration(false);
+                            setShowVehicleChoice(false);
+                          }}
+                          variant="default"
+                          size="sm"
+                        >
+                          Adicionar Veículos Agora
+                        </Button>
+                        <Button 
+                          onClick={() => {
+                            setSkipVehicleRegistration(true);
+                            setShowVehicleChoice(false);
+                          }}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Adicionar Depois
+                        </Button>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <DocumentUpload
                   label="CNH (Carteira Nacional de Habilitação)"
                   fileType="cnh"
@@ -700,29 +779,69 @@ const CompleteProfile = () => {
                   required
                 />
 
-                <DocumentUpload
-                  label="Documentos da Carreta"
-                  fileType="truck_docs"
-                  bucketName="driver-documents"
-                  onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, truck_documents: url }))}
-                  required
-                />
+                {/* Sistema de múltiplas fotos de placas */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Fotos das Placas *</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const nextNumber = platePhotos.filter(p => p.type === 'TRAILER').length + 1;
+                        setPlatePhotos([
+                          ...platePhotos,
+                          { 
+                            id: Date.now().toString(), 
+                            type: 'TRAILER', 
+                            url: '', 
+                            label: `Placa da Carreta ${nextNumber}` 
+                          }
+                        ]);
+                      }}
+                      className="flex items-center gap-1"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Adicionar Placa de Carreta
+                    </Button>
+                  </div>
 
-                <DocumentUpload
-                  label="Foto da Carreta"
-                  fileType="truck_photo"
-                  bucketName="driver-documents"
-                  onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, truck_photo: url }))}
-                  required
-                />
-
-                <DocumentUpload
-                  label="Foto das Placas"
-                  fileType="plates"
-                  bucketName="driver-documents"
-                  onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, license_plate: url }))}
-                  required
-                />
+                  <div className="space-y-3">
+                    {platePhotos.map((plate, index) => (
+                      <div key={plate.id} className="flex items-start gap-2">
+                        <div className="flex-1">
+                          <DocumentUpload
+                            label={plate.label}
+                            fileType={`plate_${plate.type.toLowerCase()}_${index}`}
+                            bucketName="driver-documents"
+                            onUploadComplete={(url) => {
+                              setPlatePhotos(platePhotos.map(p => 
+                                p.id === plate.id ? { ...p, url } : p
+                              ));
+                            }}
+                            required={plate.type === 'TRACTOR'}
+                          />
+                        </div>
+                        {plate.type === 'TRAILER' && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setPlatePhotos(platePhotos.filter(p => p.id !== plate.id));
+                            }}
+                            className="mt-8"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Adicione fotos de todas as placas do conjunto (cavalo + carretas)
+                  </p>
+                </div>
 
                 <DocumentUpload
                   label="Comprovante de Endereço"
