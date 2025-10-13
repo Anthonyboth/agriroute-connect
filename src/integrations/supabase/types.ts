@@ -508,6 +508,87 @@ export type Database = {
           },
         ]
       }
+      company_vehicle_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          company_id: string
+          created_at: string | null
+          driver_profile_id: string
+          id: string
+          is_primary: boolean | null
+          notes: string | null
+          removed_at: string | null
+          removed_by: string | null
+          updated_at: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          company_id: string
+          created_at?: string | null
+          driver_profile_id: string
+          id?: string
+          is_primary?: boolean | null
+          notes?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          updated_at?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          company_id?: string
+          created_at?: string | null
+          driver_profile_id?: string
+          id?: string
+          is_primary?: boolean | null
+          notes?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          updated_at?: string | null
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_vehicle_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_vehicle_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_vehicle_assignments_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_vehicle_assignments_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_vehicle_assignments_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_availability: {
         Row: {
           available_date: string

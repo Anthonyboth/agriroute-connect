@@ -145,14 +145,95 @@ export const useTransportCompany = () => {
     },
   });
 
+  // Buscar vínculos de veículos
+  const { data: vehicleAssignments, isLoading: isLoadingAssignments } = useQuery({
+    queryKey: ['company-vehicle-assignments', company?.id],
+    queryFn: async () => {
+      if (!company?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('company_vehicle_assignments')
+        .select(`
+          *,
+          driver:driver_profile_id(id, full_name),
+          vehicle:vehicle_id(id, license_plate, vehicle_type)
+        `)
+        .eq('company_id', company.id)
+        .is('removed_at', null);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!company?.id,
+  });
+
+  // Vincular veículo a motorista
+  const assignVehicleToDriver = useMutation({
+    mutationFn: async (data: {
+      driverId: string;
+      vehicleId: string;
+      isPrimary?: boolean;
+      notes?: string;
+    }) => {
+      if (!company?.id) throw new Error('Transportadora não encontrada');
+
+      const { data: result, error } = await supabase
+        .from('company_vehicle_assignments')
+        .insert({
+          company_id: company.id,
+          driver_profile_id: data.driverId,
+          vehicle_id: data.vehicleId,
+          is_primary: data.isPrimary || false,
+          notes: data.notes,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-vehicle-assignments'] });
+      toast.success('Veículo vinculado com sucesso');
+    },
+    onError: (error: any) => {
+      console.error('Erro ao vincular veículo:', error);
+      toast.error('Erro ao vincular veículo');
+    },
+  });
+
+  // Remover vínculo
+  const removeVehicleAssignment = useMutation({
+    mutationFn: async (assignmentId: string) => {
+      const { error } = await supabase
+        .from('company_vehicle_assignments')
+        .update({ removed_at: new Date().toISOString() })
+        .eq('id', assignmentId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-vehicle-assignments'] });
+      toast.success('Vínculo removido');
+    },
+    onError: (error: any) => {
+      console.error('Erro ao remover vínculo:', error);
+      toast.error('Erro ao remover vínculo');
+    },
+  });
+
   return {
     company,
     isLoadingCompany,
     drivers,
     isLoadingDrivers,
+    vehicleAssignments,
+    isLoadingAssignments,
     isTransportCompany: !!company,
     createCompany: createCompany.mutateAsync,
     createInvite: createInvite.mutateAsync,
     removeDriver: removeDriver.mutateAsync,
+    assignVehicleToDriver: assignVehicleToDriver.mutateAsync,
+    removeVehicleAssignment: removeVehicleAssignment.mutateAsync,
   };
 };
