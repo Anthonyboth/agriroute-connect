@@ -2166,6 +2166,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       <ServicesModal 
         isOpen={servicesModalOpen}
         onClose={() => setServicesModalOpen(false)}
+        mode="driver"
       />
 
       {/* ✅ FASE 1 - Modal de Consentimento de Tracking */}

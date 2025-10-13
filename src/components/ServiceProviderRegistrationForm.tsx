@@ -15,26 +15,21 @@ import { useAuth } from '@/hooks/useAuth';
 import { X, Plus, FileText, IdCard, Building, CreditCard, User, Shield } from 'lucide-react';
 import { DocumentUpload } from './DocumentUpload';
 import { ProfilePhotoUpload } from './ProfilePhotoUpload';
+import { getProviderVisibleServices } from '@/lib/service-types';
 
 interface ServiceProviderRegistrationFormProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const serviceTypes = [
-  { value: 'GUINCHO', label: 'Guincho/Reboque', requiresCNH: true },
-  { value: 'MECANICO', label: 'Mecânico', requiresCNH: false },
-  { value: 'BORRACHEIRO', label: 'Borracheiro', requiresCNH: true },
-  { value: 'ELETRICISTA_AUTOMOTIVO', label: 'Eletricista Automotivo', requiresCNH: false },
-  { value: 'COMBUSTIVEL', label: 'Entrega de Combustível', requiresCNH: true },
-  { value: 'CHAVEIRO', label: 'Chaveiro', requiresCNH: true },
-  { value: 'SOLDADOR', label: 'Soldador', requiresCNH: false },
-  { value: 'PINTURA', label: 'Pintura Automotiva', requiresCNH: false },
-  { value: 'VIDRACEIRO', label: 'Vidraceiro', requiresCNH: true },
-  { value: 'AR_CONDICIONADO', label: 'Ar Condicionado', requiresCNH: false },
-  { value: 'FREIOS', label: 'Sistema de Freios', requiresCNH: false },
-  { value: 'SUSPENSAO', label: 'Suspensão', requiresCNH: false }
-];
+const serviceTypes = getProviderVisibleServices()
+  .filter(s => !s.hideFromAllTab)
+  .map(s => ({
+    value: s.id,
+    label: s.label,
+    requiresCNH: ['GUINCHO', 'CHAVEIRO', 'FRETE_MOTO', 'MUDANCA', 'BORRACHEIRO', 'VIDRACEIRO'].includes(s.id)
+  }))
+  .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
 
 const specialtyOptions = [
   'Carros de passeio', 'Motocicletas', 'Caminhões', 'Carretas', 'Ônibus',

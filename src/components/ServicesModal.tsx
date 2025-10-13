@@ -8,13 +8,15 @@ interface ServicesModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect?: (service: any) => void;
+  mode?: 'client' | 'driver' | 'provider';
 }
 
 
 export const ServicesModal: React.FC<ServicesModalProps> = ({
   isOpen,
   onClose,
-  onSelect
+  onSelect,
+  mode = 'client'
 }) => {
   const [serviceRequestModal, setServiceRequestModal] = useState<{
     isOpen: boolean;
@@ -51,7 +53,7 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
           </DialogHeader>
 
           <ServiceCatalogGrid 
-            mode="client"
+            mode={mode}
             onServiceRequest={handleServiceRequest}
             showCheckboxes={false}
             title=""
