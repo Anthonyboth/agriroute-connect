@@ -341,14 +341,17 @@ const CompleteProfile = () => {
      if (!documentUrls.cnh) missingDocs.push('CNH');
      if (!documentUrls.address_proof) missingDocs.push('Comprovante de residência');
      
-     // Verificar se pelo menos a placa do cavalo foi enviada
-     const tractorPlate = platePhotos.find(p => p.type === 'TRACTOR');
-     if (!tractorPlate?.url) missingDocs.push('Foto da placa do cavalo');
-     
-     // Se não pulou o cadastro de veículos, exigir pelo menos 1
-     if (!skipVehicleRegistration && vehicles.length === 0) {
-       missingDocs.push('Cadastro de pelo menos um veículo');
-     }
+        // Se não pulou o cadastro de veículos, validar fotos de placa e veículos
+        if (!skipVehicleRegistration) {
+          // Verificar se pelo menos a placa do cavalo foi enviada
+          const tractorPlate = platePhotos.find(p => p.type === 'TRACTOR');
+          if (!tractorPlate?.url) missingDocs.push('Foto da placa do cavalo');
+          
+          // Exigir pelo menos 1 veículo cadastrado
+          if (vehicles.length === 0) {
+            missingDocs.push('Cadastro de pelo menos um veículo');
+          }
+        }
      
      if (missingDocs.length > 0) {
        toast.error(`Documentos faltando: ${missingDocs.join(', ')}`);
