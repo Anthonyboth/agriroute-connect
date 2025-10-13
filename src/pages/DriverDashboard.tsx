@@ -28,6 +28,7 @@ import FreightWithdrawalModal from '@/components/FreightWithdrawalModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { toast } from 'sonner';
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote, Star, MessageSquare, AlertTriangle, Users } from 'lucide-react';
 import { useGPSMonitoring } from '@/hooks/useGPSMonitoring';
@@ -45,6 +46,7 @@ import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
+import { CompanyDriverBadge } from '@/components/CompanyDriverBadge';
 
 interface Freight {
   id: string;
@@ -94,6 +96,7 @@ interface Proposal {
 const DriverDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
   const { unreadCount } = useNotifications();
+  const { isCompanyDriver, companyName, companyId, canAcceptFreights, canManageVehicles } = useCompanyDriver();
   const navigate = useNavigate();
 
   // Redirect service providers to their correct dashboard
@@ -231,7 +234,38 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
     try {
-      // Primeiro executar o matching espacial para atualizar os matches
+      // Motoristas de empresa: buscar apenas fretes da transportadora
+      if (isCompanyDriver && companyId) {
+        const { data: companyFreights, error } = await supabase
+          .from('freights')
+          .select('*')
+          .eq('company_id', companyId)
+          .eq('status', 'OPEN')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const formattedFreights = (companyFreights || []).map((f: any) => ({
+          id: f.id,
+          cargo_type: f.cargo_type,
+          weight: f.weight,
+          origin_address: f.origin_address,
+          destination_address: f.destination_address,
+          pickup_date: f.pickup_date,
+          delivery_date: f.delivery_date,
+          price: f.price,
+          urgency: f.urgency,
+          status: f.status,
+          distance_km: f.distance_km,
+          minimum_antt_price: f.minimum_antt_price,
+          service_type: f.service_type
+        }));
+
+        setAvailableFreights(formattedFreights);
+        return;
+      }
+
+      // Motoristas independentes: usar matching espacial
       const { data: { session } } = await supabase.auth.getSession();
       const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
         'driver-spatial-matching',
@@ -249,10 +283,12 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       }
 
       // Usar a mesma RPC que o SmartFreightMatcher usa para consistência
-      const { data: freights, error } = await supabase.rpc(
+      let query = supabase.rpc(
         'get_compatible_freights_for_driver',
         { p_driver_id: profile.id }
       );
+
+      const { data: freights, error } = await query;
 
       if (error) {
         console.error('Erro ao carregar fretes:', error);
@@ -343,7 +379,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       console.error('Error fetching available freights:', error);
       toast.error('Erro ao carregar fretes disponíveis');
     }
-  }, [profile?.id, profile?.role]);
+  }, [profile?.id, profile?.role, isCompanyDriver, companyId]);
 
   // Buscar propostas do motorista - otimizado
   const fetchMyProposals = useCallback(async () => {
@@ -1200,9 +1236,15 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             <h1 className="text-xl md:text-2xl font-bold mb-2">
               Olá, {profile?.full_name?.split(' ')[0] || (profile?.active_mode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista')}
             </h1>
-            <p className="text-sm md:text-base mb-4 opacity-90">
+            <p className="text-sm md:text-base mb-2 opacity-90">
               Sistema IA encontra fretes para você
             </p>
+            {isCompanyDriver && companyName && (
+              <Badge variant="secondary" className="mb-3 bg-background/20 text-primary-foreground border-primary-foreground/30">
+                <Users className="h-3 w-3 mr-1" />
+                Motorista - {companyName}
+              </Badge>
+            )}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
               <Button 
                 variant="default"
@@ -1268,27 +1310,29 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             onClick={() => setActiveTab('my-trips')}
           />
 
-          <StatsCard
-            size="sm"
-            icon={<TrendingUp className="h-5 w-5" />}
-            iconColor="text-blue-500"
-            label="Saldo"
-            value={showEarnings ? 'R$ 0,00' : '****'}
-            onClick={() => setActiveTab('advances')}
-            actionButton={
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleEarnings();
-                }}
-                className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-              >
-                {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-              </Button>
-            }
-          />
+          {!isCompanyDriver && (
+            <StatsCard
+              size="sm"
+              icon={<TrendingUp className="h-5 w-5" />}
+              iconColor="text-blue-500"
+              label="Saldo"
+              value={showEarnings ? 'R$ 0,00' : '****'}
+              onClick={() => setActiveTab('advances')}
+              actionButton={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleEarnings();
+                  }}
+                  className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                >
+                  {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                </Button>
+              }
+            />
+          )}
         </div>
 
         {/* FreightLimitTracker compacto */}
@@ -1364,22 +1408,26 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 <span className="hidden sm:inline">Meus Veículos</span>
                 <span className="sm:hidden">Veíc</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="payments" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                <DollarSign className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Pagamentos</span>
-                <span className="sm:hidden">Pag</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="advances" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                <Banknote className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Saldo</span>
-                <span className="sm:hidden">Saldo</span>
-              </TabsTrigger>
+              {!isCompanyDriver && (
+                <>
+                  <TabsTrigger 
+                    value="payments" 
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    <DollarSign className="h-3 w-3 mr-1" />
+                    <span className="hidden sm:inline">Pagamentos</span>
+                    <span className="sm:hidden">Pag</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="advances" 
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    <Banknote className="h-3 w-3 mr-1" />
+                    <span className="hidden sm:inline">Saldo</span>
+                    <span className="sm:hidden">Saldo</span>
+                  </TabsTrigger>
+                </>
+              )}
               <TabsTrigger 
                 value="historico" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
@@ -1395,6 +1443,13 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           <div className="mb-4">
             <SubscriptionExpiryNotification />
           </div>
+
+          {/* Badge de motorista de empresa */}
+          {isCompanyDriver && companyName && (
+            <div className="mb-4">
+              <CompanyDriverBadge companyName={companyName} />
+            </div>
+          )}
 
           {/* ✅ FASE 4 - Alerta de Localização Desativada */}
           {!profile?.location_enabled && (

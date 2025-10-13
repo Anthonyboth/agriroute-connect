@@ -44,9 +44,18 @@ interface FreightCardProps {
   onAction?: (action: 'propose' | 'accept' | 'complete' | 'edit' | 'cancel') => void;
   showActions?: boolean;
   showProducerActions?: boolean;
+  hidePrice?: boolean;
+  canAcceptFreights?: boolean;
 }
 
-export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, showActions = false, showProducerActions = false }) => {
+export const FreightCard: React.FC<FreightCardProps> = ({ 
+  freight, 
+  onAction, 
+  showActions = false, 
+  showProducerActions = false,
+  hidePrice = false,
+  canAcceptFreights = true
+}) => {
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   
   // Verificar se o frete está com vagas completas
@@ -185,21 +194,23 @@ export const FreightCard: React.FC<FreightCardProps> = ({ freight, onAction, sho
         </div>
       </CardContent>
 
-      <CardFooter className="pt-3 pb-3">
-        <div className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border border-border/50">
-          <div className="text-left">
-            <p className="font-bold text-xl text-primary">R$ {(freight.price || 0).toLocaleString('pt-BR')}</p>
-            <p className="text-xs text-muted-foreground">
-              Min. ANTT: R$ {(freight.minimum_antt_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
+      {!hidePrice && (
+        <CardFooter className="pt-3 pb-3">
+          <div className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border border-border/50">
+            <div className="text-left">
+              <p className="font-bold text-xl text-primary">R$ {(freight.price || 0).toLocaleString('pt-BR')}</p>
+              <p className="text-xs text-muted-foreground">
+                Min. ANTT: R$ {(freight.minimum_antt_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+            <div className="text-right">
+              <DollarSign className="h-6 w-6 text-accent ml-auto" />
+            </div>
           </div>
-          <div className="text-right">
-            <DollarSign className="h-6 w-6 text-accent ml-auto" />
-          </div>
-        </div>
-      </CardFooter>
+        </CardFooter>
+      )}
 
-      {showActions && onAction && freight.status === 'OPEN' && !isFullyBooked && (
+      {showActions && onAction && freight.status === 'OPEN' && !isFullyBooked && canAcceptFreights && (
         <div className="px-6 pb-6">
           {freight.service_type === 'GUINCHO' ? (
             <div className="flex gap-3">
