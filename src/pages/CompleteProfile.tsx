@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AddressInput } from '@/components/AddressInput';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
 import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { validateDocument } from '@/utils/cpfValidator';
 
 const CompleteProfile = () => {
@@ -587,6 +588,17 @@ const CompleteProfile = () => {
                   <FileText className="h-5 w-5 text-primary" />
                   <h3 className="text-lg font-semibold">Documentos Básicos</h3>
                 </div>
+
+                <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900">
+                  <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <AlertTitle className="text-blue-900 dark:text-blue-100">Importante - Responsabilidade do Cadastro</AlertTitle>
+                  <AlertDescription className="text-blue-800 dark:text-blue-200">
+                    <ul className="list-disc list-inside space-y-1 mt-2">
+                      <li>Somente a pessoa que enviar estes documentos e selfie estará apta para solicitar troca de senhas e outras alterações de segurança na plataforma.</li>
+                      <li>Esta pessoa será considerada a responsável oficial pelo cadastro da empresa, caso seja uma transportadora.</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
 
                 <div className="space-y-2">
                   <Label>Selfie *</Label>
