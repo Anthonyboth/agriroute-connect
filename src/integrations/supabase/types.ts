@@ -5222,6 +5222,14 @@ export type Database = {
           | { access_type: string; request_id: string }
         Returns: undefined
       }
+      mark_freight_messages_as_read: {
+        Args: { p_freight_id: string }
+        Returns: undefined
+      }
+      mark_service_messages_as_read: {
+        Args: { p_service_request_id: string }
+        Returns: undefined
+      }
       match_drivers_to_freight: {
         Args: { p_freight_id: string }
         Returns: {

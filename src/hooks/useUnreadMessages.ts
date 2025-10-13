@@ -59,11 +59,7 @@ export const useUnreadMessages = (currentUserId?: string) => {
 
     try {
       const { error } = await supabase
-        .from('freight_messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('freight_id', freightId)
-        .neq('sender_id', currentUserId)
-        .is('read_at', null);
+        .rpc('mark_freight_messages_as_read', { p_freight_id: freightId });
 
       if (error) throw error;
       
@@ -79,11 +75,7 @@ export const useUnreadMessages = (currentUserId?: string) => {
 
     try {
       const { error } = await supabase
-        .from('service_messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('service_request_id', serviceRequestId)
-        .neq('sender_id', currentUserId)
-        .is('read_at', null);
+        .rpc('mark_service_messages_as_read', { p_service_request_id: serviceRequestId });
 
       if (error) throw error;
       
