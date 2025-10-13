@@ -13,6 +13,7 @@ import { Camera, User, MapPin, Phone, Mail, Calendar, Award } from 'lucide-react
 import { ProfilePhotoUpload } from '@/components/ProfilePhotoUpload';
 import { StructuredAddressForm } from '@/components/StructuredAddressForm';
 import { formatAddress, Address } from '@/lib/address-utils';
+import { CompanyModeToggle } from '@/components/CompanyModeToggle';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -425,6 +426,23 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {/* Coluna da direita - Estatísticas e avaliações */}
           <div className="space-y-6">
+            {user?.role === 'MOTORISTA' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">Modo de Trabalho</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CompanyModeToggle 
+                    currentMode={user?.active_mode || 'MOTORISTA'}
+                    onModeChange={() => {
+                      // Recarregar após mudança de modo
+                      window.location.reload();
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            )}
+            
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

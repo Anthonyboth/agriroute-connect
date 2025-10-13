@@ -29,7 +29,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote, Star, MessageSquare, AlertTriangle } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote, Star, MessageSquare, AlertTriangle, Users, Building2 } from 'lucide-react';
 import { useGPSMonitoring } from '@/hooks/useGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { TrackingConsentModal } from '@/components/TrackingConsentModal';
@@ -45,6 +45,10 @@ import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
+import { CompanyDashboard } from '@/components/CompanyDashboard';
+import { CompanyDriverManager } from '@/components/CompanyDriverManager';
+import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { BecomeCompanyModal } from '@/components/BecomeCompanyModal';
 
 interface Freight {
   id: string;
@@ -146,8 +150,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     vehicle_type: 'all',
   });
 
+  const { company, isTransportCompany } = useTransportCompany();
+
   // Monitoramento GPS para fretes em andamento
-  const activeFreight = ongoingFreights.find(f => 
+  const activeFreight = ongoingFreights.find(f =>
     f.status === 'IN_TRANSIT' || f.status === 'ACCEPTED'
   );
   useGPSMonitoring(activeFreight?.id || null, !!activeFreight);
@@ -1176,7 +1182,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   return (
     <div className="min-h-screen bg-background">
       <Header 
-        user={{ name: profile?.full_name || 'Motorista', role: 'MOTORISTA' }}
+        user={{ 
+          name: profile?.full_name || (profile?.active_mode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista'), 
+          role: 'MOTORISTA' 
+        }}
         onMenuClick={handleMenuClick}
         onLogout={handleLogout}
         userProfile={profile}
@@ -1193,7 +1202,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">
             <h1 className="text-xl md:text-2xl font-bold mb-2">
-              Olá, {profile?.full_name?.split(' ')[0] || 'Motorista'}
+              Olá, {profile?.full_name?.split(' ')[0] || (profile?.active_mode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista')}
             </h1>
             <p className="text-sm md:text-base mb-4 opacity-90">
               Sistema IA encontra fretes para você
@@ -1222,11 +1231,11 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               <Button 
                 variant="default"
                 size="sm"
-                onClick={() => setActiveTab('services')}
+                onClick={() => setActiveTab('company')}
                 className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
               >
-                <Settings className="mr-1 h-4 w-4" />
-                Configurar Fretes
+                <Truck className="mr-1 h-4 w-4" />
+                Transportadora
               </Button>
               
               <Button 
@@ -1368,6 +1377,22 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 <Truck className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Meus Veículos</span>
                 <span className="sm:hidden">Veíc</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="company" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Truck className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Transportadora</span>
+                <span className="sm:hidden">Transp</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="company-drivers" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Users className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Motoristas</span>
+                <span className="sm:hidden">Mot</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="payments" 
@@ -1949,6 +1974,42 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           <TabsContent value="historico" className="mt-6">
             <UnifiedHistory userRole="MOTORISTA" />
+          </TabsContent>
+
+          <TabsContent value="company" className="mt-6">
+            {isTransportCompany ? (
+              <CompanyDashboard />
+            ) : (
+              <div className="text-center py-12">
+                <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-xl font-semibold mb-2">Torne-se uma Transportadora</h3>
+                <p className="text-muted-foreground mb-6">
+                  Gerencie motoristas, frota e fretes em um único lugar
+                </p>
+                <BecomeCompanyModal 
+                  open={activeTab === 'company' && !isTransportCompany} 
+                  onOpenChange={(open) => !open && setActiveTab('available')} 
+                />
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="company-drivers" className="mt-6">
+            {isTransportCompany ? (
+              <CompanyDriverManager />
+            ) : (
+              <div className="text-center py-12">
+                <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-xl font-semibold mb-2">Cadastre Motoristas</h3>
+                <p className="text-muted-foreground mb-6">
+                  Torne-se uma transportadora para gerenciar sua equipe de motoristas
+                </p>
+                <BecomeCompanyModal 
+                  open={activeTab === 'company-drivers' && !isTransportCompany} 
+                  onOpenChange={(open) => !open && setActiveTab('available')} 
+                />
+              </div>
+            )}
           </TabsContent>
 
         </Tabs>

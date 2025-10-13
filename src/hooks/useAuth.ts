@@ -10,6 +10,7 @@ interface UserProfile {
   document: string;
   role: 'PRODUTOR' | 'MOTORISTA' | 'ADMIN' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA';
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  active_mode?: string | null;
   selfie_url?: string;
   document_photo_url?: string;
   cnh_photo_url?: string;
