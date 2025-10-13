@@ -7,6 +7,7 @@ import MudancaModal from '@/components/MudancaModal';
 import GuestServiceModal from '@/components/GuestServiceModal';
 import HowItWorksModal from '@/components/HowItWorksModal';
 import { ServicesModal } from '@/components/ServicesModal';
+import ServiceRequestModal from '@/components/ServiceRequestModal';
 import { ContactModal } from '@/components/ContactModal';
 import ReportModal from '@/components/ReportModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail, CheckCircle2 } from 'lucide-react';
@@ -48,10 +49,12 @@ const Landing = () => {
   const [guestServiceModal, setGuestServiceModal] = useState<{ isOpen: boolean; serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' }>({
     isOpen: false,
   });
-  const [servicesModal, setServicesModal] = useState(false);
-  const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' }>({
-    isOpen: false,
-  });
+const [servicesModal, setServicesModal] = useState(false);
+const [requestModalOpen, setRequestModalOpen] = useState(false);
+const [selectedService, setSelectedService] = useState<any | null>(null);
+const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' }>({
+  isOpen: false,
+});
   const [contactModal, setContactModal] = useState(false);
   const [reportModal, setReportModal] = useState(false);
   const [realStats, setRealStats] = useState({
@@ -85,11 +88,17 @@ const Landing = () => {
     setAuthModal({ isOpen: true, initialTab });
   };
 
-  const closeAuthModal = () => {
-    setAuthModal({ isOpen: false });
-  };
+const closeAuthModal = () => {
+  setAuthModal({ isOpen: false });
+};
 
-  const fetchRealStats = async () => {
+const handleServiceSelect = (service: any) => {
+  setSelectedService(service);
+  setServicesModal(false);
+  setTimeout(() => setRequestModalOpen(true), 0);
+};
+
+const fetchRealStats = async () => {
     try {
       const { data, error } = await supabase.rpc('get_platform_stats');
       
@@ -554,6 +563,7 @@ const Landing = () => {
       <ServicesModal 
         isOpen={servicesModal}
         onClose={() => setServicesModal(false)}
+        onSelect={handleServiceSelect}
       />
 
       {howItWorksModal.isOpen && (

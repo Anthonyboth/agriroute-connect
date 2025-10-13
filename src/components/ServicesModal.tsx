@@ -7,12 +7,14 @@ import { getServiceById } from '@/lib/service-types';
 interface ServicesModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSelect?: (service: any) => void;
 }
 
 
 export const ServicesModal: React.FC<ServicesModalProps> = ({
   isOpen,
-  onClose
+  onClose,
+  onSelect
 }) => {
   const [serviceRequestModal, setServiceRequestModal] = useState<{
     isOpen: boolean;
@@ -23,6 +25,11 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
   }>({ isOpen: false });
 
   const handleServiceRequest = (service: any) => {
+    if (onSelect) {
+      onSelect(service);
+      onClose();
+      return;
+    }
     setServiceRequestModal({
       isOpen: true,
       serviceId: service.id,
@@ -32,7 +39,6 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
     });
     onClose();
   };
-
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -55,7 +61,7 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
       </Dialog>
 
       {/* Modal de solicitação de serviços */}
-      {serviceRequestModal.serviceId && (
+      {!onSelect && serviceRequestModal.serviceId && (
         <ServiceRequestModal
           isOpen={serviceRequestModal.isOpen}
           serviceId={serviceRequestModal.serviceId}
