@@ -92,7 +92,7 @@ export function FreightAdvanceModal({ isOpen, onClose, freightId, freightPrice }
       }
 
       const payload = advanceType === "percentage" 
-        ? { freight_id: freightId, advance_percentage: percentage[0] }
+        ? { freight_id: freightId, advance_percentage: percentage[0] / 100 }
         : { freight_id: freightId, advance_amount: parseFloat(customAmount) };
 
       const { data, error } = await supabase.functions.invoke('create-freight-advance', {
