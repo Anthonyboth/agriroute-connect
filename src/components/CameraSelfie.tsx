@@ -46,48 +46,12 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
       console.log('Stream obtido:', mediaStream);
       console.log('Video tracks:', mediaStream.getVideoTracks());
 
-      const video = videoRef.current;
-      if (video) {
-        console.log('Configurando vídeo...');
-        video.srcObject = mediaStream;
-        setStream(mediaStream);
-        setIsStreaming(true);
-        setUploadMethod('CAMERA');
-        
-        const onLoaded = () => {
-          console.log('Vídeo carregado - dimensões:', video.videoWidth, 'x', video.videoHeight);
-          setVideoReady(true);
-          video.play().then(() => {
-            console.log('Vídeo iniciado com sucesso');
-          }).catch((playError) => {
-            console.error('Erro ao iniciar vídeo:', playError);
-          });
-        };
-        
-        const onError = (error: Event) => {
-          console.error('Erro no elemento de vídeo:', error);
-        };
-        
-        video.addEventListener('error', onError);
-        
-        if (video.readyState >= 2) {
-          console.log('Vídeo já pronto, executando onLoaded');
-          onLoaded();
-        } else {
-          console.log('Aguardando metadata do vídeo...');
-          video.onloadedmetadata = onLoaded;
-        }
-        
-        // Forçar play após um pequeno delay
-        setTimeout(() => {
-          if (video.paused) {
-            console.log('Forçando play do vídeo...');
-            video.play().catch((e) => console.log('Erro no play forçado:', e));
-          }
-        }, 500);
-      } else {
-        console.error('Elemento de vídeo não encontrado');
-      }
+      // Apenas armazenar o stream e marcar como streaming
+      // O useEffect abaixo cuidará de conectar ao elemento de vídeo
+      setStream(mediaStream);
+      setIsStreaming(true);
+      setUploadMethod('CAMERA');
+      
     } catch (error) {
       console.error('Error accessing camera:', error);
       let errorMessage = 'Erro ao acessar a câmera.';
@@ -199,6 +163,52 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
     }
   }, [capturedImage, uploadedImage, uploadMethod, onCapture]);
 
+  // Conectar o stream ao elemento de vídeo quando ambos estiverem disponíveis
+  React.useEffect(() => {
+    if (stream && videoRef.current && isStreaming) {
+      const video = videoRef.current;
+      console.log('Conectando stream ao elemento de vídeo...');
+      
+      video.srcObject = stream;
+      
+      const onLoaded = () => {
+        console.log('Vídeo carregado - dimensões:', video.videoWidth, 'x', video.videoHeight);
+        setVideoReady(true);
+        video.play().then(() => {
+          console.log('Vídeo iniciado com sucesso');
+        }).catch((playError) => {
+          console.error('Erro ao iniciar vídeo:', playError);
+        });
+      };
+      
+      const onError = (error: Event) => {
+        console.error('Erro no elemento de vídeo:', error);
+      };
+      
+      video.addEventListener('error', onError);
+      
+      if (video.readyState >= 2) {
+        console.log('Vídeo já pronto, executando onLoaded');
+        onLoaded();
+      } else {
+        console.log('Aguardando metadata do vídeo...');
+        video.onloadedmetadata = onLoaded;
+      }
+      
+      // Forçar play após um pequeno delay
+      setTimeout(() => {
+        if (video.paused) {
+          console.log('Forçando play do vídeo...');
+          video.play().catch((e) => console.log('Erro no play forçado:', e));
+        }
+      }, 500);
+
+      return () => {
+        video.removeEventListener('error', onError);
+      };
+    }
+  }, [stream, isStreaming]);
+
   // Auto-start camera when component mounts/opened
   React.useEffect(() => {
     if (autoStart && !isStreaming && !capturedImage && !uploadedImage) {
@@ -257,45 +267,43 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
             </div>
           )}
 
-          {isStreaming && (
-            <>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-                style={{ 
-                  display: 'block',
-                  backgroundColor: '#000',
-                  minHeight: '200px'
-                }}
-                onLoadedMetadata={() => {
-                  console.log('Video metadata carregado');
-                  const video = videoRef.current;
-                  if (video) {
-                    console.log('Dimensões do vídeo:', video.videoWidth, 'x', video.videoHeight);
-                  }
-                }}
-                onCanPlay={() => {
-                  console.log('Video pode ser reproduzido');
-                }}
-                onPlay={() => {
-                  console.log('Video iniciou a reprodução');
-                }}
-                onError={(e) => {
-                  console.error('Erro no elemento video:', e);
-                }}
-              />
-              {!videoReady && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                    <p>Carregando câmera...</p>
-                  </div>
-                </div>
-              )}
-            </>
+          {/* Sempre renderizar o vídeo, mas escondê-lo quando não estiver streaming */}
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+            style={{ 
+              display: isStreaming ? 'block' : 'none',
+              backgroundColor: '#000',
+              minHeight: '200px'
+            }}
+            onLoadedMetadata={() => {
+              console.log('Video metadata carregado');
+              const video = videoRef.current;
+              if (video) {
+                console.log('Dimensões do vídeo:', video.videoWidth, 'x', video.videoHeight);
+              }
+            }}
+            onCanPlay={() => {
+              console.log('Video pode ser reproduzido');
+            }}
+            onPlay={() => {
+              console.log('Video iniciou a reprodução');
+            }}
+            onError={(e) => {
+              console.error('Erro no elemento video:', e);
+            }}
+          />
+          
+          {isStreaming && !videoReady && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                <p>Carregando câmera...</p>
+              </div>
+            </div>
           )}
 
           {currentImage && (
