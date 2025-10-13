@@ -113,13 +113,14 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
 
 const RedirectIfAuthed = () => {
   const { isAuthenticated, profile, loading, profiles } = useAuth();
-  const [isCheckingCompany, setIsCheckingCompany] = React.useState(true);
+  const [isCheckingCompany, setIsCheckingCompany] = React.useState(false);
   const [isCompany, setIsCompany] = React.useState(false);
   
   // Verificar se é transportadora
   React.useEffect(() => {
     const checkCompany = async () => {
       if (profile?.role === 'MOTORISTA') {
+        setIsCheckingCompany(true);
         const { data } = await supabase
           .from('transport_companies')
           .select('id')
@@ -127,8 +128,8 @@ const RedirectIfAuthed = () => {
           .maybeSingle();
         
         setIsCompany(!!data);
+        setIsCheckingCompany(false);
       }
-      setIsCheckingCompany(false);
     };
     
     if (profile) {
