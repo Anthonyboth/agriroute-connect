@@ -32,7 +32,9 @@ import {
   Satellite,
   Sun,
   Car,
-  Bike
+  Bike,
+  Camera,
+  Wifi
 } from 'lucide-react';
 
 export interface ServiceType {
@@ -130,6 +132,26 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Abertura de veículos travados',
     icon: Key,
     color: 'bg-amber-100 text-amber-800 border-amber-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'CFTV_SEGURANCA',
+    label: 'Técnico em CFTV e Segurança Eletrônica',
+    description: 'Instalação de câmeras de segurança, sistemas de monitoramento e equipamentos de proteção eletrônica',
+    icon: Camera,
+    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
+  {
+    id: 'CONSULTORIA_TI',
+    label: 'Consultoria em T.I',
+    description: 'Passagem de cabos, instalação e configuração de equipamentos de internet e redes',
+    icon: Wifi,
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'urban',
     clientVisible: true,
     providerVisible: true
