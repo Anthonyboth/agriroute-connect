@@ -46,13 +46,17 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
       ? ALL_SERVICE_TYPES.filter(s => s.category !== 'freight')
       : ALL_SERVICE_TYPES;
   
+  const allTabCount = allServices.filter(s => !s.hideFromAllTab).length;
+  const countByCategory = (cat: 'agricultural' | 'logistics' | 'technical' | 'urban' | 'freight') =>
+    allServices.filter(s => s.category === cat && !s.showOnlyInAllTab).length;
+
   const categories = [
-    { id: 'all', label: 'Todos os Serviços', count: allServices.length },
-    { id: 'agricultural', label: CATEGORY_LABELS.agricultural, count: allServices.filter(s => s.category === 'agricultural').length },
-    { id: 'logistics', label: CATEGORY_LABELS.logistics, count: allServices.filter(s => s.category === 'logistics').length },
-    { id: 'technical', label: CATEGORY_LABELS.technical, count: allServices.filter(s => s.category === 'technical').length },
-    { id: 'urban', label: CATEGORY_LABELS.urban, count: allServices.filter(s => s.category === 'urban').length },
-    ...(mode !== 'provider' ? [{ id: 'freight', label: CATEGORY_LABELS.freight, count: allServices.filter(s => s.category === 'freight').length }] : [])
+    { id: 'all', label: 'Todos os Serviços', count: allTabCount },
+    { id: 'agricultural', label: CATEGORY_LABELS.agricultural, count: countByCategory('agricultural') },
+    { id: 'logistics', label: CATEGORY_LABELS.logistics, count: countByCategory('logistics') },
+    { id: 'technical', label: CATEGORY_LABELS.technical, count: countByCategory('technical') },
+    { id: 'urban', label: CATEGORY_LABELS.urban, count: countByCategory('urban') },
+    ...(mode !== 'provider' ? [{ id: 'freight', label: CATEGORY_LABELS.freight, count: countByCategory('freight') }] : [])
   ];
 
   const filteredServices = allServices
