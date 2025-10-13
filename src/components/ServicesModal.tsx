@@ -23,7 +23,7 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
     serviceId?: string;
     serviceLabel?: string;
     serviceDescription?: string;
-    category?: 'technical' | 'agricultural' | 'logistics' | 'urban';
+    category?: 'technical' | 'agricultural' | 'logistics' | 'urban' | 'freight';
   }>({ isOpen: false });
 
   const handleServiceRequest = (service: any) => {
