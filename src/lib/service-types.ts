@@ -291,16 +291,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
-    id: 'MAO_OBRA_SAFRISTA',
-    label: 'Mão de Obra Safrista',
-    description: 'Contratação temporária de trabalhadores para época de safra agrícola',
-    icon: Users2,
-    color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
     id: 'MECANICO',
     label: 'Mecânico',
     description: 'Reparos mecânicos para todos os tipos de veículos, desde carros até máquinas agrícolas',
