@@ -23,6 +23,7 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Cookies from "./pages/Cookies";
 import Status from "./pages/Status";
+import TransportCompanyRegistration from "./pages/TransportCompanyRegistration";
 
 import Careers from "./pages/Careers";
 import Help from "./pages/Help";
@@ -252,6 +253,14 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/cadastro-prestador" element={<ServiceProviderRegistration />} />
+            <Route 
+              path="/cadastro-transportadora" 
+              element={
+                <ProtectedRoute requiresAuth>
+                  <TransportCompanyRegistration />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/sobre" element={<About />} />
             <Route path="/privacidade" element={<Privacy />} />
             <Route path="/termos" element={<Terms />} />

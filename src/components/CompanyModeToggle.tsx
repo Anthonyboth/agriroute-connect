@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Truck, User } from 'lucide-react';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
-import { BecomeCompanyModal } from './BecomeCompanyModal';
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +18,7 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
   onModeChange
 }) => {
   const { isTransportCompany } = useTransportCompany();
-  const [showBecomeCompanyModal, setShowBecomeCompanyModal] = useState(false);
+  
   const [isChangingMode, setIsChangingMode] = useState(false);
   const navigate = useNavigate();
 
@@ -72,19 +72,15 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
     return (
       <>
         <Button
-          onClick={() => setShowBecomeCompanyModal(true)}
+          onClick={() => navigate('/cadastro-transportadora')}
           variant="outline"
           className="w-full justify-start"
           size="sm"
         >
           <Truck className="mr-2 h-4 w-4" />
-          Sou Transportadora
+          Cadastrar Transportadora
         </Button>
 
-        <BecomeCompanyModal
-          open={showBecomeCompanyModal}
-          onOpenChange={setShowBecomeCompanyModal}
-        />
       </>
     );
   }
