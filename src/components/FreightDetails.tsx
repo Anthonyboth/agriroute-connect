@@ -48,14 +48,25 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         .from('freights')
         .select(`
           *,
-          producer:profiles!producer_id(id, full_name, contact_phone, role),
-          driver:profiles!driver_id(id, full_name, contact_phone, role)
+          producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, role),
+          driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, role)
         `)
         .eq('id', freightId)
         .single();
 
-      if (error) throw error;
-      setFreight(data);
+      if (error) {
+        console.error('Erro ao buscar frete:', error.message, error.details);
+        throw error;
+      }
+
+      // Normalizar producer e driver (podem vir como arrays)
+      const normalizedFreight = {
+        ...data,
+        producer: Array.isArray(data.producer) ? data.producer[0] : data.producer,
+        driver: Array.isArray(data.driver) ? data.driver[0] : data.driver,
+      };
+      
+      setFreight(normalizedFreight);
 
       // Buscar adiantamentos
       const { data: advancesData } = await supabase
