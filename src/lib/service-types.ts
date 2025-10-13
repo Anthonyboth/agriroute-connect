@@ -890,6 +890,29 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     clientVisible: true,
     providerVisible: true,
     hideFromAllTab: true
+  },
+  // Freight duplicates
+  {
+    id: 'GUINCHO_FREIGHT',
+    label: 'Guincho e Socorro 24h',
+    description: 'Reboque, socorro e assistência emergencial para veículos 24 horas',
+    icon: Wrench,
+    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    category: 'freight',
+    clientVisible: true,
+    providerVisible: false,
+    hideFromAllTab: true
+  },
+  {
+    id: 'CARGA_FREIGHT',
+    label: 'Transporte de Carga',
+    description: 'Soja, milho, fertilizantes e outros produtos agrícolas',
+    icon: Truck,
+    color: 'bg-primary/10 text-primary border-primary/20',
+    category: 'freight',
+    clientVisible: true,
+    providerVisible: false,
+    hideFromAllTab: true
   }
 ];
 
