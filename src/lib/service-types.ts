@@ -74,8 +74,8 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
   {
     id: 'GUINCHO',
-    label: 'Guincho',
-    description: 'Reboque e socorro de veículos',
+    label: 'Guincho e Socorro 24h',
+    description: 'Reboque, socorro e assistência emergencial para veículos 24 horas',
     icon: Wrench,
     color: 'bg-orange-100 text-orange-800 border-orange-200',
     category: 'freight',
@@ -116,7 +116,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
   {
     id: 'BORRACHEIRO',
-    label: 'Borracheiro',
+    label: 'Borracharia',
     description: 'Troca e reparo de pneus (veículos, tratores e implementos)',
     icon: Shield,
     color: 'bg-slate-100 text-slate-800 border-slate-200',
@@ -198,20 +198,30 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
-    id: 'MECANICO_AUTOMOTIVO',
-    label: 'Mecânico Automotivo',
-    description: 'Reparos mecânicos em veículos leves e pesados',
+    id: 'MECANICO',
+    label: 'Mecânico',
+    description: 'Reparos mecânicos para todos os tipos de veículos, desde carros até máquinas agrícolas',
     icon: Wrench,
     color: 'bg-gray-100 text-gray-800 border-gray-200',
     category: 'urban',
     clientVisible: true,
     providerVisible: true
   },
+  {
+    id: 'MECANICO_INDUSTRIAL',
+    label: 'Mecânico Industrial',
+    description: 'Manutenção e reparo de equipamentos industriais e sistemas mecânicos',
+    icon: Settings,
+    color: 'bg-slate-100 text-slate-800 border-slate-200',
+    category: 'urban',
+    clientVisible: true,
+    providerVisible: true
+  },
   // Alias para compatibilidade
   {
-    id: 'MECANICO',
+    id: 'MECANICO_AUTOMOTIVO',
     label: 'Mecânico',
-    description: 'Reparos mecânicos em geral',
+    description: 'Reparos mecânicos para todos os tipos de veículos, desde carros até máquinas agrícolas',
     icon: Wrench,
     color: 'bg-gray-100 text-gray-800 border-gray-200',
     category: 'urban',
@@ -265,7 +275,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   {
     id: 'ANALISE_SOLO',
     label: 'Análise de Solo',
-    description: 'Coleta e análise de amostras de solo para correção',
+    description: 'Serviço laboratorial feito por laboratórios - Coleta e análise de amostras de solo para correção',
     icon: TestTube,
     color: 'bg-purple-100 text-purple-800 border-purple-200',
     category: 'agricultural',
@@ -293,19 +303,31 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
-    id: 'COLHEITA_MECANIZADA',
-    label: 'Colheita Mecanizada',
-    description: 'Serviços de colheita mecanizada com colheitadeiras modernas',
+    id: 'COLHEITA_PLANTIO_TERCEIRIZADA',
+    label: 'Colheita e Plantio Terceirizada',
+    description: 'Serviços terceirizados de colheita e plantio mecanizado com equipamentos modernos',
     icon: Wheat,
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    color: 'bg-green-100 text-green-800 border-green-200',
     category: 'agricultural',
     clientVisible: true,
     providerVisible: true
   },
+  // Aliases para compatibilidade
+  {
+    id: 'COLHEITA_MECANIZADA',
+    label: 'Colheita e Plantio Terceirizada',
+    description: 'Serviços terceirizados de colheita e plantio mecanizado com equipamentos modernos',
+    icon: Wheat,
+    color: 'bg-green-100 text-green-800 border-green-200',
+    category: 'agricultural',
+    clientVisible: true,
+    providerVisible: true,
+    showOnlyInAllTab: true
+  },
   {
     id: 'COMPRA_ENTREGA_PECAS',
     label: 'Compra e Entrega de Peças Agrícolas',
-    description: 'Busca e entrega de peças e componentes para máquinas agrícolas',
+    description: 'Serviço para lojas agrícolas - Busca e entrega de peças e componentes para máquinas agrícolas',
     icon: Box,
     color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
     category: 'urban',
@@ -344,13 +366,14 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
   {
     id: 'MECANICO_AGRICOLA',
-    label: 'Mecânico Agrícola',
-    description: 'Manutenção e reparo de tratores, colheitadeiras e implementos',
-    icon: Tractor,
-    color: 'bg-green-100 text-green-800 border-green-200',
+    label: 'Mecânico',
+    description: 'Reparos mecânicos para todos os tipos de veículos, desde carros até máquinas agrícolas',
+    icon: Wrench,
+    color: 'bg-gray-100 text-gray-800 border-gray-200',
     category: 'agricultural',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    showOnlyInAllTab: true
   },
   {
     id: 'OPERADOR_MAQUINAS',
@@ -374,13 +397,14 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
   {
     id: 'PLANTIO_MECANIZADO',
-    label: 'Plantio Mecanizado',
-    description: 'Serviços de plantio mecanizado com plantadeiras de precisão',
+    label: 'Colheita e Plantio Terceirizada',
+    description: 'Serviços terceirizados de colheita e plantio mecanizado com equipamentos modernos',
     icon: Wheat,
     color: 'bg-green-100 text-green-800 border-green-200',
     category: 'agricultural',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    showOnlyInAllTab: true
   },
   {
     id: 'PULVERIZACAO_DRONE',
@@ -404,13 +428,14 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
   {
     id: 'SOCORRO_MECANICO_24H',
-    label: 'Socorro Mecânico 24h',
-    description: 'Atendimento emergencial de mecânica 24 horas',
+    label: 'Guincho e Socorro 24h',
+    description: 'Reboque, socorro e assistência emergencial para veículos 24 horas',
     icon: Wrench,
-    color: 'bg-red-100 text-red-800 border-red-200',
+    color: 'bg-orange-100 text-orange-800 border-orange-200',
     category: 'agricultural',
     clientVisible: true,
-    providerVisible: true
+    providerVisible: true,
+    showOnlyInAllTab: true
   },
   {
     id: 'TERRAPLENAGEM',
@@ -457,7 +482,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   {
     id: 'COMBUSTIVEL',
     label: 'Combustível',
-    description: 'Entrega de combustível',
+    description: 'Entrega de combustível TRR (Transporte Rodoviário de Reabastecimento)',
     icon: Fuel,
     color: 'bg-green-100 text-green-800 border-green-200',
     category: 'urban',
