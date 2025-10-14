@@ -43,14 +43,16 @@ const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
 const CompanyInviteAccept = lazy(() => import("./pages/CompanyInviteAccept"));
 const AffiliateSignup = lazy(() => import("./pages/AffiliateSignup"));
 import DriverInviteSignup from "./pages/DriverInviteSignup";
+import { AlertCircle } from 'lucide-react';
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = false, adminOnly = false }: { 
+const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = false, adminOnly = false, allowedRoles }: { 
   children: React.ReactNode; 
   requiresAuth?: boolean;
   requiresApproval?: boolean;
   adminOnly?: boolean;
+  allowedRoles?: ('PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS' | 'ADMIN')[];
 }) => {
   const { isAuthenticated, isApproved, isAdmin, loading, profile, signOut } = useAuth();
   const { isCompanyDriver, isLoading: isLoadingCompany } = useCompanyDriver();
@@ -61,6 +63,29 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
 
   if (requiresAuth && !isAuthenticated) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Verificar se o usuário tem o role correto
+  if (allowedRoles && profile && !allowedRoles.includes(profile.role as any)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-6">
+        <div className="text-center space-y-6 max-w-md">
+          <div className="space-y-4">
+            <AlertCircle className="h-16 w-16 text-destructive mx-auto" />
+            <h2 className="text-2xl font-bold">Acesso Negado</h2>
+            <p className="text-muted-foreground">
+              Você não tem permissão para acessar esta página.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Esta área é exclusiva para perfis do tipo: {allowedRoles.join(', ')}.
+            </p>
+          </div>
+          <Button onClick={() => window.location.href = '/'}>
+            Voltar à Página Inicial
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (requiresApproval && !isApproved) {
@@ -263,7 +288,7 @@ const App = () => (
             <Route 
               path="/admin" 
               element={
-                <ProtectedRoute requiresAuth adminOnly>
+                <ProtectedRoute requiresAuth adminOnly allowedRoles={['ADMIN']}>
                   <AdminPanel />
                 </ProtectedRoute>
               } 
@@ -271,7 +296,7 @@ const App = () => (
             <Route 
               path="/dashboard/producer" 
               element={
-                <ProtectedRoute requiresAuth requiresApproval>
+                <ProtectedRoute requiresAuth requiresApproval allowedRoles={['PRODUTOR']}>
                   <ProducerDashboard />
                 </ProtectedRoute>
               } 
@@ -279,7 +304,7 @@ const App = () => (
             <Route 
               path="/dashboard/driver" 
               element={
-                <ProtectedRoute requiresAuth requiresApproval>
+                <ProtectedRoute requiresAuth requiresApproval allowedRoles={['MOTORISTA', 'MOTORISTA_AFILIADO']}>
                   <DriverDashboard />
                 </ProtectedRoute>
               } 
@@ -287,7 +312,7 @@ const App = () => (
           <Route 
             path="/dashboard/service-provider" 
             element={
-              <ProtectedRoute requiresAuth requiresApproval>
+              <ProtectedRoute requiresAuth requiresApproval allowedRoles={['PRESTADOR_SERVICOS']}>
                 <ServiceProviderDashboard />
               </ProtectedRoute>
             } 
@@ -295,7 +320,7 @@ const App = () => (
           <Route 
             path="/dashboard/company" 
             element={
-              <ProtectedRoute requiresAuth requiresApproval>
+              <ProtectedRoute requiresAuth requiresApproval allowedRoles={['TRANSPORTADORA']}>
                 <CompanyDashboard />
               </ProtectedRoute>
             } 

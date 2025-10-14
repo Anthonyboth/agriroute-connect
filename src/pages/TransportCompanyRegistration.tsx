@@ -34,6 +34,46 @@ const TransportCompanyRegistration: React.FC = () => {
   });
 
   const [documentsComplete, setDocumentsComplete] = useState(false);
+  const [hasExistingCompany, setHasExistingCompany] = useState(false);
+
+  // Verificar se já tem transportadora e validar role
+  useEffect(() => {
+    const checkExistingCompanyAndRole = async () => {
+      if (!profile?.id) return;
+      
+      // Bloquear se já é outro tipo de usuário (não motorista/não produtor)
+      if (profile.role !== 'MOTORISTA' && profile.role !== 'PRODUTOR' && profile.role !== 'TRANSPORTADORA') {
+        toast.error('Você já possui um tipo de conta que não permite cadastro de transportadora');
+        navigate('/', { replace: true });
+        return;
+      }
+      
+      // Verificar se já tem transportadora
+      const { data } = await supabase
+        .from('transport_companies')
+        .select('*')
+        .eq('profile_id', profile.id)
+        .maybeSingle();
+      
+      if (data) {
+        setHasExistingCompany(true);
+        // Já existe transportadora - atualizar active_mode e redirecionar
+        await supabase
+          .from('profiles')
+          .update({ 
+            role: 'TRANSPORTADORA',
+            active_mode: 'TRANSPORTADORA' 
+          })
+          .eq('id', profile.id);
+        
+        localStorage.setItem('active_mode', 'TRANSPORTADORA');
+        toast.info('Redirecionando para o painel da transportadora...');
+        navigate('/dashboard/company', { replace: true });
+      }
+    };
+    
+    checkExistingCompanyAndRole();
+  }, [profile, navigate]);
 
   // Basic SEO
   useEffect(() => {
@@ -61,10 +101,10 @@ const TransportCompanyRegistration: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (isTransportCompany) {
+    if (isTransportCompany || hasExistingCompany) {
       navigate('/dashboard/company', { replace: true });
     }
-  }, [isTransportCompany, navigate]);
+  }, [isTransportCompany, hasExistingCompany, navigate]);
 
   const handleDocumentsComplete = (docs: typeof documents) => {
     setDocuments(docs);
@@ -122,6 +162,14 @@ const TransportCompanyRegistration: React.FC = () => {
       setLoading(false);
     }
   };
+
+  if (hasExistingCompany || isTransportCompany) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background px-4 py-10">
