@@ -338,7 +338,7 @@ export const useAuth = () => {
           .from('transport_companies')
           .select('status')
           .eq('profile_id', profile.id)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         setCompanyStatus(data?.status || null);
