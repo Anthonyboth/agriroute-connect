@@ -112,6 +112,14 @@ export const useTransportCompany = () => {
         .single();
 
       if (error) throw error;
+      
+      console.log('Convite criado com sucesso:', {
+        invite_code: data.invite_code,
+        company_id: data.company_id,
+        invite_type: data.invite_type,
+        expires_at: data.expires_at
+      });
+      
       return data;
     },
     onSuccess: () => {

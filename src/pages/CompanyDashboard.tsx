@@ -156,7 +156,11 @@ const CompanyDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <Header user={profile ? { ...profile, name: profile.full_name, role: profile.role as any } : undefined} onLogout={signOut} />
+      <Header 
+        user={profile ? { ...profile, name: profile.full_name, role: profile.role as any } : undefined} 
+        onLogout={signOut}
+        userProfile={profile ? { ...profile, active_mode: 'TRANSPORTADORA' } : undefined}
+      />
       
       {/* Hero Section - Transportadora */}
       <section className="relative py-12 overflow-hidden">
