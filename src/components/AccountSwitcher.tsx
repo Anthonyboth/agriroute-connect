@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface Profile {
   id: string;
-  role: 'MOTORISTA' | 'PRODUTOR' | 'ADMIN' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA';
+  role: 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'PRODUTOR' | 'ADMIN' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA';
   full_name: string;
   status: string;
   profile_photo_url?: string;
@@ -60,9 +60,9 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
 
       if (error) throw error;
 
-      // Filtrar apenas perfis de MOTORISTA, PRODUTOR e TRANSPORTADORA
+      // Filtrar apenas perfis de MOTORISTA, MOTORISTA_AFILIADO, PRODUTOR e TRANSPORTADORA
       const filteredProfiles = (userProfiles || []).filter(p => 
-        p.role === 'MOTORISTA' || p.role === 'PRODUTOR' || p.role === 'TRANSPORTADORA'
+        p.role === 'MOTORISTA' || p.role === 'MOTORISTA_AFILIADO' || p.role === 'PRODUTOR' || p.role === 'TRANSPORTADORA'
       );
       setProfiles(filteredProfiles);
     } catch (error) {

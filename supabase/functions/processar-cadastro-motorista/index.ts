@@ -64,7 +64,7 @@ serve(async (req) => {
       user_metadata: {
         full_name: userData.fullName,
         phone: userData.phone,
-        role: 'MOTORISTA',
+        role: 'MOTORISTA_AFILIADO',
         invited_by_company: companyProfileId
       }
     })
@@ -85,7 +85,7 @@ serve(async (req) => {
       phone: userData.phone,
       document: userData.cpf,
       cpf_cnpj: userData.cpf,
-      role: 'MOTORISTA',
+      role: 'MOTORISTA_AFILIADO',
       status: 'APPROVED'
     }
 

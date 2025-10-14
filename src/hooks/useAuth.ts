@@ -9,7 +9,7 @@ interface UserProfile {
   full_name: string;
   phone: string;
   document: string;
-  role: 'PRODUTOR' | 'MOTORISTA' | 'ADMIN' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA';
+  role: 'PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'ADMIN' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA';
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   active_mode?: string | null;
   selfie_url?: string;
