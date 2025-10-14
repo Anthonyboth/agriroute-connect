@@ -216,7 +216,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
         {showDropdown && (cities.length > 0 || isLoading) && (
           <div
             ref={dropdownRef}
-            className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto"
+            className="absolute z-[1000] w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto"
           >
             {isLoading ? (
               <div className="flex items-center justify-center py-4">

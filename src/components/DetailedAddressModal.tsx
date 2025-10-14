@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import GoogleMap from '@/components/GoogleMap';
+import { CitySelector } from './CitySelector';
 
 interface AddressData {
   street: string;
@@ -162,6 +163,7 @@ export const DetailedAddressModal: React.FC<DetailedAddressModalProps> = ({
             <MapPin className="h-5 w-5" />
             {title}
           </DialogTitle>
+          <DialogDescription>Preencha os campos e salve o endereço.</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -201,13 +203,20 @@ export const DetailedAddressModal: React.FC<DetailedAddressModalProps> = ({
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label htmlFor="city">Cidade *</Label>
-                <Input
-                  id="city"
-                  value={addressData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  placeholder="Nome da cidade"
+                <CitySelector
+                  value={{ city: addressData.city, state: addressData.state }}
+                  onChange={(c) => {
+                    setAddressData((prev) => ({
+                      ...prev,
+                      city: c.city || '',
+                      state: c.state || '',
+                      lat: c.lat ?? prev.lat,
+                      lng: c.lng ?? prev.lng,
+                    }));
+                  }}
                   required
+                  label="Cidade"
+                  placeholder="Digite e selecione a cidade"
                 />
               </div>
               <div>
@@ -215,8 +224,8 @@ export const DetailedAddressModal: React.FC<DetailedAddressModalProps> = ({
                 <Input
                   id="state"
                   value={addressData.state}
-                  onChange={(e) => handleInputChange('state', e.target.value)}
-                  placeholder="SP, RJ, MG..."
+                  readOnly
+                  placeholder="UF"
                   required
                 />
               </div>

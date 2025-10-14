@@ -191,9 +191,9 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                   <Label>Tipo de Serviço</Label>
                   <Select value={serviceType} onValueChange={setServiceType}>
                     <SelectTrigger className="w-full">
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione o tipo de serviço" />
                     </SelectTrigger>
-                    <SelectContent className="z-[70]">
+                    <SelectContent>
                       <SelectItem value="CARGA">Transporte de Carga</SelectItem>
                       <SelectItem value="MUDANCA">Frete Urbano</SelectItem>
                       <SelectItem value="GUINCHO">Guincho</SelectItem>
