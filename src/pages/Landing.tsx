@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -140,8 +140,8 @@ const fetchRealStats = async () => {
     }
   };
 
-  const { profiles, switchProfile } = useAuth();
-
+  const { profiles, switchProfile, session } = useAuth();
+  const redirectedRef = useRef(false);
   // Redirecionamento prioritário por querystring (para links de convite)
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -167,50 +167,60 @@ const fetchRealStats = async () => {
 
   // Auto-switch para TRANSPORTADORA quando houver perfil TRANSPORTADORA
   useEffect(() => {
-    const checkAndRedirect = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+    if (redirectedRef.current) return;
+    if (!session?.user?.id) return;
 
-      // Buscar perfil TRANSPORTADORA se houver múltiplos perfis
-      const transportProfile = profiles.find(p => p.role === 'TRANSPORTADORA');
-      if (transportProfile) {
-        // Verificar se existe registro em transport_companies
-        const { data: company } = await supabase
-          .from('transport_companies')
-          .select('id')
-          .eq('profile_id', transportProfile.id)
+    let cancelled = false;
+
+    const checkAndRedirect = async () => {
+      try {
+        // Buscar perfil TRANSPORTADORA se houver múltiplos perfis
+        const transportProfile = profiles.find(p => p.role === 'TRANSPORTADORA');
+        if (transportProfile && !cancelled) {
+          // Verificar se existe registro em transport_companies
+          const { data: company } = await supabase
+            .from('transport_companies')
+            .select('id')
+            .eq('profile_id', transportProfile.id)
+            .maybeSingle();
+
+          if (company && !cancelled) {
+            redirectedRef.current = true;
+            switchProfile(transportProfile.id);
+            navigate('/dashboard/company', { replace: true });
+            return;
+          }
+        }
+
+        // Verificar perfil atual
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, role, active_mode')
+          .eq('user_id', session.user.id)
           .maybeSingle();
 
-        if (company) {
-          await switchProfile(transportProfile.id);
+        if (!profile || cancelled) return;
+
+        // Verificar se é transportadora pelo active_mode ou por registro
+        const { data: currentCompany } = await supabase
+          .from('transport_companies')
+          .select('id')
+          .eq('profile_id', profile.id)
+          .maybeSingle();
+
+        if ((currentCompany || profile.active_mode === 'TRANSPORTADORA') && !cancelled) {
+          redirectedRef.current = true;
           navigate('/dashboard/company', { replace: true });
-          return;
         }
-      }
-
-      // Verificar perfil atual
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, role, active_mode')
-        .eq('user_id', session.user.id)
-        .single();
-
-      if (!profile) return;
-
-      // Verificar se é transportadora pelo active_mode ou por registro
-      const { data: currentCompany } = await supabase
-        .from('transport_companies')
-        .select('id')
-        .eq('profile_id', profile.id)
-        .maybeSingle();
-
-      if (currentCompany || profile.active_mode === 'TRANSPORTADORA') {
-        navigate('/dashboard/company', { replace: true });
+      } catch (e) {
+        // Ignore errors to avoid blocking UI
       }
     };
 
     checkAndRedirect();
-  }, [navigate, profiles, switchProfile]);
+
+    return () => { cancelled = true; };
+  }, [navigate, switchProfile, session?.user?.id, profiles]);
 
   useEffect(() => {
     fetchRealStats();

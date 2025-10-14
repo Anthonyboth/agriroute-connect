@@ -191,7 +191,7 @@ export const useAuth = () => {
   useEffect(() => {
     mountedRef.current = true;
     
-    // Set up auth state listener
+    // Set up auth state listener (only once)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!mountedRef.current) return;
@@ -241,29 +241,34 @@ export const useAuth = () => {
       }
     });
 
-    // Subscribe to profile changes (active_mode updates)
-    const profileChannel = supabase
+    return () => {
+      mountedRef.current = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchProfile]);
+
+  // Subscribe to profile changes for the current user id only
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const channel = supabase
       .channel('profile_changes')
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'profiles',
-        filter: session?.user ? `user_id=eq.${session.user.id}` : undefined
+        filter: `user_id=eq.${session.user.id}`
       }, (payload) => {
         if (!mountedRef.current) return;
         const newProfile = payload.new as UserProfile;
-        if (newProfile.active_mode !== profile?.active_mode) {
-          fetchProfile(newProfile.user_id);
-        }
+        fetchProfile(newProfile.user_id);
       })
       .subscribe();
 
     return () => {
-      mountedRef.current = false;
-      subscription.unsubscribe();
-      profileChannel.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, [fetchProfile, session?.user, profile?.active_mode]);
+  }, [session?.user?.id, fetchProfile]);
 
   // Cleanup ref on unmount
   useEffect(() => {
