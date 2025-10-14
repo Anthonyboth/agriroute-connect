@@ -87,6 +87,9 @@ verify_jwt = false
 [functions.antt-freight-table]
 verify_jwt = false
 
+[functions.antt-calculator]
+verify_jwt = false
+
 [functions.calculate-route]
 verify_jwt = false
 

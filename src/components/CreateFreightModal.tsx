@@ -57,6 +57,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     vehicle_type_required: '',
     vehicle_axles_required: '',
     high_performance: false,
+    vehicle_ownership: 'PROPRIO' as 'PROPRIO' | 'TERCEIROS',
     pickup_observations: '',
     delivery_observations: '',
     payment_method: 'DIRETO',
@@ -99,6 +100,15 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
   const calculateMinimumAnttPrice = async (cargoType: string, weight: number, distance: number, originState: string, destinationState: string): Promise<number> => {
     try {
       const axles = formData.vehicle_axles_required ? parseInt(formData.vehicle_axles_required) : 5;
+      
+      // Derivar table_type (A/B/C/D)
+      let table_type: 'A' | 'B' | 'C' | 'D';
+      if (formData.high_performance) {
+        table_type = formData.vehicle_ownership === 'PROPRIO' ? 'C' : 'D';
+      } else {
+        table_type = formData.vehicle_ownership === 'PROPRIO' ? 'A' : 'B';
+      }
+
       const invoke = supabase.functions.invoke('antt-calculator', {
         body: {
           cargo_type: cargoType,
@@ -106,10 +116,10 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
           axles,
           origin_state: originState || formData.origin_state,
           destination_state: destinationState || formData.destination_state,
-          high_performance: !!formData.high_performance,
+          table_type,
         }
       });
-      const { data, error } = await withTimeoutAny(invoke, 1500);
+      const { data, error } = await withTimeoutAny(invoke, 5000);
       if (error) throw error;
 
       // Persistir no estado para consistência visual da UI
@@ -118,11 +128,9 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
 
       return (data?.minimum_freight_value as number) ?? 0;
     } catch (error) {
-      console.error('Error calculating ANTT price (official):', error);
-      // Fallback simples apenas para não bloquear criação
-      const baseRate = 2.5;
-      const weightFactor = weight > 20 ? 1.2 : 1.0; // toneladas
-      return Math.round(distance * baseRate * weightFactor);
+      console.error('❌ Erro ao calcular ANTT:', error);
+      toast.error("Não foi possível calcular o preço mínimo ANTT. Tente novamente.");
+      return 0;
     }
   };
 
@@ -160,21 +168,31 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     }
     
     try {
+      const axles = parseInt(formData.vehicle_axles_required);
+      
+      // Derivar table_type (A/B/C/D)
+      let table_type: 'A' | 'B' | 'C' | 'D';
+      if (formData.high_performance) {
+        table_type = formData.vehicle_ownership === 'PROPRIO' ? 'C' : 'D';
+      } else {
+        table_type = formData.vehicle_ownership === 'PROPRIO' ? 'A' : 'B';
+      }
+
       console.log('🔢 Calculating ANTT price...', {
         cargo_type: formData.cargo_type,
         distance_km: calculatedDistance,
-        axles: parseInt(formData.vehicle_axles_required),
-        high_performance: formData.high_performance
+        axles,
+        table_type
       });
 
       const { data, error } = await supabase.functions.invoke('antt-calculator', {
         body: {
           cargo_type: formData.cargo_type,
           distance_km: calculatedDistance,
-          axles: parseInt(formData.vehicle_axles_required),
+          axles,
           origin_state: formData.origin_state,
           destination_state: formData.destination_state,
-          high_performance: formData.high_performance
+          table_type
         }
       });
       
@@ -198,7 +216,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
       }
     } catch (error) {
       console.error('Erro ao calcular ANTT:', error);
-      toast.error('Erro ao calcular preço ANTT. Usando valores aproximados.');
+      toast.error('Erro ao calcular preço ANTT. Tente novamente.');
     }
   };
 
@@ -207,7 +225,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     if (showAxlesSelector && formData.vehicle_axles_required && calculatedDistance > 0) {
       calculateAnttPrice();
     }
-  }, [formData.cargo_type, formData.vehicle_axles_required, calculatedDistance, formData.high_performance, showAxlesSelector]);
+  }, [formData.cargo_type, formData.vehicle_axles_required, calculatedDistance, formData.high_performance, formData.vehicle_ownership, showAxlesSelector]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -362,6 +380,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         vehicle_type_required: '',
         vehicle_axles_required: '',
         high_performance: false,
+        vehicle_ownership: 'PROPRIO' as 'PROPRIO' | 'TERCEIROS',
         pickup_observations: '',
         delivery_observations: '',
         payment_method: 'DIRETO',
@@ -645,9 +664,33 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                 </Select>
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Checkbox id="high_performance" checked={formData.high_performance} onCheckedChange={(checked) => handleInputChange('high_performance', checked)} />
-                <Label htmlFor="high_performance" className="text-sm">⚡ Alto Desempenho (Tabela C)</Label>
+              <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+                <div>
+                  <Label>Propriedade do veículo/implemento</Label>
+                  <select
+                    value={formData.vehicle_ownership}
+                    onChange={(e) => handleInputChange('vehicle_ownership', e.target.value as 'PROPRIO' | 'TERCEIROS')}
+                    className="w-full mt-1 px-3 py-2 border rounded-md"
+                  >
+                    <option value="PROPRIO">Próprio</option>
+                    <option value="TERCEIROS">Terceiros</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="high_performance" 
+                    checked={formData.high_performance} 
+                    onCheckedChange={(checked) => handleInputChange('high_performance', checked)} 
+                  />
+                  <Label htmlFor="high_performance" className="text-sm">⚡ Alto Desempenho</Label>
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  Tabela ANTT: {formData.high_performance 
+                    ? (formData.vehicle_ownership === 'PROPRIO' ? 'C (Alto desempenho + Próprio)' : 'D (Alto desempenho + Terceiros)')
+                    : (formData.vehicle_ownership === 'PROPRIO' ? 'A (Lotação + Próprio)' : 'B (Lotação + Terceiros)')}
+                </p>
               </div>
               
               {calculatedAnttPrice && formData.vehicle_axles_required && (formData.price || formData.price_per_km) && (

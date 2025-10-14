@@ -62,7 +62,7 @@ export const ANTTValidation: React.FC<ANTTValidationProps> = ({
               <div className="grid grid-cols-2 gap-1 text-[11px]">
                 <p>Categoria: {anttDetails.antt_category}</p>
                 <p>Eixos: {axles}</p>
-                <p>Tabela: {highPerformance ? 'C (Alto Desempenho)' : 'A (Padrão)'}</p>
+                <p>Tabela: {anttDetails.table_type || (highPerformance ? 'C' : 'A')}</p>
                 <p>Distância: {distance}km</p>
               </div>
             </div>
@@ -104,7 +104,7 @@ export const ANTTValidation: React.FC<ANTTValidationProps> = ({
               <div className="grid grid-cols-2 gap-1">
                 <p>Categoria: {anttDetails.antt_category}</p>
                 <p>Eixos: {axles}</p>
-                <p>Tabela: {highPerformance ? 'C (Alto Desempenho)' : 'A (Padrão)'}</p>
+                <p>Tabela: {anttDetails.table_type || (highPerformance ? 'C' : 'A')}</p>
                 <p>Distância: {distance}km</p>
                 <p className="col-span-2 mt-1 font-mono text-[10px]">{anttDetails.formula}</p>
               </div>

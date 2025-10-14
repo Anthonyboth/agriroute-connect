@@ -13,6 +13,7 @@ interface AnttCalculationRequest {
   origin_state?: string;
   destination_state?: string;
   high_performance?: boolean;
+  table_type?: 'A' | 'B' | 'C' | 'D'; // Override explícito da tabela
 }
 
 interface AnttCalculationResponse {
@@ -44,10 +45,11 @@ serve(async (req) => {
       axles, 
       origin_state,
       destination_state,
-      high_performance = false
+      high_performance = false,
+      table_type
     }: AnttCalculationRequest = await req.json();
     
-    console.log('📊 ANTT Calculation Request:', { cargo_type, distance_km, axles, high_performance });
+    console.log('📊 ANTT Calculation Request:', { cargo_type, distance_km, axles, high_performance, table_type });
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -77,7 +79,8 @@ serve(async (req) => {
     };
     
     const anttCategory = cargoMapping[cargo_type] || 'Carga Geral';
-    const tableType = high_performance ? 'C' : 'A'; // A = Padrão, C = Alto Desempenho
+    // Se table_type vier explícito, usar; senão inferir de high_performance (compatibilidade)
+    const tableType = table_type || (high_performance ? 'C' : 'A');
 
     console.log('🔍 Mapped to ANTT:', { anttCategory, tableType, axles });
 
@@ -117,21 +120,14 @@ serve(async (req) => {
       console.log('✅ ANTT rate found:', rateData);
     }
 
-    // 3. Calcular preço OFICIAL ANTT
+    // 3. Calcular preço OFICIAL ANTT (fórmula exata)
     // Fórmula: (rate_per_km * distance_km) + fixed_charge
-    let basePrice = (parseFloat(rateData.rate_per_km) * distance_km) + parseFloat(rateData.fixed_charge);
+    const basePrice = (parseFloat(rateData.rate_per_km) * distance_km) + parseFloat(rateData.fixed_charge);
 
-    // 4. Taxa interestadual (15%) - se aplicável
-    const interstate = origin_state && destination_state && origin_state !== destination_state;
-    if (interstate) {
-      basePrice *= 1.15;
-      console.log('🚛 Interstate freight (+15%)');
-    }
-
-    // 5. Valores finais
+    // 4. Valores finais (sem incremento interestadual)
     const antt_reference_price = Math.round(basePrice * 100) / 100;
     const minimum_freight_value = Math.round(antt_reference_price * 100) / 100; // O mínimo É o valor ANTT
-    const suggested_freight_value = Math.round(antt_reference_price * 1.10 * 100) / 100; // 10% acima
+    const suggested_freight_value = Math.round(antt_reference_price * 1.10 * 100) / 100; // 10% acima (sugestão comercial)
 
     const response: AnttCalculationResponse = {
       minimum_freight_value,
@@ -145,8 +141,8 @@ serve(async (req) => {
         rate_per_km: parseFloat(rateData.rate_per_km),
         fixed_charge: parseFloat(rateData.fixed_charge),
         high_performance,
-        interstate: !!interstate,
-        formula: `(${rateData.rate_per_km} × ${distance_km}km) + ${rateData.fixed_charge}${interstate ? ' × 1.15' : ''} = R$ ${antt_reference_price.toFixed(2)}`
+        interstate: false, // Removido incremento interestadual
+        formula: `(${rateData.rate_per_km} × ${distance_km}km) + ${rateData.fixed_charge} = R$ ${antt_reference_price.toFixed(2)}`
       }
     };
 
