@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { Loader2, CheckCircle2, XCircle, Building2, User, Mail, Phone, Lock, FileText, MapPin, Truck } from 'lucide-react';
 import { validateCPF, formatCPF } from '@/utils/cpfValidator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { queryWithTimeout } from '@/lib/query-utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DriverInviteSignup() {
   const [searchParams] = useSearchParams();
@@ -19,6 +21,7 @@ export default function DriverInviteSignup() {
   const [submitting, setSubmitting] = useState(false);
   const [tokenValid, setTokenValid] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -44,27 +47,63 @@ export default function DriverInviteSignup() {
 
   const validateToken = async () => {
     if (!token) {
+      console.warn('[DriverInviteSignup] Nenhum token fornecido na URL');
       setTokenValid(false);
+      setError('Link de convite inválido. Nenhum token foi fornecido.');
       setLoading(false);
+      toast.error('Link de convite inválido. Nenhum token foi fornecido.');
       return;
     }
 
-    try {
-      const { data, error } = await supabase.functions.invoke('validar-token-convite', {
-        body: { token }
-      });
+    console.log('[DriverInviteSignup] Validando token:', token);
 
-      if (error) throw error;
+    try {
+      const response = await queryWithTimeout(
+        () => supabase.functions.invoke('validar-token-convite', {
+          body: { token }
+        }),
+        {
+          timeoutMs: 5000,
+          operationName: 'Validação de token de convite'
+        }
+      );
+
+      const { data, error } = response;
+
+      if (error) {
+        console.error('[DriverInviteSignup] Erro na validação:', error);
+        throw error;
+      }
+
+      console.log('[DriverInviteSignup] Resposta recebida:', data);
 
       if (data.valid) {
+        console.log('[DriverInviteSignup] Token válido! Empresa:', data.empresa_nome);
         setTokenValid(true);
         setCompanyInfo({
           company_name: data.empresa_nome
         });
+        setError(null);
+        toast.success('Convite válido! Complete seu cadastro.');
+      } else {
+        console.warn('[DriverInviteSignup] Token inválido ou expirado');
+        setTokenValid(false);
+        setError(data.message || 'Este convite é inválido ou expirou.');
+        toast.error(data.message || 'Este convite é inválido ou expirou.');
       }
     } catch (error: any) {
-      console.error('Erro ao validar token:', error);
+      console.error('[DriverInviteSignup] Falha ao validar token:', error);
       setTokenValid(false);
+      
+      if (error.message?.includes('Timeout')) {
+        const timeoutMsg = 'A verificação do convite demorou muito. Verifique sua conexão e tente novamente.';
+        setError(timeoutMsg);
+        toast.error(timeoutMsg);
+      } else {
+        const errorMsg = error.message || 'Erro ao validar convite. Tente novamente.';
+        setError(errorMsg);
+        toast.error(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -150,9 +189,14 @@ export default function DriverInviteSignup() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       {loading ? (
         <Card className="w-full max-w-2xl">
-          <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[200px]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Validando convite...</p>
+          <CardHeader>
+            <Skeleton className="h-8 w-3/4 mb-2" />
+            <Skeleton className="h-4 w-full" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
           </CardContent>
         </Card>
       ) : !tokenValid ? (
@@ -163,9 +207,29 @@ export default function DriverInviteSignup() {
               <CardTitle className="text-destructive">Convite Inválido</CardTitle>
             </div>
             <CardDescription>
-              Este link de convite é inválido, já foi utilizado ou expirou.
+              {error || 'Este link de convite é inválido, já foi utilizado ou expirou.'}
             </CardDescription>
           </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={() => navigate('/')} 
+              variant="outline" 
+              className="w-full"
+            >
+              Voltar para Página Inicial
+            </Button>
+            <Button 
+              onClick={() => {
+                setLoading(true);
+                setError(null);
+                validateToken();
+              }} 
+              variant="default" 
+              className="w-full"
+            >
+              Tentar Novamente
+            </Button>
+          </CardContent>
         </Card>
       ) : (
         <Card className="w-full max-w-2xl">
