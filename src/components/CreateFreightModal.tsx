@@ -98,23 +98,30 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
 
   const calculateMinimumAnttPrice = async (cargoType: string, weight: number, distance: number, originState: string, destinationState: string): Promise<number> => {
     try {
-      const invoke = supabase.functions.invoke('antt-freight-table', {
-        body: { 
-          cargo_type: cargoType.toLowerCase().replace(/\s+/g, '_'),
-          weight_kg: weight * 1000, // Convert tonnes to kg for ANTT calculation
+      const axles = formData.vehicle_axles_required ? parseInt(formData.vehicle_axles_required) : 5;
+      const invoke = supabase.functions.invoke('antt-calculator', {
+        body: {
+          cargo_type: cargoType,
           distance_km: distance,
-          origin_state: originState,
-          destination_state: destinationState
+          axles,
+          origin_state: originState || formData.origin_state,
+          destination_state: destinationState || formData.destination_state,
+          high_performance: !!formData.high_performance,
         }
       });
       const { data, error } = await withTimeoutAny(invoke, 1500);
       if (error) throw error;
-      return data.minimum_freight_value;
+
+      // Persistir no estado para consistência visual da UI
+      setCalculatedAnttPrice(data.minimum_freight_value);
+      setAnttDetails(data.calculation_details);
+
+      return (data?.minimum_freight_value as number) ?? 0;
     } catch (error) {
-      console.error('Error calculating ANTT price:', error);
-      // Fallback para cálculo local
+      console.error('Error calculating ANTT price (official):', error);
+      // Fallback simples apenas para não bloquear criação
       const baseRate = 2.5;
-      const weightFactor = weight > 20 ? 1.2 : 1.0; // Use tonnes instead of kg
+      const weightFactor = weight > 20 ? 1.2 : 1.0; // toneladas
       return Math.round(distance * baseRate * weightFactor);
     }
   };
@@ -242,9 +249,9 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
       const distance = await calculateDistance(formData.origin_address, formData.destination_address);
       setCalculatedDistance(distance); // Salvar para cálculo ANTT
       
-      // Extract states from addresses (basic extraction)
-      const originState = extractStateFromAddress(formData.origin_address) || 'SP';
-      const destState = extractStateFromAddress(formData.destination_address) || 'RJ';
+      // Usar UF selecionada no formulário; se ausente, tentar extrair do endereço
+      const originState = formData.origin_state || extractStateFromAddress(formData.origin_address) || 'SP';
+      const destState = formData.destination_state || extractStateFromAddress(formData.destination_address) || 'RJ';
       
       const minimumAnttPrice = await calculateMinimumAnttPrice(
         formData.cargo_type,
