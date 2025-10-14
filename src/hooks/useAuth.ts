@@ -62,6 +62,7 @@ export const useAuth = () => {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const [companyStatus, setCompanyStatus] = useState<string | null>(null);
   
   // Prevent multiple simultaneous fetches
   const fetchingRef = useRef(false);
@@ -317,8 +318,42 @@ export const useAuth = () => {
     }
   };
 
+  // Fetch transport company status when profile is TRANSPORTADORA
+  useEffect(() => {
+    const fetchCompanyStatus = async () => {
+      if (!profile) {
+        setCompanyStatus(null);
+        return;
+      }
+
+      const isTransportadora = profile.role === 'TRANSPORTADORA' || profile.active_mode === 'TRANSPORTADORA';
+      
+      if (!isTransportadora) {
+        setCompanyStatus(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('transport_companies')
+          .select('status')
+          .eq('profile_id', profile.id)
+          .single();
+
+        if (error) throw error;
+        setCompanyStatus(data?.status || null);
+      } catch (error) {
+        console.error('[useAuth] Erro ao buscar status da transportadora:', error);
+        setCompanyStatus(null);
+      }
+    };
+
+    fetchCompanyStatus();
+  }, [profile?.id, profile?.role, profile?.active_mode]);
+
   const isAuthenticated = !!user;
-  const isApproved = profile?.status === 'APPROVED';
+  const isTransportadora = profile?.role === 'TRANSPORTADORA' || profile?.active_mode === 'TRANSPORTADORA';
+  const isApproved = profile?.status === 'APPROVED' || (isTransportadora && companyStatus === 'APPROVED');
   const isAdmin = profile?.role === 'ADMIN';
   const hasMultipleProfiles = profiles.length > 1;
 
