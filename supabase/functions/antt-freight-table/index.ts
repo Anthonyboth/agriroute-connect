@@ -93,8 +93,11 @@ serve(async (req) => {
     // Cálculo final
     base_rate_per_km = base_rate_per_km * weight_factor * cargo_multiplier * distance_discount;
     
+    // Segundo ANTT Resolução 5.867/2021:
+    // - minimum_freight_value = valor da tabela ANTT (não pode ser menor)
+    // - suggested_freight_value = sugestão comercial (pode ser maior)
     const antt_reference_price = Math.round(distance_km * (base_rate_per_km + interstate_fee) * 100) / 100;
-    const minimum_freight_value = Math.round(antt_reference_price * 0.95 * 100) / 100; // 5% abaixo da referência
+    const minimum_freight_value = Math.round(antt_reference_price * 100) / 100; // O mínimo É o valor ANTT
     const suggested_freight_value = Math.round(antt_reference_price * 1.1 * 100) / 100; // 10% acima da referência
 
     const response: FreightCalculationResponse = {
