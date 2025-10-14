@@ -106,11 +106,16 @@ export const useTransportCompany = () => {
     }) => {
       if (!company?.id || !profile?.id) throw new Error('Transportadora não encontrada');
 
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 dias a partir de agora
+
       const { data, error } = await supabase
         .from('company_invites')
         .insert({
           company_id: company.id,
           invited_by: profile.id,
+          status: 'PENDING',
+          expires_at: expiresAt.toISOString(),
           ...inviteData,
         })
         .select()

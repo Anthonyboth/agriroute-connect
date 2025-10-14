@@ -54,21 +54,30 @@ const CompanyInviteAccept: React.FC = () => {
           company:transport_companies(company_name, company_cnpj)
         `)
         .eq('invite_code', inviteCode)
-        .eq('status', 'PENDING')
-        .gt('expires_at', new Date().toISOString())
         .single();
 
       if (error || !data) {
-        toast.error('Convite inválido ou expirado');
-        navigate('/auth');
+        console.error('Convite não encontrado:', error);
+        setInviteData(null);
+        setLoading(false);
+        return;
+      }
+
+      // Verificar se o convite é válido
+      const now = new Date();
+      const expiresAt = data.expires_at ? new Date(data.expires_at) : null;
+      
+      if (data.status !== 'PENDING' || (expiresAt && expiresAt < now)) {
+        console.log('Convite inválido ou expirado');
+        setInviteData(null);
+        setLoading(false);
         return;
       }
 
       setInviteData(data);
     } catch (error) {
       console.error('Erro ao validar convite:', error);
-      toast.error('Erro ao validar convite');
-      navigate('/auth');
+      setInviteData(null);
     } finally {
       setLoading(false);
     }
