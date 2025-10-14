@@ -24,7 +24,7 @@ export const CompanyInviteModal: React.FC<CompanyInviteModalProps> = ({
 
     try {
       const invite = await createInvite({ invite_type: 'LINK' });
-      const link = `${window.location.origin}/company-invite/${invite.invite_code}`;
+      const link = `https://www.agriroute-connect.com.br/company-invite/${invite.invite_code}`;
       console.log('Link de convite gerado:', link);
       setGeneratedLink(link);
       toast.success('Link gerado com sucesso! Compartilhe com os motoristas.');
