@@ -155,7 +155,15 @@ const Auth = () => {
         }
       }
 
-      toast.success('Pré-cadastro realizado! Verifique seu email para continuar.');
+      // Verificar se a confirmação por email está desativada
+      if (data.session) {
+        // Email confirmation está OFF - usuário já está logado
+        toast.success('Cadastro concluído! Bem-vindo(a).');
+        navigate('/complete-profile');
+      } else {
+        // Email confirmation está ON - precisa confirmar email
+        toast.success('Conta criada. Você já pode fazer login.');
+      }
     } catch (error: any) {
       console.error('Error during signup:', error);
       toast.error(getErrorMessage(error));
