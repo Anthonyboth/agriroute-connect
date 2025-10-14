@@ -53,7 +53,11 @@ import {
   BarChart, 
   Link2, 
   UserPlus, 
-  Wrench 
+  Wrench,
+  Brain,
+  Navigation,
+  FileText,
+  Target
 } from 'lucide-react';
 import { useGPSMonitoring } from '@/hooks/useGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
