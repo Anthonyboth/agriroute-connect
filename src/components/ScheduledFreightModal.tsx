@@ -50,7 +50,10 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
   const [weight, setWeight] = useState('');
   const [cargoType, setCargoType] = useState('');
   const [description, setDescription] = useState('');
+  const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM'>('PER_KM');
   const [price, setPrice] = useState('');
+  const [pricePerKm, setPricePerKm] = useState('');
+  const [requiredTrucks, setRequiredTrucks] = useState('1');
   
   // Dados do agendamento
   const [scheduledDate, setScheduledDate] = useState<Date>();
@@ -75,6 +78,15 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
     }
     if (!destinationCity || !destinationState) {
       toast.error('Por favor, preencha o endereço de destino completo com cidade e estado');
+      return;
+    }
+
+    if (pricingType === 'PER_KM' && !pricePerKm) {
+      toast.error('Por favor, informe o valor por KM');
+      return;
+    }
+    if (pricingType === 'FIXED' && !price) {
+      toast.error('Por favor, informe o valor fixo do frete');
       return;
     }
 
@@ -106,7 +118,10 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
         
         cargo_type: cargoType,
         description,
-        price: parseFloat(price),
+        pricing_type: pricingType,
+        price: pricingType === 'FIXED' ? parseFloat(price) : null,
+        price_per_km: pricingType === 'PER_KM' ? parseFloat(pricePerKm) : null,
+        required_trucks: parseInt(requiredTrucks),
         service_type: serviceType,
         status: 'OPEN' as const,
         
@@ -155,7 +170,10 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
     setWeight('');
     setCargoType('');
     setDescription('');
+    setPricingType('PER_KM');
     setPrice('');
+    setPricePerKm('');
+    setRequiredTrucks('1');
     setScheduledDate(undefined);
     setFlexibleDates(false);
     setDateRangeStart(undefined);
@@ -230,8 +248,8 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                   />
                 </div>
 
-                {/* Cargo, Peso e Valor */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Cargo e Peso */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label>Tipo de Carga *</Label>
                     <div className="relative">
@@ -258,19 +276,69 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                       required
                     />
                   </div>
+                </div>
 
+                {/* Tipo de Cobrança */}
+                <div className="space-y-2">
+                  <Label>Tipo de Cobrança *</Label>
+                  <Select value={pricingType} onValueChange={(value: 'FIXED' | 'PER_KM') => setPricingType(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PER_KM">Por Quilômetro (R$/km)</SelectItem>
+                      <SelectItem value="FIXED">Valor Fixo (R$)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Campos de Valor Condicional */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label>Valor Estimado (R$) *</Label>
+                    <Label>Número de Carretas *</Label>
                     <Input
                       type="number"
-                      placeholder="Ex: 1500.00"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      step="0.01"
+                      placeholder="1"
+                      value={requiredTrucks}
+                      onChange={(e) => setRequiredTrucks(e.target.value)}
                       min="1"
                       required
                     />
                   </div>
+
+                  {pricingType === 'FIXED' ? (
+                    <div className="space-y-2">
+                      <Label>Valor Fixo (R$) *</Label>
+                      <Input
+                        type="number"
+                        placeholder="Ex: 5000.00"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        step="0.01"
+                        min="1"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Valor total do frete
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Valor por KM (R$/km) *</Label>
+                      <Input
+                        type="number"
+                        placeholder="Ex: 8.50"
+                        value={pricePerKm}
+                        onChange={(e) => setPricePerKm(e.target.value)}
+                        step="0.01"
+                        min="0.01"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Valor será calculado baseado na distância
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
