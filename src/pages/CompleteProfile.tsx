@@ -529,10 +529,17 @@ const CompleteProfile = () => {
       
       console.log('✅ Perfil salvo com sucesso!');
 
-      // Trigger automatic approval process
-      AutomaticApprovalService.triggerApprovalProcess(profile.id);
-
-      toast.success('Perfil completado com sucesso! Você já pode acessar a plataforma.');
+      // Trigger automatic approval process and wait for result
+      console.log('🤖 Iniciando aprovação automática...');
+      const approvalResult = await AutomaticApprovalService.triggerApprovalProcess(profile.id);
+      
+      if (approvalResult?.approved) {
+        console.log('✅ Perfil aprovado automaticamente!');
+        toast.success('Perfil completado e aprovado! Bem-vindo(a) ao AgriRoute Connect.');
+      } else {
+        console.log('⏳ Perfil em análise manual');
+        toast.success('Perfil completado! Você já pode acessar a plataforma.');
+      }
       
       // Redirect to appropriate dashboard
       if (isDriver) {

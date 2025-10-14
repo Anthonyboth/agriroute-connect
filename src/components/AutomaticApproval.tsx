@@ -68,64 +68,109 @@ export class AutomaticApprovalService {
 
       const validationResults: Record<string, DocumentValidation> = {};
       let totalScore = 0;
-      let validationCount = 0;
+      let validatedCount = 0;
+      let allMandatoryValid = true;
 
-      // Validate CPF/CNPJ
+      // Detect if user is a driver
+      const isDriver = ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile.role);
+
+      // Define mandatory and optional documents
+      const mandatoryDocs = ['selfie_url', 'document_photo_url'];
+      if (isDriver) {
+        mandatoryDocs.push('cnh_photo_url', 'address_proof_url');
+      }
+
+      const optionalDocs = isDriver ? ['truck_documents_url', 'truck_photo_url', 'license_plate_photo_url'] : [];
+
+      // Validate CPF/CNPJ if present
+      let cpfValid = true;
       if (profile.cpf_cnpj) {
-        const isValidDocument = validateDocument(profile.cpf_cnpj);
+        cpfValid = validateDocument(profile.cpf_cnpj);
         validationResults['cpf_cnpj'] = {
-          isValid: isValidDocument,
-          confidence: isValidDocument ? 1.0 : 0,
-          errors: isValidDocument ? [] : ['CPF/CNPJ inválido']
+          isValid: cpfValid,
+          confidence: cpfValid ? 1.0 : 0,
+          errors: cpfValid ? [] : ['CPF/CNPJ inválido']
         };
-        totalScore += validationResults['cpf_cnpj'].confidence;
-        validationCount++;
-      }
-
-      // Validate required documents
-      const requiredDocs = ['selfie_url', 'document_photo_url'];
-      if (profile.role === 'MOTORISTA') {
-        requiredDocs.push(
-          'cnh_photo_url',
-          'truck_documents_url',
-          'truck_photo_url',
-          'license_plate_photo_url',
-          'address_proof_url'
-        );
-      }
-
-      for (const docField of requiredDocs) {
-        const docUrl = profile[docField];
-        if (docUrl) {
-          const validation = await this.validateDocumentImage(docUrl, docField);
-          validationResults[docField] = validation;
-          totalScore += validation.confidence;
-          validationCount++;
+        if (cpfValid) {
+          totalScore += 1;
+          validatedCount++;
         } else {
+          allMandatoryValid = false;
+        }
+      }
+
+      // Validate mandatory documents
+      for (const docField of mandatoryDocs) {
+        const docUrl = profile[docField];
+        if (!docUrl) {
           validationResults[docField] = {
             isValid: false,
             confidence: 0,
             errors: [`${docField} não fornecido`]
           };
-          validationCount++;
+          allMandatoryValid = false;
+          console.log(`❌ Mandatory document missing: ${docField}`);
+        } else {
+          const validation = await this.validateDocumentImage(docUrl, docField);
+          validationResults[docField] = validation;
+          totalScore += validation.confidence;
+          validatedCount++;
+          if (!validation.isValid) {
+            allMandatoryValid = false;
+          }
+          console.log(`✓ Mandatory document validated: ${docField} - valid: ${validation.isValid}`);
         }
       }
 
-      const finalScore = validationCount > 0 ? totalScore / validationCount : 0;
-      const approved = finalScore >= 0.8; // 80% confidence threshold
+      // Validate optional documents (only if present, don't penalize if missing)
+      for (const docField of optionalDocs) {
+        const docUrl = profile[docField];
+        if (docUrl) {
+          const validation = await this.validateDocumentImage(docUrl, docField);
+          validationResults[docField] = validation;
+          totalScore += validation.confidence;
+          validatedCount++;
+          console.log(`✓ Optional document validated: ${docField} - valid: ${validation.isValid}`);
+        } else {
+          console.log(`ℹ Optional document not provided: ${docField} (not penalized)`);
+        }
+      }
+
+      const finalScore = validatedCount > 0 ? totalScore / validatedCount : 0;
+      const approved = cpfValid && allMandatoryValid;
+
+      console.log(`🔍 Approval decision for ${profileId}:`, { 
+        approved, 
+        cpfValid, 
+        allMandatoryValid, 
+        finalScore: (finalScore * 100).toFixed(1) + '%' 
+      });
 
       // Update profile status
       if (approved) {
-        await supabase
+        const statusUpdate: any = {
+          status: 'APPROVED' as const,
+          document_validation_status: 'VALIDATED' as const,
+          background_check_status: 'VALIDATED' as const,
+          ...(isDriver ? {
+            cnh_validation_status: 'VALIDATED' as const,
+            rntrc_validation_status: 'VALIDATED' as const
+          } : {})
+        };
+        
+        console.log('💾 Atualizando status do perfil para APPROVED:', statusUpdate);
+        
+        const { error: updateError } = await supabase
           .from('profiles')
-          .update({
-            status: 'APPROVED',
-            document_validation_status: 'VALIDATED',
-            cnh_validation_status: profile.role === 'MOTORISTA' ? 'VALIDATED' : profile.cnh_validation_status,
-            rntrc_validation_status: profile.role === 'MOTORISTA' ? 'VALIDATED' : profile.rntrc_validation_status,
-            background_check_status: 'VALIDATED'
-          })
+          .update(statusUpdate)
           .eq('id', profileId);
+        
+        if (updateError) {
+          console.error('❌ ERRO ao atualizar status do perfil:', updateError);
+          throw updateError;
+        }
+        
+        console.log('✅ Status do perfil atualizado com sucesso!');
 
         // Create validation history
         await supabase
