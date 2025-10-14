@@ -779,7 +779,7 @@ const CompleteProfile = () => {
                   </Button>
 
                   <Dialog open={showSelfieModal} onOpenChange={setShowSelfieModal}>
-                    <DialogContent>
+                    <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Capturar Selfie</DialogTitle>
                       </DialogHeader>

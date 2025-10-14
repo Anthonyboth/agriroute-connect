@@ -325,38 +325,40 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
 
         <canvas ref={canvasRef} className="hidden" />
 
-        <div className="flex gap-2 justify-center">
-          {isStreaming && (
-            <>
-              <Button 
-                onClick={capturePhoto} 
-                size="lg" 
-                className="flex-1" 
-                disabled={!videoReady}
-              >
-                <Camera className="mr-2 h-4 w-4" />
-                {videoReady ? 'Capturar' : 'Carregando...'}
-              </Button>
-              {onCancel && (
-                <Button variant="outline" onClick={onCancel}>
-                  <X className="h-4 w-4" />
+        <div className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 pt-3 pb-1 -mx-6 px-6 border-t">
+          <div className="flex gap-2 justify-center">
+            {isStreaming && (
+              <>
+                <Button 
+                  onClick={capturePhoto} 
+                  size="lg" 
+                  className="flex-1" 
+                  disabled={!videoReady}
+                >
+                  <Camera className="mr-2 h-4 w-4" />
+                  {videoReady ? 'Capturar' : 'Carregando...'}
                 </Button>
-              )}
-            </>
-          )}
+                {onCancel && (
+                  <Button variant="outline" onClick={onCancel}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </>
+            )}
 
-          {currentImage && (
-            <>
-              <Button onClick={retakePhoto} variant="outline" size="lg">
-                <RotateCcw className="mr-2 h-4 w-4" />
-                {uploadMethod === 'CAMERA' ? 'Refazer' : 'Escolher Outra'}
-              </Button>
-              <Button onClick={confirmPhoto} size="lg" className="flex-1">
-                <Check className="mr-2 h-4 w-4" />
-                Confirmar
-              </Button>
-            </>
-          )}
+            {currentImage && (
+              <>
+                <Button onClick={retakePhoto} variant="outline" size="lg">
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  {uploadMethod === 'CAMERA' ? 'Refazer' : 'Escolher Outra'}
+                </Button>
+                <Button onClick={confirmPhoto} size="lg" className="flex-1">
+                  <Check className="mr-2 h-4 w-4" />
+                  Confirmar
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         <p className="text-xs text-muted-foreground text-center">
