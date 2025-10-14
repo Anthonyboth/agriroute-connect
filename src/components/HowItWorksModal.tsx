@@ -2,12 +2,12 @@ import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Truck, Users, MapPin, DollarSign, Clock, FileText } from 'lucide-react';
+import { CheckCircle, Truck, Users, MapPin, DollarSign, Clock, FileText, Building2, FileCheck, UserPlus, Package, Users2, BarChart3 } from 'lucide-react';
 
 interface HowItWorksModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userType: 'PRODUTOR' | 'MOTORISTA';
+  userType: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA';
   onProceed?: () => void;
 }
 
@@ -80,19 +80,68 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
     }
   ];
 
-  const steps = isProducer ? producerSteps : driverSteps;
+  const transportadoraSteps = [
+    {
+      icon: Building2,
+      title: "1. Cadastre sua Empresa",
+      description: "Registre sua transportadora com CNPJ, ANTT e documentação completa"
+    },
+    {
+      icon: FileCheck,
+      title: "2. Validação de Documentos",
+      description: "Nossa equipe valida CNPJ, ANTT e documentos para garantir conformidade"
+    },
+    {
+      icon: UserPlus,
+      title: "3. Convide Motoristas",
+      description: "Envie convites para seus motoristas se afiliarem à sua transportadora"
+    },
+    {
+      icon: Truck,
+      title: "4. Cadastre sua Frota",
+      description: "Adicione veículos e vincule-os aos motoristas da sua equipe"
+    },
+    {
+      icon: Package,
+      title: "5. Receba Fretes",
+      description: "Visualize fretes disponíveis e aceite os mais rentáveis para sua operação"
+    },
+    {
+      icon: Users2,
+      title: "6. Distribua para Motoristas",
+      description: "Atribua fretes aceitos aos seus motoristas disponíveis"
+    },
+    {
+      icon: DollarSign,
+      title: "7. Gerencie Pagamentos",
+      description: "Controle recebimentos dos produtores e pagamentos aos motoristas"
+    },
+    {
+      icon: BarChart3,
+      title: "8. Acompanhe Resultados",
+      description: "Monitore desempenho, lucros e eficiência da sua operação"
+    }
+  ];
+
+  const steps = userType === 'PRODUTOR' ? producerSteps : 
+              userType === 'MOTORISTA' ? driverSteps : 
+              transportadoraSteps;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center mb-2">
-            {isProducer ? 'Como Funciona para Produtores' : 'Como Funciona para Motoristas'}
+            {userType === 'PRODUTOR' ? 'Como Funciona para Produtores' : 
+             userType === 'MOTORISTA' ? 'Como Funciona para Motoristas' :
+             'Como Funciona para Transportadoras'}
           </DialogTitle>
           <DialogDescription className="text-center text-lg">
-            {isProducer 
+            {userType === 'PRODUTOR' 
               ? 'Conecte sua produção ao destino de forma simples e segura'
-              : 'Encontre fretes rentáveis e expanda seu negócio de transporte'
+              : userType === 'MOTORISTA'
+              ? 'Encontre fretes rentáveis e expanda seu negócio de transporte'
+              : 'Gerencie sua frota e motoristas com eficiência e aumente seus lucros'
             }
           </DialogDescription>
         </DialogHeader>
@@ -104,10 +153,12 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                  {isProducer ? '🌾' : '🚛'}
+                  {userType === 'PRODUTOR' ? '🌾' : userType === 'MOTORISTA' ? '🚛' : '🏢'}
                 </div>
                 <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  {isProducer ? 'Fluxo do Produtor' : 'Fluxo do Motorista'}
+                  {userType === 'PRODUTOR' ? 'Fluxo do Produtor' : 
+                   userType === 'MOTORISTA' ? 'Fluxo do Motorista' :
+                   'Fluxo da Transportadora'}
                 </h3>
               </div>
             </div>
@@ -141,8 +192,8 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
               <div className="text-primary/60 text-4xl animate-bounce">↓</div>
             </div>
 
-            {/* Fluxo secundário - segunda linha (passos 5-6) */}
-            <div className="flex justify-center items-center gap-6">
+            {/* Fluxo secundário - segunda linha (restante dos passos) */}
+            <div className="flex flex-wrap justify-center items-center gap-6">
               {steps.slice(4).map((step, stepIndex) => (
                 <React.Fragment key={`step-${stepIndex + 4}-${step.title}`}>
                   <div className="flex flex-col items-center min-w-[140px] text-center group animate-fade-in" 
@@ -212,7 +263,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
           </CardHeader>
           <CardContent className="relative z-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {isProducer ? (
+              {userType === 'PRODUTOR' ? (
                 <>
                   <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
                     <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
@@ -251,7 +302,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
                     </div>
                   </div>
                 </>
-              ) : (
+              ) : userType === 'MOTORISTA' ? (
                 <>
                   <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
                     <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
@@ -290,6 +341,63 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
                     </div>
                   </div>
                 </>
+              ) : (
+                <>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Gestão Centralizada</h4>
+                      <p className="text-sm text-muted-foreground">Controle total da frota e motoristas em uma plataforma</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-accent/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Mais Eficiência</h4>
+                      <p className="text-sm text-muted-foreground">Otimize rotas e maximize a utilização da frota</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Escalabilidade</h4>
+                      <p className="text-sm text-muted-foreground">Cresça seu negócio sem limites de motoristas ou veículos</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-accent/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Transparência Total</h4>
+                      <p className="text-sm text-muted-foreground">Acompanhe em tempo real toda operação e financeiro</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Suporte Dedicado</h4>
+                      <p className="text-sm text-muted-foreground">Equipe especializada para auxiliar sua transportadora</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-accent/10 hover:shadow-md transition-all group">
+                    <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Pagamentos Simplificados</h4>
+                      <p className="text-sm text-muted-foreground">Receba dos produtores e pague motoristas automaticamente</p>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </CardContent>
@@ -303,9 +411,11 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             onClick={onProceed || onClose}
           >
             <span className="mr-3">
-              {isProducer ? '🌾' : '🚛'}
+              {userType === 'PRODUTOR' ? '🌾' : userType === 'MOTORISTA' ? '🚛' : '🏢'}
             </span>
-            {isProducer ? 'Começar como Produtor' : 'Começar como Motorista'}
+            {userType === 'PRODUTOR' ? 'Começar como Produtor' : 
+             userType === 'MOTORISTA' ? 'Começar como Motorista' :
+             'Começar como Transportadora'}
             <span className="ml-3">→</span>
           </Button>
         </div>
