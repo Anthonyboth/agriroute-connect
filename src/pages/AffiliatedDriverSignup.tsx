@@ -67,10 +67,11 @@ const AffiliatedDriverSignup = () => {
           return;
         }
 
-        if (data.status !== 'ACTIVE') {
+        const allowedStatuses = ['ACTIVE', 'PENDING', 'APPROVED'];
+        if (data.status && !allowedStatuses.includes(data.status)) {
           setCompanyValid(false);
           setCompanyName('');
-          toast.error('Transportadora não está ativa no sistema.');
+          toast.error('Transportadora com status inválido para afiliados.');
           return;
         }
 
@@ -125,7 +126,7 @@ const AffiliatedDriverSignup = () => {
             phone,
             document,
             is_affiliated_driver: true,
-            affiliated_company_cnpj: companyCNPJ
+            affiliated_company_cnpj: companyCNPJ.replace(/\D/g, '')
           }
         }
       });
