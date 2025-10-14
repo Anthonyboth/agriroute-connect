@@ -78,8 +78,13 @@ export const useTransportCompany = () => {
 
       if (error) throw error;
 
-      // Note: Role is already included in profiles table
-      // No need to update user_roles separately
+      // Atualizar o role do perfil para TRANSPORTADORA
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ role: 'TRANSPORTADORA' })
+        .eq('id', profile.id);
+
+      if (updateError) throw updateError;
 
       return data;
     },
