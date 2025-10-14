@@ -74,7 +74,7 @@ export const useTransportCompany = () => {
         .insert({
           profile_id: profile.id,
           company_name: companyData.company_name,
-          company_cnpj: companyData.company_cnpj,
+          company_cnpj: companyData.company_cnpj.replace(/\D/g, ''),
           antt_registration: companyData.antt_registration,
           address: companyData.address,
           city: companyData.city,

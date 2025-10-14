@@ -142,7 +142,7 @@ const Auth = () => {
             .insert({
               profile_id: profileData.id,
               company_name: companyName,
-              company_cnpj: companyCNPJ,
+              company_cnpj: companyCNPJ.replace(/\D/g, ''),
               antt_registration: companyANTT,
               address: companyAddress,
               status: 'PENDING'

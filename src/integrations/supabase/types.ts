@@ -4890,6 +4890,14 @@ export type Database = {
           service_compatibility_score: number
         }[]
       }
+      find_company_by_cnpj: {
+        Args: { p_cnpj: string }
+        Returns: {
+          company_name: string
+          id: string
+          status: string
+        }[]
+      }
       find_drivers_by_origin: {
         Args: { freight_uuid: string }
         Returns: {
