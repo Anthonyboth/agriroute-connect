@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Loader2, Truck } from 'lucide-react';
 import { z } from 'zod';
+import { getErrorMessage } from '@/lib/error-handler';
 
 const registerSchema = z.object({
   full_name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
@@ -90,6 +91,9 @@ export default function AffiliateSignup() {
       const validatedData = registerSchema.parse(formData);
       setSubmitting(true);
 
+      // Sanitize document - only digits
+      const cleanDoc = validatedData.cpf_cnpj.replace(/\D/g, '');
+
       // 1. Criar usuário no Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validatedData.email,
@@ -98,7 +102,7 @@ export default function AffiliateSignup() {
           data: {
             full_name: validatedData.full_name,
             phone: validatedData.phone,
-            cpf_cnpj: validatedData.cpf_cnpj,
+            cpf_cnpj: cleanDoc,
             role: 'MOTORISTA'
           },
           emailRedirectTo: `${window.location.origin}/`
@@ -116,7 +120,7 @@ export default function AffiliateSignup() {
           full_name: validatedData.full_name,
           email: validatedData.email,
           phone: validatedData.phone,
-          cpf_cnpj: validatedData.cpf_cnpj,
+          cpf_cnpj: cleanDoc,
           role: 'MOTORISTA',
           status: 'PENDING'
         });
@@ -158,7 +162,7 @@ export default function AffiliateSignup() {
         setErrors(fieldErrors);
       } else {
         console.error('Erro ao criar conta:', error);
-        toast.error('Erro ao criar conta. Tente novamente.');
+        toast.error(getErrorMessage(error));
       }
     } finally {
       setSubmitting(false);
