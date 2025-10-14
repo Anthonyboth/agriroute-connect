@@ -10,6 +10,8 @@ import { Truck, Plus, Edit, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { DocumentUpload } from '@/components/DocumentUpload';
+import { useNavigate } from 'react-router-dom';
+import { useTransportCompany } from '@/hooks/useTransportCompany';
 
 const VEHICLE_TYPES = [
   { value: 'VUC', label: 'Caminhão 3/4' },
@@ -41,6 +43,8 @@ interface VehicleManagerProps {
 
 export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { isTransportCompany } = useTransportCompany();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
@@ -168,9 +172,37 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
     return VEHICLE_TYPES.find(v => v.value === type)?.label || type;
   };
 
+  const handleAddVehicle = () => {
+    // Verificar se é afiliado
+    if (driverProfile.role === 'MOTORISTA_AFILIADO') {
+      toast({
+        title: "Não permitido",
+        description: "Motoristas afiliados não podem cadastrar veículos próprios. Use os veículos da transportadora.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Verificar se é autônomo com 1 veículo
+    if (vehicles.length >= 1 && driverProfile.role === 'MOTORISTA' && !isTransportCompany) {
+      toast({
+        title: "Limite atingido",
+        description: "Você já tem 1 veículo cadastrado. Para cadastrar mais veículos, transforme sua conta em transportadora.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    resetForm();
+    setIsAddModalOpen(true);
+  };
+
   useEffect(() => {
     fetchVehicles();
   }, [driverProfile]);
+
+  const isVehicleLimitReached = vehicles.length >= 1 && driverProfile.role === 'MOTORISTA' && !isTransportCompany;
+  const isAffiliated = driverProfile.role === 'MOTORISTA_AFILIADO';
 
   return (
     <div className="space-y-6">
@@ -178,7 +210,10 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
         <h3 className="text-lg font-semibold">Meus Veículos</h3>
         <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+            <Button 
+              onClick={handleAddVehicle}
+              disabled={isVehicleLimitReached || isAffiliated}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Veículo
             </Button>
@@ -308,6 +343,31 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Mensagem de limite atingido */}
+      {isVehicleLimitReached && (
+        <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            Limite de 1 veículo atingido. {' '}
+            <Button 
+              variant="link" 
+              className="p-0 h-auto text-amber-800 dark:text-amber-200 underline"
+              onClick={() => navigate('/cadastro-transportadora')}
+            >
+              Transforme sua conta em transportadora
+            </Button>
+            {' '} para cadastrar mais veículos e gerenciar motoristas.
+          </p>
+        </div>
+      )}
+
+      {isAffiliated && (
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            Motoristas afiliados não podem cadastrar veículos próprios. Entre em contato com sua transportadora para usar os veículos da empresa.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {vehicles.map((vehicle) => (

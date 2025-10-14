@@ -9,11 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { StarRating } from '@/components/StarRating';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, User, MapPin, Phone, Mail, Calendar, Award } from 'lucide-react';
+import { Camera, User, MapPin, Phone, Mail, Calendar, Award, Trash2 } from 'lucide-react';
 import { ProfilePhotoUpload } from '@/components/ProfilePhotoUpload';
 import { StructuredAddressForm } from '@/components/StructuredAddressForm';
 import { formatAddress, Address } from '@/lib/address-utils';
 import { CompanyModeToggle } from '@/components/CompanyModeToggle';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -31,6 +32,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [editMode, setEditMode] = useState(false);
   const [ratingDistribution, setRatingDistribution] = useState<{ star_rating: number; count: number }[]>([]);
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string>('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [secondConfirmOpen, setSecondConfirmOpen] = useState(false);
   const [profileData, setProfileData] = useState({
     full_name: '',
     phone: '',
@@ -169,6 +173,72 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       address_state: address.state || '',
       address_zip: address.zip || '',
     });
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation.toUpperCase() !== 'EXCLUIR') {
+      toast({
+        title: "Confirmação incorreta",
+        description: "Digite 'EXCLUIR' (em maiúsculas) para confirmar a exclusão da conta.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setSecondConfirmOpen(true);
+  };
+
+  const handleFinalDeleteAccount = async () => {
+    try {
+      setLoading(true);
+      
+      // 1. Deletar perfil atual
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id);
+      
+      if (profileError) throw profileError;
+      
+      // 2. Verificar se há outros perfis para este usuário
+      const { data: remainingProfiles, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.user_id);
+      
+      if (checkError) throw checkError;
+      
+      // 3. Se não há mais perfis, fazer logout completo
+      if (!remainingProfiles || remainingProfiles.length === 0) {
+        await supabase.auth.signOut();
+        toast({
+          title: "Conta excluída",
+          description: "Sua conta foi excluída com sucesso.",
+        });
+        window.location.href = '/';
+      } else {
+        // Se há outros perfis, apenas fechar modal e recarregar
+        toast({
+          title: "Perfil excluído",
+          description: "Este perfil foi excluído. Você ainda tem outros perfis ativos.",
+        });
+        onClose();
+        window.location.reload();
+      }
+      
+    } catch (error: any) {
+      console.error('Erro ao excluir conta:', error);
+      toast({
+        title: "Erro ao excluir conta",
+        description: error.message || "Não foi possível excluir sua conta. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setDeleteDialogOpen(false);
+      setSecondConfirmOpen(false);
+      setDeleteConfirmation('');
+    }
   };
 
   const getUserInitials = (name: string) => {
@@ -508,6 +578,84 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Zona de Perigo - Excluir Conta */}
+            <div className="pt-6 border-t mt-6">
+              <h3 className="text-lg font-semibold text-destructive mb-2">Zona de Perigo</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                A exclusão da sua conta é permanente e não pode ser desfeita. Todos os seus dados serão removidos.
+              </p>
+              
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir Conta
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Isso irá excluir permanentemente sua conta
+                      e remover todos os seus dados dos nossos servidores.
+                      <br /><br />
+                      Para confirmar, digite <strong>EXCLUIR</strong> no campo abaixo:
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  
+                  <Input
+                    value={deleteConfirmation}
+                    onChange={(e) => setDeleteConfirmation(e.target.value)}
+                    placeholder="Digite EXCLUIR"
+                    className="mt-2"
+                  />
+                  
+                  <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setDeleteConfirmation('')}>
+                      Cancelar
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDeleteAccount}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Continuar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              
+              {/* Segunda confirmação */}
+              <AlertDialog open={secondConfirmOpen} onOpenChange={setSecondConfirmOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Última confirmação</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Você tem certeza que deseja excluir sua conta permanentemente?
+                      <br /><br />
+                      <strong>Esta é sua última chance de cancelar.</strong>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  
+                  <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => {
+                      setSecondConfirmOpen(false);
+                      setDeleteDialogOpen(false);
+                      setDeleteConfirmation('');
+                    }}>
+                      Não, manter minha conta
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleFinalDeleteAccount}
+                      disabled={loading}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {loading ? 'Excluindo...' : 'Sim, excluir permanentemente'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </div>
       </DialogContent>

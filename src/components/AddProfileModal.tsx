@@ -35,6 +35,49 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
         return;
       }
 
+      // Buscar perfil atual para pegar o documento
+      const { data: currentProfile } = await supabase
+        .from('profiles')
+        .select('document')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!currentProfile?.document) {
+        toast.error('Documento não encontrado no perfil atual');
+        return;
+      }
+
+      // Verificar se já existe perfil com este documento e role
+      const { data: existingProfiles, error: checkError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('document', currentProfile.document);
+
+      if (checkError) {
+        console.error('Error checking existing profiles:', checkError);
+      }
+
+      if (existingProfiles) {
+        // Verificar se já tem perfil do tipo motorista (qualquer tipo)
+        const hasMotorista = existingProfiles.some(p => 
+          p.role === 'MOTORISTA' || p.role === 'MOTORISTA_AFILIADO'
+        );
+        
+        if (hasMotorista && targetRole === 'MOTORISTA') {
+          toast.error('Este CPF/CNPJ já possui um cadastro como motorista.');
+          setLoading(false);
+          return;
+        }
+        
+        // Verificar se já tem perfil do role alvo
+        const hasTargetRole = existingProfiles.some(p => p.role === targetRole);
+        if (hasTargetRole) {
+          toast.error(`Este CPF/CNPJ já possui um cadastro como ${targetRole}.`);
+          setLoading(false);
+          return;
+        }
+      }
+
       // Chamar a função do Supabase para criar perfil adicional
       const { data, error } = await supabase.rpc('create_additional_profile', {
         p_user_id: user.id,
@@ -43,7 +86,13 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
 
       if (error) {
         console.error('Error creating additional profile:', error);
-        toast.error(`Erro ao criar perfil de ${targetRole === 'MOTORISTA' ? 'motorista' : 'produtor'}`);
+        
+        // Verificar se é erro de unicidade
+        if (error.message?.includes('já possui um cadastro')) {
+          toast.error(error.message);
+        } else {
+          toast.error(`Erro ao criar perfil de ${targetRole === 'MOTORISTA' ? 'motorista' : 'produtor'}`);
+        }
         return;
       }
 
@@ -52,9 +101,15 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
       onProfileAdded();
       onClose();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating profile:', error);
-      toast.error('Erro ao criar novo perfil');
+      
+      // Verificar se é erro de constraint do banco
+      if (error.message?.includes('já possui um cadastro')) {
+        toast.error(error.message);
+      } else {
+        toast.error('Erro ao criar novo perfil');
+      }
     } finally {
       setLoading(false);
     }

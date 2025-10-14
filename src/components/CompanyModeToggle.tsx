@@ -75,11 +75,13 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
     }
   };
 
-  // Este toggle só deve aparecer para MOTORISTAS que são DONOS de transportadora
-  // Não deve aparecer para:
-  // - TRANSPORTADORA (role) - são empresas, não pessoas
+  // Este toggle só deve aparecer para MOTORISTAS AUTÔNOMOS que são DONOS de transportadora
+  // NUNCA mostrar para:
+  // - TRANSPORTADORA (role) - são empresas, não pessoas físicas
   // - MOTORISTA_AFILIADO - são empregados, não donos
   // - PRODUTOR ou PRESTADOR_SERVICOS
+  // - Dentro do cadastro de transportadoras
+  
   if (!currentProfile || currentProfile.role !== 'MOTORISTA') {
     return null;
   }
@@ -87,15 +89,20 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
   // Se não é transportadora, mostrar botão para virar transportadora
   if (!isTransportCompany) {
     return (
-      <Button
-        onClick={() => navigate('/cadastro-transportadora')}
-        variant="outline"
-        className="w-full justify-start"
-        size="sm"
-      >
-        <Truck className="mr-2 h-4 w-4" />
-        Cadastrar Transportadora
-      </Button>
+      <div className="w-full">
+        <Button
+          onClick={() => navigate('/cadastro-transportadora')}
+          variant="outline"
+          className="w-full justify-start"
+          size="sm"
+        >
+          <Truck className="mr-2 h-4 w-4" />
+          Transformar em Transportadora
+        </Button>
+        <p className="text-xs text-muted-foreground mt-1 px-2">
+          Cadastre mais veículos, gerencie motoristas e aceite mais fretes.
+        </p>
+      </div>
     );
   }
 
