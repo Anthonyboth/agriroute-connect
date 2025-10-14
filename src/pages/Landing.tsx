@@ -81,7 +81,7 @@ const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userTy
     if (userType) {
       const route = userType === 'PRODUTOR' ? '/dashboard/producer' : 
                     userType === 'MOTORISTA' ? '/dashboard/driver' :
-                    '/company/register';
+                    '/cadastro-transportadora';
       navigate(route);
     }
     closeHowItWorksModal();
