@@ -18,9 +18,33 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
   onModeChange
 }) => {
   const { isTransportCompany } = useTransportCompany();
-  
   const [isChangingMode, setIsChangingMode] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Verificar o role do usuário
+  React.useEffect(() => {
+    const checkUserRole = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profile) {
+          setUserRole(profile.role);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar role:', error);
+      }
+    };
+
+    checkUserRole();
+  }, []);
 
   const handleToggleMode = async (checked: boolean) => {
     const newMode = checked ? 'TRANSPORTADORA' : 'MOTORISTA';
@@ -74,21 +98,27 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
     }
   };
 
+  // Este toggle só deve aparecer para MOTORISTAS que são DONOS de transportadora
+  // Não deve aparecer para:
+  // - TRANSPORTADORA (role) - são empresas, não pessoas
+  // - MOTORISTA_AFILIADO - são empregados, não donos
+  // - PRODUTOR ou PRESTADOR_SERVICOS
+  if (userRole !== 'MOTORISTA') {
+    return null;
+  }
+
   // Se não é transportadora, mostrar botão para virar transportadora
   if (!isTransportCompany) {
     return (
-      <>
-        <Button
-          onClick={() => navigate('/cadastro-transportadora')}
-          variant="outline"
-          className="w-full justify-start"
-          size="sm"
-        >
-          <Truck className="mr-2 h-4 w-4" />
-          Cadastrar Transportadora
-        </Button>
-
-      </>
+      <Button
+        onClick={() => navigate('/cadastro-transportadora')}
+        variant="outline"
+        className="w-full justify-start"
+        size="sm"
+      >
+        <Truck className="mr-2 h-4 w-4" />
+        Cadastrar Transportadora
+      </Button>
     );
   }
 

@@ -24,6 +24,11 @@ export const ProfilePhotoUpload: React.FC<ProfilePhotoUploadProps> = ({
   const [uploading, setUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(currentPhotoUrl);
 
+  // Sync local state with prop changes
+  React.useEffect(() => {
+    setPhotoUrl(currentPhotoUrl);
+  }, [currentPhotoUrl]);
+
   const sizeClasses = {
     sm: 'h-16 w-16',
     md: 'h-24 w-24',

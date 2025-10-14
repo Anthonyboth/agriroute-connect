@@ -30,6 +30,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [ratingDistribution, setRatingDistribution] = useState<{ star_rating: number; count: number }[]>([]);
+  const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string>('');
   const [profileData, setProfileData] = useState({
     full_name: '',
     phone: '',
@@ -67,6 +68,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         address_state: user.address_state || '',
         address_zip: user.address_zip || '',
       });
+      setCurrentPhotoUrl(user.profile_photo_url || '');
       fetchRatingDistribution();
     }
   }, [user]);
@@ -140,6 +142,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
       if (error) throw error;
       
+      setCurrentPhotoUrl(url);
+      
       toast({
         title: "Foto atualizada",
         description: "Sua foto de perfil foi atualizada com sucesso!",
@@ -207,7 +211,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               </Avatar>
               {editMode && (
                 <ProfilePhotoUpload
-                  currentPhotoUrl={user?.profile_photo_url || ''}
+                  currentPhotoUrl={currentPhotoUrl}
                   onUploadComplete={handlePhotoUploadComplete}
                   userName={user?.full_name || ''}
                   size="sm"
@@ -426,23 +430,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {/* Coluna da direita - Estatísticas e avaliações */}
           <div className="space-y-6">
-            {user?.role === 'MOTORISTA' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Modo de Trabalho</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CompanyModeToggle 
-                    currentMode={user?.active_mode || 'MOTORISTA'}
-                    onModeChange={() => {
-                      // Recarregar após mudança de modo
-                      window.location.reload();
-                    }}
-                  />
-                </CardContent>
-              </Card>
-            )}
-            
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
