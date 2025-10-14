@@ -63,6 +63,7 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const [companyStatus, setCompanyStatus] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<{ code: string; message?: string; document?: string } | null>(null);
   
   // Prevent multiple simultaneous fetches
   const fetchingRef = useRef(false);
@@ -175,16 +176,47 @@ export const useAuth = () => {
       if (!insertError && inserted) {
         setProfiles([inserted as any]);
         setProfile(inserted as any);
+        setProfileError(null);
       } else if (insertError?.code === '23505') {
-        // Profile already exists, refetch once
-        setTimeout(() => {
-          if (mountedRef.current) {
-            fetchProfile(user.id);
-          }
-        }, 500);
+        // Document already in use - set error and stop the loop
+        console.warn('[useAuth] CPF/CNPJ já em uso:', meta.document?.slice(-4));
+        setProfileError({
+          code: 'DOCUMENT_IN_USE',
+          message: 'Este CPF/CNPJ já está cadastrado no sistema',
+          document: meta.document
+        });
+        setLoading(false);
       }
     } catch (e) {
-      // Silent fail - profile creation will be handled by CompleteProfile page
+      console.error('[useAuth] Erro ao criar perfil:', e);
+      setLoading(false);
+    }
+  };
+
+  const clearProfileError = () => {
+    setProfileError(null);
+  };
+
+  const retryProfileCreation = async (newDocument: string) => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      setProfileError(null);
+      
+      await supabase.auth.updateUser({
+        data: { document: newDocument, cpf_cnpj: newDocument }
+      });
+      
+      await tryAutoCreateProfile(user.id);
+    } catch (error) {
+      console.error('[useAuth] Erro ao retentar criação:', error);
+      setProfileError({
+        code: 'RETRY_FAILED',
+        message: 'Erro ao tentar novamente. Tente outro documento.'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -372,7 +404,10 @@ export const useAuth = () => {
     isApproved,
     isAdmin,
     hasMultipleProfiles,
+    profileError,
     signOut,
-    switchProfile
+    switchProfile,
+    clearProfileError,
+    retryProfileCreation
   };
 };

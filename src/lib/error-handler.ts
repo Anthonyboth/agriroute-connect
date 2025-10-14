@@ -24,6 +24,9 @@ export function getErrorMessage(error: any): string {
   
   // Unique constraint violations
   if (message.includes('unique constraint') || message.includes('duplicate key')) {
+    if (message.includes('idx_profiles_document_unique') || error?.code === '23505') {
+      return 'Este CPF/CNPJ já está em uso em outro cadastro';
+    }
     return 'Este registro já existe no sistema';
   }
   

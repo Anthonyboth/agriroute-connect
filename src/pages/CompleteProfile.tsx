@@ -32,10 +32,11 @@ type PlatePhoto = {
 };
 
 const CompleteProfile = () => {
-  const { profile, loading: authLoading, isAuthenticated } = useAuth();
+  const { profile, loading: authLoading, isAuthenticated, profileError, clearProfileError, retryProfileCreation, signOut } = useAuth();
   const { company, isTransportCompany } = useTransportCompany();
   const { isCompanyDriver, isLoading: isLoadingCompany } = useCompanyDriver();
   const navigate = useNavigate();
+  const [newCpf, setNewCpf] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   
@@ -550,6 +551,91 @@ const CompleteProfile = () => {
       setLoading(false);
     }
   };
+
+  // Mostrar erro de CPF duplicado
+  if (profileError?.code === 'DOCUMENT_IN_USE') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-6 w-6" />
+              <CardTitle>CPF/CNPJ já cadastrado</CardTitle>
+            </div>
+            <CardDescription>
+              Este documento já está em uso em outra conta. Escolha uma das opções abaixo:
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                O CPF/CNPJ <strong>***{profileError.document?.slice(-4)}</strong> já possui cadastro.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="new-cpf">Usar outro CPF/CNPJ</Label>
+                <Input
+                  id="new-cpf"
+                  placeholder="Digite outro documento"
+                  value={newCpf}
+                  onChange={(e) => setNewCpf(e.target.value.replace(/\D/g, ''))}
+                  maxLength={14}
+                />
+              </div>
+              <Button 
+                className="w-full" 
+                onClick={() => {
+                  if (newCpf.length >= 11) {
+                    retryProfileCreation(newCpf);
+                  } else {
+                    toast.error('Digite um CPF/CNPJ válido');
+                  }
+                }}
+                disabled={!newCpf || newCpf.length < 11}
+              >
+                Tentar com outro documento
+              </Button>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Ou</span>
+              </div>
+            </div>
+
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={async () => {
+                await signOut();
+                navigate('/auth');
+              }}
+            >
+              Entrar com o e-mail original
+            </Button>
+
+            <p className="text-xs text-center text-muted-foreground">
+              Precisa de ajuda?{' '}
+              <a 
+                href="https://wa.me/5565999999999" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Falar com suporte
+              </a>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (authLoading) {
     return (
