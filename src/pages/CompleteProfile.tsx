@@ -36,6 +36,9 @@ const CompleteProfile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  
+  // Flag unificada para identificar perfis de motorista
+  const isDriver = profile && (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO');
   const [documentUrls, setDocumentUrls] = useState({
     selfie: '',
     document_photo: '',
@@ -136,20 +139,20 @@ const CompleteProfile = () => {
       });
 
       // Fetch vehicles for drivers
-      if (profile.role === 'MOTORISTA') {
+      if (isDriver) {
         fetchVehicles();
       }
 
       // Redirect if profile is fully complete (even if pending approval)
       const hasCompletedProfile = profile.selfie_url && profile.document_photo_url && 
-        (profile.role !== 'MOTORISTA' || (
+        (!isDriver || (
           profile.cnh_photo_url && 
           profile.address_proof_url &&
           profile.location_enabled
         ));
 
       if (hasCompletedProfile) {
-        const dashboardPath = profile.role === 'MOTORISTA' ? '/dashboard/driver' : 
+        const dashboardPath = isDriver ? '/dashboard/driver' : 
                              (profile.role as any) === 'PRESTADOR_SERVICOS' ? '/dashboard/service-provider' :
                              '/dashboard/producer';
         navigate(dashboardPath);
@@ -311,7 +314,7 @@ const CompleteProfile = () => {
         return;
       }
       
-      if (profile.role === 'MOTORISTA' && !profileData.rntrc) {
+      if (isDriver && !profileData.rntrc) {
         toast.error('RNTRC é obrigatório para motoristas');
         return;
       }
@@ -334,19 +337,19 @@ const CompleteProfile = () => {
       
       console.log('✅ Documentos validados com sucesso');
       
-      // For producers - allow access with basic requirements
-      if (profile.role === 'PRODUTOR' || profile.role === 'PRESTADOR_SERVICOS') {
+      // Para não-motoristas: finalizar perfil aqui
+      if (!isDriver) {
         await finalizeProfile();
         return;
-      } else {
-        // For drivers - continue to step 3
-        setCurrentStep(3);
-        return;
       }
+      
+      // Para motoristas: continuar para etapa 3
+      setCurrentStep(3);
+      return;
     }
 
    // Validate step 3 requirements for drivers - only essential docs
-   if (currentStep === 3 && profile.role === 'MOTORISTA') {
+   if (currentStep === 3 && isDriver) {
      const missingDocs = [];
      
      // TRANSPORTADORAS: só exigir comprovante de endereço
@@ -527,7 +530,7 @@ const CompleteProfile = () => {
       toast.success('Perfil completado com sucesso! Você já pode acessar a plataforma.');
       
       // Redirect to appropriate dashboard
-      if (profile.role === 'MOTORISTA') {
+      if (isDriver) {
         navigate('/dashboard/driver');
       } else if (profile.role === 'PRODUTOR') {
         navigate('/dashboard/producer');
@@ -566,17 +569,19 @@ const CompleteProfile = () => {
     );
   }
 
-  const totalSteps = profile.role === 'MOTORISTA' ? 3 : 2;
-  const progress = (currentStep / totalSteps) * 100;
+  const totalSteps = isDriver ? 3 : 2;
+  // Clamp defensivo: evita mostrar "3 de 2" mesmo se algo escape
+  const safeCurrentStep = Math.min(currentStep, totalSteps);
+  const progress = (safeCurrentStep / totalSteps) * 100;
 
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container max-w-2xl mx-auto px-4">
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Complete seu Perfil</CardTitle>
+          <CardTitle className="text-2xl">Complete seu Perfil</CardTitle>
             <CardDescription>
-              {profile.role === 'MOTORISTA' 
+              {isDriver 
                 ? 'Envie seus documentos e ative a localização para começar a usar o app'
                 : 'Envie seus documentos para completar o cadastro'
               }
@@ -584,7 +589,7 @@ const CompleteProfile = () => {
             <div className="mt-4">
               <Progress value={progress} className="w-full" />
               <p className="text-sm text-muted-foreground mt-2">
-                Etapa {currentStep} de {totalSteps}
+                Etapa {safeCurrentStep} de {totalSteps}
               </p>
             </div>
           </CardHeader>
@@ -683,7 +688,7 @@ const CompleteProfile = () => {
                 )}
 
                 {/* Driver-specific fields */}
-                {profile.role === 'MOTORISTA' && (
+                {isDriver && (
                   <div className="space-y-4">
                     <div className="flex items-center space-x-2">
                       <Truck className="h-5 w-5 text-primary" />
@@ -871,14 +876,14 @@ const CompleteProfile = () => {
                     Voltar
                   </Button>
                   <Button onClick={handleSaveAndContinue}>
-                    {profile.role === 'MOTORISTA' ? 'Continuar' : 'Finalizar Cadastro'}
+                    {isDriver ? 'Continuar' : 'Finalizar Cadastro'}
                   </Button>
                 </div>
               </div>
             )}
 
             {/* Step 3: Driver Documents and Vehicles */}
-            {currentStep === 3 && profile.role === 'MOTORISTA' && (
+            {currentStep === 3 && isDriver && (
               <div className="space-y-6">
                 <div className="flex items-center space-x-2">
                   <Truck className="h-5 w-5 text-primary" />
