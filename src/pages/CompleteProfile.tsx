@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -79,7 +79,7 @@ const CompleteProfile = () => {
   const [acceptedDocumentsResponsibility, setAcceptedDocumentsResponsibility] = useState(false);
   const [acceptedTermsOfUse, setAcceptedTermsOfUse] = useState(false);
   const [acceptedPrivacyPolicy, setAcceptedPrivacyPolicy] = useState(false);
-
+  const didInitRef = useRef(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -92,7 +92,8 @@ const CompleteProfile = () => {
       return;
     }
 
-    if (profile) {
+    // Inicializar dados do formulário apenas uma vez para evitar reset durante revalidações do perfil
+    if (profile && !didInitRef.current) {
       // Load existing document URLs
       setDocumentUrls({
         selfie: profile.selfie_url || '',
@@ -139,8 +140,7 @@ const CompleteProfile = () => {
         fetchVehicles();
       }
 
-      // Always show complete profile form - don't auto-redirect
-      // Only redirect if user tries to access this page but already has completed profile
+      // Redirect if profile is fully complete (even if pending approval)
       const hasCompletedProfile = profile.selfie_url && profile.document_photo_url && 
         (profile.role !== 'MOTORISTA' || (
           profile.cnh_photo_url && 
@@ -148,13 +148,15 @@ const CompleteProfile = () => {
           profile.location_enabled
         ));
 
-      // Redirect if profile is fully complete (even if pending approval)
       if (hasCompletedProfile) {
         const dashboardPath = profile.role === 'MOTORISTA' ? '/dashboard/driver' : 
                              (profile.role as any) === 'PRESTADOR_SERVICOS' ? '/dashboard/service-provider' :
                              '/dashboard/producer';
         navigate(dashboardPath);
       }
+
+      // Evita reidratação em atualizações subsequentes do perfil
+      didInitRef.current = true;
     }
   }, [profile, authLoading, isAuthenticated, navigate]);
 
