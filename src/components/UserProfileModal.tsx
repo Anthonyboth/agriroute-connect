@@ -204,7 +204,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           <DialogTitle className="flex items-center gap-3">
             <div className="flex flex-col items-center gap-2">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={user?.profile_photo_url} />
+                <AvatarImage key={currentPhotoUrl} src={currentPhotoUrl || user?.profile_photo_url || undefined} />
                 <AvatarFallback className="gradient-primary text-primary-foreground">
                   {getUserInitials(user?.full_name)}
                 </AvatarFallback>
