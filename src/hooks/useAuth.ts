@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { queryWithTimeout } from '@/lib/query-utils';
 
 interface UserProfile {
   id: string;
@@ -72,17 +73,28 @@ export const useAuth = () => {
     fetchingRef.current = true;
     
     try {
-      const { data: profilesData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId);
+      console.log('[useAuth] Buscando perfil para userId:', userId);
+      
+      const profilesData = await queryWithTimeout(
+        async () => {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', userId);
+          
+          if (error) throw error;
+          return data;
+        },
+        { 
+          timeoutMs: 8000, 
+          operationName: 'fetchProfile',
+          retries: 1
+        }
+      );
       
       if (!mountedRef.current) return;
       
-      if (error) {
-        setProfile(null);
-        setProfiles([]);
-      } else if (profilesData && profilesData.length > 0) {
+      if (profilesData && profilesData.length > 0) {
         setProfiles(profilesData);
         
         // Verificar se há um perfil específico salvo no localStorage
@@ -105,6 +117,8 @@ export const useAuth = () => {
         await tryAutoCreateProfile(userId);
       }
     } catch (error) {
+      console.error('[useAuth] Erro ao buscar perfil:', error);
+      
       if (!mountedRef.current) return;
       setProfile(null);
       setProfiles([]);
@@ -121,6 +135,7 @@ export const useAuth = () => {
         setSession(null);
       }
     } finally {
+      // CRÍTICO: Sempre resetar fetchingRef, mesmo em caso de erro
       fetchingRef.current = false;
       if (mountedRef.current) {
         setLoading(false);

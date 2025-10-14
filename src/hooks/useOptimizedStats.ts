@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from './use-toast';
+import { queryWithTimeout } from '@/lib/query-utils';
 
 interface OptimizedStats {
   totalUsers: number;
@@ -84,23 +86,21 @@ export const useOptimizedStats = () => {
 
       setStats(prev => ({ ...prev, loading: true, error: null }));
 
-      const { data, error } = await supabase.rpc('get_platform_stats');
+      console.log('[useOptimizedStats] Buscando estatísticas...');
       
-      if (error) {
-        console.warn('Stats fetch error:', error);
-        setStats({ 
-          totalUsers: 0,
-          totalFreights: 0,
-          averageRating: 0,
-          activeDrivers: 0,
-          activeProducers: 0,
-          completedFreights: 0,
-          loading: false, 
-          error: 'Erro ao carregar estatísticas' 
-        });
-        return;
-      }
-
+      const data = await queryWithTimeout(
+        async () => {
+          const { data, error } = await supabase.rpc('get_platform_stats');
+          if (error) throw error;
+          return data;
+        },
+        { 
+          timeoutMs: 8000, 
+          operationName: 'fetchPlatformStats',
+          retries: 1
+        }
+      );
+      
       if (data && data.length > 0) {
         const row = data[0] as any;
         const newStats: OptimizedStats = {
@@ -114,6 +114,7 @@ export const useOptimizedStats = () => {
           error: null
         };
         
+        console.log('[useOptimizedStats] Estatísticas carregadas:', newStats);
         setStats(newStats);
         setCachedStats(newStats);
       } else {
@@ -128,18 +129,26 @@ export const useOptimizedStats = () => {
           error: 'Dados não disponíveis'
         });
       }
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-      setStats({ 
-        totalUsers: 0,
-        totalFreights: 0,
-        averageRating: 0,
-        activeDrivers: 0,
-        activeProducers: 0,
-        completedFreights: 0,
-        loading: false, 
-        error: 'Erro de conexão' 
-      });
+    } catch (error: any) {
+      console.error('[useOptimizedStats] Erro:', error);
+      
+      // Tentar usar cache mesmo em erro
+      const cached = getCachedStats();
+      if (cached) {
+        console.log('[useOptimizedStats] Usando cache após erro');
+        setStats({ ...cached, error: 'Dados em cache' });
+      } else {
+        setStats({ 
+          totalUsers: 0,
+          totalFreights: 0,
+          averageRating: 0,
+          activeDrivers: 0,
+          activeProducers: 0,
+          completedFreights: 0,
+          loading: false, 
+          error: error.message?.includes('Timeout') ? 'Tempo esgotado' : 'Erro de conexão'
+        });
+      }
     }
   }, [lastFetch, getCachedStats, setCachedStats]);
 

@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bell, Check, CheckCheck, Info, AlertTriangle, TrendingUp, Truck, DollarSign, CreditCard, MessageSquare, Star, Package, ChevronRight } from 'lucide-react';
+import { Bell, Check, CheckCheck, Info, AlertTriangle, TrendingUp, Truck, DollarSign, CreditCard, MessageSquare, Star, Package, ChevronRight, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { FreightRatingModal } from './FreightRatingModal';
+import { Skeleton } from '@/components/ui/skeleton';
+import { queryWithTimeout } from '@/lib/query-utils';
 
 interface Notification {
   id: string;
@@ -35,6 +37,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
 
@@ -48,21 +51,45 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     if (!profile) return;
 
     setLoading(true);
+    setError(null);
+    
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', profile.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      setNotifications(data || []);
+      console.log('[NotificationCenter] Iniciando busca de notificações...');
+      
+      const result = await queryWithTimeout(
+        async () => {
+          const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false })
+            .limit(50);
+          
+          if (error) throw error;
+          return data;
+        },
+        { 
+          timeoutMs: 10000, 
+          operationName: 'fetchNotifications',
+          retries: 1,
+          retryDelayMs: 2000
+        }
+      );
+      
+      console.log(`[NotificationCenter] ${result?.length || 0} notificações carregadas`);
+      setNotifications(result || []);
     } catch (error: any) {
-      console.error('Error loading notifications:', error);
+      console.error('[NotificationCenter] Erro ao carregar:', error);
+      
+      const errorMessage = error.message?.includes('Timeout') || error.message?.includes('demorou muito')
+        ? 'A busca demorou muito. Verifique sua conexão.'
+        : 'Não foi possível carregar as notificações.';
+      
+      setError(errorMessage);
+      
       toast({
         title: "Erro ao carregar notificações",
-        description: "Não foi possível carregar as notificações. Tente novamente.",
+        description: errorMessage + " Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -281,8 +308,27 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
         <ScrollArea className="max-h-[60vh]">
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="space-y-3 p-4">
+              {[1, 2, 3].map(i => (
+                <Card key={i} className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-full" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 px-4">
+              <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">{error}</p>
+              <Button onClick={fetchNotifications} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Tentar Novamente
+              </Button>
             </div>
           ) : notifications.length === 0 ? (
             <div className="text-center py-8">

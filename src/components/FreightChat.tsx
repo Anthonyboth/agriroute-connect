@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { useLocationPermission } from '@/hooks/useLocationPermission';
+import { queryWithTimeout, subscriptionWithErrorHandler } from '@/lib/query-utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,19 +76,33 @@ export const FreightChat: React.FC<FreightChatProps> = ({
 
   const fetchMessages = async () => {
     try {
-      const { data, error } = await supabase
-        .from('freight_messages')
-        .select(`
-          *,
-          sender:profiles!sender_id(full_name, role, profile_photo_url)
-        `)
-        .eq('freight_id', freightId)
-        .order('created_at', { ascending: true });
+      console.log('[FreightChat] Carregando mensagens...');
+      
+      const messages = await queryWithTimeout(
+        async () => {
+          const { data, error } = await supabase
+            .from('freight_messages')
+            .select(`
+              *,
+              sender:profiles!sender_id(full_name, role, profile_photo_url)
+            `)
+            .eq('freight_id', freightId)
+            .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      setMessages(data || []);
+          if (error) throw error;
+          return data;
+        },
+        { timeoutMs: 5000, operationName: 'fetchFreightMessages' }
+      );
+
+      setMessages(messages || []);
     } catch (error: any) {
-      console.error('Erro ao carregar mensagens:', error);
+      console.error('[FreightChat] Erro ao carregar mensagens:', error);
+      toast({
+        title: "Erro ao carregar mensagens",
+        description: "Não foi possível carregar o histórico. Tente novamente.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -284,23 +299,34 @@ export const FreightChat: React.FC<FreightChatProps> = ({
     // Marcar mensagens como lidas ao abrir o chat
     markFreightMessagesAsRead(freightId);
 
-    // Real-time subscription
-    const channel = supabase
-      .channel('freight-chat')
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'freight_messages',
-          filter: `freight_id=eq.${freightId}` 
-        }, 
-        () => {
-          fetchMessages();
-        }
-      )
-      .subscribe();
+    // Real-time subscription com error handling
+    const channel = subscriptionWithErrorHandler(
+      supabase
+        .channel('freight-chat')
+        .on('postgres_changes', 
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'freight_messages',
+            filter: `freight_id=eq.${freightId}` 
+          }, 
+          () => {
+            console.log('[FreightChat] Nova mensagem recebida');
+            fetchMessages();
+          }
+        ),
+      (error) => {
+        console.error('[FreightChat] Erro na subscription:', error);
+        toast({
+          title: "Erro na conexão",
+          description: "O chat pode não atualizar automaticamente. Recarregue a página.",
+          variant: "destructive",
+        });
+      }
+    ).subscribe();
 
     return () => {
+      console.log('[FreightChat] Removendo subscription');
       supabase.removeChannel(channel);
     };
   }, [freightId]);

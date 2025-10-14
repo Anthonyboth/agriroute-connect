@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { queryWithTimeout, subscriptionWithErrorHandler } from '@/lib/query-utils';
 
 interface Message {
   id: string;
@@ -55,20 +56,29 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
   // Buscar mensagens
   const fetchMessages = async () => {
     try {
-      const { data, error } = await supabase
-        .from('service_messages')
-        .select(`
-          *,
-          sender:profiles!service_messages_sender_id_fkey(id, full_name, role, profile_photo_url)
-        `)
-        .eq('service_request_id', serviceRequestId)
-        .order('created_at', { ascending: true });
+      console.log('[ServiceChat] Carregando mensagens...');
+      
+      const messages = await queryWithTimeout(
+        async () => {
+          const { data, error } = await supabase
+            .from('service_messages')
+            .select(`
+              *,
+              sender:profiles!service_messages_sender_id_fkey(id, full_name, role, profile_photo_url)
+            `)
+            .eq('service_request_id', serviceRequestId)
+            .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      setMessages((data || []) as Message[]);
+          if (error) throw error;
+          return data;
+        },
+        { timeoutMs: 5000, operationName: 'fetchServiceMessages' }
+      );
+
+      setMessages((messages || []) as Message[]);
     } catch (error) {
-      console.error('Erro ao carregar mensagens:', error);
-      toast.error('Erro ao carregar mensagens');
+      console.error('[ServiceChat] Erro ao carregar mensagens:', error);
+      toast.error('Erro ao carregar mensagens. Tente novamente.');
     }
   };
 
@@ -155,20 +165,27 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
     // Marcar mensagens como lidas ao abrir o chat
     markServiceMessagesAsRead(serviceRequestId);
 
-    // Realtime subscription
-    const channel = supabase
-      .channel(`service-messages-${serviceRequestId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'service_messages',
-        filter: `service_request_id=eq.${serviceRequestId}`
-      }, () => {
-        fetchMessages();
-      })
-      .subscribe();
+    // Realtime subscription com error handling
+    const channel = subscriptionWithErrorHandler(
+      supabase
+        .channel(`service-messages-${serviceRequestId}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'service_messages',
+          filter: `service_request_id=eq.${serviceRequestId}`
+        }, () => {
+          console.log('[ServiceChat] Nova mensagem recebida');
+          fetchMessages();
+        }),
+      (error) => {
+        console.error('[ServiceChat] Erro na subscription:', error);
+        toast.error('Erro na conexão do chat. Recarregue a página.');
+      }
+    ).subscribe();
 
     return () => {
+      console.log('[ServiceChat] Removendo subscription');
       supabase.removeChannel(channel);
     };
   }, [serviceRequestId]);
