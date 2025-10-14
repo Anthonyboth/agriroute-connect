@@ -225,12 +225,12 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
           <AddressButton
             label="Endereço de Origem"
             value={formData.origin_address}
-            onAddressChange={(address, lat, lng) => {
+            onAddressChange={(addressData) => {
               setFormData(prev => ({
                 ...prev,
-                origin_address: address,
-                origin_lat: lat,
-                origin_lng: lng
+                origin_address: addressData.fullAddress,
+                origin_lat: addressData.lat,
+                origin_lng: addressData.lng
               }));
             }}
             required
@@ -239,12 +239,12 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
           <AddressButton
             label="Endereço de Destino"
             value={formData.destination_address}
-            onAddressChange={(address, lat, lng) => {
+            onAddressChange={(addressData) => {
               setFormData(prev => ({
                 ...prev,
-                destination_address: address,
-                destination_lat: lat,
-                destination_lng: lng
+                destination_address: addressData.fullAddress,
+                destination_lat: addressData.lat,
+                destination_lng: addressData.lng
               }));
             }}
             required

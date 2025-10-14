@@ -19,7 +19,7 @@ interface AddressData {
 interface AddressButtonProps {
   label: string;
   value?: string;
-  onAddressChange: (address: string, lat?: number, lng?: number) => void;
+  onAddressChange: (addressData: AddressData) => void;
   placeholder?: string;
   required?: boolean;
   className?: string;
@@ -38,7 +38,7 @@ export const AddressButton: React.FC<AddressButtonProps> = ({
 
   const handleSaveAddress = (addressData: AddressData) => {
     setSavedAddress(addressData);
-    onAddressChange(addressData.fullAddress, addressData.lat, addressData.lng);
+    onAddressChange(addressData);
   };
 
   const hasAddress = value && value.trim().length > 0;

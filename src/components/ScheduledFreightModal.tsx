@@ -16,6 +16,7 @@ import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { getCityId } from '@/lib/city-utils';
 
 interface ScheduledFreightModalProps {
   isOpen: boolean;
@@ -31,9 +32,21 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
   const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
   
-  // Dados do frete
+  // Dados do frete - origem
   const [originAddress, setOriginAddress] = useState('');
+  const [originCity, setOriginCity] = useState('');
+  const [originState, setOriginState] = useState('');
+  const [originLat, setOriginLat] = useState<number>();
+  const [originLng, setOriginLng] = useState<number>();
+  
+  // Dados do frete - destino
   const [destinationAddress, setDestinationAddress] = useState('');
+  const [destinationCity, setDestinationCity] = useState('');
+  const [destinationState, setDestinationState] = useState('');
+  const [destinationLat, setDestinationLat] = useState<number>();
+  const [destinationLng, setDestinationLng] = useState<number>();
+  
+  // Dados do frete - outros
   const [weight, setWeight] = useState('');
   const [cargoType, setCargoType] = useState('');
   const [description, setDescription] = useState('');
@@ -55,13 +68,42 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
     e.preventDefault();
     if (!profile || !scheduledDate) return;
 
+    // Validar endereços estruturados
+    if (!originCity || !originState) {
+      toast.error('Por favor, preencha o endereço de origem completo com cidade e estado');
+      return;
+    }
+    if (!destinationCity || !destinationState) {
+      toast.error('Por favor, preencha o endereço de destino completo com cidade e estado');
+      return;
+    }
+
     setLoading(true);
     try {
+      // Buscar city_ids
+      const originCityId = await getCityId(originCity, originState);
+      const destinationCityId = await getCityId(destinationCity, destinationState);
+      
       const freightData = {
         producer_id: profile.id,
         weight: parseFloat(weight) * 1000, // Convert tonnes to kg for database
+        
+        // Origem estruturada
         origin_address: originAddress,
+        origin_city: originCity,
+        origin_state: originState,
+        origin_lat: originLat,
+        origin_lng: originLng,
+        origin_city_id: originCityId,
+        
+        // Destino estruturado
         destination_address: destinationAddress,
+        destination_city: destinationCity,
+        destination_state: destinationState,
+        destination_lat: destinationLat,
+        destination_lng: destinationLng,
+        destination_city_id: destinationCityId,
+        
         cargo_type: cargoType,
         description,
         price: parseFloat(price),
@@ -101,7 +143,15 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
 
   const resetForm = () => {
     setOriginAddress('');
+    setOriginCity('');
+    setOriginState('');
+    setOriginLat(undefined);
+    setOriginLng(undefined);
     setDestinationAddress('');
+    setDestinationCity('');
+    setDestinationState('');
+    setDestinationLat(undefined);
+    setDestinationLng(undefined);
     setWeight('');
     setCargoType('');
     setDescription('');
@@ -156,14 +206,26 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                   <AddressButton
                     label="Endereço de Origem"
                     value={originAddress}
-                    onAddressChange={(address) => setOriginAddress(address)}
+                    onAddressChange={(addressData) => {
+                      setOriginAddress(addressData.fullAddress);
+                      setOriginCity(addressData.city);
+                      setOriginState(addressData.state);
+                      setOriginLat(addressData.lat);
+                      setOriginLng(addressData.lng);
+                    }}
                     required
                   />
                   
                   <AddressButton
                     label="Endereço de Destino"
                     value={destinationAddress}
-                    onAddressChange={(address) => setDestinationAddress(address)}
+                    onAddressChange={(addressData) => {
+                      setDestinationAddress(addressData.fullAddress);
+                      setDestinationCity(addressData.city);
+                      setDestinationState(addressData.state);
+                      setDestinationLat(addressData.lat);
+                      setDestinationLng(addressData.lng);
+                    }}
                     required
                   />
                 </div>
