@@ -14,6 +14,8 @@ import { getFreightStatusLabel, getFreightStatusVariant, getProposalStatusLabel 
 import { ScheduledFreightModal } from './ScheduledFreightModal';
 import { FlexibleProposalModal } from './FlexibleProposalModal';
 import { ProposalCounterModal } from './ProposalCounterModal';
+import { EditFreightModal } from './EditFreightModal';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface ScheduledFreight {
   id: string;
@@ -53,6 +55,8 @@ export const ScheduledFreightsManager: React.FC = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [counterProposalModalOpen, setCounterProposalModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedFreight, setSelectedFreight] = useState<any>(null);
   const [selectedProposal, setSelectedProposal] = useState<any>(null);
 
@@ -254,6 +258,36 @@ export const ScheduledFreightsManager: React.FC = () => {
     setCounterProposalModalOpen(true);
   };
 
+  const openEditModal = (freight: ScheduledFreight) => {
+    setSelectedFreight(freight);
+    setEditModalOpen(true);
+  };
+
+  const confirmCancelFreight = (freight: ScheduledFreight) => {
+    setSelectedFreight(freight);
+    setCancelDialogOpen(true);
+  };
+
+  const handleCancelFreight = async () => {
+    if (!selectedFreight?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('freights')
+        .update({ status: 'CANCELLED' })
+        .eq('id', selectedFreight.id);
+
+      if (error) throw error;
+
+      toast.success('Frete cancelado com sucesso');
+      fetchScheduledFreights();
+      setCancelDialogOpen(false);
+    } catch (error) {
+      console.error('Erro ao cancelar frete:', error);
+      toast.error('Erro ao cancelar frete');
+    }
+  };
+
   const filteredFreights = scheduledFreights.filter(freight =>
     freight.origin_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
     freight.destination_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -381,6 +415,25 @@ export const ScheduledFreightsManager: React.FC = () => {
                           <Badge variant={getFreightStatusVariant(freight.status)}>
                             {getFreightStatusLabel(freight.status)}
                           </Badge>
+                          
+                          {profile?.role === 'PRODUTOR' && freight.status === 'OPEN' && (
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="secondary"
+                                onClick={() => openEditModal(freight)}
+                              >
+                                Editar
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => confirmCancelFreight(freight)}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          )}
                           
                           {profile?.role === 'MOTORISTA' && freight.status === 'OPEN' && (
                             <Button 
@@ -515,6 +568,27 @@ export const ScheduledFreightsManager: React.FC = () => {
           fetchFlexibleProposals();
           setCounterProposalModalOpen(false);
         }}
+      />
+
+      <EditFreightModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        freight={selectedFreight}
+        onSuccess={() => {
+          fetchScheduledFreights();
+          setEditModalOpen(false);
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={cancelDialogOpen}
+        onClose={() => setCancelDialogOpen(false)}
+        onConfirm={handleCancelFreight}
+        title="Cancelar frete"
+        description="Tem certeza que deseja cancelar este frete? Essa ação não pode ser desfeita."
+        confirmText="Cancelar frete"
+        cancelText="Voltar"
+        variant="destructive"
       />
     </div>
   );
