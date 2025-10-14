@@ -5315,6 +5315,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_affiliated_driver: {
+        Args: { p_profile_id: string }
+        Returns: boolean
+      }
       is_company_driver: {
         Args: { p_company_id: string; p_user_id: string }
         Returns: boolean
@@ -5465,6 +5469,7 @@ export type Database = {
         | "ADMIN"
         | "PRESTADOR_SERVICOS"
         | "TRANSPORTADORA"
+        | "MOTORISTA_AFILIADO"
       user_status: "PENDING" | "APPROVED" | "REJECTED"
       vehicle_type:
         | "TRUCK"
@@ -5649,6 +5654,7 @@ export const Constants = {
         "ADMIN",
         "PRESTADOR_SERVICOS",
         "TRANSPORTADORA",
+        "MOTORISTA_AFILIADO",
       ],
       user_status: ["PENDING", "APPROVED", "REJECTED"],
       vehicle_type: [
