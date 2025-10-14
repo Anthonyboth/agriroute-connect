@@ -142,6 +142,23 @@ const fetchRealStats = async () => {
 
   const { profiles, switchProfile } = useAuth();
 
+  // Redirecionamento prioritário por querystring (para links de convite)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const inviteCode = searchParams.get('invite');
+    const affiliateCompanyId = searchParams.get('cadastro_afiliado');
+
+    if (inviteCode) {
+      navigate(`/company-invite/${inviteCode}`, { replace: true });
+      return;
+    }
+
+    if (affiliateCompanyId) {
+      navigate(`/cadastro-afiliado/${affiliateCompanyId}`, { replace: true });
+      return;
+    }
+  }, [navigate]);
+
   // Auto-switch para TRANSPORTADORA quando houver perfil TRANSPORTADORA
   useEffect(() => {
     const checkAndRedirect = async () => {
