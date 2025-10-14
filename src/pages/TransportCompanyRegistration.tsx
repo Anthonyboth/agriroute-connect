@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TransportCompanyDocumentUpload } from '@/components/TransportCompanyDocumentUpload';
 import { toast } from 'sonner';
 import { Loader2, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +26,14 @@ const TransportCompanyRegistration: React.FC = () => {
     state: '',
     zip_code: '',
   });
+
+  const [documents, setDocuments] = useState({
+    cnpj_document_url: '',
+    antt_document_url: '',
+    terms_accepted: false
+  });
+
+  const [documentsComplete, setDocumentsComplete] = useState(false);
 
   // Basic SEO
   useEffect(() => {
@@ -57,6 +66,10 @@ const TransportCompanyRegistration: React.FC = () => {
     }
   }, [isTransportCompany, navigate]);
 
+  const handleDocumentsComplete = (docs: typeof documents) => {
+    setDocuments(docs);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile?.id) return;
@@ -70,6 +83,14 @@ const TransportCompanyRegistration: React.FC = () => {
       toast.error('CNPJ inválido');
       return;
     }
+    if (!documents.cnpj_document_url || !documents.antt_document_url) {
+      toast.error('Envie todos os documentos obrigatórios');
+      return;
+    }
+    if (!documents.terms_accepted) {
+      toast.error('Você precisa aceitar os termos e condições');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -81,6 +102,8 @@ const TransportCompanyRegistration: React.FC = () => {
         city: formData.city.trim() || undefined,
         state: formData.state.trim() || undefined,
         zip_code: formData.zip_code.trim() || undefined,
+        cnpj_document_url: documents.cnpj_document_url,
+        antt_document_url: documents.antt_document_url,
       });
 
       // Set active mode to TRANSPORTADORA
@@ -90,7 +113,7 @@ const TransportCompanyRegistration: React.FC = () => {
         .eq('id', profile.id);
 
       localStorage.setItem('active_mode', 'TRANSPORTADORA');
-      toast.success('Transportadora criada! Redirecionando...');
+      toast.success('🎉 Transportadora criada e aprovada! Redirecionando...');
       navigate('/dashboard/company', { replace: true });
     } catch (err: any) {
       console.error('Erro ao cadastrar transportadora', err);
@@ -194,19 +217,42 @@ const TransportCompanyRegistration: React.FC = () => {
                 />
               </div>
 
-              <div className="pt-2">
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Criando transportadora...
-                    </>
-                  ) : (
-                    'Criar Transportadora'
-                  )}
-                </Button>
-              </div>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Seção de Documentos */}
+        <TransportCompanyDocumentUpload
+          onAllDocumentsComplete={handleDocumentsComplete}
+          onDocumentsChange={setDocumentsComplete}
+        />
+
+        {/* Botão de Submissão */}
+        <Card>
+          <CardContent className="pt-6">
+            <Button 
+              onClick={handleSubmit}
+              className="w-full" 
+              disabled={loading || !documentsComplete}
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Criando transportadora...
+                </>
+              ) : (
+                <>
+                  <Building2 className="mr-2 h-5 w-5" />
+                  Criar Transportadora
+                </>
+              )}
+            </Button>
+            {!documentsComplete && (
+              <p className="text-sm text-muted-foreground text-center mt-2">
+                Complete o formulário e envie todos os documentos para continuar
+              </p>
+            )}
           </CardContent>
         </Card>
       </section>

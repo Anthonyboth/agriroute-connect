@@ -186,12 +186,12 @@ const CompanyDashboard = () => {
               {company?.company_name || 'Transportadora'}
             </p>
 
-            {company?.status === 'PENDING' && (
-              <Alert className="max-w-2xl mx-auto">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Aguardando aprovação</AlertTitle>
-                <AlertDescription>
-                  Seu cadastro de transportadora está em análise. Você será notificado quando for aprovado.
+            {company?.status === 'APPROVED' && (
+              <Alert className="max-w-2xl mx-auto bg-green-50 border-green-200">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800">Cadastro Aprovado!</AlertTitle>
+                <AlertDescription className="text-green-700">
+                  Sua transportadora está ativa e pronta para gerenciar fretes e motoristas.
                 </AlertDescription>
               </Alert>
             )}

@@ -64,6 +64,8 @@ export const useTransportCompany = () => {
       state?: string;
       zip_code?: string;
       antt_registration?: string;
+      cnpj_document_url?: string;
+      antt_document_url?: string;
     }) => {
       if (!profile?.id) throw new Error('Perfil não encontrado');
 
@@ -71,7 +73,17 @@ export const useTransportCompany = () => {
         .from('transport_companies')
         .insert({
           profile_id: profile.id,
-          ...companyData,
+          company_name: companyData.company_name,
+          company_cnpj: companyData.company_cnpj,
+          antt_registration: companyData.antt_registration,
+          address: companyData.address,
+          city: companyData.city,
+          state: companyData.state,
+          zip_code: companyData.zip_code,
+          cnpj_document_url: companyData.cnpj_document_url,
+          antt_document_url: companyData.antt_document_url,
+          status: 'APPROVED', // ✅ Aprovação automática
+          approved_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -90,7 +102,7 @@ export const useTransportCompany = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transport-company'] });
-      toast.success('Transportadora criada com sucesso!');
+      toast.success('Transportadora criada e aprovada com sucesso!');
     },
     onError: (error: any) => {
       console.error('Erro ao criar transportadora:', error);
