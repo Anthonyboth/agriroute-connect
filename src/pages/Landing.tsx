@@ -140,7 +140,7 @@ const fetchRealStats = async () => {
     }
   };
 
-  const { profiles, switchProfile, session } = useAuth();
+  const { profiles, switchProfile, session, isAuthenticated } = useAuth();
   const redirectedRef = useRef(false);
   // Redirecionamento prioritário por querystring (para links de convite)
   useEffect(() => {
@@ -289,7 +289,13 @@ const fetchRealStats = async () => {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => setServicesModal(true)}
+                onClick={() => {
+                  if (isAuthenticated) {
+                    setServicesModal(true);
+                  } else {
+                    openAuthModal('signup');
+                  }
+                }}
                 className="hidden lg:flex"
               >
                 Solicitar Serviço
@@ -346,7 +352,13 @@ const fetchRealStats = async () => {
             <div className="mt-3 md:mt-4 flex flex-wrap justify-center gap-3 md:gap-4">
               <Button 
                 variant="outline"
-                onClick={() => setServicesModal(true)}
+                onClick={() => {
+                  if (isAuthenticated) {
+                    setServicesModal(true);
+                  } else {
+                    openAuthModal('signup');
+                  }
+                }}
                 className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base md:text-lg px-6 md:px-8 py-5 rounded-full shadow-elegant hover:scale-105 transition-bounce"
               >
                 <Wrench className="mr-2 h-5 w-5" />

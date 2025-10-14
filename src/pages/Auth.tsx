@@ -170,36 +170,22 @@ const Auth = () => {
     setShowResendConfirmation(false);
 
     try {
-      let emailToUse = loginField;
-      
-      // Se não contém @, é CPF/CNPJ - buscar o email correspondente
+      // Se não contém @, não é e-mail - exigir e-mail
       if (!loginField.includes('@')) {
-        const cleanDoc = loginField.replace(/\D/g, '');
-        
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('document', cleanDoc)
-          .single();
-
-        if (profileError || !profile?.email) {
-          toast.error('CPF/CNPJ não encontrado. Verifique os dados ou faça seu cadastro.');
-          setLoading(false);
-          return;
-        }
-
-        emailToUse = profile.email;
+        toast.error('Por favor, digite seu e-mail para entrar. Login por CPF/CNPJ está temporariamente indisponível.');
+        setLoading(false);
+        return;
       }
 
       const { error } = await supabase.auth.signInWithPassword({
-        email: emailToUse,
+        email: loginField,
         password
       });
 
       if (error) {
         const msg = error.message || '';
         if (msg.includes('Invalid login credentials')) {
-          toast.error('Senha incorreta');
+          toast.error('E-mail ou senha incorretos');
         } else if (msg.toLowerCase().includes('email not confirmed')) {
           setShowResendConfirmation(true);
           toast.error('Email não confirmado. Clique em "Reenviar e-mail de confirmação" abaixo.');
