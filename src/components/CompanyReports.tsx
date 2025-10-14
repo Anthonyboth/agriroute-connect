@@ -116,7 +116,7 @@ export function CompanyReports() {
       <div className="space-y-6 animate-pulse">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
-            <Card key={i}>
+            <Card key={`report-skeleton-${i}`}>
               <CardContent className="p-6">
                 <div className="h-20 bg-muted rounded"></div>
               </CardContent>

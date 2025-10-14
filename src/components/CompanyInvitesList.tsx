@@ -79,7 +79,7 @@ export const CompanyInvitesList: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16 w-full" />
+            <Skeleton key={`invite-skeleton-${i}`} className="h-16 w-full" />
           ))}
         </CardContent>
       </Card>

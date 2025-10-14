@@ -247,9 +247,9 @@ export const CompanyServiceAreasManager: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="grid gap-3">
-              {aiSuggestions.map((suggestion, index) => (
+              {aiSuggestions.map((suggestion) => (
                 <div 
-                  key={index}
+                  key={`suggestion-${suggestion.city_name}-${suggestion.frequency}`}
                   className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
                 >
                   <div className="flex-1">
