@@ -291,6 +291,31 @@ const CompanyDashboard = () => {
                 <span className="hidden sm:inline">Agendamentos</span>
                 <span className="sm:hidden">Agend</span>
               </TabsTrigger>
+              <TabsTrigger value="ai-freights" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
+                <Brain className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Fretes IA</span>
+                <span className="sm:hidden">IA</span>
+              </TabsTrigger>
+              <TabsTrigger value="active" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
+                <Navigation className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Em Andamento</span>
+                <span className="sm:hidden">Ativo</span>
+              </TabsTrigger>
+              <TabsTrigger value="proposals" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
+                <FileText className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Propostas</span>
+                <span className="sm:hidden">Prop</span>
+              </TabsTrigger>
+              <TabsTrigger value="payments" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
+                <DollarSign className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Pagamentos</span>
+                <span className="sm:hidden">Pag</span>
+              </TabsTrigger>
+              <TabsTrigger value="areas-ai" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
+                <Target className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Áreas IA</span>
+                <span className="sm:hidden">Áreas</span>
+              </TabsTrigger>
               <TabsTrigger value="cities" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
                 <MapPin className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Cidades</span>

@@ -252,6 +252,70 @@ export const useTransportCompany = () => {
     },
   });
 
+  // Query para motoristas pendentes
+  const { data: pendingDrivers, isLoading: isLoadingPending } = useQuery({
+    queryKey: ['pending-drivers', company?.id],
+    queryFn: async () => {
+      if (!company?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('company_drivers')
+        .select(`
+          *,
+          driver:profiles!driver_profile_id(
+            id,
+            full_name,
+            email,
+            contact_phone,
+            rating
+          )
+        `)
+        .eq('company_id', company.id)
+        .eq('status', 'PENDING')
+        .order('invited_at', { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!company?.id
+  });
+
+  // Aprovar motorista
+  const approveDriver = useMutation({
+    mutationFn: async (driverProfileId: string) => {
+      if (!company?.id) throw new Error('Empresa não encontrada');
+      const { error } = await supabase
+        .from('company_drivers')
+        .update({ status: 'ACTIVE', accepted_at: new Date().toISOString() })
+        .eq('company_id', company.id)
+        .eq('driver_profile_id', driverProfileId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-drivers'] });
+      toast.success('Motorista aprovado!');
+    }
+  });
+
+  // Rejeitar motorista
+  const rejectDriver = useMutation({
+    mutationFn: async (driverProfileId: string) => {
+      if (!company?.id) throw new Error('Empresa não encontrada');
+      const { error } = await supabase
+        .from('company_drivers')
+        .update({ status: 'REJECTED' })
+        .eq('company_id', company.id)
+        .eq('driver_profile_id', driverProfileId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-drivers'] });
+      toast.success('Motorista rejeitado');
+    }
+  });
+
   // Criar convite de motorista com token
   const createDriverInvite = useMutation({
     mutationFn: async () => {
@@ -291,6 +355,8 @@ export const useTransportCompany = () => {
     isLoadingCompany,
     drivers,
     isLoadingDrivers,
+    pendingDrivers,
+    isLoadingPending,
     vehicleAssignments,
     isLoadingAssignments,
     isTransportCompany: !!company,
@@ -298,6 +364,8 @@ export const useTransportCompany = () => {
     createInvite: createInvite.mutateAsync,
     createDriverInvite,
     removeDriver: removeDriver.mutateAsync,
+    approveDriver,
+    rejectDriver,
     assignVehicleToDriver: assignVehicleToDriver.mutateAsync,
     removeVehicleAssignment: removeVehicleAssignment.mutateAsync,
   };
