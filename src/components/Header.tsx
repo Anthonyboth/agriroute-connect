@@ -24,7 +24,7 @@ import { CompanyModeToggle } from '@/components/CompanyModeToggle';
 
 interface User {
   name: string;
-  role: 'PRODUTOR' | 'MOTORISTA' | 'PRESTADOR';
+  role: 'PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS';
   avatar?: string;
 }
 
@@ -175,7 +175,10 @@ const Header: React.FC<HeaderProps> = ({
                     <>
                       <DropdownMenuSeparator />
                       <div className="px-2 py-1.5">
-                        <CompanyModeToggle currentMode={userProfile?.active_mode} />
+                        <CompanyModeToggle 
+                          currentMode={userProfile?.active_mode}
+                          currentProfile={userProfile}
+                        />
                       </div>
                     </>
                   )}

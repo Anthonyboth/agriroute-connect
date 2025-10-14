@@ -10,41 +10,18 @@ import { useNavigate } from 'react-router-dom';
 
 interface CompanyModeToggleProps {
   currentMode?: 'MOTORISTA' | 'TRANSPORTADORA';
+  currentProfile?: any;
   onModeChange?: (mode: 'MOTORISTA' | 'TRANSPORTADORA') => void;
 }
 
 export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
   currentMode = 'MOTORISTA',
+  currentProfile,
   onModeChange
 }) => {
   const { isTransportCompany } = useTransportCompany();
   const [isChangingMode, setIsChangingMode] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate();
-
-  // Verificar o role do usuário
-  React.useEffect(() => {
-    const checkUserRole = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('user_id', user.id)
-          .single();
-
-        if (profile) {
-          setUserRole(profile.role);
-        }
-      } catch (error) {
-        console.error('Erro ao verificar role:', error);
-      }
-    };
-
-    checkUserRole();
-  }, []);
 
   const handleToggleMode = async (checked: boolean) => {
     const newMode = checked ? 'TRANSPORTADORA' : 'MOTORISTA';
@@ -103,7 +80,7 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
   // - TRANSPORTADORA (role) - são empresas, não pessoas
   // - MOTORISTA_AFILIADO - são empregados, não donos
   // - PRODUTOR ou PRESTADOR_SERVICOS
-  if (userRole !== 'MOTORISTA') {
+  if (!currentProfile || currentProfile.role !== 'MOTORISTA') {
     return null;
   }
 
