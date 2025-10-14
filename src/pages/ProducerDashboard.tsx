@@ -248,6 +248,7 @@ const ProducerDashboard = () => {
         .from('service_requests')
         .select('*')
         .eq('client_id', profile.id)
+        .eq('status', 'OPEN')
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -325,6 +326,14 @@ const ProducerDashboard = () => {
       fetchFreightPayments();
     }
   }, [profile?.id, profile?.role, fetchExternalPayments, fetchFreightPayments]);
+
+  // Recarregar solicitações de serviço quando o perfil carregar
+  useEffect(() => {
+    if (profile?.id && profile?.role === 'PRODUTOR') {
+      fetchServiceRequests();
+    }
+  }, [profile?.id, profile?.role, fetchServiceRequests]);
+
 
   // Atualização em tempo real
   useEffect(() => {
