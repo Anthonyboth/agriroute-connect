@@ -175,7 +175,7 @@ export default function DriverInviteSignup() {
         console.error('Erro ao fazer login:', signInError);
         navigate('/auth');
       } else {
-        navigate('/driver-dashboard');
+        navigate('/dashboard/driver');
       }
     } catch (error: any) {
       console.error('Erro no cadastro:', error);

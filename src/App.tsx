@@ -1,7 +1,7 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -205,6 +205,20 @@ const RedirectIfAuthed = () => {
   return <Navigate to={to} replace />;
 };
 
+const SmartFallback = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
+  const inviteToken = params.get('inviteToken');
+  
+  if (location.pathname.includes('/cadastro-motorista') || inviteToken) {
+    navigate(`/cadastro-motorista${location.search}`, { replace: true });
+    return null;
+  }
+  
+  return <Navigate to="/" replace />;
+};
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -320,7 +334,7 @@ const App = () => (
             } />
             <Route path="/cadastro-motorista" element={<DriverInviteSignup />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<SmartFallback />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

@@ -147,6 +147,7 @@ const fetchRealStats = async () => {
     const searchParams = new URLSearchParams(window.location.search);
     const inviteCode = searchParams.get('invite');
     const affiliateCompanyId = searchParams.get('cadastro_afiliado');
+    const inviteToken = searchParams.get('inviteToken');
 
     if (inviteCode) {
       navigate(`/company-invite/${inviteCode}`, { replace: true });
@@ -155,6 +156,11 @@ const fetchRealStats = async () => {
 
     if (affiliateCompanyId) {
       navigate(`/cadastro-afiliado/${affiliateCompanyId}`, { replace: true });
+      return;
+    }
+
+    if (inviteToken) {
+      navigate(`/cadastro-motorista?inviteToken=${encodeURIComponent(inviteToken)}`, { replace: true });
       return;
     }
   }, [navigate]);
