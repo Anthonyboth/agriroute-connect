@@ -10,7 +10,7 @@ import { Truck, Leaf, Plus, Loader2 } from 'lucide-react';
 interface AddProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentRole: 'MOTORISTA' | 'PRODUTOR';
+  currentRole: 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'PRODUTOR';
   onProfileAdded: () => void;
 }
 
@@ -22,7 +22,7 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
 
-  const targetRole = currentRole === 'MOTORISTA' ? 'PRODUTOR' : 'MOTORISTA';
+  const targetRole = (currentRole === 'MOTORISTA' || currentRole === 'MOTORISTA_AFILIADO') ? 'PRODUTOR' : 'MOTORISTA';
 
   const handleCreateProfile = async () => {
     setLoading(true);

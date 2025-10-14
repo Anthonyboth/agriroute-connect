@@ -14,7 +14,7 @@ interface AutoRatingModalProps {
   userToRate: {
     id: string;
     full_name: string;
-    role: 'PRODUTOR' | 'MOTORISTA';
+    role: 'PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO';
   };
   currentUserProfile: any;
 }
@@ -145,7 +145,7 @@ export const AutoRatingModal: React.FC<AutoRatingModalProps> = ({
             <div>
               <p className="font-medium">{userToRate.full_name}</p>
               <p className="text-sm text-muted-foreground">
-                {userToRate.role === 'MOTORISTA' ? 'Motorista' : 'Produtor'}
+                {(userToRate.role === 'MOTORISTA' || userToRate.role === 'MOTORISTA_AFILIADO') ? 'Motorista' : 'Produtor'}
               </p>
             </div>
           </div>

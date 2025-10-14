@@ -404,7 +404,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             setSelectedFreightId(null);
           }}
           freightId={selectedFreightId}
-          userRole={profile?.role === 'MOTORISTA' ? 'MOTORISTA' : 'PRODUTOR'}
+          userRole={(profile?.role === 'MOTORISTA' || profile?.role === 'MOTORISTA_AFILIADO') ? 'MOTORISTA' : 'PRODUTOR'}
           onRatingSubmitted={() => {
             setRatingModalOpen(false);
             setSelectedFreightId(null);

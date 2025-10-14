@@ -150,7 +150,7 @@ export const useAuth = () => {
       
       const meta = (user as any).user_metadata || {};
       const roleMeta = (meta.role as any);
-      const resolvedRole = (roleMeta === 'PRODUTOR' || roleMeta === 'MOTORISTA' || roleMeta === 'PRESTADOR_SERVICOS' || roleMeta === 'TRANSPORTADORA') ? roleMeta : 'PRODUTOR';
+      const resolvedRole = (roleMeta === 'PRODUTOR' || roleMeta === 'MOTORISTA' || roleMeta === 'MOTORISTA_AFILIADO' || roleMeta === 'PRESTADOR_SERVICOS' || roleMeta === 'TRANSPORTADORA') ? roleMeta : 'PRODUTOR';
       
       const newProfile = {
         user_id: user.id,

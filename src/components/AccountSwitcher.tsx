@@ -111,7 +111,8 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
       // Limpar dados locais se necessário
       localStorage.setItem('current_profile_id', selectedProfileId);
       
-      toast.success(`Conta alterada para ${selectedProfile.role === 'MOTORISTA' ? 'Motorista' : 'Produtor'}`);
+      const roleLabel = selectedProfile.role === 'MOTORISTA' || selectedProfile.role === 'MOTORISTA_AFILIADO' ? 'Motorista' : 'Produtor';
+      toast.success(`Conta alterada para ${roleLabel}`);
       
       // Redirecionar para o dashboard apropriado
       switch (selectedProfile.role) {
@@ -141,7 +142,7 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
   };
 
   const getRoleLabel = (role: string) => {
-    return role === 'MOTORISTA' ? 'Motorista' : 'Produtor';
+    return role === 'MOTORISTA' || role === 'MOTORISTA_AFILIADO' ? 'Motorista' : 'Produtor';
   };
 
   const getRoleColor = (role: string) => {
@@ -234,7 +235,7 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
                   <div>
                     <p className="text-sm font-medium mb-1">Não há outras contas disponíveis</p>
                     <p className="text-xs text-muted-foreground">
-                      Você pode criar uma conta adicional como {currentProfile?.role === 'MOTORISTA' ? 'Produtor' : 'Motorista'}
+                      Você pode criar uma conta adicional como {(currentProfile?.role === 'MOTORISTA' || currentProfile?.role === 'MOTORISTA_AFILIADO') ? 'Produtor' : 'Motorista'}
                     </p>
                   </div>
                   <Button 
@@ -247,7 +248,7 @@ export const AccountSwitcher: React.FC<AccountSwitcherProps> = ({
                     className="w-full"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Criar Conta {currentProfile?.role === 'MOTORISTA' ? 'de Produtor' : 'de Motorista'}
+                    Criar Conta {(currentProfile?.role === 'MOTORISTA' || currentProfile?.role === 'MOTORISTA_AFILIADO') ? 'de Produtor' : 'de Motorista'}
                   </Button>
                 </div>
               </Card>
