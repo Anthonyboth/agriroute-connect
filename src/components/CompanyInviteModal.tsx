@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { Loader2, Link2, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { CompanyInvitesList } from './CompanyInvitesList';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface CompanyInviteModalProps {
   open: boolean;
@@ -52,16 +54,22 @@ export const CompanyInviteModal: React.FC<CompanyInviteModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Convidar Motoristas</DialogTitle>
           <DialogDescription>
-            Escolha o método para convidar motoristas à sua transportadora.
+            Gere links de convite e acompanhe o status dos convites enviados.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          <div className="space-y-4">
+        <Tabs defaultValue="create" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="create">Criar Convite</TabsTrigger>
+            <TabsTrigger value="history">Histórico</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="create" className="space-y-6 mt-4">
+            <div className="space-y-4">
             {/* Novo Sistema de Convite com Token */}
             <div className="border-2 border-primary/50 rounded-lg p-4 bg-primary/5">
               <div className="flex items-center gap-2 mb-2">
@@ -250,7 +258,12 @@ export const CompanyInviteModal: React.FC<CompanyInviteModalProps> = ({
               )}
             </div>
           </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-4">
+            <CompanyInvitesList />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

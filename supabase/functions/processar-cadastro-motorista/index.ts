@@ -12,23 +12,16 @@ serve(async (req) => {
   }
 
   try {
-    const { 
-      token, 
-      full_name, 
-      email, 
-      phone, 
-      cpf_cnpj, 
-      password 
-    } = await req.json()
+    const { token, userData } = await req.json()
 
-    console.log('[PROCESSAR-CADASTRO] Iniciando cadastro para:', email)
+    console.log('[PROCESSAR-CADASTRO] Iniciando cadastro para:', userData.email)
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 1. Validar token novamente
+    // 1. Validar token
     const { data: convite, error: conviteError } = await supabaseAdmin
       .from('convites_motoristas')
       .select('id, transportadora_id, usado, expira_em')
@@ -48,11 +41,13 @@ serve(async (req) => {
       throw new Error('Convite expirado')
     }
 
+    const companyProfileId = convite.transportadora_id
+
     // 2. Buscar ID da transportadora
     const { data: transportCompany, error: companyError } = await supabaseAdmin
       .from('transport_companies')
       .select('id')
-      .eq('profile_id', convite.transportadora_id)
+      .eq('profile_id', companyProfileId)
       .single()
 
     if (companyError || !transportCompany) {
@@ -63,15 +58,14 @@ serve(async (req) => {
     // 3. Criar usuário no Auth
     console.log('[PROCESSAR-CADASTRO] Criando usuário no Auth')
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
+      email: userData.email,
+      password: userData.password,
       email_confirm: true,
       user_metadata: {
-        full_name,
-        phone,
-        cpf_cnpj,
+        full_name: userData.fullName,
+        phone: userData.phone,
         role: 'MOTORISTA',
-        invited_by_company: convite.transportadora_id
+        invited_by_company: companyProfileId
       }
     })
 
@@ -80,27 +74,35 @@ serve(async (req) => {
       throw authError
     }
 
-    console.log('[PROCESSAR-CADASTRO] Usuário criado:', authData.user.id)
+    const user = authData.user
+    console.log('[PROCESSAR-CADASTRO] Usuário criado:', user.id)
 
-    // 4. Criar perfil
+    // 4. Criar profile do motorista
+    const profileData: any = {
+      user_id: user.id,
+      full_name: userData.fullName,
+      email: userData.email,
+      phone: userData.phone,
+      document: userData.cpf,
+      cpf_cnpj: userData.cpf,
+      role: 'MOTORISTA',
+      status: 'APPROVED'
+    }
+
+    // Adicionar endereço se fornecido
+    if (userData.address) {
+      profileData.metadata = {
+        address: userData.address
+      }
+    }
+
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
-        user_id: authData.user.id,
-        full_name,
-        email,
-        phone,
-        cpf_cnpj,
-        role: 'MOTORISTA',
-        status: 'APPROVED'
-      })
+      .insert(profileData)
       .select()
       .single()
 
-    if (profileError) {
-      console.log('[PROCESSAR-CADASTRO] Erro ao criar perfil:', profileError)
-      throw profileError
-    }
+    if (profileError) throw profileError
 
     console.log('[PROCESSAR-CADASTRO] Perfil criado:', profile.id)
 
@@ -110,7 +112,7 @@ serve(async (req) => {
       .insert({
         company_id: transportCompany.id,
         driver_profile_id: profile.id,
-        invited_by: convite.transportadora_id,
+        invited_by: companyProfileId,
         status: 'ACTIVE',
         accepted_at: new Date().toISOString()
       })
@@ -122,32 +124,77 @@ serve(async (req) => {
 
     console.log('[PROCESSAR-CADASTRO] Motorista vinculado à transportadora')
 
-    // 6. Marcar token como usado
-    await supabaseAdmin
+    // 6. Criar veículo se fornecido
+    if (userData.vehicle && userData.vehicle.plate) {
+      const { error: vehicleError } = await supabaseAdmin
+        .from('vehicles')
+        .insert({
+          profile_id: profile.id,
+          plate: userData.vehicle.plate,
+          type: userData.vehicle.type || 'CAMINHAO',
+          model: userData.vehicle.model,
+          year: userData.vehicle.year ? parseInt(userData.vehicle.year) : null,
+          is_company_vehicle: false
+        })
+
+      if (vehicleError) {
+        console.error('Erro ao criar veículo:', vehicleError)
+      }
+    }
+
+    // 7. Marcar convite como usado
+    const { error: updateError } = await supabaseAdmin
       .from('convites_motoristas')
       .update({
         usado: true,
-        usado_por: profile.id,
-        usado_em: new Date().toISOString()
+        usado_em: new Date().toISOString(),
+        usado_por: profile.id
       })
-      .eq('id', convite.id)
+      .eq('token', token)
 
-    console.log('[PROCESSAR-CADASTRO] Token marcado como usado')
+    if (updateError) {
+      console.error('Erro ao atualizar convite:', updateError)
+    }
+
+    // 8. Criar notificação para a transportadora
+    const { error: notificationError } = await supabaseAdmin
+      .from('notifications')
+      .insert({
+        user_id: companyProfileId,
+        title: 'Novo motorista cadastrado',
+        message: `${userData.fullName} aceitou o convite e se cadastrou na sua transportadora.`,
+        type: 'info',
+        data: {
+          driver_id: profile.id,
+          driver_name: userData.fullName,
+          event: 'driver_signup'
+        }
+      })
+
+    if (notificationError) {
+      console.error('Erro ao criar notificação:', notificationError)
+    }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        user_id: authData.user.id,
-        profile_id: profile.id
+      JSON.stringify({ 
+        success: true, 
+        userId: user.id,
+        profileId: profile.id,
+        message: 'Motorista cadastrado com sucesso'
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
     )
-
-  } catch (error) {
-    console.error('[PROCESSAR-CADASTRO] Erro:', error)
+  } catch (error: any) {
+    console.error('Erro no processamento:', error)
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      JSON.stringify({ error: error.message }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
+      }
     )
   }
 })
