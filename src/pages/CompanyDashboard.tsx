@@ -70,6 +70,9 @@ import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
 import { CompanyInviteModal } from '@/components/CompanyInviteModal';
+import { CompanyBalance } from '@/components/CompanyBalance';
+import { CompanyInternalChat } from '@/components/CompanyInternalChat';
+import { CompanyReports } from '@/components/CompanyReports';
 
 const CompanyDashboard = () => {
   const { profile, profiles, switchProfile, signOut } = useAuth();
@@ -258,58 +261,57 @@ const CompanyDashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="overflow-x-auto">
             <TabsList className="inline-flex h-auto min-w-full w-max sm:w-full p-1 gap-1 bg-card border rounded-lg">
-              <TabsTrigger 
-                value="overview" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="overview" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
                 <Building2 className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Visão Geral</span>
                 <span className="sm:hidden">Visão</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="drivers" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="drivers" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
                 <Users className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Motoristas</span>
                 <span className="sm:hidden">Mot</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="assignments" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                <Link2 className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Vínculos</span>
-                <span className="sm:hidden">Vínc</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="fleet" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="fleet" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
                 <Truck className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Frota</span>
                 <span className="sm:hidden">Frota</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="freights" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="assignments" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
+                <Link2 className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Vínculos</span>
+                <span className="sm:hidden">Vínc</span>
+              </TabsTrigger>
+              <TabsTrigger value="freights" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
                 <Package className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Fretes</span>
                 <span className="sm:hidden">Fretes</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="chat" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="scheduled" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
+                <Calendar className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Agendamentos</span>
+                <span className="sm:hidden">Agend</span>
+              </TabsTrigger>
+              <TabsTrigger value="cities" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
+                <MapPin className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Cidades</span>
+                <span className="sm:hidden">Cid</span>
+              </TabsTrigger>
+              <TabsTrigger value="balance" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
+                <Banknote className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Saldo</span>
+                <span className="sm:hidden">$</span>
+              </TabsTrigger>
+              <TabsTrigger value="history" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
+                <Clock className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Histórico</span>
+                <span className="sm:hidden">Hist</span>
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
                 <MessageSquare className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Chat Interno</span>
                 <span className="sm:hidden">Chat</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="reports" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="reports" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
                 <BarChart className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Relatórios</span>
                 <span className="sm:hidden">Rel</span>
@@ -334,30 +336,36 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="freights" className="mt-6">
-            <Card>
-              <CardContent className="pt-6 text-center text-muted-foreground">
-                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Gestão de fretes em desenvolvimento</p>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <AdvancedFreightSearch 
+                onSearch={(filters) => console.log('Search filters:', filters)}
+                userRole="MOTORISTA"
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="scheduled" className="mt-6">
+            <ScheduledFreightsManager />
+          </TabsContent>
+
+          <TabsContent value="cities" className="mt-6">
+            <UserCityManager userRole="TRANSPORTADORA" />
+          </TabsContent>
+
+          <TabsContent value="balance" className="mt-6">
+            <CompanyBalance />
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-6">
+            <UnifiedHistory userRole="MOTORISTA" />
           </TabsContent>
 
           <TabsContent value="chat" className="mt-6">
-            <Card>
-              <CardContent className="pt-6 text-center text-muted-foreground">
-                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Chat interno em desenvolvimento</p>
-              </CardContent>
-            </Card>
+            <CompanyInternalChat />
           </TabsContent>
 
           <TabsContent value="reports" className="mt-6">
-            <Card>
-              <CardContent className="pt-6 text-center text-muted-foreground">
-                <BarChart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Relatórios em desenvolvimento</p>
-              </CardContent>
-            </Card>
+            <CompanyReports />
           </TabsContent>
 
         </Tabs>
