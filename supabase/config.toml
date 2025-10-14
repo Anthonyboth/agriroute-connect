@@ -146,3 +146,6 @@ verify_jwt = false
 
 [functions.processar-cadastro-motorista]
 verify_jwt = false
+
+[functions.recalculate-antt-min]
+verify_jwt = true

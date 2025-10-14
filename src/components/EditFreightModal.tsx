@@ -44,10 +44,19 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
     required_trucks: 1
   });
   const [loading, setLoading] = useState(false);
+  const [initialValues, setInitialValues] = useState<any>(null);
 
   // Atualizar formulário sempre que o frete mudar
   useEffect(() => {
     if (freight && isOpen) {
+      const initialData = {
+        distance_km: freight.distance_km,
+        vehicle_axles_required: freight.vehicle_axles_required,
+        high_performance: freight.high_performance,
+        cargo_type: freight.cargo_type
+      };
+      setInitialValues(initialData);
+      
       setFormData({
         cargo_type: freight.cargo_type || '',
         weight: freight.weight ? (freight.weight / 1000).toString() : '', // Convert kg from DB to tonnes for display
@@ -93,6 +102,43 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
     setLoading(true);
 
     try {
+      // Check if we need to recalculate ANTT minimum
+      let updatedMinimumAntt = freight.minimum_antt_price;
+      
+      // Determine if ANTT-relevant fields changed
+      const distanceChanged = freight.distance_km !== initialValues?.distance_km;
+      const axlesChanged = freight.vehicle_axles_required !== initialValues?.vehicle_axles_required;
+      const highPerfChanged = freight.high_performance !== initialValues?.high_performance;
+      const cargoChanged = freight.cargo_type !== initialValues?.cargo_type;
+      
+      const needsAnttRecalc = distanceChanged || axlesChanged || highPerfChanged || cargoChanged;
+
+      if (needsAnttRecalc && freight.distance_km && freight.cargo_type) {
+        try {
+          console.log('[EditFreight] Recalculating ANTT minimum...');
+          
+          const tableType = freight.high_performance ? 'C' : 'A';
+          const axles = freight.vehicle_axles_required || 5;
+          
+          const { data: anttData, error: anttError } = await supabase.functions.invoke('antt-calculator', {
+            body: {
+              cargo_type: freight.cargo_type,
+              distance_km: freight.distance_km,
+              axles: axles,
+              table_type: tableType
+            }
+          });
+
+          if (!anttError && anttData?.minimum_freight_value) {
+            updatedMinimumAntt = anttData.minimum_freight_value;
+            console.log('[EditFreight] ANTT recalculated:', updatedMinimumAntt);
+          }
+        } catch (anttError) {
+          console.error('[EditFreight] Failed to recalculate ANTT:', anttError);
+          // Continue with update even if ANTT calc fails
+        }
+      }
+
       const { error } = await supabase
         .from('freights')
         .update({
@@ -110,6 +156,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
           description: formData.description,
           urgency: formData.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
           required_trucks: Number(formData.required_trucks),
+          minimum_antt_price: updatedMinimumAntt,
           updated_at: new Date().toISOString()
         })
         .eq('id', freight.id);
