@@ -2631,6 +2631,7 @@ export type Database = {
           document_photo_url: string | null
           document_rg_url: string | null
           document_validation_status: string | null
+          email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           farm_address: string | null
@@ -2710,6 +2711,7 @@ export type Database = {
           document_photo_url?: string | null
           document_rg_url?: string | null
           document_validation_status?: string | null
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           farm_address?: string | null
@@ -2789,6 +2791,7 @@ export type Database = {
           document_photo_url?: string | null
           document_rg_url?: string | null
           document_validation_status?: string | null
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           farm_address?: string | null

@@ -6,6 +6,7 @@ import { queryWithTimeout } from '@/lib/query-utils';
 interface UserProfile {
   id: string;
   user_id: string;
+  email: string;
   full_name: string;
   phone: string;
   document: string;

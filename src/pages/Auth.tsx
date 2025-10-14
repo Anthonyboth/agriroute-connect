@@ -167,47 +167,39 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setShowResendConfirmation(false); // Reset state
+    setShowResendConfirmation(false);
 
     try {
-      // Determinar se é email, CPF ou usuário
-      let signInData;
+      let emailToUse = loginField;
       
-      if (loginField.includes('@')) {
-        // É um email
-        signInData = { email: loginField, password };
-      } else {
-        // É CPF ou usuário - buscar o email associado
+      // Se não contém @, é CPF/CNPJ - buscar o email correspondente
+      if (!loginField.includes('@')) {
+        const cleanDoc = loginField.replace(/\D/g, '');
+        
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('user_id')
-          .or(`document.eq.${loginField},full_name.ilike.%${loginField}%`)
+          .select('email')
+          .eq('document', cleanDoc)
           .single();
 
-        if (profileError || !profile) {
-          toast.error('Usuário ou CPF não encontrado');
+        if (profileError || !profile?.email) {
+          toast.error('CPF/CNPJ não encontrado. Verifique os dados ou faça seu cadastro.');
           setLoading(false);
           return;
         }
 
-        // Buscar o email do usuário
-        const { data: user, error: userError } = await supabase.auth.admin.getUserById(profile.user_id);
-        
-        if (userError || !user.user?.email) {
-          toast.error('Erro ao buscar dados do usuário');
-          setLoading(false);
-          return;
-        }
-
-        signInData = { email: user.user.email, password };
+        emailToUse = profile.email;
       }
 
-      const { error } = await supabase.auth.signInWithPassword(signInData);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: emailToUse,
+        password
+      });
 
       if (error) {
         const msg = error.message || '';
         if (msg.includes('Invalid login credentials')) {
-          toast.error('Credenciais inválidas');
+          toast.error('Senha incorreta');
         } else if (msg.toLowerCase().includes('email not confirmed')) {
           setShowResendConfirmation(true);
           toast.error('Email não confirmado. Clique em "Reenviar e-mail de confirmação" abaixo.');
@@ -216,6 +208,7 @@ const Auth = () => {
         }
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast.error('Erro no login');
     } finally {
       setLoading(false);
@@ -284,12 +277,12 @@ const Auth = () => {
             <TabsContent value="login">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="loginField">Email, CPF ou Nome de Usuário</Label>
+                  <Label htmlFor="loginField">Email ou CPF/CNPJ</Label>
                   <Input
                     id="loginField"
                     value={loginField}
                     onChange={(e) => setLoginField(e.target.value)}
-                    placeholder="Digite seu email, CPF ou nome de usuário"
+                    placeholder="Digite seu email ou CPF/CNPJ"
                     required
                   />
                 </div>
