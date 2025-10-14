@@ -34,6 +34,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancel from "./pages/PaymentCancel";
 import React, { lazy, Suspense } from 'react';
 import { useAuth } from "./hooks/useAuth";
+import { useCompanyDriver } from "./hooks/useCompanyDriver";
 import { ComponentLoader } from '@/components/LazyComponents';
 import { ScrollToTop } from './components/ScrollToTop';
 const PressPage = lazy(() => import("./pages/Press"));
@@ -52,8 +53,9 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   adminOnly?: boolean;
 }) => {
   const { isAuthenticated, isApproved, isAdmin, loading, profile, signOut } = useAuth();
+  const { isCompanyDriver, isLoading: isLoadingCompany } = useCompanyDriver();
 
-  if (loading) {
+  if (loading || isLoadingCompany) {
     return <ComponentLoader />;
   }
 
@@ -67,12 +69,25 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
       signOut();
     };
 
+    // Determinar tipo de aprovação
+    const isAffiliatedDriver = profile?.role === 'MOTORISTA_AFILIADO' || 
+      (profile?.role === 'MOTORISTA' && isCompanyDriver);
+    
+    const approvalMessage = isAffiliatedDriver 
+      ? 'Aguarde a aprovação da transportadora'
+      : 'Aguarde aprovação do administrador';
+    
+    const approvalDescription = isAffiliatedDriver
+      ? 'Sua transportadora precisa aprovar seu cadastro antes de você começar a usar o app.'
+      : 'Seu cadastro está sendo analisado pela equipe AgroRoute.';
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-6">
         <div className="text-center space-y-6 max-w-md">
           <div className="space-y-4">
             <h2 className="text-2xl font-bold">Conta Pendente</h2>
-            <p className="text-muted-foreground">Aguarde aprovação do administrador</p>
+            <p className="text-muted-foreground font-semibold">{approvalMessage}</p>
+            <p className="text-sm text-muted-foreground">{approvalDescription}</p>
           </div>
           <div className="space-y-3">
             <Button 
