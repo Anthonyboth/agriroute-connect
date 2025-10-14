@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Loader2, CheckCircle, XCircle, Users } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
-import { validateDocument, formatDocument } from '@/utils/cpfValidator';
+import { validateDocument, formatDocument, validateCNPJ } from '@/utils/cpfValidator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const AffiliatedDriverSignup = () => {
@@ -23,23 +23,26 @@ const AffiliatedDriverSignup = () => {
   const [companyName, setCompanyName] = useState<string>('');
   const [companyId, setCompanyId] = useState<string>('');
 
-  // Form fields
+// Form fields
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [document, setDocument] = useState('');
   const [password, setPassword] = useState('');
-  const [companyCNPJ, setCompanyCNPJ] = useState(companyCNPJFromURL);
+  const normalizedFromURL = (companyCNPJFromURL || '').replace(/\D/g, '');
+  const [companyCNPJ, setCompanyCNPJ] = useState(normalizedFromURL ? formatDocument(normalizedFromURL) : '');
+  const [showForm, setShowForm] = useState(false);
+  const cnpjDigits = companyCNPJ.replace(/\D/g, '');
 
   // Validar CNPJ da transportadora
   useEffect(() => {
     const validateCompanyCNPJ = async () => {
-      if (!companyCNPJ || companyCNPJ.length < 14) {
+      if (!cnpjDigits || cnpjDigits.length < 14) {
         setCompanyValid(null);
         return;
       }
 
-      if (!validateDocument(companyCNPJ)) {
+      if (!validateCNPJ(cnpjDigits)) {
         setCompanyValid(false);
         setCompanyName('');
         return;
@@ -50,7 +53,7 @@ const AffiliatedDriverSignup = () => {
         const { data, error } = await supabase
           .from('transport_companies')
           .select('id, company_name, status')
-          .eq('company_cnpj', companyCNPJ.replace(/\D/g, ''))
+          .eq('company_cnpj', cnpjDigits)
           .maybeSingle();
 
         if (error) {
@@ -89,6 +92,12 @@ const AffiliatedDriverSignup = () => {
 
     validateCompanyCNPJ();
   }, [companyCNPJ]);
+
+  useEffect(() => {
+    if (companyValid && (companyCNPJFromURL || inviteToken)) {
+      setShowForm(true);
+    }
+  }, [companyValid, companyCNPJFromURL, inviteToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,7 +242,7 @@ const AffiliatedDriverSignup = () => {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-4">
             {/* CNPJ da Transportadora */}
             <div className="space-y-2">
               <Label htmlFor="companyCNPJ">CNPJ da Transportadora *</Label>
@@ -261,7 +270,7 @@ const AffiliatedDriverSignup = () => {
                   </AlertDescription>
                 </Alert>
               )}
-              {companyValid === false && companyCNPJ.length >= 14 && (
+              {companyValid === false && cnpjDigits.length >= 14 && (
                 <Alert variant="destructive">
                   <XCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -271,9 +280,15 @@ const AffiliatedDriverSignup = () => {
               )}
             </div>
 
-            {/* Informações do Motorista Afiliado */}
-            {companyValid && (
-              <>
+            {companyValid === true && !showForm && (
+              <Button type="button" className="w-full" onClick={() => setShowForm(true)}>
+                Continuar
+              </Button>
+            )}
+
+            {/* Etapa 2: Informações do Motorista Afiliado */}
+            {showForm && companyValid === true && (
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <Alert className="border-primary/30 bg-primary/5">
                   <Users className="h-4 w-4 text-primary" />
                   <AlertTitle>Sobre o Cadastro de Afiliado</AlertTitle>
@@ -363,9 +378,9 @@ const AffiliatedDriverSignup = () => {
                     'Cadastrar como Motorista Afiliado'
                   )}
                 </Button>
-              </>
+              </form>
             )}
-          </form>
+          </div>
 
           <p className="text-xs text-center text-muted-foreground mt-4">
             Já tem uma conta?{' '}
