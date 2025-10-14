@@ -23,6 +23,18 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    const msg = String(error?.message || '');
+    const isDOMTransient = msg.includes('removeChild') || msg.includes('insertBefore') || msg.includes('Cannot read properties of null');
+
+    if (isDOMTransient) {
+      console.warn('Transient DOM error suppressed by ErrorBoundary:', error);
+      // Allow React to recover, then reset boundary
+      setTimeout(() => {
+        this.setState({ hasError: false, error: undefined });
+      }, 100);
+      return;
+    }
+
     console.error('ErrorBoundary caught error:', error, errorInfo);
   }
 

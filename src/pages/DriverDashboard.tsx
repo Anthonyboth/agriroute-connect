@@ -195,7 +195,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     vehicle_type: 'all',
   });
 
-  
+  // Flag de montagem para evitar setState após unmount
+  const isMountedRef = React.useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Monitoramento GPS para fretes em andamento
   const activeFreight = ongoingFreights.find(f =>
@@ -307,7 +314,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           service_type: f.service_type
         }));
 
-        setAvailableFreights(formattedFreights);
+        if (isMountedRef.current) setAvailableFreights(formattedFreights);
         return;
       }
 
@@ -388,7 +395,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 minimum_antt_price: f.minimum_antt_price,
                 service_type: f.service_type
               }));
-              setAvailableFreights(formattedFreights);
+              if (isMountedRef.current) setAvailableFreights(formattedFreights);
               return;
             }
           }
@@ -420,10 +427,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         } : undefined
       }));
 
-      setAvailableFreights(formattedFreights);
+      if (isMountedRef.current) setAvailableFreights(formattedFreights);
     } catch (error) {
       console.error('Error fetching available freights:', error);
-      toast.error('Erro ao carregar fretes disponíveis');
+      if (isMountedRef.current) toast.error('Erro ao carregar fretes disponíveis');
     }
   }, [profile?.id, profile?.role, isCompanyDriver, companyId]);
 
@@ -441,15 +448,17 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       const proposals = (data?.proposals as any[]) || [];
       const ongoing = (data?.ongoingFreights as any[]) || [];
       
-      setMyProposals(proposals);
+      if (isMountedRef.current) setMyProposals(proposals);
       // Preservar serviços aceitos (service_requests) já no estado e mesclar com fretes em andamento da edge function
-      setOngoingFreights((prev) => {
-        const serviceRequests = (prev || []).filter((f: any) => (f as any).is_service_request);
-        const merged = [...ongoing, ...serviceRequests].filter(
-          (item, index, self) => self.findIndex((x: any) => x.id === item.id) === index
-        );
-        return merged;
-      });
+      if (isMountedRef.current) {
+        setOngoingFreights((prev) => {
+          const serviceRequests = (prev || []).filter((f: any) => (f as any).is_service_request);
+          const merged = [...ongoing, ...serviceRequests].filter(
+            (item, index, self) => self.findIndex((x: any) => x.id === item.id) === index
+          );
+          return merged;
+        });
+      }
 
       if (ongoing.length > 0) {
         ongoing.forEach(async (freight: any) => {
@@ -459,7 +468,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               .select('*', { count: 'exact', head: true })
               .eq('freight_id', freight.id)
               .eq('user_id', profile.id);
-            setFreightCheckins(prev => ({ ...prev, [freight.id]: count || 0 }));
+            if (isMountedRef.current) setFreightCheckins(prev => ({ ...prev, [freight.id]: count || 0 }));
           } catch (err) {
             console.error('Error checking freight checkins for freight:', freight.id, err);
           }
@@ -468,7 +477,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     } catch (error) {
       console.error('Error fetching proposals:', error);
       // Só mostrar toast se for motorista
-      if (profile?.role === 'MOTORISTA') {
+      if (profile?.role === 'MOTORISTA' && isMountedRef.current) {
         toast.error('Erro ao carregar suas propostas');
       }
     }
@@ -486,7 +495,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         return;
       }
       
-      setMyAssignments(data?.assignments || []);
+      if (isMountedRef.current) setMyAssignments(data?.assignments || []);
     } catch (error) {
       console.error('Error fetching assignments:', error);
     }
@@ -594,7 +603,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       console.log('🚚 Fretes via assignments encontrados:', assignmentFreights?.length || 0);
       console.log('🔧 Serviços aceitos encontrados:', serviceData?.length || 0);
       console.log('📊 Total de itens ativos (deduplicado):', dedupedOngoing.length);
-      setOngoingFreights(dedupedOngoing);
+      if (isMountedRef.current) setOngoingFreights(dedupedOngoing);
 
       // Verificar checkins para cada frete tradicional
       if (freightData && freightData.length > 0) {
@@ -605,7 +614,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               .select('*', { count: 'exact', head: true })
               .eq('freight_id', (freight as any).id)
               .eq('user_id', profile.id);
-            setFreightCheckins(prev => ({ ...prev, [(freight as any).id]: count || 0 }));
+            if (isMountedRef.current) setFreightCheckins(prev => ({ ...prev, [(freight as any).id]: count || 0 }));
           } catch (error) {
             console.error('Error checking freight checkins for freight:', (freight as any).id, error);
           }
@@ -656,7 +665,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       console.log('🚛 Solicitações de transporte GUINCHO/MUDANCA encontradas:', data?.length || 0);
       console.log('📋 Dados filtrados:', data);
       
-      setTransportRequests(data || []);
+      if (isMountedRef.current) setTransportRequests(data || []);
     } catch (error) {
       console.error('Error fetching transport requests:', error);
       toast.error('Erro ao carregar solicitações de transporte');
@@ -709,7 +718,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         .limit(20);
 
       if (error) throw error;
-      setCounterOffers(data || []);
+      if (isMountedRef.current) setCounterOffers(data || []);
     } catch (error) {
       // Silenciar erro para não poluir UI
     }
@@ -795,10 +804,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         .eq('user_id', profile.id);
       
       if (error) throw error;
-      setTotalCheckins(count || 0);
+      if (isMountedRef.current) setTotalCheckins(count || 0);
     } catch (error) {
       console.error('Error fetching checkins count:', error);
-      setTotalCheckins(0);
+      if (isMountedRef.current) setTotalCheckins(0);
     }
   }, [profile?.id]);
 
@@ -821,10 +830,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       console.log('💰 Pagamentos pendentes encontrados:', data?.length || 0);
       console.log('📋 Dados dos pagamentos:', data);
       
-      setPendingPayments(data || []);
+      if (isMountedRef.current) setPendingPayments(data || []);
     } catch (error) {
       console.error('Error fetching pending payments:', error);
-      setPendingPayments([]);
+      if (isMountedRef.current) setPendingPayments([]);
     }
   }, [profile?.id]);
 
@@ -876,8 +885,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   // Carregar dados - otimizado
   useEffect(() => {
     const loadData = async () => {
-      if (!profile?.id) return;
-      setLoading(true);
+      if (!profile?.id || !isMountedRef.current) return;
+      if (isMountedRef.current) setLoading(true);
       try {
         await Promise.all([
           fetchAvailableFreights(),
@@ -889,10 +898,12 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           fetchPendingPayments()
         ]);
       } catch (err) {
-        console.error('Erro ao carregar dados do dashboard do motorista:', err);
-        toast.error('Erro ao carregar dados do dashboard');
+        if (isMountedRef.current) {
+          console.error('Erro ao carregar dados do dashboard do motorista:', err);
+          toast.error('Erro ao carregar dados do dashboard');
+        }
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) setLoading(false);
       }
     };
 
