@@ -21,9 +21,11 @@ export const CompanyInviteModal: React.FC<CompanyInviteModalProps> = ({
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [generatedSafeLink, setGeneratedSafeLink] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [affiliatedInviteLink, setAffiliatedInviteLink] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedSafeLink, setCopiedSafeLink] = useState(false);
   const [copiedInviteLink, setCopiedInviteLink] = useState(false);
+  const [copiedAffiliatedLink, setCopiedAffiliatedLink] = useState(false);
 
   const handleGenerateLink = async () => {
     setIsLoading(true);
@@ -70,14 +72,14 @@ export const CompanyInviteModal: React.FC<CompanyInviteModalProps> = ({
 
           <TabsContent value="create" className="space-y-6 mt-4">
             <div className="space-y-4">
-            {/* Novo Sistema de Convite com Token */}
+            {/* Novo Sistema de Convite com Token - Motorista de Empresa */}
             <div className="border-2 border-primary/50 rounded-lg p-4 bg-primary/5">
               <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-sm font-semibold">✅ Link de Convite Direto</h3>
+                <h3 className="text-sm font-semibold">✅ Link de Convite - Motorista de Empresa</h3>
                 <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">RECOMENDADO</span>
               </div>
               <p className="text-sm text-muted-foreground mb-3">
-                Link direto para cadastro com validação de token e vinculação automática
+                Link direto para cadastro de motorista empregado/contratado pela empresa
               </p>
               {!inviteLink ? (
                 <Button 
@@ -148,6 +150,76 @@ export const CompanyInviteModal: React.FC<CompanyInviteModalProps> = ({
                   </div>
                   <p className="text-xs text-muted-foreground">
                     ✓ Válido por 7 dias. Envie para o motorista via WhatsApp, SMS ou email.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Nova opção: Link para Motorista Afiliado */}
+            <div className="border-2 border-blue-500/50 rounded-lg p-4 bg-blue-500/5">
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-sm font-semibold">🔗 Link para Motorista Afiliado</h3>
+                <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">NOVO</span>
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Link para cadastro de motorista afiliado (auto-cadastro com CNPJ da empresa)
+              </p>
+              {!affiliatedInviteLink ? (
+                <Button 
+                  onClick={() => {
+                    if (company?.company_cnpj) {
+                      const link = `https://www.agriroute-connect.com.br/cadastro-motorista-afiliado?companyCNPJ=${company.company_cnpj}`;
+                      setAffiliatedInviteLink(link);
+                      navigator.clipboard.writeText(link);
+                      toast.success('Link de afiliado copiado!');
+                    } else {
+                      toast.error('CNPJ da empresa não encontrado');
+                    }
+                  }}
+                  disabled={!company?.company_cnpj}
+                  className="w-full bg-blue-500 hover:bg-blue-600"
+                >
+                  <Link2 className="mr-2 h-4 w-4" />
+                  Gerar Link para Afiliado
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-3 bg-background rounded-lg break-all text-sm font-mono border-2 border-blue-500/30">
+                    {affiliatedInviteLink}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        navigator.clipboard.writeText(affiliatedInviteLink);
+                        setCopiedAffiliatedLink(true);
+                        setTimeout(() => setCopiedAffiliatedLink(false), 2000);
+                        toast.success('Link copiado novamente!');
+                      }}
+                      className="flex-1"
+                      size="sm"
+                    >
+                      {copiedAffiliatedLink ? (
+                        <>
+                          <Check className="mr-2 h-4 w-4" />
+                          Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copiar
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => setAffiliatedInviteLink(null)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Novo Link
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    ℹ️ Motoristas afiliados não podem aceitar fretes diretamente. Valores gerenciados pela empresa.
                   </p>
                 </div>
               )}

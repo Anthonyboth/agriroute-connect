@@ -307,6 +307,7 @@ export type Database = {
       company_drivers: {
         Row: {
           accepted_at: string | null
+          affiliation_type: string | null
           can_accept_freights: boolean | null
           can_manage_vehicles: boolean | null
           company_id: string
@@ -321,6 +322,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          affiliation_type?: string | null
           can_accept_freights?: boolean | null
           can_manage_vehicles?: boolean | null
           company_id: string
@@ -335,6 +337,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          affiliation_type?: string | null
           can_accept_freights?: boolean | null
           can_manage_vehicles?: boolean | null
           company_id?: string

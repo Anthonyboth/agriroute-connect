@@ -37,6 +37,7 @@ export const useCompanyDriver = () => {
     companyName: companyDriver?.company?.company_name,
     canAcceptFreights: companyDriver?.can_accept_freights || false,
     canManageVehicles: companyDriver?.can_manage_vehicles || false,
+    isAffiliated: companyDriver?.affiliation_type === 'AFFILIATED',
     isLoading,
   };
 };

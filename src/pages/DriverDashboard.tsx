@@ -96,7 +96,7 @@ interface Proposal {
 const DriverDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
   const { unreadCount } = useNotifications();
-  const { isCompanyDriver, companyName, companyId, canAcceptFreights, canManageVehicles } = useCompanyDriver();
+  const { isCompanyDriver, companyName, companyId, canAcceptFreights, canManageVehicles, isAffiliated } = useCompanyDriver();
   const navigate = useNavigate();
 
   // Redirect to correct dashboard based on role and mode
@@ -1361,6 +1361,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             onClick={() => setActiveTab('my-trips')}
           />
 
+          {/* Saldo - apenas para motoristas independentes e não afiliados */}
           {!isCompanyDriver && (
             <StatsCard
               size="sm"
@@ -1382,6 +1383,17 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                   {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                 </Button>
               }
+            />
+          )}
+          
+          {/* Mensagem para motoristas afiliados */}
+          {isAffiliated && (
+            <StatsCard 
+              size="sm"
+              icon={<DollarSign className="h-5 w-5" />}
+              iconColor="text-muted-foreground"
+              label="Valores"
+              value="Gerenciados pela empresa"
             />
           )}
         </div>
@@ -1459,7 +1471,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 <span className="hidden sm:inline">Meus Veículos</span>
                 <span className="sm:hidden">Veíc</span>
               </TabsTrigger>
-              {!isCompanyDriver && (
+              {/* Tabs de pagamentos e saldo - apenas para motoristas não afiliados */}
+              {!isCompanyDriver && !isAffiliated && (
                 <>
                   <TabsTrigger 
                     value="payments" 
@@ -1495,10 +1508,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             <SubscriptionExpiryNotification />
           </div>
 
-          {/* Badge de motorista de empresa */}
+          {/* Badge de motorista de empresa/afiliado */}
           {isCompanyDriver && companyName && (
             <div className="mb-4">
-              <CompanyDriverBadge companyName={companyName} />
+              <CompanyDriverBadge companyName={companyName} isAffiliated={isAffiliated} />
             </div>
           )}
 

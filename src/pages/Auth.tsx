@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Mail, Eye, EyeOff, Truck, Building2, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Loader2, Mail, Eye, EyeOff, Truck, Building2, ArrowLeft, AlertTriangle, Users } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
 import { validateDocument } from '@/utils/cpfValidator';
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
@@ -391,7 +391,7 @@ const Auth = () => {
                   </div>
                 )}
 
-                {/* Step 2: Escolha entre Motorista ou Transportadora */}
+                {/* Step 2: Escolha entre Motorista, Motorista Afiliado ou Transportadora */}
                 {signupStep === 'driver-type' && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-4">
@@ -410,7 +410,7 @@ const Auth = () => {
                     
                     <h3 className="font-semibold text-lg">Escolha o tipo de cadastro:</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <Card 
                         className="cursor-pointer hover:border-primary transition-colors"
                         onClick={() => {
@@ -424,6 +424,23 @@ const Auth = () => {
                           <CardDescription>
                             Motorista individual com CPF ou CNPJ
                           </CardDescription>
+                        </CardHeader>
+                      </Card>
+                      
+                      <Card 
+                        className="cursor-pointer hover:border-primary transition-colors border-2 border-primary/30"
+                        onClick={() => {
+                          // Redirecionar para página específica de cadastro de afiliado
+                          window.location.href = '/cadastro-motorista-afiliado';
+                        }}
+                      >
+                        <CardHeader>
+                          <Users className="h-12 w-12 text-primary mb-2" />
+                          <CardTitle>Sou Motorista Afiliado</CardTitle>
+                          <CardDescription>
+                            Motorista vinculado a uma transportadora
+                          </CardDescription>
+                          <Badge variant="secondary" className="w-fit mt-2">Requer CNPJ da empresa</Badge>
                         </CardHeader>
                       </Card>
                       

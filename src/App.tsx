@@ -333,6 +333,11 @@ const App = () => (
               </Suspense>
             } />
             <Route path="/cadastro-motorista" element={<DriverInviteSignup />} />
+            <Route path="/cadastro-motorista-afiliado" element={
+              <Suspense fallback={<ComponentLoader />}>
+                {React.createElement(lazy(() => import('./pages/AffiliatedDriverSignup')))}
+              </Suspense>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<SmartFallback />} />
           </Routes>
