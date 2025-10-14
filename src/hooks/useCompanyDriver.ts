@@ -27,7 +27,7 @@ export const useCompanyDriver = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!profile?.id && profile.role === 'MOTORISTA',
+    enabled: !!profile?.id && (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO'),
   });
   
   return {

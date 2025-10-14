@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { supabase } from '@/integrations/supabase/client';
 import DocumentUpload from '@/components/DocumentUpload';
 import LocationPermission from '@/components/LocationPermission';
@@ -33,12 +34,15 @@ type PlatePhoto = {
 const CompleteProfile = () => {
   const { profile, loading: authLoading, isAuthenticated } = useAuth();
   const { company, isTransportCompany } = useTransportCompany();
+  const { isCompanyDriver, isLoading: isLoadingCompany } = useCompanyDriver();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   
-  // Flag unificada para identificar perfis de motorista
-  const isDriver = profile && (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO');
+  // Distinct driver type flags
+  const isAutonomousDriver = profile && profile.role === 'MOTORISTA' && !isCompanyDriver;
+  const isAffiliatedDriver = profile && (profile.role === 'MOTORISTA_AFILIADO' || (profile.role === 'MOTORISTA' && isCompanyDriver));
+  const isDriver = isAutonomousDriver || isAffiliatedDriver;
   const [documentUrls, setDocumentUrls] = useState({
     selfie: '',
     document_photo: '',
@@ -138,14 +142,14 @@ const CompleteProfile = () => {
         cnh_expiry_date: (profile as any).cnh_expiry_date || null,
       });
 
-      // Fetch vehicles for drivers
-      if (isDriver) {
+      // Fetch vehicles for autonomous drivers only
+      if (isAutonomousDriver) {
         fetchVehicles();
       }
 
       // Redirect if profile is fully complete (even if pending approval)
       const hasCompletedProfile = profile.selfie_url && profile.document_photo_url && 
-        (!isDriver || (
+        (!isAutonomousDriver || (
           profile.cnh_photo_url && 
           profile.address_proof_url &&
           profile.location_enabled
@@ -337,19 +341,19 @@ const CompleteProfile = () => {
       
       console.log('✅ Documentos validados com sucesso');
       
-      // Para não-motoristas: finalizar perfil aqui
-      if (!isDriver) {
-        await finalizeProfile();
+      // Para motoristas autônomos: ir para etapa 3 (veículos)
+      if (isAutonomousDriver) {
+        setCurrentStep(3);
         return;
       }
       
-      // Para motoristas: continuar para etapa 3
-      setCurrentStep(3);
+      // Para todos os outros (incluindo afiliados): finalizar aqui
+      await finalizeProfile();
       return;
     }
 
-   // Validate step 3 requirements for drivers - only essential docs
-   if (currentStep === 3 && isDriver) {
+   // Validate step 3 requirements for autonomous drivers - only essential docs
+   if (currentStep === 3 && isAutonomousDriver) {
      const missingDocs = [];
      
      // TRANSPORTADORAS: só exigir comprovante de endereço
@@ -569,7 +573,18 @@ const CompleteProfile = () => {
     );
   }
 
-  const totalSteps = isDriver ? 3 : 2;
+  if (isLoadingCompany && profile?.role === 'MOTORISTA') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Verificando vínculo com transportadora...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const totalSteps = isAutonomousDriver ? 3 : 2;
   // Clamp defensivo: evita mostrar "3 de 2" mesmo se algo escape
   const safeCurrentStep = Math.min(currentStep, totalSteps);
   const progress = (safeCurrentStep / totalSteps) * 100;
@@ -581,8 +596,10 @@ const CompleteProfile = () => {
           <CardHeader className="text-center">
           <CardTitle className="text-2xl">Complete seu Perfil</CardTitle>
             <CardDescription>
-              {isDriver 
-                ? 'Envie seus documentos e ative a localização para começar a usar o app'
+              {isAutonomousDriver 
+                ? 'Envie seus documentos, cadastre seus veículos e ative a localização'
+                : isAffiliatedDriver
+                ? 'Envie seus documentos para completar o cadastro. Seus veículos serão cadastrados pela transportadora.'
                 : 'Envie seus documentos para completar o cadastro'
               }
             </CardDescription>
