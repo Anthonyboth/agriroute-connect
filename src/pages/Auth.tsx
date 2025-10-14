@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Mail, Eye, EyeOff, Truck, Building2, ArrowLeft, AlertTriangle, Users } from 'lucide-react';
+import { Loader2, Mail, Eye, EyeOff, Truck, Building2, ArrowLeft, AlertTriangle, Users, Info, Briefcase, Building } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
 import { validateDocument } from '@/utils/cpfValidator';
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
@@ -408,56 +408,72 @@ const Auth = () => {
                       </Button>
                     </div>
                     
-                    <h3 className="font-semibold text-lg">Escolha o tipo de cadastro:</h3>
+                    <h3 className="font-semibold text-lg mb-2">Escolha o tipo de cadastro:</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       <Card 
-                        className="cursor-pointer hover:border-primary transition-colors"
+                        className="cursor-pointer transition-all duration-300 hover:border-primary hover:shadow-lg hover:-translate-y-1 h-full flex flex-col"
                         onClick={() => {
                           setDriverType('MOTORISTA');
                           setSignupStep('form');
                         }}
                       >
-                        <CardHeader>
-                          <Truck className="h-12 w-12 text-primary mb-2" />
-                          <CardTitle>Sou Motorista</CardTitle>
-                          <CardDescription>
+                        <CardHeader className="flex-1 flex flex-col items-center text-center">
+                          <Truck className="h-12 w-12 text-primary mb-3" />
+                          <CardTitle className="text-xl">Sou Motorista</CardTitle>
+                          <CardDescription className="text-sm mt-2">
                             Motorista individual com CPF ou CNPJ
                           </CardDescription>
+                          <div className="mt-auto pt-4">
+                            <Badge variant="outline" className="text-xs flex items-center gap-1">
+                              <Info className="h-3 w-3" />
+                              CPF ou CNPJ
+                            </Badge>
+                          </div>
                         </CardHeader>
                       </Card>
                       
                       <Card 
-                        className="cursor-pointer hover:border-primary transition-colors border-2 border-primary/30"
+                        className="cursor-pointer transition-all duration-300 hover:border-primary hover:shadow-lg hover:-translate-y-1 border-2 border-green-500/50 bg-green-50/30 dark:bg-green-950/20 h-full flex flex-col"
                         onClick={() => {
                           // Redirecionar para página específica de cadastro de afiliado
                           window.location.href = '/cadastro-motorista-afiliado';
                         }}
                       >
-                        <CardHeader>
-                          <Users className="h-12 w-12 text-primary mb-2" />
-                          <CardTitle>Sou Motorista Afiliado</CardTitle>
-                          <CardDescription>
-                            Motorista vinculado a uma transportadora
+                        <CardHeader className="flex-1 flex flex-col items-center text-center">
+                          <Users className="h-12 w-12 text-primary mb-3" />
+                          <CardTitle className="text-xl">Sou Motorista Afiliado</CardTitle>
+                          <CardDescription className="text-sm mt-2">
+                            Vinculado a uma transportadora
                           </CardDescription>
-                          <Badge variant="secondary" className="w-fit mt-2">Requer CNPJ da empresa</Badge>
+                          <div className="mt-auto pt-4">
+                            <Badge variant="outline" className="text-xs flex items-center gap-1 bg-green-100 dark:bg-green-900 border-green-500/50">
+                              <Briefcase className="h-3 w-3" />
+                              Requer CNPJ
+                            </Badge>
+                          </div>
                         </CardHeader>
                       </Card>
                       
                       <Card 
-                        className="cursor-pointer hover:border-primary transition-colors"
+                        className="cursor-pointer transition-all duration-300 hover:border-primary hover:shadow-lg hover:-translate-y-1 h-full flex flex-col"
                         onClick={() => {
                           setDriverType('TRANSPORTADORA');
                           setSignupStep('form');
                         }}
                       >
-                        <CardHeader>
-                          <Building2 className="h-12 w-12 text-primary mb-2" />
-                          <CardTitle>Sou Transportadora</CardTitle>
-                          <CardDescription>
-                            Empresa de transporte (2 ou mais carretas)
+                        <CardHeader className="flex-1 flex flex-col items-center text-center">
+                          <Building2 className="h-12 w-12 text-primary mb-3" />
+                          <CardTitle className="text-xl">Sou Transportadora</CardTitle>
+                          <CardDescription className="text-sm mt-2">
+                            Empresa com 2 ou mais carretas
                           </CardDescription>
-                          <Badge variant="secondary" className="w-fit mt-2">2+ carretas</Badge>
+                          <div className="mt-auto pt-4">
+                            <Badge variant="outline" className="text-xs flex items-center gap-1">
+                              <Building className="h-3 w-3" />
+                              2+ carretas
+                            </Badge>
+                          </div>
                         </CardHeader>
                       </Card>
                     </div>
