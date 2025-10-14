@@ -39,6 +39,8 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization') || '';
+    
     const { 
       cargo_type, 
       distance_km, 
@@ -53,7 +55,8 @@ serve(async (req) => {
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
     );
 
     // 1. Mapear cargo_type para categoria ANTT oficial
@@ -98,7 +101,9 @@ serve(async (req) => {
       throw new Error('Erro ao buscar taxa ANTT');
     }
 
-    if (!rateData) {
+    let rateRow = rateData;
+
+    if (!rateRow) {
       console.log('⚠️ No exact ANTT rate found, trying fallback to Carga Geral...');
       
       // Fallback para Carga Geral se não encontrar categoria específica
@@ -115,14 +120,14 @@ serve(async (req) => {
       }
       
       console.log('✅ Using fallback Carga Geral rate');
-      rateData = fallbackData;
+      rateRow = fallbackData;
     } else {
-      console.log('✅ ANTT rate found:', rateData);
+      console.log('✅ ANTT rate found:', rateRow);
     }
 
     // 3. Calcular preço OFICIAL ANTT (fórmula exata)
     // Fórmula: (rate_per_km * distance_km) + fixed_charge
-    const basePrice = (parseFloat(rateData.rate_per_km) * distance_km) + parseFloat(rateData.fixed_charge);
+    const basePrice = (parseFloat(rateRow.rate_per_km) * distance_km) + parseFloat(rateRow.fixed_charge);
 
     // 4. Valores finais (sem incremento interestadual)
     const antt_reference_price = Math.round(basePrice * 100) / 100;
@@ -138,11 +143,11 @@ serve(async (req) => {
         table_type: tableType,
         axles,
         distance_km,
-        rate_per_km: parseFloat(rateData.rate_per_km),
-        fixed_charge: parseFloat(rateData.fixed_charge),
+        rate_per_km: parseFloat(rateRow.rate_per_km),
+        fixed_charge: parseFloat(rateRow.fixed_charge),
         high_performance,
         interstate: false, // Removido incremento interestadual
-        formula: `(${rateData.rate_per_km} × ${distance_km}km) + ${rateData.fixed_charge} = R$ ${antt_reference_price.toFixed(2)}`
+        formula: `(${rateRow.rate_per_km} × ${distance_km}km) + ${rateRow.fixed_charge} = R$ ${antt_reference_price.toFixed(2)}`
       }
     };
 
