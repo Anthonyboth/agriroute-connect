@@ -41,6 +41,7 @@ const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess")
 const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
 const CompanyInviteAccept = lazy(() => import("./pages/CompanyInviteAccept"));
 const AffiliateSignup = lazy(() => import("./pages/AffiliateSignup"));
+const DriverInviteSignup = lazy(() => import("./pages/DriverInviteSignup"));
 
 const queryClient = new QueryClient();
 
@@ -315,6 +316,11 @@ const App = () => (
             <Route path="/cadastro-afiliado/:companyId" element={
               <Suspense fallback={<ComponentLoader />}>
                 <AffiliateSignup />
+              </Suspense>
+            } />
+            <Route path="/cadastro-motorista" element={
+              <Suspense fallback={<ComponentLoader />}>
+                <DriverInviteSignup />
               </Suspense>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

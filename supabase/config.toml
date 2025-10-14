@@ -137,3 +137,9 @@ verify_jwt = true
 
 [functions.geocode-cities]
 verify_jwt = true
+
+[functions.validar-token-convite]
+verify_jwt = false
+
+[functions.processar-cadastro-motorista]
+verify_jwt = false

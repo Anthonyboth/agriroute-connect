@@ -240,6 +240,40 @@ export const useTransportCompany = () => {
     },
   });
 
+  // Criar convite de motorista com token
+  const createDriverInvite = useMutation({
+    mutationFn: async () => {
+      if (!company?.id || !profile?.id) {
+        throw new Error('Transportadora não encontrada');
+      }
+
+      const token = crypto.randomUUID().slice(0, 8).toUpperCase();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      const { data, error } = await supabase
+        .from('convites_motoristas')
+        .insert({
+          transportadora_id: profile.id,
+          token,
+          expira_em: expiresAt.toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      const link = `https://www.agriroute-connect.com.br/cadastro-motorista?inviteToken=${data.token}`;
+      return link;
+    },
+    onError: (error: any) => {
+      console.error('Erro ao gerar convite:', error);
+      toast.error('Erro ao gerar link de convite');
+    }
+  });
+
   return {
     company,
     isLoadingCompany,
@@ -250,6 +284,7 @@ export const useTransportCompany = () => {
     isTransportCompany: !!company,
     createCompany: createCompany.mutateAsync,
     createInvite: createInvite.mutateAsync,
+    createDriverInvite,
     removeDriver: removeDriver.mutateAsync,
     assignVehicleToDriver: assignVehicleToDriver.mutateAsync,
     removeVehicleAssignment: removeVehicleAssignment.mutateAsync,

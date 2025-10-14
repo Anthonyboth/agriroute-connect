@@ -589,6 +589,54 @@ export type Database = {
           },
         ]
       }
+      convites_motoristas: {
+        Row: {
+          criado_em: string
+          expira_em: string
+          id: string
+          token: string
+          transportadora_id: string
+          usado: boolean
+          usado_em: string | null
+          usado_por: string | null
+        }
+        Insert: {
+          criado_em?: string
+          expira_em: string
+          id?: string
+          token: string
+          transportadora_id: string
+          usado?: boolean
+          usado_em?: string | null
+          usado_por?: string | null
+        }
+        Update: {
+          criado_em?: string
+          expira_em?: string
+          id?: string
+          token?: string
+          transportadora_id?: string
+          usado?: boolean
+          usado_em?: string | null
+          usado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convites_motoristas_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convites_motoristas_usado_por_fkey"
+            columns: ["usado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_availability: {
         Row: {
           available_date: string
