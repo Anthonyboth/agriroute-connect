@@ -16,6 +16,7 @@ import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
 import { userRegistrationSchema, validateInput } from '@/lib/validations';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { getErrorMessage } from '@/lib/error-handler';
 
 
 const Auth = () => {
@@ -99,6 +100,9 @@ const Auth = () => {
     }
 
     try {
+      // Sanitize document - only digits
+      const cleanDoc = (driverType === 'TRANSPORTADORA' ? companyCNPJ : document).replace(/\D/g, '');
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -108,18 +112,14 @@ const Auth = () => {
             full_name: fullName,
             role: driverType === 'TRANSPORTADORA' ? 'MOTORISTA' : role,
             phone,
-            document: driverType === 'TRANSPORTADORA' ? companyCNPJ : document,
+            document: cleanDoc,
             is_transport_company: driverType === 'TRANSPORTADORA'
           }
         }
       });
 
       if (error) {
-        if (error.message.includes('already registered')) {
-          toast.error('Email já cadastrado. Tente fazer login.');
-        } else {
-          toast.error('Erro na autenticação. Verifique suas credenciais.');
-        }
+        toast.error(getErrorMessage(error));
         setLoading(false);
         return;
       }
@@ -156,8 +156,9 @@ const Auth = () => {
       }
 
       toast.success('Pré-cadastro realizado! Verifique seu email para continuar.');
-    } catch (error) {
-      toast.error('Erro no cadastro');
+    } catch (error: any) {
+      console.error('Error during signup:', error);
+      toast.error(getErrorMessage(error));
     } finally {
       setLoading(false);
     }

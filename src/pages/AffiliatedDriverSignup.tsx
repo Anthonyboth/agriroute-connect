@@ -10,6 +10,7 @@ import { Loader2, CheckCircle, XCircle, Users, AlertTriangle } from 'lucide-reac
 import { BackButton } from '@/components/BackButton';
 import { validateDocument, formatDocument, validateCNPJ, formatCNPJ } from '@/utils/cpfValidator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { getErrorMessage } from '@/lib/error-handler';
 
 const AffiliatedDriverSignup = () => {
   const navigate = useNavigate();
@@ -139,6 +140,9 @@ const AffiliatedDriverSignup = () => {
     }
 
     try {
+      // Sanitize document - only digits
+      const cleanDoc = document.replace(/\D/g, '');
+
       // 1. Criar usuário no Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -149,7 +153,7 @@ const AffiliatedDriverSignup = () => {
             full_name: fullName,
             role: 'MOTORISTA_AFILIADO',
             phone,
-            document,
+            document: cleanDoc,
             is_affiliated_driver: true,
             affiliated_company_cnpj: companyCNPJ.replace(/\D/g, '')
           }
@@ -157,11 +161,7 @@ const AffiliatedDriverSignup = () => {
       });
 
       if (authError) {
-        if (authError.message.includes('already registered')) {
-          toast.error('Email já cadastrado. Tente fazer login.');
-        } else {
-          toast.error('Erro no cadastro. Tente novamente.');
-        }
+        toast.error(getErrorMessage(authError));
         setLoading(false);
         return;
       }
@@ -235,9 +235,9 @@ const AffiliatedDriverSignup = () => {
         navigate('/auth');
       }, 2000);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro no cadastro:', error);
-      toast.error('Erro inesperado. Tente novamente.');
+      toast.error(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
