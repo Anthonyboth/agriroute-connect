@@ -7,7 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { showErrorToast } from '@/lib/error-handler';
 import { DollarSign, MessageCircle, Calendar } from 'lucide-react';
+
 
 interface ProposalModalProps {
   freight: any;
@@ -34,7 +36,22 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!driverProfile) return;
+    const driverProfileId = await (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('user_id', user.id)
+        .in('role', ['MOTORISTA', 'MOTORISTA_AFILIADO'])
+        .limit(1);
+      if (error) throw error;
+      return data?.[0]?.id ?? (driverProfile?.id ?? null);
+    })();
+    if (!driverProfileId) {
+      toast({ title: 'Perfil inválido', description: 'Você precisa de um perfil de Motorista para enviar propostas.', variant: 'destructive' });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -43,7 +60,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
         .from('freight_proposals')
         .select('status')
         .eq('freight_id', freight.id)
-        .eq('driver_id', driverProfile.id)
+        .eq('driver_id', driverProfileId)
         .maybeSingle();
       
       if (checkError) throw checkError;
@@ -74,7 +91,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
         .from('freight_proposals')
         .insert({
           freight_id: freight.id,
-          driver_id: driverProfile.id,
+          driver_id: driverProfileId,
           proposed_price: proposalData.pricing_type === 'FIXED' 
             ? proposalData.proposed_price 
             : parseFloat(proposalData.proposed_price_per_km) * (freight.distance_km || 0),
@@ -104,11 +121,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
       onProposalSent?.();
     } catch (error: any) {
       console.error('Error sending proposal:', error);
-      toast({
-        title: "Erro ao enviar proposta",
-        description: "Não foi possível enviar a proposta. Verifique os dados e tente novamente.",
-        variant: "destructive",
-      });
+      showErrorToast(toast, 'Erro ao enviar proposta', error);
     } finally {
       setLoading(false);
     }

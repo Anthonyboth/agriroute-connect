@@ -11,6 +11,7 @@ import { Wrench, Home, Package, DollarSign, Clock, Users, Truck } from 'lucide-r
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { showErrorToast } from '@/lib/error-handler';
 
 interface ServiceProposalModalProps {
   isOpen: boolean;
@@ -62,7 +63,20 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   
   // Campos específicos para Carga (contra-proposta)
   const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM'>('FIXED');
-  const [pricePerKm, setPricePerKm] = useState('');
+const [pricePerKm, setPricePerKm] = useState('');
+
+  const getDriverProfileId = async (): Promise<string | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('user_id', user.id)
+      .in('role', ['MOTORISTA', 'MOTORISTA_AFILIADO'])
+      .limit(1);
+    if (error) throw error;
+    return data?.[0]?.id ?? null;
+  };
 
   const getServiceIcon = () => {
     switch (freight.service_type) {
@@ -114,12 +128,19 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
     try {
       const finalPrice = pricingType === 'PER_KM' ? priceFloat * (freight.distance_km || 0) : priceFloat;
       
+      const driverProfileId = await getDriverProfileId();
+      if (!driverProfileId) {
+        toast.error('Você precisa de um perfil de Motorista para enviar propostas.');
+        setLoading(false);
+        return;
+      }
+      
       // Evitar múltiplas propostas para o mesmo frete
       const { data: existingProposal, error: checkError } = await supabase
         .from('freight_proposals')
         .select('status')
         .eq('freight_id', freight.id)
-        .eq('driver_id', profile.id)
+        .eq('driver_id', driverProfileId)
         .maybeSingle();
       if (checkError) throw checkError;
       
@@ -141,7 +162,7 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
       // Criar nova proposta (apenas se não existir PENDING)
       let proposalData: any = {
         freight_id: freight.id,
-        driver_id: profile.id,
+        driver_id: driverProfileId,
         proposed_price: finalPrice,
         status: 'PENDING',
         message: message
@@ -170,7 +191,7 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
           .from('freight_messages')
           .insert({
             freight_id: freight.id,
-            sender_id: profile.id,
+            sender_id: driverProfileId,
             message: messageContent,
             message_type: originalProposal ? 'COUNTER_PROPOSAL' : 'PROPOSAL'
           });
@@ -188,7 +209,7 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
 
     } catch (error: any) {
       console.error('Erro ao enviar proposta:', error);
-      toast.error('Erro ao enviar proposta. Tente novamente.');
+      showErrorToast(toast, 'Erro ao enviar proposta', error);
     } finally {
       setLoading(false);
     }

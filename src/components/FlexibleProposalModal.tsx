@@ -14,6 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { showErrorToast } from '@/lib/error-handler';
 
 interface FreightData {
   id: string;
@@ -64,9 +65,26 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile || !proposedDate) return;
+    if (!proposedDate) return;
 
     setLoading(true);
+    const driverProfileId = await (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('user_id', user.id)
+        .in('role', ['MOTORISTA', 'MOTORISTA_AFILIADO'])
+        .limit(1);
+      if (error) throw error;
+      return data?.[0]?.id ?? null;
+    })();
+    if (!driverProfileId) {
+      toast.error('Você precisa de um perfil de Motorista para enviar propostas.');
+      setLoading(false);
+      return;
+    }
     try {
       const daysDifference = differenceInDays(proposedDate, originalDate);
       
@@ -88,7 +106,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
           .from('freight_proposals')
           .select('status')
           .eq('freight_id', freight.id)
-          .eq('driver_id', profile.id)
+          .eq('driver_id', driverProfileId)
           .maybeSingle();
         if (existingError) throw existingError;
         if (existing && (existing.status === 'PENDING' || existing.status === 'ACCEPTED')) {
@@ -109,7 +127,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
           .from('flexible_freight_proposals')
           .select('id')
           .eq('freight_id', freight.id)
-          .eq('driver_id', profile.id)
+          .eq('driver_id', driverProfileId)
           .single();
 
         if (checkFlexibleError && checkFlexibleError.code !== 'PGRST116') {
@@ -127,7 +145,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
 
         const flexibleProposalData = {
           freight_id: freight.id,
-          driver_id: profile.id,
+          driver_id: driverProfileId,
           proposed_date: format(proposedDate, 'yyyy-MM-dd'),
           original_date: format(originalDate, 'yyyy-MM-dd'),
           days_difference: daysDifference,
@@ -148,8 +166,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
       onSuccess?.();
 
     } catch (error: any) {
-      console.error('Erro ao enviar proposta:', error);
-      toast.error('Erro ao processar solicitação. Tente novamente.');
+      showErrorToast(toast, 'Erro ao enviar proposta', error);
     } finally {
       setLoading(false);
     }

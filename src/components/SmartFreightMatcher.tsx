@@ -10,6 +10,7 @@ import { Brain, Filter, RefreshCw, Search, Zap, Package, Truck, Wrench, MapPin, 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { showErrorToast } from '@/lib/error-handler';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -335,12 +336,30 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         const freight = compatibleFreights.find(f => f.freight_id === freightId);
         if (!freight) return;
 
+        // Obter perfil de motorista do usuário
+        const driverProfileId = await (async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return null;
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id, role')
+            .eq('user_id', user.id)
+            .in('role', ['MOTORISTA', 'MOTORISTA_AFILIADO'])
+            .limit(1);
+          if (error) throw error;
+          return data?.[0]?.id ?? profile.id;
+        })();
+        if (!driverProfileId) {
+          toast.error('Você precisa de um perfil de Motorista para enviar propostas.');
+          return;
+        }
+
         // Verificar se já existe proposta ativa (PENDING/ACCEPTED)
         const { data: existing, error: existingError } = await supabase
           .from('freight_proposals')
           .select('status')
           .eq('freight_id', freightId)
-          .eq('driver_id', profile.id)
+          .eq('driver_id', driverProfileId)
           .maybeSingle();
         if (existingError) throw existingError;
         if (existing && (existing.status === 'PENDING' || existing.status === 'ACCEPTED')) {
@@ -357,7 +376,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           .from('freight_proposals')
           .insert({
             freight_id: freightId,
-            driver_id: profile.id,
+            driver_id: driverProfileId,
             proposed_price: freight.price,
             status: 'PENDING',
             message: action === 'accept' ? 'Aceito o frete pelo valor anunciado.' : null,
@@ -368,8 +387,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         toast.success(action === 'accept' ? 'Solicitação para aceitar o frete enviada!' : 'Proposta enviada com sucesso!');
         fetchCompatibleFreights(); // Atualizar lista
       } catch (error: any) {
-        console.error('Erro ao enviar proposta:', error);
-        toast.error('Erro ao processar ação. Tente novamente.');
+        showErrorToast(toast, 'Erro ao processar ação', error);
       }
     }
   };
