@@ -43,12 +43,22 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCargoType, setSelectedCargoType] = useState<string>('all');
+  const [hasActiveCities, setHasActiveCities] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (profile?.id) {
       fetchCompatibleFreights();
     }
   }, [profile]);
+
+  useEffect(() => {
+    // Limpar e recarregar quando os tipos de serviço mudarem
+    setCompatibleFreights([]);
+    setTowingRequests([]);
+    if (profile?.id) {
+      fetchCompatibleFreights();
+    }
+  }, [JSON.stringify(profile?.service_types)]);
 
   // Realtime: Ouvir mudanças em user_cities e recarregar fretes automaticamente
   useEffect(() => {
@@ -85,12 +95,30 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     return type;
   };
 
+  const allowedTypesFromProfile = React.useMemo(() => {
+    const types = Array.from(new Set(
+      (Array.isArray(profile?.service_types) ? (profile?.service_types as unknown as string[]) : [])
+        .map((t) => normalizeServiceType(String(t)))
+    )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO'].includes(t));
+    console.log('🔎 allowedTypesFromProfile:', types);
+    return types;
+  }, [profile?.service_types]);
+  
   const fetchCompatibleFreights = async () => {
     if (!profile?.id) return;
 
     setLoading(true);
     try {
       console.log('🔍 Buscando fretes compatíveis para driver:', profile.id);
+
+      if (allowedTypesFromProfile.length === 0) {
+        console.warn('ℹ️ Sem tipos de serviço configurados. Nada a exibir.');
+        toast.info('Configure seus tipos de serviço para ver fretes.');
+        setCompatibleFreights([]);
+        setTowingRequests([]);
+        setLoading(false);
+        return;
+      }
       
       // Primeiro executar o matching espacial baseado nas áreas de serviço
       const { data: { session } } = await supabase.auth.getSession();
@@ -131,8 +159,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           const cityIds = (uc || []).map((u: any) => u.city_id).filter(Boolean);
 
           if (cityIds.length === 0) {
-            toast.error('Configure suas cidades de atendimento para ver fretes compatíveis.');
+            setHasActiveCities(false);
+            toast.info('Configure suas cidades de atendimento para ver fretes compatíveis.');
             setCompatibleFreights([]);
+            setTowingRequests([]);
             return;
           }
 
@@ -211,9 +241,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         .eq('is_active', true)
         .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
 
-      if (ucActive && ucActive.length > 0) {
+      const activeCities = (ucActive || []).length > 0;
+      setHasActiveCities(activeCities);
+
+      if (activeCities) {
         const allowedCities = new Set(
-          ucActive
+          (ucActive || [])
             .map((u: any) => `${String(u.cities?.name || '').toLowerCase()}|${String(u.cities?.state || '').toLowerCase()}`)
         );
 
@@ -222,6 +255,13 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           const dKey = `${String(f.destination_city || '').toLowerCase()}|${String(f.destination_state || '').toLowerCase()}`;
           return allowedCities.has(oKey) || allowedCities.has(dKey);
         });
+      } else {
+        console.warn('ℹ️ Sem cidades de atendimento ativas. Nada a exibir.');
+        toast.info('Configure suas cidades de atendimento para ver fretes.');
+        setCompatibleFreights([]);
+        setTowingRequests([]);
+        setLoading(false);
+        return;
       }
       
       console.log(`✅ Após filtros: ${filteredByType.length} fretes compatíveis`, {
@@ -548,9 +588,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="font-semibold mb-2">Nenhum frete compatível encontrado</h3>
               <p className="text-muted-foreground mb-4">
-                {compatibleFreights.length === 0 && towingRequests.length === 0
-                  ? 'Não há fretes disponíveis no momento que correspondam aos seus tipos de serviço e cidades de atendimento.'
-                  : 'Tente ajustar os filtros para encontrar mais fretes.'}
+                {allowedTypesFromProfile.length === 0
+                  ? 'Você não tem tipos de serviço ativos. Configure-os em "Tipos de Serviço".'
+                  : hasActiveCities === false
+                    ? 'Você não tem cidades de atendimento configuradas. Configure em "Configurar Região".'
+                    : 'Não há fretes disponíveis no momento que correspondam aos seus critérios.'}
               </p>
               <div className="space-y-2 text-sm text-muted-foreground mb-4">
                 <p>✓ Verifique se suas cidades de atendimento estão configuradas</p>
