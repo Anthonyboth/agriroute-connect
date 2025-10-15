@@ -207,6 +207,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             .filter((f) => allowedTypes.length === 0 || allowedTypes.includes(f.service_type));
 
           setCompatibleFreights(mapped);
+          
+          // Emit count immediately for fallback
+          const highUrgency = mapped.filter(f => f.urgency === 'HIGH').length;
+          onCountsChange?.({ total: mapped.length, highUrgency });
+          
           toast.success(`${mapped.length} fretes compatíveis encontrados pelas suas cidades configuradas!`);
         } catch (fbError: any) {
           console.error('❌ Fallback por cidades falhou:', fbError);
@@ -274,6 +279,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       });
       
       setCompatibleFreights(filteredByType);
+      
+      // Emit count immediately after setting freights
+      const highUrgency = filteredByType.filter((f: any) => f.urgency === 'HIGH').length;
+      onCountsChange?.({ total: filteredByType.length, highUrgency });
 
       // Buscar chamados de serviço (GUINCHO/MUDANCA) abertos e sem prestador atribuído
       if (allowedTypes.some(t => t === 'GUINCHO' || t === 'MUDANCA')) {
@@ -286,6 +295,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           .order('created_at', { ascending: true });
         if (srErr) throw srErr;
         setTowingRequests(sr || []);
+        
+        // Update count with towing requests
+        const currentHighUrgency = filteredByType.filter((f: any) => f.urgency === 'HIGH').length;
+        onCountsChange?.({ total: filteredByType.length + (sr?.length || 0), highUrgency: currentHighUrgency });
       } else {
         setTowingRequests([]);
       }

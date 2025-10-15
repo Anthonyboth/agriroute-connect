@@ -5071,24 +5071,22 @@ export type Database = {
       get_compatible_freights_for_driver: {
         Args: { p_driver_id: string }
         Returns: {
-          accepted_trucks: number
           cargo_type: string
           created_at: string
           delivery_date: string
-          destination_address: string
           destination_city: string
+          destination_lat: number
+          destination_lng: number
           destination_state: string
-          distance_km: number
           freight_id: string
-          match_distance_m: number
-          minimum_antt_price: number
-          origin_address: string
           origin_city: string
+          origin_lat: number
+          origin_lng: number
           origin_state: string
           pickup_date: string
           price: number
-          required_trucks: number
-          service_type: string
+          producer_id: string
+          requires_monitoring: boolean
           status: Database["public"]["Enums"]["freight_status"]
           urgency: string
           weight: number
