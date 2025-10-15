@@ -433,7 +433,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             )}
 
             {/* Mandatory Advance Payment Alert */}
-            {freight.metadata?.advance_payment_required && (
+            {isProducer && freight.metadata?.advance_payment_required && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
