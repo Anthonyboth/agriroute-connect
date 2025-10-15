@@ -252,17 +252,33 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   
   // Função para encerrar chamado de serviço
   const handleCompleteServiceRequest = async (serviceId: string) => {
+    if (!profile?.id) {
+      toast.error("Erro: perfil não encontrado");
+      return;
+    }
+
     try {
-      const { error } = await supabase
+      // Validar que o serviço pertence ao prestador e está no status correto
+      const { data: updateData, error } = await supabase
         .from('service_requests')
         .update({ 
           status: 'COMPLETED',
           completed_at: new Date().toISOString()
         })
-        .eq('id', serviceId);
+        .eq('id', serviceId)
+        .eq('provider_id', profile.id)
+        .eq('status', 'ACCEPTED')
+        .select();
 
       if (error) {
+        console.error('Erro ao encerrar chamado:', error);
         toast.error("Não foi possível encerrar o chamado. Tente novamente.");
+        return;
+      }
+
+      if (!updateData || updateData.length === 0) {
+        toast.error("Este serviço já não está mais disponível ou não pertence a você");
+        await fetchOngoingFreights();
         return;
       }
 

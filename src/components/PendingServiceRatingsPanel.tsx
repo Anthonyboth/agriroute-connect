@@ -43,28 +43,40 @@ export const PendingServiceRatingsPanel: React.FC = () => {
     if (!profile) return;
 
     try {
+      // Buscar serviços completos primeiro (sem joins para evitar erro 400)
       const { data: services, error } = await supabase
         .from('service_requests')
-        .select(`
-          id,
-          status,
-          service_type,
-          updated_at,
-          client_id,
-          provider_id,
-          client:profiles!service_requests_client_id_fkey(full_name),
-          provider:profiles!service_requests_provider_id_fkey(full_name)
-        `)
+        .select('id, service_type, updated_at, client_id, provider_id')
         .eq('status', 'COMPLETED')
         .or(`client_id.eq.${profile.id},provider_id.eq.${profile.id}`)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
+      if (!services || services.length === 0) {
+        setPendingServices([]);
+        return;
+      }
+
+      // Buscar nomes dos perfis separadamente
+      const allProfileIds = Array.from(new Set([
+        ...services.map(s => s.client_id),
+        ...services.map(s => s.provider_id)
+      ]));
+
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', allProfileIds);
+
+      const profilesMap = new Map(
+        (profilesData || []).map(p => [p.id, p.full_name])
+      );
+
       // Filtrar serviços que ainda não foram avaliados
       const pending: PendingService[] = [];
       
-      for (const service of services || []) {
+      for (const service of services) {
         const isClient = service.client_id === profile.id;
         const ratingType = isClient ? 'CLIENT_TO_PROVIDER' : 'PROVIDER_TO_CLIENT';
 
@@ -83,8 +95,8 @@ export const PendingServiceRatingsPanel: React.FC = () => {
             updated_at: service.updated_at,
             client_id: service.client_id,
             provider_id: service.provider_id,
-            client_name: (service.client as any)?.[0]?.full_name,
-            provider_name: (service.provider as any)?.[0]?.full_name,
+            client_name: profilesMap.get(service.client_id) || 'Cliente',
+            provider_name: profilesMap.get(service.provider_id) || 'Prestador',
           });
         }
       }
