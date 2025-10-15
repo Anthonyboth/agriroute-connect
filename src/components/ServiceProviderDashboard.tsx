@@ -747,27 +747,27 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   return (
     <div className="bg-background">
-      {/* Hero Section Compacto */}
-      <section className="relative min-h-[200px] flex items-center justify-center overflow-hidden">
+      {/* Hero Section Moderno */}
+      <section className="relative min-h-[280px] flex items-center justify-center overflow-hidden animate-fade-in">
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat blur-[2px]"
           style={{ backgroundImage: `url(${heroLogistics})` }}
         />
-        <div className="absolute inset-0 bg-primary/80" />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/90 via-primary/85 to-purple-600/80 backdrop-blur-sm" />
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">
-            <h1 className="text-xl md:text-2xl font-bold mb-2">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">
               Olá, {profile?.full_name?.split(' ')[0] || 'Prestador'}
             </h1>
-            <p className="text-sm md:text-base mb-4 opacity-90">
+            <p className="text-base md:text-lg mb-6 opacity-95 font-medium">
               Sistema IA conecta você com clientes
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button 
                 variant="default"
                 size="sm"
                 onClick={() => setActiveTab('cities')}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-white/95 text-primary hover:bg-white hover:scale-105 font-semibold rounded-full px-6 py-2.5 shadow-lg transition-all duration-300 w-full sm:w-auto"
               >
                 <MapPin className="mr-1 h-4 w-4" />
                 Configurar Região
@@ -776,7 +776,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                 variant="default"
                 size="sm"
                 onClick={() => setActiveTab('services')}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-white/95 text-primary hover:bg-white hover:scale-105 font-semibold rounded-full px-6 py-2.5 shadow-lg transition-all duration-300 w-full sm:w-auto"
               >
                 <Wrench className="mr-1 h-4 w-4" />
                 Configurar Serviços
@@ -785,7 +785,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                 variant="default"
                 size="sm"
                 onClick={() => setServicesModalOpen(true)}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-white/95 text-primary hover:bg-white hover:scale-105 font-semibold rounded-full px-6 py-2.5 shadow-lg transition-all duration-300 w-full sm:w-auto"
               >
                 <Package className="mr-1 h-4 w-4" />
                 Solicitar Serviço
@@ -795,8 +795,8 @@ export const ServiceProviderDashboard: React.FC = () => {
         </div>
       </section>
 
-      <div className="container max-w-7xl mx-auto py-4 px-4">
-        {/* Stats Cards Compactos - Navegáveis */}
+      <div className="container max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {/* Stats Cards Premium - Navegáveis */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatsCard
             size="sm"
@@ -805,6 +805,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             label="Disponíveis"
             value={counts.pending}
             onClick={() => setActiveTab('pending')}
+            className="hover:shadow-lg hover:shadow-blue-200 hover:scale-105 transition-all duration-300 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80"
           />
 
           <StatsCard
@@ -814,6 +815,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             label="Ativas"
             value={counts.accepted}
             onClick={() => setActiveTab('accepted')}
+            className="hover:shadow-lg hover:shadow-orange-200 hover:scale-105 transition-all duration-300 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80"
           />
 
           <StatsCard
@@ -823,6 +825,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             label="Concluídas"
             value={counts.completed}
             onClick={() => setActiveTab('completed')}
+            className="hover:shadow-lg hover:shadow-green-200 hover:scale-105 transition-all duration-300 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80"
           />
 
           <StatsCard
@@ -840,6 +843,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               : '****'
             }
             onClick={() => setActiveTab('earnings')}
+            className="hover:shadow-lg hover:shadow-purple-200 hover:scale-105 transition-all duration-300 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80"
             actionButton={
               <Button
                 variant="ghost"
@@ -856,13 +860,13 @@ export const ServiceProviderDashboard: React.FC = () => {
           />
         </div>
 
-        {/* Tabs */}
+        {/* Tabs Premium */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full overflow-x-auto pb-2">
-            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground min-w-fit">
+            <TabsList className="inline-flex h-12 items-center justify-center rounded-xl bg-white/80 backdrop-blur-sm shadow-md border border-gray-200/50 dark:bg-gray-900/80 dark:border-gray-700/50 p-1.5 text-muted-foreground min-w-fit">
               <TabsTrigger 
                 value="pending" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <Brain className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Disponível</span>
@@ -870,7 +874,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="accepted" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <Play className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Em Andamento</span>
@@ -878,7 +882,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="completed" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Concluídos</span>
@@ -886,7 +890,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="services" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <Settings className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Serviços</span>
@@ -894,7 +898,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="payouts" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <Banknote className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Saldo</span>
@@ -902,7 +906,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="cities" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <MapPin className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Cidades</span>
@@ -910,7 +914,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="history" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Histórico</span>
@@ -984,19 +988,19 @@ export const ServiceProviderDashboard: React.FC = () => {
                   <Button
                     key={request.id}
                     variant="ghost"
-                    className="w-full p-0 h-auto text-left hover:bg-accent"
+                    className="w-full p-0 h-auto text-left hover:bg-transparent group"
                     onClick={() => {
                       setSelectedRequest(request);
                       setShowRequestModal(true);
                     }}
                   >
-                    <Card className="w-full shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-green-500">
-                      <CardContent className="p-4">
+                    <Card className="w-full transition-all duration-300 hover:shadow-xl hover:scale-[1.02] hover:border-primary/50 text-left bg-white/80 backdrop-blur-sm dark:bg-gray-900/80 border-2 border-l-[6px] border-l-green-500">
+                      <CardContent className="p-4 group-hover:bg-gradient-to-br group-hover:from-white group-hover:to-blue-50/30 dark:group-hover:from-gray-900 dark:group-hover:to-blue-950/20 transition-all duration-300">
                         <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-medium text-sm">
+                          <h3 className="font-semibold text-sm">
                             {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
                           </h3>
-                          <Badge variant={getUrgencyColor(request.urgency)} className="text-xs">
+                          <Badge variant={getUrgencyColor(request.urgency)} className="text-xs shadow-sm">
                             {request.urgency === 'URGENT' ? 'Urgente' : 
                              request.urgency === 'HIGH' ? 'Alto' :
                              request.urgency === 'MEDIUM' ? 'Médio' : 'Baixo'}
@@ -1012,7 +1016,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                             {request.location_address}
                           </p>
                            {request.estimated_price && (
-                             <p className="text-sm font-medium text-green-600">
+                             <p className="text-sm font-semibold text-green-600">
                                <DollarSign className="inline h-3 w-3 mr-1" />
                                Valor: R$ {request.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                              </p>
@@ -1023,8 +1027,9 @@ export const ServiceProviderDashboard: React.FC = () => {
                            </p>
                         </div>
                         
-                        <div className="mt-3 text-xs text-primary font-medium">
-                          Clique para ver detalhes →
+                        <div className="mt-3 text-xs text-primary font-semibold flex items-center justify-center gap-1 group-hover:gap-2 transition-all">
+                          Clique para ver detalhes 
+                          <span className="group-hover:translate-x-1 transition-transform">→</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -1032,10 +1037,10 @@ export const ServiceProviderDashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <Card className="p-8 text-center space-y-4">
+              <Card className="p-8 text-center space-y-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 shadow-md border-2 border-dashed border-gray-200 dark:border-gray-700">
                 {counts.pending === 0 ? (
                   <>
-                    <Settings className="w-16 h-16 mx-auto text-muted-foreground" />
+                    <Settings className="w-16 h-16 mx-auto text-muted-foreground animate-pulse" />
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Configure seu perfil</h3>
                       <p className="text-muted-foreground mb-4">
@@ -1084,7 +1089,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             {requests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).length > 0 ? (
               <div className="space-y-4">
                 {requests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).map((request) => (
-                  <Card key={request.id} className="shadow-sm border-l-4 border-l-orange-500">
+                  <Card key={request.id} className="shadow-lg border-l-[6px] border-l-orange-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-white to-orange-50/30 dark:from-gray-900 dark:to-orange-950/20">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="font-medium text-sm">
@@ -1133,10 +1138,10 @@ export const ServiceProviderDashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
-                <Play className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <Card className="p-8 text-center space-y-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 shadow-md border-2 border-dashed border-gray-200 dark:border-gray-700">
+                <Play className="h-16 w-16 mx-auto text-muted-foreground animate-pulse" />
                 <p className="text-muted-foreground">Nenhum serviço em andamento.</p>
-              </div>
+              </Card>
             )}
           </TabsContent>
 
@@ -1151,7 +1156,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             {requests.filter(r => r.provider_id && r.status === 'COMPLETED').length > 0 ? (
               <div className="space-y-4">
                 {requests.filter(r => r.provider_id && r.status === 'COMPLETED').map((request) => (
-                  <Card key={request.id} className="shadow-sm">
+                  <Card key={request.id} className="shadow-md border-l-[6px] border-l-green-500 hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-white to-green-50/20 dark:from-gray-900 dark:to-green-950/10">
                      <CardContent className="p-4">
                        <div className="flex items-center justify-between mb-3">
                          <h3 className="font-medium text-sm">
@@ -1186,10 +1191,10 @@ export const ServiceProviderDashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
-                <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <Card className="p-8 text-center space-y-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 shadow-md border-2 border-dashed border-gray-200 dark:border-gray-700">
+                <CheckCircle className="h-16 w-16 mx-auto text-muted-foreground animate-pulse" />
                 <p className="text-muted-foreground">Nenhum serviço concluído ainda.</p>
-              </div>
+              </Card>
             )}
           </TabsContent>
 
@@ -1221,7 +1226,7 @@ export const ServiceProviderDashboard: React.FC = () => {
 
         {/* Modal de Detalhes da Solicitação */}
         <Dialog open={showRequestModal} onOpenChange={setShowRequestModal}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-gradient-to-br from-white to-blue-50/20 dark:from-gray-900 dark:to-blue-950/20 border-2">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Wrench className="h-5 w-5 text-green-600" />
@@ -1332,14 +1337,14 @@ export const ServiceProviderDashboard: React.FC = () => {
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300"
                     onClick={() => setShowRequestModal(false)}
                     disabled={isAccepting}
                   >
                     Cancelar
                   </Button>
                   <Button
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
                     onClick={() => handleAcceptFromModal(selectedRequest.id)}
                     disabled={isAccepting}
                   >
