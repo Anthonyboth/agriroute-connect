@@ -58,7 +58,6 @@ import { UserCityManager } from '@/components/UserCityManager';
 import { ServiceHistory } from '@/components/ServiceHistory';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 import { ServicesModal } from '@/components/ServicesModal';
-import { AvailableServicesRefreshModal } from '@/components/AvailableServicesRefreshModal';
 
 interface ServiceRequest {
   id: string;
@@ -117,7 +116,6 @@ export const ServiceProviderDashboard: React.FC = () => {
   
   // Loading states - separate for initial load and refresh
   const [initialLoading, setInitialLoading] = useState(true);
-  const [refreshingAvailable, setRefreshingAvailable] = useState(false);
   
   const [activeTab, setActiveTab] = useState('pending');
   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
@@ -232,10 +230,6 @@ export const ServiceProviderDashboard: React.FC = () => {
             payload.old?.is_active !== payload.new?.is_active;
           
           if (relevantChanges.includes(payload.eventType) || isActiveToggle) {
-            toast({
-              title: "Cidades atualizadas",
-              description: "Recarregando serviços...",
-            });
             fetchServiceRequests({ scope: 'available', silent: true });
             refreshCounts();
           }
@@ -246,7 +240,7 @@ export const ServiceProviderDashboard: React.FC = () => {
 
     // Refresh automático a cada 30 segundos (apenas disponíveis)
     const interval = setInterval(() => {
-      fetchServiceRequests({ scope: 'available', silent: false });
+      fetchServiceRequests({ scope: 'available', silent: true });
       refreshCounts();
       fetchTotalEarnings();
     }, 30000);
@@ -326,8 +320,6 @@ export const ServiceProviderDashboard: React.FC = () => {
       // Show appropriate loading state
       if (scope === 'all') {
         setInitialLoading(true);
-      } else if (!silent && activeTab === 'pending') {
-        setRefreshingAvailable(true);
       }
       
       lastFetchRef.current = now;
@@ -515,20 +507,12 @@ export const ServiceProviderDashboard: React.FC = () => {
         setAvailableRequests(available);
         setLastAvailableRefresh(new Date());
         
-        // Close modal after 1.5s if it was shown
-        if (!silent && activeTab === 'pending') {
-          setTimeout(() => {
-            setRefreshingAvailable(false);
-          }, 1500);
-        }
-        
         console.log(`✅ Available requests updated: ${available.length}`);
       }
       
     } catch (error: any) {
       console.error('❌ Error fetching service requests:', error);
       setInitialLoading(false);
-      setRefreshingAvailable(false);
       toast({
         title: "Erro ao carregar solicitações",
         description: "Não foi possível carregar as solicitações. Tente novamente.",
@@ -1037,13 +1021,13 @@ export const ServiceProviderDashboard: React.FC = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    fetchServiceRequests({ scope: 'available', silent: false });
+                    fetchServiceRequests({ scope: 'available', silent: true });
                     refreshCounts();
                   }}
                   className="text-xs h-7"
-                  disabled={refreshingAvailable}
+                  disabled={inFlightRef.current}
                 >
-                  {refreshingAvailable ? 'Atualizando...' : 'Atualizar'}
+                  Atualizar
                 </Button>
               </div>
             </div>
@@ -1501,9 +1485,6 @@ export const ServiceProviderDashboard: React.FC = () => {
           isOpen={servicesModalOpen}
           onClose={() => setServicesModalOpen(false)}
         />
-        
-        {/* Modal de Atualização de Serviços Disponíveis */}
-        <AvailableServicesRefreshModal open={refreshingAvailable} />
       </div>
     </div>
   );
