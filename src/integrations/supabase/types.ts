@@ -2354,6 +2354,56 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          chat_messages_enabled: boolean | null
+          created_at: string | null
+          email_enabled: boolean | null
+          id: string
+          new_freights_enabled: boolean | null
+          new_services_enabled: boolean | null
+          payments_completed_enabled: boolean | null
+          proposals_received_enabled: boolean | null
+          push_enabled: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          chat_messages_enabled?: boolean | null
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          new_freights_enabled?: boolean | null
+          new_services_enabled?: boolean | null
+          payments_completed_enabled?: boolean | null
+          proposals_received_enabled?: boolean | null
+          push_enabled?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          chat_messages_enabled?: boolean | null
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          new_freights_enabled?: boolean | null
+          new_services_enabled?: boolean | null
+          payments_completed_enabled?: boolean | null
+          proposals_received_enabled?: boolean | null
+          push_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
