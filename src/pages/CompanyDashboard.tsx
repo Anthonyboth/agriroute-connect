@@ -256,7 +256,7 @@ const CompanyDashboard = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 pb-8">
         <SubscriptionExpiryNotification />
-        <FreightLimitTracker />
+        <FreightLimitTracker hideForAffiliatedDriver={true} />
         
         <div className="mb-6">
           <PendingRatingsPanel userRole="MOTORISTA" userProfileId={profile?.id || ''} />

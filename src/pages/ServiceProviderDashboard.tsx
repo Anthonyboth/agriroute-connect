@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ServiceProviderDashboard as ServiceDashboard } from '@/components/ServiceProviderDashboard';
 import { PendingServiceRatingsPanel } from '@/components/PendingServiceRatingsPanel';
+import FreightLimitTracker from '@/components/FreightLimitTracker';
 import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -47,6 +48,7 @@ const ServiceProviderDashboard = () => {
       />
       <div className="provider-theme">
         <div className="container mx-auto p-4 space-y-4">
+          <FreightLimitTracker hideForAffiliatedDriver={true} />
           <PendingServiceRatingsPanel />
           <ServiceDashboard />
         </div>

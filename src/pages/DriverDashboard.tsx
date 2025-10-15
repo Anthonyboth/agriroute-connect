@@ -1453,7 +1453,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
         {/* FreightLimitTracker compacto */}
         <div className="mb-4">
-          <FreightLimitTracker />
+          <FreightLimitTracker hideForAffiliatedDriver={true} />
         </div>
 
         {/* Tabs Compactas */}

@@ -11,6 +11,7 @@ import CreateFreightModal from '@/components/CreateFreightModal';
 import { EditFreightModal } from '@/components/EditFreightModal';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
+import FreightLimitTracker from '@/components/FreightLimitTracker';
 import { ProposalCounterModal } from '@/components/ProposalCounterModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FreightStatusTracker } from '@/components/FreightStatusTracker';
@@ -1039,6 +1040,7 @@ const ProducerDashboard = () => {
 
           {/* Notificação de assinatura */}
           <SubscriptionExpiryNotification />
+          <FreightLimitTracker hideForAffiliatedDriver={true} />
 
           <TabsContent value="open" className="space-y-4">
             <div className="flex justify-between items-center mb-4">

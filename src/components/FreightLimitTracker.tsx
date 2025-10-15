@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +11,12 @@ import { useNavigate } from 'react-router-dom';
 
 interface FreightLimitTrackerProps {
   onLimitReached?: () => void;
+  hideForAffiliatedDriver?: boolean;
 }
 
-const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReached }) => {
+const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReached, hideForAffiliatedDriver = false }) => {
   const { user } = useAuth();
+  const { isAffiliated } = useCompanyDriver();
   const navigate = useNavigate();
   const [freightCount, setFreightCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -67,6 +70,11 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
   const canCreateFreight = freightCount < FREE_FREIGHT_LIMIT;
   const remainingFreights = Math.max(0, FREE_FREIGHT_LIMIT - freightCount);
   const progressPercentage = (freightCount / FREE_FREIGHT_LIMIT) * 100;
+
+  // Não exibir para motorista afiliado se a prop estiver ativada
+  if (hideForAffiliatedDriver && isAffiliated) {
+    return null;
+  }
 
   // Se o usuário fechou a mensagem, não mostra mais
   if (isClosed) {
