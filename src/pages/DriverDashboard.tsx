@@ -376,7 +376,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           const cityIds = (uc || []).map((u: any) => u.city_id).filter(Boolean);
           if (cityIds.length === 0) {
-            if (isMountedRef.current) setAvailableFrerets([]);
+            if (isMountedRef.current) setAvailableFreights([]);
             return;
           }
 
