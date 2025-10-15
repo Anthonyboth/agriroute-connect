@@ -86,9 +86,7 @@ export function getErrorMessage(error: any): string {
  * Wrapper for toast error messages with consistent formatting
  */
 export function showErrorToast(toast: any, title: string, error: any) {
-  toast({
-    title,
+  toast.error(title, {
     description: getErrorMessage(error),
-    variant: "destructive",
   });
 }
