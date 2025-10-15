@@ -122,6 +122,108 @@ const Auth = () => {
       });
 
       if (error) {
+        // Verificar se é erro de usuário já cadastrado
+        const errorMsg = error.message || '';
+        const isUserExists = errorMsg.includes('User already registered') || errorMsg.includes('already registered');
+        
+        if (isUserExists) {
+          try {
+            // Tentar fazer login com as credenciais fornecidas
+            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+              email,
+              password
+            });
+
+            if (loginError) {
+              toast.error('Email já cadastrado. Use sua senha correta ou clique em "Esqueci minha senha".');
+              setLoading(false);
+              return;
+            }
+
+            if (loginData.user) {
+              // Login bem-sucedido - verificar se já tem perfil com a role solicitada
+              const { data: existingProfiles } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('user_id', loginData.user.id);
+
+              const targetRole = driverType === 'TRANSPORTADORA' ? 'MOTORISTA' : role;
+              const hasRoleProfile = existingProfiles?.some(p => p.role === targetRole);
+
+              if (hasRoleProfile) {
+                // Já tem perfil com essa role - apenas ativar
+                const profileToActivate = existingProfiles?.find(p => p.role === targetRole);
+                if (profileToActivate) {
+                  localStorage.setItem('current_profile_id', profileToActivate.id);
+                  toast.success('Perfil já existe! Redirecionando...');
+                  
+                  // Redirecionar conforme a role
+                  if (targetRole === 'PRESTADOR_SERVICOS') {
+                    navigate('/cadastro-prestador');
+                  } else {
+                    navigate('/complete-profile');
+                  }
+                }
+              } else {
+                // Criar novo perfil adicional
+                const cleanDoc = (driverType === 'TRANSPORTADORA' ? companyCNPJ : document).replace(/\D/g, '');
+                
+                const { data: newProfileId, error: rpcError } = await supabase.rpc('create_additional_profile', {
+                  p_user_id: loginData.user.id,
+                  p_role: targetRole,
+                  p_full_name: fullName,
+                  p_phone: phone,
+                  p_document: cleanDoc
+                });
+
+                if (rpcError) {
+                  toast.error(`Erro ao criar perfil adicional: ${rpcError.message}`);
+                  setLoading(false);
+                  return;
+                }
+
+                // Ativar o novo perfil
+                localStorage.setItem('current_profile_id', newProfileId);
+                toast.success('Novo perfil criado! Bem-vindo(a).');
+                
+                // Redirecionar conforme a role
+                if (targetRole === 'PRESTADOR_SERVICOS') {
+                  navigate('/cadastro-prestador');
+                } else if (driverType === 'TRANSPORTADORA') {
+                  // Criar registro da transportadora
+                  const { error: companyError } = await supabase
+                    .from('transport_companies')
+                    .insert({
+                      profile_id: newProfileId,
+                      company_name: companyName,
+                      company_cnpj: companyCNPJ.replace(/\D/g, ''),
+                      antt_registration: companyANTT,
+                      address: companyAddress,
+                      status: 'PENDING'
+                    });
+
+                  if (companyError) {
+                    console.error('Erro ao criar transportadora:', companyError);
+                    toast.warning('Perfil criado, mas houve erro ao criar transportadora.');
+                  }
+                  navigate('/complete-profile');
+                } else {
+                  navigate('/complete-profile');
+                }
+              }
+            }
+            
+            setLoading(false);
+            return;
+          } catch (err) {
+            console.error('Erro ao processar usuário existente:', err);
+            toast.error('Erro ao processar cadastro. Tente novamente.');
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // Outros erros
         toast.error(getErrorMessage(error));
         setLoading(false);
         return;
