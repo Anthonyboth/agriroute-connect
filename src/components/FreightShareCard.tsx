@@ -52,10 +52,11 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
     setAccepting(true);
     try {
       const { data, error } = await supabase.functions.invoke(
-        'accept-freight',
+        'accept-freight-multiple',
         {
           body: { 
-            freight_id: freightData.freight_id
+            freight_id: freightData.freight_id,
+            num_trucks: 1
           }
         }
       );

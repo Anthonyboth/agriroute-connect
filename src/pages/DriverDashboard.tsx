@@ -1139,8 +1139,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           // Aceitação direta: não bloquear por proposta existente
           // Aceitar via Edge Function (bypass RLS com service role)
-          const { data: acceptData, error: acceptError } = await (supabase as any).functions.invoke('accept-freight', {
-            body: { freight_id: freightId },
+          const { data: acceptData, error: acceptError } = await (supabase as any).functions.invoke('accept-freight-multiple', {
+            body: { freight_id: freightId, num_trucks: 1 },
           });
           if (acceptError || !acceptData?.success) {
             throw acceptError || new Error('Falha ao aceitar o frete');
