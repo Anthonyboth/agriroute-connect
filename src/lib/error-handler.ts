@@ -27,6 +27,12 @@ export function getErrorMessage(error: any): string {
     if (message.includes('idx_profiles_document_unique') || error?.code === '23505') {
       return 'Este CPF/CNPJ já está em uso em outro cadastro';
     }
+    if (message.includes('service_ratings')) {
+      return 'Este serviço já foi avaliado por você. Não é possível enviar outra avaliação.';
+    }
+    if (message.includes('freight_ratings')) {
+      return 'Este frete já foi avaliado por você. Não é possível enviar outra avaliação.';
+    }
     return 'Este registro já existe no sistema';
   }
   

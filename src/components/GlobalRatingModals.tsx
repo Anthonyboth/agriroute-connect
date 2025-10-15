@@ -3,6 +3,7 @@ import { useGlobalRating } from '@/contexts/RatingContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { showErrorToast } from '@/lib/error-handler';
 import {
   Dialog,
   DialogContent,
@@ -78,9 +79,9 @@ export const GlobalRatingModals: React.FC = () => {
       setServiceRating(0);
       setServiceComment('');
       closeServiceRating();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao enviar avaliação:', error);
-      toast.error('Erro ao enviar avaliação');
+      showErrorToast(toast, 'Falha ao enviar avaliação', error);
     } finally {
       setServiceSubmitting(false);
     }
@@ -123,9 +124,9 @@ export const GlobalRatingModals: React.FC = () => {
       setFreightRating(0);
       setFreightComment('');
       closeFreightRating();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao enviar avaliação:', error);
-      toast.error('Erro ao enviar avaliação');
+      showErrorToast(toast, 'Falha ao enviar avaliação', error);
     } finally {
       setFreightSubmitting(false);
     }

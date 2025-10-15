@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { showErrorToast } from '@/lib/error-handler';
 
 interface ServiceRatingData {
   serviceRequestId: string;
@@ -61,6 +62,21 @@ export const useServiceRating = ({ serviceRequestId, ratedUserId, raterRole }: S
 
       const ratingType = raterRole === 'CLIENT' ? 'CLIENT_TO_PROVIDER' : 'PROVIDER_TO_CLIENT';
 
+      // Verificar se já existe avaliação
+      const { data: existing } = await supabase
+        .from('service_ratings')
+        .select('id')
+        .eq('service_request_id', serviceRequestId)
+        .eq('rater_id', profile.id)
+        .eq('rating_type', ratingType)
+        .maybeSingle();
+      
+      if (existing) {
+        toast.error('Este serviço já foi avaliado por você. Não é possível enviar outra avaliação.');
+        setShouldShowModal(false);
+        return { success: false, error: new Error('duplicate_rating') };
+      }
+
       const { error } = await supabase
         .from('service_ratings')
         .insert({
@@ -81,7 +97,7 @@ export const useServiceRating = ({ serviceRequestId, ratedUserId, raterRole }: S
       return { success: true };
     } catch (error: any) {
       console.error('Erro ao enviar avaliação:', error);
-      toast.error('Erro ao enviar avaliação: ' + error.message);
+      showErrorToast(toast, 'Falha ao enviar avaliação', error);
       return { success: false, error };
     }
   };
