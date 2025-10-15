@@ -7,6 +7,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { ServiceCatalogGrid } from './ServiceCatalogGrid';
 
+// Normaliza IDs para canônicos
+const toCanonical = (id: string): string => {
+  if (id === 'CARGA_FREIGHT') return 'CARGA';
+  if (id === 'GUINCHO_FREIGHT') return 'GUINCHO';
+  return id;
+};
+
 export const ServiceTypeManager: React.FC = () => {
   const { profile } = useAuth();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -15,7 +22,9 @@ export const ServiceTypeManager: React.FC = () => {
 
   useEffect(() => {
     if (profile?.service_types) {
-      setSelectedServices(profile.service_types);
+      // Normalizar para canônicos ao carregar
+      const canonical = profile.service_types.map(toCanonical);
+      setSelectedServices(canonical);
       setInitialLoading(false);
     } else {
       // Se não tem service_types definidos, considera CARGA como padrão
@@ -25,12 +34,19 @@ export const ServiceTypeManager: React.FC = () => {
   }, [profile]);
 
   const handleServiceToggle = (serviceId: string, checked: boolean) => {
+    // Normalizar para canônico
+    const canonicalId = toCanonical(serviceId);
+    
     if (checked) {
-      setSelectedServices(prev => [...prev, serviceId]);
+      setSelectedServices(prev => {
+        // Evitar duplicatas
+        if (prev.includes(canonicalId)) return prev;
+        return [...prev, canonicalId];
+      });
     } else {
       // Não permite desmarcar todos os serviços
       if (selectedServices.length > 1) {
-        setSelectedServices(prev => prev.filter(id => id !== serviceId));
+        setSelectedServices(prev => prev.filter(id => id !== canonicalId));
       } else {
         toast.error('Você deve ter pelo menos um tipo de serviço selecionado');
       }

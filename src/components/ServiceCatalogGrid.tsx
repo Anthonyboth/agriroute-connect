@@ -14,6 +14,21 @@ import {
 } from 'lucide-react';
 import { ALL_SERVICE_TYPES, CATEGORY_LABELS, getServiceById } from '@/lib/service-types';
 
+// Mapa de equivalências entre IDs canônicos e duplicatas
+const EQUIVALENTS: Record<string, string[]> = {
+  CARGA: ['CARGA_FREIGHT'],
+  CARGA_FREIGHT: ['CARGA'],
+  GUINCHO: ['GUINCHO_FREIGHT'],
+  GUINCHO_FREIGHT: ['GUINCHO'],
+};
+
+// Normaliza IDs para canônicos
+const toCanonical = (id: string): string => {
+  if (id === 'CARGA_FREIGHT') return 'CARGA';
+  if (id === 'GUINCHO_FREIGHT') return 'GUINCHO';
+  return id;
+};
+
 interface ServiceCatalogGridProps {
   mode: 'provider' | 'driver' | 'client';
   selectedServices?: string[];
@@ -46,7 +61,11 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
       ? ALL_SERVICE_TYPES.filter(s => s.category !== 'freight' && s.providerVisible)
       : ALL_SERVICE_TYPES;
   
-  const allTabCount = allServices.filter(s => !s.hideFromAllTab).length;
+  // Para motoristas na aba "Todos", mostrar todos os serviços de frete (ignorar hideFromAllTab)
+  const allTabCount = mode === 'driver' 
+    ? allServices.length 
+    : allServices.filter(s => !s.hideFromAllTab).length;
+    
   const countByCategory = (cat: 'agricultural' | 'logistics' | 'technical' | 'urban' | 'freight') =>
     allServices.filter(s => s.category === cat && !s.showOnlyInAllTab).length;
 
@@ -64,9 +83,14 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
       const matchesSearch = service.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            service.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
-      const showInCurrentTab = selectedCategory === 'all' 
-        ? !service.hideFromAllTab  // Na aba "Todos", ocultar se hideFromAllTab é true
-        : (!service.showOnlyInAllTab || selectedCategory === 'all'); // Nas outras abas, lógica original
+      
+      // Para motoristas, mostrar todos os serviços na aba "Todos"
+      const showInCurrentTab = mode === 'driver' && selectedCategory === 'all'
+        ? true  // Motoristas veem todos os 4 cards na aba "Todos"
+        : selectedCategory === 'all' 
+          ? !service.hideFromAllTab  // Outros modos mantêm a lógica original
+          : (!service.showOnlyInAllTab || selectedCategory === 'all');
+      
       return matchesSearch && matchesCategory && showInCurrentTab;
     })
     .sort((a, b) => {
@@ -140,7 +164,10 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
           }
           
           const IconComponent = service.icon;
-          const isSelected = selectedServices.includes(service.id);
+          // Verificar se está selecionado considerando equivalentes
+          const equivalents = EQUIVALENTS[service.id] || [];
+          const isSelected = selectedServices.includes(service.id) || 
+                            equivalents.some(eq => selectedServices.includes(eq));
           
           return (
             <Card 
@@ -242,26 +269,43 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
       )}
 
       {/* Selection Summary */}
-      {showCheckboxes && selectedServices.length > 0 && (
-        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="h-4 w-4 text-primary" />
-            <span className="font-semibold text-primary">
-              {selectedServices.length} {selectedServices.length === 1 ? 'serviço selecionado' : 'serviços selecionados'}
-            </span>
+      {showCheckboxes && selectedServices.length > 0 && (() => {
+        // Normalizar para IDs canônicos e contar únicos
+        const canonicalIds = new Set(selectedServices.map(toCanonical));
+        const count = canonicalIds.size;
+        
+        return (
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-primary">
+                {count} {count === 1 ? 'serviço selecionado' : 'serviços selecionados'}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {selectedServices.map(serviceId => {
+                // Procurar primeiro no allServices
+                let service = allServices.find(s => s.id === serviceId);
+                
+                // Se não encontrar, procurar pelo equivalente
+                if (!service) {
+                  const equivalents = EQUIVALENTS[serviceId] || [];
+                  for (const eq of equivalents) {
+                    service = allServices.find(s => s.id === eq);
+                    if (service) break;
+                  }
+                }
+                
+                return service ? (
+                  <Badge key={serviceId} variant="secondary" className="text-xs">
+                    {service.label}
+                  </Badge>
+                ) : null;
+              })}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {selectedServices.map(serviceId => {
-              const service = allServices.find(s => s.id === serviceId);
-              return service ? (
-                <Badge key={serviceId} variant="secondary" className="text-xs">
-                  {service.label}
-                </Badge>
-              ) : null;
-            })}
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
