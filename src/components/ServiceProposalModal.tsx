@@ -128,17 +128,17 @@ const [pricePerKm, setPricePerKm] = useState('');
 
     setLoading(true);
     try {
-      // Garantir que o usuário tenha o papel 'driver' para RLS
-      await supabase.rpc('ensure_current_user_role', { _role: 'driver' });
-      
-      const finalPrice = pricingType === 'PER_KM' ? priceFloat * (freight.distance_km || 0) : priceFloat;
-      
       const driverProfileId = await getDriverProfileId();
       if (!driverProfileId) {
         toast.error('Apenas motorista autônomo pode enviar proposta. Se você é filiado/empregado, compartilhe com sua transportadora.');
         setLoading(false);
         return;
       }
+
+      // Garantir que o usuário tenha o papel 'driver' para RLS
+      await supabase.rpc('ensure_current_user_role', { _role: 'driver' });
+      
+      const finalPrice = pricingType === 'PER_KM' ? priceFloat * (freight.distance_km || 0) : priceFloat;
       
       // Evitar múltiplas propostas para o mesmo frete
       const { data: existingProposal, error: checkError } = await supabase

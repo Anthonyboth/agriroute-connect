@@ -39,9 +39,6 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
     setLoading(true);
 
     try {
-      // Garantir que o usuário tenha o papel 'driver' para RLS
-      await supabase.rpc('ensure_current_user_role', { _role: 'driver' });
-
       // Buscar perfil MOTORISTA autônomo apenas
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
@@ -65,6 +62,9 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
       }
 
       const driverProfileId = driverData.id;
+
+      // Garantir que o usuário tenha o papel 'driver' para RLS
+      await supabase.rpc('ensure_current_user_role', { _role: 'driver' });
       // Verificar se já existe uma proposta pendente para evitar múltiplas propostas
       const { data: existingProposal, error: checkError } = await supabase
         .from('freight_proposals')
