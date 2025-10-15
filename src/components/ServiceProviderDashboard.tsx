@@ -49,6 +49,7 @@ import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { ContactInfoCard } from '@/components/ContactInfoCard';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
 import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
+import { ServiceChatDialog } from '@/components/ServiceChatDialog';
 
 import { LocationManager } from '@/components/LocationManager';
 import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
@@ -120,6 +121,10 @@ export const ServiceProviderDashboard: React.FC = () => {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
+  
+  // Chat dialog state
+  const [chatDialogOpen, setChatDialogOpen] = useState(false);
+  const [selectedChatRequest, setSelectedChatRequest] = useState<ServiceRequest | null>(null);
 
   const getProviderProfileId = () => {
     if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
@@ -1092,9 +1097,17 @@ export const ServiceProviderDashboard: React.FC = () => {
                   <Card key={request.id} className="shadow-lg border-l-[6px] border-l-orange-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-white to-orange-50/30 dark:from-gray-900 dark:to-orange-950/20">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-medium text-sm">
-                          {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
-                        </h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-sm">
+                            {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
+                          </h3>
+                          {!request.client_id && (
+                            <Badge variant="outline" className="text-xs">
+                              <User className="h-3 w-3 mr-1" />
+                              Sem cadastro
+                            </Badge>
+                          )}
+                        </div>
                         <Badge variant="default" className="text-xs bg-orange-100 text-orange-800">
                           Em Andamento
                         </Badge>
@@ -1125,6 +1138,18 @@ export const ServiceProviderDashboard: React.FC = () => {
                        </div>
                       
                       <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => {
+                            setSelectedChatRequest(request);
+                            setChatDialogOpen(true);
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          {request.client_id ? 'Abrir Chat' : 'Chat Indisponível'}
+                        </Button>
                         <Button 
                           size="sm" 
                           className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
@@ -1366,8 +1391,21 @@ export const ServiceProviderDashboard: React.FC = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Chat Dialog */}
+        {chatDialogOpen && selectedChatRequest && (
+          <ServiceChatDialog
+            isOpen={chatDialogOpen}
+            onClose={() => {
+              setChatDialogOpen(false);
+              setSelectedChatRequest(null);
+            }}
+            serviceRequest={selectedChatRequest}
+            currentUserProfile={profile}
+          />
+        )}
+
         {/* Modal de Solicitar Serviços */}
-        <ServicesModal 
+        <ServicesModal
           isOpen={servicesModalOpen}
           onClose={() => setServicesModalOpen(false)}
         />
