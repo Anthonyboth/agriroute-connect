@@ -32,10 +32,12 @@ interface CompatibleFreight {
 
 interface SmartFreightMatcherProps {
   onFreightAction?: (freightId: string, action: string) => void;
+  onCountsChange?: (counts: { total: number; highUrgency: number }) => void;
 }
 
 export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
-  onFreightAction
+  onFreightAction,
+  onCountsChange
 }) => {
   const { profile, user } = useAuth();
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
@@ -216,9 +218,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
 
       console.log(`📦 RPC retornou ${data?.length || 0} fretes`);
       
-      // Normalizar tipos de serviço nos fretes retornados
+      // Normalizar tipos de serviço nos fretes retornados e garantir freight_id
       const normalizedData = (data || []).map((f: any) => ({
         ...f,
+        freight_id: f.freight_id ?? f.id,
         service_type: normalizeServiceType(f.service_type)
       }));
 
@@ -377,6 +380,16 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       (r.problem_description || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
+
+  // Notificar contagens ao pai (DriverDashboard)
+  useEffect(() => {
+    if (!onCountsChange) return;
+    
+    const total = filteredFreights.length + filteredRequests.length;
+    const highUrgency = filteredFreights.filter(f => f.urgency === 'HIGH').length;
+    
+    onCountsChange({ total, highUrgency });
+  }, [filteredFreights, filteredRequests, onCountsChange]);
 
   const getServiceTypeBadge = (serviceType: string) => {
     switch (serviceType) {

@@ -296,6 +296,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   };
 
   const [loading, setLoading] = useState(true);
+  const [availableCountUI, setAvailableCountUI] = useState(0);
 
   // Buscar fretes disponíveis - com match inteligente por região
   const fetchAvailableFreights = useCallback(async () => {
@@ -1373,7 +1374,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             icon={<MapPin className="h-5 w-5" />}
             iconColor="text-primary"
             label="Disponíveis"
-            value={statistics.availableCount}
+            value={availableCountUI}
             onClick={() => setActiveTab('available')}
           />
 
@@ -1590,7 +1591,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 userRole="MOTORISTA"
               />
             </div>
-            <SmartFreightMatcher onFreightAction={handleFreightAction} />
+            <SmartFreightMatcher 
+              onFreightAction={handleFreightAction}
+              onCountsChange={({ total }) => setAvailableCountUI(total)}
+            />
           </TabsContent>
 
           <TabsContent value="ongoing" className="space-y-3">

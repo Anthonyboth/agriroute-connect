@@ -5071,22 +5071,23 @@ export type Database = {
       get_compatible_freights_for_driver: {
         Args: { p_driver_id: string }
         Returns: {
+          accepted_trucks: number
           cargo_type: string
           created_at: string
           delivery_date: string
+          destination_address: string
           destination_city: string
-          destination_lat: number
-          destination_lng: number
           destination_state: string
           distance_km: number
-          id: string
+          freight_id: string
+          match_distance_m: number
+          minimum_antt_price: number
+          origin_address: string
           origin_city: string
-          origin_lat: number
-          origin_lng: number
           origin_state: string
           pickup_date: string
           price: number
-          producer_id: string
+          required_trucks: number
           service_type: string
           status: Database["public"]["Enums"]["freight_status"]
           urgency: string
@@ -5159,7 +5160,9 @@ export type Database = {
         }[]
       }
       get_freights_in_radius: {
-        Args: { p_driver_id: string }
+        Args:
+          | { p_driver_id: string }
+          | { p_driver_id: string; radius_km?: number }
         Returns: {
           cargo_type: string
           created_at: string
