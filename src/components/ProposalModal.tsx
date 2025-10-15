@@ -36,6 +36,27 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar valor antes de prosseguir
+    if (finalProposedPrice <= 0) {
+      toast({
+        title: "Valor inválido",
+        description: "O valor da proposta deve ser maior que R$ 0,00",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validar se pricing_type é PER_KM e distância é 0
+    if (proposalData.pricing_type === 'PER_KM' && (freight.distance_km ?? 0) <= 0) {
+      toast({
+        title: "Distância não configurada",
+        description: "Para proposta por KM, o frete precisa ter a distância configurada. Use valor fixo ou aguarde a configuração.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -204,7 +225,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
               <Input
                 type="number"
                 step="0.01"
-                min="0"
+                min="0.01"
                 value={proposalData.proposed_price}
                 onChange={(e) => setProposalData(prev => ({
                   ...prev,
@@ -220,7 +241,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
               <Input
                 type="number"
                 step="0.01"
-                min="0"
+                min="0.01"
                 inputMode="decimal"
                 pattern="[0-9]*[.,]?[0-9]*"
                 value={proposalData.proposed_price_per_km}

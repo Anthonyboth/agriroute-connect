@@ -125,6 +125,14 @@ const [pricePerKm, setPricePerKm] = useState('');
       toast.error('Valor inválido');
       return;
     }
+    
+    const finalPrice = pricingType === 'PER_KM' ? priceFloat * (freight.distance_km || 0) : priceFloat;
+    
+    // Validar se o preço final é válido
+    if (finalPrice <= 0) {
+      toast.error('O valor da proposta deve ser maior que R$ 0,00');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -137,8 +145,6 @@ const [pricePerKm, setPricePerKm] = useState('');
 
       // Garantir que o usuário tenha o papel 'driver' para RLS
       await supabase.rpc('ensure_current_user_role', { _role: 'driver' });
-      
-      const finalPrice = pricingType === 'PER_KM' ? priceFloat * (freight.distance_km || 0) : priceFloat;
       
       // Evitar múltiplas propostas para o mesmo frete
       const { data: existingProposal, error: checkError } = await supabase
@@ -269,7 +275,7 @@ const [pricePerKm, setPricePerKm] = useState('');
             value={proposedPrice}
             onChange={(e) => setProposedPrice(e.target.value)}
             step="0.01"
-            min="1"
+            min="0.01"
           />
         </div>
 
@@ -335,7 +341,7 @@ const [pricePerKm, setPricePerKm] = useState('');
             value={proposedPrice}
             onChange={(e) => setProposedPrice(e.target.value)}
             step="0.01"
-            min="1"
+            min="0.01"
           />
         </div>
 
@@ -402,7 +408,7 @@ const [pricePerKm, setPricePerKm] = useState('');
               value={proposedPrice}
               onChange={(e) => setProposedPrice(e.target.value)}
               step="0.01"
-              min="1"
+              min="0.01"
             />
           )}
           {pricingType === 'PER_KM' && freight.distance_km && pricePerKm && (

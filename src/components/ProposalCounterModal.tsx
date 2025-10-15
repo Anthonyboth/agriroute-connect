@@ -67,12 +67,13 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
       return;
     }
 
-    if (pricingType === 'PER_KM') {
-      // Permitir envio mesmo sem distância conhecida; o total será estimado depois
-      // Nenhuma validação extra aqui além do valor por km positivo
-    }
-
     const finalPrice = pricingType === 'FIXED' ? priceFloat : priceFloat * freightDistance;
+    
+    // Validar se o preço final é válido
+    if (finalPrice <= 0) {
+      toast.error('O valor da proposta deve ser maior que R$ 0,00');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -247,7 +248,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                   value={counterPrice}
                   onChange={(e) => setCounterPrice(e.target.value)}
                   step="0.01"
-                  min="1"
+                  min="0.01"
                   required
                   className="h-9"
                 />

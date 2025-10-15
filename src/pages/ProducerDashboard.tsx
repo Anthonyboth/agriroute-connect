@@ -394,6 +394,19 @@ const ProducerDashboard = () => {
         return;
       }
 
+      // Buscar a proposta para validar antes de aceitar
+      const proposalToAccept = proposals.find(p => p.id === proposalId);
+      if (!proposalToAccept) {
+        toast.error('Proposta não encontrada');
+        return;
+      }
+
+      // Validar se o valor da proposta é válido
+      if (!proposalToAccept.proposed_price || proposalToAccept.proposed_price <= 0) {
+        toast.error('Proposta com valor inválido (R$ 0). Faça uma contra-proposta ou rejeite.');
+        return;
+      }
+
       // Usar nova edge function para aceitar proposta e criar assignment
       const { data, error } = await supabase.functions.invoke('accept-freight-proposal', {
         body: {
@@ -404,7 +417,9 @@ const ProducerDashboard = () => {
 
       if (error) {
         console.error('Error accepting proposal:', error);
-        toast.error(error.message || 'Erro ao aceitar proposta');
+        // Tentar exibir a mensagem de erro específica da edge function
+        const errorMessage = data?.error || error.message || 'Erro ao aceitar proposta';
+        toast.error(errorMessage);
         return;
       }
 
@@ -1341,12 +1356,20 @@ const ProducerDashboard = () => {
                         </div>
                       )}
 
+                      {/* Avisar se a proposta tem valor inválido */}
+                      {(!proposal.proposed_price || proposal.proposed_price <= 0) && proposal.status === 'PENDING' && (
+                        <div className="bg-destructive/10 border border-destructive/30 p-3 rounded text-sm text-destructive">
+                          ⚠️ Proposta com valor inválido. Faça uma contra-proposta ou rejeite.
+                        </div>
+                      )}
+
                       {proposal.status === 'PENDING' && (
                         <div className="flex gap-2 pt-2">
                           <Button 
                             size="sm" 
                             onClick={() => handleAcceptProposal(proposal.id)}
                             className="gradient-primary"
+                            disabled={!proposal.proposed_price || proposal.proposed_price <= 0}
                           >
                             Aceitar
                           </Button>

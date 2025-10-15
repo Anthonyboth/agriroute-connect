@@ -72,7 +72,15 @@ serve(async (req) => {
       );
     }
 
-    // 4. Validar se motorista já foi contratado
+    // 4. Validar valor da proposta
+    if (!proposal.proposed_price || proposal.proposed_price <= 0) {
+      return new Response(
+        JSON.stringify({ error: "Proposta com valor inválido (R$ 0). Peça uma contra-proposta ou rejeite." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 5. Validar se motorista já foi contratado
     const { data: existingAssignment } = await supabase
       .from("freight_assignments")
       .select("id")
@@ -87,7 +95,7 @@ serve(async (req) => {
       );
     }
 
-    // 5. Validar valor contra ANTT
+    // 6. Validar valor contra ANTT
     if (proposal.proposed_price < (proposal.freights.minimum_antt_price || 0)) {
       return new Response(
         JSON.stringify({ 
@@ -98,7 +106,7 @@ serve(async (req) => {
       );
     }
 
-    // 6. Criar assignment
+    // 7. Criar assignment
     const { data: assignment, error: assignmentErr } = await supabase
       .from("freight_assignments")
       .insert({
@@ -121,13 +129,13 @@ serve(async (req) => {
       );
     }
 
-    // 7. Atualizar status da proposta
+    // 8. Atualizar status da proposta
     await supabase
       .from("freight_proposals")
       .update({ status: "ACCEPTED" })
       .eq("id", proposal_id);
 
-    // 8. Enviar notificação ao motorista
+    // 9. Enviar notificação ao motorista
     await supabase
       .from("notifications")
       .insert({
