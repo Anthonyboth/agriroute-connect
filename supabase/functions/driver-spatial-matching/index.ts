@@ -209,7 +209,7 @@ serve(async (req) => {
           try {
             const { error: insertErr } = await supabase
               .from('freight_matches')
-              .upsert(match, { onConflict: 'freight_id,driver_id,driver_area_id' });
+              .upsert(match, { onConflict: 'freight_id,driver_id', ignoreDuplicates: false });
             
             if (insertErr) {
               logStep("Individual match upsert error", { match, error: insertErr });
