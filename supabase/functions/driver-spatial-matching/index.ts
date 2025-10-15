@@ -184,16 +184,17 @@ serve(async (req) => {
 
         if (bestDistance !== null && matchingArea && matchType) {
           matchesFound++;
-          toUpsert.push({
-            freight_id: f.id,
-            driver_id: driverId,
-            driver_area_id: matchingArea.id,
-            match_type: matchType,
-            distance_m: bestDistance ? Math.round(bestDistance) : 0,
-            match_score: matchType === 'SPATIAL_RADIUS'
-              ? Math.max(0.1, 1 - (bestDistance / (Number(matchingArea.radius_km) * 1000)))
-              : 1
-          });
+        toUpsert.push({
+          freight_id: f.id,
+          driver_id: driverId,
+          // Evitar violação de FK: não referenciar driver_service_areas aqui
+          driver_area_id: null,
+          match_type: matchType,
+          distance_m: bestDistance ? Math.round(bestDistance) : 0,
+          match_score: matchType === 'SPATIAL_RADIUS'
+            ? Math.max(0.1, 1 - (bestDistance / (Number(matchingArea.radius_km) * 1000)))
+            : 1
+        });
         }
       }
 

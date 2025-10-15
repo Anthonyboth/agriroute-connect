@@ -118,9 +118,68 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       );
 
       if (error) {
-        console.error('❌ Erro ao carregar fretes compatíveis:', error);
-        toast.error('Erro ao carregar fretes compatíveis. Verifique se você configurou suas cidades de atendimento.');
-        setCompatibleFreights([]);
+        console.error('❌ Erro ao carregar fretes compatíveis (RPC):', error);
+        // Fallback: buscar por cidades de atendimento ativas (user_cities)
+        try {
+          const { data: uc } = await supabase
+            .from('user_cities')
+            .select('city_id, cities(name, state)')
+            .eq('user_id', user!.id)
+            .eq('is_active', true)
+            .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
+
+          const cityIds = (uc || []).map((u: any) => u.city_id).filter(Boolean);
+
+          if (cityIds.length === 0) {
+            toast.error('Configure suas cidades de atendimento para ver fretes compatíveis.');
+            setCompatibleFreights([]);
+            return;
+          }
+
+          // Buscar fretes abertos que batam com as cidades (por ID)
+          const { data: freightsByCity, error: fbErr } = await supabase
+            .from('freights')
+            .select('*')
+            .eq('status', 'OPEN')
+            .or(`origin_city_id.in.(${cityIds.join(',')}),destination_city_id.in.(${cityIds.join(',')})`)
+            .order('created_at', { ascending: false })
+            .limit(200);
+
+          if (fbErr) throw fbErr;
+
+          const allowedTypes = Array.isArray(profile?.service_types)
+            ? (profile?.service_types as unknown as string[]).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA'].includes(t))
+            : [];
+
+          // Mapear para o formato esperado pela UI
+          const mapped: CompatibleFreight[] = (freightsByCity || [])
+            .map((f: any) => ({
+              freight_id: f.id,
+              cargo_type: f.cargo_type,
+              weight: f.weight || 0,
+              origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
+              destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
+              pickup_date: f.pickup_date,
+              delivery_date: f.delivery_date,
+              price: f.price || 0,
+              urgency: (f.urgency || 'LOW') as string,
+              status: f.status,
+              service_type: normalizeServiceType(f.service_type),
+              distance_km: f.match_distance_m ? Math.round((f.match_distance_m / 1000) * 10) / 10 : 0,
+              minimum_antt_price: f.minimum_antt_price || 0,
+              required_trucks: f.required_trucks || 1,
+              accepted_trucks: f.accepted_trucks || 0,
+              created_at: f.created_at,
+            }))
+            .filter((f) => allowedTypes.length === 0 || allowedTypes.includes(f.service_type));
+
+          setCompatibleFreights(mapped);
+          toast.success(`${mapped.length} fretes compatíveis encontrados pelas suas cidades configuradas!`);
+        } catch (fbError: any) {
+          console.error('❌ Fallback por cidades falhou:', fbError);
+          toast.error('Erro ao carregar fretes. Tente novamente.');
+          setCompatibleFreights([]);
+        }
         return;
       }
 
