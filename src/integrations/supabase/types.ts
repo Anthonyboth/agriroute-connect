@@ -4999,23 +4999,32 @@ export type Database = {
         }[]
       }
       find_drivers_by_origin: {
-        Args: { freight_uuid: string }
+        Args:
+          | { freight_uuid: string }
+          | { origin_city_param: string; origin_state_param: string }
         Returns: {
-          distance_m: number
-          driver_area_id: string
+          distance_km: number
           driver_id: string
-          match_method: string
-          radius_km: number
+          driver_name: string
+          driver_rating: number
+          service_types: string[]
         }[]
       }
       find_drivers_by_route: {
-        Args: { freight_uuid: string }
+        Args:
+          | {
+              destination_city_param: string
+              destination_state_param: string
+              origin_city_param: string
+              origin_state_param: string
+            }
+          | { freight_uuid: string }
         Returns: {
-          distance_to_route_m: number
-          driver_area_id: string
           driver_id: string
-          match_method: string
-          radius_km: number
+          driver_name: string
+          driver_rating: number
+          match_score: number
+          service_types: string[]
         }[]
       }
       find_providers_by_location: {
@@ -5063,20 +5072,21 @@ export type Database = {
         Args: { p_driver_id: string }
         Returns: {
           cargo_type: string
+          created_at: string
           delivery_date: string
-          destination_address: string
           destination_city: string
+          destination_lat: number
+          destination_lng: number
           destination_state: string
           distance_km: number
-          freight_id: string
-          minimum_antt_price: number
-          origin_address: string
+          id: string
           origin_city: string
+          origin_lat: number
+          origin_lng: number
           origin_state: string
           pickup_date: string
           price: number
-          price_per_km: number
-          required_trucks: number
+          producer_id: string
           service_type: string
           status: Database["public"]["Enums"]["freight_status"]
           urgency: string
@@ -5152,12 +5162,26 @@ export type Database = {
         Args: { p_driver_id: string }
         Returns: {
           cargo_type: string
-          destination_address: string
-          distance_m: number
-          freight_id: string
-          origin_address: string
+          created_at: string
+          delivery_date: string
+          destination_city: string
+          destination_lat: number
+          destination_lng: number
+          destination_state: string
+          distance_from_driver: number
+          distance_km: number
+          id: string
+          origin_city: string
+          origin_lat: number
+          origin_lng: number
+          origin_state: string
+          pickup_date: string
           price: number
-          status: string
+          producer_id: string
+          service_type: string
+          status: Database["public"]["Enums"]["freight_status"]
+          urgency: string
+          weight: number
         }[]
       }
       get_platform_stats: {
