@@ -149,3 +149,6 @@ verify_jwt = false
 
 [functions.recalculate-antt-min]
 verify_jwt = true
+
+[functions.admin-fix-advance-amounts]
+verify_jwt = true

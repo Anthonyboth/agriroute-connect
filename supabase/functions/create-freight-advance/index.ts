@@ -74,16 +74,25 @@ serve(async (req) => {
     }
 
     // Calcular o valor do adiantamento em centavos
-    const calculatedAmount = advance_amount 
+    // IMPORTANTE: freight.price já está em centavos no banco
+    let calculatedAmount = advance_amount 
       ? Math.round(advance_amount * 100) // Converter de reais para centavos
-      : Math.round(freight.price * advance_percentage * 100); // Converter porcentagem para centavos
+      : Math.round(freight.price * advance_percentage); // freight.price já está em centavos, só aplicar %
+    
+    // Salvaguarda: se o valor ficou muito alto para um % (indica bug de * 100 a mais), corrigir
+    if (advance_percentage !== undefined && calculatedAmount > freight.price) {
+      const corrected = Math.round(freight.price * advance_percentage);
+      logStep("Fixed miscalculation", { wrong: calculatedAmount, corrected, freightPrice: freight.price });
+      calculatedAmount = corrected;
+    }
     
     logStep("Calculated advance amount", { 
       calculatedAmount, 
-      freightPrice: freight.price, 
-      freightPriceInReais: freight.price,
+      freightPriceInCents: freight.price, 
+      freightPriceInReais: freight.price / 100,
       advancePercentage: advance_percentage,
-      advanceInReais: calculatedAmount / 100
+      advanceInReais: calculatedAmount / 100,
+      source: advance_percentage !== undefined ? 'percentage' : 'fixed_amount'
     });
 
     // Verificar solicitações duplicadas (mesmo valor nas últimas 2 horas)
@@ -137,7 +146,10 @@ serve(async (req) => {
         producer_id: freight.producer_id,
         requested_amount: calculatedAmount,
         status: "PENDING",
-        requested_at: new Date().toISOString()
+        requested_at: new Date().toISOString(),
+        notes: advance_percentage !== undefined 
+          ? `source=percentage;value=${advance_percentage * 100}%`
+          : `source=fixed_amount;value=R$${advance_amount?.toFixed(2)}`
       })
       .select()
       .single();
