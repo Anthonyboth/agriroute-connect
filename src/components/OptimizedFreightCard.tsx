@@ -3,6 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ServiceProposalModal } from './ServiceProposalModal';
+import { ShareFreightToCompany } from './ShareFreightToCompany';
 import { Separator } from '@/components/ui/separator';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { 
@@ -40,13 +41,19 @@ interface FreightCardProps {
   onAction?: (action: 'propose' | 'accept' | 'complete' | 'edit' | 'cancel') => void;
   showActions?: boolean;
   showProducerActions?: boolean;
+  isAffiliatedDriver?: boolean;
+  driverCompanyId?: string;
+  driverProfile?: any;
 }
 
 const OptimizedFreightCard = memo<FreightCardProps>(({ 
   freight, 
   onAction, 
   showActions = false, 
-  showProducerActions = false 
+  showProducerActions = false,
+  isAffiliatedDriver = false,
+  driverCompanyId,
+  driverProfile
 }) => {
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   
@@ -297,60 +304,70 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
       {/* Actions - Enhanced accessibility */}
       {showActions && onAction && freight.status === 'OPEN' && !isFullyBooked && (
         <div className="px-6 pb-6">
-          {freight.service_type === 'GUINCHO' ? (
-            <div className="flex gap-4">
-              <Button 
-                onClick={handleAccept}
-                className="flex-1 btn-accessible gradient-primary text-lg font-semibold"
-                size="lg"
-              >
-                Aceitar Chamado
-              </Button>
-              <Button 
-                onClick={handleProposalModalOpen}
-                className="flex-1 btn-accessible border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-lg font-semibold"
-                size="lg"
-                variant="outline"
-              >
-                Contra proposta
-              </Button>
-            </div>
-          ) : freight.service_type === 'MUDANCA' ? (
-            <div className="flex gap-4">
-              <Button 
-                onClick={handleProposalModalOpen}
-                className="flex-1 btn-accessible gradient-primary text-lg font-semibold"
-                size="lg"
-              >
-                Fazer Orçamento
-              </Button>
-              <Button 
-                onClick={handleProposalModalOpen}
-                className="flex-1 btn-accessible border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-lg font-semibold"
-                size="lg"
-                variant="outline"
-              >
-                Contra proposta
-              </Button>
-            </div>
+          {isAffiliatedDriver ? (
+            // Motorista afiliado: apenas compartilhar
+            <ShareFreightToCompany 
+              freight={freight}
+              companyId={driverCompanyId}
+              driverProfile={driverProfile}
+            />
           ) : (
-            <div className="flex gap-4">
-              <Button 
-                onClick={handleAccept}
-                className="flex-1 btn-accessible gradient-primary text-lg font-semibold"
-                size="lg"
-              >
-                Aceitar Frete
-              </Button>
-              <Button 
-                onClick={handleProposalModalOpen}
-                className="flex-1 btn-accessible border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-lg font-semibold"
-                size="lg"
-                variant="outline"
-              >
-                Contra proposta
-              </Button>
-            </div>
+            // Motorista autônomo: botões normais
+            freight.service_type === 'GUINCHO' ? (
+              <div className="flex gap-4">
+                <Button 
+                  onClick={handleAccept}
+                  className="flex-1 btn-accessible gradient-primary text-lg font-semibold"
+                  size="lg"
+                >
+                  Aceitar Chamado
+                </Button>
+                <Button 
+                  onClick={handleProposalModalOpen}
+                  className="flex-1 btn-accessible border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-lg font-semibold"
+                  size="lg"
+                  variant="outline"
+                >
+                  Contra proposta
+                </Button>
+              </div>
+            ) : freight.service_type === 'MUDANCA' ? (
+              <div className="flex gap-4">
+                <Button 
+                  onClick={handleProposalModalOpen}
+                  className="flex-1 btn-accessible gradient-primary text-lg font-semibold"
+                  size="lg"
+                >
+                  Fazer Orçamento
+                </Button>
+                <Button 
+                  onClick={handleProposalModalOpen}
+                  className="flex-1 btn-accessible border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-lg font-semibold"
+                  size="lg"
+                  variant="outline"
+                >
+                  Contra proposta
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-4">
+                <Button 
+                  onClick={handleAccept}
+                  className="flex-1 btn-accessible gradient-primary text-lg font-semibold"
+                  size="lg"
+                >
+                  Aceitar Frete
+                </Button>
+                <Button 
+                  onClick={handleProposalModalOpen}
+                  className="flex-1 btn-accessible border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-lg font-semibold"
+                  size="lg"
+                  variant="outline"
+                >
+                  Contra proposta
+                </Button>
+              </div>
+            )
           )}
         </div>
       )}

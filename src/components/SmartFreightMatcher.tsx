@@ -6,9 +6,11 @@ import { getCargoTypeLabel, CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCatego
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { FreightCard } from '@/components/FreightCard';
+import { FreightShareCard } from '@/components/FreightShareCard';
 import { Brain, Filter, RefreshCw, Search, Zap, Package, Truck, Wrench, MapPin, MessageSquare, Clock, DollarSign, Bike } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
 
@@ -41,6 +43,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   onCountsChange
 }) => {
   const { profile, user } = useAuth();
+  const { isAffiliated, companyId } = useCompanyDriver();
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
   const [towingRequests, setTowingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -676,6 +679,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                       }}
                       onAction={(action) => handleFreightAction(freight.freight_id, action)}
                       showActions={true}
+                      isAffiliatedDriver={isAffiliated}
+                      driverCompanyId={companyId}
                     />
                   </div>
                 ))}

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { FreightShareCard } from '@/components/FreightShareCard';
 import { 
   MessageSquare, 
   Send, 
@@ -231,6 +232,31 @@ export function CompanyInternalChat() {
                   </div>
                 ) : (
                   messages.map((message) => {
+                    // Verificar se é mensagem de compartilhamento de frete
+                    let freightData = null;
+                    try {
+                      const parsed = JSON.parse(message.message);
+                      if (parsed.type === 'FREIGHT_SHARE') {
+                        freightData = parsed;
+                      }
+                    } catch {
+                      // Mensagem normal, não é JSON
+                    }
+
+                    if (freightData) {
+                      // Renderizar card especial de frete compartilhado
+                      return (
+                        <div key={message.id} className="mb-4">
+                          <FreightShareCard 
+                            freightData={freightData}
+                            messageId={message.id}
+                            onAccept={loadMessages}
+                          />
+                        </div>
+                      );
+                    }
+
+                    // Mensagem normal
                     const isOwn = message.sender_id === profile?.id;
                     return (
                       <div

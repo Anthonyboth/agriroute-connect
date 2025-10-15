@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ServiceProposalModal } from './ServiceProposalModal';
 import { CompanyBulkFreightAcceptor } from './CompanyBulkFreightAcceptor';
+import { ShareFreightToCompany } from './ShareFreightToCompany';
 import { Separator } from '@/components/ui/separator';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { 
@@ -50,6 +51,8 @@ interface FreightCardProps {
   showProducerActions?: boolean;
   hidePrice?: boolean;
   canAcceptFreights?: boolean;
+  isAffiliatedDriver?: boolean;
+  driverCompanyId?: string;
 }
 
 export const FreightCard: React.FC<FreightCardProps> = ({ 
@@ -58,7 +61,9 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   showActions = false, 
   showProducerActions = false,
   hidePrice = false,
-  canAcceptFreights = true
+  canAcceptFreights = true,
+  isAffiliatedDriver = false,
+  driverCompanyId
 }) => {
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [bulkAcceptorOpen, setBulkAcceptorOpen] = useState(false);
@@ -242,81 +247,91 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         </CardFooter>
       )}
 
-      {showActions && onAction && freight.status === 'OPEN' && !isFullyBooked && canAcceptFreights && (
+      {showActions && onAction && freight.status === 'OPEN' && !isFullyBooked && (
         <div className="px-6 pb-6">
-          {freight.service_type === 'GUINCHO' ? (
-            <div className="flex gap-3">
-              <Button 
-                onClick={() => handleAcceptFreight(1)}
-                className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
-                size="sm"
-              >
-                Aceitar Chamado
-              </Button>
-              <Button 
-                onClick={() => setProposalModalOpen(true)}
-                className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                size="sm"
-                variant="outline"
-              >
-                Contra proposta
-              </Button>
-            </div>
-          ) : freight.service_type === 'MUDANCA' ? (
-            <div className="flex gap-3">
-              <Button 
-                onClick={() => setProposalModalOpen(true)}
-                className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
-                size="sm"
-              >
-                Fazer Orçamento
-              </Button>
-              <Button 
-                onClick={() => setProposalModalOpen(true)}
-                className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                size="sm"
-                variant="outline"
-              >
-                Contra proposta
-              </Button>
-            </div>
-          ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
-            <div className="flex gap-3">
-              <Button 
-                onClick={() => setBulkAcceptorOpen(true)}
-                className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
-                size="sm"
-              >
-                Aceitar Carretas ({availableSlots} disponíveis)
-              </Button>
-              <Button 
-                onClick={() => setProposalModalOpen(true)}
-                className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                size="sm"
-                variant="outline"
-              >
-                Contra proposta
-              </Button>
-            </div>
-          ) : (
-            <div className="flex gap-3">
-              <Button 
-                onClick={() => handleAcceptFreight(1)}
-                className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
-                size="sm"
-              >
-                Aceitar Frete
-              </Button>
-              <Button 
-                onClick={() => setProposalModalOpen(true)}
-                className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                size="sm"
-                variant="outline"
-              >
-                Contra proposta
-              </Button>
-            </div>
-          )}
+          {isAffiliatedDriver ? (
+            // Motorista afiliado: apenas compartilhar com transportadora
+            <ShareFreightToCompany 
+              freight={freight}
+              companyId={driverCompanyId}
+              driverProfile={profile}
+            />
+          ) : canAcceptFreights ? (
+            // Motorista autônomo ou transportadora: botões normais
+            freight.service_type === 'GUINCHO' ? (
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => handleAcceptFreight(1)}
+                  className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
+                  size="sm"
+                >
+                  Aceitar Chamado
+                </Button>
+                <Button 
+                  onClick={() => setProposalModalOpen(true)}
+                  className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                  size="sm"
+                  variant="outline"
+                >
+                  Contra proposta
+                </Button>
+              </div>
+            ) : freight.service_type === 'MUDANCA' ? (
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => setProposalModalOpen(true)}
+                  className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
+                  size="sm"
+                >
+                  Fazer Orçamento
+                </Button>
+                <Button 
+                  onClick={() => setProposalModalOpen(true)}
+                  className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                  size="sm"
+                  variant="outline"
+                >
+                  Contra proposta
+                </Button>
+              </div>
+            ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => setBulkAcceptorOpen(true)}
+                  className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
+                  size="sm"
+                >
+                  Aceitar Carretas ({availableSlots} disponíveis)
+                </Button>
+                <Button 
+                  onClick={() => setProposalModalOpen(true)}
+                  className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                  size="sm"
+                  variant="outline"
+                >
+                  Contra proposta
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => handleAcceptFreight(1)}
+                  className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
+                  size="sm"
+                >
+                  Aceitar Frete
+                </Button>
+                <Button 
+                  onClick={() => setProposalModalOpen(true)}
+                  className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                  size="sm"
+                  variant="outline"
+                >
+                  Contra proposta
+                </Button>
+              </div>
+            )
+          ) : null}
         </div>
       )}
 
