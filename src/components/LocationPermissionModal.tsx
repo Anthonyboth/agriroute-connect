@@ -59,7 +59,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
             switch (error.code) {
               case error.PERMISSION_DENIED:
                 message = mandatory 
-                  ? 'Localização é obrigatória para usar o AgroRoute' 
+                  ? 'Localização é obrigatória para usar o AgriRoute' 
                   : 'Permissão de localização negada';
                 break;
               case error.POSITION_UNAVAILABLE:
@@ -117,7 +117,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
             <div className="text-center">
               <MapPin className="h-12 w-12 text-primary mx-auto mb-3" />
               <p className="text-foreground font-medium">
-                O AgroRoute precisa acessar sua localização para funcionar corretamente
+                O AgriRoute precisa acessar sua localização para funcionar corretamente
               </p>
             </div>
           </DialogDescription>
@@ -194,7 +194,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
           </div>
 
           <p className="text-xs text-muted-foreground text-center">
-            Suas informações de localização são protegidas e usadas apenas para melhorar sua experiência no AgroRoute.
+            Suas informações de localização são protegidas e usadas apenas para melhorar sua experiência no AgriRoute.
           </p>
         </div>
       </DialogContent>

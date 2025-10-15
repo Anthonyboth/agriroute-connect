@@ -9,6 +9,11 @@ interface DocumentValidation {
 
 export class AutomaticApprovalService {
   
+  /**
+   * Threshold para aprovação automática (50 pontos = 0.5)
+   */
+  private static readonly APPROVAL_SCORE_THRESHOLD = 0.5;
+  
   // Simulate document AI validation (in real implementation, would use AI service)
   private static async validateDocumentImage(imageUrl: string, documentType: string): Promise<DocumentValidation> {
     // Simulate AI validation - in production, integrate with actual AI service
@@ -137,7 +142,8 @@ export class AutomaticApprovalService {
       }
 
       const finalScore = validatedCount > 0 ? totalScore / validatedCount : 0;
-      const approved = cpfValid && allMandatoryValid;
+      // Aprovação requer CPF válido + (todos documentos válidos OU score >= 50%)
+      const approved = cpfValid && (allMandatoryValid || finalScore >= this.APPROVAL_SCORE_THRESHOLD);
 
       console.log(`🔍 Approval decision for ${profileId}:`, { 
         approved, 

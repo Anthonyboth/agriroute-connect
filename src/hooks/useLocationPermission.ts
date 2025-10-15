@@ -68,7 +68,7 @@ export const useLocationPermission = (mandatory: boolean = true) => {
         error: errorMessage,
         hasPermission: false
       }));
-      if (mandatory) toast.error(errorMessage + '. A localização é obrigatória para usar o AgroRoute.');
+      if (mandatory) toast.error(errorMessage + '. A localização é obrigatória para usar o AgriRoute.');
       return false;
     }
   };

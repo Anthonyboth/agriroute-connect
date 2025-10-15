@@ -106,7 +106,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
     
     const approvalDescription = isAffiliatedDriver
       ? 'Sua transportadora precisa aprovar seu cadastro antes de você começar a usar o app.'
-      : 'Seu cadastro está sendo analisado pela equipe AgroRoute.';
+      : 'Seu cadastro está sendo analisado pela equipe AgriRoute.';
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-6">
