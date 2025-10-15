@@ -198,7 +198,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               <p className="font-medium">{freight.distance_km} km</p>
             </div>
             <div>
-              <span className="text-muted-foreground text-xs">Valor:</span>
+              <span className="text-muted-foreground text-xs">Valor por carreta:</span>
               <p className="font-medium">R$ {freight.price?.toLocaleString('pt-BR')}</p>
             </div>
             <div>

@@ -32,7 +32,7 @@ export const CompanyBulkFreightAcceptor = ({
   const [numTrucks, setNumTrucks] = useState(Math.min(availableSlots, 1));
   const [loading, setLoading] = useState(false);
 
-  const pricePerTruck = freight.price / requiredTrucks;
+  const pricePerTruck = freight.price; // Cada carreta recebe o valor integral
 
   const handleAccept = async () => {
     setLoading(true);

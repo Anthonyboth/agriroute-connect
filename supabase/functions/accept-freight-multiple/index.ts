@@ -83,7 +83,7 @@ serve(async (req) => {
 
     // 6. Criar assignments
     const assignments = [];
-    const pricePerTruck = freight.price / freight.required_trucks;
+    const pricePerTruck = freight.price; // Cada carreta recebe o valor integral
     
     for (let i = 0; i < num_trucks; i++) {
       const { data: assignment, error } = await supabase
