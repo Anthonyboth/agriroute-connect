@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { User, MessageCircle, Mail, Truck, Home, Package } from 'lucide-react';
 import { LocationFillButton } from './LocationFillButton';
 import { UserLocationSelector } from './UserLocationSelector';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SubService {
   id: string;
@@ -155,27 +156,73 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
     }
     
     setLoading(true);
-
+    
     try {
-      // Dados completos da solicitação incluindo informações da carga
-      const requestData = {
-        ...formData,
-        serviceType: selectedSubService,
-        cargoInfo: selectedSubService !== 'GUINCHO' ? {
-          type: formData.cargoType,
-          weight: `${formData.cargoWeight}${formData.cargoWeightUnit}`,
-          dimensions: formData.cargoDimensions,
-          needsPackaging: formData.needsPackaging
-        } : null
-      };
-      
-      console.log('Dados da solicitação:', requestData);
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success('Solicitação enviada! As informações da carga ficarão visíveis para os motoristas.');
+      // Validar campos obrigatórios
+      if (!formData.name || !formData.phone || !formData.origin) {
+        toast.error('Preencha todos os campos obrigatórios');
+        setLoading(false);
+        return;
+      }
+
+      // Preparar dados detalhados da carga
+      const cargoDetails = selectedSubService !== 'GUINCHO' ? {
+        type: formData.cargoType,
+        weight: `${formData.cargoWeight}${formData.cargoWeightUnit}`,
+        dimensions: formData.cargoDimensions,
+        needsPackaging: formData.needsPackaging
+      } : null;
+
+      // Inserir na tabela service_requests com client_id NULL (guest)
+      const { data, error } = await supabase
+        .from('service_requests')
+        .insert({
+          client_id: null, // NULL = solicitação de convidado
+          service_type: selectedSubService,
+          contact_name: formData.name,
+          contact_phone: formData.phone,
+          contact_email: formData.email || null,
+          location_address: formData.origin,
+          location_lat: formData.origin_lat,
+          location_lng: formData.origin_lng,
+          problem_description: formData.description,
+          urgency: formData.urgency,
+          status: 'OPEN',
+          city_name: formData.origin.split(',')[0]?.trim(),
+          state: formData.origin.split(',')[1]?.trim(),
+          additional_info: JSON.stringify({
+            destination: formData.destination || null,
+            destination_lat: formData.destination_lat,
+            destination_lng: formData.destination_lng,
+            preferredTime: formData.preferredTime || null,
+            cargoDetails: cargoDetails
+          })
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Executar matching espacial automático
+      if (data?.id) {
+        try {
+          await supabase.functions.invoke('service-provider-spatial-matching', {
+            body: { 
+              service_request_id: data.id,
+              notify_providers: true 
+            }
+          });
+        } catch (matchError) {
+          console.error('Erro no matching:', matchError);
+        }
+      }
+
+      toast.success('Solicitação enviada com sucesso! Prestadores próximos foram notificados.');
       onClose();
+      
     } catch (error) {
-      toast.error('Erro ao enviar solicitação.');
+      console.error('Erro ao salvar solicitação:', error);
+      toast.error('Erro ao enviar solicitação. Tente novamente.');
     } finally {
       setLoading(false);
     }
