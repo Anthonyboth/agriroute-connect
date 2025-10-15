@@ -51,7 +51,7 @@ const ServiceProviderDashboard = () => {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-blue-50/30 dark:to-blue-950/10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 dark:to-primary/5">
       <Header 
         user={{ name: profile?.full_name || 'Prestador de Serviços', role: 'PRESTADOR_SERVICOS' }}
         onMenuClick={handleMenuClick}
