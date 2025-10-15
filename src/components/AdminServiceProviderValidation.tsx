@@ -109,6 +109,7 @@ export const AdminServiceProviderValidation: React.FC = () => {
         .from('profiles')
         .update({
           validation_status: status,
+          status: status, // Sincronizar status de acesso
           validated_at: new Date().toISOString(),
           // validated_by seria o ID do admin atual
         })

@@ -293,7 +293,7 @@ export const ServiceProviderRegistrationForm: React.FC<ServiceProviderRegistrati
 
       if (error) throw error;
 
-      // Atualizar profile com documentos
+      // Atualizar profile com documentos e aprovar automaticamente
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -302,7 +302,8 @@ export const ServiceProviderRegistrationForm: React.FC<ServiceProviderRegistrati
           cnh_url: requiresCNH ? formData.cnhUrl : null,
           address_proof_url: formData.addressProofUrl,
           profile_photo_url: formData.profilePhoto,
-          validation_status: 'PENDING'
+          validation_status: 'PENDING',
+          status: 'APPROVED' // Aprovar automaticamente prestador de serviços
         })
         .eq('id', profile.id);
 
@@ -310,7 +311,7 @@ export const ServiceProviderRegistrationForm: React.FC<ServiceProviderRegistrati
 
       toast({
         title: "Sucesso!",
-        description: "Cadastro realizado! Aguarde a aprovação do administrador.",
+        description: "Cadastro concluído! Acesso liberado.",
       });
 
       onClose();
