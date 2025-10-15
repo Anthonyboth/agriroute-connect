@@ -260,8 +260,8 @@
 
   /* Freight card standardization */
   .freight-card-standard {
-    height: 600px;
-    max-height: 600px;
+    height: 460px;
+    max-height: 460px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
