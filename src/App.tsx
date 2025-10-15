@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { RatingProvider } from "@/contexts/RatingContext";
+import { GlobalRatingModals } from "@/components/GlobalRatingModals";
 import { supabase } from "@/integrations/supabase/client";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Landing from "./pages/Landing";
@@ -263,15 +265,16 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <SubscriptionProvider>
-        <TooltipProvider>
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true
-            }}
-          >
-          <ScrollToTop />
-          <Routes>
+        <RatingProvider>
+          <TooltipProvider>
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true
+              }}
+            >
+            <ScrollToTop />
+            <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/landing" element={<Landing />} />
             <Route path="/auth" element={<RedirectIfAuthed />} />
@@ -381,8 +384,10 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<SmartFallback />} />
           </Routes>
+          <GlobalRatingModals />
         </BrowserRouter>
       </TooltipProvider>
+        </RatingProvider>
     </SubscriptionProvider>
   </QueryClientProvider>
   </ErrorBoundary>

@@ -9,9 +9,7 @@ import { Bell, Check, CheckCheck, Info, AlertTriangle, TrendingUp, Truck, Dollar
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { FreightRatingModal } from './FreightRatingModal';
-import { ServiceAutoRatingModal } from './ServiceAutoRatingModal';
-import { useServiceRating } from '@/hooks/useServiceRating';
+import { useGlobalRating } from '@/contexts/RatingContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { queryWithTimeout } from '@/lib/query-utils';
 
@@ -37,13 +35,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const { profile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { openServiceRating, openFreightRating } = useGlobalRating();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ratingModalOpen, setRatingModalOpen] = useState(false);
-  const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
-  const [serviceRatingModalOpen, setServiceRatingModalOpen] = useState(false);
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && profile) {
@@ -146,9 +141,15 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     // Lógica de navegação baseada no tipo
     switch (type) {
       case 'rating_pending':
-        if (data?.freight_id) {
-          setSelectedFreightId(data.freight_id);
-          setRatingModalOpen(true);
+        if (data?.freight_id && data?.rated_user_id) {
+          // Buscar nome do avaliado
+          const { data: ratedProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', data.rated_user_id)
+            .single();
+          
+          openFreightRating(data.freight_id, data.rated_user_id, ratedProfile?.full_name);
           onClose();
         }
         break;
@@ -188,9 +189,26 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         break;
         
       case 'service_rating_pending':
-        if (data?.service_request_id) {
-          setSelectedServiceId(data.service_request_id);
-          setServiceRatingModalOpen(true);
+        if (data?.service_request_id && data?.rated_user_id) {
+          // Buscar informações do serviço e usuário
+          const { data: serviceData } = await supabase
+            .from('service_requests')
+            .select('service_type')
+            .eq('id', data.service_request_id)
+            .single();
+          
+          const { data: ratedProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', data.rated_user_id)
+            .single();
+          
+          openServiceRating(
+            data.service_request_id, 
+            data.rated_user_id, 
+            ratedProfile?.full_name,
+            serviceData?.service_type
+          );
           onClose();
         }
         break;
@@ -252,130 +270,156 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'advance_request':
-        return <DollarSign className="h-5 w-5 text-blue-600" />;
-      case 'advance_approved':
-        return <CheckCheck className="h-5 w-5 text-green-600" />;
-      case 'freight_created':
-        return <Truck className="h-5 w-5 text-orange-600" />;
+      case 'rating_pending':
+      case 'service_rating_pending':
+        return <Star className="h-5 w-5 text-yellow-500" />;
       case 'freight_accepted':
-        return <Check className="h-5 w-5 text-green-600" />;
-      case 'payment_completed':
-        return <CreditCard className="h-5 w-5 text-emerald-600" />;
+      case 'freight_in_transit':
+      case 'freight_created':
+        return <Truck className="h-5 w-5 text-blue-500" />;
+      case 'proposal_received':
+        return <Package className="h-5 w-5 text-purple-500" />;
       case 'chat_message':
       case 'service_chat_message':
-        return <MessageSquare className="h-5 w-5 text-blue-600" />;
-      case 'proposal_received':
-        return <Package className="h-5 w-5 text-purple-600" />;
-      case 'freight_in_transit':
-        return <TrendingUp className="h-5 w-5 text-orange-600" />;
+        return <MessageSquare className="h-5 w-5 text-green-500" />;
+      case 'payment_completed':
+      case 'payment_confirmation':
+        return <DollarSign className="h-5 w-5 text-green-600" />;
+      case 'advance_request':
+      case 'advance_approved':
+        return <CreditCard className="h-5 w-5 text-indigo-500" />;
       case 'delivery_confirmation_required':
       case 'checkin_confirmation_required':
-        return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
-      case 'rating_pending':
-        return <Star className="h-5 w-5 text-amber-600" />;
-      case 'external_payment_proposed':
-        return <DollarSign className="h-5 w-5 text-green-600" />;
+        return <CheckCheck className="h-5 w-5 text-orange-500" />;
       case 'warning':
         return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
       case 'success':
-        return <Check className="h-5 w-5 text-green-600" />;
+        return <Check className="h-5 w-5 text-green-500" />;
       case 'error':
-        return <AlertTriangle className="h-5 w-5 text-red-600" />;
+        return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      case 'info':
       default:
-        return <Info className="h-5 w-5 text-blue-600" />;
+        return <Info className="h-5 w-5 text-blue-500" />;
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor(diff / (1000 * 60));
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-    if (days > 0) {
-      return `${days} dia${days > 1 ? 's' : ''} atrás`;
-    } else if (hours > 0) {
-      return `${hours} hora${hours > 1 ? 's' : ''} atrás`;
-    } else if (minutes > 0) {
-      return `${minutes} minuto${minutes > 1 ? 's' : ''} atrás`;
-    } else {
-      return 'Agora mesmo';
-    }
+    if (diffMins < 1) return 'Agora';
+    if (diffMins < 60) return `${diffMins} min atrás`;
+    if (diffHours < 24) return `${diffHours}h atrás`;
+    if (diffDays < 7) return `${diffDays}d atrás`;
+    
+    return date.toLocaleDateString('pt-BR', { 
+      day: '2-digit', 
+      month: 'short' 
+    });
   };
 
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-2xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-primary" />
-            Central de Notificações
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notificações
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {unreadCount}
+                </Badge>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={fetchNotifications}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
           </DialogTitle>
           <DialogDescription>
-            Acompanhe todas as atualizações importantes sobre seus fretes e atividades.
+            Fique por dentro de tudo que acontece
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh]">
+        <ScrollArea className="h-[500px] pr-4">
           {loading ? (
-            <div className="space-y-3 p-4">
-              {[1, 2, 3].map(i => (
-                <Card key={`notification-skeleton-${i}`} className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Skeleton className="h-5 w-5 rounded-full" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-full" />
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardContent className="pt-6">
+                    <div className="flex gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-full" />
+                      </div>
                     </div>
-                  </div>
+                  </CardContent>
                 </Card>
               ))}
             </div>
           ) : error ? (
-            <div className="text-center py-8 px-4">
-              <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">{error}</p>
-              <Button onClick={fetchNotifications} variant="outline" size="sm">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Tentar Novamente
-              </Button>
-            </div>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center text-muted-foreground">
+                  <AlertTriangle className="h-10 w-10 mx-auto mb-2 text-destructive" />
+                  <p>{error}</p>
+                </div>
+              </CardContent>
+            </Card>
           ) : notifications.length === 0 ? (
-            <div className="text-center py-8">
-              <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Nenhuma notificação encontrada</p>
-            </div>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center text-muted-foreground py-8">
+                  <Bell className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-lg font-medium">Nenhuma notificação</p>
+                  <p className="text-sm mt-1">Você está em dia! 🎉</p>
+                </div>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {notifications.map((notification) => (
                 <Card 
                   key={notification.id}
-                  className={`cursor-pointer transition-all hover:scale-[1.01] ${
+                  className={`transition-colors cursor-pointer ${
                     !notification.read 
-                      ? 'bg-primary/5 border-primary/20' 
+                      ? 'bg-primary/5 hover:bg-primary/10 border-primary/20' 
                       : 'hover:bg-muted/50'
+                  } ${
+                    isActionableNotification(notification.type) 
+                      ? 'hover:shadow-md' 
+                      : ''
                   }`}
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className="mt-1">
+                      <div className="flex-shrink-0 mt-1">
                         {getNotificationIcon(notification.type)}
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <h4 className={`font-medium text-sm ${
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <h4 className={`text-sm font-semibold ${
                             !notification.read ? 'text-foreground' : 'text-muted-foreground'
                           }`}>
                             {notification.title}
                           </h4>
                           
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
                               {formatDate(notification.created_at)}
                             </span>
                             {!notification.read && (
@@ -408,110 +452,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           </Button>
         </div>
       </DialogContent>
-
-      {ratingModalOpen && selectedFreightId && (
-        <FreightRatingModal
-          isOpen={ratingModalOpen}
-          onClose={() => {
-            setRatingModalOpen(false);
-            setSelectedFreightId(null);
-          }}
-          freightId={selectedFreightId}
-          userRole={(profile?.role === 'MOTORISTA' || profile?.role === 'MOTORISTA_AFILIADO') ? 'MOTORISTA' : 'PRODUTOR'}
-          onRatingSubmitted={() => {
-            setRatingModalOpen(false);
-            setSelectedFreightId(null);
-            fetchNotifications();
-          }}
-        />
-      )}
-
-      {serviceRatingModalOpen && selectedServiceId && (
-        <ServiceRatingModalWrapper
-          serviceRequestId={selectedServiceId}
-          onClose={() => {
-            setServiceRatingModalOpen(false);
-            setSelectedServiceId(null);
-          }}
-          onRatingSubmitted={() => {
-            setServiceRatingModalOpen(false);
-            setSelectedServiceId(null);
-            fetchNotifications();
-          }}
-        />
-      )}
     </Dialog>
-  );
-};
-
-// Wrapper component to fetch service data and render rating modal
-const ServiceRatingModalWrapper: React.FC<{
-  serviceRequestId: string;
-  onClose: () => void;
-  onRatingSubmitted: () => void;
-}> = ({ serviceRequestId, onClose, onRatingSubmitted }) => {
-  const { profile } = useAuth();
-  const [serviceData, setServiceData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    const fetchServiceData = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('service_requests')
-          .select(`
-            id,
-            service_type,
-            client_id,
-            provider_id,
-            client:profiles!service_requests_client_id_fkey(full_name),
-            provider:profiles!service_requests_provider_id_fkey(full_name)
-          `)
-          .eq('id', serviceRequestId)
-          .single();
-
-        if (error) throw error;
-        setServiceData(data);
-      } catch (error) {
-        console.error('Error fetching service data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchServiceData();
-  }, [serviceRequestId]);
-
-  if (loading || !serviceData || !profile) return null;
-
-  const isClient = serviceData.client_id === profile.id;
-  const ratedUserId = isClient ? serviceData.provider_id : serviceData.client_id;
-  const raterRole: 'CLIENT' | 'PROVIDER' = isClient ? 'CLIENT' : 'PROVIDER';
-  const ratedUserName = isClient 
-    ? (serviceData.provider as any)?.[0]?.full_name 
-    : (serviceData.client as any)?.[0]?.full_name;
-
-  const { submitRating } = useServiceRating({
-    serviceRequestId,
-    ratedUserId,
-    raterRole,
-  });
-
-  const handleSubmit = async (rating: number, comment?: string) => {
-    const result = await submitRating(rating, comment);
-    if (result.success) {
-      onRatingSubmitted();
-    }
-  };
-
-  return (
-    <ServiceAutoRatingModal
-      isOpen={true}
-      onClose={onClose}
-      onSubmit={handleSubmit}
-      ratedUserName={ratedUserName}
-      raterRole={raterRole}
-      serviceType={serviceData.service_type}
-    />
   );
 };

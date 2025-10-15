@@ -1,40 +1,14 @@
 import React from 'react';
 import { ServiceProviderDashboard as ServiceDashboard } from '@/components/ServiceProviderDashboard';
-import { ServiceAutoRatingModal } from '@/components/ServiceAutoRatingModal';
 import { PendingServiceRatingsPanel } from '@/components/PendingServiceRatingsPanel';
 import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useServiceAutoRating } from '@/hooks/useServiceAutoRating';
-import { useServiceRating } from '@/hooks/useServiceRating';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const ServiceProviderDashboard = () => {
   const { profile, signOut } = useAuth();
   const { unreadCount } = useNotifications();
-  const { 
-    serviceRequestId, 
-    shouldShow, 
-    ratedUserId, 
-    ratedUserName, 
-    raterRole, 
-    serviceType,
-    closeAutoRating 
-  } = useServiceAutoRating();
-
-  const { submitRating } = useServiceRating({
-    serviceRequestId: serviceRequestId || '',
-    ratedUserId: ratedUserId || '',
-    raterRole: raterRole || 'CLIENT',
-  });
-
-  const handleRatingSubmit = async (rating: number, comment?: string) => {
-    const result = await submitRating(rating, comment);
-    if (result.success) {
-      closeAutoRating();
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -65,17 +39,6 @@ const ServiceProviderDashboard = () => {
           <ServiceDashboard />
         </div>
       </div>
-
-      {shouldShow && raterRole && (
-        <ServiceAutoRatingModal
-          isOpen={shouldShow}
-          onClose={closeAutoRating}
-          onSubmit={handleRatingSubmit}
-          ratedUserName={ratedUserName}
-          raterRole={raterRole}
-          serviceType={serviceType}
-        />
-      )}
     </div>
   );
 };
