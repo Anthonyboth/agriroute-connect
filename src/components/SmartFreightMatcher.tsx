@@ -6,7 +6,7 @@ import { getCargoTypeLabel, CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCatego
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { FreightCard } from '@/components/FreightCard';
-import { Brain, Filter, RefreshCw, Search, Zap, Package, Truck, Wrench, MapPin, MessageSquare, Clock, DollarSign } from 'lucide-react';
+import { Brain, Filter, RefreshCw, Search, Zap, Package, Truck, Wrench, MapPin, MessageSquare, Clock, DollarSign, Bike } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -81,7 +81,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   const normalizeServiceType = (type: string): string => {
     if (type === 'CARGA_FREIGHT') return 'CARGA';
     if (type === 'GUINCHO_FREIGHT') return 'GUINCHO';
-    if (type === 'FRETE_MOTO') return 'GUINCHO';
+    if (type === 'FRETE_MOTO') return 'MOTO';
     return type;
   };
 
@@ -150,7 +150,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
            const allowedTypes = Array.from(new Set(
              (Array.isArray(profile?.service_types) ? (profile?.service_types as unknown as string[]) : [])
                .map((t) => normalizeServiceType(String(t)))
-           )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA'].includes(t));
+           )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO'].includes(t));
 
           // Mapear para o formato esperado pela UI
           const mapped: CompatibleFreight[] = (freightsByCity || [])
@@ -192,11 +192,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         service_type: normalizeServiceType(f.service_type)
       }));
 
-      // Filtrar pelos tipos de serviço que o motorista presta (CARGA, GUINCHO, MUDANCA)
+      // Filtrar pelos tipos de serviço que o motorista presta (CARGA, GUINCHO, MUDANCA, MOTO)
       const allowedTypes = Array.from(new Set(
         (Array.isArray(profile?.service_types) ? (profile?.service_types as unknown as string[]) : [])
           .map((t) => normalizeServiceType(String(t)))
-      )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA'].includes(t));
+      )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO'].includes(t));
 
       const filtered = allowedTypes.length === 0 
         ? normalizedData 
@@ -337,6 +337,13 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           <Badge className="bg-orange-100 text-orange-800 border-orange-200 flex items-center gap-1">
             <Wrench className="h-3 w-3" />
             Guincho
+          </Badge>
+        );
+      case 'MOTO':
+        return (
+          <Badge className="bg-teal-100 text-teal-800 border-teal-200 flex items-center gap-1">
+            <Bike className="h-3 w-3" />
+            Moto
           </Badge>
         );
       default:
