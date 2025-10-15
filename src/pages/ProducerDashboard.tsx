@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard } from '@/components/ui/stats-card';
@@ -38,6 +38,7 @@ const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Redirect non-producers to their correct dashboard
   React.useEffect(() => {
@@ -333,6 +334,21 @@ const ProducerDashboard = () => {
       fetchServiceRequests();
     }
   }, [profile?.id, profile?.role, fetchServiceRequests]);
+
+  // Abrir frete automaticamente quando vem de notificação
+  useEffect(() => {
+    const state = location.state as any;
+    if (!state || !profile?.id || !freights.length) return;
+    
+    if (state.openFreightId) {
+      const freight = freights.find(f => f.id === state.openFreightId);
+      if (freight) {
+        setSelectedFreightDetails(freight);
+      }
+      // Limpar state
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, profile?.id, freights, navigate, location.pathname]);
 
 
   // Atualização em tempo real
@@ -1635,6 +1651,7 @@ const ProducerDashboard = () => {
             <FreightDetails
               freightId={selectedFreightDetails.id}
               currentUserProfile={profile}
+              initialTab={(location.state as any)?.notificationType === 'chat_message' || (location.state as any)?.notificationType === 'advance_request' ? 'chat' : 'status'}
               onClose={() => {
                 setSelectedFreightDetails(null);
               }}

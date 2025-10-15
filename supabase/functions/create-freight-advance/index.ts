@@ -76,7 +76,7 @@ serve(async (req) => {
     // Calcular o valor do adiantamento em centavos
     const calculatedAmount = advance_amount 
       ? Math.round(advance_amount * 100) // Converter de reais para centavos
-      : Math.round(freight.price * advance_percentage); // freight.price já em reais, resultado em centavos
+      : Math.round(freight.price * advance_percentage * 100); // Converter porcentagem para centavos
     
     logStep("Calculated advance amount", { 
       calculatedAmount, 

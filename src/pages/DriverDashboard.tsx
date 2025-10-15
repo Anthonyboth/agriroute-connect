@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard } from '@/components/ui/stats-card';
@@ -98,6 +98,7 @@ const DriverDashboard = () => {
   const { unreadCount } = useNotifications();
   const { isCompanyDriver, companyName, companyId, canAcceptFreights, canManageVehicles, isAffiliated } = useCompanyDriver();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Redirect to correct dashboard based on role and mode
   React.useEffect(() => {
@@ -203,6 +204,22 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       isMountedRef.current = false;
     };
   }, []);
+
+  // Abrir frete automaticamente quando vem de notificação
+  useEffect(() => {
+    const state = location.state as any;
+    if (!state || !profile?.id) return;
+    
+    if (state.openFreightId && ongoingFreights.length > 0) {
+      const freight = ongoingFreights.find(f => f.id === state.openFreightId);
+      if (freight) {
+        setSelectedFreightId(freight.id);
+        setShowDetails(true);
+      }
+      // Limpar state
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, profile?.id, ongoingFreights, navigate, location.pathname]);
 
   // Monitoramento GPS para fretes em andamento
   const activeFreight = ongoingFreights.find(f =>
@@ -1274,6 +1291,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       <FreightDetails
         freightId={selectedFreightId}
         currentUserProfile={profile}
+        initialTab={(location.state as any)?.notificationType === 'chat_message' || (location.state as any)?.notificationType === 'advance_request' ? 'chat' : 'status'}
         onClose={() => {
           setShowDetails(false);
           setSelectedFreightId(null);

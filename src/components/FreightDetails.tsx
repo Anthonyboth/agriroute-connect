@@ -25,13 +25,15 @@ interface FreightDetailsProps {
   currentUserProfile: any;
   onClose: () => void;
   onFreightWithdraw?: (freight: any) => void;
+  initialTab?: 'status' | 'chat';
 }
 
-export const FreightDetails: React.FC<FreightDetailsProps> = ({
-  freightId,
-  currentUserProfile,
+export const FreightDetails: React.FC<FreightDetailsProps> = ({ 
+  freightId, 
+  currentUserProfile, 
   onClose,
-  onFreightWithdraw
+  onFreightWithdraw,
+  initialTab = 'status'
 }) => {
   // No toast initialization needed - using sonner directly
   const [freight, setFreight] = useState<any>(null);

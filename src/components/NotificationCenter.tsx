@@ -120,13 +120,18 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const getDashboardRoute = (role?: string) => {
     switch (role) {
       case 'driver':
+      case 'MOTORISTA':
         return '/dashboard/driver';
       case 'producer':
+      case 'PRODUTOR':
         return '/dashboard/producer';
       case 'service_provider':
+      case 'PRESTADOR_SERVICOS':
         return '/dashboard/service-provider';
+      case 'TRANSPORTADORA':
+        return '/dashboard/company';
       default:
-        return '/';
+        return '/dashboard/producer';
     }
   };
 
