@@ -147,9 +147,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
 
           if (fbErr) throw fbErr;
 
-          const allowedTypes = Array.isArray(profile?.service_types)
-            ? (profile?.service_types as unknown as string[]).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA'].includes(t))
-            : [];
+           const allowedTypes = Array.from(new Set(
+             (Array.isArray(profile?.service_types) ? (profile?.service_types as unknown as string[]) : [])
+               .map((t) => normalizeServiceType(String(t)))
+           )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA'].includes(t));
 
           // Mapear para o formato esperado pela UI
           const mapped: CompatibleFreight[] = (freightsByCity || [])
@@ -192,10 +193,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       }));
 
       // Filtrar pelos tipos de serviço que o motorista presta (CARGA, GUINCHO, MUDANCA)
-      const allowedTypes = Array.isArray(profile?.service_types)
-        ? (profile?.service_types as unknown as string[]).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA'].includes(t))
-        : [];
-      
+      const allowedTypes = Array.from(new Set(
+        (Array.isArray(profile?.service_types) ? (profile?.service_types as unknown as string[]) : [])
+          .map((t) => normalizeServiceType(String(t)))
+      )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA'].includes(t));
+
       const filtered = allowedTypes.length === 0 
         ? normalizedData 
         : normalizedData.filter((f: any) => allowedTypes.includes(f.service_type));
@@ -393,11 +395,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             <div className="bg-secondary/30 p-4 rounded-lg mb-6">
               <h4 className="font-semibold mb-2">Seus Tipos de Serviço Ativos:</h4>
               <div className="flex flex-wrap gap-2 mb-4">
-                {profile.service_types.map((serviceType: string) => (
-                  <div key={serviceType}>
-                    {getServiceTypeBadge(serviceType)}
-                  </div>
-                ))}
+                {Array.from(new Set((profile.service_types as unknown as string[]).map((t) => normalizeServiceType(String(t)))))
+                  .map((serviceType: string) => (
+                    <div key={serviceType}>{getServiceTypeBadge(serviceType)}</div>
+                  ))}
               </div>
             </div>
           )}

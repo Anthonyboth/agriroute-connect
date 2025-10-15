@@ -361,65 +361,62 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
       if (error) {
         console.error('Erro ao carregar fretes:', error);
-        
-        // Fallback automático por cidade/estado se erro de geografia
-        if (error.code === '42704' || error.message?.includes('geography') || error.message?.includes('ST_')) {
-          toast.info('Usando busca por cidade/estado');
-          
-          // Buscar cidades ativas do motorista
-          const { data: areas } = await supabase
+        // Fallback geral usando user_cities (IDs) se a RPC falhar por qualquer motivo
+        try {
+          const { data: userRes } = await supabase.auth.getUser();
+          const userId = userRes?.user?.id;
+          if (!userId) throw new Error('Usuário não autenticado');
+
+          const { data: uc } = await supabase
             .from('user_cities')
-            .select(`
-              cities!inner(name, state)
-            `)
-            .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-            .eq('type', 'MOTORISTA_ORIGEM')
-            .eq('is_active', true);
-          
-          if (areas && areas.length > 0) {
-            // Construir filtro OR para cidades/estados
-            const cityFilters = areas.map((a: any) => 
-              `origin_city.ilike.%${a.cities.name}%,origin_state.ilike.%${a.cities.state}%,destination_city.ilike.%${a.cities.name}%,destination_state.ilike.%${a.cities.state}%`
-            ).join(',');
-            
-            // Buscar fretes OPEN que casem por cidade/estado
-            const { data: fallbackFreights } = await supabase
-              .from('freights')
-              .select('*')
-              .eq('status', 'OPEN')
-              .or(cityFilters)
-              .limit(100);
-            
-            if (fallbackFreights) {
-              // Filtrar apenas fretes que ainda têm vagas disponíveis
-              const availableFreights = fallbackFreights.filter((f: any) => 
-                f.accepted_trucks < f.required_trucks
-              );
-              
-              const formattedFreights = (availableFreights || []).map((f: any) => ({
-                id: f.id,
-                cargo_type: f.cargo_type,
-                weight: f.weight,
-                origin_address: f.origin_address,
-                destination_address: f.destination_address,
-                pickup_date: f.pickup_date,
-                delivery_date: f.delivery_date,
-                price: f.price,
-                urgency: f.urgency,
-                status: f.status,
-                distance_km: f.distance_km,
-                minimum_antt_price: f.minimum_antt_price,
-                service_type: f.service_type
-              }));
-              if (isMountedRef.current) setAvailableFreights(formattedFreights);
-              return;
-            }
+            .select('city_id')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
+
+          const cityIds = (uc || []).map((u: any) => u.city_id).filter(Boolean);
+          if (cityIds.length === 0) {
+            if (isMountedRef.current) setAvailableFrerets([]);
+            return;
           }
+
+          const { data: freightsByCity } = await supabase
+            .from('freights')
+            .select('*')
+            .eq('status', 'OPEN')
+            .or(`origin_city_id.in.(${cityIds.join(',')}),destination_city_id.in.(${cityIds.join(',')})`)
+            .order('created_at', { ascending: false })
+            .limit(200);
+
+          const onlyWithSlots = (freightsByCity || []).filter((f: any) => 
+            (f.accepted_trucks || 0) < (f.required_trucks || 1)
+          );
+
+          const formattedFreights = onlyWithSlots.map((f: any) => ({
+            id: f.id,
+            cargo_type: f.cargo_type,
+            weight: f.weight,
+            origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
+            destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
+            pickup_date: f.pickup_date,
+            delivery_date: f.delivery_date,
+            price: f.price,
+            urgency: f.urgency,
+            status: f.status,
+            distance_km: f.distance_km,
+            minimum_antt_price: f.minimum_antt_price,
+            service_type: f.service_type
+          }));
+
+          if (isMountedRef.current) setAvailableFreights(formattedFreights);
+          return;
+        } catch (fbErr) {
+          console.error('Fallback por cidades falhou:', fbErr);
+          if (isMountedRef.current) toast.error('Erro ao carregar fretes. Tente novamente.');
+          return;
         }
-        
-        throw error;
       }
-      
+
       // Mapear os dados para o formato esperado
       const formattedFreights = (freights || []).map((f: any) => ({
         id: f.freight_id,
