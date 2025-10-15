@@ -898,7 +898,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="payouts" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <Banknote className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Saldo</span>
@@ -906,7 +906,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="cities" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <MapPin className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Cidades</span>
@@ -914,7 +914,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="history" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Histórico</span>
