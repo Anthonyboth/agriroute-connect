@@ -33,6 +33,7 @@ import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
 import heroLogistics from '@/assets/hero-logistics.jpg';
+import { showErrorToast } from '@/lib/error-handler';
 
 const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
@@ -340,8 +341,10 @@ const ProducerDashboard = () => {
     const state = location.state as any;
     if (!state || !profile?.id || !freights.length) return;
     
-    if (state.openFreightId) {
-      const freight = freights.find(f => f.id === state.openFreightId);
+    // Aceitar tanto openFreightId quanto openChatFreightId
+    const freightId = state.openFreightId || state.openChatFreightId;
+    if (freightId) {
+      const freight = freights.find(f => f.id === freightId);
       if (freight) {
         setSelectedFreightDetails(freight);
       }
@@ -438,7 +441,7 @@ const ProducerDashboard = () => {
       
     } catch (error) {
       console.error('Error accepting proposal:', error);
-      toast.error('Erro ao aceitar proposta');
+      showErrorToast(toast, 'Falha ao aceitar proposta', error);
     }
   };
 
@@ -1674,7 +1677,13 @@ const ProducerDashboard = () => {
             <FreightDetails
               freightId={selectedFreightDetails.id}
               currentUserProfile={profile}
-              initialTab={(location.state as any)?.notificationType === 'chat_message' || (location.state as any)?.notificationType === 'advance_request' ? 'chat' : 'status'}
+              initialTab={
+                (location.state as any)?.openChatFreightId || 
+                (location.state as any)?.notificationType === 'chat_message' || 
+                (location.state as any)?.notificationType === 'advance_request' 
+                  ? 'chat' 
+                  : 'status'
+              }
               onClose={() => {
                 setSelectedFreightDetails(null);
               }}

@@ -99,8 +99,8 @@ export const FreightAssignmentsList: React.FC<FreightAssignmentsListProps> = ({
                     {/* Nome e avaliação */}
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{assignment.driver.full_name}</span>
-                      {assignment.driver.rating && (
+                      <span className="font-medium">{assignment.driver?.full_name || 'Motorista'}</span>
+                      {assignment.driver?.rating && typeof assignment.driver.rating === 'number' && (
                         <Badge variant="outline" className="text-xs">
                           ⭐ {assignment.driver.rating.toFixed(1)}
                         </Badge>
@@ -140,7 +140,7 @@ export const FreightAssignmentsList: React.FC<FreightAssignmentsListProps> = ({
                 </div>
 
                 {/* Telefone (apenas para produtor) */}
-                {isProducer && assignment.driver.contact_phone && (
+                {isProducer && assignment.driver?.contact_phone && (
                   <div className="mt-3 pt-3 border-t">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <Phone className="h-3 w-3" />
