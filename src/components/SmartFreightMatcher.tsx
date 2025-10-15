@@ -77,11 +77,21 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     };
   }, [profile?.id, user?.id]);
 
+  // Normalizar tipo de serviço
+  const normalizeServiceType = (type: string): string => {
+    if (type === 'CARGA_FREIGHT') return 'CARGA';
+    if (type === 'GUINCHO_FREIGHT') return 'GUINCHO';
+    if (type === 'FRETE_MOTO') return 'GUINCHO';
+    return type;
+  };
+
   const fetchCompatibleFreights = async () => {
     if (!profile?.id) return;
 
     setLoading(true);
     try {
+      console.log('🔍 Buscando fretes compatíveis para driver:', profile.id);
+      
       // Primeiro executar o matching espacial baseado nas áreas de serviço
       const { data: { session } } = await supabase.auth.getSession();
       const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
@@ -96,31 +106,47 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       );
 
       if (spatialError) {
-        console.warn('Erro no matching espacial:', spatialError);
-        toast.warning('Sistema de matching espacial indisponível, usando busca básica.');
+        console.warn('⚠️ Erro no matching espacial:', spatialError);
       } else {
-        console.log('Matching espacial executado:', spatialData);
+        console.log('✅ Matching espacial executado:', spatialData);
       }
 
-      // Buscar fretes compatíveis usando a função RPC
+      // Buscar fretes compatíveis usando a função RPC (agora considera user_cities)
       const { data, error } = await supabase.rpc(
         'get_compatible_freights_for_driver',
         { p_driver_id: profile.id }
       );
 
       if (error) {
-        console.error('Erro ao carregar fretes compatíveis:', error);
+        console.error('❌ Erro ao carregar fretes compatíveis:', error);
         toast.error('Erro ao carregar fretes compatíveis. Verifique se você configurou suas cidades de atendimento.');
         setCompatibleFreights([]);
         return;
       }
+
+      console.log(`📦 RPC retornou ${data?.length || 0} fretes`);
+      
+      // Normalizar tipos de serviço nos fretes retornados
+      const normalizedData = (data || []).map((f: any) => ({
+        ...f,
+        service_type: normalizeServiceType(f.service_type)
+      }));
+
       // Filtrar pelos tipos de serviço que o motorista presta (CARGA, GUINCHO, MUDANCA)
       const allowedTypes = Array.isArray(profile?.service_types)
         ? (profile?.service_types as unknown as string[]).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA'].includes(t))
         : [];
-      const filtered = (data || []).filter((f: any) =>
-        allowedTypes.length === 0 ? true : allowedTypes.includes(f.service_type)
-      );
+      
+      const filtered = allowedTypes.length === 0 
+        ? normalizedData 
+        : normalizedData.filter((f: any) => allowedTypes.includes(f.service_type));
+      
+      console.log(`✅ Após filtro de tipos: ${filtered.length} fretes compatíveis`, {
+        allowedTypes,
+        totalFromRPC: data?.length || 0,
+        afterFilter: filtered.length
+      });
+      
       setCompatibleFreights(filtered);
 
       // Buscar chamados de serviço (GUINCHO/MUDANCA) abertos e sem prestador atribuído
@@ -137,16 +163,21 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       } else {
         setTowingRequests([]);
       }
-      // Rate limiting para notificações de matches - só mostra se passaram pelo menos 5 minutos
-      if (spatialData?.created > 0) {
+      // Notificação de novos matches (rate limiting: 5 minutos)
+      if (spatialData?.created > 0 || filtered.length > 0) {
         const lastNotificationKey = `lastMatchNotification_${profile.id}`;
         const lastNotification = localStorage.getItem(lastNotificationKey);
         const now = Date.now();
-        const fiveMinutes = 5 * 60 * 1000; // 5 minutos em millisegundos
+        const fiveMinutes = 5 * 60 * 1000;
         
         if (!lastNotification || (now - parseInt(lastNotification)) > fiveMinutes) {
           localStorage.setItem(lastNotificationKey, now.toString());
-          toast.success(`${spatialData.created} novos matches encontrados com base nas suas áreas de atendimento!`);
+          if (spatialData?.created > 0) {
+            toast.success(`${spatialData.created} novos matches espaciais criados!`);
+          }
+          if (filtered.length > 0) {
+            toast.success(`${filtered.length} fretes compatíveis encontrados via suas cidades configuradas!`);
+          }
         }
       }
     } catch (error: any) {
@@ -404,9 +435,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               <h3 className="font-semibold mb-2">Nenhum frete compatível encontrado</h3>
               <p className="text-muted-foreground mb-4">
                 {compatibleFreights.length === 0 && towingRequests.length === 0
-                  ? 'Não há fretes disponíveis no momento que correspondam aos seus tipos de serviço.'
+                  ? 'Não há fretes disponíveis no momento que correspondam aos seus tipos de serviço e cidades de atendimento.'
                   : 'Tente ajustar os filtros para encontrar mais fretes.'}
               </p>
+              <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                <p>✓ Verifique se suas cidades de atendimento estão configuradas</p>
+                <p>✓ Confirme seus tipos de serviço (Carga, Guincho, Mudança)</p>
+                <p>✓ Aguarde novos fretes serem cadastrados</p>
+              </div>
               <Button variant="outline" onClick={fetchCompatibleFreights}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Verificar Novamente
