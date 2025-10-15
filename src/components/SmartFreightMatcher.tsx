@@ -322,7 +322,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         return (
           <Badge className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
             <Package className="h-3 w-3" />
-            Rural
+            Carga
           </Badge>
         );
       case 'MUDANCA':
