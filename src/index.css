@@ -260,10 +260,11 @@
 
   /* Freight card standardization */
   .freight-card-standard {
-    min-height: 600px;
+    height: 600px;
+    max-height: 600px;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    overflow: hidden;
   }
 
   /* Status badge variants */

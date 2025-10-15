@@ -122,8 +122,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   };
 
   return (
-    <Card className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border border-border/60">
-      <CardHeader className="pb-2">
+    <Card className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60">
+      <CardHeader className="pb-2 flex-shrink-0">
         <div className="flex flex-col space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 flex-1 min-w-0">
@@ -159,7 +159,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 flex-1 overflow-y-auto">
         {/* Carretas Info */}
         {(freight.required_trucks && freight.required_trucks > 1) && (
           <div className="flex items-center justify-between p-2 bg-secondary/20 rounded-lg border border-border/40">
@@ -227,7 +227,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       </CardContent>
 
       {!hidePrice && (
-        <CardFooter className="pt-3 pb-3">
+        <CardFooter className="pt-3 pb-3 flex-shrink-0 mt-auto">
           <div className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border border-border/50">
             <div className="text-left">
               <p className="font-bold text-xl text-primary">R$ {(freight.price || 0).toLocaleString('pt-BR')}</p>

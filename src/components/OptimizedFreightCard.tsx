@@ -154,8 +154,8 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
   const urgencyLabel = getUrgencyLabel(freight.urgency);
 
   return (
-    <Card className="freight-card-standard card-accessible hover:scale-[1.02] border-2 border-border/60 hover:border-primary/30 min-h-[600px] flex flex-col">
-      <CardHeader className="pb-6">
+    <Card className="freight-card-standard card-accessible hover:scale-[1.02] border-2 border-border/60 hover:border-primary/30">
+      <CardHeader className="pb-6 flex-shrink-0">
         <div className="flex flex-col spacing-accessible">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 flex-1 min-w-0">
@@ -181,7 +181,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
         </div>
       </CardHeader>
 
-      <CardContent className="spacing-accessible flex-1">
+      <CardContent className="spacing-accessible flex-1 overflow-y-auto">
         {/* Carretas Info - Enhanced visibility */}
         {(freight.required_trucks && freight.required_trucks > 1) && (
           <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border-2 border-border/50">
@@ -280,7 +280,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
         </div>
       </CardContent>
 
-      <CardFooter className="pt-6 pb-6">
+      <CardFooter className="pt-6 pb-6 flex-shrink-0 mt-auto">
         <div className="flex items-center justify-between w-full p-5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border-2 border-border/60">
           <div className="text-left">
             <p className="font-bold text-3xl text-primary">R$ {formattedPrice}</p>

@@ -692,7 +692,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="space-y-3 flex-1 flex flex-col justify-between">
+                      <CardContent className="space-y-3 flex-1 flex flex-col justify-between overflow-y-auto">
                         <div className="space-y-2">
                           <div className="flex items-start gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
