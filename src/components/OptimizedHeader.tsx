@@ -53,11 +53,21 @@ const OptimizedHeader = memo<OptimizedHeaderProps>(({
   }, []);
 
   const getRoleBadge = useCallback((role: string) => {
-    return role === 'PRODUTOR' ? 'Produtor' : 'Motorista';
+    if (role === 'PRODUTOR') return 'Produtor';
+    if (role === 'PRESTADOR_SERVICOS') return 'Prestador de Serviço';
+    if (role === 'MOTORISTA_AFILIADO') return 'Motorista Afiliado';
+    if (role === 'MOTORISTA') return 'Motorista';
+    if (role === 'TRANSPORTADORA') return 'Transportadora';
+    return 'Usuário';
   }, []);
 
   const getRoleColor = useCallback((role: string) => {
-    return role === 'PRODUTOR' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent';
+    if (role === 'PRODUTOR') return 'bg-primary/10 text-primary';
+    if (role === 'PRESTADOR_SERVICOS') return 'bg-blue-600 text-white font-medium';
+    if (role === 'MOTORISTA_AFILIADO') return 'bg-purple-500/10 text-purple-700';
+    if (role === 'MOTORISTA') return 'bg-accent/10 text-accent';
+    if (role === 'TRANSPORTADORA') return 'bg-orange-500/10 text-orange-700';
+    return 'bg-gray-500';
   }, []);
 
   // Memoized menu items to prevent recreation on every render

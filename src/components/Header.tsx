@@ -54,15 +54,21 @@ const Header: React.FC<HeaderProps> = ({
     if (!role) return 'Usuário';
     if (activeMode === 'TRANSPORTADORA') return 'Transportadora';
     if (role === 'PRODUTOR') return 'Produtor';
-    if (role === 'PRESTADOR') return 'Prestador de Serviço';
-    return 'Motorista';
+    if (role === 'PRESTADOR_SERVICOS') return 'Prestador de Serviço';
+    if (role === 'MOTORISTA_AFILIADO') return 'Motorista Afiliado';
+    if (role === 'MOTORISTA') return 'Motorista';
+    if (role === 'TRANSPORTADORA') return 'Transportadora';
+    return 'Usuário';
   };
 
   const getRoleColor = (role?: string) => {
     if (!role) return "bg-gray-500";
     if (role === 'PRODUTOR') return 'bg-primary/10 text-primary';
-    if (role === 'PRESTADOR') return 'bg-blue-600 text-white font-medium';
-    return 'bg-accent/10 text-accent';
+    if (role === 'PRESTADOR_SERVICOS') return 'bg-blue-600 text-white font-medium';
+    if (role === 'MOTORISTA_AFILIADO') return 'bg-purple-500/10 text-purple-700';
+    if (role === 'MOTORISTA') return 'bg-accent/10 text-accent';
+    if (role === 'TRANSPORTADORA') return 'bg-orange-500/10 text-orange-700';
+    return 'bg-gray-500';
   };
 
   const [showProfile, setShowProfile] = useState(false);
