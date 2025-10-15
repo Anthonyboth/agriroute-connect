@@ -221,7 +221,7 @@ export const CompanySmartFreightMatcher: React.FC = () => {
                   <SelectItem value="all">Todos os tipos</SelectItem>
                   
                   <SelectGroup>
-                    <SelectLabel className="text-primary font-medium">Carga Rural</SelectLabel>
+                    <SelectLabel className="text-primary font-medium">Carga (Agrícola)</SelectLabel>
                     {getCargoTypesByCategory('rural').map((cargo) => (
                       <SelectItem key={cargo.value} value={cargo.value}>
                         {cargo.label}

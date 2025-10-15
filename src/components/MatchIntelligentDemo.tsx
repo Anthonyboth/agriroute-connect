@@ -46,7 +46,7 @@ const DEMO_FREIGHTS = [
 const DRIVER_TYPES = [
   { 
     id: 'CARGA', 
-    label: 'Motorista Rural', 
+    label: 'Motorista Carga', 
     icon: Truck, 
     color: 'bg-primary/10 text-primary border-primary/20',
     services: ['CARGA']
@@ -142,7 +142,7 @@ export const MatchIntelligentDemo: React.FC = () => {
                         </div>
                         
                         <Badge className={getServiceColor(freight.service)}>
-                          {freight.service === 'CARGA' ? 'Rural' : 
+                          {freight.service === 'CARGA' ? 'Carga' : 
                            freight.service === 'MUDANCA' ? 'Mudança' : 'Guincho'}
                         </Badge>
                       </div>
@@ -171,7 +171,7 @@ export const MatchIntelligentDemo: React.FC = () => {
           <ul className="space-y-1 text-sm text-muted-foreground">
             <li className="flex items-center gap-2">
               <Check className="h-3 w-3 text-primary" />
-              <span>Motoristas rurais só veem cargas agrícolas</span>
+              <span>Motoristas de carga só veem cargas agrícolas</span>
             </li>
             <li className="flex items-center gap-2">
               <Check className="h-3 w-3 text-primary" />

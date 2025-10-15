@@ -198,17 +198,39 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           .map((t) => normalizeServiceType(String(t)))
       )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO'].includes(t));
 
-      const filtered = allowedTypes.length === 0 
+      // Primeiro filtro por tipo de serviço
+      let filteredByType = allowedTypes.length === 0 
         ? normalizedData 
         : normalizedData.filter((f: any) => allowedTypes.includes(f.service_type));
+
+      // Filtro adicional por cidades ATIVAS do motorista (garantia contra dados antigos)
+      const { data: ucActive } = await supabase
+        .from('user_cities')
+        .select('cities(name, state)')
+        .eq('user_id', user!.id)
+        .eq('is_active', true)
+        .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
+
+      if (ucActive && ucActive.length > 0) {
+        const allowedCities = new Set(
+          ucActive
+            .map((u: any) => `${String(u.cities?.name || '').toLowerCase()}|${String(u.cities?.state || '').toLowerCase()}`)
+        );
+
+        filteredByType = filteredByType.filter((f: any) => {
+          const oKey = `${String(f.origin_city || '').toLowerCase()}|${String(f.origin_state || '').toLowerCase()}`;
+          const dKey = `${String(f.destination_city || '').toLowerCase()}|${String(f.destination_state || '').toLowerCase()}`;
+          return allowedCities.has(oKey) || allowedCities.has(dKey);
+        });
+      }
       
-      console.log(`✅ Após filtro de tipos: ${filtered.length} fretes compatíveis`, {
+      console.log(`✅ Após filtros: ${filteredByType.length} fretes compatíveis`, {
         allowedTypes,
         totalFromRPC: data?.length || 0,
-        afterFilter: filtered.length
+        afterFilter: filteredByType.length
       });
       
-      setCompatibleFreights(filtered);
+      setCompatibleFreights(filteredByType);
 
       // Buscar chamados de serviço (GUINCHO/MUDANCA) abertos e sem prestador atribuído
       if (allowedTypes.some(t => t === 'GUINCHO' || t === 'MUDANCA')) {
@@ -225,7 +247,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         setTowingRequests([]);
       }
       // Notificação de novos matches (rate limiting: 5 minutos)
-      if (spatialData?.created > 0 || filtered.length > 0) {
+      if (spatialData?.created > 0 || filteredByType.length > 0) {
         const lastNotificationKey = `lastMatchNotification_${profile.id}`;
         const lastNotification = localStorage.getItem(lastNotificationKey);
         const now = Date.now();
@@ -236,8 +258,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           if (spatialData?.created > 0) {
             toast.success(`${spatialData.created} novos matches espaciais criados!`);
           }
-          if (filtered.length > 0) {
-            toast.success(`${filtered.length} fretes compatíveis encontrados via suas cidades configuradas!`);
+          if (filteredByType.length > 0) {
+            toast.success(`${filteredByType.length} fretes compatíveis encontrados via suas cidades configuradas!`);
           }
         }
       }
@@ -432,6 +454,31 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Atualizar
               </Button>
+
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    await supabase.functions.invoke('driver-spatial-matching', {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': session?.access_token ? `Bearer ${session.access_token}` : ''
+                      }
+                    });
+                    toast.success('Áreas atualizadas e matches recalculados!');
+                    await fetchCompatibleFreights();
+                  } catch (e: any) {
+                    console.error('Forçar atualização falhou', e);
+                    toast.error('Falha ao forçar atualização.');
+                  }
+                }}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <MapPin className="h-4 w-4" />
+                Forçar atualização de áreas
+              </Button>
             </div>
 
             {/* Filtro de Tipo de Carga */}
@@ -444,7 +491,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                   <SelectItem value="all">Todos os tipos</SelectItem>
                   
                   <SelectGroup>
-                    <SelectLabel className="text-primary font-medium">Carga Rural</SelectLabel>
+                    <SelectLabel className="text-primary font-medium">Carga (Agrícola)</SelectLabel>
                     {getCargoTypesByCategory('rural').map((cargo) => (
                       <SelectItem key={cargo.value} value={cargo.value}>
                         {cargo.label}

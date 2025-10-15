@@ -101,12 +101,23 @@ serve(async (req) => {
     if (req.method === 'POST') {
       logStep("Starting driver spatial matching", { driverId });
       
-      // Build/refresh matches based on user_cities
+      // Clear previous matches for this driver to avoid stale results
+      const { error: delErr } = await supabase
+        .from('freight_matches')
+        .delete()
+        .eq('driver_id', driverId);
+      if (delErr) {
+        logStep("Error clearing previous matches", delErr);
+      } else {
+        logStep("Cleared previous matches for driver");
+      }
+      
+      // Build/refresh matches based on user_cities (both origin and destination types)
       const { data: areas, error: areasErr } = await supabase
         .from('user_cities')
         .select('*, cities(name, state, lat, lng)')
         .eq('user_id', user.id)
-        .eq('type', 'MOTORISTA_ORIGEM')
+        .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO'])
         .eq('is_active', true);
 
       if (areasErr) {
