@@ -17,6 +17,7 @@ import { userRegistrationSchema, validateInput } from '@/lib/validations';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getErrorMessage } from '@/lib/error-handler';
+import { ProfileSelectorModal } from '@/components/ProfileSelectorModal';
 
 
 const Auth = () => {
@@ -44,6 +45,8 @@ const Auth = () => {
   const [companyANTT, setCompanyANTT] = useState('');
   const [companyAddress, setCompanyAddress] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showProfileSelector, setShowProfileSelector] = useState(false);
+  const [availableProfiles, setAvailableProfiles] = useState<any[]>([]);
 
   useEffect(() => {
     // Remove automatic redirect from auth page - let RedirectIfAuthed handle it
@@ -200,6 +203,24 @@ const Auth = () => {
         } else {
           toast.error(msg);
         }
+      } else {
+        // Login bem-sucedido - verificar se há múltiplos perfis
+        toast.success('Login realizado!');
+        
+        setTimeout(async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: userProfiles, error: profilesError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('user_id', user.id);
+            
+            if (!profilesError && userProfiles && userProfiles.length > 1) {
+              setAvailableProfiles(userProfiles);
+              setShowProfileSelector(true);
+            }
+          }
+        }, 1500);
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -679,6 +700,18 @@ const Auth = () => {
         open={showForgotPassword} 
         onOpenChange={setShowForgotPassword} 
       />
+
+      {showProfileSelector && (
+        <ProfileSelectorModal
+          open={showProfileSelector}
+          profiles={availableProfiles}
+          onSelectProfile={(profileId, route) => {
+            localStorage.setItem('current_profile_id', profileId);
+            setShowProfileSelector(false);
+            window.location.href = route;
+          }}
+        />
+      )}
     </div>
   );
 };
