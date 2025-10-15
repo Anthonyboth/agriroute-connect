@@ -21,6 +21,7 @@ import { AddProfileModal } from '@/components/AddProfileModal';
 import SubscriptionPlans from '@/components/SubscriptionPlans';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CompanyModeToggle } from '@/components/CompanyModeToggle';
+import { NotificationPreferencesModal } from '@/components/NotificationPreferencesModal';
 
 interface User {
   name: string;
@@ -77,6 +78,7 @@ const Header: React.FC<HeaderProps> = ({
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   const [showAddProfile, setShowAddProfile] = useState(false);
   const [showPlanos, setShowPlanos] = useState(false);
+  const [showNotificationPrefs, setShowNotificationPrefs] = useState(false);
 
   const [isTransportCompany, setIsTransportCompany] = React.useState(false);
 
@@ -101,6 +103,7 @@ const Header: React.FC<HeaderProps> = ({
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
     { icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) },
     ...(user?.role !== 'PRODUTOR' ? [{ icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) }] : []),
+    { icon: Bell, label: 'Notificações', action: () => setShowNotificationPrefs(true) },
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
   ];
 
@@ -325,6 +328,11 @@ const Header: React.FC<HeaderProps> = ({
           <SubscriptionPlans />
         </DialogContent>
       </Dialog>
+
+      <NotificationPreferencesModal
+        isOpen={showNotificationPrefs}
+        onClose={() => setShowNotificationPrefs(false)}
+      />
     </>
   );
 };
