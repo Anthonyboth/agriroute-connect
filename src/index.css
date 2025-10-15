@@ -258,6 +258,14 @@
     @apply space-y-4;
   }
 
+  /* Freight card standardization */
+  .freight-card-standard {
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
   /* Status badge variants */
   .status-open {
     @apply bg-primary/10 text-primary border-primary/20;

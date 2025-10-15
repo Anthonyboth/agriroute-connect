@@ -154,7 +154,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
   const urgencyLabel = getUrgencyLabel(freight.urgency);
 
   return (
-    <Card className="card-accessible hover:scale-[1.02] border-2 border-border/60 hover:border-primary/30">
+    <Card className="freight-card-standard card-accessible hover:scale-[1.02] border-2 border-border/60 hover:border-primary/30 min-h-[600px] flex flex-col">
       <CardHeader className="pb-6">
         <div className="flex flex-col spacing-accessible">
           <div className="flex items-center justify-between">
@@ -181,7 +181,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
         </div>
       </CardHeader>
 
-      <CardContent className="spacing-accessible">
+      <CardContent className="spacing-accessible flex-1">
         {/* Carretas Info - Enhanced visibility */}
         {(freight.required_trucks && freight.required_trucks > 1) && (
           <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border-2 border-border/50">

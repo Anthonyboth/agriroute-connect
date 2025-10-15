@@ -27,15 +27,15 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   const isClickable = Boolean(onClick);
   const styles = size === 'sm'
     ? {
-        card: 'rounded-md border hover:border-emerald-300 hover:shadow-sm',
-        content: 'p-3 flex flex-col items-center justify-center text-center min-h-[72px]',
+        card: 'rounded-md border hover:border-emerald-300 hover:shadow-sm min-h-[90px]',
+        content: 'p-3 flex flex-col items-center justify-between text-center h-full',
         iconWrap: 'mb-1',
         value: 'text-xl md:text-2xl font-semibold leading-tight mb-1',
         label: 'text-[11px] md:text-xs font-medium text-muted-foreground',
       }
     : {
-        card: 'rounded-lg border-2 hover:border-emerald-300 hover:shadow-md',
-        content: 'p-4 flex flex-col items-center justify-center text-center min-h-[100px]',
+        card: 'rounded-lg border-2 hover:border-emerald-300 hover:shadow-md min-h-[100px]',
+        content: 'p-4 flex flex-col items-center justify-between text-center h-full',
         iconWrap: 'mb-2',
         value: 'text-2xl md:text-3xl font-bold leading-tight mb-1',
         label: 'text-xs md:text-sm font-medium text-muted-foreground',

@@ -637,7 +637,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             {filteredFreights.length > 0 && (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filteredFreights.map((freight) => (
-                  <div key={freight.freight_id} className="relative">
+                  <div key={freight.freight_id} className="relative h-full">
                     <FreightCard
                       freight={{
                         id: freight.freight_id,
@@ -670,8 +670,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                 <h4 className="font-semibold">Chamados de Guincho/Mudança</h4>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {filteredRequests.map((r: any) => (
-                    <Card key={r.id} className="border-l-4 border-l-orange-500">
-                      <CardHeader className="pb-3">
+                    <Card key={r.id} className="freight-card-standard border-l-4 border-l-orange-500 min-h-[600px] flex flex-col">
+                      <CardHeader className="pb-3 flex-shrink-0">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-2">
                             {r.service_type === 'GUINCHO' ? (
@@ -692,7 +692,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="space-y-3">
+                      <CardContent className="space-y-3 flex-1 flex flex-col justify-between">
                         <div className="space-y-2">
                           <div className="flex items-start gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
