@@ -1534,7 +1534,7 @@ export type Database = {
         Row: {
           created_at: string | null
           distance_m: number | null
-          driver_area_id: string
+          driver_area_id: string | null
           driver_id: string
           freight_id: string
           id: string
@@ -1545,7 +1545,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           distance_m?: number | null
-          driver_area_id: string
+          driver_area_id?: string | null
           driver_id: string
           freight_id: string
           id?: string
@@ -1556,7 +1556,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           distance_m?: number | null
-          driver_area_id?: string
+          driver_area_id?: string | null
           driver_id?: string
           freight_id?: string
           id?: string
