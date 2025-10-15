@@ -76,6 +76,11 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
     setLoading(true);
     try {
+      // Garantir que motoristas tenham o papel 'driver' para RLS
+      if (profile.role === 'MOTORISTA') {
+        await supabase.rpc('ensure_current_user_role', { _role: 'driver' });
+      }
+      
       // Timeout para evitar travamentos
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Timeout na operação')), 10000)
@@ -96,7 +101,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
         let hasPermission = freight.producer_id === profile.id || freight.driver_id === profile.id;
 
-         // Se for motorista, criar ou atualizar proposta automaticamente
+         // Apenas motoristas AUTÔNOMOS podem enviar contra-proposta
          if (profile.role === 'MOTORISTA') {
            // Impedir múltiplas propostas do mesmo motorista
            const { data: existing, error: checkErr } = await supabase

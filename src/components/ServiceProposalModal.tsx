@@ -68,14 +68,16 @@ const [pricePerKm, setPricePerKm] = useState('');
   const getDriverProfileId = async (): Promise<string | null> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
+    
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, role')
+      .select('id')
       .eq('user_id', user.id)
-      .in('role', ['MOTORISTA', 'MOTORISTA_AFILIADO'])
-      .limit(1);
+      .eq('role', 'MOTORISTA')
+      .maybeSingle();
+      
     if (error) throw error;
-    return data?.[0]?.id ?? null;
+    return data?.id ?? null;
   };
 
   const getServiceIcon = () => {
@@ -126,11 +128,14 @@ const [pricePerKm, setPricePerKm] = useState('');
 
     setLoading(true);
     try {
+      // Garantir que o usuário tenha o papel 'driver' para RLS
+      await supabase.rpc('ensure_current_user_role', { _role: 'driver' });
+      
       const finalPrice = pricingType === 'PER_KM' ? priceFloat * (freight.distance_km || 0) : priceFloat;
       
       const driverProfileId = await getDriverProfileId();
       if (!driverProfileId) {
-        toast.error('Você precisa de um perfil de Motorista para enviar propostas.');
+        toast.error('Apenas motorista autônomo pode enviar proposta. Se você é filiado/empregado, compartilhe com sua transportadora.');
         setLoading(false);
         return;
       }

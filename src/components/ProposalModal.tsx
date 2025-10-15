@@ -36,25 +36,35 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const driverProfileId = await (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, role')
-        .eq('user_id', user.id)
-        .in('role', ['MOTORISTA', 'MOTORISTA_AFILIADO'])
-        .limit(1);
-      if (error) throw error;
-      return data?.[0]?.id ?? (driverProfile?.id ?? null);
-    })();
-    if (!driverProfileId) {
-      toast({ title: 'Perfil inválido', description: 'Você precisa de um perfil de Motorista para enviar propostas.', variant: 'destructive' });
-      return;
-    }
-
     setLoading(true);
+
     try {
+      // Garantir que o usuário tenha o papel 'driver' para RLS
+      await supabase.rpc('ensure_current_user_role', { _role: 'driver' });
+
+      // Buscar perfil MOTORISTA autônomo apenas
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data: driverData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('role', 'MOTORISTA')
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+      if (!driverData) {
+        toast({
+          title: "Perfil inválido",
+          description: "Apenas motorista autônomo pode enviar proposta. Se você é filiado/empregado, compartilhe com sua transportadora.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const driverProfileId = driverData.id;
       // Verificar se já existe uma proposta pendente para evitar múltiplas propostas
       const { data: existingProposal, error: checkError } = await supabase
         .from('freight_proposals')

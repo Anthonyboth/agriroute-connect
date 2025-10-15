@@ -4948,6 +4948,10 @@ export type Database = {
         Args: { data: string; key?: string }
         Returns: string
       }
+      ensure_current_user_role: {
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
+        Returns: undefined
+      }
       execute_freight_matching: {
         Args: { freight_uuid: string }
         Returns: {
