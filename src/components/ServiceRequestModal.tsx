@@ -112,14 +112,6 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     e.preventDefault();
     setLoading(true);
 
-    // Bloquear envio anônimo
-    if (!profile?.id) {
-      toast.error('Faça login para enviar sua solicitação');
-      setLoading(false);
-      navigate('/auth');
-      return;
-    }
-
     try {
       // Validações específicas com feedback detalhado
       const missingFields: string[] = [];

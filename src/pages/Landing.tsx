@@ -291,13 +291,7 @@ const fetchRealStats = async () => {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => {
-                  if (isAuthenticated) {
-                    setServicesModal(true);
-                  } else {
-                    openAuthModal('signup');
-                  }
-                }}
+                onClick={() => setServicesModal(true)}
                 className="hidden lg:flex"
               >
                 Solicitar Serviço
@@ -363,13 +357,7 @@ const fetchRealStats = async () => {
             <div className="mt-3 md:mt-4 flex flex-wrap justify-center gap-3 md:gap-4">
               <Button 
                 variant="outline"
-                onClick={() => {
-                  if (isAuthenticated) {
-                    setServicesModal(true);
-                  } else {
-                    openAuthModal('signup');
-                  }
-                }}
+                onClick={() => setServicesModal(true)}
                 className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base md:text-lg px-6 md:px-8 py-5 rounded-full shadow-elegant hover:scale-105 transition-bounce"
               >
                 <Wrench className="mr-2 h-5 w-5" />
@@ -671,6 +659,20 @@ const fetchRealStats = async () => {
         onClose={() => setServicesModal(false)}
         onSelect={handleServiceSelect}
       />
+
+      {selectedService && requestModalOpen && (
+        <ServiceRequestModal
+          isOpen={true}
+          onClose={() => {
+            setRequestModalOpen(false);
+            setSelectedService(null);
+          }}
+          serviceId={selectedService.id}
+          serviceLabel={selectedService.label}
+          serviceDescription={selectedService.description}
+          category={selectedService.category}
+        />
+      )}
 
       {howItWorksModal.isOpen && (
         <HowItWorksModal
