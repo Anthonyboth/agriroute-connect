@@ -3,6 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ServiceProposalModal } from './ServiceProposalModal';
+import { CompanyBulkFreightAcceptor } from './CompanyBulkFreightAcceptor';
 import { Separator } from '@/components/ui/separator';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { 
@@ -22,6 +23,9 @@ import {
 } from 'lucide-react';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 interface FreightCardProps {
   freight: {
@@ -57,6 +61,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   canAcceptFreights = true
 }) => {
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
+  const [bulkAcceptorOpen, setBulkAcceptorOpen] = useState(false);
+  const { profile } = useAuth();
   
   // Verificar se o frete está com vagas completas
   const isFullyBooked = (freight.required_trucks || 1) <= (freight.accepted_trucks || 0);
@@ -64,6 +70,32 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   
   const urgencyVariant = getUrgencyVariant(freight.urgency);
   const urgencyLabel = getUrgencyLabel(freight.urgency);
+
+  const isTransportCompany = profile?.role === 'TRANSPORTADORA';
+
+  const handleAcceptFreight = async (numTrucks = 1) => {
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'accept-freight-multiple',
+        {
+          body: { 
+            freight_id: freight.id,
+            num_trucks: numTrucks
+          }
+        }
+      );
+
+      if (error) throw error;
+
+      toast.success(
+        `${numTrucks} carreta${numTrucks > 1 ? 's' : ''} aceita${numTrucks > 1 ? 's' : ''} com sucesso!`
+      );
+
+      onAction?.('accept');
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao aceitar frete");
+    }
+  };
 
   // Icon based on service type
   const getServiceIcon = () => {
@@ -215,7 +247,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           {freight.service_type === 'GUINCHO' ? (
             <div className="flex gap-3">
               <Button 
-                onClick={() => onAction('accept')}
+                onClick={() => handleAcceptFreight(1)}
                 className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
                 size="sm"
               >
@@ -248,10 +280,28 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 Contra proposta
               </Button>
             </div>
+          ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => setBulkAcceptorOpen(true)}
+                className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
+                size="sm"
+              >
+                Aceitar Carretas ({availableSlots} disponíveis)
+              </Button>
+              <Button 
+                onClick={() => setProposalModalOpen(true)}
+                className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                size="sm"
+                variant="outline"
+              >
+                Contra proposta
+              </Button>
+            </div>
           ) : (
             <div className="flex gap-3">
               <Button 
-                onClick={() => onAction('accept')}
+                onClick={() => handleAcceptFreight(1)}
                 className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
                 size="sm"
               >
@@ -332,6 +382,14 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           setProposalModalOpen(false);
           if (onAction) onAction('propose');
         }}
+      />
+
+      {/* Company Bulk Freight Acceptor Modal */}
+      <CompanyBulkFreightAcceptor
+        open={bulkAcceptorOpen}
+        onOpenChange={setBulkAcceptorOpen}
+        freight={freight}
+        onAccept={handleAcceptFreight}
       />
     </Card>
   );
