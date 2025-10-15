@@ -58,6 +58,7 @@ import { UserCityManager } from '@/components/UserCityManager';
 import { ServiceHistory } from '@/components/ServiceHistory';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 import { ServicesModal } from '@/components/ServicesModal';
+import { AvailableServicesRefreshModal } from '@/components/AvailableServicesRefreshModal';
 
 interface ServiceRequest {
   id: string;
@@ -109,13 +110,20 @@ export const ServiceProviderDashboard: React.FC = () => {
   const { toast } = useToast();
   const { user, profile, profiles } = useAuth();
   const navigate = useNavigate();
-  const [requests, setRequests] = useState<ServiceRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Separate states for available and own requests
+  const [availableRequests, setAvailableRequests] = useState<ServiceRequest[]>([]);
+  const [ownRequests, setOwnRequests] = useState<ServiceRequest[]>([]);
+  
+  // Loading states - separate for initial load and refresh
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshingAvailable, setRefreshingAvailable] = useState(false);
+  
   const [activeTab, setActiveTab] = useState('pending');
   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const { visible: showEarnings, toggle: toggleEarnings } = useEarningsVisibility(false);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [lastAvailableRefresh, setLastAvailableRefresh] = useState<Date>(new Date());
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -125,6 +133,10 @@ export const ServiceProviderDashboard: React.FC = () => {
   // Chat dialog state
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [selectedChatRequest, setSelectedChatRequest] = useState<ServiceRequest | null>(null);
+  
+  // Throttle control
+  const lastFetchRef = React.useRef<number>(0);
+  const inFlightRef = React.useRef<boolean>(false);
 
   const getProviderProfileId = () => {
     if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
@@ -138,8 +150,8 @@ export const ServiceProviderDashboard: React.FC = () => {
   useEffect(() => {
     if (!profile?.id || profile.role !== 'PRESTADOR_SERVICOS') return;
 
-    // Buscar dados iniciais
-    fetchServiceRequests();
+    // Buscar dados iniciais (scope: all)
+    fetchServiceRequests({ scope: 'all', silent: true });
     fetchTotalEarnings();
 
     // Configurar realtime para service_requests
@@ -173,8 +185,8 @@ export const ServiceProviderDashboard: React.FC = () => {
             }
           }
           
-          // Recarregar dados quando houver mudanças
-          fetchServiceRequests();
+          // Recarregar apenas disponíveis
+          fetchServiceRequests({ scope: 'available', silent: true });
           refreshCounts();
         }
       )
@@ -194,7 +206,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         },
         (payload) => {
           console.log('Profile update detected for provider, refetching...', payload?.new?.id);
-          fetchServiceRequests();
+          fetchServiceRequests({ scope: 'available', silent: true });
           refreshCounts();
         }
       )
@@ -224,7 +236,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               title: "Cidades atualizadas",
               description: "Recarregando serviços...",
             });
-            fetchServiceRequests();
+            fetchServiceRequests({ scope: 'available', silent: true });
             refreshCounts();
           }
           // Ignorar updates de radius_km - não afetam disponibilidade
@@ -232,12 +244,12 @@ export const ServiceProviderDashboard: React.FC = () => {
       )
       .subscribe();
 
-    // Refresh automático a cada 30 segundos como fallback
+    // Refresh automático a cada 30 segundos (apenas disponíveis)
     const interval = setInterval(() => {
-      fetchServiceRequests();
+      fetchServiceRequests({ scope: 'available', silent: false });
       refreshCounts();
       fetchTotalEarnings();
-    }, 30000); // 30 segundos ao invés de 10
+    }, 30000);
 
     return () => {
       supabase.removeChannel(channel);
@@ -271,7 +283,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           
           setShowRequestModal(false);
           setSelectedRequest(null);
-          fetchServiceRequests();
+          fetchServiceRequests({ scope: 'all', silent: true });
           refreshCounts();
         }
       } catch (error) {
@@ -282,16 +294,43 @@ export const ServiceProviderDashboard: React.FC = () => {
     return () => clearInterval(checkInterval);
   }, [showRequestModal, selectedRequest]);
 
-  const fetchServiceRequests = async () => {
+  const fetchServiceRequests = async (options: { 
+    scope?: 'all' | 'available'; 
+    silent?: boolean 
+  } = {}) => {
+    const { scope = 'all', silent = true } = options;
+    
+    // Throttle: minimum 10s between non-manual fetches
+    const now = Date.now();
+    if (silent && (now - lastFetchRef.current) < 10000) {
+      console.log('⏱️ Throttled fetch request');
+      return;
+    }
+    
+    // Prevent concurrent fetches
+    if (inFlightRef.current) {
+      console.log('⏱️ Fetch already in progress');
+      return;
+    }
+    
     const providerId = getProviderProfileId();
     if (!providerId) {
       console.warn('⚠️ Provider ID not found');
-      setLoading(false);
+      setInitialLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
+      inFlightRef.current = true;
+      
+      // Show appropriate loading state
+      if (scope === 'all') {
+        setInitialLoading(true);
+      } else if (!silent && activeTab === 'pending') {
+        setRefreshingAvailable(true);
+      }
+      
+      lastFetchRef.current = now;
       
       console.log('🔍 [ServiceProviderDashboard] Fetching requests...', {
         providerId,
@@ -322,36 +361,43 @@ export const ServiceProviderDashboard: React.FC = () => {
         console.warn('⚠️ Spatial matching failed (non-critical):', spatialError);
       }
 
-      // 2. Fetch requests based on provider cities using new RPC
-      console.log('🔍 Fetching service requests for provider cities...');
+      // 2. Fetch based on scope
       let cityBasedRequests: any[] = [];
-      try {
-        const { data, error: cityError } = await supabase.rpc(
-          'get_service_requests_for_provider_cities',
-          { p_provider_id: providerId }
-        );
+      let providerRequests: any[] = [];
+      
+      if (scope === 'all' || scope === 'available') {
+        console.log('🔍 Fetching service requests for provider cities...');
+        try {
+          const { data, error: cityError } = await supabase.rpc(
+            'get_service_requests_for_provider_cities',
+            { p_provider_id: providerId }
+          );
 
-        if (cityError) {
-          console.warn('⚠️ Error fetching city-based requests:', cityError);
-        } else {
-          cityBasedRequests = data || [];
-          console.log('✅ City-based requests found:', cityBasedRequests.length);
+          if (cityError) {
+            console.warn('⚠️ Error fetching city-based requests:', cityError);
+          } else {
+            cityBasedRequests = data || [];
+            console.log('✅ City-based requests found:', cityBasedRequests.length);
+          }
+        } catch (cityError) {
+          console.warn('⚠️ City-based requests query failed:', cityError);
         }
-      } catch (cityError) {
-        console.warn('⚠️ City-based requests query failed:', cityError);
       }
 
+      if (scope === 'all') {
+        // 3. Fetch provider's accepted requests
+        const { data, error: providerError } = await supabase
+          .from('service_requests')
+          .select('*')
+          .eq('provider_id', providerId)
+          .order('created_at', { ascending: false });
 
-      // 3. Fetch provider's accepted requests (sem join problemático)
-      const { data: providerRequests, error: providerError } = await supabase
-        .from('service_requests')
-        .select('*')
-        .eq('provider_id', providerId)
-        .order('created_at', { ascending: false });
-
-      if (providerError) {
-        console.error('❌ Error fetching provider requests:', providerError);
-        throw providerError;
+        if (providerError) {
+          console.error('❌ Error fetching provider requests:', providerError);
+          throw providerError;
+        }
+        
+        providerRequests = data || [];
       }
 
       // 4. Buscar perfis dos clientes separadamente
@@ -374,31 +420,16 @@ export const ServiceProviderDashboard: React.FC = () => {
         }
       }
 
-      // 5. Combinar e deduplicar por ID
-      const byId = new Map<string, ServiceRequest>();
-      // Tipos de serviço do prestador (se definido no perfil)
-      const allowedTypes = Array.isArray(profile?.service_types)
-        ? (profile?.service_types as unknown as string[])
-        : undefined;
-      
-      // Adicionar solicitações aceitas pelo prestador
-      (providerRequests || []).forEach((r: any) => {
-        const client = clientsMap.get(r.client_id);
-        byId.set(r.id, {
-          ...r,
-          profiles: client ? {
-            id: client.id,
-            full_name: client.full_name,
-            phone: client.phone
-          } : null
-        } as ServiceRequest);
-      });
-      
-      // Adicionar solicitações baseadas em cidades (pendentes)
-      (cityBasedRequests || []).forEach((r: any) => {
-        if (!byId.has(r.request_id)) {
+      // 5. Process and update appropriate state
+      if (scope === 'all') {
+        // Full update: separate available and own requests
+        const available: ServiceRequest[] = [];
+        const own: ServiceRequest[] = [];
+        
+        // Process city-based (available)
+        (cityBasedRequests || []).forEach((r: any) => {
           const client = clientsMap.get(r.client_id);
-          const serviceRequest: ServiceRequest = {
+          available.push({
             id: r.request_id,
             service_type: r.service_type,
             location_address: r.location_address,
@@ -423,30 +454,88 @@ export const ServiceProviderDashboard: React.FC = () => {
               full_name: client.full_name,
               phone: client.phone
             } : null
-          };
-          byId.set(r.request_id, serviceRequest);
+          } as ServiceRequest);
+        });
+        
+        // Process own requests
+        (providerRequests || []).forEach((r: any) => {
+          const client = clientsMap.get(r.client_id);
+          own.push({
+            ...r,
+            profiles: client ? {
+              id: client.id,
+              full_name: client.full_name,
+              phone: client.phone
+            } : null
+          } as ServiceRequest);
+        });
+        
+        setAvailableRequests(available);
+        setOwnRequests(own);
+        setInitialLoading(false);
+        
+        console.log(`✅ Full update completed`, {
+          available: available.length,
+          own: own.length
+        });
+      } else {
+        // Update only available requests
+        const available: ServiceRequest[] = [];
+        
+        (cityBasedRequests || []).forEach((r: any) => {
+          const client = clientsMap.get(r.client_id);
+          available.push({
+            id: r.request_id,
+            service_type: r.service_type,
+            location_address: r.location_address,
+            city_name: r.city_name,
+            state: r.state,
+            problem_description: r.problem_description,
+            urgency: r.urgency,
+            contact_phone: r.contact_phone,
+            contact_name: r.contact_name,
+            status: r.status,
+            created_at: r.created_at,
+            location_lat: r.location_lat,
+            location_lng: r.location_lng,
+            vehicle_info: r.vehicle_info,
+            additional_info: r.additional_info,
+            is_emergency: r.is_emergency,
+            estimated_price: r.estimated_price,
+            provider_id: null,
+            client_id: r.client_id,
+            profiles: client ? {
+              id: client.id,
+              full_name: client.full_name,
+              phone: client.phone
+            } : null
+          } as ServiceRequest);
+        });
+        
+        setAvailableRequests(available);
+        setLastAvailableRefresh(new Date());
+        
+        // Close modal after 1.5s if it was shown
+        if (!silent && activeTab === 'pending') {
+          setTimeout(() => {
+            setRefreshingAvailable(false);
+          }, 1500);
         }
-      });
-      
-      const allRequests = Array.from(byId.values());
-      setRequests(allRequests);
-      setLastRefresh(new Date());
-      setLoading(false);
-      
-      console.log(`✅ Total requests loaded: ${allRequests.length}`, {
-        acceptedByProvider: (providerRequests || []).length,
-        cityBasedPending: (cityBasedRequests || []).length,
-        total: allRequests.length
-      });
+        
+        console.log(`✅ Available requests updated: ${available.length}`);
+      }
       
     } catch (error: any) {
       console.error('❌ Error fetching service requests:', error);
-      setLoading(false);
+      setInitialLoading(false);
+      setRefreshingAvailable(false);
       toast({
         title: "Erro ao carregar solicitações",
         description: "Não foi possível carregar as solicitações. Tente novamente.",
         variant: "destructive"
       });
+    } finally {
+      inFlightRef.current = false;
     }
   };
 
@@ -500,7 +589,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         description: "Solicitação aceita com sucesso!",
       });
 
-      fetchServiceRequests();
+      fetchServiceRequests({ scope: 'all', silent: true });
       refreshCounts();
       fetchTotalEarnings();
     } catch (error: any) {
@@ -548,7 +637,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         
         // Fechar modal e atualizar lista
         setShowRequestModal(false);
-        fetchServiceRequests();
+        fetchServiceRequests({ scope: 'all', silent: true });
         refreshCounts();
         return;
       }
@@ -572,7 +661,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         }
         
         setShowRequestModal(false);
-        fetchServiceRequests();
+        fetchServiceRequests({ scope: 'all', silent: true });
         refreshCounts();
         return;
       }
@@ -585,7 +674,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         });
         
         setShowRequestModal(false);
-        fetchServiceRequests();
+        fetchServiceRequests({ scope: 'all', silent: true });
         refreshCounts();
         return;
       }
@@ -598,7 +687,7 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       // Fechar modal e atualizar
       setShowRequestModal(false);
-      fetchServiceRequests();
+      fetchServiceRequests({ scope: 'all', silent: true });
       refreshCounts();
       fetchTotalEarnings();
       
@@ -619,7 +708,7 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   const handleCompleteRequest = async (requestId: string) => {
     try {
-      const request = requests.find(r => r.id === requestId);
+      const request = [...availableRequests, ...ownRequests].find(r => r.id === requestId);
       if (!request) throw new Error('Solicitação não encontrada');
 
       const { error } = await supabase
@@ -641,7 +730,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         description: `Serviço concluído! Você receberá R$ ${(request.estimated_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
       });
       
-      fetchServiceRequests();
+      fetchServiceRequests({ scope: 'all', silent: true });
       refreshCounts();
       fetchTotalEarnings();
     } catch (error: any) {
@@ -707,7 +796,10 @@ export const ServiceProviderDashboard: React.FC = () => {
     }
   };
 
-  const filteredRequests = requests.filter(request => {
+  // Combine requests based on active tab
+  const allRequests = activeTab === 'pending' ? availableRequests : ownRequests;
+  
+  const filteredRequests = allRequests.filter(request => {
     // Filtro por tipo de serviço
     if (serviceTypeFilter !== 'all' && request.service_type !== serviceTypeFilter) {
       return false;
@@ -739,7 +831,7 @@ export const ServiceProviderDashboard: React.FC = () => {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="min-h-[40vh] flex items-center justify-center">
         <div className="text-center">
@@ -933,7 +1025,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               <div>
                 <h3 className="text-lg font-semibold">Solicitações Disponíveis</h3>
                 <p className="text-xs text-muted-foreground">
-                  Atualizado há {Math.floor((new Date().getTime() - lastRefresh.getTime()) / 60000)} min • 
+                  Atualizado há {Math.floor((new Date().getTime() - lastAvailableRefresh.getTime()) / 60000)} min • 
                   Auto-refresh a cada 30s
                 </p>
               </div>
@@ -945,13 +1037,13 @@ export const ServiceProviderDashboard: React.FC = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    fetchServiceRequests();
+                    fetchServiceRequests({ scope: 'available', silent: false });
                     refreshCounts();
-                    fetchTotalEarnings();
                   }}
                   className="text-xs h-7"
+                  disabled={refreshingAvailable}
                 >
-                  Atualizar
+                  {refreshingAvailable ? 'Atualizando...' : 'Atualizar'}
                 </Button>
               </div>
             </div>
@@ -1087,13 +1179,13 @@ export const ServiceProviderDashboard: React.FC = () => {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Serviços em Andamento</h3>
               <Badge variant="secondary" className="text-xs">
-                {requests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).length}
+                {ownRequests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).length}
               </Badge>
             </div>
             
-            {requests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).length > 0 ? (
+            {ownRequests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).length > 0 ? (
               <div className="space-y-4">
-                {requests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).map((request) => (
+                {ownRequests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).map((request) => (
                   <Card key={request.id} className="shadow-lg border-l-[6px] border-l-orange-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-white to-orange-50/30 dark:from-gray-900 dark:to-orange-950/20">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -1174,13 +1266,13 @@ export const ServiceProviderDashboard: React.FC = () => {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Serviços Concluídos</h3>
               <Badge variant="secondary" className="text-xs">
-                {requests.filter(r => r.provider_id && r.status === 'COMPLETED').length}
+                {ownRequests.filter(r => r.provider_id && r.status === 'COMPLETED').length}
               </Badge>
             </div>
             
-            {requests.filter(r => r.provider_id && r.status === 'COMPLETED').length > 0 ? (
+            {ownRequests.filter(r => r.provider_id && r.status === 'COMPLETED').length > 0 ? (
               <div className="space-y-4">
-                {requests.filter(r => r.provider_id && r.status === 'COMPLETED').map((request) => (
+                {ownRequests.filter(r => r.provider_id && r.status === 'COMPLETED').map((request) => (
                   <Card key={request.id} className="shadow-md border-l-[6px] border-l-green-500 hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-white to-green-50/20 dark:from-gray-900 dark:to-green-950/10">
                      <CardContent className="p-4">
                        <div className="flex items-center justify-between mb-3">
@@ -1409,6 +1501,9 @@ export const ServiceProviderDashboard: React.FC = () => {
           isOpen={servicesModalOpen}
           onClose={() => setServicesModalOpen(false)}
         />
+        
+        {/* Modal de Atualização de Serviços Disponíveis */}
+        <AvailableServicesRefreshModal open={refreshingAvailable} />
       </div>
     </div>
   );
