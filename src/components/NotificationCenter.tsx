@@ -10,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { FreightRatingModal } from './FreightRatingModal';
+import { ServiceAutoRatingModal } from './ServiceAutoRatingModal';
+import { useServiceRating } from '@/hooks/useServiceRating';
 import { Skeleton } from '@/components/ui/skeleton';
 import { queryWithTimeout } from '@/lib/query-utils';
 
@@ -40,6 +42,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
+  const [serviceRatingModalOpen, setServiceRatingModalOpen] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && profile) {
@@ -183,6 +187,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         }
         break;
         
+      case 'service_rating_pending':
+        if (data?.service_request_id) {
+          setSelectedServiceId(data.service_request_id);
+          setServiceRatingModalOpen(true);
+          onClose();
+        }
+        break;
+        
       case 'service_chat_message':
         if (data?.service_request_id) {
           onClose();
@@ -219,6 +231,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const isActionableNotification = (type: string) => {
     const actionableTypes = [
       'rating_pending',
+      'service_rating_pending',
       'freight_accepted',
       'proposal_received',
       'advance_request',
@@ -412,6 +425,93 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           }}
         />
       )}
+
+      {serviceRatingModalOpen && selectedServiceId && (
+        <ServiceRatingModalWrapper
+          serviceRequestId={selectedServiceId}
+          onClose={() => {
+            setServiceRatingModalOpen(false);
+            setSelectedServiceId(null);
+          }}
+          onRatingSubmitted={() => {
+            setServiceRatingModalOpen(false);
+            setSelectedServiceId(null);
+            fetchNotifications();
+          }}
+        />
+      )}
     </Dialog>
+  );
+};
+
+// Wrapper component to fetch service data and render rating modal
+const ServiceRatingModalWrapper: React.FC<{
+  serviceRequestId: string;
+  onClose: () => void;
+  onRatingSubmitted: () => void;
+}> = ({ serviceRequestId, onClose, onRatingSubmitted }) => {
+  const { profile } = useAuth();
+  const [serviceData, setServiceData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchServiceData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('service_requests')
+          .select(`
+            id,
+            service_type,
+            client_id,
+            provider_id,
+            client:profiles!service_requests_client_id_fkey(full_name),
+            provider:profiles!service_requests_provider_id_fkey(full_name)
+          `)
+          .eq('id', serviceRequestId)
+          .single();
+
+        if (error) throw error;
+        setServiceData(data);
+      } catch (error) {
+        console.error('Error fetching service data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServiceData();
+  }, [serviceRequestId]);
+
+  if (loading || !serviceData || !profile) return null;
+
+  const isClient = serviceData.client_id === profile.id;
+  const ratedUserId = isClient ? serviceData.provider_id : serviceData.client_id;
+  const raterRole: 'CLIENT' | 'PROVIDER' = isClient ? 'CLIENT' : 'PROVIDER';
+  const ratedUserName = isClient 
+    ? (serviceData.provider as any)?.[0]?.full_name 
+    : (serviceData.client as any)?.[0]?.full_name;
+
+  const { submitRating } = useServiceRating({
+    serviceRequestId,
+    ratedUserId,
+    raterRole,
+  });
+
+  const handleSubmit = async (rating: number, comment?: string) => {
+    const result = await submitRating(rating, comment);
+    if (result.success) {
+      onRatingSubmitted();
+    }
+  };
+
+  return (
+    <ServiceAutoRatingModal
+      isOpen={true}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      ratedUserName={ratedUserName}
+      raterRole={raterRole}
+      serviceType={serviceData.service_type}
+    />
   );
 };
