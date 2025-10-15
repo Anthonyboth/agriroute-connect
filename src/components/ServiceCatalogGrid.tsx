@@ -38,12 +38,12 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
 
   // Filter services based on mode
   // For drivers: only show freight services (category 'freight')
-  // For providers: show all service types EXCEPT freight
+  // For providers: show all service types EXCEPT freight AND only providerVisible
   // For clients: show all services
   const allServices = mode === 'driver' 
     ? ALL_SERVICE_TYPES.filter(s => s.category === 'freight')
     : mode === 'provider'
-      ? ALL_SERVICE_TYPES.filter(s => s.category !== 'freight')
+      ? ALL_SERVICE_TYPES.filter(s => s.category !== 'freight' && s.providerVisible)
       : ALL_SERVICE_TYPES;
   
   const allTabCount = allServices.filter(s => !s.hideFromAllTab).length;

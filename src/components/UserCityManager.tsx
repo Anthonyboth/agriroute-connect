@@ -137,6 +137,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
           .from('profiles')
           .select('service_types')
           .eq('user_id', user.id)
+          .eq('role', 'PRESTADOR_SERVICOS')
           .single();
         
         profileServiceTypes = profileData?.service_types || [];
@@ -374,7 +375,8 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
                         <div className="flex flex-wrap gap-1">
                           {city.service_types.map((typeId) => {
                             const service = getServiceById(typeId);
-                            return service ? (
+                            // Filtrar apenas serviços visíveis para prestadores
+                            return service && service.providerVisible ? (
                               <Badge key={typeId} variant="secondary" className="text-xs">
                                 {service.label}
                               </Badge>
