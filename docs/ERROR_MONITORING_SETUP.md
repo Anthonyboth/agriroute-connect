@@ -110,6 +110,26 @@ import { ErrorLogsPanel } from '@/components/ErrorLogsPanel';
 
 ## 🧪 TESTAR
 
+### Teste de Notificação Telegram (Recomendado)
+
+A maneira mais fácil de testar o sistema:
+
+1. Acesse `/dashboard/company`
+2. Clique no botão **"🔔 Testar Telegram"**
+3. Verifique se a mensagem chegou no grupo do Telegram
+4. Confirme os logs da edge function
+
+### Teste via cURL
+
+```bash
+curl -X POST \
+  https://shnvtxejjecbnztdbbbl.supabase.co/functions/v1/test-telegram \
+  -H "Content-Type: application/json" \
+  -d '{"source": "manual_test", "userEmail": "test@example.com"}'
+```
+
+### Teste de Erros no Código
+
 ```typescript
 // Simular erro simples
 throw new Error('Network timeout test');
@@ -125,6 +145,22 @@ try {
   handleError(error, { module: 'MyComponent', functionName: 'myFunction' });
 }
 ```
+
+### Troubleshooting Telegram
+
+**❌ "TELEGRAM_BOT_TOKEN não configurado"**
+- Configure o secret nas [Edge Functions Settings](https://supabase.com/dashboard/project/shnvtxejjecbnztdbbbl/settings/functions)
+
+**❌ "Telegram API error: 401"**
+- Token inválido, regenere o bot token com @BotFather
+
+**❌ "Telegram API error: 400"**
+- Chat ID incorreto, verifique se o bot foi adicionado ao grupo
+- Chat ID atual: `-4964515694`
+
+**❌ "Edge Function returned non-2xx"**
+- Verifique os [logs da função](https://supabase.com/dashboard/project/shnvtxejjecbnztdbbbl/functions/test-telegram/logs)
+- Confirme que o secret está configurado corretamente
 
 ## 📊 ESTATÍSTICAS
 

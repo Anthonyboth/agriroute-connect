@@ -115,6 +115,7 @@ const CompanyDashboard = () => {
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
+  const [testingTelegram, setTestingTelegram] = useState(false);
   const { company, isLoadingCompany } = useTransportCompany();
   
   const refetchCompany = async () => {
@@ -303,6 +304,41 @@ const CompanyDashboard = () => {
     handleProfileSwitch();
   }, [company, isLoadingCompany, profile?.id, profiles, switchProfile]);
 
+  const handleTestTelegram = async () => {
+    setTestingTelegram(true);
+    try {
+      console.log('[TEST] Chamando edge function test-telegram...');
+      const { data, error } = await supabase.functions.invoke('test-telegram', {
+        body: { 
+          source: 'CompanyDashboard',
+          userEmail: profile?.email || 'N/A'
+        }
+      });
+      
+      if (error) {
+        console.error('[TEST] Erro ao chamar function:', error);
+        throw error;
+      }
+      
+      console.log('[TEST] Resposta da function:', data);
+      
+      if (data.success) {
+        toast.success(`✅ ${data.message}`, {
+          description: `Mensagem ID: ${data.telegram_message_id || 'N/A'}`
+        });
+      } else {
+        throw new Error(data.error || 'Erro desconhecido');
+      }
+    } catch (error: any) {
+      console.error('[TEST] Erro capturado:', error);
+      toast.error(`❌ Falha no teste: ${error.message}`, {
+        description: 'Verifique os logs para mais detalhes'
+      });
+    } finally {
+      setTestingTelegram(false);
+    }
+  };
+
   // Show loading state without Header to avoid user=undefined error
   if (isLoadingCompany || isSwitchingProfile) {
     return (
@@ -437,10 +473,28 @@ const CompanyDashboard = () => {
               >
                 <Wrench className="mr-1 h-4 w-4" />
                 Solicitar Serviços
-              </Button>
-            </div>
+            </Button>
+            <Button
+              onClick={handleTestTelegram}
+              disabled={testingTelegram}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              {testingTelegram ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                  Testando...
+                </>
+              ) : (
+                <>
+                  🔔 Testar Telegram
+                </>
+              )}
+            </Button>
           </div>
         </div>
+      </div>
       </section>
 
       {/* Main Content */}

@@ -135,6 +135,9 @@ verify_jwt = true
 [functions.withdraw-freight]
 verify_jwt = true
 
+[functions.test-telegram]
+verify_jwt = false
+
 [functions.import-cities]
 verify_jwt = true
 
