@@ -21,8 +21,11 @@ interface CitySelectorProps {
   value?: {
     city: string;
     state: string;
+    id?: string;
+    lat?: number;
+    lng?: number;
   };
-  onChange: (city: { city: string; state: string; id?: string; lat?: number; lng?: number }) => void;
+  onChange: (city: { city: string; state: string; id: string; lat?: number; lng?: number }) => void;
   placeholder?: string;
   label?: string;
   required?: boolean;
@@ -161,14 +164,18 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
 
   const clearSelection = () => {
     setSearchTerm('');
-    onChange({ city: '', state: '' });
+    onChange({ city: '', state: '', id: '' });
     setShowDropdown(false);
     inputRef.current?.focus();
   };
 
-  // Validation icon
+  // Validation icon - usa id real
   const validationIcon = getCityValidationIcon(
-    value && value.city && value.state ? { city: value.city, state: value.state, id: value.city } : undefined
+    value && value.city && value.state ? { 
+      city: value.city, 
+      state: value.state, 
+      id: value.id 
+    } : undefined
   );
 
   return (
@@ -245,7 +252,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
         {showDropdown && (cities.length > 0 || isLoading) && (
           <div
             ref={dropdownRef}
-            className="absolute z-[1000] w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto"
+            className="absolute z-[2000] w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto"
           >
             {isLoading ? (
               <div className="flex items-center justify-center py-4">
@@ -280,17 +287,17 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
         )}
         
         {/* Helper text */}
-        {!error && !value?.city && (
+        {!error && !searchTerm && (
           <p className="text-xs text-muted-foreground mt-1">
-            Digite para buscar e selecione uma cidade da lista
+            💡 Digite para buscar e selecione uma cidade da lista
           </p>
         )}
         
-        {/* Warning when text is entered but not selected */}
-        {!error && value?.city && !validationIcon && searchTerm && (
+        {/* Warning quando digitou mas não selecionou (não tem id) */}
+        {!error && searchTerm && value?.city && !value?.id && (
           <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-1 flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" />
-            Por favor, selecione uma cidade da lista para garantir o match correto
+            ⚠️ Selecione da lista para validar (clicar na opção)
           </p>
         )}
         

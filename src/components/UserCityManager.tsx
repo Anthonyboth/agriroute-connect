@@ -40,7 +40,8 @@ const TYPE_LABELS = {
 const TYPE_OPTIONS = {
   MOTORISTA: ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO'],
   PRESTADOR_SERVICOS: ['PRESTADOR_SERVICO'],
-  PRODUTOR: ['PRODUTOR_LOCALIZACAO']
+  PRODUTOR: ['PRODUTOR_LOCALIZACAO'],
+  TRANSPORTADORA: ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']
 };
 
 export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerProps) {
@@ -48,7 +49,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
   const [cities, setCities] = useState<UserCity[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCity, setSelectedCity] = useState<{ city: string; state: string } | null>(null);
+  const [selectedCity, setSelectedCity] = useState<{ id?: string; city: string; state: string } | null>(null);
   const [selectedType, setSelectedType] = useState<UserCity['type'] | ''>(() => {
     // Auto-selecionar tipo baseado no userRole
     if (userRole === 'PRESTADOR_SERVICOS') return 'PRESTADOR_SERVICO';
@@ -108,27 +109,25 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
   };
 
   const handleAddCity = async () => {
-    if (!selectedCity || !selectedType || !user) {
-      toast.error(userRole === 'MOTORISTA' 
-        ? 'Selecione uma cidade e tipo' 
-        : 'Selecione uma cidade'
+    if (!selectedCity?.id) {
+      toast.error('Digite e selecione uma cidade da lista');
+      return;
+    }
+
+    if (!selectedType) {
+      toast.error((userRole === 'MOTORISTA' || userRole === 'TRANSPORTADORA')
+        ? 'Selecione o tipo (Origem/Destino)'
+        : 'Selecione o tipo'
       );
       return;
     }
 
-    try {
-      // Buscar o ID da cidade no banco de dados
-      const { data: cityData, error: cityError } = await supabase
-        .from('cities')
-        .select('id')
-        .eq('name', selectedCity.city)
-        .eq('state', selectedCity.state)
-        .single();
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
 
-      if (cityError || !cityData) {
-        toast.error('Cidade não encontrada no banco de dados');
-        return;
-      }
+    try {
 
       // Buscar service_types atuais do perfil para prestadores
       let profileServiceTypes: string[] = [];
@@ -145,7 +144,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
 
       const insertData: any = {
         user_id: user.id,
-        city_id: cityData.id,
+        city_id: selectedCity.id,
         type: selectedType as UserCity['type'],
         radius_km: radius,
         is_active: true
@@ -173,7 +172,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
       setIsDialogOpen(false);
       setSelectedCity(null);
       // Reset tipo baseado no userRole
-      if (userRole === 'MOTORISTA') {
+      if (userRole === 'MOTORISTA' || userRole === 'TRANSPORTADORA') {
         setSelectedType('');
       } else if (userRole === 'PRESTADOR_SERVICOS') {
         setSelectedType('PRESTADOR_SERVICO');
@@ -410,22 +409,25 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
             <div>
               <Label>Cidade</Label>
               <CitySelector
-                value={selectedCity ? { city: selectedCity.city, state: selectedCity.state } : undefined}
+                value={selectedCity ? { 
+                  id: selectedCity.id,
+                  city: selectedCity.city, 
+                  state: selectedCity.state 
+                } : undefined}
                 onChange={(city) => setSelectedCity({ 
+                  id: city.id,
                   city: city.city, 
                   state: city.state
                 })}
                 placeholder="Digite o nome da cidade..."
               />
-              {selectedCity && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Selecionada: {selectedCity.city}, {selectedCity.state}
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                💡 Você precisa clicar em uma opção da lista. Só digitar não funciona.
+              </p>
             </div>
 
-            {/* Mostrar apenas para MOTORISTA (origem/destino) */}
-            {userRole === 'MOTORISTA' && (
+            {/* Mostrar para MOTORISTA e TRANSPORTADORA (origem/destino) */}
+            {(userRole === 'MOTORISTA' || userRole === 'TRANSPORTADORA') && (
               <div>
                 <Label>Tipo de Uso</Label>
                 <Select 
@@ -433,7 +435,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
                   onValueChange={(value) => setSelectedType(value as UserCity['type'])}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
+                    <SelectValue placeholder="Selecione o tipo (Origem ou Destino)" />
                   </SelectTrigger>
                   <SelectContent>
                     {typeOptions.map(type => (
@@ -469,7 +471,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
               setIsDialogOpen(false);
               setSelectedCity(null);
               // Reset tipo baseado no userRole
-              if (userRole === 'MOTORISTA') {
+              if (userRole === 'MOTORISTA' || userRole === 'TRANSPORTADORA') {
                 setSelectedType('');
               } else if (userRole === 'PRESTADOR_SERVICOS') {
                 setSelectedType('PRESTADOR_SERVICO');
@@ -480,7 +482,10 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
             }}>
               Cancelar
             </Button>
-            <Button onClick={handleAddCity}>
+            <Button 
+              onClick={handleAddCity}
+              disabled={!selectedCity?.id || !selectedType}
+            >
               Adicionar Cidade
             </Button>
           </DialogFooter>
