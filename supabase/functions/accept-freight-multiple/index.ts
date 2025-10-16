@@ -193,6 +193,8 @@ serve(async (req) => {
 
     // 5. Buscar company_id se transportadora
     let company_id = null;
+    let availableDrivers: string[] = [];
+    
     if (isTransportCompany) {
       const { data: company } = await supabase
         .from("transport_companies")
@@ -200,6 +202,60 @@ serve(async (req) => {
         .eq("profile_id", profile.id)
         .single();
       company_id = company?.id;
+
+      // Buscar motoristas afiliados ativos
+      if (company_id) {
+        const { data: companyDrivers } = await supabase
+          .from("company_drivers")
+          .select("driver_profile_id")
+          .eq("company_id", company_id)
+          .eq("status", "ACTIVE")
+          .eq("can_accept_freights", true);
+
+        if (companyDrivers && companyDrivers.length > 0) {
+          const driverIds = companyDrivers.map(cd => cd.driver_profile_id);
+
+          // Filtrar motoristas que já têm assignments ativos neste frete
+          const { data: existingAssignments } = await supabase
+            .from("freight_assignments")
+            .select("driver_id")
+            .eq("freight_id", freight_id)
+            .in("driver_id", driverIds)
+            .in("status", ["ACCEPTED", "IN_TRANSIT", "LOADING", "LOADED"]);
+
+          const busyDriverIds = new Set(existingAssignments?.map(a => a.driver_id) || []);
+          availableDrivers = driverIds.filter(id => !busyDriverIds.has(id));
+
+          console.log(`[COMPANY-DRIVERS] Total: ${driverIds.length}, Available: ${availableDrivers.length}, Busy: ${busyDriverIds.size}`);
+        }
+      }
+
+      // Validar se há motoristas suficientes
+      if (num_trucks > 1 && availableDrivers.length < num_trucks) {
+        console.log(`[VALIDATION] Insufficient drivers - {${JSON.stringify({
+          company_id,
+          requested_trucks: num_trucks,
+          available_drivers: availableDrivers.length
+        })}}`);
+
+        return new Response(
+          JSON.stringify({ 
+            error: `Você não tem motoristas aprovados suficientes para aceitar ${num_trucks} carreta(s). Motoristas disponíveis: ${availableDrivers.length}. Vá em "Motoristas" para ativar/convidar mais motoristas.`,
+            available_drivers: availableDrivers.length,
+            requested_trucks: num_trucks
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Fallback: Se aceitar 1 carreta e não tem motoristas, usar perfil da empresa
+      if (num_trucks === 1 && availableDrivers.length === 0) {
+        availableDrivers = [profile.id];
+        console.log(`[FALLBACK] Using company profile as driver for single truck acceptance`);
+      }
+    } else {
+      // Motorista autônomo usa seu próprio perfil
+      availableDrivers = [profile.id];
     }
 
     // ================================================
@@ -225,12 +281,15 @@ serve(async (req) => {
       console.warn(`[ASSIGNMENT] CARGA price R$${originalPrice} below ANTT min R$${freight.minimum_antt_price}`);
     }
     
+    // Criar um assignment para cada motorista disponível (até num_trucks)
     for (let i = 0; i < num_trucks; i++) {
+      const driver_id = availableDrivers[i];
+      
       const { data: assignment, error } = await supabase
         .from("freight_assignments")
         .insert({
           freight_id,
-          driver_id: profile.id,
+          driver_id,
           company_id,
           agreed_price: agreedPrice,
           pricing_type: pricingType,
@@ -245,6 +304,8 @@ serve(async (req) => {
             adjusted_price: agreedPrice !== originalPrice,
             service_type: freightFresh.service_type,
             created_by: 'accept-freight-multiple',
+            is_company_assignment: isTransportCompany,
+            driver_index: i + 1,
             created_at: new Date().toISOString()
           }
         })
@@ -252,21 +313,44 @@ serve(async (req) => {
         .single();
 
       if (error) {
-        console.error("Error creating assignment:", error);
-        // Rollback
+        console.error(`[ERROR] Creating assignment ${i + 1}/${num_trucks} for driver ${driver_id}:`, error);
+        
+        // Rollback: deletar assignments já criados
         if (assignments.length > 0) {
+          console.log(`[ROLLBACK] Deleting ${assignments.length} created assignments`);
           await supabase
             .from("freight_assignments")
             .delete()
             .in("id", assignments.map(a => a.id));
         }
+        
+        // Retornar erro amigável para duplicatas
+        if (error.code === '23505') {
+          return new Response(
+            JSON.stringify({ 
+              error: "Você já aceitou este frete com este motorista. Tente com outro motorista disponível.",
+              postgres_error: error.message
+            }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        // Outros erros
         return new Response(
-          JSON.stringify({ error: error.message }),
+          JSON.stringify({ 
+            error: error.message,
+            assignment_index: i + 1,
+            total_requested: num_trucks
+          }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      
       assignments.push(assignment);
+      console.log(`[SUCCESS] Assignment ${i + 1}/${num_trucks} created for driver ${driver_id}`);
     }
+
+    console.log(`[ASSIGNMENTS] Successfully created ${assignments.length} assignments for freight ${freight_id}`);
 
     // ================================================
     // 6.5. VINCULAR MOTORISTA AO FRETE (para fretes de carreta única)
@@ -350,7 +434,7 @@ serve(async (req) => {
       
       switch (error.code) {
         case '23505': // Duplicate key
-          errorMessage = "Você já aceitou este frete anteriormente";
+          errorMessage = "Você já aceitou este frete com este motorista";
           statusCode = 409;
           break;
         case '23514': // Check constraint violation (accepted_trucks)
