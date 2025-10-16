@@ -5,8 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Package, Truck, CheckCircle, Clock, Navigation } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { driverUpdateFreightStatus } from '@/lib/freight-status-helpers';
 import { useToast } from '@/hooks/use-toast';
-import { getFreightStatusLabel } from '@/lib/freight-status';
 import { format } from 'date-fns';
 
 const STATUS_FLOW = [
@@ -115,84 +115,36 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         return;
       }
 
-      let location = null;
+      let location: { lat: number; lng: number } | null = null;
       
       // Tentar obter localização atual
       try {
         location = await getCurrentLocation();
-      } catch (error) {
-        // Silent location update - don't log errors
+      } catch (_) {
+        // Silent location failure
       }
 
-      // Atualizar o status do frete na tabela principal com validação de estado
-      const { error: freightError, data: updateData } = await supabase
-        .from('freights')
-        .update({ 
-          status: newStatus as any,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', freightId)
-        .eq('status', currentStatus as any) // Validar estado anterior
-        .select();
+      // Usar RPC segura para atualizar status e registrar histórico (evita RLS)
+      const ok = await driverUpdateFreightStatus({
+        freightId,
+        newStatus,
+        currentUserProfile,
+        notes: notes.trim() || undefined,
+        location: location || undefined,
+      });
 
-      if (freightError) throw freightError;
-
-      // Verificar se realmente atualizou
-      if (!updateData || updateData.length === 0) {
-        throw new Error('O status do frete mudou durante a atualização. Por favor, recarregue a página.');
-      }
-
-      // Inserir no histórico
-      const { error: historyError } = await supabase
-        .from('freight_status_history')
-        .insert({
-          freight_id: freightId,
-          status: newStatus as any,
-          changed_by: currentUserProfile.id,
-          notes: notes.trim() || null,
-          location_lat: location?.lat,
-          location_lng: location?.lng
-        });
-
-      if (historyError) throw historyError;
-
-      // Se há observações, enviar também para o chat
-      if (notes.trim()) {
-        const statusLabel = STATUS_FLOW.find(s => s.key === newStatus)?.label;
-        const chatMessage = `Status atualizado para "${statusLabel}"\n\nObservações: ${notes.trim()}`;
-        
-        await supabase
-          .from('freight_messages')
-          .insert({
-            freight_id: freightId,
-            sender_id: currentUserProfile.id,
-            message: chatMessage,
-            message_type: 'TEXT'
-          });
+      if (!ok) {
+        throw new Error('RPC driver_update_freight_status falhou');
       }
 
       setNotes('');
-      fetchStatusHistory();
+      await fetchStatusHistory();
       
-      // Mensagem especial para entrega reportada
-      if (newStatus === 'DELIVERED_PENDING_CONFIRMATION') {
-        toast({
-          title: "Entrega reportada com sucesso!",
-          description: "O produtor tem 72h para confirmar. O frete foi movido para o histórico. Avalie o produtor!",
-        });
-      } else {
-        toast({
-          title: "Status atualizado",
-          description: `Frete marcado como: ${STATUS_FLOW.find(s => s.key === newStatus)?.label}`,
-        });
-      }
-
       // Notificar o parent para atualizar UI sem recarregar tudo
       if (onStatusUpdated) {
         onStatusUpdated(newStatus);
       } else {
-        // Fallback suave: re-fetcha histórico local
-        fetchStatusHistory();
+        await fetchStatusHistory();
       }
 
     } catch (error: any) {
