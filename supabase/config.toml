@@ -155,3 +155,9 @@ verify_jwt = true
 
 [functions.admin-recalculate-all-antt]
 verify_jwt = false
+
+[functions.accept-freight-multiple]
+verify_jwt = true
+
+[functions.check-freight-requester]
+verify_jwt = true

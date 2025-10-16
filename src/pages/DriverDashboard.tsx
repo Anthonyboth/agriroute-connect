@@ -1264,6 +1264,20 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             return;
           }
 
+          // Verificar se o solicitante tem cadastro completo
+          const { data: checkData, error: checkError } = await (supabase as any).functions.invoke('check-freight-requester', {
+            body: { freight_id: freightId },
+          });
+
+          if (checkError) {
+            throw checkError;
+          }
+
+          if (!checkData?.has_registration) {
+            toast.error('O solicitante não possui cadastro. Este frete foi movido para o histórico.');
+            return;
+          }
+
           // Aceitação direta: não bloquear por proposta existente
           // Aceitar via Edge Function (bypass RLS com service role)
           const { data: acceptData, error: acceptError } = await (supabase as any).functions.invoke('accept-freight-multiple', {
