@@ -200,69 +200,37 @@ serve(async (req) => {
       report.errors.push(`PER_KM flagging failed: ${error.message}`);
     }
 
-    // 4. Calcular distâncias faltantes (limitado a 10 para evitar timeout)
+    // 4. Calcular distâncias faltantes usando função batch
     try {
-      const { data: freightsWithoutDistance, error: fetchError } = await supabase
-        .from("freights")
-        .select("id, origin_lat, origin_lng, destination_lat, destination_lng")
-        .is("distance_km", null)
-        .not("origin_lat", "is", null)
-        .not("destination_lat", "is", null)
-        .in("status", ["OPEN", "IN_NEGOTIATION"])
-        .limit(10);
-
-      if (fetchError) throw fetchError;
-
-      if (freightsWithoutDistance && freightsWithoutDistance.length > 0) {
-        for (const freight of freightsWithoutDistance) {
-          try {
-            const { data: routeData, error: routeError } = await supabase.functions.invoke(
-              "calculate-route",
-              {
-                body: {
-                  origin: { lat: freight.origin_lat, lng: freight.origin_lng },
-                  destination: { lat: freight.destination_lat, lng: freight.destination_lng }
-                }
-              }
-            );
-
-            if (routeError || !routeData?.distance_km) {
-              // Marcar como necessitando distância manual
-              await supabase
-                .from("freights")
-                .update({ 
-                  metadata: {
-                    needs_distance: true,
-                    route_calculation_failed: true,
-                    flagged_at: new Date().toISOString()
-                  }
-                })
-                .eq("id", freight.id);
-              
-              report.errors.push(`Route calculation failed for freight ${freight.id}`);
-            } else {
-              await supabase
-                .from("freights")
-                .update({ 
-                  distance_km: routeData.distance_km,
-                  metadata: {
-                    distance_auto_calculated: true,
-                    calculated_at: new Date().toISOString()
-                  }
-                })
-                .eq("id", freight.id);
-              
-              report.routes_calculated++;
-              report.details.push({
-                type: "DISTANCE_CALCULATED",
-                freight_id: freight.id,
-                distance_km: routeData.distance_km
-              });
-            }
-          } catch (error: any) {
-            report.errors.push(`Route calc error for freight ${freight.id}: ${error.message}`);
-          }
+      console.log("[AUTO-HEAL] Step 4: Calculating missing distances...");
+      
+      // Invocar função de cálculo de distâncias em batch
+      const { data: distanceResult, error: distanceError } = await supabase.functions.invoke(
+        'calculate-freight-distances',
+        { body: {} }
+      );
+      
+      if (distanceError) {
+        report.errors.push(`Distance calculation error: ${distanceError.message}`);
+      } else if (distanceResult) {
+        report.routes_calculated = distanceResult.calculated || 0;
+        
+        if (distanceResult.failed > 0) {
+          report.errors.push(`${distanceResult.failed} distance calculations failed`);
         }
+        
+        if (distanceResult.skipped > 0) {
+          report.errors.push(`${distanceResult.skipped} freights skipped (missing coordinates)`);
+        }
+        
+        report.details.push({
+          type: "DISTANCE_CALCULATION",
+          calculated: distanceResult.calculated,
+          failed: distanceResult.failed,
+          skipped: distanceResult.skipped,
+          total: distanceResult.total,
+          details: distanceResult.details || []
+        });
       }
 
       console.log(`[AUTO-HEAL] Calculated ${report.routes_calculated} distances`);

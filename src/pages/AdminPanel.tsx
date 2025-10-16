@@ -52,6 +52,10 @@ const financialItems = [
   { title: "Contas Digitais", icon: CreditCard, id: "digital-accounts" },
 ];
 
+const maintenanceItems = [
+  { title: "Manutenção de Dados", icon: Wrench, id: "data-maintenance" },
+];
+
 function AdminSidebar({ activeItem, setActiveItem }: { activeItem: string; setActiveItem: (item: string) => void }) {
   const [openGroup, setOpenGroup] = useState("approvals");
 
@@ -140,6 +144,30 @@ function AdminSidebar({ activeItem, setActiveItem }: { activeItem: string; setAc
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton 
                     className="text-gray-300 hover:text-white hover:bg-slate-700 transition-colors"
+                    onClick={() => setActiveItem(item.id)}
+                  >
+                    <item.icon className="mr-3 h-4 w-4" />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Manutenção Group */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-gray-400 font-medium px-3 py-2">
+            Sistema
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {maintenanceItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton 
+                    className={`text-gray-300 hover:text-white hover:bg-slate-700 transition-colors ${
+                      activeItem === item.id ? 'bg-slate-700 text-white' : ''
+                    }`}
                     onClick={() => setActiveItem(item.id)}
                   >
                     <item.icon className="mr-3 h-4 w-4" />
@@ -431,6 +459,53 @@ const AdminPanel = () => {
             {activeItem === "service-providers" && <AdminServiceProviderValidation />}
             {activeItem === "passengers" && <AdminValidationPanel />}
             {activeItem === "reports" && <AdminReportsPanel />}
+            
+            {activeItem === "data-maintenance" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-2">Manutenção de Dados</h2>
+                  <p className="text-gray-600">Ferramentas para correção e cálculo de dados do sistema</p>
+                </div>
+
+                <Card className="p-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">Calcular Distâncias Faltantes</h3>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Calcula automaticamente as distâncias de fretes que ainda não possuem essa informação usando a API do Google Maps.
+                        Processa até 50 fretes por vez.
+                      </p>
+                      <Button 
+                        onClick={async () => {
+                          try {
+                            toast.info('Iniciando cálculo de distâncias...');
+                            const { data, error } = await supabase.functions.invoke('calculate-freight-distances');
+                            
+                            if (error) throw error;
+                            
+                            if (data) {
+                              toast.success(
+                                `Distâncias calculadas com sucesso!\n` +
+                                `✅ Calculadas: ${data.calculated}\n` +
+                                `❌ Falharam: ${data.failed}\n` +
+                                `⏭️ Puladas: ${data.skipped}`
+                              );
+                            }
+                          } catch (error: any) {
+                            console.error('Error calculating distances:', error);
+                            toast.error('Erro ao calcular distâncias: ' + error.message);
+                          }
+                        }}
+                        className="gradient-primary"
+                      >
+                        <Wrench className="mr-2 h-4 w-4" />
+                        Calcular Distâncias
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            )}
           </main>
         </div>
       </div>

@@ -353,42 +353,34 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
             />
           ) : (
             // Motorista autônomo: botões normais
+            // Serviços urbanos: APENAS botão "Aceitar" (sem contraproposta)
             freight.service_type === 'GUINCHO' ? (
-              <div className="flex gap-4">
-                <Button 
-                  onClick={handleAccept}
-                  className="flex-1 btn-accessible gradient-primary text-lg font-semibold"
-                  size="lg"
-                >
-                  Aceitar Chamado
-                </Button>
-                <Button 
-                  onClick={handleProposalModalOpen}
-                  className="flex-1 btn-accessible border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-lg font-semibold"
-                  size="lg"
-                  variant="outline"
-                >
-                  Contra proposta
-                </Button>
-              </div>
+              <Button 
+                onClick={handleAccept}
+                className="w-full btn-accessible gradient-primary text-lg font-semibold"
+                size="lg"
+              >
+                <Wrench className="mr-2 h-5 w-5" />
+                Aceitar Chamado
+              </Button>
             ) : freight.service_type === 'MUDANCA' ? (
-              <div className="flex gap-4">
-                <Button 
-                  onClick={handleProposalModalOpen}
-                  className="flex-1 btn-accessible gradient-primary text-lg font-semibold"
-                  size="lg"
-                >
-                  Fazer Orçamento
-                </Button>
-                <Button 
-                  onClick={handleProposalModalOpen}
-                  className="flex-1 btn-accessible border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-lg font-semibold"
-                  size="lg"
-                  variant="outline"
-                >
-                  Contra proposta
-                </Button>
-              </div>
+              <Button 
+                onClick={handleAccept}
+                className="w-full btn-accessible gradient-primary text-lg font-semibold"
+                size="lg"
+              >
+                <Home className="mr-2 h-5 w-5" />
+                Aceitar Mudança
+              </Button>
+            ) : freight.service_type === 'FRETE_MOTO' ? (
+              <Button 
+                onClick={handleAccept}
+                className="w-full btn-accessible gradient-primary text-lg font-semibold"
+                size="lg"
+              >
+                <Truck className="mr-2 h-5 w-5" />
+                Aceitar Frete por Moto
+              </Button>
             ) : (
               <div className="flex gap-4">
                 <Button 

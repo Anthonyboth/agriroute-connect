@@ -48,6 +48,14 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   const [loading, setLoading] = useState(false);
   const formId = 'service-proposal-form';
   
+  // Bloquear modal para serviços urbanos (não aceitam contrapropostas)
+  React.useEffect(() => {
+    if (isOpen && ['GUINCHO', 'MUDANCA', 'FRETE_MOTO'].includes(freight.service_type || '')) {
+      toast.error('Serviços urbanos não aceitam contrapropostas. Apenas aceite o frete.');
+      onClose();
+    }
+  }, [isOpen, freight.service_type, onClose]);
+  
   // Campos comuns
   const [proposedPrice, setProposedPrice] = useState('');
   const [message, setMessage] = useState('');
