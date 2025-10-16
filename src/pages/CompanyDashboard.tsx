@@ -81,6 +81,7 @@ import { CompanyReports } from '@/components/CompanyReports';
 import { ResponsiveTabNavigation } from '@/components/ui/responsive-tab-navigation';
 import { ScrollIndicators } from '@/components/ui/scroll-indicators';
 import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 // Definição centralizada de todas as tabs
 const COMPANY_TABS = [
@@ -405,24 +406,30 @@ const CompanyDashboard = () => {
             <ScrollIndicators targetRef={tabsScrollRef} />
             <div 
               ref={tabsScrollRef}
-              className="overflow-x-auto overflow-y-hidden scroll-smooth pb-2"
+              className="flex gap-2 overflow-x-auto overflow-y-hidden scroll-smooth pb-2 px-1"
             >
-              <TabsList className="inline-flex h-auto min-w-full w-max p-2 gap-2 bg-card border rounded-lg shadow-sm">
-                {COMPANY_TABS.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <TabsTrigger
-                      key={tab.value}
-                      value={tab.value}
-                      onClick={() => setActiveTab(tab.value)}
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium min-w-[120px] flex-shrink-0 gap-2 transition-all duration-200 hover:scale-105 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border-2 data-[state=active]:border-primary"
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{tab.label}</span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
+              {COMPANY_TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = tab.value === activeTab;
+                
+                return (
+                  <Button
+                    key={tab.value}
+                    variant={isActive ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActiveTab(tab.value)}
+                    className={cn(
+                      "inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium min-w-[120px] flex-shrink-0 gap-2 transition-all duration-200",
+                      isActive 
+                        ? "bg-primary text-primary-foreground shadow-md border-2 border-primary" 
+                        : "bg-card hover:bg-muted border border-border hover:scale-105"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{tab.label}</span>
+                  </Button>
+                );
+              })}
             </div>
           </div>
         )}
