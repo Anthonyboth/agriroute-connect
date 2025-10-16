@@ -134,7 +134,8 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       });
 
       if (!ok) {
-        throw new Error('RPC driver_update_freight_status falhou');
+        // Helper já mostrou toast específico da RPC - apenas encerrar
+        return;
       }
 
       setNotes('');
