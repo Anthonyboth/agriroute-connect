@@ -5454,27 +5454,24 @@ export type Database = {
       get_service_requests_for_provider_cities: {
         Args: { p_provider_id: string }
         Returns: {
-          additional_info: string
           city_name: string
           client_id: string
-          contact_name: string
-          contact_phone: string
           created_at: string
-          distance_m: number
-          estimated_price: number
-          is_emergency: boolean
+          description: string
+          distance_km: number
+          id: string
           location_address: string
           location_lat: number
           location_lng: number
-          problem_description: string
-          provider_city: string
-          provider_radius_km: number
-          request_id: string
+          metadata: Json
+          price_range: string
+          provider_city_id: string
+          provider_city_name: string
+          scheduled_date: string
           service_type: string
           state: string
           status: string
           urgency: string
-          vehicle_info: string
         }[]
       }
       get_service_requests_in_provider_region: {

@@ -358,7 +358,11 @@ export const ServiceProviderDashboard: React.FC = () => {
       let providerRequests: any[] = [];
       
       if (scope === 'all' || scope === 'available') {
-        console.log('🔍 Fetching service requests for provider cities...');
+        console.log('🔍 Fetching service requests for provider cities...', {
+          providerId,
+          providerServiceTypes: profile?.service_types,
+          timestamp: new Date().toISOString()
+        });
         try {
           const { data, error: cityError } = await supabase.rpc(
             'get_service_requests_for_provider_cities',
@@ -369,7 +373,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             console.warn('⚠️ Error fetching city-based requests:', cityError);
           } else {
             cityBasedRequests = data || [];
-            console.log('✅ City-based requests found:', cityBasedRequests.length);
+            console.log('✅ City-based requests found (before filtering):', cityBasedRequests.length);
           }
         } catch (cityError) {
           console.warn('⚠️ City-based requests query failed:', cityError);
@@ -419,7 +423,22 @@ export const ServiceProviderDashboard: React.FC = () => {
         const own: ServiceRequest[] = [];
         
         // Process city-based (available)
+        const providerServiceTypes = profile?.service_types || [];
+        const freightTypes = ['FRETE_MOTO', 'GUINCHO_FREIGHT', 'CARGA_FREIGHT', 'MUDANCA_FREIGHT', 'CARGA', 'GUINCHO', 'MUDANCA'];
+        
         (cityBasedRequests || []).forEach((r: any) => {
+          // FILTRO CRÍTICO: Excluir tipos freight explicitamente
+          if (freightTypes.includes(r.service_type)) {
+            console.warn(`⚠️ Freight type ${r.service_type} filtered out for service provider`);
+            return;
+          }
+          
+          // FILTRO CRÍTICO: Verificar se o service_type está na lista do prestador
+          if (providerServiceTypes.length > 0 && !providerServiceTypes.includes(r.service_type)) {
+            console.warn(`⚠️ Service type ${r.service_type} not in provider's service list:`, providerServiceTypes);
+            return;
+          }
+          
           const client = clientsMap.get(r.client_id);
           available.push({
             id: r.request_id,
@@ -473,8 +492,22 @@ export const ServiceProviderDashboard: React.FC = () => {
       } else {
         // Update only available requests
         const available: ServiceRequest[] = [];
+        const providerServiceTypes = profile?.service_types || [];
+        const freightTypes = ['FRETE_MOTO', 'GUINCHO_FREIGHT', 'CARGA_FREIGHT', 'MUDANCA_FREIGHT', 'CARGA', 'GUINCHO', 'MUDANCA'];
         
         (cityBasedRequests || []).forEach((r: any) => {
+          // FILTRO CRÍTICO: Excluir tipos freight explicitamente
+          if (freightTypes.includes(r.service_type)) {
+            console.warn(`⚠️ Freight type ${r.service_type} filtered out for service provider`);
+            return;
+          }
+          
+          // FILTRO CRÍTICO: Verificar se o service_type está na lista do prestador
+          if (providerServiceTypes.length > 0 && !providerServiceTypes.includes(r.service_type)) {
+            console.warn(`⚠️ Service type ${r.service_type} not in provider's service list:`, providerServiceTypes);
+            return;
+          }
+          
           const client = clientsMap.get(r.client_id);
           available.push({
             id: r.request_id,

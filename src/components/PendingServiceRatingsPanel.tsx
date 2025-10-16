@@ -23,6 +23,7 @@ export const PendingServiceRatingsPanel: React.FC = () => {
   const [pendingServices, setPendingServices] = useState<PendingService[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedService, setSelectedService] = useState<PendingService | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isClient = selectedService?.client_id === profile?.id;
   const ratedUserId = isClient ? selectedService?.provider_id : selectedService?.client_id;
@@ -110,11 +111,23 @@ export const PendingServiceRatingsPanel: React.FC = () => {
   };
 
   const handleSubmitRating = async (rating: number, comment?: string) => {
-    const result = await submitRating(rating, comment);
-    if (result.success) {
-      toast.success('Avaliação enviada com sucesso!');
-      setSelectedService(null);
-      fetchPendingRatings();
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    try {
+      const result = await submitRating(rating, comment);
+      if (result.success) {
+        // Optimistic update - remover imediatamente da lista
+        setPendingServices(prev => prev.filter(s => s.id !== selectedService?.id));
+        
+        toast.success('Avaliação enviada com sucesso!');
+        setSelectedService(null);
+        
+        // Recarregar em background para garantir sincronização
+        fetchPendingRatings();
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -173,6 +186,7 @@ export const PendingServiceRatingsPanel: React.FC = () => {
                   <Button
                     size="sm"
                     onClick={() => setSelectedService(service)}
+                    disabled={isSubmitting}
                   >
                     <Star className="h-4 w-4 mr-2" />
                     Avaliar
