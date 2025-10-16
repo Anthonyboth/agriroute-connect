@@ -23,6 +23,14 @@ import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building, Plus
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { validateDocument } from '@/utils/cpfValidator';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { 
+  getRegistrationMode, 
+  getRequiredSteps, 
+  getMissingForStep, 
+  getDocumentsMissingMessage,
+  validateCNHExpiry,
+  type RegistrationMode 
+} from '@/lib/registration-policy';
 
 type PlatePhoto = {
   id: string;
@@ -32,7 +40,7 @@ type PlatePhoto = {
 };
 
 const CompleteProfile = () => {
-  const { profile, loading: authLoading, isAuthenticated, profileError, clearProfileError, retryProfileCreation, signOut } = useAuth();
+  const { profile, loading: authLoading, isAuthenticated, profileError, clearProfileError, retryProfileCreation, signOut, user } = useAuth();
   const { company, isTransportCompany } = useTransportCompany();
   const { isCompanyDriver, isLoading: isLoadingCompany } = useCompanyDriver();
   const navigate = useNavigate();
@@ -40,9 +48,15 @@ const CompleteProfile = () => {
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   
-  // Distinct driver type flags
-  const isAutonomousDriver = profile && profile.role === 'MOTORISTA' && !isCompanyDriver;
-  const isAffiliatedDriver = profile && (profile.role === 'MOTORISTA_AFILIADO' || (profile.role === 'MOTORISTA' && isCompanyDriver));
+  // Calcular modo de cadastro usando a política centralizada
+  const registrationMode: RegistrationMode = profile ? 
+    getRegistrationMode(profile, user, company, isCompanyDriver) : 'PRODUTOR';
+  
+  const totalSteps = getRequiredSteps(registrationMode).length;
+  
+  // Distinct driver type flags (mantido para compatibilidade)
+  const isAutonomousDriver = registrationMode === 'MOTORISTA_AUTONOMO';
+  const isAffiliatedDriver = registrationMode === 'MOTORISTA_AFILIADO';
   const isDriver = isAutonomousDriver || isAffiliatedDriver;
   const [documentUrls, setDocumentUrls] = useState({
     selfie: '',
@@ -287,145 +301,94 @@ const CompleteProfile = () => {
   const handleSaveAndContinue = async () => {
     if (!profile) return;
 
-    // Validate step 1 requirements - basic info
-    if (currentStep === 1) {
-      const missingFields: string[] = [];
-      
-      if (!profileData.full_name?.trim()) {
-        missingFields.push('Nome completo');
-      }
-      if (!profileData.phone?.trim()) {
-        missingFields.push('Telefone');
-      }
-      if (!profileData.cpf_cnpj?.trim()) {
-        missingFields.push('CPF/CNPJ');
-      }
-      if (!profileData.fixed_address?.trim()) {  
-        missingFields.push('Endereço');
-      }
+    const state = {
+      profileData,
+      documentUrls,
+      platePhotos,
+      vehicles,
+      skipVehicleRegistration,
+      locationEnabled
+    };
 
-      if (missingFields.length > 0) {
-        const fieldList = missingFields.join(', ');
-        const message = missingFields.length === 1 
-          ? `Por favor, preencha o campo: ${fieldList}`
-          : `Por favor, preencha os campos: ${fieldList}`;
+    // Validar passo 1: dados básicos
+    if (currentStep === 1) {
+      const missing = getMissingForStep(registrationMode, 'dados_basicos', state);
+      
+      if (missing.length > 0) {
+        const message = missing.length === 1 
+          ? `Por favor, preencha o campo: ${missing[0]}`
+          : `Por favor, preencha os campos: ${missing.join(', ')}`;
         toast.error(message);
         return;
       }
       
-      // Validate CPF/CNPJ
+      // Validar CPF/CNPJ
       if (!validateDocument(profileData.cpf_cnpj)) {
         toast.error('CPF/CNPJ inválido. Verifique os dados informados.');
         return;
       }
       
-      if (isDriver && !profileData.rntrc) {
-        toast.error('RNTRC é obrigatório para motoristas');
-        return;
-      }
       setCurrentStep(2);
       return;
     }
 
-    // Validate step 2 requirements - documents
+    // Validar passo 2: documentos básicos
     if (currentStep === 2) {
-      console.log('🔍 Validando documentos - Step 2:', { documentUrls });
+      const missing = getMissingForStep(registrationMode, 'documentos_basicos', state);
       
-      if (!documentUrls.selfie || !documentUrls.document_photo) {
-        toast.error('Por favor, envie sua selfie e foto do documento');
-        console.error('❌ Documentos faltando:', { 
-          selfie: !!documentUrls.selfie, 
-          document_photo: !!documentUrls.document_photo 
-        });
+      if (missing.length > 0) {
+        toast.error(`Por favor, envie: ${missing.join(', ')}`);
         return;
       }
       
-      console.log('✅ Documentos validados com sucesso');
-      
-      // Para motoristas autônomos: ir para etapa 3 (veículos)
-      if (isAutonomousDriver) {
+      // Se for motorista autônomo: ir para passo 3
+      if (registrationMode === 'MOTORISTA_AUTONOMO') {
         setCurrentStep(3);
         return;
       }
       
-      // Para todos os outros (incluindo afiliados): finalizar aqui
+      // Outros perfis: finalizar aqui
       await finalizeProfile();
       return;
     }
 
-   // Validate step 3 requirements for autonomous drivers - only essential docs
-   if (currentStep === 3 && isAutonomousDriver) {
-     const missingDocs = [];
-     
-     // TRANSPORTADORAS: só exigir comprovante de endereço
-     if (isTransportCompany) {
-       if (!documentUrls.address_proof) missingDocs.push('Comprovante de endereço');
-     } 
-     // MOTORISTAS COMUNS: exigir CNH + veículos
-     else {
-       if (!documentUrls.cnh) missingDocs.push('CNH');
-       if (!documentUrls.address_proof) missingDocs.push('Comprovante de residência');
-       
-       // Se não pulou o cadastro de veículos, validar fotos de placa e veículos
-       if (!skipVehicleRegistration) {
-         const tractorPlate = platePhotos.find(p => p.type === 'TRACTOR');
-         if (!tractorPlate?.url) missingDocs.push('Foto da placa do cavalo');
-         
-         if (vehicles.length === 0) {
-           missingDocs.push('Cadastro de pelo menos um veículo');
-         }
-       }
-     }
-     
-     if (missingDocs.length > 0) {
-       const docType = isTransportCompany ? 'para transportadora' : 'para motorista';
-       toast.error(`Documentos faltando ${docType}: ${missingDocs.join(', ')}`);
-       return;
-     }
+    // Validar passo 3: documentos e veículos (apenas motorista autônomo)
+    if (currentStep === 3 && registrationMode === 'MOTORISTA_AUTONOMO') {
+      const missing = getMissingForStep(registrationMode, 'documentos_e_veiculos', state);
+      
+      if (missing.length > 0) {
+        toast.error(getDocumentsMissingMessage(registrationMode, missing));
+        return;
+      }
 
-     // Verificar aceites obrigatórios
-     if (!acceptedDocumentsResponsibility) {
-       toast.error('Você deve declarar a veracidade dos documentos enviados');
-       return;
-     }
-     
-     if (!acceptedTermsOfUse) {
-       toast.error('Você deve aceitar os Termos de Uso para continuar');
-       return;
-     }
-     
-     if (!acceptedPrivacyPolicy) {
-       toast.error('Você deve aceitar a Política de Privacidade para continuar');
-       return;
-     }
+      // Verificar aceites obrigatórios
+      if (!acceptedDocumentsResponsibility) {
+        toast.error('Você deve declarar a veracidade dos documentos enviados');
+        return;
+      }
+      
+      if (!acceptedTermsOfUse) {
+        toast.error('Você deve aceitar os Termos de Uso para continuar');
+        return;
+      }
+      
+      if (!acceptedPrivacyPolicy) {
+        toast.error('Você deve aceitar a Política de Privacidade para continuar');
+        return;
+      }
 
-     // ✅ Validar vencimento de CNH APENAS para motoristas comuns
-     if (!isTransportCompany && profileData.cnh_expiry_date) {
-       const expiryDate = new Date(profileData.cnh_expiry_date);
-       const today = new Date();
-       const daysUntilExpiry = Math.floor((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-       
-       if (daysUntilExpiry < 0) {
-         toast.error('❌ Sua CNH está vencida. Atualize antes de continuar.');
-         return;
-       }
-       
-       if (daysUntilExpiry < 30) {
-         toast.warning(`⚠️ Sua CNH vence em ${daysUntilExpiry} dias. Renove em breve.`);
-       }
-     }
+      // Validar vencimento de CNH
+      const cnhValidation = validateCNHExpiry(registrationMode, profileData.cnh_expiry_date);
+      if (!cnhValidation.valid) {
+        toast.error(cnhValidation.message!);
+        return;
+      }
+      if (cnhValidation.message) {
+        toast.warning(cnhValidation.message);
+      }
 
-     if (!locationEnabled) {
-       const ok = await ensureLocationEnabled();
-       if (!ok) {
-         toast.error('Ative a localização para continuar');
-         return;
-       }
-     }
-
-     // Allow access without requiring vehicles to be fully documented
-     await finalizeProfile();
-   }
+      await finalizeProfile();
+    }
   };
 
   const finalizeProfile = async () => {
@@ -677,7 +640,6 @@ const CompleteProfile = () => {
     );
   }
 
-  const totalSteps = isAutonomousDriver ? 3 : 2;
   // Clamp defensivo: evita mostrar "3 de 2" mesmo se algo escape
   const safeCurrentStep = Math.min(currentStep, totalSteps);
   const progress = (safeCurrentStep / totalSteps) * 100;

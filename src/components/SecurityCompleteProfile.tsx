@@ -23,9 +23,13 @@ import {
   Shield,
   Car
 } from 'lucide-react';
+import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 
 export const SecurityCompleteProfile: React.FC = () => {
   const { profile } = useAuth();
+  const { company, isTransportCompany } = useTransportCompany();
+  const { isCompanyDriver } = useCompanyDriver();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     cnh_expiry_date: '',
@@ -58,20 +62,28 @@ export const SecurityCompleteProfile: React.FC = () => {
   const calculateCompletion = () => {
     if (!profile) return;
 
-    const requiredFields = [
+    // Campos obrigatórios baseados no tipo de perfil
+    let requiredFields: string[] = [
       'full_name',
       'cpf_cnpj', 
       'phone',
-      'cnh_expiry_date',
-      'cnh_category',
-      'rntrc',
       'emergency_contact_name',
       'emergency_contact_phone',
       'selfie_url',
       'document_photo_url',
-      'cnh_photo_url',
       'address_proof_url'
     ];
+
+    // Adicionar CNH e RNTRC apenas para motoristas (não para transportadoras)
+    if (profile.role === 'MOTORISTA' && !isTransportCompany) {
+      requiredFields = [
+        ...requiredFields,
+        'cnh_expiry_date',
+        'cnh_category',
+        'cnh_photo_url',
+        'rntrc'
+      ];
+    }
 
     const missing: string[] = [];
     let completed = 0;
@@ -291,7 +303,8 @@ export const SecurityCompleteProfile: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Informações da CNH */}
+      {/* Informações da CNH - Apenas para motoristas não-transportadoras */}
+      {profile.role === 'MOTORISTA' && !isTransportCompany && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -342,6 +355,7 @@ export const SecurityCompleteProfile: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Contato de Emergência */}
       <Card>
@@ -419,6 +433,8 @@ export const SecurityCompleteProfile: React.FC = () => {
               />
             </div>
 
+            {/* CNH - Apenas para motoristas não-transportadoras */}
+            {profile.role === 'MOTORISTA' && !isTransportCompany && (
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Label>CNH (Frente e Verso) *</Label>
@@ -432,6 +448,7 @@ export const SecurityCompleteProfile: React.FC = () => {
                 currentFile={profile.cnh_photo_url}
               />
             </div>
+            )}
 
             <div>
               <div className="flex items-center gap-2 mb-2">

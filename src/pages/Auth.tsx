@@ -88,7 +88,7 @@ const Auth = () => {
       password,
       phone,
       document: driverType === 'TRANSPORTADORA' ? companyCNPJ : document,
-      role: driverType === 'TRANSPORTADORA' ? 'MOTORISTA' : role
+      role: driverType === 'TRANSPORTADORA' ? 'TRANSPORTADORA' : role
     });
     
     if (validation.success === false) {
@@ -108,7 +108,7 @@ const Auth = () => {
           emailRedirectTo: `${window.location.origin}/confirm-email`,
           data: {
             full_name: fullName,
-            role: driverType === 'TRANSPORTADORA' ? 'MOTORISTA' : role,
+            role: driverType === 'TRANSPORTADORA' ? 'TRANSPORTADORA' : role,
             phone,
             document: cleanDoc,
             is_transport_company: driverType === 'TRANSPORTADORA'
@@ -142,7 +142,7 @@ const Auth = () => {
                 .select('*')
                 .eq('user_id', loginData.user.id);
 
-              const targetRole = driverType === 'TRANSPORTADORA' ? 'MOTORISTA' : role;
+              const targetRole = driverType === 'TRANSPORTADORA' ? 'TRANSPORTADORA' : role;
               const hasRoleProfile = existingProfiles?.some(p => p.role === targetRole);
 
               if (hasRoleProfile) {
