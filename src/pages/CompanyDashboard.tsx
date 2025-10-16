@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CompanyDashboard as CompanyDashboardComponent } from '@/components/CompanyDashboard';
 import { CompanyDriverManager } from '@/components/CompanyDriverManager';
 import { AdvancedVehicleManager } from '@/components/AdvancedVehicleManager';
+import { CompanyFleetVehicleList } from '@/components/CompanyFleetVehicleList';
 import { CompanyVehicleAssignments } from '@/components/CompanyVehicleAssignments';
 import { FreightCard } from '@/components/FreightCard';
 import { VehicleManager } from '@/components/VehicleManager';
@@ -115,6 +116,40 @@ const CompanyDashboard = () => {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
   const { company, isLoadingCompany } = useTransportCompany();
+  
+  const refetchCompany = async () => {
+    // Força re-fetch buscando company novamente
+    await fetchActiveFreights();
+  };
+
+  const handleAddVehicle = async (vehicleData: any) => {
+    if (!company) {
+      toast.error('Empresa não encontrada');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .insert({
+          ...vehicleData,
+          company_id: company.id,
+          driver_id: profile.id,
+          is_company_vehicle: true,
+          status: 'PENDING',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Veículo cadastrado! Aguardando aprovação do administrador.');
+      refetchCompany();
+    } catch (error: any) {
+      console.error('Erro ao cadastrar veículo:', error);
+      toast.error(error.message || 'Erro ao cadastrar veículo');
+    }
+  };
   
   // Estados para funcionalidades do motorista
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
@@ -449,7 +484,11 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="fleet" className="mt-6">
-            <AdvancedVehicleManager onVehicleAdd={() => {}} />
+              <AdvancedVehicleManager onVehicleAdd={handleAddVehicle} />
+              
+              <div className="mt-6">
+                {company?.id && <CompanyFleetVehicleList companyId={company.id} onRefresh={refetchCompany} />}
+              </div>
           </TabsContent>
 
           <TabsContent value="ai-freights" className="mt-6">

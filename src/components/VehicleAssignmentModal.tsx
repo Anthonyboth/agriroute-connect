@@ -52,7 +52,7 @@ export const VehicleAssignmentModal = ({
     enabled: isOpen && !!companyId,
   });
 
-  // Buscar veículos da empresa
+  // Buscar veículos da empresa (apenas APROVADOS)
   const { data: vehicles } = useQuery({
     queryKey: ['company-vehicles-for-assignment', companyId],
     queryFn: async () => {
@@ -61,7 +61,7 @@ export const VehicleAssignmentModal = ({
         .select('*')
         .eq('company_id', companyId)
         .eq('is_company_vehicle', true)
-        .eq('status', 'ACTIVE');
+        .in('status', ['APPROVED']); // Apenas veículos aprovados
 
       if (error) throw error;
       return data;
@@ -152,19 +152,45 @@ export const VehicleAssignmentModal = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="vehicle">Veículo</Label>
+            <Label htmlFor="vehicle">Veículo (apenas aprovados)</Label>
             <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
               <SelectTrigger id="vehicle">
-                <SelectValue placeholder="Selecione um veículo" />
+                <SelectValue placeholder="Selecione um veículo aprovado" />
               </SelectTrigger>
               <SelectContent>
+                {vehicles?.length === 0 && (
+                  <div className="p-2 text-sm text-muted-foreground text-center">
+                    Nenhum veículo aprovado disponível
+                  </div>
+                )}
                 {vehicles?.map((vehicle: any) => (
-                  <SelectItem key={vehicle.id} value={vehicle.id}>
-                    {vehicle.license_plate} - {vehicle.vehicle_type} ({vehicle.max_capacity_tons}t)
+                  <SelectItem 
+                    key={vehicle.id} 
+                    value={vehicle.id}
+                    disabled={vehicle.status !== 'APPROVED'}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{vehicle.license_plate}</span>
+                      <span className="text-muted-foreground">•</span>
+                      <span>{vehicle.vehicle_type}</span>
+                      <span className="text-muted-foreground">•</span>
+                      <span>{vehicle.max_capacity_tons}t</span>
+                      {vehicle.axles && (
+                        <>
+                          <span className="text-muted-foreground">•</span>
+                          <span>{vehicle.axles} eixos</span>
+                        </>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {vehicles && vehicles.length === 0 && (
+              <p className="text-xs text-yellow-600">
+                Cadastre e aguarde aprovação de veículos na aba "Frota"
+              </p>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">

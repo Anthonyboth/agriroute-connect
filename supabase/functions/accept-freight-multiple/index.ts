@@ -258,6 +258,68 @@ serve(async (req) => {
       availableDrivers = [profile.id];
     }
 
+    // ===== VALIDAÇÃO DE VEÍCULOS DISPONÍVEIS (TRANSPORTADORAS) =====
+    let availableVehicleIds: string[] = [];
+    
+    if (isTransportCompany && company_id) {
+      console.log(`[VEHICLES] Checking available vehicles for company ${company_id}`);
+      
+      const { data: companyVehicles, error: vehicleError } = await supabase
+        .from('vehicles')
+        .select('id, license_plate, vehicle_type, status')
+        .eq('company_id', company_id)
+        .eq('is_company_vehicle', true)
+        .eq('status', 'APPROVED');
+      
+      if (vehicleError) {
+        console.error('[VEHICLES] Error fetching vehicles:', vehicleError);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Erro ao buscar veículos disponíveis',
+            details: vehicleError.message 
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`[VEHICLES] Found ${companyVehicles?.length || 0} approved vehicles`);
+
+      const { data: usedVehicles, error: usedError } = await supabase
+        .from('freight_assignments')
+        .select('vehicle_id')
+        .eq('freight_id', freight_id)
+        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
+        .not('vehicle_id', 'is', null);
+
+      if (usedError) {
+        console.error('[VEHICLES] Error checking used vehicles:', usedError);
+      }
+
+      const usedVehicleIds = new Set(usedVehicles?.map(v => v.vehicle_id).filter(Boolean) || []);
+      const freeVehicles = companyVehicles?.filter(v => !usedVehicleIds.has(v.id)) || [];
+      
+      console.log(`[VEHICLES] Total: ${companyVehicles?.length || 0}, In use: ${usedVehicleIds.size}, Available: ${freeVehicles.length}`);
+
+      if (freeVehicles.length < num_trucks) {
+        const totalApproved = companyVehicles?.length || 0;
+
+        return new Response(
+          JSON.stringify({
+            error: `Você não tem veículos aprovados suficientes. Disponíveis: ${freeVehicles.length}, Necessários: ${num_trucks}.`,
+            available_vehicles: freeVehicles.length,
+            total_approved: totalApproved,
+            vehicles_in_use: usedVehicleIds.size,
+            requested_trucks: num_trucks,
+            suggestion: 'Cadastre mais veículos na aba "Frota" e aguarde aprovação do administrador.'
+          }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      availableVehicleIds = freeVehicles.map(v => v.id);
+      console.log(`[VEHICLES] Will use vehicle IDs:`, availableVehicleIds);
+    }
+
     // ================================================
     // 6. CRIAR ASSIGNMENTS COM VALIDAÇÕES
     // ================================================
@@ -284,6 +346,7 @@ serve(async (req) => {
     // Criar um assignment para cada motorista disponível (até num_trucks)
     for (let i = 0; i < num_trucks; i++) {
       const driver_id = availableDrivers[i];
+      const vehicle_id = availableVehicleIds[i] || null;
       
       const { data: assignment, error } = await supabase
         .from("freight_assignments")
@@ -291,6 +354,7 @@ serve(async (req) => {
           freight_id,
           driver_id,
           company_id,
+          vehicle_id,
           agreed_price: agreedPrice,
           pricing_type: pricingType,
           status: 'ACCEPTED',
@@ -306,6 +370,7 @@ serve(async (req) => {
             created_by: 'accept-freight-multiple',
             is_company_assignment: isTransportCompany,
             driver_index: i + 1,
+            vehicle_id: vehicle_id || undefined,
             created_at: new Date().toISOString()
           }
         })
