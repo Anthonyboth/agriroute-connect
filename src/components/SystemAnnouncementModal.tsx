@@ -49,16 +49,7 @@ export const SystemAnnouncementModal = () => {
         return;
       }
 
-      // Se já viu, verificar se passou 1 semana desde o último dismiss
-      const lastDismissed = new Date(dismissal.dismissed_at);
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-      if (lastDismissed < oneWeekAgo) {
-        // Passou 1 semana, mostrar novamente
-        setAnnouncement(activeAnnouncement);
-        setIsOpen(true);
-      }
+      // Se já viu, não mostrar novamente
     } catch (error) {
       console.error("Erro ao verificar anúncios:", error);
     }
@@ -134,10 +125,6 @@ export const SystemAnnouncementModal = () => {
             </div>
           )}
 
-          {/* Nota sobre reabertura */}
-          <p className="text-xs text-muted-foreground text-center">
-            Este aviso será exibido novamente em 7 dias
-          </p>
         </div>
 
         <div className="flex justify-end">
