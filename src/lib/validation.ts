@@ -1,19 +1,29 @@
 import { z } from 'zod';
+import { normalizeDocument, isValidDocument } from '@/utils/document';
 
 // CRITICAL SECURITY: Input validation schemas to prevent injection attacks
 
 // Common validation patterns
 const phoneRegex = /^\+?[\d\s\-\(\)]+$/;
-const cpfCnpjRegex = /^\d{11}$|^\d{14}$/;
 const emailSchema = z.string().email().max(255);
 const phoneSchema = z.string().regex(phoneRegex, "Formato de telefone inválido").min(10).max(20);
+
+// Document schema with preprocessing
+const documentSchema = z.string()
+  .transform(normalizeDocument)
+  .refine((doc) => doc.length === 11 || doc.length === 14, {
+    message: "Documento deve ser CPF (11 dígitos) ou CNPJ (14 dígitos)"
+  })
+  .refine((doc) => isValidDocument(doc), {
+    message: "CPF ou CNPJ inválido"
+  });
 
 // User/Profile validation
 export const profileSchema = z.object({
   full_name: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres").max(100),
   email: emailSchema,
   phone: phoneSchema,
-  document: z.string().regex(cpfCnpjRegex, "CPF/CNPJ inválido"),
+  document: documentSchema,
   role: z.enum(['PRODUTOR', 'MOTORISTA', 'PRESTADOR_SERVICO', 'ADMIN']),
 });
 

@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { documentNumberSchema } from '../_shared/validation.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +14,9 @@ serve(async (req) => {
 
   try {
     const { token, userData } = await req.json()
+
+    // Validate and normalize CPF
+    const cleanCPF = documentNumberSchema.parse(userData.cpf);
 
     console.log('[PROCESSAR-CADASTRO] Iniciando cadastro para:', userData.email)
 
@@ -83,8 +87,8 @@ serve(async (req) => {
       full_name: userData.fullName,
       email: userData.email,
       phone: userData.phone,
-      document: userData.cpf,
-      cpf_cnpj: userData.cpf,
+      document: cleanCPF,
+      cpf_cnpj: cleanCPF,
       role: 'MOTORISTA_AFILIADO',
       status: 'APPROVED'
     }

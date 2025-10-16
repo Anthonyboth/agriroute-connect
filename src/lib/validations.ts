@@ -10,17 +10,26 @@ export const emailSchema = z.string()
   .email("E-mail inválido")
   .max(255, "E-mail deve ter no máximo 255 caracteres");
 
+import { normalizeDocument, isValidDocument } from '@/utils/document';
+
 export const cpfSchema = z.string()
-  .length(11, "CPF deve ter 11 dígitos")
-  .regex(/^\d{11}$/, "CPF deve conter apenas números");
+  .transform(normalizeDocument)
+  .refine((doc) => doc.length === 11, "CPF deve ter 11 dígitos")
+  .refine((doc) => /^\d{11}$/.test(doc), "CPF inválido");
 
 export const cnpjSchema = z.string()
-  .length(14, "CNPJ deve ter 14 dígitos")
-  .regex(/^\d{14}$/, "CNPJ deve conter apenas números");
+  .transform(normalizeDocument)
+  .refine((doc) => doc.length === 14, "CNPJ deve ter 14 dígitos")
+  .refine((doc) => /^\d{14}$/.test(doc), "CNPJ inválido");
 
 export const documentSchema = z.string()
-  .refine((doc) => doc.length === 11 || doc.length === 14, "Documento deve ser CPF (11 dígitos) ou CNPJ (14 dígitos)")
-  .refine((doc) => /^\d+$/.test(doc), "Documento deve conter apenas números");
+  .transform(normalizeDocument)
+  .refine((doc) => doc.length === 11 || doc.length === 14, {
+    message: "Documento deve ser CPF (11 dígitos) ou CNPJ (14 dígitos)"
+  })
+  .refine((doc) => isValidDocument(doc), {
+    message: "CPF ou CNPJ inválido"
+  });
 
 // Freight creation validation
 export const freightSchema = z.object({

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Loader2, Mail, Eye, EyeOff, Truck, Building2, ArrowLeft, AlertTriangle, Users, Info, Briefcase, Building } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
-import { validateDocument } from '@/utils/cpfValidator';
+import { sanitizeForStore } from '@/utils/document';
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
 import { userRegistrationSchema, validateInput } from '@/lib/validations';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -72,21 +72,16 @@ const Auth = () => {
       return;
     }
 
-    // Validação básica
+    // Validação básica para transportadora
     if (driverType === 'TRANSPORTADORA') {
       if (!companyName || !companyCNPJ || !companyANTT || !companyAddress) {
         toast.error('Preencha todos os campos obrigatórios da transportadora');
         setLoading(false);
         return;
       }
-      if (!validateDocument(companyCNPJ)) {
-        toast.error('CNPJ inválido');
-        setLoading(false);
-        return;
-      }
     }
 
-    // Validate input usando Zod schema
+    // Validate input usando Zod schema (já valida e normaliza documento)
     const validation = validateInput(userRegistrationSchema, {
       full_name: fullName,
       email,
@@ -166,8 +161,6 @@ const Auth = () => {
                 }
               } else {
                 // Criar novo perfil adicional
-                const cleanDoc = (driverType === 'TRANSPORTADORA' ? companyCNPJ : document).replace(/\D/g, '');
-                
                 const { data: newProfileId, error: rpcError } = await supabase.rpc('create_additional_profile', {
                   p_user_id: loginData.user.id,
                   p_role: targetRole,
@@ -196,7 +189,7 @@ const Auth = () => {
                     .insert({
                       profile_id: newProfileId,
                       company_name: companyName,
-                      company_cnpj: companyCNPJ.replace(/\D/g, ''),
+                      company_cnpj: sanitizeForStore(companyCNPJ),
                       antt_registration: companyANTT,
                       address: companyAddress,
                       status: 'PENDING'
@@ -247,7 +240,7 @@ const Auth = () => {
             .insert({
               profile_id: profileData.id,
               company_name: companyName,
-              company_cnpj: companyCNPJ.replace(/\D/g, ''),
+              company_cnpj: sanitizeForStore(companyCNPJ),
               antt_registration: companyANTT,
               address: companyAddress,
               status: 'PENDING'
