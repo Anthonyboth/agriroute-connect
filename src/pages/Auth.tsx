@@ -98,8 +98,8 @@ const Auth = () => {
     }
 
     try {
-      // Sanitize document - only digits
-      const cleanDoc = (driverType === 'TRANSPORTADORA' ? companyCNPJ : document).replace(/\D/g, '');
+      // Document already normalized by Zod validation
+      const cleanDoc = validation.data.document;
 
       const { data, error } = await supabase.auth.signUp({
         email,

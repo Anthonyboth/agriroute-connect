@@ -5863,6 +5863,10 @@ export type Database = {
         }
         Returns: Json
       }
+      sanitize_document: {
+        Args: { doc: string }
+        Returns: string
+      }
       search_cities: {
         Args: { limit_count?: number; search_term: string }
         Returns: {
