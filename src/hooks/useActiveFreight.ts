@@ -36,7 +36,7 @@ export const useActiveFreight = (): ActiveFreightInfo => {
           .from('freights')
           .select('id, status')
           .eq('driver_id', profile.id)
-          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
+          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
           .limit(1)
           .maybeSingle();
 
@@ -55,7 +55,7 @@ export const useActiveFreight = (): ActiveFreightInfo => {
           .from('freight_assignments')
           .select('id, freight_id, status')
           .eq('driver_id', profile.id)
-          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
+          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
           .limit(1)
           .maybeSingle();
 

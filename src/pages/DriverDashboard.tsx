@@ -323,7 +323,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     [myAssignments]
   );
 
-  const activeStatuses = ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'];
+  const activeStatuses = ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT'];
   
   const visibleOngoing = useMemo(
     () => (ongoingFreights || []).filter(f => 
