@@ -64,7 +64,9 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
 
   // Selecionar fluxo baseado no tipo de serviço
   const statusFlow = useMemo(() => {
-    return serviceType === 'FRETE_MOTO' ? MOTO_FLOW : DEFAULT_FLOW;
+    // Fluxo simplificado (sem LOADED) para: Moto, Guincho, Mudança
+    const simplifiedTypes = ['FRETE_MOTO', 'GUINCHO', 'MUDANCA'];
+    return simplifiedTypes.includes(serviceType || '') ? MOTO_FLOW : DEFAULT_FLOW;
   }, [serviceType]);
 
   const fetchStatusHistory = async () => {
