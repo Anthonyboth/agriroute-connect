@@ -4029,6 +4029,39 @@ export type Database = {
         }
         Relationships: []
       }
+      system_announcements: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          message: string
+          priority: number | null
+          title: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message: string
+          priority?: number | null
+          title: string
+          type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message?: string
+          priority?: number | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tracking_consents: {
         Row: {
           consent_given: boolean
@@ -4404,6 +4437,38 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      user_announcement_dismissals: {
+        Row: {
+          announcement_id: string
+          dismissed_at: string | null
+          id: string
+          last_seen_at: string | null
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          dismissed_at?: string | null
+          id?: string
+          last_seen_at?: string | null
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          dismissed_at?: string | null
+          id?: string
+          last_seen_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_announcement_dismissals_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "system_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_cities: {
         Row: {

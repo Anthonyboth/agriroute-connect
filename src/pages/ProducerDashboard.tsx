@@ -35,6 +35,7 @@ import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 import { showErrorToast } from '@/lib/error-handler';
+import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 
 const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
@@ -849,7 +850,8 @@ const ProducerDashboard = () => {
 
   return (
     <div className="h-screen bg-gradient-to-br from-background via-secondary/5 to-background overflow-x-hidden overflow-y-auto">
-      <Header 
+      <SystemAnnouncementModal />
+      <Header
         user={{ name: profile?.full_name || 'Usuário', role: (profile?.role as 'PRODUTOR' | 'MOTORISTA') || 'PRODUTOR' }}
         onLogout={handleLogout}
         onMenuClick={() => {}}

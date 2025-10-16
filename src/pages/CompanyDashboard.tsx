@@ -59,6 +59,7 @@ import {
   FileText,
   Target
 } from 'lucide-react';
+import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 import { useGPSMonitoring } from '@/hooks/useGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { TrackingConsentModal } from '@/components/TrackingConsentModal';
@@ -163,7 +164,8 @@ const CompanyDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <Header 
+      <SystemAnnouncementModal />
+      <Header
         user={profile ? { ...profile, name: profile.full_name, role: profile.role as any } : undefined} 
         onLogout={signOut}
         userProfile={profile ? { ...profile, active_mode: 'TRANSPORTADORA' } : undefined}

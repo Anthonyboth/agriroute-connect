@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
+import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 
 const ServiceProviderDashboard = () => {
   const { profile, signOut } = useAuth();
@@ -39,7 +40,8 @@ const ServiceProviderDashboard = () => {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 dark:to-primary/5">
-      <Header 
+      <SystemAnnouncementModal />
+      <Header
         user={{ name: profile?.full_name || 'Prestador de Serviços', role: 'PRESTADOR_SERVICOS' }}
         onMenuClick={handleMenuClick}
         onLogout={handleLogout}

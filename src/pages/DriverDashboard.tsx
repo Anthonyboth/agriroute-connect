@@ -47,6 +47,7 @@ import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
 import { CompanyDriverBadge } from '@/components/CompanyDriverBadge';
+import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 
 interface Freight {
   id: string;
@@ -1307,7 +1308,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
   return (
     <div className="min-h-screen bg-background">
-      <Header 
+      <SystemAnnouncementModal />
+      <Header
         user={{ 
           name: profile?.full_name || (profile?.active_mode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista'), 
           role: 'MOTORISTA' 
