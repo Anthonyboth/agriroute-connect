@@ -14,12 +14,22 @@ interface AnttCalculationRequest {
   destination_state?: string;
   high_performance?: boolean;
   table_type?: 'A' | 'B' | 'C' | 'D'; // Override explícito da tabela
+  required_trucks?: number; // NOVO - Número de carretas
 }
 
 interface AnttCalculationResponse {
+  // Valores por carreta
   minimum_freight_value: number;
   suggested_freight_value: number;
   antt_reference_price: number;
+  
+  // NOVOS - Valores totais
+  minimum_freight_value_total: number;
+  suggested_freight_value_total: number;
+  antt_reference_price_total: number;
+  
+  required_trucks: number; // Quantas carretas
+  
   calculation_details: {
     antt_category: string;
     table_type: string;
@@ -30,6 +40,9 @@ interface AnttCalculationResponse {
     high_performance: boolean;
     interstate: boolean;
     formula: string;
+    required_trucks: number; // NOVO
+    price_per_truck: number; // NOVO
+    total_price: number;     // NOVO
   };
 }
 
@@ -48,7 +61,8 @@ serve(async (req) => {
       origin_state,
       destination_state,
       high_performance = false,
-      table_type
+      table_type,
+      required_trucks = 1 // NOVO - default 1 carreta
     }: AnttCalculationRequest = await req.json();
     
     console.log('📊 ANTT Calculation Request:', { cargo_type, distance_km, axles, high_performance, table_type });
@@ -129,15 +143,29 @@ serve(async (req) => {
     // Fórmula: (rate_per_km * distance_km) + fixed_charge
     const basePrice = (parseFloat(rateRow.rate_per_km) * distance_km) + parseFloat(rateRow.fixed_charge);
 
-    // 4. Valores finais (sem incremento interestadual)
+    // 4. Valores finais POR CARRETA
     const antt_reference_price = Math.round(basePrice * 100) / 100;
     const minimum_freight_value = Math.round(antt_reference_price * 100) / 100; // O mínimo É o valor ANTT
     const suggested_freight_value = Math.round(antt_reference_price * 1.10 * 100) / 100; // 10% acima (sugestão comercial)
 
+    // 5. Valores TOTAIS (multiplicar por número de carretas)
+    const minimum_freight_value_total = Math.round(minimum_freight_value * required_trucks * 100) / 100;
+    const suggested_freight_value_total = Math.round(suggested_freight_value * required_trucks * 100) / 100;
+    const antt_reference_price_total = Math.round(antt_reference_price * required_trucks * 100) / 100;
+
     const response: AnttCalculationResponse = {
+      // Valores por carreta
       minimum_freight_value,
       suggested_freight_value,
       antt_reference_price,
+      
+      // Valores totais
+      minimum_freight_value_total,
+      suggested_freight_value_total,
+      antt_reference_price_total,
+      
+      required_trucks,
+      
       calculation_details: {
         antt_category: anttCategory,
         table_type: tableType,
@@ -147,7 +175,10 @@ serve(async (req) => {
         fixed_charge: parseFloat(rateRow.fixed_charge),
         high_performance,
         interstate: false, // Removido incremento interestadual
-        formula: `(${rateRow.rate_per_km} × ${distance_km}km) + ${rateRow.fixed_charge} = R$ ${antt_reference_price.toFixed(2)}`
+        formula: `(${rateRow.rate_per_km} × ${distance_km}km) + ${rateRow.fixed_charge} = R$ ${antt_reference_price.toFixed(2)} por carreta`,
+        required_trucks,
+        price_per_truck: minimum_freight_value,
+        total_price: minimum_freight_value_total
       }
     };
 

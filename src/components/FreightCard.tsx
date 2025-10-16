@@ -172,19 +172,24 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               <Truck className="h-3 w-3" />
               <span className="text-xs font-medium">Carretas:</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className={`font-semibold text-sm ${isFullyBooked ? 'text-success' : 'text-primary'}`}>
-                {freight.accepted_trucks || 0}/{freight.required_trucks}
+            <div className="flex flex-col items-end space-y-1">
+              <div className="flex items-center space-x-2">
+                <span className={`font-semibold text-sm ${isFullyBooked ? 'text-success' : 'text-primary'}`}>
+                  {freight.accepted_trucks || 0}/{freight.required_trucks}
+                </span>
+                {isFullyBooked ? (
+                  <Badge variant="default" className="text-xs bg-success text-success-foreground">
+                    Completo
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-xs">
+                    {availableSlots} vaga{availableSlots > 1 ? 's' : ''}
+                  </Badge>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground">
+                R$ {(freight.price / freight.required_trucks).toFixed(2)}/carreta
               </span>
-              {isFullyBooked ? (
-                <Badge variant="default" className="text-xs bg-success text-success-foreground">
-                  Completo
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="text-xs">
-                  {availableSlots} vaga{availableSlots > 1 ? 's' : ''}
-                </Badge>
-              )}
             </div>
           </div>
         )}

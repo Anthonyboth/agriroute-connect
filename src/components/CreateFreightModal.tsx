@@ -18,6 +18,7 @@ import { CitySelector } from './CitySelector';
 import { StructuredAddressInput } from './StructuredAddressInput';
 import { freightSchema, validateInput } from '@/lib/validations';
 import { getCityId } from '@/lib/city-utils';
+import { calculateFreightPrice, convertWeightToKg } from '@/lib/freight-calculations';
 
 interface CreateFreightModalProps {
   onFreightCreated: () => void;
@@ -117,12 +118,13 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
           origin_state: originState || formData.origin_state,
           destination_state: destinationState || formData.destination_state,
           table_type,
+          required_trucks: parseInt(formData.required_trucks) || 1
         }
       });
       const { data, error } = await withTimeoutAny(invoke, 5000);
       if (error) throw error;
 
-      // Persistir no estado para consistência visual da UI
+      // Persistir no estado - usar valores POR CARRETA
       setCalculatedAnttPrice(data.minimum_freight_value);
       setAnttDetails(data.calculation_details);
 
@@ -192,7 +194,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
           axles,
           origin_state: formData.origin_state,
           destination_state: formData.destination_state,
-          table_type
+          table_type,
+          required_trucks: parseInt(formData.required_trucks) || 1
         }
       });
       
@@ -290,10 +293,27 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         });
       }
 
+      // Calcular preços usando utilitário
+      const calculation = calculateFreightPrice({
+        pricePerKm: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : undefined,
+        fixedPrice: formData.pricing_type === 'FIXED' ? parseFloat(formData.price) : undefined,
+        distanceKm: distance,
+        requiredTrucks: parseInt(formData.required_trucks),
+        pricingType: formData.pricing_type,
+        anttMinimumPrice: minimumAnttPrice
+      });
+
+      // Validar ANTT se aplicável
+      if (minimumAnttPrice && !calculation.isAboveAnttMinimum) {
+        toast.error(`Valor total (R$ ${calculation.totalPrice.toFixed(2)}) está abaixo do mínimo ANTT (R$ ${calculation.anttMinimumTotal?.toFixed(2)})`);
+        setLoading(false);
+        return;
+      }
+
       const freightData = {
         producer_id: userProfile.id,
         cargo_type: formData.cargo_type,
-        weight: weight * 1000, // Convert tonnes to kg for database storage
+        weight: convertWeightToKg(weight), // Usar utilitário
         origin_address: formData.origin_address,
         origin_city: formData.origin_city,
         origin_state: formData.origin_state,
@@ -307,8 +327,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         destination_lat: formData.destination_lat,
         destination_lng: formData.destination_lng,
         distance_km: distance,
-        minimum_antt_price: minimumAnttPrice,
-        price: formData.pricing_type === 'FIXED' ? parseFloat(formData.price) : parseFloat(formData.price_per_km) * distance,
+        minimum_antt_price: calculation.anttMinimumTotal || minimumAnttPrice, // Total ANTT
+        price: calculation.totalPrice, // PREÇO TOTAL
         price_per_km: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : null,
         required_trucks: parseInt(formData.required_trucks),
         accepted_trucks: 0,
@@ -319,7 +339,13 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         vehicle_type_required: (formData.vehicle_type_required || null) as any,
         vehicle_axles_required: formData.vehicle_axles_required ? parseInt(formData.vehicle_axles_required) : null,
         high_performance: formData.high_performance || false,
-        status: 'OPEN' as const
+        status: 'OPEN' as const,
+        // Adicionar metadata para tracking
+        metadata: {
+          price_per_truck: calculation.pricePerTruck,
+          antt_per_truck: minimumAnttPrice,
+          calculation_date: new Date().toISOString()
+        }
       };
 
       const { data: insertedFreight, error } = await supabase
@@ -452,7 +478,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="weight">Peso (Toneladas) *</Label>
+              <Label htmlFor="weight">Peso TOTAL (Toneladas) *</Label>
               <Input
                 id="weight"
                 type="number"
@@ -460,11 +486,11 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                 min="0.01"
                 value={formData.weight}
                 onChange={(e) => handleInputChange('weight', e.target.value)}
-                placeholder="1.5"
+                placeholder="300"
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Peso em toneladas (valor mínimo 0.01)
+                💡 Peso total em toneladas. Ex: 300 = 300 toneladas = 300.000 kg
               </p>
             </div>
 
@@ -583,7 +609,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {formData.pricing_type === 'FIXED' ? (
               <div className="space-y-2">
-                <Label htmlFor="price">Valor Oferecido (R$) *</Label>
+                <Label htmlFor="price">Valor Fixo POR CARRETA (R$) *</Label>
                 <Input
                   id="price"
                   type="number"
@@ -594,10 +620,13 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                   placeholder="5000.00"
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  💡 Valor POR CARRETA. Total = R$ {(parseFloat(formData.price || '0') * parseInt(formData.required_trucks)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
-                <Label htmlFor="price_per_km">Valor por KM (R$) *</Label>
+                <Label htmlFor="price_per_km">Valor por KM POR CARRETA (R$/km) *</Label>
                 <Input
                   id="price_per_km"
                   type="number"
@@ -608,9 +637,18 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
                   placeholder="8.50"
                   required
                 />
-                <p className="text-xs text-muted-foreground">
-                  Valor será calculado automaticamente baseado na distância
-                </p>
+                {formData.price_per_km && calculatedDistance > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs font-medium text-blue-900 mb-2">📊 Preview de Cálculo:</p>
+                    <div className="text-xs text-blue-800 space-y-1">
+                      <p>• Por carreta: R$ {(parseFloat(formData.price_per_km) * calculatedDistance).toFixed(2)}</p>
+                      <p className="font-semibold">
+                        • TOTAL ({formData.required_trucks} carreta{parseInt(formData.required_trucks) > 1 ? 's' : ''}): 
+                        R$ {(parseFloat(formData.price_per_km) * calculatedDistance * parseInt(formData.required_trucks)).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             
@@ -696,7 +734,12 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
               {calculatedAnttPrice && formData.vehicle_axles_required && (formData.price || formData.price_per_km) && (
                 <ANTTValidation
                   proposedPrice={formData.pricing_type === 'FIXED' ? parseFloat(formData.price || '0') : parseFloat(formData.price_per_km || '0') * calculatedDistance}
+                  proposedPriceTotal={formData.pricing_type === 'FIXED' 
+                    ? parseFloat(formData.price || '0') * parseInt(formData.required_trucks)
+                    : parseFloat(formData.price_per_km || '0') * calculatedDistance * parseInt(formData.required_trucks)}
                   minimumAnttPrice={calculatedAnttPrice}
+                  minimumAnttPriceTotal={calculatedAnttPrice * parseInt(formData.required_trucks)}
+                  requiredTrucks={parseInt(formData.required_trucks)}
                   distance={calculatedDistance}
                   cargoType={formData.cargo_type}
                   axles={parseInt(formData.vehicle_axles_required)}

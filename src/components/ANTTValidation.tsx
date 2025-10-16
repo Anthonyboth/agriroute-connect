@@ -4,8 +4,11 @@ import { AlertTriangle, DollarSign, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface ANTTValidationProps {
-  proposedPrice: number;
-  minimumAnttPrice?: number;
+  proposedPrice: number;          // Preço POR CARRETA
+  proposedPriceTotal?: number;    // NOVO - Preço TOTAL
+  minimumAnttPrice?: number;      // ANTT POR CARRETA
+  minimumAnttPriceTotal?: number; // NOVO - ANTT TOTAL
+  requiredTrucks?: number;        // NOVO - Número de carretas
   distance?: number;
   cargoType?: string;
   weight?: number;
@@ -16,7 +19,10 @@ interface ANTTValidationProps {
 
 export const ANTTValidation: React.FC<ANTTValidationProps> = ({
   proposedPrice,
+  proposedPriceTotal,
   minimumAnttPrice,
+  minimumAnttPriceTotal,
+  requiredTrucks = 1,
   distance,
   cargoType,
   weight,
@@ -35,9 +41,13 @@ export const ANTTValidation: React.FC<ANTTValidationProps> = ({
     );
   }
 
-  const isAboveMinimum = proposedPrice >= minimumAnttPrice;
-  const difference = proposedPrice - minimumAnttPrice;
-  const percentageDiff = ((difference / minimumAnttPrice) * 100);
+  // Usar valores totais se disponíveis, senão calcular
+  const totalProposed = proposedPriceTotal || (proposedPrice * requiredTrucks);
+  const totalAntt = minimumAnttPriceTotal || (minimumAnttPrice * requiredTrucks);
+  
+  const isAboveMinimum = totalProposed >= totalAntt;
+  const difference = totalProposed - totalAntt;
+  const percentageDiff = ((difference / totalAntt) * 100);
 
   if (!isAboveMinimum) {
     return (
@@ -45,10 +55,15 @@ export const ANTTValidation: React.FC<ANTTValidationProps> = ({
         <AlertTriangle className="h-4 w-4 text-red-600" />
         <AlertDescription className="space-y-3">
           <div className="text-red-800">
-            <p className="font-semibold">⚠️ Valor abaixo do mínimo ANTT</p>
+            <p className="font-semibold">⚠️ Valor TOTAL abaixo do mínimo ANTT</p>
             <div className="mt-2 space-y-1 text-sm">
-              <p>Seu valor: <strong>R$ {proposedPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></p>
-              <p>Mínimo ANTT: <strong>R$ {minimumAnttPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></p>
+              <p>Por carreta: <strong>R$ {proposedPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></p>
+              {requiredTrucks > 1 && (
+                <p className="text-xs text-red-700">
+                  × {requiredTrucks} carreta{requiredTrucks > 1 ? 's' : ''} = R$ {totalProposed.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+              )}
+              <p className="mt-2">Mínimo ANTT (total): <strong>R$ {totalAntt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></p>
               <p className="text-red-600 font-semibold">
                 Diferença: R$ {Math.abs(difference).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} a menos
               </p>
@@ -95,8 +110,13 @@ export const ANTTValidation: React.FC<ANTTValidationProps> = ({
           </Badge>
         </div>
         <div className="text-sm space-y-1">
-          <p>Seu valor: R$ {proposedPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-          <p>Mínimo ANTT: R$ {minimumAnttPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+          <p>Por carreta: R$ {proposedPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+          {requiredTrucks > 1 && (
+            <p className="font-semibold text-green-900">
+              TOTAL ({requiredTrucks} carreta{requiredTrucks > 1 ? 's' : ''}): R$ {totalProposed.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+          )}
+          <p className="text-xs">Mínimo ANTT (total): R$ {totalAntt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
           
           {anttDetails && (
             <div className="mt-2 p-2 bg-green-100 rounded text-xs">

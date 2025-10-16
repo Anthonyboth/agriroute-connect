@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { getCityId } from '@/lib/city-utils';
+import { calculateFreightPrice, convertWeightToKg } from '@/lib/freight-calculations';
 
 interface ScheduledFreightModalProps {
   isOpen: boolean;
@@ -96,9 +97,18 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
       const originCityId = await getCityId(originCity, originState);
       const destinationCityId = await getCityId(destinationCity, destinationState);
       
+      // Calcular preços usando utilitário
+      const calculation = calculateFreightPrice({
+        pricePerKm: pricingType === 'PER_KM' ? parseFloat(pricePerKm) : undefined,
+        fixedPrice: pricingType === 'FIXED' ? parseFloat(price) : undefined,
+        distanceKm: 0, // Distance será calculado depois
+        requiredTrucks: parseInt(requiredTrucks),
+        pricingType: pricingType
+      });
+
       const freightData = {
         producer_id: profile.id,
-        weight: parseFloat(weight) * 1000, // Convert tonnes to kg for database
+        weight: convertWeightToKg(parseFloat(weight)), // Usar utilitário
         
         // Origem estruturada
         origin_address: originAddress,
@@ -119,7 +129,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
         cargo_type: cargoType,
         description,
         pricing_type: pricingType,
-        price: pricingType === 'FIXED' ? parseFloat(price) : null,
+        price: pricingType === 'FIXED' ? calculation.totalPrice : null,
         price_per_km: pricingType === 'PER_KM' ? parseFloat(pricePerKm) : null,
         required_trucks: parseInt(requiredTrucks),
         service_type: serviceType,
@@ -134,7 +144,13 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
         
         pickup_date: format(scheduledDate, 'yyyy-MM-dd'),
         delivery_date: format(new Date(scheduledDate.getTime() + 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // +1 dia
-        urgency: 'LOW' as const // Fretes agendados são menos urgentes
+        urgency: 'LOW' as const, // Fretes agendados são menos urgentes
+        
+        // Metadata para tracking
+        metadata: {
+          price_per_truck: calculation.pricePerTruck,
+          calculation_date: new Date().toISOString()
+        }
       };
 
       const { error } = await supabase
@@ -265,16 +281,19 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Peso (toneladas) *</Label>
+                    <Label>Peso TOTAL (toneladas) *</Label>
                     <Input
                       type="number"
-                      placeholder="Ex: 25"
+                      placeholder="Ex: 300"
                       value={weight}
                       onChange={(e) => setWeight(e.target.value)}
                       step="0.1"
                       min="0.1"
                       required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      💡 Peso total. Ex: 300 = 300 toneladas = 300.000 kg
+                    </p>
                   </div>
                 </div>
 
@@ -308,7 +327,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
 
                   {pricingType === 'FIXED' ? (
                     <div className="space-y-2">
-                      <Label>Valor Fixo (R$) *</Label>
+                      <Label>Valor Fixo POR CARRETA (R$) *</Label>
                       <Input
                         type="number"
                         placeholder="Ex: 5000.00"
@@ -319,12 +338,12 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                         required
                       />
                       <p className="text-xs text-muted-foreground">
-                        Valor total do frete
+                        💡 Valor POR CARRETA. Total = R$ {(parseFloat(price || '0') * parseInt(requiredTrucks)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Label>Valor por KM (R$/km) *</Label>
+                      <Label>Valor por KM POR CARRETA (R$/km) *</Label>
                       <Input
                         type="number"
                         placeholder="Ex: 8.50"
@@ -335,7 +354,7 @@ export const ScheduledFreightModal: React.FC<ScheduledFreightModalProps> = ({
                         required
                       />
                       <p className="text-xs text-muted-foreground">
-                        Valor será calculado baseado na distância
+                        💡 Valor POR CARRETA. Será calculado baseado na distância × {requiredTrucks} carreta{parseInt(requiredTrucks) > 1 ? 's' : ''}
                       </p>
                     </div>
                   )}
