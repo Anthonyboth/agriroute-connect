@@ -88,6 +88,109 @@ const CompanyDashboard = () => {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
   const { company, isLoadingCompany } = useTransportCompany();
+  
+  // Estados para funcionalidades do motorista
+  const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showCheckinModal, setShowCheckinModal] = useState(false);
+  const [selectedFreightForCheckin, setSelectedFreightForCheckin] = useState<string | null>(null);
+  const [initialCheckinType, setInitialCheckinType] = useState<string | null>(null);
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+  const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<any | null>(null);
+  
+  // Estados para dados
+  const [activeFreights, setActiveFreights] = useState<any[]>([]);
+  const [myAssignments, setMyAssignments] = useState<any[]>([]);
+  const [isLoadingActive, setIsLoadingActive] = useState(true);
+
+  // GPS Monitoring para fretes em andamento
+  const activeFreight = activeFreights.find(f =>
+    f.status === 'IN_TRANSIT' || f.status === 'ACCEPTED'
+  );
+  useGPSMonitoring(activeFreight?.id || null, !!activeFreight);
+
+  // Fetch fretes ativos da empresa
+  const fetchActiveFreights = React.useCallback(async () => {
+    if (!company?.id || !profile?.id) return;
+
+    try {
+      setIsLoadingActive(true);
+
+      // Buscar assignments ativos da empresa
+      const { data: assignments, error } = await supabase
+        .from('freight_assignments')
+        .select(`
+          *,
+          freight:freights(*,
+            producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone)
+          ),
+          driver:profiles!freight_assignments_driver_id_fkey(id, full_name, contact_phone, rating)
+        `)
+        .eq('company_id', company.id)
+        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
+        .order('accepted_at', { ascending: false });
+
+      if (error) throw error;
+
+      setMyAssignments(assignments || []);
+
+      // Buscar também fretes diretos da empresa
+      const { data: directFreights } = await supabase
+        .from('freights')
+        .select(`
+          *,
+          producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone),
+          driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, rating)
+        `)
+        .eq('company_id', company.id)
+        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
+        .order('created_at', { ascending: false });
+
+      setActiveFreights(directFreights || []);
+    } catch (error) {
+      console.error('Erro ao buscar fretes ativos:', error);
+      toast.error('Erro ao carregar fretes ativos');
+    } finally {
+      setIsLoadingActive(false);
+    }
+  }, [company?.id, profile?.id]);
+
+  React.useEffect(() => {
+    fetchActiveFreights();
+  }, [fetchActiveFreights]);
+
+  // Realtime updates
+  React.useEffect(() => {
+    if (!company?.id) return;
+
+    const channel = supabase
+      .channel('company-active-freights')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'freight_assignments',
+          filter: `company_id=eq.${company.id}`
+        },
+        () => fetchActiveFreights()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'freights',
+          filter: `company_id=eq.${company.id}`
+        },
+        () => fetchActiveFreights()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [company?.id, fetchActiveFreights]);
 
   // Auto-switch para perfil TRANSPORTADORA se necessário
   useEffect(() => {
@@ -366,6 +469,148 @@ const CompanyDashboard = () => {
             <AdvancedVehicleManager onVehicleAdd={() => {}} />
           </TabsContent>
 
+          <TabsContent value="ai-freights" className="mt-6">
+            <SmartFreightMatcher 
+              onFreightAction={(freightId) => {
+                setSelectedFreightId(freightId);
+                setShowDetails(true);
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="active" className="mt-6">
+            <div className="space-y-6">
+              {/* GPS Tracking Alert */}
+              {activeFreight && (
+                <Alert className="mb-4">
+                  <Navigation className="h-4 w-4 animate-pulse" />
+                  <AlertTitle className="flex items-center gap-2">
+                    Rastreamento Automático Ativo
+                  </AlertTitle>
+                  <AlertDescription>
+                    O GPS está rastreando automaticamente fretes em andamento para segurança.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Navigation className="h-5 w-5 text-blue-600" />
+                    Fretes em Andamento
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingActive ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                      <p>Carregando fretes ativos...</p>
+                    </div>
+                  ) : myAssignments.length === 0 && activeFreights.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      <Navigation className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhum frete em andamento</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Assignments */}
+                      {myAssignments.map((assignment) => (
+                        <MyAssignmentCard
+                          key={assignment.id}
+                          assignment={assignment}
+                          onAction={() => {
+                            setSelectedFreightId(assignment.freight_id);
+                            setShowDetails(true);
+                          }}
+                        />
+                      ))}
+
+                      {/* Direct Freights */}
+                      {activeFreights.map((freight) => (
+                        <Card key={freight.id} className="border-l-4 border-l-blue-600">
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-semibold">{getCargoTypeLabel(freight.cargo_type)}</h3>
+                              <Badge variant="secondary">
+                                {freight.status === 'IN_TRANSIT' ? 'Em Trânsito' : 'Aceito'}
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <div className="space-y-1 text-sm">
+                              <p className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-green-600" />
+                                <span className="font-medium">Origem:</span> {freight.origin_city}, {freight.origin_state}
+                              </p>
+                              <p className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-red-600" />
+                                <span className="font-medium">Destino:</span> {freight.destination_city}, {freight.destination_state}
+                              </p>
+                            </div>
+                            {freight.driver && (
+                              <div className="p-2 bg-muted rounded">
+                                <p className="text-sm"><strong>Motorista:</strong> {freight.driver.full_name}</p>
+                                {freight.driver.contact_phone && (
+                                  <p className="text-xs text-muted-foreground">{freight.driver.contact_phone}</p>
+                                )}
+                              </div>
+                            )}
+                            <Button
+                              onClick={() => {
+                                setSelectedFreightId(freight.id);
+                                setShowDetails(true);
+                              }}
+                              className="w-full"
+                            >
+                              Ver Detalhes
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="proposals" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-orange-600" />
+                  Propostas Recebidas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Gerencie as propostas enviadas pelos motoristas afiliados à sua transportadora.
+                </p>
+                {company?.id && (
+                  <div className="text-center text-muted-foreground py-8">
+                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Sistema de propostas em desenvolvimento</p>
+                    <p className="text-xs mt-2">Em breve você poderá gerenciar propostas aqui</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payments" className="mt-6">
+            {profile?.id && <DriverPayouts driverId={profile.id} />}
+          </TabsContent>
+
+          <TabsContent value="areas-ai" className="mt-6">
+            <DriverAvailabilityAreasManager
+              driverId={profile?.id || ''}
+              onFreightAction={(freightId) => {
+                setSelectedFreightId(freightId);
+                setShowDetails(true);
+              }}
+            />
+          </TabsContent>
+
           <TabsContent value="freights" className="mt-6">
             <div className="space-y-6">
               <AdvancedFreightSearch 
@@ -412,6 +657,67 @@ const CompanyDashboard = () => {
         open={inviteModalOpen}
         onOpenChange={setInviteModalOpen}
       />
+
+      {/* Freight Details Modal */}
+      {showDetails && selectedFreightId && profile && (
+        <Dialog open={showDetails} onOpenChange={setShowDetails}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <FreightDetails
+              freightId={selectedFreightId}
+              currentUserProfile={profile}
+              onClose={() => {
+                setShowDetails(false);
+                setSelectedFreightId(null);
+                fetchActiveFreights();
+              }}
+              onFreightWithdraw={(freight) => {
+                setSelectedFreightForWithdrawal(freight);
+                setShowWithdrawalModal(true);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Checkin Modal */}
+      {showCheckinModal && selectedFreightForCheckin && profile && (
+        <FreightCheckinModal
+          freightId={selectedFreightForCheckin}
+          isOpen={showCheckinModal}
+          onClose={() => {
+            setShowCheckinModal(false);
+            setSelectedFreightForCheckin(null);
+            setInitialCheckinType(null);
+            fetchActiveFreights();
+          }}
+          currentUserProfile={profile}
+          initialType={initialCheckinType || undefined}
+        />
+      )}
+
+      {/* Withdrawal Modal */}
+      {showWithdrawalModal && selectedFreightForWithdrawal && (
+        <FreightWithdrawalModal
+          isOpen={showWithdrawalModal}
+          onClose={() => {
+            setShowWithdrawalModal(false);
+            setSelectedFreightForWithdrawal(null);
+          }}
+          onConfirm={async () => {
+            // Handle withdrawal
+            setShowWithdrawalModal(false);
+            setSelectedFreightForWithdrawal(null);
+            fetchActiveFreights();
+            toast.success('Frete retirado com sucesso');
+          }}
+          freightInfo={{
+            cargo_type: selectedFreightForWithdrawal.cargo_type,
+            origin_address: selectedFreightForWithdrawal.origin_address,
+            destination_address: selectedFreightForWithdrawal.destination_address,
+            price: selectedFreightForWithdrawal.price,
+          }}
+        />
+      )}
       
     </div>
   );
