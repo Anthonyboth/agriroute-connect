@@ -52,6 +52,7 @@ const CompleteProfile = () => {
   const registrationMode: RegistrationMode = profile ? 
     getRegistrationMode(profile, user, company, isCompanyDriver) : 'PRODUTOR';
   
+  // Número total de passos baseado no modo de cadastro
   const totalSteps = getRequiredSteps(registrationMode).length;
   
   // Distinct driver type flags (mantido para compatibilidade)
