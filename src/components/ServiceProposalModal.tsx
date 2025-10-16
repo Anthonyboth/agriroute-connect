@@ -18,7 +18,7 @@ interface ServiceProposalModalProps {
   onClose: () => void;
   freight: {
     id: string;
-    service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA';
+    service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO';
     price: number;
     distance_km?: number;
     weight?: number;
@@ -86,6 +86,8 @@ const [pricePerKm, setPricePerKm] = useState('');
         return <Wrench className="h-5 w-5 text-warning" />;
       case 'MUDANCA':
         return <Home className="h-5 w-5 text-accent" />;
+      case 'FRETE_MOTO':
+        return <Truck className="h-5 w-5 text-blue-500" />;
       default:
         return <Package className="h-5 w-5 text-primary" />;
     }
@@ -101,6 +103,8 @@ const [pricePerKm, setPricePerKm] = useState('');
         return 'Aceitar Chamado de Guincho';
       case 'MUDANCA':
         return 'Fazer Orçamento de Mudança';
+      case 'FRETE_MOTO':
+        return 'Aceitar Frete por Moto';
       default:
         return 'Aceitar Frete';
     }
@@ -123,6 +127,18 @@ const [pricePerKm, setPricePerKm] = useState('');
     const priceFloat = parseFloat(priceValue);
     if (isNaN(priceFloat) || priceFloat <= 0) {
       toast.error('Valor inválido');
+      return;
+    }
+    
+    // Validação específica para FRETE_MOTO
+    if (freight.service_type === 'FRETE_MOTO' && priceFloat < 10) {
+      toast.error('Frete por moto tem valor mínimo de R$ 10,00');
+      return;
+    }
+    
+    // Validação de "Por KM" - precisa ter distância
+    if (pricingType === 'PER_KM' && (!freight.distance_km || freight.distance_km === 0)) {
+      toast.error('Para proposta por KM, precisamos da distância da rota. Use valor fixo ou aguarde o cálculo da rota.');
       return;
     }
     
@@ -358,70 +374,34 @@ const [pricePerKm, setPricePerKm] = useState('');
     </>
   );
 
-  const renderCargaForm = () => (
+  const renderFreightMotoForm = () => (
     <>
-      {originalProposal && (
-        <div className="bg-secondary/30 p-3 rounded-lg space-y-2 mb-4">
-          <h3 className="font-semibold text-sm">Proposta Atual</h3>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Valor original:</span>
-            <span className="font-medium">R$ {freight.price.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Proposta do motorista:</span>
-            <span className="font-medium">R$ {originalProposal.proposed_price.toLocaleString()}</span>
-          </div>
-        </div>
-      )}
+      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
+        <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+          ⚠️ Valor mínimo para frete por moto: R$ 10,00
+        </p>
+      </div>
 
       <div className="space-y-4">
-        {originalProposal && (
-          <div className="space-y-2">
-            <Label>Tipo de Cobrança</Label>
-            <Select value={pricingType} onValueChange={(value: 'FIXED' | 'PER_KM') => setPricingType(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
-                <SelectItem value="FIXED">Valor Fixo</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
         <div className="space-y-2">
-          <Label>{pricingType === 'PER_KM' ? 'Valor por KM (R$) *' : 'Valor Proposto (R$) *'}</Label>
-          {pricingType === 'PER_KM' ? (
-            <Input
-              type="number"
-              placeholder="Digite o valor por km"
-              value={pricePerKm}
-              onChange={(e) => setPricePerKm(e.target.value)}
-              step="0.01"
-              min="0.01"
-            />
-          ) : (
-            <Input
-              type="number"
-              placeholder="Digite o valor da proposta"
-              value={proposedPrice}
-              onChange={(e) => setProposedPrice(e.target.value)}
-              step="0.01"
-              min="0.01"
-            />
-          )}
-          {pricingType === 'PER_KM' && freight.distance_km && pricePerKm && (
-            <p className="text-sm text-muted-foreground">
-              Total calculado: R$ {(parseFloat(pricePerKm) * freight.distance_km).toLocaleString()}
-            </p>
-          )}
+          <Label>Valor do Frete (R$) *</Label>
+          <Input
+            type="number"
+            placeholder="Mínimo R$ 10,00"
+            value={proposedPrice}
+            onChange={(e) => setProposedPrice(e.target.value)}
+            step="0.01"
+            min="10"
+          />
+          <p className="text-xs text-muted-foreground">
+            O valor não pode ser inferior a R$ 10,00
+          </p>
         </div>
 
         <div className="space-y-2">
-          <Label>{originalProposal ? 'Justificativa da Contra-Proposta' : 'Observações'}</Label>
+          <Label>Observações</Label>
           <Textarea
-            placeholder={originalProposal ? "Explique sua contra-proposta..." : "Informações adicionais sobre o frete..."}
+            placeholder="Informações adicionais sobre o frete..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={3}
@@ -430,6 +410,93 @@ const [pricePerKm, setPricePerKm] = useState('');
       </div>
     </>
   );
+
+  const renderCargaForm = () => {
+    const hasDistance = freight.distance_km && freight.distance_km > 0;
+    
+    return (
+      <>
+        {originalProposal && (
+          <div className="bg-secondary/30 p-3 rounded-lg space-y-2 mb-4">
+            <h3 className="font-semibold text-sm">Proposta Atual</h3>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Valor original:</span>
+              <span className="font-medium">R$ {freight.price.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Proposta do motorista:</span>
+              <span className="font-medium">R$ {originalProposal.proposed_price.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
+
+        {!hasDistance && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg mb-4">
+            <p className="text-sm text-yellow-600 dark:text-yellow-400">
+              ⚠️ Distância não calculada. Apenas propostas de <strong>Valor Fixo</strong> estão disponíveis.
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {originalProposal && hasDistance && (
+            <div className="space-y-2">
+              <Label>Tipo de Cobrança</Label>
+              <Select value={pricingType} onValueChange={(value: 'FIXED' | 'PER_KM') => setPricingType(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FIXED">Valor Fixo</SelectItem>
+                  <SelectItem value="PER_KM" disabled={!hasDistance}>
+                    Por Quilômetro {!hasDistance && "(Indisponível)"}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>{pricingType === 'PER_KM' ? 'Valor por KM (R$) *' : 'Valor Proposto (R$) *'}</Label>
+            {pricingType === 'PER_KM' ? (
+              <Input
+                type="number"
+                placeholder="Digite o valor por km"
+                value={pricePerKm}
+                onChange={(e) => setPricePerKm(e.target.value)}
+                step="0.01"
+                min="0.01"
+              />
+            ) : (
+              <Input
+                type="number"
+                placeholder="Digite o valor da proposta"
+                value={proposedPrice}
+                onChange={(e) => setProposedPrice(e.target.value)}
+                step="0.01"
+                min="0.01"
+              />
+            )}
+            {pricingType === 'PER_KM' && freight.distance_km && pricePerKm && (
+              <p className="text-sm text-muted-foreground">
+                Total calculado: R$ {(parseFloat(pricePerKm) * freight.distance_km).toLocaleString()}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>{originalProposal ? 'Justificativa da Contra-Proposta' : 'Observações'}</Label>
+            <Textarea
+              placeholder={originalProposal ? "Explique sua contra-proposta..." : "Informações adicionais sobre o frete..."}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={3}
+            />
+          </div>
+        </div>
+      </>
+    );
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -467,6 +534,7 @@ const [pricePerKm, setPricePerKm] = useState('');
           <form id={formId} onSubmit={handleSubmit} className="space-y-4">
             {freight.service_type === 'GUINCHO' && renderGuinchoForm()}
             {freight.service_type === 'MUDANCA' && renderMudancaForm()}
+            {freight.service_type === 'FRETE_MOTO' && renderFreightMotoForm()}
             {(!freight.service_type || freight.service_type === 'CARGA') && renderCargaForm()}
           </form>
         </div>

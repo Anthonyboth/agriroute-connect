@@ -37,7 +37,7 @@ interface FreightCardProps {
     status: 'OPEN' | 'IN_TRANSIT' | 'DELIVERED' | 'IN_NEGOTIATION' | 'ACCEPTED' | 'CANCELLED';
     distance_km: number;
     minimum_antt_price: number;
-    service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA';
+    service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO';
     required_trucks?: number;
     accepted_trucks?: number;
   };
@@ -255,6 +255,11 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
                 <Home className="h-5 w-5" />
                 <span className="text-base font-semibold">Residencial</span>
               </>
+            ) : freight.service_type === 'FRETE_MOTO' ? (
+              <>
+                <Truck className="h-5 w-5 text-blue-500" />
+                <span className="text-base font-semibold">Moto</span>
+              </>
             ) : (
               <>
                 <Package className="h-5 w-5" />
@@ -320,7 +325,11 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
         <div className="flex items-center justify-between w-full p-5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border-2 border-border/60">
           <div className="text-left">
             <p className="font-bold text-3xl text-primary">R$ {formattedPrice}</p>
-            {shouldShowAntt(freight.service_type, freight.cargo_type) && (
+            {freight.service_type === 'FRETE_MOTO' ? (
+              <p className="text-base text-blue-600 dark:text-blue-400 mt-2 font-semibold">
+                Mínimo: R$ 10,00
+              </p>
+            ) : shouldShowAntt(freight.service_type, freight.cargo_type) && (
               <p className="text-base text-muted-foreground mt-2 font-medium">
                 Min. ANTT: R$ {formattedMinPrice}
               </p>

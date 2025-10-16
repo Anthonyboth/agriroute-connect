@@ -42,7 +42,7 @@ interface FreightCardProps {
     status: 'OPEN' | 'IN_TRANSIT' | 'DELIVERED' | 'IN_NEGOTIATION' | 'ACCEPTED' | 'CANCELLED';
     distance_km: number;
     minimum_antt_price: number;
-    service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA';
+    service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO';
     required_trucks?: number;
     accepted_trucks?: number;
   };
@@ -92,13 +92,17 @@ export const FreightCard: React.FC<FreightCardProps> = ({
 
       if (error) throw error;
 
+      const label = freight.service_type === 'FRETE_MOTO' ? 'frete' : 'carreta';
       toast.success(
-        `${numTrucks} carreta${numTrucks > 1 ? 's' : ''} aceita${numTrucks > 1 ? 's' : ''} com sucesso!`
+        `${numTrucks} ${label}${numTrucks > 1 ? 's' : ''} aceita${numTrucks > 1 ? 's' : ''} com sucesso!`
       );
 
       onAction?.('accept');
     } catch (error: any) {
-      toast.error(error.message || "Erro ao aceitar frete");
+      console.error('Error accepting freight:', error);
+      // Exibir mensagem específica do backend se disponível
+      const errorMessage = error.message || error.error || "Erro ao aceitar frete";
+      toast.error(errorMessage);
     }
   };
 
@@ -109,6 +113,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         return <Wrench className="h-5 w-5 text-warning" />;
       case 'MUDANCA':
         return <Home className="h-5 w-5 text-accent" />;
+      case 'FRETE_MOTO':
+        return <Truck className="h-5 w-5 text-blue-500" />;
       default:
         return <Package className="h-5 w-5 text-primary" />;
     }
@@ -121,6 +127,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         return 'Guincho';
       case 'MUDANCA':
         return 'Mudança';
+      case 'FRETE_MOTO':
+        return 'Frete Moto';
       default:
         return 'Carga';
     }
@@ -241,9 +249,15 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           <div className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border border-border/50">
             <div className="text-left">
               <p className="font-bold text-xl text-primary">R$ {(freight.price || 0).toLocaleString('pt-BR')}</p>
-              <p className="text-xs text-muted-foreground">
-                Min. ANTT: R$ {(freight.minimum_antt_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </p>
+              {freight.service_type === 'FRETE_MOTO' ? (
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                  Mínimo: R$ 10,00
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Min. ANTT: R$ {(freight.minimum_antt_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+              )}
             </div>
             <div className="text-right">
               <DollarSign className="h-6 w-6 text-accent ml-auto" />

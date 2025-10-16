@@ -62,7 +62,26 @@ serve(async (req) => {
       );
     }
 
-    // 4. ÚNICA VALIDAÇÃO: Motorista individual só pode aceitar 1 carreta
+    // 4. Validações de acordo com o tipo de serviço
+    
+    // FRETE_MOTO: Validação específica - mínimo R$10,00
+    if (freight.service_type === 'FRETE_MOTO') {
+      const agreedPrice = Math.max(10, freight.price || 0);
+      
+      if (agreedPrice < 10) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Frete por moto tem valor mínimo de R$ 10,00",
+            details: "O valor do frete é muito baixo para FRETE_MOTO" 
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      console.log(`[FRETE_MOTO] Agreed price set to R$${agreedPrice} (min R$10)`);
+    }
+    
+    // Motorista individual só pode aceitar 1 carreta
     if (!isTransportCompany && num_trucks > 1) {
       return new Response(
         JSON.stringify({ error: "Individual drivers can only accept 1 truck per freight" }),
@@ -130,9 +149,23 @@ serve(async (req) => {
       company_id = company?.id;
     }
 
-    // 6. Criar assignments
+    // 6. Criar assignments com regras específicas por tipo de serviço
     const assignments = [];
-    const pricePerTruck = freight.price; // Cada carreta recebe o valor integral
+    
+    // Calcular preço e tipo de precificação por serviço
+    let pricePerTruck = freight.price || 0;
+    let pricingType = 'FIXED';
+    
+    if (freight.service_type === 'FRETE_MOTO') {
+      pricePerTruck = Math.max(10, freight.price || 0);
+      pricingType = 'FIXED';
+      console.log(`[FRETE_MOTO] Setting agreed_price to R$${pricePerTruck}`);
+    } else if (freight.service_type === 'CARGA' && freight.minimum_antt_price) {
+      // Validar ANTT mínimo para CARGA
+      if (pricePerTruck < freight.minimum_antt_price) {
+        console.warn(`[CARGA] Price R$${pricePerTruck} below ANTT min R$${freight.minimum_antt_price}`);
+      }
+    }
     
     for (let i = 0; i < num_trucks; i++) {
       const { data: assignment, error } = await supabase
@@ -142,7 +175,7 @@ serve(async (req) => {
           driver_id: profile.id,
           company_id,
           agreed_price: pricePerTruck,
-          pricing_type: 'FIXED',
+          pricing_type: pricingType,
           status: 'ACCEPTED'
         })
         .select()
@@ -197,10 +230,37 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in accept-freight-multiple:", error);
+    
+    // Melhor tratamento de erros do Postgres
+    let errorMessage = String(error?.message || error);
+    let errorDetails = null;
+    
+    if (error?.code) {
+      errorDetails = {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      };
+      
+      // Mensagens amigáveis para erros comuns do Postgres
+      if (error.code === '23505') {
+        errorMessage = "Este frete já foi aceito por você";
+      } else if (error.code === '23503') {
+        errorMessage = "Dados inválidos. Verifique o frete ou veículo selecionado";
+      } else if (error.code === '42703') {
+        errorMessage = "Erro de configuração do banco de dados. Entre em contato com o suporte";
+      }
+    }
+    
     return new Response(
-      JSON.stringify({ error: String(error) }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: errorDetails,
+        timestamp: new Date().toISOString()
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
