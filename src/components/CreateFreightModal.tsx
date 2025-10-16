@@ -65,8 +65,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     required_trucks: '1'
   });
 
-  // Evitar travamentos: aplica timeout curto nas chamadas de edge functions
-  const withTimeoutAny = (promise: Promise<any>, ms = 1500): Promise<any> => {
+  // Evitar travamentos: aplica timeout nas chamadas de edge functions
+  const withTimeoutAny = (promise: Promise<any>, ms = 5000): Promise<any> => {
     return Promise.race([
       promise,
       new Promise((_resolve, reject) => setTimeout(() => reject(new Error('timeout')), ms)) as Promise<any>
@@ -78,7 +78,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
       const invoke = supabase.functions.invoke('calculate-route', {
         body: { origin, destination }
       });
-      const { data, error } = await withTimeoutAny(invoke, 1500);
+      const { data, error } = await withTimeoutAny(invoke, 5000);
       if (error) throw error;
       return data.distance_km;
     } catch (error) {
