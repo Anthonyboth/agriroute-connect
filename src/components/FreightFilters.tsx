@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLa
 import { Separator } from '@/components/ui/separator';
 import { Filter, MapPin } from 'lucide-react';
 import { CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
+import { CitySelector } from './CitySelector';
 
 interface FreightFiltersProps {
   filters: {
@@ -185,32 +186,40 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Origem */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Cidade de Origem
-            </Label>
-            <Input
-              placeholder="Ex: São Paulo - SP"
-              value={filters.origin_city}
-              onChange={(e) => onFilterChange('origin_city', e.target.value)}
+        <Separator className="my-4" />
+        
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Localização (opcional mas recomendado)</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Origem */}
+            <CitySelector
+              label="Cidade de Origem"
+              placeholder="Digite para buscar"
+              value={filters.origin_city ? {
+                city: filters.origin_city.split(' - ')[0] || filters.origin_city,
+                state: filters.origin_city.split(' - ')[1] || ''
+              } : undefined}
+              onChange={(city) => {
+                onFilterChange('origin_city', `${city.city} - ${city.state}`);
+              }}
             />
-          </div>
 
-          {/* Destino */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Cidade de Destino
-            </Label>
-            <Input
-              placeholder="Ex: Rio de Janeiro - RJ"
-              value={filters.destination_city}
-              onChange={(e) => onFilterChange('destination_city', e.target.value)}
+            {/* Destino */}
+            <CitySelector
+              label="Cidade de Destino"
+              placeholder="Digite para buscar"
+              value={filters.destination_city ? {
+                city: filters.destination_city.split(' - ')[0] || filters.destination_city,
+                state: filters.destination_city.split(' - ')[1] || ''
+              } : undefined}
+              onChange={(city) => {
+                onFilterChange('destination_city', `${city.city} - ${city.state}`);
+              }}
             />
           </div>
+          <p className="text-xs text-muted-foreground">
+            ℹ️ Selecione as cidades da lista para filtros mais precisos
+          </p>
         </div>
 
         <div className="flex gap-2 pt-2">

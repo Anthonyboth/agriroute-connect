@@ -18,13 +18,17 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { CitySelector } from './CitySelector';
+import { CitySelectionGuide } from './CitySelectionGuide';
 
 interface AdvancedSearchFilters {
   // Localização
   origin_city: string;
   origin_state: string;
+  origin_city_id?: string;
   destination_city: string;
   destination_state: string;
+  destination_city_id?: string;
   max_distance_km: number;
   route_corridor: string; // Ex: "BR-163", "BR-364"
   
@@ -285,52 +289,36 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Origem - Cidade</Label>
-                    <Input
-                      placeholder="Ex: Sorriso"
-                      value={filters.origin_city}
-                      onChange={(e) => handleFilterChange('origin_city', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Estado</Label>
-                    <Select value={filters.origin_state} onValueChange={(value) => handleFilterChange('origin_state', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="UF" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {states.map(state => (
-                          <SelectItem key={state} value={state}>{state}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Destino - Cidade</Label>
-                    <Input
-                      placeholder="Ex: Santos"
-                      value={filters.destination_city}
-                      onChange={(e) => handleFilterChange('destination_city', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Estado</Label>
-                    <Select value={filters.destination_state} onValueChange={(value) => handleFilterChange('destination_state', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="UF" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {states.map(state => (
-                          <SelectItem key={state} value={state}>{state}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-3">
+                  <CitySelector
+                    label="Cidade de Origem"
+                    placeholder="Digite para buscar a cidade"
+                    value={filters.origin_city && filters.origin_state ? {
+                      city: filters.origin_city,
+                      state: filters.origin_state
+                    } : undefined}
+                    onChange={(city) => {
+                      handleFilterChange('origin_city', city.city);
+                      handleFilterChange('origin_state', city.state);
+                      handleFilterChange('origin_city_id', city.id || '');
+                    }}
+                  />
+                  
+                  <CitySelector
+                    label="Cidade de Destino"
+                    placeholder="Digite para buscar a cidade"
+                    value={filters.destination_city && filters.destination_state ? {
+                      city: filters.destination_city,
+                      state: filters.destination_state
+                    } : undefined}
+                    onChange={(city) => {
+                      handleFilterChange('destination_city', city.city);
+                      handleFilterChange('destination_state', city.state);
+                      handleFilterChange('destination_city_id', city.id || '');
+                    }}
+                  />
+                  
+                  <CitySelectionGuide variant="compact" showImportance={false} />
                 </div>
 
                 <div className="space-y-2">

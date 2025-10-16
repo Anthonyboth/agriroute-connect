@@ -3,8 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { MapPin, Search, X } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { MapPin, Search, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getCityValidationIcon } from '@/lib/city-validation-utils';
 
 interface City {
   id: string;
@@ -164,53 +166,80 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
     inputRef.current?.focus();
   };
 
+  // Validation icon
+  const validationIcon = getCityValidationIcon(
+    value && value.city && value.state ? { city: value.city, state: value.state, id: value.city } : undefined
+  );
+
   return (
-    <div className={cn("relative w-full", className)}>
-      {label && (
-        <Label htmlFor="city-selector" className="block text-sm font-medium mb-2">
-          {label}
-          {required && <span className="text-destructive ml-1">*</span>}
-        </Label>
-      )}
-      
-      <div className="relative">
+    <TooltipProvider>
+      <div className={cn("relative w-full", className)}>
+        {label && (
+          <Label htmlFor="city-selector" className="block text-sm font-medium mb-2">
+            {label}
+            {required && <span className="text-destructive ml-1">*</span>}
+          </Label>
+        )}
+        
         <div className="relative">
-          <Input
-            ref={inputRef}
-            id="city-selector"
-            type="text"
-            value={searchTerm}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setShowDropdown(true)}
-            placeholder={placeholder}
-            className={cn(
-              "pl-10 pr-10",
-              error && "border-destructive"
+          <div className="relative">
+            <Input
+              ref={inputRef}
+              id="city-selector"
+              type="text"
+              value={searchTerm}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setShowDropdown(true)}
+              placeholder={placeholder}
+              className={cn(
+                "pl-10 pr-20",
+                error && "border-destructive",
+                validationIcon?.icon === 'check' && "border-green-500 focus-visible:ring-green-500",
+                validationIcon?.icon === 'warning' && "border-yellow-500 focus-visible:ring-yellow-500"
+              )}
+              autoComplete="off"
+            />
+            
+            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            
+            {/* Validation Icon */}
+            {validationIcon && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                    {validationIcon.icon === 'check' && (
+                      <CheckCircle2 className={cn("h-4 w-4", validationIcon.color)} />
+                    )}
+                    {validationIcon.icon === 'warning' && (
+                      <AlertTriangle className={cn("h-4 w-4", validationIcon.color)} />
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{validationIcon.tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
             )}
-            autoComplete="off"
-          />
-          
-          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          
-          {searchTerm && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-transparent"
-              onClick={clearSelection}
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          )}
-          
-          {isLoading && (
-            <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
-              <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
-            </div>
-          )}
-        </div>
+            
+            {searchTerm && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-transparent"
+                onClick={clearSelection}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+            
+            {isLoading && (
+              <div className="absolute right-16 top-1/2 transform -translate-y-1/2">
+                <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+              </div>
+            )}
+          </div>
 
         {/* Dropdown de resultados */}
         {showDropdown && (cities.length > 0 || isLoading) && (
@@ -246,9 +275,33 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
         )}
       </div>
       
-      {error && (
-        <p className="text-sm text-destructive mt-1">{error}</p>
-      )}
-    </div>
+        {error && (
+          <p className="text-sm text-destructive mt-1">{error}</p>
+        )}
+        
+        {/* Helper text */}
+        {!error && !value?.city && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Digite para buscar e selecione uma cidade da lista
+          </p>
+        )}
+        
+        {/* Warning when text is entered but not selected */}
+        {!error && value?.city && !validationIcon && searchTerm && (
+          <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-1 flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            Por favor, selecione uma cidade da lista para garantir o match correto
+          </p>
+        )}
+        
+        {/* Success message */}
+        {validationIcon?.icon === 'check' && (
+          <p className="text-xs text-green-600 dark:text-green-500 mt-1 flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3" />
+            Cidade validada ✓
+          </p>
+        )}
+      </div>
+    </TooltipProvider>
   );
 };
