@@ -50,7 +50,7 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   
   // Bloquear modal para serviços urbanos (não aceitam contrapropostas)
   React.useEffect(() => {
-    if (isOpen && ['GUINCHO', 'MUDANCA'].includes(freight.service_type || '')) {
+    if (isOpen && ['GUINCHO', 'MUDANCA', 'FRETE_MOTO'].includes(freight.service_type || '')) {
       toast.error('Serviços urbanos não aceitam contrapropostas. Apenas aceite o frete.');
       onClose();
     }

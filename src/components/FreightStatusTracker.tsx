@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,10 +9,17 @@ import { driverUpdateFreightStatus } from '@/lib/freight-status-helpers';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
-const STATUS_FLOW = [
+const DEFAULT_FLOW = [
   { key: 'ACCEPTED', label: 'Aceito', icon: CheckCircle },
   { key: 'LOADING', label: 'A caminho da coleta', icon: Package },
   { key: 'LOADED', label: 'Carregado', icon: Truck },
+  { key: 'IN_TRANSIT', label: 'Em Trânsito', icon: Navigation },
+  { key: 'DELIVERED_PENDING_CONFIRMATION', label: 'Entrega Reportada', icon: MapPin }
+];
+
+const MOTO_FLOW = [
+  { key: 'ACCEPTED', label: 'Aceito', icon: CheckCircle },
+  { key: 'LOADING', label: 'A caminho da coleta', icon: Package },
   { key: 'IN_TRANSIT', label: 'Em Trânsito', icon: Navigation },
   { key: 'DELIVERED_PENDING_CONFIRMATION', label: 'Entrega Reportada', icon: MapPin }
 ];
@@ -36,6 +43,7 @@ interface FreightStatusTrackerProps {
   currentStatus: string;
   currentUserProfile: any;
   isDriver: boolean;
+  freightServiceType?: string;
   onStatusUpdated?: (newStatus: string) => void;
 }
 
@@ -44,6 +52,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
   currentStatus,
   currentUserProfile,
   isDriver,
+  freightServiceType,
   onStatusUpdated
 }) => {
   const { toast } = useToast();
@@ -51,6 +60,12 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [serviceType, setServiceType] = useState<string | null>(freightServiceType || null);
+
+  // Selecionar fluxo baseado no tipo de serviço
+  const statusFlow = useMemo(() => {
+    return serviceType === 'FRETE_MOTO' ? MOTO_FLOW : DEFAULT_FLOW;
+  }, [serviceType]);
 
   const fetchStatusHistory = async () => {
     try {
@@ -161,13 +176,13 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
   };
 
   const getNextStatus = () => {
-    const currentIndex = STATUS_FLOW.findIndex(status => status.key === currentStatus);
-    return currentIndex < STATUS_FLOW.length - 1 ? STATUS_FLOW[currentIndex + 1] : null;
+    const currentIndex = statusFlow.findIndex(status => status.key === currentStatus);
+    return currentIndex < statusFlow.length - 1 ? statusFlow[currentIndex + 1] : null;
   };
 
   const getStatusVariant = (status: string) => {
-    const statusIndex = STATUS_FLOW.findIndex(s => s.key === status);
-    const currentIndex = STATUS_FLOW.findIndex(s => s.key === currentStatus);
+    const statusIndex = statusFlow.findIndex(s => s.key === status);
+    const currentIndex = statusFlow.findIndex(s => s.key === currentStatus);
     
     if (statusIndex < currentIndex) return 'default';
     if (statusIndex === currentIndex) return 'destructive';
@@ -176,6 +191,20 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
 
   useEffect(() => {
     fetchStatusHistory();
+
+    // Buscar service_type se não foi passado
+    if (!serviceType) {
+      supabase
+        .from('freights')
+        .select('service_type')
+        .eq('id', freightId)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.service_type) {
+            setServiceType(data.service_type);
+          }
+        });
+    }
 
     // Real-time subscription
     const channel = supabase
@@ -196,7 +225,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [freightId]);
+  }, [freightId, serviceType]);
 
   const nextStatus = getNextStatus();
 
@@ -217,21 +246,21 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
               <div 
                 className="h-full bg-primary transition-all duration-500 ease-in-out" 
                 style={{ 
-                  width: `${(STATUS_FLOW.findIndex(s => s.key === currentStatus) / (STATUS_FLOW.length - 1)) * 100}%` 
+                  width: `${(statusFlow.findIndex(s => s.key === currentStatus) / (statusFlow.length - 1)) * 100}%` 
                 }}
               />
             </div>
             
             {/* Status Items */}
             <div className="flex items-center justify-between relative z-10">
-              {STATUS_FLOW.map((status, index) => {
+              {statusFlow.map((status, index) => {
                 const Icon = status.icon;
                 const variant = getStatusVariant(status.key);
                 const isActive = status.key === currentStatus;
                 const isCompleted = variant === 'default';
                 
                 return (
-                  <div key={status.key} className="flex flex-col items-center" style={{ flex: index === 0 || index === STATUS_FLOW.length - 1 ? '0 0 auto' : '1' }}>
+                  <div key={status.key} className="flex flex-col items-center" style={{ flex: index === 0 || index === statusFlow.length - 1 ? '0 0 auto' : '1' }}>
                     <div className={`
                       relative w-10 h-10 rounded-full flex items-center justify-center mb-3 border-2 transition-all duration-300
                       ${isActive 
@@ -274,7 +303,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2">
-              <Badge variant="outline">Status Atual: {STATUS_FLOW.find(s => s.key === currentStatus)?.label}</Badge>
+              <Badge variant="outline">Status Atual: {statusFlow.find(s => s.key === currentStatus)?.label}</Badge>
               <span>→</span>
               <Badge>Próximo: {nextStatus.label}</Badge>
             </div>
@@ -305,7 +334,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         <CardContent>
           <div className="space-y-4">
             {statusHistory.map((item) => {
-              const status = STATUS_FLOW.find(s => s.key === item.status);
+              const status = statusFlow.find(s => s.key === item.status);
               const Icon = status?.icon || Clock;
               
               return (

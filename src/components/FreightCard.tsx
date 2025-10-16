@@ -398,7 +398,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         isOpen={proposalModalOpen}
         onClose={() => setProposalModalOpen(false)}
         freight={freight}
-        originalProposal={(freight.service_type === 'CARGA' || freight.service_type === 'FRETE_MOTO' || !freight.service_type) ? {
+        originalProposal={freight.service_type === 'CARGA' || !freight.service_type ? {
           id: freight.id,
           proposed_price: freight.price,
           message: 'Proposta do produtor',

@@ -456,7 +456,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
         isOpen={proposalModalOpen}
         onClose={handleProposalModalClose}
         freight={freight}
-        originalProposal={(freight.service_type === 'CARGA' || freight.service_type === 'FRETE_MOTO' || !freight.service_type) ? {
+        originalProposal={freight.service_type === 'CARGA' || !freight.service_type ? {
           id: freight.id,
           proposed_price: freight.price,
           message: 'Proposta do produtor',
