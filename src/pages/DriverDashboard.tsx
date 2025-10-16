@@ -317,6 +317,21 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   const [loading, setLoading] = useState(true);
   const [availableCountUI, setAvailableCountUI] = useState(0);
 
+  // Eliminar duplicações entre myAssignments e ongoingFreights
+  const assignmentFreightIds = useMemo(() => 
+    new Set((myAssignments || []).map(a => a.freight_id)), 
+    [myAssignments]
+  );
+
+  const activeStatuses = ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'];
+  
+  const visibleOngoing = useMemo(
+    () => (ongoingFreights || []).filter(f => 
+      activeStatuses.includes(f.status) && !assignmentFreightIds.has(f.id)
+    ),
+    [ongoingFreights, assignmentFreightIds]
+  );
+
   // Buscar fretes disponíveis - com match inteligente por região
   const fetchAvailableFreights = useCallback(async () => {
     // Don't fetch if user is not a driver
@@ -1655,7 +1670,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               <div className="flex justify-between items-center">
                 <h3 className="text-base font-semibold">Em Andamento</h3>
                 <Badge variant="secondary" className="text-xs">
-                  {(myAssignments?.length || 0) + ongoingFreights.filter(f => ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length}
+                  {(myAssignments?.length || 0) + visibleOngoing.length}
                 </Badge>
               </div>
             </div>
@@ -1681,9 +1696,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               </div>
             )}
             
-            {ongoingFreights.filter(f => ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length > 0 ? (
+            {visibleOngoing.length > 0 ? (
               <div className="space-y-4">
-                {ongoingFreights.filter(f => ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).map((freight) => (
+                {visibleOngoing.map((freight) => (
                   <Card key={freight.id} className="shadow-sm border border-border/50 hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       {/* Header com tipo de carga e status */}
