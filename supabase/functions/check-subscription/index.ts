@@ -122,7 +122,7 @@ serve(async (req) => {
         .upsert({
           user_id: user.id,
           plan_id: null,
-          status: 'INACTIVE',
+          status: 'canceled',
           current_period_end: null,
           stripe_subscription_id: null,
           stripe_customer_id: null
@@ -201,7 +201,7 @@ serve(async (req) => {
         .upsert({
           user_id: user.id,
           plan_id: null,
-          status: 'INACTIVE',
+          status: 'canceled',
           current_period_end: null,
           stripe_subscription_id: null,
           stripe_customer_id: customerId

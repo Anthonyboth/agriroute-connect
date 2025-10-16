@@ -38,7 +38,7 @@ export const registerDevice = async (profileId: string): Promise<UserDevice | nu
         user_agent: deviceInfo.userAgent,
         last_active_at: new Date().toISOString(),
         is_active: true,
-      })
+      }, { onConflict: 'device_id' })
       .select()
       .single();
     
