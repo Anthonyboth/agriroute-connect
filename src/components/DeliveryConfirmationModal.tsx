@@ -79,12 +79,17 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
       console.log('=== ENTREGA CONFIRMADA COM SUCESSO ===');
 
       toast({
-        title: "Entrega Confirmada",
-        description: "A entrega foi confirmada com sucesso.",
+        title: "Entrega confirmada!",
+        description: "O frete foi marcado como entregue e movido para o histórico. Avalie o motorista!",
       });
       
       onConfirm();
       onClose();
+      
+      // Recarregar após 1 segundo para disparar o modal de avaliação
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
       
     } catch (error: any) {
       console.error('=== ERRO NA CONFIRMAÇÃO ===', error);

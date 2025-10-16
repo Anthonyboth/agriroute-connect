@@ -15,7 +15,17 @@ export const useAutoRating = ({ freightId, freightStatus, currentUserProfile, fr
 
   // Função para verificar se o usuário já avaliou
   const checkIfUserHasRated = async () => {
-    if (!freightId || !currentUserProfile || freightStatus !== 'DELIVERED') {
+    if (!freightId || !currentUserProfile) {
+      return false;
+    }
+    
+    // Aceitar DELIVERED ou DELIVERED_PENDING_CONFIRMATION
+    if (freightStatus !== 'DELIVERED' && freightStatus !== 'DELIVERED_PENDING_CONFIRMATION') {
+      return false;
+    }
+    
+    // Se for DELIVERED_PENDING_CONFIRMATION, só mostrar para motorista
+    if (freightStatus === 'DELIVERED_PENDING_CONFIRMATION' && currentUserProfile.role !== 'MOTORISTA') {
       return false;
     }
 

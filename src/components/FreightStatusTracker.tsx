@@ -124,16 +124,23 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         // Silent location update - don't log errors
       }
 
-      // Atualizar o status do frete na tabela principal
-      const { error: freightError } = await supabase
+      // Atualizar o status do frete na tabela principal com validação de estado
+      const { error: freightError, data: updateData } = await supabase
         .from('freights')
         .update({ 
           status: newStatus as any,
           updated_at: new Date().toISOString()
         })
-        .eq('id', freightId);
+        .eq('id', freightId)
+        .eq('status', currentStatus as any) // Validar estado anterior
+        .select();
 
       if (freightError) throw freightError;
+
+      // Verificar se realmente atualizou
+      if (!updateData || updateData.length === 0) {
+        throw new Error('O status do frete mudou durante a atualização. Por favor, recarregue a página.');
+      }
 
       // Inserir no histórico
       const { error: historyError } = await supabase
@@ -167,10 +174,18 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       setNotes('');
       fetchStatusHistory();
       
-      toast({
-        title: "Status atualizado",
-        description: `Frete marcado como: ${STATUS_FLOW.find(s => s.key === newStatus)?.label}`,
-      });
+      // Mensagem especial para entrega reportada
+      if (newStatus === 'DELIVERED_PENDING_CONFIRMATION') {
+        toast({
+          title: "Entrega reportada com sucesso!",
+          description: "O produtor tem 72h para confirmar. O frete foi movido para o histórico. Avalie o produtor!",
+        });
+      } else {
+        toast({
+          title: "Status atualizado",
+          description: `Frete marcado como: ${STATUS_FLOW.find(s => s.key === newStatus)?.label}`,
+        });
+      }
 
       // Notificar o parent para atualizar UI sem recarregar tudo
       if (onStatusUpdated) {
