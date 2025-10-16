@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useActiveFreight } from '@/hooks/useActiveFreight';
 import { toast } from 'sonner';
 import { 
   MapPin, 
@@ -37,6 +38,7 @@ export const LocationTracker: React.FC<LocationTrackerProps> = ({
   onLocationUpdate
 }) => {
   const { profile } = useAuth();
+  const { hasActiveFreight } = useActiveFreight();
   const [isTracking, setIsTracking] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [locationEnabled, setLocationEnabled] = useState(false);
@@ -376,6 +378,19 @@ export const LocationTracker: React.FC<LocationTrackerProps> = ({
                 </div>
                 <p className="text-yellow-600 text-sm mt-1">
                   O rastreamento de localização é obrigatório para aceitar e executar fretes.
+                </p>
+              </div>
+            )}
+            
+            {/* Informação sobre tracking automático */}
+            {!hasActiveFreight && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile?.role || '') && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center gap-2 text-blue-700">
+                  <MapPin className="w-4 h-4" />
+                  <span className="font-medium">Tracking Automático</span>
+                </div>
+                <p className="text-blue-600 text-sm mt-1">
+                  A localização será ativada automaticamente quando você aceitar um frete.
                 </p>
               </div>
             )}

@@ -48,6 +48,7 @@ import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
 import { CompanyDriverBadge } from '@/components/CompanyDriverBadge';
 import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
+import { DriverAutoLocationTracking } from '@/components/DriverAutoLocationTracking';
 
 interface Freight {
   id: string;
@@ -1569,6 +1570,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               <CompanyDriverBadge companyName={companyName} isAffiliated={isAffiliated} />
             </div>
           )}
+
+          {/* Auto-tracking para motoristas */}
+          <DriverAutoLocationTracking />
 
           {/* ✅ FASE 4 - Alerta de Localização Desativada (apenas para motoristas independentes) */}
           {!isTransportCompany && !profile?.location_enabled && (

@@ -3,9 +3,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { X, MapPin, Bell } from 'lucide-react';
 import { useDevicePermissions } from '@/hooks/useDevicePermissions';
+import { useContextualPermissions } from '@/hooks/useContextualPermissions';
 
 export const PermissionPrompts = () => {
   const { permissions, requestPermission } = useDevicePermissions();
+  const { shouldRequestLocation, shouldRequestNotifications, contextMessage } = useContextualPermissions();
   const [dismissed, setDismissed] = useState<string[]>([]);
 
   // Carregar permissões dismissadas do localStorage
@@ -33,9 +35,16 @@ export const PermissionPrompts = () => {
     }
   };
 
-  // Não mostrar se já foi concedida ou dismissada
-  const shouldShowLocation = permissions.location === 'prompt' && !dismissed.includes('location');
-  const shouldShowNotifications = permissions.notifications === 'prompt' && !dismissed.includes('notifications');
+  // Mostrar apenas se necessário baseado no contexto
+  const shouldShowLocation = 
+    shouldRequestLocation && 
+    permissions.location === 'prompt' && 
+    !dismissed.includes('location');
+    
+  const shouldShowNotifications = 
+    shouldRequestNotifications && 
+    permissions.notifications === 'prompt' && 
+    !dismissed.includes('notifications');
 
   if (!shouldShowLocation && !shouldShowNotifications) {
     return null;
@@ -49,7 +58,7 @@ export const PermissionPrompts = () => {
           <div className="flex-1">
             <AlertTitle>Permissão de Localização</AlertTitle>
             <AlertDescription className="text-sm">
-              Para encontrar fretes próximos, precisamos acessar sua localização
+              {contextMessage.location || 'Para encontrar fretes próximos, precisamos acessar sua localização'}
             </AlertDescription>
             <div className="flex gap-2 mt-3">
               <Button

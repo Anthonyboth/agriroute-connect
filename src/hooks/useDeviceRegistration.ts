@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { registerDevice, updateLastActivity } from '@/services/deviceService';
+import { useDevicePermissions } from './useDevicePermissions';
+import { registerDevice, updateLastActivity, syncDevicePermissions } from '@/services/deviceService';
 import { getDeviceId } from '@/utils/deviceDetection';
 
 export const useDeviceRegistration = () => {
   const { profile } = useAuth();
+  const { permissions } = useDevicePermissions();
 
   useEffect(() => {
     if (!profile) return;
@@ -14,6 +16,15 @@ export const useDeviceRegistration = () => {
       try {
         await registerDevice(profile.id);
         console.log('✅ Dispositivo registrado');
+
+        // Sincronizar permissões realmente verificadas
+        const deviceId = getDeviceId();
+        await syncDevicePermissions(deviceId, {
+          location: permissions.location === 'granted',
+          push: permissions.notifications === 'granted',
+          storage: permissions.storage === 'granted'
+          // Não sincronizar câmera/microfone até serem usados
+        });
       } catch (error) {
         console.error('❌ Erro ao registrar dispositivo:', error);
       }
@@ -28,5 +39,5 @@ export const useDeviceRegistration = () => {
     }, 5 * 60 * 1000); // 5 minutos
 
     return () => clearInterval(interval);
-  }, [profile]);
+  }, [profile, permissions]);
 };

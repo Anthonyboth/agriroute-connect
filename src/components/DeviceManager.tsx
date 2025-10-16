@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useDevicePermissions, PermissionType } from '@/hooks/useDevicePermissions';
+import { useContextualPermissions } from '@/hooks/useContextualPermissions';
 import { getDeviceInfo } from '@/utils/deviceDetection';
 import { getActiveDevices, revokeDevice } from '@/services/deviceService';
 import { useAuth } from '@/hooks/useAuth';
@@ -28,6 +29,7 @@ import type { UserDevice } from '@/services/deviceService';
 export const DeviceManager = () => {
   const { profile } = useAuth();
   const { permissions, loading, requestPermission, checkAllPermissions } = useDevicePermissions();
+  const { rules, contextMessage } = useContextualPermissions();
   const [deviceInfo, setDeviceInfo] = useState<Awaited<ReturnType<typeof getDeviceInfo>> | null>(null);
   const [activeDevices, setActiveDevices] = useState<UserDevice[]>([]);
   const [loadingDevices, setLoadingDevices] = useState(true);
@@ -95,33 +97,46 @@ export const DeviceManager = () => {
     }
   };
 
-  const permissionsList: { type: PermissionType; label: string; description: string }[] = [
-    {
-      type: 'location',
-      label: 'Localização',
-      description: 'Necessária para encontrar fretes e serviços próximos'
-    },
-    {
-      type: 'camera',
-      label: 'Câmera',
-      description: 'Necessária para capturar fotos de documentos e check-ins'
-    },
-    {
-      type: 'microphone',
-      label: 'Microfone',
-      description: 'Para futuras funcionalidades de comunicação por voz'
-    },
-    {
-      type: 'notifications',
-      label: 'Notificações Push',
-      description: 'Receba alertas sobre fretes, propostas e mensagens'
-    },
-    {
-      type: 'storage',
-      label: 'Armazenamento',
-      description: 'Permite que o app funcione offline'
-    },
-  ];
+  // Filtrar permissões relevantes baseado no tipo de usuário
+  const permissionsList = useMemo(() => {
+    const allPermissions: { type: PermissionType; label: string; description: string; contextInfo?: string }[] = [
+      {
+        type: 'location',
+        label: 'Localização',
+        description: 'Necessária para encontrar fretes e serviços próximos',
+        contextInfo: contextMessage.location
+      },
+      {
+        type: 'camera',
+        label: 'Câmera',
+        description: 'Necessária para capturar fotos de documentos e check-ins',
+        contextInfo: contextMessage.camera
+      },
+      {
+        type: 'microphone',
+        label: 'Microfone',
+        description: 'Para futuras funcionalidades de comunicação por voz',
+        contextInfo: contextMessage.microphone
+      },
+      {
+        type: 'notifications',
+        label: 'Notificações Push',
+        description: 'Receba alertas sobre fretes, propostas e mensagens',
+        contextInfo: contextMessage.notifications
+      },
+      {
+        type: 'storage',
+        label: 'Armazenamento',
+        description: 'Permite que o app funcione offline'
+      },
+    ];
+
+    // Filtrar apenas permissões relevantes
+    return allPermissions.filter(perm => {
+      if (rules[perm.type] === 'never') return false;
+      return true;
+    });
+  }, [rules, contextMessage]);
 
   return (
     <div className="space-y-6">
@@ -189,9 +204,10 @@ export const DeviceManager = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {permissionsList.map(({ type, label, description }) => {
+            {permissionsList.map(({ type, label, description, contextInfo }) => {
               const Icon = getPermissionIcon(type);
               const status = permissions[type];
+              const requirement = rules[type];
               
               return (
                 <div key={type} className="flex items-center justify-between p-4 border rounded-lg">
@@ -203,9 +219,14 @@ export const DeviceManager = () => {
                         {getPermissionBadge(status)}
                       </div>
                       <p className="text-sm text-muted-foreground">{description}</p>
+                      {contextInfo && (
+                        <p className="text-xs text-muted-foreground mt-1 italic">
+                          {contextInfo}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  {status !== 'granted' && status !== 'unsupported' && (
+                  {status !== 'granted' && status !== 'unsupported' && requirement !== 'on-demand' && (
                     <Button
                       variant="outline"
                       size="sm"

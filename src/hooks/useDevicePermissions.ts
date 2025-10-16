@@ -41,24 +41,46 @@ export const useDevicePermissions = () => {
     }
   };
 
-  // Verificar status de câmera/microfone
+  // Verificar status de mídia SEM ativar os dispositivos
   const checkMediaPermission = async (type: 'camera' | 'microphone'): Promise<PermissionStatus> => {
-    if (!('mediaDevices' in navigator)) return 'unsupported';
-    
     try {
-      const constraints = type === 'camera' 
-        ? { video: true, audio: false }
-        : { video: false, audio: true };
-      
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      stream.getTracks().forEach(track => track.stop());
-      return 'granted';
-    } catch (error: any) {
-      if (error.name === 'NotAllowedError') return 'denied';
-      if (error.name === 'NotFoundError') return 'unsupported';
+      // Usar apenas Permissions API para não ativar câmera/microfone
+      if ('permissions' in navigator) {
+        try {
+          const result = await navigator.permissions.query({ name: type as any });
+          return result.state as PermissionStatus;
+        } catch {
+          return 'prompt';
+        }
+      }
+
+      // Verificar suporte básico
+      if (typeof window !== 'undefined' && window.navigator && window.navigator.mediaDevices) {
+        return 'prompt';
+      }
+
+      return 'unsupported';
+    } catch {
       return 'prompt';
     }
   };
+
+  // Verificar permissão sob demanda (quando usuário solicitar)
+  const checkPermissionOnDemand = useCallback(async (type: PermissionType): Promise<PermissionStatus> => {
+    switch (type) {
+      case 'location':
+        return checkLocationPermission();
+      case 'camera':
+      case 'microphone':
+        return checkMediaPermission(type);
+      case 'notifications':
+        return checkNotificationPermission();
+      case 'storage':
+        return checkStoragePermission();
+      default:
+        return 'unsupported';
+    }
+  }, []);
 
   // Verificar status de notificações
   const checkNotificationPermission = (): PermissionStatus => {
@@ -81,18 +103,36 @@ export const useDevicePermissions = () => {
     }
   };
 
-  // Verificar todas as permissões
+  // Verificar permissões sem ativar dispositivos
   const checkAllPermissions = useCallback(async () => {
     setLoading(true);
     
     try {
-      const [location, camera, microphone, notifications, storage] = await Promise.all([
+      const [location, notifications, storage] = await Promise.all([
         checkLocationPermission(),
-        checkMediaPermission('camera'),
-        checkMediaPermission('microphone'),
         Promise.resolve(checkNotificationPermission()),
         Promise.resolve(checkStoragePermission()),
       ]);
+
+      // Câmera e microfone: apenas verificar status via Permissions API, não ativar
+      let camera: PermissionStatus = 'unsupported';
+      let microphone: PermissionStatus = 'unsupported';
+
+      if ('permissions' in navigator) {
+        try {
+          const cameraResult = await navigator.permissions.query({ name: 'camera' as any });
+          camera = cameraResult.state as PermissionStatus;
+        } catch {
+          camera = 'prompt';
+        }
+
+        try {
+          const micResult = await navigator.permissions.query({ name: 'microphone' as any });
+          microphone = micResult.state as PermissionStatus;
+        } catch {
+          microphone = 'prompt';
+        }
+      }
 
       const newPermissions = {
         location,
@@ -104,14 +144,13 @@ export const useDevicePermissions = () => {
 
       setPermissions(newPermissions);
       
-      // Sincronizar com o banco
+      // Sincronizar apenas permissões verificadas
       const deviceId = getDeviceId();
       await syncDevicePermissions(deviceId, {
         location: location === 'granted',
-        camera: camera === 'granted',
         push: notifications === 'granted',
-        microphone: microphone === 'granted',
-        storage: storage === 'granted',
+        storage: storage === 'granted'
+        // Não sincronizar câmera/microfone até serem usados
       });
     } catch (error) {
       console.error('❌ Erro ao verificar permissões:', error);
@@ -200,6 +239,7 @@ export const useDevicePermissions = () => {
     requestPermission,
     getPermissionStatus,
     hasRequiredPermissions,
+    checkPermissionOnDemand
   };
 };
 

@@ -26,13 +26,16 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
 
   const startCamera = useCallback(async () => {
     try {
-      console.log('Iniciando câmera...');
+      console.log('Solicitando permissão e iniciando câmera...');
       setVideoReady(false);
       
       // Check if getUserMedia is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Câmera não disponível neste dispositivo');
       }
+      
+      // Solicitar permissão ao usuário (on-demand)
+      toast.info('Solicitando permissão da câmera...');
       
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -45,6 +48,9 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
 
       console.log('Stream obtido:', mediaStream);
       console.log('Video tracks:', mediaStream.getVideoTracks());
+
+      // Permissão concedida!
+      toast.success('Permissão concedida!');
 
       // Apenas armazenar o stream e marcar como streaming
       // O useEffect abaixo cuidará de conectar ao elemento de vídeo
