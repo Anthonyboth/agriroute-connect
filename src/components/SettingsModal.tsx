@@ -23,6 +23,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { DeviceManagerModal } from './DeviceManagerModal';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const { profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showDeviceManager, setShowDeviceManager] = useState(false);
   
   // Notification Settings
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -312,6 +314,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   </div>
                   <Button variant="outline" size="sm">Ver Histórico</Button>
                 </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <p className="font-medium">Gerenciar Dispositivos</p>
+                    <p className="text-sm text-muted-foreground">
+                      Gerencie permissões e dispositivos conectados
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowDeviceManager(true)}
+                  >
+                    <Smartphone className="h-4 w-4 mr-2" />
+                    Abrir
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -326,6 +345,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           </Button>
         </div>
       </DialogContent>
+
+      {/* Device Manager Modal */}
+      <DeviceManagerModal 
+        open={showDeviceManager} 
+        onClose={() => setShowDeviceManager(false)} 
+      />
     </Dialog>
   );
 };

@@ -4565,6 +4565,77 @@ export type Database = {
           },
         ]
       }
+      user_devices: {
+        Row: {
+          browser: string | null
+          camera_enabled: boolean | null
+          created_at: string | null
+          device_id: string
+          device_name: string | null
+          device_type: string | null
+          id: string
+          is_active: boolean | null
+          last_active_at: string | null
+          last_location: unknown | null
+          location_enabled: boolean | null
+          microphone_enabled: boolean | null
+          os: string | null
+          push_enabled: boolean | null
+          storage_enabled: boolean | null
+          updated_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          camera_enabled?: boolean | null
+          created_at?: string | null
+          device_id: string
+          device_name?: string | null
+          device_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_active_at?: string | null
+          last_location?: unknown | null
+          location_enabled?: boolean | null
+          microphone_enabled?: boolean | null
+          os?: string | null
+          push_enabled?: boolean | null
+          storage_enabled?: boolean | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          camera_enabled?: boolean | null
+          created_at?: string | null
+          device_id?: string
+          device_name?: string | null
+          device_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_active_at?: string | null
+          last_location?: unknown | null
+          location_enabled?: boolean | null
+          microphone_enabled?: boolean | null
+          os?: string | null
+          push_enabled?: boolean | null
+          storage_enabled?: boolean | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_devices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_loyalty: {
         Row: {
           completed_freights: number

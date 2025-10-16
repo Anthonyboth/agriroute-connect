@@ -42,6 +42,8 @@ import { useAuth } from "./hooks/useAuth";
 import { useCompanyDriver } from "./hooks/useCompanyDriver";
 import { ComponentLoader } from '@/components/LazyComponents';
 import { ScrollToTop } from './components/ScrollToTop';
+import { PermissionPrompts } from './components/PermissionPrompts';
+import { useDeviceRegistration } from './hooks/useDeviceRegistration';
 const PressPage = lazy(() => import("./pages/Press"));
 const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess"));
 const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
@@ -288,6 +290,12 @@ const SmartFallback = () => {
   return <Navigate to="/" replace />;
 };
 
+// Component to handle device registration
+const DeviceSetup = () => {
+  useDeviceRegistration();
+  return null;
+};
+
 const App = () => (
   <ErrorBoundary>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
@@ -302,6 +310,7 @@ const App = () => (
                 }}
               >
             <ScrollToTop />
+            <DeviceSetup />
             <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/landing" element={<Landing />} />
@@ -413,6 +422,7 @@ const App = () => (
             <Route path="*" element={<SmartFallback />} />
           </Routes>
           <GlobalRatingModals />
+          <PermissionPrompts />
           <Toaster />
           <Sonner />
         </BrowserRouter>
