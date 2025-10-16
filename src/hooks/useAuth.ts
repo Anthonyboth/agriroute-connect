@@ -10,9 +10,10 @@ interface UserProfile {
   full_name: string;
   phone: string;
   document: string;
-  role: 'PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'ADMIN' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA';
+  role: 'PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'ADMIN' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA'; // Mantido por compatibilidade
+  roles: string[]; // NOVO: Array de roles do user_roles
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  active_mode?: string | null;
+  active_mode?: string | null; // Mantido por compatibilidade
   selfie_url?: string;
   document_photo_url?: string;
   cnh_photo_url?: string;
@@ -98,20 +99,38 @@ export const useAuth = () => {
       if (!mountedRef.current) return;
       
       if (profilesData && profilesData.length > 0) {
-        setProfiles(profilesData);
+        console.log('[useAuth] Perfis encontrados:', profilesData.length);
+        
+        // Buscar roles de user_roles para cada perfil
+        const profilesWithRoles = await Promise.all(
+          profilesData.map(async (p: any) => {
+            const { data: rolesData } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', p.user_id);
+            
+            return {
+              ...p,
+              roles: rolesData?.map(r => r.role) || []
+            };
+          })
+        );
+        
+        setProfiles(profilesWithRoles as UserProfile[]);
         
         // Verificar se há um perfil específico salvo no localStorage
         const savedProfileId = localStorage.getItem('current_profile_id');
-        let activeProfile = profilesData[0]; // Default para o primeiro perfil
+        let activeProfile = profilesWithRoles[0]; // Default para o primeiro perfil
         
         if (savedProfileId) {
-          const savedProfile = profilesData.find(p => p.id === savedProfileId);
+          const savedProfile = profilesWithRoles.find(p => p.id === savedProfileId);
           if (savedProfile) {
             activeProfile = savedProfile;
           }
         }
         
-        setProfile(activeProfile);
+        setProfile(activeProfile as UserProfile);
+        console.log('[useAuth] Perfil ativo com roles:', activeProfile);
       } else {
         setProfile(null);
         setProfiles([]);
@@ -391,8 +410,18 @@ export const useAuth = () => {
   const isAuthenticated = !!user;
   const isTransportadora = profile?.role === 'TRANSPORTADORA' || profile?.active_mode === 'TRANSPORTADORA';
   const isApproved = profile?.status === 'APPROVED' || (isTransportadora && companyStatus === 'APPROVED');
-  const isAdmin = profile?.role === 'ADMIN';
+  const isAdmin = profile?.roles?.includes('admin') || profile?.role === 'ADMIN'; // Verificar ambos por compatibilidade
   const hasMultipleProfiles = profiles.length > 1;
+
+  // Helper para verificar se tem um role específico
+  const hasRole = useCallback((role: string) => {
+    return profile?.roles?.includes(role) || false;
+  }, [profile]);
+
+  // Helper para verificar se tem pelo menos um dos roles
+  const hasAnyRole = useCallback((roles: string[]) => {
+    return roles.some(role => profile?.roles?.includes(role));
+  }, [profile]);
 
   return {
     user,
@@ -408,6 +437,9 @@ export const useAuth = () => {
     signOut,
     switchProfile,
     clearProfileError,
-    retryProfileCreation
+    retryProfileCreation,
+    companyStatus,
+    hasRole,
+    hasAnyRole
   };
 };

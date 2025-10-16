@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Truck, User } from 'lucide-react';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
-
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +20,7 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
   onModeChange
 }) => {
   const { isTransportCompany } = useTransportCompany();
+  const { hasRole } = useAuth();
   const [isChangingMode, setIsChangingMode] = useState(false);
   const navigate = useNavigate();
 
@@ -28,45 +29,18 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
     
     setIsChangingMode(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não encontrado');
-
-      // Buscar o perfil do usuário
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('role', 'MOTORISTA')
-        .single();
-
-      if (profileError) throw profileError;
-
-      // Atualizar o modo ativo
-      const { error } = await supabase
-        .from('profiles')
-        .update({ active_mode: newMode })
-        .eq('id', profile.id);
-
-      if (error) throw error;
-
-      // Salvar no localStorage
-      localStorage.setItem('active_mode', newMode);
-
+      // Navegar para o dashboard correto baseado no modo
       toast.success(`Modo alterado para ${newMode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista'}`);
       
       if (onModeChange) {
         onModeChange(newMode);
       }
 
-      // Navegar para o dashboard correto
       if (newMode === 'TRANSPORTADORA') {
         navigate('/dashboard/company');
       } else {
         navigate('/dashboard/driver');
       }
-
-      // Recarregar a página para aplicar as mudanças
-      window.location.reload();
     } catch (error) {
       console.error('Erro ao alternar modo:', error);
       toast.error('Erro ao alternar modo');
@@ -75,14 +49,10 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
     }
   };
 
-  // Este toggle só deve aparecer para MOTORISTAS AUTÔNOMOS que são DONOS de transportadora
-  // NUNCA mostrar para:
-  // - TRANSPORTADORA (role) - são empresas, não pessoas físicas
-  // - MOTORISTA_AFILIADO - são empregados, não donos
-  // - PRODUTOR ou PRESTADOR_SERVICOS
-  // - Dentro do cadastro de transportadoras
+  // Verificar se usuário tem role de driver (usando user_roles ou profiles.role)
+  const isDriver = hasRole('driver') || currentProfile?.role === 'MOTORISTA';
   
-  if (!currentProfile || currentProfile.role !== 'MOTORISTA') {
+  if (!currentProfile || !isDriver) {
     return null;
   }
 

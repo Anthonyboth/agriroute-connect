@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_denied_logs: {
+        Row: {
+          attempted_route: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          profile_id: string | null
+          required_roles: string[]
+          user_agent: string | null
+          user_id: string | null
+          user_roles: string[]
+        }
+        Insert: {
+          attempted_route: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          profile_id?: string | null
+          required_roles: string[]
+          user_agent?: string | null
+          user_id?: string | null
+          user_roles: string[]
+        }
+        Update: {
+          attempted_route?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          profile_id?: string | null
+          required_roles?: string[]
+          user_agent?: string | null
+          user_id?: string | null
+          user_roles?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_denied_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_reports: {
         Row: {
           active_drivers: number | null
@@ -5488,6 +5532,12 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_user_roles: {
+        Args: { _user_id: string }
+        Returns: {
+          role: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
       get_users_in_city: {
         Args:
           | { p_city_id: string }
@@ -5504,6 +5554,13 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           user_id: string
         }[]
+      }
+      has_any_role: {
+        Args: {
+          _roles: Database["public"]["Enums"]["app_role"][]
+          _user_id: string
+        }
+        Returns: boolean
       }
       has_role: {
         Args: {

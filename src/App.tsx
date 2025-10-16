@@ -67,8 +67,28 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
     return <Navigate to="/auth" replace />;
   }
 
-  // Verificar se o usuário tem o role correto
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role as any)) {
+  // Verificar se o usuário tem o role correto (verificar em user_roles E profiles.role por compatibilidade)
+  const hasRequiredRole = allowedRoles && profile ? 
+    allowedRoles.some(r => profile.roles?.includes(r) || profile.role === r) : 
+    true;
+
+  if (allowedRoles && profile && !hasRequiredRole) {
+    // Log de acesso negado
+    const logAccessDenied = async () => {
+      try {
+        await supabase.functions.invoke('log-access-denied', {
+          body: {
+            route: location.pathname,
+            requiredRoles: allowedRoles,
+            userRoles: profile.roles || [profile.role]
+          }
+        });
+      } catch (error) {
+        console.error('Erro ao logar acesso negado:', error);
+      }
+    };
+    logAccessDenied();
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-6">
         <div className="text-center space-y-6 max-w-md">
@@ -76,10 +96,14 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
             <AlertCircle className="h-16 w-16 text-destructive mx-auto" />
             <h2 className="text-2xl font-bold">Acesso Negado</h2>
             <p className="text-muted-foreground">
-              Você não tem permissão para acessar esta página.
+              Esta área é exclusiva para perfis autorizados.
             </p>
-            <p className="text-sm text-muted-foreground">
-              Esta área é exclusiva para perfis do tipo: {allowedRoles.join(', ')}.
+            <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
+              <p><strong>Roles necessários:</strong> {allowedRoles.join(', ')}</p>
+              <p><strong>Seus roles:</strong> {profile.roles?.join(', ') || profile.role}</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Se você acredita ter acesso, entre em contato com o suporte.
             </p>
           </div>
           <Button onClick={() => window.location.href = '/'}>
