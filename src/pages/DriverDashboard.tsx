@@ -387,24 +387,61 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           const { data: uc } = await supabase
             .from('user_cities')
-            .select('city_id')
+            .select('city_id, city_name, state, cities(name, state)')
             .eq('user_id', userId)
             .eq('is_active', true)
             .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
 
           const cityIds = (uc || []).map((u: any) => u.city_id).filter(Boolean);
-          if (cityIds.length === 0) {
+          const cityNames = (uc || []).map((u: any) => ({ 
+            city: u.city_name || u.cities?.name, 
+            state: u.state || u.cities?.state 
+          })).filter((c: any) => c.city && c.state);
+
+          if (cityIds.length === 0 && cityNames.length === 0) {
             if (isMountedRef.current) setAvailableFreights([]);
             return;
           }
 
-          const { data: freightsByCity } = await supabase
-            .from('freights')
-            .select('*')
-            .eq('status', 'OPEN')
-            .or(`origin_city_id.in.(${cityIds.join(',')}),destination_city_id.in.(${cityIds.join(',')})`)
-            .order('created_at', { ascending: false })
-            .limit(200);
+          let freightsByCity: any[] = [];
+
+          // Tentar buscar por city_id primeiro
+          if (cityIds.length > 0) {
+            const { data: cityIdFreights } = await supabase
+              .from('freights')
+              .select('*')
+              .eq('status', 'OPEN')
+              .or(`origin_city_id.in.(${cityIds.join(',')}),destination_city_id.in.(${cityIds.join(',')})`)
+              .order('created_at', { ascending: false })
+              .limit(200);
+
+            if (cityIdFreights) {
+              freightsByCity = cityIdFreights;
+            }
+          }
+
+          // Fallback secundário: buscar por nome/estado se não achou por ID
+          if (freightsByCity.length === 0 && cityNames.length > 0) {
+            console.log('[DriverDashboard] Fallback: busca por nome/estado');
+            
+            const orConditions: string[] = [];
+            for (const { city, state } of cityNames) {
+              orConditions.push(`and(origin_city.ilike.%${city}%,origin_state.ilike.%${state}%)`);
+              orConditions.push(`and(destination_city.ilike.%${city}%,destination_state.ilike.%${state}%)`);
+            }
+            
+            const { data: nameFreights } = await supabase
+              .from('freights')
+              .select('*')
+              .eq('status', 'OPEN')
+              .or(orConditions.join(','))
+              .order('created_at', { ascending: false })
+              .limit(200);
+              
+            if (nameFreights) {
+              freightsByCity = nameFreights;
+            }
+          }
 
           const onlyWithSlots = (freightsByCity || []).filter((f: any) => 
             (f.accepted_trucks || 0) < (f.required_trucks || 1)
