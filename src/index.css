@@ -2,14 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global dropdown and popover z-index fixes */
+/* Global z-index management - using centralized system */
 @layer components {
-  /* Ensure dropdowns are above other content */
+  /* Ensure dropdowns and content appear in correct stacking order */
   [data-radix-select-content],
-  [data-radix-dropdown-menu-content],
-  [data-radix-popover-content],
-  [data-radix-dialog-content] {
+  [data-radix-dropdown-menu-content] {
     z-index: 1000 !important;
+  }
+  
+  [data-radix-popover-content] {
+    z-index: 1100 !important;
   }
   
   /* Calendar specific fixes */
@@ -17,13 +19,13 @@
     pointer-events: auto !important;
   }
   
-  /* Ensure proper stacking context for modals and overlays */
+  /* Modal and Dialog stacking */
   [data-radix-dialog-overlay] {
-    z-index: 50 !important;
+    z-index: 1059 !important;
   }
   
   [data-radix-dialog-content] {
-    z-index: 51 !important;
+    z-index: 1060 !important;
   }
 }
 
@@ -159,6 +161,19 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 142 71% 55%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 240 5.9% 10%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Safe spacing for absolutely positioned elements */
+    --safe-area-button: 3.5rem;
+    --safe-spacing: 1rem;
   }
 }
 
@@ -337,6 +352,45 @@
 
 /* Pentagonal Stats Section Animations */
 @layer components {
+  /* Anti-overlap utilities */
+  .safe-area-top-right {
+    padding-top: var(--safe-spacing);
+    padding-right: var(--safe-area-button);
+  }
+  
+  .safe-area-top-left {
+    padding-top: var(--safe-spacing);
+    padding-left: var(--safe-area-button);
+  }
+  
+  .safe-area-bottom-right {
+    padding-bottom: var(--safe-spacing);
+    padding-right: var(--safe-area-button);
+  }
+  
+  .safe-area-bottom-left {
+    padding-bottom: var(--safe-spacing);
+    padding-left: var(--safe-area-button);
+  }
+  
+  /* Prevent button overlap */
+  .prevent-button-overlap {
+    position: relative;
+  }
+  
+  .prevent-button-overlap > button[class*="absolute"] {
+    pointer-events: auto;
+    z-index: 10;
+  }
+  
+  /* Ensure minimum touch target size */
+  .touch-target-safe {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    touch-action: manipulation;
+  }
+  
+  /* Pentagonal card animations */
   .pentagon-card {
     opacity: 0;
     transform: scale(0.8);

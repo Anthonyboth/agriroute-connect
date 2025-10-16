@@ -18,6 +18,25 @@ export default {
 			}
 		},
 		extend: {
+			zIndex: {
+				'dropdown': '1000',
+				'sticky': '1020',
+				'overlay': '1030',
+				'drawer': '1040',
+				'modal': '1050',
+				'dialog': '1060',
+				'dialog-close': '1065',
+				'alert-dialog': '1070',
+				'sheet': '1080',
+				'toast': '1090',
+				'tooltip': '1095',
+				'popover': '1100',
+				'notification': '1110',
+			},
+			spacing: {
+				'safe-button': '3.5rem',
+				'safe-spacing': '1rem',
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
