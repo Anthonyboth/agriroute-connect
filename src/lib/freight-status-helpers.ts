@@ -31,12 +31,27 @@ export async function driverUpdateFreightStatus({
       toast.error('Erro ao atualizar status do frete');
       return false;
     }
-
+    
     // Verificar resposta da função (data é Json, precisa de cast)
     const result = data as any;
     if (!result || !result.ok) {
       console.error('[STATUS-UPDATE] Function returned error:', result?.error);
-      toast.error(result?.error || 'Erro ao atualizar status');
+      
+      // Mensagens de erro específicas
+      if (result?.error === 'FREIGHT_ALREADY_CONFIRMED') {
+        toast.error('Este frete já foi entregue e confirmado. Não é possível alterar o status.');
+      } else if (result?.error === 'TRANSITION_NOT_ALLOWED') {
+        const msg = result?.message || 
+          `Não é possível mudar de ${result?.current_status || 'status atual'} para ${result?.attempted_status || newStatus}`;
+        toast.error(msg);
+        console.warn('[STATUS-UPDATE] Transição bloqueada:', {
+          current: result?.current_status,
+          attempted: result?.attempted_status,
+          message: result?.message
+        });
+      } else {
+        toast.error(result?.message || result?.error || 'Erro ao atualizar status');
+      }
       return false;
     }
 
