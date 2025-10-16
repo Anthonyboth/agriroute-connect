@@ -54,6 +54,31 @@ import { AlertCircle } from 'lucide-react';
 
 const queryClient = new QueryClient();
 
+// Inicializar Error Monitoring
+if (typeof window !== 'undefined') {
+  import('@/services/errorMonitoringService').then(({ ErrorMonitoringService }) => {
+    const errorMonitoring = ErrorMonitoringService.getInstance();
+
+    // Capturar erros não tratados
+    window.addEventListener('error', (event) => {
+      errorMonitoring.captureError(event.error || new Error(event.message), {
+        source: 'window.error',
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+      });
+    });
+
+    // Capturar rejeições de promessas não tratadas
+    window.addEventListener('unhandledrejection', (event) => {
+      errorMonitoring.captureError(
+        event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
+        { source: 'unhandledrejection' }
+      );
+    });
+  });
+}
+
 const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = false, adminOnly = false, allowedRoles }: { 
   children: React.ReactNode; 
   requiresAuth?: boolean;

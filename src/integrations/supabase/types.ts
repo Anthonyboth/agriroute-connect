@@ -1065,6 +1065,72 @@ export type Database = {
           },
         ]
       }
+      error_logs: {
+        Row: {
+          auto_correction_action: string | null
+          auto_correction_attempted: boolean | null
+          auto_correction_success: boolean | null
+          created_at: string | null
+          error_category: string
+          error_code: string | null
+          error_message: string
+          error_stack: string | null
+          error_type: string
+          function_name: string | null
+          id: string
+          metadata: Json | null
+          module: string | null
+          route: string | null
+          status: string | null
+          telegram_notified: boolean | null
+          telegram_sent_at: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          auto_correction_action?: string | null
+          auto_correction_attempted?: boolean | null
+          auto_correction_success?: boolean | null
+          created_at?: string | null
+          error_category: string
+          error_code?: string | null
+          error_message: string
+          error_stack?: string | null
+          error_type: string
+          function_name?: string | null
+          id?: string
+          metadata?: Json | null
+          module?: string | null
+          route?: string | null
+          status?: string | null
+          telegram_notified?: boolean | null
+          telegram_sent_at?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          auto_correction_action?: string | null
+          auto_correction_attempted?: boolean | null
+          auto_correction_success?: boolean | null
+          created_at?: string | null
+          error_category?: string
+          error_code?: string | null
+          error_message?: string
+          error_stack?: string | null
+          error_type?: string
+          function_name?: string | null
+          id?: string
+          metadata?: Json | null
+          module?: string | null
+          route?: string | null
+          status?: string | null
+          telegram_notified?: boolean | null
+          telegram_sent_at?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       evidence_files: {
         Row: {
           file_name: string | null
@@ -4111,6 +4177,44 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      telegram_message_queue: {
+        Row: {
+          created_at: string | null
+          error_log_id: string | null
+          id: string
+          last_retry_at: string | null
+          message: string
+          retry_count: number | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_log_id?: string | null
+          id?: string
+          last_retry_at?: string | null
+          message: string
+          retry_count?: number | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_log_id?: string | null
+          id?: string
+          last_retry_at?: string | null
+          message?: string
+          retry_count?: number | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_message_queue_error_log_id_fkey"
+            columns: ["error_log_id"]
+            isOneToOne: false
+            referencedRelation: "error_logs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tracking_consents: {
         Row: {

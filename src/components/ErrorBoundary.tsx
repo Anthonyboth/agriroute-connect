@@ -36,6 +36,15 @@ class ErrorBoundary extends Component<Props, State> {
     }
 
     console.error('ErrorBoundary caught error:', error, errorInfo);
+    
+    // Enviar para monitoring
+    import('@/services/errorMonitoringService').then(({ ErrorMonitoringService }) => {
+      ErrorMonitoringService.getInstance().captureError(error, {
+        componentStack: errorInfo.componentStack,
+        source: 'ErrorBoundary',
+        module: 'ErrorBoundary'
+      });
+    });
   }
 
   private handleReset = () => {

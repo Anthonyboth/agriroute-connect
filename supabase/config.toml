@@ -167,3 +167,12 @@ verify_jwt = true
 
 [functions.registration-manager]
 verify_jwt = true
+
+[functions.report-error]
+verify_jwt = false
+
+[functions.send-telegram-alert]
+verify_jwt = false
+
+[functions.process-telegram-queue]
+verify_jwt = false
