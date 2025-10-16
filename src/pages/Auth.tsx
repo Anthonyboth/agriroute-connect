@@ -198,6 +198,19 @@ const Auth = () => {
                   if (companyError) {
                     console.error('Erro ao criar transportadora:', companyError);
                     toast.warning('Perfil criado, mas houve erro ao criar transportadora.');
+                  } else {
+                    // Atualizar profiles.document com o CNPJ para permitir login posterior
+                    const { error: updateProfileError } = await supabase
+                      .from('profiles')
+                      .update({
+                        document: sanitizeForStore(companyCNPJ),
+                        phone: phone
+                      })
+                      .eq('id', newProfileId);
+
+                    if (updateProfileError) {
+                      console.warn('Aviso: Não foi possível atualizar documento no perfil:', updateProfileError);
+                    }
                   }
                   navigate('/complete-profile');
                 } else {
@@ -280,31 +293,32 @@ const Auth = () => {
       
       // Se não contém @, assumir que é um documento (CPF/CNPJ)
       if (!loginField.includes('@')) {
-        // Normalizar o documento (remove formatação)
-        const normalizedDoc = normalizeDocument(loginField);
-        
-        // Validar se é um documento válido
+        // Validar formato básico
         if (!isValidDocument(loginField)) {
           toast.error('CPF/CNPJ inválido. Verifique e tente novamente.');
           setLoading(false);
           return;
         }
         
-        // Buscar o email associado ao documento
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('document', normalizedDoc)
-          .maybeSingle();
+        // Buscar o email via RPC (busca em profiles.document e transport_companies.company_cnpj)
+        const { data: foundEmail, error: rpcError } = await supabase
+          .rpc('get_email_by_document', { p_doc: loginField });
         
-        if (profileError || !profileData) {
+        if (rpcError) {
+          console.error('RPC error:', rpcError);
+          toast.error('Erro ao buscar documento. Tente novamente.');
+          setLoading(false);
+          return;
+        }
+        
+        if (!foundEmail) {
           toast.error('CPF/CNPJ não encontrado. Verifique seus dados ou cadastre-se.');
           setLoading(false);
           return;
         }
         
-        emailToUse = profileData.email;
-        console.log('Login por documento:', normalizedDoc, '-> email:', emailToUse);
+        emailToUse = foundEmail;
+        console.log('Login por documento:', loginField, '-> email:', emailToUse);
       }
 
       // Fazer login com o email (direto ou encontrado via documento)

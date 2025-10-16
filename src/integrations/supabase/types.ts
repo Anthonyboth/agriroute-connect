@@ -5367,6 +5367,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_email_by_document: {
+        Args: { p_doc: string }
+        Returns: string
+      }
       get_freights_for_driver: {
         Args: { p_driver_id: string }
         Returns: {
