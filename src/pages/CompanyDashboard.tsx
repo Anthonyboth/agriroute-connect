@@ -78,12 +78,38 @@ import { CompanyInviteModal } from '@/components/CompanyInviteModal';
 import { CompanyBalance } from '@/components/CompanyBalance';
 import { CompanyInternalChat } from '@/components/CompanyInternalChat';
 import { CompanyReports } from '@/components/CompanyReports';
+import { ResponsiveTabNavigation } from '@/components/ui/responsive-tab-navigation';
+import { ScrollIndicators } from '@/components/ui/scroll-indicators';
+import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
+
+// Definição centralizada de todas as tabs
+const COMPANY_TABS = [
+  { value: 'overview', label: 'Visão Geral', shortLabel: 'Visão', icon: Building2 },
+  { value: 'drivers', label: 'Motoristas', shortLabel: 'Mot', icon: Users },
+  { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck },
+  { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínc', icon: Link2 },
+  { value: 'freights', label: 'Fretes', shortLabel: 'Fretes', icon: Package },
+  { value: 'scheduled', label: 'Agendamentos', shortLabel: 'Agend', icon: Calendar },
+  { value: 'ai-freights', label: 'Fretes IA', shortLabel: 'IA', icon: Brain },
+  { value: 'active', label: 'Em Andamento', shortLabel: 'Ativo', icon: Navigation },
+  { value: 'proposals', label: 'Propostas', shortLabel: 'Prop', icon: FileText },
+  { value: 'payments', label: 'Pagamentos', shortLabel: 'Pag', icon: DollarSign },
+  { value: 'areas-ai', label: 'Áreas IA', shortLabel: 'Áreas', icon: Target },
+  { value: 'cities', label: 'Cidades', shortLabel: 'Cid', icon: MapPin },
+  { value: 'balance', label: 'Saldo', shortLabel: '$', icon: Banknote },
+  { value: 'history', label: 'Histórico', shortLabel: 'Hist', icon: Clock },
+  { value: 'chat', label: 'Chat Interno', shortLabel: 'Chat', icon: MessageSquare },
+  { value: 'reports', label: 'Relatórios', shortLabel: 'Rel', icon: BarChart }
+] as const;
 
 const CompanyDashboard = () => {
   const { profile, profiles, switchProfile, signOut } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const tabsScrollRef = React.useRef<HTMLDivElement>(null);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
@@ -367,91 +393,41 @@ const CompanyDashboard = () => {
           <PendingRatingsPanel userRole="MOTORISTA" userProfileId={profile?.id || ''} />
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="overflow-x-auto">
-            <TabsList className="inline-flex h-auto min-w-full w-max sm:w-full p-1 gap-1 bg-card border rounded-lg">
-              <TabsTrigger value="overview" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <Building2 className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Visão Geral</span>
-                <span className="sm:hidden">Visão</span>
-              </TabsTrigger>
-              <TabsTrigger value="drivers" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <Users className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Motoristas</span>
-                <span className="sm:hidden">Mot</span>
-              </TabsTrigger>
-              <TabsTrigger value="fleet" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <Truck className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Frota</span>
-                <span className="sm:hidden">Frota</span>
-              </TabsTrigger>
-              <TabsTrigger value="assignments" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <Link2 className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Vínculos</span>
-                <span className="sm:hidden">Vínc</span>
-              </TabsTrigger>
-              <TabsTrigger value="freights" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <Package className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Fretes</span>
-                <span className="sm:hidden">Fretes</span>
-              </TabsTrigger>
-              <TabsTrigger value="scheduled" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <Calendar className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Agendamentos</span>
-                <span className="sm:hidden">Agend</span>
-              </TabsTrigger>
-              <TabsTrigger value="ai-freights" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <Brain className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Fretes IA</span>
-                <span className="sm:hidden">IA</span>
-              </TabsTrigger>
-              <TabsTrigger value="active" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <Navigation className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Em Andamento</span>
-                <span className="sm:hidden">Ativo</span>
-              </TabsTrigger>
-              <TabsTrigger value="proposals" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <FileText className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Propostas</span>
-                <span className="sm:hidden">Prop</span>
-              </TabsTrigger>
-              <TabsTrigger value="payments" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <DollarSign className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Pagamentos</span>
-                <span className="sm:hidden">Pag</span>
-              </TabsTrigger>
-              <TabsTrigger value="areas-ai" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <Target className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Áreas IA</span>
-                <span className="sm:hidden">Áreas</span>
-              </TabsTrigger>
-              <TabsTrigger value="cities" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <MapPin className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Cidades</span>
-                <span className="sm:hidden">Cid</span>
-              </TabsTrigger>
-              <TabsTrigger value="balance" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <Banknote className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Saldo</span>
-                <span className="sm:hidden">$</span>
-              </TabsTrigger>
-              <TabsTrigger value="history" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <Clock className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Histórico</span>
-                <span className="sm:hidden">Hist</span>
-              </TabsTrigger>
-              <TabsTrigger value="chat" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <MessageSquare className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Chat Interno</span>
-                <span className="sm:hidden">Chat</span>
-              </TabsTrigger>
-              <TabsTrigger value="reports" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium">
-                <BarChart className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Relatórios</span>
-                <span className="sm:hidden">Rel</span>
-              </TabsTrigger>
-            </TabsList>
+        {/* Navegação Responsiva por Tabs */}
+        {isMobile || isTablet ? (
+          <ResponsiveTabNavigation
+            tabs={COMPANY_TABS}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        ) : (
+          <div className="relative mb-6">
+            <ScrollIndicators targetRef={tabsScrollRef} />
+            <div 
+              ref={tabsScrollRef}
+              className="overflow-x-auto overflow-y-hidden scroll-smooth pb-2"
+            >
+              <TabsList className="inline-flex h-auto min-w-full w-max p-2 gap-2 bg-card border rounded-lg shadow-sm">
+                {COMPANY_TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger
+                      key={tab.value}
+                      value={tab.value}
+                      onClick={() => setActiveTab(tab.value)}
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium min-w-[120px] flex-shrink-0 gap-2 transition-all duration-200 hover:scale-105 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border-2 data-[state=active]:border-primary"
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
           </div>
+        )}
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
           <TabsContent value="overview" className="mt-6">
             <CompanyDashboardComponent />
