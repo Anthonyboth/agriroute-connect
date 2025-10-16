@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Loader2, Mail, Eye, EyeOff, Truck, Building2, ArrowLeft, AlertTriangle, Users, Info, Briefcase, Building } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
-import { sanitizeForStore } from '@/utils/document';
+import { sanitizeForStore, normalizeDocument, isValidDocument } from '@/utils/document';
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
 import { userRegistrationSchema, validateInput } from '@/lib/validations';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -276,22 +276,47 @@ const Auth = () => {
     setShowResendConfirmation(false);
 
     try {
-      // Se não contém @, não é e-mail - exigir e-mail
+      let emailToUse = loginField;
+      
+      // Se não contém @, assumir que é um documento (CPF/CNPJ)
       if (!loginField.includes('@')) {
-        toast.error('Por favor, digite seu e-mail para entrar. Login por CPF/CNPJ está temporariamente indisponível.');
-        setLoading(false);
-        return;
+        // Normalizar o documento (remove formatação)
+        const normalizedDoc = normalizeDocument(loginField);
+        
+        // Validar se é um documento válido
+        if (!isValidDocument(loginField)) {
+          toast.error('CPF/CNPJ inválido. Verifique e tente novamente.');
+          setLoading(false);
+          return;
+        }
+        
+        // Buscar o email associado ao documento
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('document', normalizedDoc)
+          .maybeSingle();
+        
+        if (profileError || !profileData) {
+          toast.error('CPF/CNPJ não encontrado. Verifique seus dados ou cadastre-se.');
+          setLoading(false);
+          return;
+        }
+        
+        emailToUse = profileData.email;
+        console.log('Login por documento:', normalizedDoc, '-> email:', emailToUse);
       }
 
+      // Fazer login com o email (direto ou encontrado via documento)
       const { error } = await supabase.auth.signInWithPassword({
-        email: loginField,
+        email: emailToUse,
         password
       });
 
       if (error) {
         const msg = error.message || '';
         if (msg.includes('Invalid login credentials')) {
-          toast.error('E-mail ou senha incorretos');
+          toast.error('E-mail/Documento ou senha incorretos');
         } else if (msg.toLowerCase().includes('email not confirmed')) {
           setShowResendConfirmation(true);
           toast.error('Email não confirmado. Clique em "Reenviar e-mail de confirmação" abaixo.');
