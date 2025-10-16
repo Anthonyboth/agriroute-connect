@@ -69,69 +69,51 @@ serve(async (req) => {
 
     const driverId: string = profile.id as string;
 
-    // Fetch freight to ensure it belongs to this driver and is eligible
-    const { data: freight, error: freightErr } = await supabase
-      .from("freights")
-      .select("id, status, driver_id")
-      .eq("id", freightId)
-      .single();
+    // Call hardened SQL function
+    const { data: result, error: rpcError } = await supabase.rpc('process_freight_withdrawal', {
+      freight_id_param: freightId,
+      driver_profile_id: driverId
+    });
 
-    if (freightErr || !freight) {
-      return new Response(JSON.stringify({ error: "Freight not found" }), {
-        status: 404,
+    if (rpcError) {
+      console.error('withdraw-freight RPC error:', rpcError);
+      return new Response(JSON.stringify({ error: 'RPC_ERROR', details: rpcError.message }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (freight.driver_id !== driverId || !(freight.status === "ACCEPTED" || freight.status === "LOADING")) {
-      return new Response(JSON.stringify({ error: "Freight not eligible for withdrawal" }), {
-        status: 409,
+    // Parse result from function
+    const res = result as any;
+    if (!res || !res.success) {
+      const errCode = res?.error || 'UNKNOWN_ERROR';
+      let statusCode = 409;
+      let message = 'Erro ao processar desistência';
+
+      switch (errCode) {
+        case 'NOT_OWNER_OR_NOT_FOUND':
+          message = 'Frete não encontrado ou não pertence ao motorista';
+          statusCode = 404;
+          break;
+        case 'INVALID_STATUS':
+          message = 'Não é possível desistir do frete neste status (somente ACCEPTED ou LOADING são permitidos)';
+          statusCode = 409;
+          break;
+        case 'HAS_CHECKINS':
+          message = 'Não é possível desistir do frete após o primeiro check-in.';
+          statusCode = 409;
+          break;
+        default:
+          message = errCode;
+      }
+
+      return new Response(JSON.stringify({ error: errCode, message }), {
+        status: statusCode,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Block if there are check-ins by this driver for this freight
-    const { count: checkinsCount, error: checkinsErr } = await supabase
-      .from("freight_checkins")
-      .select("id", { count: "exact", head: true })
-      .eq("freight_id", freightId)
-      .eq("user_id", driverId);
-
-    if (checkinsErr) {
-      console.error("withdraw-freight: error counting checkins", checkinsErr);
-    }
-
-    if ((checkinsCount || 0) > 0) {
-      return new Response(
-        JSON.stringify({ error: "HAS_CHECKINS" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Update freight to OPEN and remove driver
-    const { data: updatedFreight, error: updateFreightErr } = await supabase
-      .from("freights")
-      .update({ status: "OPEN", driver_id: null, updated_at: new Date().toISOString() })
-      .eq("id", freightId)
-      .eq("driver_id", driverId)
-      .select("*")
-      .single();
-
-    if (updateFreightErr || !updatedFreight) {
-      return new Response(JSON.stringify({ error: "Failed to update freight" }), {
-        status: 409,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Mark proposals as CANCELLED to keep history
-    await supabase
-      .from("freight_proposals")
-      .update({ status: "CANCELLED", updated_at: new Date().toISOString() })
-      .eq("freight_id", freightId)
-      .eq("driver_id", driverId);
-
-    return new Response(JSON.stringify({ success: true, freight: updatedFreight }), {
+    return new Response(JSON.stringify({ success: true, message: res.message || 'Desistência processada com sucesso' }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

@@ -1052,8 +1052,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     const acceptedProposals = myProposals.filter(p => p.status === 'ACCEPTED');
     const pendingProposalsCount = myProposals.filter(p => p.status === 'PENDING').length;
 
-    // Contar fretes ativos baseado nos fretes em andamento (inclui todos os status de fretes/serviços em progresso)
-    const activeStatuses = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION', 'IN_PROGRESS'];
+    // Contar fretes ativos - EXCLUIR DELIVERED_PENDING_CONFIRMATION (já entregue, aguardando confirmação)
+    const activeStatuses = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'IN_PROGRESS'];
     const activeTripsCount = ongoingFreights.filter(freight => 
       activeStatuses.includes(freight.status)
     ).length;
@@ -1223,6 +1223,11 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   };
 
   const handleFreightWithdrawal = (freight: Freight) => {
+    // Blindagem adicional: só permitir desistência se ACCEPTED ou LOADING
+    if (!['ACCEPTED','LOADING'].includes(freight.status)) {
+      toast.error('Não é possível desistir do frete neste status.');
+      return;
+    }
     setSelectedFreightForWithdrawal(freight);
     setShowWithdrawalModal(true);
   };
