@@ -286,6 +286,24 @@ serve(async (req) => {
       assignments.push(assignment);
     }
 
+    // ================================================
+    // 6.5. VINCULAR MOTORISTA AO FRETE (para fretes de carreta única)
+    // ================================================
+    
+    if ((freightFresh.required_trucks || 1) === 1 && !freight.driver_id) {
+      const { error: driverUpdateError } = await supabase
+        .from("freights")
+        .update({ driver_id: profile.id })
+        .eq("id", freight_id)
+        .is("driver_id", null);
+      
+      if (driverUpdateError) {
+        console.error("[DRIVER-LINK] Failed to link driver to freight:", driverUpdateError);
+      } else {
+        console.log(`[DRIVER-LINK] Successfully linked driver ${profile.id} to freight ${freight_id}`);
+      }
+    }
+
     // 7. Notificar produtor (com mensagem especial para re-aceitações)
     const remainingSlots = availableSlots - num_trucks;
     await supabase.from("notifications").insert({

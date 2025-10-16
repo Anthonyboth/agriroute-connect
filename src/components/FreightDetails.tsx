@@ -101,7 +101,33 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
 
   const isProducer = currentUserProfile?.role === 'PRODUTOR';
   const isDriver = currentUserProfile?.role === 'MOTORISTA';
-  const isParticipant = freight?.producer?.id === currentUserProfile?.id || freight?.driver?.id === currentUserProfile?.id;
+  
+  // Verificar se é participante (produtor, motorista direto, ou tem assignment ativo)
+  const [hasActiveAssignment, setHasActiveAssignment] = useState(false);
+  
+  useEffect(() => {
+    const checkAssignment = async () => {
+      if (!currentUserProfile?.id || !freightId) return;
+      
+      const { data } = await supabase
+        .from('freight_assignments')
+        .select('id')
+        .eq('freight_id', freightId)
+        .eq('driver_id', currentUserProfile.id)
+        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'])
+        .limit(1);
+      
+      setHasActiveAssignment(!!data && data.length > 0);
+    };
+    
+    checkAssignment();
+  }, [freightId, currentUserProfile?.id]);
+  
+  const isParticipant = 
+    freight?.producer?.id === currentUserProfile?.id || 
+    freight?.driver?.id === currentUserProfile?.id ||
+    hasActiveAssignment;
+  
   const isFreightProducer = freight?.producer?.id === currentUserProfile?.id;
   
   const totalAdvances = advances.reduce((sum, advance) => sum + ((advance.approved_amount || 0) / 100), 0);

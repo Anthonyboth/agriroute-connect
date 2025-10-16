@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, TrendingUp, Truck, DollarSign, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { ANTTValidation } from './ANTTValidation';
+import { driverUpdateFreightStatus } from '@/lib/freight-status-helpers';
+import { useAuth } from '@/hooks/useAuth';
 
 interface MyAssignmentCardProps {
   assignment: any;
@@ -12,11 +14,15 @@ interface MyAssignmentCardProps {
 
 export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, onAction }) => {
   const freight = assignment.freight;
+  const { profile: currentUserProfile } = useAuth();
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACCEPTED':
         return <Badge variant="outline">Aceito</Badge>;
+      case 'LOADING':
+        return <Badge variant="secondary">A Caminho</Badge>;
       case 'IN_TRANSIT':
         return <Badge variant="secondary">Em Trânsito</Badge>;
       case 'DELIVERED_PENDING_CONFIRMATION':
@@ -25,6 +31,23 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
         return <Badge variant="default">Entregue</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!currentUserProfile || isUpdatingStatus) return;
+    
+    setIsUpdatingStatus(true);
+    const success = await driverUpdateFreightStatus({
+      freightId: freight.id,
+      newStatus,
+      currentUserProfile
+    });
+    setIsUpdatingStatus(false);
+    
+    if (success) {
+      // Recarregar página para atualizar dados
+      window.location.reload();
     }
   };
   
@@ -84,6 +107,42 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
               Este frete tem {freight.required_trucks} carretas. 
               Você é uma delas ({freight.accepted_trucks}/{freight.required_trucks} contratadas).
             </p>
+          </div>
+        )}
+
+        {/* Ações Rápidas para FRETE_MOTO */}
+        {freight.service_type === 'FRETE_MOTO' && (
+          <div className="flex flex-col gap-2 pt-2">
+            {assignment.status === 'ACCEPTED' && (
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={() => handleStatusChange('LOADING')}
+                disabled={isUpdatingStatus}
+              >
+                🚚 Marcar "A caminho"
+              </Button>
+            )}
+            {assignment.status === 'LOADING' && (
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={() => handleStatusChange('IN_TRANSIT')}
+                disabled={isUpdatingStatus}
+              >
+                🛣️ Iniciar Trânsito
+              </Button>
+            )}
+            {assignment.status === 'IN_TRANSIT' && (
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={() => handleStatusChange('DELIVERED_PENDING_CONFIRMATION')}
+                disabled={isUpdatingStatus}
+              >
+                ✅ Encerrar Frete
+              </Button>
+            )}
           </div>
         )}
 
