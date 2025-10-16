@@ -33,7 +33,7 @@ const Subscription: React.FC = () => {
     },
     {
       icon: <HeadphonesIcon className="h-6 w-6" />,
-      title: 'Suporte VIP',
+      title: 'Suporte Prioritário',
       description: 'Atendimento prioritário 24/7',
       tier: 'PROFESSIONAL'
     }

@@ -57,7 +57,7 @@ const SubscriptionPlans: React.FC = () => {
         'Tudo do Essencial',
         'Sem comissões sobre transações',
         'Apenas valor mensal',
-        'Suporte VIP 24/7',
+        'Suporte Prioritário 24/7',
         'Relatórios avançados',
         'API para integração',
         'Consultor dedicado'

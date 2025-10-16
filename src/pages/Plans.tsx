@@ -64,7 +64,7 @@ const Plans: React.FC = () => {
       features: [
         'Tudo do Essencial',
         'Sem taxas sobre transações',
-        'Suporte VIP',
+        'Suporte Prioritário',
         'Relatórios avançados e analytics',
         'API para integração',
         'Gerenciamento de múltiplas fazendas'
