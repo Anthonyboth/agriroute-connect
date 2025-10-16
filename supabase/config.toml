@@ -161,3 +161,6 @@ verify_jwt = true
 
 [functions.check-freight-requester]
 verify_jwt = true
+
+[functions.accept-freight-proposal]
+verify_jwt = true

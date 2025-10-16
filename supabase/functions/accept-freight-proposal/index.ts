@@ -16,8 +16,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const requestStartTime = Date.now();
+  console.log('[ACCEPT-PROPOSAL] Request started');
+
   try {
     const { proposal_id, producer_id }: AcceptProposalRequest = await req.json();
+    console.log('[ACCEPT-PROPOSAL] Request data:', { proposal_id, producer_id });
     
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -50,11 +54,22 @@ serve(async (req) => {
       .single();
 
     if (proposalErr || !proposal) {
+      console.error('[ACCEPT-PROPOSAL] Proposal not found:', { proposal_id, proposalErr });
       return new Response(
         JSON.stringify({ error: "Proposta não encontrada" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log('[ACCEPT-PROPOSAL] Proposal found:', {
+      proposal_id: proposal.id,
+      freight_id: proposal.freight_id,
+      driver_id: proposal.driver_id,
+      proposed_price: proposal.proposed_price,
+      freight_status: proposal.freights.status,
+      required_trucks: proposal.freights.required_trucks,
+      accepted_trucks: proposal.freights.accepted_trucks
+    });
 
     // 2. Validar permissão (produtor é dono do frete)
     if (proposal.freights.producer_id !== producer_id) {
@@ -168,19 +183,54 @@ serve(async (req) => {
         }
       });
 
+    const responseTime = Date.now() - requestStartTime;
+    console.log('[ACCEPT-PROPOSAL] Success! Response time:', responseTime + 'ms');
+    console.log('[ACCEPT-PROPOSAL] Assignment created:', {
+      assignment_id: assignment.id,
+      freight_id: proposal.freight_id,
+      driver_id: proposal.driver_id,
+      agreed_price: assignment.agreed_price,
+      remaining_trucks: proposal.freights.required_trucks - (proposal.freights.accepted_trucks + 1)
+    });
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        assignment,
-        remaining_trucks: proposal.freights.required_trucks - (proposal.freights.accepted_trucks + 1)
+        assignment: {
+          id: assignment.id,
+          freight_id: assignment.freight_id,
+          driver_id: assignment.driver_id,
+          agreed_price: assignment.agreed_price,
+          status: assignment.status
+        },
+        freight: {
+          id: proposal.freight_id,
+          required_trucks: proposal.freights.required_trucks,
+          accepted_trucks: proposal.freights.accepted_trucks + 1,
+          remaining_trucks: proposal.freights.required_trucks - (proposal.freights.accepted_trucks + 1)
+        },
+        message: proposal.freights.required_trucks - (proposal.freights.accepted_trucks + 1) > 0
+          ? `Proposta aceita! Ainda faltam ${proposal.freights.required_trucks - (proposal.freights.accepted_trucks + 1)} carretas.`
+          : 'Proposta aceita! Todas as carretas foram contratadas.'
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
-    console.error("Error accepting proposal:", error);
+    const responseTime = Date.now() - requestStartTime;
+    console.error("[ACCEPT-PROPOSAL] Error after", responseTime + "ms:", error);
+    console.error("[ACCEPT-PROPOSAL] Error details:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
     return new Response(
-      JSON.stringify({ error: "Erro interno", details: String(error) }),
+      JSON.stringify({ 
+        error: "Erro ao aceitar proposta", 
+        details: error.message,
+        timestamp: new Date().toISOString()
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

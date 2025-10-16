@@ -38,6 +38,7 @@ import { showErrorToast } from '@/lib/error-handler';
 import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { AutoRatingModal } from '@/components/AutoRatingModal';
+import { FreightProposalsManager } from '@/components/FreightProposalsManager';
 
 const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
@@ -1351,113 +1352,13 @@ const ProducerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="proposals" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Propostas Recebidas</h3>
-            </div>
-            
-            {proposals.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                  <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="font-semibold text-lg mb-2">Nenhuma proposta recebida</h3>
-                  <p className="text-muted-foreground mb-6 max-w-sm">
-                    Ainda não há propostas para seus fretes. Aguarde os motoristas interessados.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="max-h-[500px] overflow-y-auto pr-2 scroll-area">
-                <div className="space-y-4">
-                  {proposals.map((proposal) => (
-                  <Card key={proposal.id} className="p-4">
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold">
-                            Proposta de {proposal.driver?.full_name || 'Motorista'}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Frete: {proposal.freight?.cargo_type} - {proposal.freight?.origin_address} → {proposal.freight?.destination_address}
-                          </p>
-                        </div>
-                        <Badge 
-                          variant={
-                            proposal.status === 'ACCEPTED' ? 'default' :
-                            proposal.status === 'PENDING' ? 'secondary' : 'destructive'
-                          }
-                        >
-                          {getProposalStatusLabel(proposal.status)}
-                        </Badge>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="font-medium">Valor original:</p>
-                          <p>R$ {proposal.freight?.price?.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Valor proposto:</p>
-                          <p>R$ {proposal.proposed_price?.toLocaleString()}</p>
-                        </div>
-                      </div>
-
-                      {proposal.message && (
-                        <div className="border-t pt-3">
-                          <p className="font-medium text-sm">Mensagem:</p>
-                          <p className="text-sm text-muted-foreground">{proposal.message}</p>
-                        </div>
-                      )}
-
-                      {/* Avisar se a proposta tem valor inválido */}
-                      {(!proposal.proposed_price || proposal.proposed_price <= 0) && proposal.status === 'PENDING' && (
-                        <div className="bg-destructive/10 border border-destructive/30 p-3 rounded text-sm text-destructive">
-                          ⚠️ Proposta com valor inválido. Faça uma contra-proposta ou rejeite.
-                        </div>
-                      )}
-
-                      {proposal.status === 'PENDING' && (
-                        <div className="flex gap-2 pt-2">
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleAcceptProposal(proposal.id)}
-                            className="gradient-primary"
-                            disabled={!proposal.proposed_price || proposal.proposed_price <= 0}
-                          >
-                            Aceitar
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="secondary"
-                            onClick={() => openCounterProposalModal(proposal)}
-                          >
-                            Contra Proposta
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleRejectProposal(proposal.id)}
-                          >
-                            Rejeitar
-                          </Button>
-                        </div>
-                      )}
-                      {proposal.status === 'ACCEPTED' && (
-                        <div className="flex gap-2 pt-2">
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => handleCancelProposal(proposal.id)}
-                          >
-                            Cancelar Aceite
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                ))}
-                </div>
-              </div>
-            )}
+            <FreightProposalsManager 
+              producerId={profile?.id || ''}
+              onProposalAccepted={() => {
+                fetchFreights();
+                fetchProposals();
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="scheduled">
