@@ -262,6 +262,19 @@ const Auth = () => {
           if (companyError) {
             console.error('Erro ao criar transportadora:', companyError);
             toast.warning('Cadastro criado, mas houve erro ao criar transportadora. Entre em contato com o suporte.');
+          } else {
+            // Atualizar profiles.document com o CNPJ para permitir login posterior
+            const { error: updateProfileError } = await supabase
+              .from('profiles')
+              .update({
+                document: sanitizeForStore(companyCNPJ),
+                phone: phone || null
+              })
+              .eq('id', profileData.id);
+
+            if (updateProfileError) {
+              console.warn('Aviso: Não foi possível atualizar documento no perfil:', updateProfileError);
+            }
           }
         }
       }
