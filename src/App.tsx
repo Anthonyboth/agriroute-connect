@@ -5,6 +5,9 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { RatingProvider } from "@/contexts/RatingContext";
 import { GlobalRatingModals } from "@/components/GlobalRatingModals";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Landing from "./pages/Landing";
@@ -287,16 +290,17 @@ const SmartFallback = () => {
 
 const App = () => (
   <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <SubscriptionProvider>
-        <RatingProvider>
-          <TooltipProvider>
-            <BrowserRouter
-              future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true
-              }}
-            >
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <SubscriptionProvider>
+          <RatingProvider>
+            <TooltipProvider>
+              <BrowserRouter
+                future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true
+                }}
+              >
             <ScrollToTop />
             <Routes>
             <Route path="/" element={<Landing />} />
@@ -409,11 +413,14 @@ const App = () => (
             <Route path="*" element={<SmartFallback />} />
           </Routes>
           <GlobalRatingModals />
+          <Toaster />
+          <Sonner />
         </BrowserRouter>
       </TooltipProvider>
-        </RatingProvider>
-    </SubscriptionProvider>
-  </QueryClientProvider>
+          </RatingProvider>
+      </SubscriptionProvider>
+    </QueryClientProvider>
+    </ThemeProvider>
   </ErrorBoundary>
 );
 
