@@ -8,7 +8,7 @@
 export const Z_INDEX = {
   // Base layers
   base: 0,
-  dropdown: 1000,
+  dropdown: 1000, // Para dropdowns simples (não em dialogs)
   sticky: 1020,
   
   // Overlays
@@ -35,7 +35,7 @@ export const Z_INDEX = {
   tooltip: 1095,
   
   // Sempre no topo
-  popover: 1100,
+  popover: 1100, // Para popovers e selects dentro de dialogs
   notification: 1110,
 } as const;
 
