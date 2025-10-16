@@ -145,9 +145,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         console.log('✅ Matching espacial executado:', spatialData);
       }
 
-      // Buscar fretes compatíveis usando a função RPC (agora considera user_cities)
+      // Buscar fretes compatíveis usando RPC exclusiva (APENAS fretes, nunca serviços)
     const { data, error } = await supabase.rpc(
-      'get_compatible_freights_for_driver_v2', // Nova versão com suporte a múltiplas carretas
+      'get_freights_for_driver', // RPC exclusiva com separação de tipos
       { p_driver_id: profile.id }
     );
 

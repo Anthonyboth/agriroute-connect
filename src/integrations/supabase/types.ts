@@ -1971,6 +1971,7 @@ export type Database = {
           commission_amount: number | null
           commission_rate: number | null
           company_id: string | null
+          contact_phone: string | null
           created_at: string
           current_lat: number | null
           current_lng: number | null
@@ -2012,6 +2013,7 @@ export type Database = {
           pickup_observations: string | null
           price: number
           price_per_km: number | null
+          problem_description: string | null
           producer_id: string
           required_trucks: number
           route_geom: unknown | null
@@ -2041,6 +2043,7 @@ export type Database = {
           commission_amount?: number | null
           commission_rate?: number | null
           company_id?: string | null
+          contact_phone?: string | null
           created_at?: string
           current_lat?: number | null
           current_lng?: number | null
@@ -2082,6 +2085,7 @@ export type Database = {
           pickup_observations?: string | null
           price: number
           price_per_km?: number | null
+          problem_description?: string | null
           producer_id: string
           required_trucks?: number
           route_geom?: unknown | null
@@ -2111,6 +2115,7 @@ export type Database = {
           commission_amount?: number | null
           commission_rate?: number | null
           company_id?: string | null
+          contact_phone?: string | null
           created_at?: string
           current_lat?: number | null
           current_lng?: number | null
@@ -2152,6 +2157,7 @@ export type Database = {
           pickup_observations?: string | null
           price?: number
           price_per_km?: number | null
+          problem_description?: string | null
           producer_id?: string
           required_trucks?: number
           route_geom?: unknown | null
@@ -5351,6 +5357,41 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_freights_for_driver: {
+        Args: { p_driver_id: string }
+        Returns: {
+          accepted_trucks: number
+          available_slots: number
+          cargo_type: string
+          created_at: string
+          delivery_date: string
+          destination_address: string
+          destination_city: string
+          destination_state: string
+          distance_km: number
+          distance_m: number
+          freight_id: string
+          is_partial_booking: boolean
+          match_score: number
+          match_type: string
+          minimum_antt_price: number
+          origin_address: string
+          origin_city: string
+          origin_lat: number
+          origin_lng: number
+          origin_state: string
+          pickup_date: string
+          price: number
+          producer_id: string
+          producer_name: string
+          producer_phone: string
+          required_trucks: number
+          service_type: string
+          status: Database["public"]["Enums"]["freight_status"]
+          urgency: string
+          weight: number
+        }[]
+      }
       get_freights_in_city: {
         Args: { p_city_id: string; p_type?: string }
         Returns: {
@@ -5625,6 +5666,34 @@ export type Database = {
           status: string
         }[]
       }
+      get_services_for_provider: {
+        Args: { p_provider_id: string }
+        Returns: {
+          additional_info: string
+          city_name: string
+          client_id: string
+          client_name: string
+          client_phone: string
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          distance_m: number
+          estimated_price: number
+          is_emergency: boolean
+          location_address: string
+          location_lat: number
+          location_lng: number
+          match_score: number
+          match_type: string
+          problem_description: string
+          request_id: string
+          service_type: string
+          state: string
+          status: string
+          urgency: string
+          vehicle_info: string
+        }[]
+      }
       get_services_in_city: {
         Args: { p_city_id: string }
         Returns: {
@@ -5762,6 +5831,15 @@ export type Database = {
           service_types: string[]
         }[]
       }
+      migrate_freight_requests_to_freights: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          from_table: string
+          migrated_id: string
+          svc_type: string
+          to_table: string
+        }[]
+      }
       process_freight_withdrawal: {
         Args: { driver_profile_id: string; freight_id_param: string }
         Returns: Json
@@ -5803,6 +5881,17 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "driver" | "producer" | "service_provider"
+      freight_service_type:
+        | "FRETE_MOTO"
+        | "CARGA"
+        | "CARGA_GERAL"
+        | "CARGA_AGRICOLA"
+        | "CARGA_GRANEL"
+        | "CARGA_LIQUIDA"
+        | "GUINCHO"
+        | "MUDANCA"
+        | "TRANSPORTE_ANIMAIS"
+        | "TRANSPORTE_MAQUINARIO"
       freight_status:
         | "OPEN"
         | "IN_NEGOTIATION"
@@ -5818,6 +5907,23 @@ export type Database = {
         | "COMPLETED"
       payment_method: "PIX" | "BOLETO" | "CARTAO" | "DIRETO"
       plan_type: "free" | "essential" | "professional"
+      provider_service_type:
+        | "AGRONOMO"
+        | "ANALISE_SOLO"
+        | "ASSISTENCIA_TECNICA"
+        | "MECANICO"
+        | "BORRACHEIRO"
+        | "CHAVEIRO"
+        | "AUTO_ELETRICA"
+        | "COMBUSTIVEL"
+        | "LIMPEZA_RURAL"
+        | "PULVERIZACAO_DRONE"
+        | "COLHEITA_TERCEIRIZADA"
+        | "TOPOGRAFIA"
+        | "ENERGIA_SOLAR"
+        | "CONSULTORIA_RURAL"
+        | "VETERINARIO"
+        | "OUTROS"
       service_category:
         | "rodotrem"
         | "carreta"
@@ -5984,6 +6090,18 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "driver", "producer", "service_provider"],
+      freight_service_type: [
+        "FRETE_MOTO",
+        "CARGA",
+        "CARGA_GERAL",
+        "CARGA_AGRICOLA",
+        "CARGA_GRANEL",
+        "CARGA_LIQUIDA",
+        "GUINCHO",
+        "MUDANCA",
+        "TRANSPORTE_ANIMAIS",
+        "TRANSPORTE_MAQUINARIO",
+      ],
       freight_status: [
         "OPEN",
         "IN_NEGOTIATION",
@@ -6000,6 +6118,24 @@ export const Constants = {
       ],
       payment_method: ["PIX", "BOLETO", "CARTAO", "DIRETO"],
       plan_type: ["free", "essential", "professional"],
+      provider_service_type: [
+        "AGRONOMO",
+        "ANALISE_SOLO",
+        "ASSISTENCIA_TECNICA",
+        "MECANICO",
+        "BORRACHEIRO",
+        "CHAVEIRO",
+        "AUTO_ELETRICA",
+        "COMBUSTIVEL",
+        "LIMPEZA_RURAL",
+        "PULVERIZACAO_DRONE",
+        "COLHEITA_TERCEIRIZADA",
+        "TOPOGRAFIA",
+        "ENERGIA_SOLAR",
+        "CONSULTORIA_RURAL",
+        "VETERINARIO",
+        "OUTROS",
+      ],
       service_category: [
         "rodotrem",
         "carreta",

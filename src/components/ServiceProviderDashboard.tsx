@@ -358,29 +358,30 @@ export const ServiceProviderDashboard: React.FC = () => {
       let providerRequests: any[] = [];
       
       if (scope === 'all' || scope === 'available') {
-        console.log('🔍 Fetching service requests for provider cities...', {
+        console.log('🔍 Fetching service requests for provider (APENAS serviços)...', {
           providerId,
           providerServiceTypes: profile?.service_types,
           profileRole: profile?.role,
           timestamp: new Date().toISOString()
         });
         try {
+          // Usar RPC exclusiva que retorna APENAS serviços (nunca fretes)
           const { data, error: cityError } = await supabase.rpc(
-            'get_service_requests_for_provider_cities',
+            'get_services_for_provider',
             { p_provider_id: providerId }
           );
 
           if (cityError) {
-            console.warn('⚠️ Error fetching city-based requests:', cityError);
+            console.warn('⚠️ Error fetching services:', cityError);
           } else {
             cityBasedRequests = data || [];
-            console.log('✅ City-based requests found (before filtering):', {
+            console.log('✅ Services found (já filtrado pela RPC):', {
               total: cityBasedRequests.length,
               serviceTypes: [...new Set(cityBasedRequests.map((r: any) => r.service_type))]
             });
           }
         } catch (cityError) {
-          console.warn('⚠️ City-based requests query failed:', cityError);
+          console.warn('⚠️ Service requests query failed:', cityError);
         }
       }
 
@@ -426,18 +427,11 @@ export const ServiceProviderDashboard: React.FC = () => {
         const available: ServiceRequest[] = [];
         const own: ServiceRequest[] = [];
         
-        // Process city-based (available)
+        // Process city-based (available) - RPC já filtra apenas serviços
         const providerServiceTypes = profile?.service_types || [];
-        const freightTypes = ['FRETE_MOTO', 'GUINCHO_FREIGHT', 'CARGA_FREIGHT', 'MUDANCA_FREIGHT', 'CARGA', 'GUINCHO', 'MUDANCA'];
         
         (cityBasedRequests || []).forEach((r: any) => {
-          // FILTRO CRÍTICO: Excluir tipos freight explicitamente
-          if (freightTypes.includes(r.service_type)) {
-            console.warn(`⚠️ Freight type ${r.service_type} filtered out for service provider`);
-            return;
-          }
-          
-          // FILTRO CRÍTICO: Verificar se o service_type está na lista do prestador
+          // FILTRO: Verificar se o service_type está na lista do prestador
           if (providerServiceTypes.length > 0 && !providerServiceTypes.includes(r.service_type)) {
             console.warn(`⚠️ Service type ${r.service_type} not in provider's service list:`, providerServiceTypes);
             return;
@@ -495,19 +489,12 @@ export const ServiceProviderDashboard: React.FC = () => {
           filteredOutFreight: cityBasedRequests.length - available.length
         });
       } else {
-        // Update only available requests
+        // Update only available requests - RPC já filtra apenas serviços
         const available: ServiceRequest[] = [];
         const providerServiceTypes = profile?.service_types || [];
-        const freightTypes = ['FRETE_MOTO', 'GUINCHO_FREIGHT', 'CARGA_FREIGHT', 'MUDANCA_FREIGHT', 'CARGA', 'GUINCHO', 'MUDANCA'];
         
         (cityBasedRequests || []).forEach((r: any) => {
-          // FILTRO CRÍTICO: Excluir tipos freight explicitamente
-          if (freightTypes.includes(r.service_type)) {
-            console.warn(`⚠️ Freight type ${r.service_type} filtered out for service provider`);
-            return;
-          }
-          
-          // FILTRO CRÍTICO: Verificar se o service_type está na lista do prestador
+          // FILTRO: Verificar se o service_type está na lista do prestador
           if (providerServiceTypes.length > 0 && !providerServiceTypes.includes(r.service_type)) {
             console.warn(`⚠️ Service type ${r.service_type} not in provider's service list:`, providerServiceTypes);
             return;

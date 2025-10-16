@@ -136,12 +136,19 @@ serve(async (req) => {
         });
       }
 
-      // Fetch recent open freights (with or without coordinates)
+      // Fetch recent open freights (apenas tipos de FRETE, nunca serviços)
+      const freightServiceTypes = [
+        'FRETE_MOTO', 'CARGA', 'CARGA_GERAL', 'CARGA_AGRICOLA', 
+        'CARGA_GRANEL', 'CARGA_LIQUIDA', 'GUINCHO', 'MUDANCA',
+        'TRANSPORTE_ANIMAIS', 'TRANSPORTE_MAQUINARIO'
+      ];
+      
       const { data: freights, error: freErr } = await supabase
         .from('freights')
         .select('*')
         .eq('status', 'OPEN')
         .is('driver_id', null)
+        .in('service_type', freightServiceTypes)
         .order('created_at', { ascending: false })
         .limit(500);
 
