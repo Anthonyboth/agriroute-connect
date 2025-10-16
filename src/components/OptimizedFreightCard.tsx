@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { getFreightTypeLabel, shouldShowAntt } from '@/lib/freight-type-labels';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface FreightCardProps {
   freight: {
@@ -57,6 +59,27 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
   driverProfile
 }) => {
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
+  const [hasCompletedBefore, setHasCompletedBefore] = useState(false);
+  const { profile } = useAuth();
+
+  // Verificar se motorista já completou uma carreta deste frete
+  React.useEffect(() => {
+    if (!profile?.id || !freight.id || !showActions) return;
+    
+    const checkCompletedAssignments = async () => {
+      const { data } = await supabase
+        .from("freight_assignments")
+        .select("id")
+        .eq("freight_id", freight.id)
+        .eq("driver_id", profile.id)
+        .eq("status", "DELIVERED")
+        .limit(1);
+      
+      setHasCompletedBefore(!!data && data.length > 0);
+    };
+    
+    checkCompletedAssignments();
+  }, [freight.id, profile?.id, showActions]);
   
   // Memoized calculations
   const isFullyBooked = React.useMemo(() => 
@@ -172,13 +195,18 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
                 {getFreightTypeLabel(freight.cargo_type, freight.service_type)}
               </h3>
             </div>
-            <div className="flex items-center space-x-3 flex-shrink-0">
+            <div className="flex items-center gap-3 flex-shrink-0 flex-wrap">
               <Badge variant={urgencyVariant} className="text-sm font-semibold px-3 py-1">
                 {urgencyLabel}
               </Badge>
               <Badge variant={getFreightStatusVariant(freight.status)} className="text-sm font-semibold px-3 py-1">
                 {getFreightStatusLabel(freight.status)}
               </Badge>
+              {hasCompletedBefore && (
+                <Badge variant="outline" className="bg-green-50 dark:bg-green-900/30 border-green-500 text-green-700 dark:text-green-400 text-sm font-semibold px-3 py-1">
+                  ✅ Você já completou uma carreta
+                </Badge>
+              )}
             </div>
           </div>
           <div className="flex justify-start">

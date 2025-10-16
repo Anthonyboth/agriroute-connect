@@ -70,6 +70,55 @@ serve(async (req) => {
       );
     }
 
+    // 5. Verificar se motorista já tem assignment ativo para esse frete
+    const { data: activeAssignments } = await supabase
+      .from("freight_assignments")
+      .select("id, status")
+      .eq("freight_id", freight_id)
+      .eq("driver_id", profile.id)
+      .in("status", ["ACCEPTED", "IN_TRANSIT", "LOADING", "LOADED"]);
+
+    if (activeAssignments && activeAssignments.length > 0) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Você já tem uma carreta em andamento para este frete. Complete a entrega atual primeiro." 
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 6. Verificar se tem DELIVERED sem avaliação
+    const { data: deliveredAssignments } = await supabase
+      .from("freight_assignments")
+      .select("id")
+      .eq("freight_id", freight_id)
+      .eq("driver_id", profile.id)
+      .eq("status", "DELIVERED");
+
+    let isReAcceptance = false;
+    if (deliveredAssignments && deliveredAssignments.length > 0) {
+      // Verificar se já avaliou o produtor
+      const { data: rating } = await supabase
+        .from("freight_ratings")
+        .select("id")
+        .eq("freight_id", freight_id)
+        .eq("rater_id", profile.id)
+        .eq("rating_type", "DRIVER_TO_PRODUCER")
+        .maybeSingle();
+
+      if (!rating) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Complete a avaliação da entrega anterior antes de aceitar novamente este frete." 
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      isReAcceptance = true;
+      console.log(`✅ Re-aceitação permitida: Motorista ${profile.id} já completou e avaliou`);
+    }
+
     // 5. Buscar company_id se transportadora
     let company_id = null;
     if (isTransportCompany) {
@@ -116,18 +165,27 @@ serve(async (req) => {
       assignments.push(assignment);
     }
 
-    // 7. Notificar produtor
+    // 7. Notificar produtor (com mensagem especial para re-aceitações)
     const remainingSlots = availableSlots - num_trucks;
     await supabase.from("notifications").insert({
       user_id: freight.producer_id,
-      title: isTransportCompany 
-        ? `Transportadora aceitou ${num_trucks} carretas! 🚚`
-        : "Motorista aceitou seu frete! 🎉",
-      message: remainingSlots > 0
-        ? `${num_trucks} carreta(s) aceita(s). ${remainingSlots} vaga(s) restante(s).`
-        : "Todas as carretas foram preenchidas!",
+      title: isReAcceptance 
+        ? `🌟 Motorista retornou para mais ${num_trucks} carreta(s)!`
+        : (isTransportCompany 
+            ? `Transportadora aceitou ${num_trucks} carretas! 🚚`
+            : "Motorista aceitou seu frete! 🎉"),
+      message: isReAcceptance
+        ? `Um motorista que já completou com sucesso uma entrega aceitou mais ${num_trucks} carreta(s). ${remainingSlots} vaga(s) restante(s).`
+        : (remainingSlots > 0
+            ? `${num_trucks} carreta(s) aceita(s). ${remainingSlots} vaga(s) restante(s).`
+            : "Todas as carretas foram preenchidas!"),
       type: "freight_accepted",
-      data: { freight_id, num_trucks, is_company: isTransportCompany }
+      data: { 
+        freight_id, 
+        num_trucks, 
+        is_company: isTransportCompany,
+        is_re_acceptance: isReAcceptance 
+      }
     });
 
     return new Response(
