@@ -5126,6 +5126,16 @@ export type Database = {
         Args: { rows_accessed: number; table_accessed: string }
         Returns: boolean
       }
+      driver_update_freight_status: {
+        Args: {
+          p_freight_id: string
+          p_lat?: number
+          p_lng?: number
+          p_new_status: Database["public"]["Enums"]["freight_status"]
+          p_notes?: string
+        }
+        Returns: Json
+      }
       encrypt_document: {
         Args: { doc: string }
         Returns: string

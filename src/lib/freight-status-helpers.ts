@@ -17,38 +17,30 @@ export async function driverUpdateFreightStatus({
   location
 }: UpdateStatusParams): Promise<boolean> {
   try {
-    // 1. Atualizar status do frete
-    const { error: freightError } = await supabase
-      .from('freights')
-      .update({ 
-        status: newStatus as any,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', freightId);
+    // Usar RPC segura para atualizar status (evita problemas de RLS)
+    const { data, error } = await supabase.rpc('driver_update_freight_status', {
+      p_freight_id: freightId,
+      p_new_status: newStatus as any,
+      p_notes: notes || null,
+      p_lat: location?.lat || null,
+      p_lng: location?.lng || null
+    });
 
-    if (freightError) {
-      console.error('[STATUS-UPDATE] Error updating freight:', freightError);
+    if (error) {
+      console.error('[STATUS-UPDATE] RPC error:', error);
       toast.error('Erro ao atualizar status do frete');
       return false;
     }
 
-    // 2. Inserir histórico
-    try {
-      await supabase
-        .from('freight_status_history')
-        .insert({
-          freight_id: freightId,
-          status: newStatus as any,
-          changed_by: currentUserProfile?.id,
-          notes: notes || null,
-          location_lat: location?.lat || null,
-          location_lng: location?.lng || null
-        });
-    } catch (historyError) {
-      console.error('[STATUS-UPDATE] Error inserting history (não crítico):', historyError);
+    // Verificar resposta da função (data é Json, precisa de cast)
+    const result = data as any;
+    if (!result || !result.ok) {
+      console.error('[STATUS-UPDATE] Function returned error:', result?.error);
+      toast.error(result?.error || 'Erro ao atualizar status');
+      return false;
     }
 
-    // 3. Mensagem de sucesso
+    // Mensagens de sucesso
     const statusMessages: Record<string, string> = {
       'LOADING': 'Status atualizado: A caminho da coleta! 🚚',
       'IN_TRANSIT': 'Status atualizado: Em trânsito! 🛣️',

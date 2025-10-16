@@ -129,6 +129,24 @@ serve(async (req) => {
       );
     }
 
+    // 7.5. Vincular motorista ao frete (se carreta única)
+    if (proposal.freights.required_trucks === 1) {
+      const { error: driverLinkError } = await supabase
+        .from("freights")
+        .update({ 
+          driver_id: proposal.driver_id,
+          drivers_assigned: [proposal.driver_id]
+        })
+        .eq("id", proposal.freight_id)
+        .is("driver_id", null);
+      
+      if (driverLinkError) {
+        console.error("[DRIVER-LINK] Failed to link driver to freight:", driverLinkError);
+      } else {
+        console.log(`[DRIVER-LINK] Successfully linked driver ${proposal.driver_id} to freight ${proposal.freight_id}`);
+      }
+    }
+
     // 8. Atualizar status da proposta
     await supabase
       .from("freight_proposals")
