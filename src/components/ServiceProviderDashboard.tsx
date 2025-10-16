@@ -361,6 +361,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         console.log('🔍 Fetching service requests for provider cities...', {
           providerId,
           providerServiceTypes: profile?.service_types,
+          profileRole: profile?.role,
           timestamp: new Date().toISOString()
         });
         try {
@@ -373,7 +374,10 @@ export const ServiceProviderDashboard: React.FC = () => {
             console.warn('⚠️ Error fetching city-based requests:', cityError);
           } else {
             cityBasedRequests = data || [];
-            console.log('✅ City-based requests found (before filtering):', cityBasedRequests.length);
+            console.log('✅ City-based requests found (before filtering):', {
+              total: cityBasedRequests.length,
+              serviceTypes: [...new Set(cityBasedRequests.map((r: any) => r.service_type))]
+            });
           }
         } catch (cityError) {
           console.warn('⚠️ City-based requests query failed:', cityError);
@@ -487,7 +491,8 @@ export const ServiceProviderDashboard: React.FC = () => {
         
         console.log(`✅ Full update completed`, {
           available: available.length,
-          own: own.length
+          own: own.length,
+          filteredOutFreight: cityBasedRequests.length - available.length
         });
       } else {
         // Update only available requests
