@@ -11,6 +11,8 @@ interface HealReport {
   fixed_moto_proposals: number;
   flagged_per_km: number;
   routes_calculated: number;
+  recalculated_accepted_trucks: number;
+  fixed_partial_booking_status: number;
   errors: string[];
   details: any[];
 }
@@ -56,6 +58,8 @@ serve(async (req) => {
       fixed_moto_proposals: 0,
       flagged_per_km: 0,
       routes_calculated: 0,
+      recalculated_accepted_trucks: 0,
+      fixed_partial_booking_status: 0,
       errors: [],
       details: []
     };
@@ -264,6 +268,94 @@ serve(async (req) => {
       console.log(`[AUTO-HEAL] Calculated ${report.routes_calculated} distances`);
     } catch (error: any) {
       report.errors.push(`Distance calculation failed: ${error.message}`);
+    }
+
+    // ================================================
+    // 5. RECALCULAR ACCEPTED_TRUCKS PARA TODOS OS FRETES
+    // ================================================
+    
+    console.log("[AUTO-HEAL] Step 5: Recalculating accepted_trucks...");
+    
+    try {
+      // Usar a função RPC que já existe
+      const { data: recalcData, error: recalcError } = await supabase.rpc(
+        'fix_freight_status_for_partial_bookings'
+      );
+
+      if (recalcError) {
+        report.errors.push(`Error recalculating: ${recalcError.message}`);
+      } else {
+        const count = Array.isArray(recalcData) ? recalcData.length : 0;
+        report.recalculated_accepted_trucks = count;
+        report.details.push({
+          type: "ACCEPTED_TRUCKS_RECALCULATED",
+          count: count,
+          description: "Recalculated accepted_trucks for all freights based on actual assignments"
+        });
+        
+        if (count > 0) {
+          report.details.push({
+            type: "FREIGHTS_FIXED",
+            freights: recalcData
+          });
+        }
+      }
+    } catch (err: any) {
+      report.errors.push(`Exception recalculating accepted_trucks: ${err.message}`);
+    }
+
+    // ================================================
+    // 6. AJUSTAR STATUS DE FRETES PARCIALMENTE PREENCHIDOS
+    // ================================================
+    
+    console.log("[AUTO-HEAL] Step 6: Fixing partial booking status...");
+    
+    try {
+      // Buscar fretes com múltiplas carretas parcialmente preenchidos
+      const { data: partialFreights, error: partialError } = await supabase
+        .from("freights")
+        .select("id, status, required_trucks, accepted_trucks")
+        .gt("required_trucks", 1)
+        .in("status", ["ACCEPTED", "LOADING", "LOADED", "IN_TRANSIT"]);
+
+      if (partialError) {
+        report.errors.push(`Error fetching partial freights: ${partialError.message}`);
+      } else if (partialFreights && partialFreights.length > 0) {
+        for (const freight of partialFreights) {
+          const accepted = freight.accepted_trucks || 0;
+          const required = freight.required_trucks || 1;
+          
+          // Se não preencheu todas as vagas, deve estar OPEN
+          if (accepted < required) {
+            const { error: statusError } = await supabase
+              .from("freights")
+              .update({ 
+                status: "OPEN",
+                updated_at: new Date().toISOString()
+              })
+              .eq("id", freight.id);
+
+            if (statusError) {
+              report.errors.push(`Error fixing status for ${freight.id}: ${statusError.message}`);
+            } else {
+              report.fixed_partial_booking_status++;
+              report.details.push({
+                type: "PARTIAL_BOOKING_STATUS_FIXED",
+                freight_id: freight.id,
+                old_status: freight.status,
+                new_status: "OPEN",
+                accepted_trucks: accepted,
+                required_trucks: required,
+                reason: `Partial booking (${accepted}/${required} carretas)`
+              });
+            }
+          }
+        }
+      }
+      
+      console.log(`[AUTO-HEAL] Fixed ${report.fixed_partial_booking_status} partial booking statuses`);
+    } catch (err: any) {
+      report.errors.push(`Exception fixing partial booking status: ${err.message}`);
     }
 
     console.log("[AUTO-HEAL] Corrections complete", report);

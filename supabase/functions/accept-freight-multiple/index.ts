@@ -53,32 +53,103 @@ serve(async (req) => {
       );
     }
 
-    // 3. Validar vagas disponíveis
-    const availableSlots = freight.required_trucks - freight.accepted_trucks;
-    if (availableSlots < num_trucks) {
+    // ================================================
+    // 3. PREFLIGHT CHECK: Recarregar frete com dados atualizados
+    // ================================================
+    
+    // Recarregar dados do frete para ter contagem mais recente
+    const { data: freightFresh, error: reloadError } = await supabase
+      .from("freights")
+      .select("id, required_trucks, accepted_trucks, service_type, price, distance_km, pricing_type, status")
+      .eq("id", freight_id)
+      .single();
+
+    if (reloadError || !freightFresh) {
+      console.error(`[PREFLIGHT] Error reloading freight - ${reloadError?.message}`);
       return new Response(
-        JSON.stringify({ error: `Only ${availableSlots} slots available` }),
+        JSON.stringify({ error: "Erro ao verificar disponibilidade do frete" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Status check
+    if (freightFresh.status !== "OPEN") {
+      return new Response(
+        JSON.stringify({ error: "Este frete não está mais disponível" }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 4. Validações de acordo com o tipo de serviço
+    // Calcular vagas disponíveis com dados frescos
+    const availableSlots = (freightFresh.required_trucks || 1) - (freightFresh.accepted_trucks || 0);
     
-    // FRETE_MOTO: Validação específica - mínimo R$10,00
-    if (freight.service_type === 'FRETE_MOTO') {
-      const agreedPrice = Math.max(10, freight.price || 0);
+    if (availableSlots < num_trucks) {
+      console.log(`[PREFLIGHT] Insufficient slots - {${JSON.stringify({
+        freight_id,
+        required: freightFresh.required_trucks,
+        accepted: freightFresh.accepted_trucks,
+        available: availableSlots,
+        requested: num_trucks
+      })}}`);
       
-      if (agreedPrice < 10) {
+      return new Response(
+        JSON.stringify({ 
+          error: availableSlots > 0 
+            ? `Apenas ${availableSlots} vaga(s) disponível(is). Você tentou aceitar ${num_trucks} carreta(s).`
+            : "Este frete já está com todas as vagas preenchidas",
+          available_slots: availableSlots,
+          required_trucks: freightFresh.required_trucks,
+          accepted_trucks: freightFresh.accepted_trucks,
+          requested_trucks: num_trucks
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ================================================
+    // 4. VALIDAÇÕES ESPECÍFICAS POR TIPO DE SERVIÇO
+    // ================================================
+    
+    // FRETE_MOTO: Preço mínimo R$10
+    if (freightFresh.service_type === 'FRETE_MOTO') {
+      const currentPrice = freightFresh.price || 0;
+      
+      if (currentPrice < 10) {
+        console.log(`[VALIDATION] FRETE_MOTO below minimum - {${JSON.stringify({
+          freight_id,
+          current_price: currentPrice,
+          minimum: 10
+        })}}`);
+        
         return new Response(
           JSON.stringify({ 
-            error: "Frete por moto tem valor mínimo de R$ 10,00",
-            details: "O valor do frete é muito baixo para FRETE_MOTO" 
+            error: `Fretes de moto devem ter valor mínimo de R$ 10,00. Valor atual: R$ ${currentPrice.toFixed(2)}. Entre em contato com o produtor para ajustar.`,
+            minimum_price: 10,
+            current_price: currentPrice
           }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
-      console.log(`[FRETE_MOTO] Agreed price set to R$${agreedPrice} (min R$10)`);
+      console.log(`[VALIDATION] FRETE_MOTO price OK - R$${currentPrice}`);
+    }
+
+    // POR KM: Bloquear se distance_km não disponível
+    if (freightFresh.pricing_type === 'PER_KM' && (!freightFresh.distance_km || freightFresh.distance_km <= 0)) {
+      console.log(`[VALIDATION] PER_KM without distance - {${JSON.stringify({
+        freight_id,
+        pricing_type: freightFresh.pricing_type,
+        distance_km: freightFresh.distance_km
+      })}}`);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: "Este frete está configurado como 'Por KM' mas não tem distância calculada. Entre em contato com o produtor para ajustar para 'Valor Fixo'.",
+          pricing_type: 'PER_KM',
+          distance_km: freightFresh.distance_km
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
     // Motorista individual só pode aceitar 1 carreta
@@ -149,22 +220,27 @@ serve(async (req) => {
       company_id = company?.id;
     }
 
-    // 6. Criar assignments com regras específicas por tipo de serviço
+    // ================================================
+    // 6. CRIAR ASSIGNMENTS COM VALIDAÇÕES
+    // ================================================
+    
     const assignments = [];
     
-    // Calcular preço e tipo de precificação por serviço
-    let pricePerTruck = freight.price || 0;
-    let pricingType = 'FIXED';
+    // Calcular agreed_price baseado no tipo de serviço
+    const originalPrice = freightFresh.price || 0;
+    let agreedPrice = originalPrice;
+    let pricingType = freightFresh.pricing_type || 'FIXED';
     
-    if (freight.service_type === 'FRETE_MOTO') {
-      pricePerTruck = Math.max(10, freight.price || 0);
+    // FRETE_MOTO: Garantir mínimo R$10
+    if (freightFresh.service_type === 'FRETE_MOTO') {
+      agreedPrice = Math.max(originalPrice, 10);
       pricingType = 'FIXED';
-      console.log(`[FRETE_MOTO] Setting agreed_price to R$${pricePerTruck}`);
-    } else if (freight.service_type === 'CARGA' && freight.minimum_antt_price) {
-      // Validar ANTT mínimo para CARGA
-      if (pricePerTruck < freight.minimum_antt_price) {
-        console.warn(`[CARGA] Price R$${pricePerTruck} below ANTT min R$${freight.minimum_antt_price}`);
-      }
+      console.log(`[ASSIGNMENT] FRETE_MOTO agreed_price: R$${agreedPrice} (original: R$${originalPrice})`);
+    }
+    
+    // CARGA: Log warning se abaixo do ANTT
+    if (freightFresh.service_type === 'CARGA' && freight.minimum_antt_price && originalPrice < freight.minimum_antt_price) {
+      console.warn(`[ASSIGNMENT] CARGA price R$${originalPrice} below ANTT min R$${freight.minimum_antt_price}`);
     }
     
     for (let i = 0; i < num_trucks; i++) {
@@ -174,9 +250,21 @@ serve(async (req) => {
           freight_id,
           driver_id: profile.id,
           company_id,
-          agreed_price: pricePerTruck,
+          agreed_price: agreedPrice,
           pricing_type: pricingType,
-          status: 'ACCEPTED'
+          status: 'ACCEPTED',
+          pickup_date: freight.pickup_date || null,
+          delivery_date: freight.delivery_date || null,
+          notes: freightFresh.service_type === 'FRETE_MOTO' && originalPrice < 10
+            ? `Preço ajustado de R$ ${originalPrice.toFixed(2)} para R$ 10,00 (mínimo ANTT)`
+            : null,
+          metadata: {
+            original_price: originalPrice,
+            adjusted_price: agreedPrice !== originalPrice,
+            service_type: freightFresh.service_type,
+            created_by: 'accept-freight-multiple',
+            created_at: new Date().toISOString()
+          }
         })
         .select()
         .single();
@@ -231,28 +319,53 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error("Error in accept-freight-multiple:", error);
+    console.error("[FATAL] Error in accept-freight-multiple:", error);
     
-    // Melhor tratamento de erros do Postgres
-    let errorMessage = String(error?.message || error);
+    // ================================================
+    // TRATAMENTO DE ERROS COM MENSAGENS AMIGÁVEIS
+    // ================================================
+    
+    let errorMessage = "Erro ao aceitar frete";
+    let statusCode = 500;
     let errorDetails = null;
     
+    // Mapear códigos do Postgres para mensagens amigáveis
     if (error?.code) {
       errorDetails = {
         code: error.code,
-        message: error.message,
+        postgres_message: error.message,
         details: error.details,
         hint: error.hint
       };
       
-      // Mensagens amigáveis para erros comuns do Postgres
-      if (error.code === '23505') {
-        errorMessage = "Este frete já foi aceito por você";
-      } else if (error.code === '23503') {
-        errorMessage = "Dados inválidos. Verifique o frete ou veículo selecionado";
-      } else if (error.code === '42703') {
-        errorMessage = "Erro de configuração do banco de dados. Entre em contato com o suporte";
+      switch (error.code) {
+        case '23505': // Duplicate key
+          errorMessage = "Você já aceitou este frete anteriormente";
+          statusCode = 409;
+          break;
+        case '23514': // Check constraint violation (accepted_trucks)
+          errorMessage = "Este frete não tem vagas disponíveis. Outro motorista aceitou antes de você.";
+          statusCode = 409;
+          break;
+        case '23503': // Foreign key violation
+          errorMessage = "Dados inválidos. Verifique o frete ou veículo selecionado";
+          statusCode = 400;
+          break;
+        case '42703': // Undefined column
+          errorMessage = "Erro de configuração do banco de dados. Entre em contato com o suporte";
+          statusCode = 500;
+          break;
+        case 'P0001': // Raised exception (custom validations)
+          errorMessage = error.message || "Validação de regra de negócio falhou";
+          statusCode = 400;
+          break;
+        default:
+          errorMessage = error.message || String(error);
       }
+      
+      console.error(`[ERROR-MAPPED] Code: ${error.code} -> Message: ${errorMessage}`);
+    } else {
+      errorMessage = error?.message || String(error);
     }
     
     return new Response(
@@ -261,7 +374,7 @@ serve(async (req) => {
         details: errorDetails,
         timestamp: new Date().toISOString()
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
