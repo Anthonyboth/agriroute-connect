@@ -67,6 +67,57 @@ async function sendTelegramMessage(message: string, retries = 0): Promise<boolea
 }
 
 function formatTelegramMessage(errorData: any): string {
+  const isUserPanelError = errorData?.metadata?.user_panel === true || errorData?.metadata?.userFacing === true;
+  
+  if (isUserPanelError) {
+    // Formato especial para erros de painéis do usuário
+    const panel = errorData.metadata?.panel || 'Desconhecido';
+    const ip = errorData.metadata?.ip || 'N/A';
+    const userAgent = errorData.metadata?.userAgent || 'N/A';
+    const shortUA = userAgent.split(' ').slice(0, 3).join(' ');
+    const maskedIP = ip !== 'N/A' ? ip.split('.').slice(0, 2).join('.') + '.***' : 'N/A';
+    
+    let message = `🚨 <b>ERRO NO PAINEL DO USUÁRIO</b>\n\n`;
+    message += `<b>📍 Localização:</b>\n`;
+    message += `  Rota: ${errorData.route || 'N/A'}\n`;
+    message += `  Painel: ${panel}\n`;
+    message += `  Componente: ${errorData.module || 'N/A'}\n\n`;
+    
+    message += `<b>❌ Erro:</b>\n`;
+    message += `  Mensagem: ${errorData.errorMessage}\n`;
+    if (errorData.errorCode) message += `  Código: ${errorData.errorCode}\n`;
+    message += `  Categoria: ${errorData.errorCategory} / ${errorData.errorType}\n\n`;
+    
+    if (errorData.userId || errorData.userEmail) {
+      message += `<b>👤 Usuário:</b>\n`;
+      if (errorData.userEmail) message += `  Email: ${errorData.userEmail}\n`;
+      if (errorData.userId) message += `  ID: ${errorData.userId.substring(0, 8)}...\n`;
+      message += `\n`;
+    }
+    
+    message += `<b>🌐 Contexto:</b>\n`;
+    message += `  Navegador: ${shortUA}\n`;
+    message += `  IP: ${maskedIP}\n`;
+    message += `  Timestamp: ${errorData.metadata?.timestamp || new Date().toISOString()}\n\n`;
+    
+    if (errorData.errorStack) {
+      const stackLines = errorData.errorStack.split('\n').slice(0, 10);
+      message += `<b>📋 Stack (primeiras 10 linhas):</b>\n<pre>${stackLines.join('\n').substring(0, 500)}</pre>\n\n`;
+    }
+    
+    if (errorData.autoCorrectionAttempted !== undefined) {
+      message += `<b>🔧 Auto-correção:</b>\n`;
+      message += `  Tentada: ${errorData.autoCorrectionAttempted ? 'Sim' : 'Não'}\n`;
+      if (errorData.autoCorrectionAttempted) {
+        message += `  Sucesso: ${errorData.autoCorrectionSuccess ? 'Sim' : 'Não'}\n`;
+      }
+      message += `\n`;
+    }
+    
+    return message;
+  }
+  
+  // Formato padrão para outros erros
   const categoryIcon = errorData.errorCategory === 'CRITICAL' ? '🔴' : '🟡';
   
   return `

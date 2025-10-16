@@ -29,6 +29,44 @@ export class ErrorMonitoringService {
     return ErrorMonitoringService.instance;
   }
 
+  private isUserPanelRoute(pathname: string): boolean {
+    const userPanelRoutes = ['/dashboard', '/company', '/app', '/painel', '/profile', '/driver', '/producer', '/provider'];
+    return userPanelRoutes.some(route => pathname.startsWith(route));
+  }
+
+  async reportUserPanelError(report: ErrorReport): Promise<{ notified: boolean; errorLogId?: string }> {
+    console.log('[ErrorMonitoringService] Reportando erro de painel ao Telegram:', report.errorMessage);
+
+    if (!this.isOnline) {
+      console.log('[ErrorMonitoringService] Offline - adicionando à fila');
+      this.errorQueue.push(report);
+      return { notified: false };
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('report-user-panel-error', {
+        body: report
+      });
+
+      if (error) {
+        console.error('[ErrorMonitoringService] Erro ao reportar ao painel:', error);
+        this.errorQueue.push(report);
+        return { notified: false };
+      }
+
+      console.log('[ErrorMonitoringService] Resposta do reporte de painel:', data);
+      
+      return {
+        notified: data?.notified || false,
+        errorLogId: data?.errorLogId
+      };
+    } catch (error) {
+      console.error('[ErrorMonitoringService] Falha ao reportar erro de painel:', error);
+      this.errorQueue.push(report);
+      return { notified: false };
+    }
+  }
+
   async captureError(error: Error, context?: any): Promise<{ notified: boolean; errorLogId?: string }> {
     console.log('[ErrorMonitoringService] Erro capturado:', error.message);
 
@@ -62,6 +100,14 @@ export class ErrorMonitoringService {
       errorReport.userEmail = user.email;
     }
 
+    // Se é erro de painel do usuário, usa função exclusiva
+    const isUserFacingError = context?.userFacing === true || this.isUserPanelRoute(window.location.pathname);
+    
+    if (isUserFacingError) {
+      console.log('[ErrorMonitoringService] Erro de painel detectado - usando reporte exclusivo');
+      return await this.reportUserPanelError(errorReport);
+    }
+
     return await this.sendToBackend(errorReport);
   }
 
@@ -80,7 +126,11 @@ export class ErrorMonitoringService {
       'cálculo',
       'calculation',
       '500',
-      'internal server error'
+      'internal server error',
+      'removechild',
+      'insertbefore',
+      'hydration',
+      'hydrate'
     ];
 
     const errorMessage = error.message.toLowerCase();

@@ -13,6 +13,7 @@ interface State {
   error?: Error;
   notified?: boolean;
   errorLogId?: string;
+  retrying?: boolean;
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -39,12 +40,23 @@ class ErrorBoundary extends Component<Props, State> {
 
     console.error('ErrorBoundary caught error:', error, errorInfo);
     
-    // Enviar para monitoring e receber status
+    // Detectar painel baseado na URL
+    const currentPath = window.location.pathname;
+    let panel = 'Desconhecido';
+    if (currentPath.includes('/company')) panel = 'Transportadora';
+    else if (currentPath.includes('/driver')) panel = 'Motorista';
+    else if (currentPath.includes('/producer')) panel = 'Produtor';
+    else if (currentPath.includes('/provider')) panel = 'Prestador';
+    else if (currentPath.includes('/dashboard')) panel = 'Dashboard';
+    
+    // Enviar para monitoring com userFacing=true
     import('@/services/errorMonitoringService').then(({ ErrorMonitoringService }) => {
       ErrorMonitoringService.getInstance().captureError(error, {
         componentStack: errorInfo.componentStack,
-        source: 'ErrorBoundary',
-        module: 'ErrorBoundary'
+        source: 'frontend',
+        module: 'ErrorBoundary',
+        panel,
+        userFacing: true
       }).then(result => {
         this.setState({
           notified: result.notified,
@@ -53,6 +65,34 @@ class ErrorBoundary extends Component<Props, State> {
       });
     });
   }
+
+  private handleRetry = async () => {
+    if (this.state.retrying) return;
+
+    this.setState({ retrying: true });
+    
+    try {
+      const { ErrorMonitoringService } = await import('@/services/errorMonitoringService');
+      const result = await ErrorMonitoringService.getInstance().captureError(
+        this.state.error!,
+        {
+          source: 'frontend',
+          module: 'ErrorBoundary',
+          userFacing: true,
+          retry: true
+        }
+      );
+      
+      this.setState({ 
+        notified: result.notified,
+        errorLogId: result.errorLogId,
+        retrying: false
+      });
+    } catch (err) {
+      console.error('[ErrorBoundary] Falha no reenvio:', err);
+      this.setState({ retrying: false });
+    }
+  };
 
   private handleReset = () => {
     this.setState({ hasError: false, error: undefined });
@@ -82,31 +122,29 @@ class ErrorBoundary extends Component<Props, State> {
                   Desculpe, ocorreu um erro inesperado.
                 </p>
                 
-                {this.state.notified !== undefined && (
-                  <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
-                    this.state.notified 
-                      ? 'bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-200' 
-                      : 'bg-yellow-50 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-200'
-                  }`}>
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                      this.state.notified 
-                        ? 'bg-green-600 text-white' 
-                        : 'bg-yellow-600 text-white'
-                    }`}>
-                      {this.state.notified ? '✓ Notificado' : 'ℹ Registrado'}
-                    </span>
-                    <span>
-                      {this.state.notified 
-                        ? 'Alerta enviado ao suporte. Estamos trabalhando na correção.'
-                        : 'Erro registrado no sistema. Notificação será enviada se recorrer.'}
-                    </span>
+                {this.state.notified && this.state.errorLogId && (
+                  <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-3 text-sm text-green-800 dark:text-green-200">
+                    <div className="font-medium">✓ Alerta enviado ao suporte</div>
+                    <div className="text-xs mt-1 opacity-75">ID: {this.state.errorLogId}</div>
                   </div>
                 )}
                 
-                {this.state.errorLogId && (
-                  <p className="text-xs text-muted-foreground">
-                    ID do erro: <code className="bg-muted px-1 py-0.5 rounded">{this.state.errorLogId}</code>
-                  </p>
+                {this.state.notified === false && (
+                  <div className="space-y-2">
+                    <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/20 p-3 text-sm text-yellow-800 dark:text-yellow-200">
+                      ⚠️ Erro registrado, reenvio pendente
+                      {this.state.errorLogId && (
+                        <div className="text-xs mt-1 opacity-75">ID: {this.state.errorLogId}</div>
+                      )}
+                    </div>
+                    <button
+                      onClick={this.handleRetry}
+                      disabled={this.state.retrying}
+                      className="px-3 py-1.5 text-sm bg-yellow-100 dark:bg-yellow-900/40 text-yellow-900 dark:text-yellow-100 rounded hover:bg-yellow-200 dark:hover:bg-yellow-900/60 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {this.state.retrying ? 'Enviando...' : '🔄 Enviar novamente'}
+                    </button>
+                  </div>
                 )}
               </div>
               
