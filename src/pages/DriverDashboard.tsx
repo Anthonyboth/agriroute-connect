@@ -682,11 +682,35 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         return true;
       });
       
+      // Filtrar fretes que já foram concluídos (mesmo que status seja OPEN ou outro)
+      const filteredOngoing = dedupedOngoing.filter((item: any) => {
+        // Para service_requests, manter a lógica atual
+        if (item.is_service_request) {
+          return true;
+        }
+        
+        // Para fretes tradicionais, verificar metadata de conclusão
+        const metadata = item.metadata || {};
+        
+        if (metadata.delivery_confirmed_at || metadata.confirmed_by_producer) {
+          console.warn('🚨 [DriverDashboard] Frete já concluído aparecendo como ativo:', {
+            id: item.id,
+            status: item.status,
+            delivery_confirmed_at: metadata.delivery_confirmed_at,
+            confirmed_by_producer: metadata.confirmed_by_producer
+          });
+          return false; // Não mostrar como ativo
+        }
+
+        return true;
+      });
+      
       console.log('📦 Fretes diretos encontrados:', freightData?.length || 0);
       console.log('🚚 Fretes via assignments encontrados:', assignmentFreights?.length || 0);
       console.log('🔧 Serviços aceitos encontrados:', serviceData?.length || 0);
       console.log('📊 Total de itens ativos (deduplicado):', dedupedOngoing.length);
-      if (isMountedRef.current) setOngoingFreights(dedupedOngoing);
+      console.log('✅ Total de itens após filtro de conclusão:', filteredOngoing.length);
+      if (isMountedRef.current) setOngoingFreights(filteredOngoing);
 
       // Verificar checkins para cada frete tradicional
       if (freightData && freightData.length > 0) {

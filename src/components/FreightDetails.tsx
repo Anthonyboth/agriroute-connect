@@ -302,15 +302,23 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           <CardContent className="pt-0">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-sm">{freight.producer?.full_name}</p>
-                {freight.producer?.contact_phone && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Phone className="h-3 w-3" />
-                    {freight.producer.contact_phone}
-                  </p>
+                {loading ? (
+                  <p className="text-sm text-muted-foreground">Carregando...</p>
+                ) : !freight.producer || !freight.producer.full_name ? (
+                  <p className="font-medium text-sm text-muted-foreground">Solicitante sem cadastro</p>
+                ) : (
+                  <>
+                    <p className="font-medium text-sm">{freight.producer.full_name}</p>
+                    {freight.producer.contact_phone && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {freight.producer.contact_phone}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
-              {canRate() && isDriver && (
+              {canRate() && isDriver && freight.producer?.full_name && (
                 <Button
                   size="sm"
                   variant="outline"
