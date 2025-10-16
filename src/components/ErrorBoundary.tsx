@@ -11,6 +11,8 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  notified?: boolean;
+  errorLogId?: string;
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -37,12 +39,17 @@ class ErrorBoundary extends Component<Props, State> {
 
     console.error('ErrorBoundary caught error:', error, errorInfo);
     
-    // Enviar para monitoring
+    // Enviar para monitoring e receber status
     import('@/services/errorMonitoringService').then(({ ErrorMonitoringService }) => {
       ErrorMonitoringService.getInstance().captureError(error, {
         componentStack: errorInfo.componentStack,
         source: 'ErrorBoundary',
         module: 'ErrorBoundary'
+      }).then(result => {
+        this.setState({
+          notified: result.notified,
+          errorLogId: result.errorLogId
+        });
       });
     });
   }
@@ -70,9 +77,38 @@ class ErrorBoundary extends Component<Props, State> {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-muted-foreground">
-                Desculpe, ocorreu um erro inesperado. Nossa equipe foi notificada e está trabalhando na correção.
-              </p>
+              <div className="space-y-2">
+                <p className="text-muted-foreground">
+                  Desculpe, ocorreu um erro inesperado.
+                </p>
+                
+                {this.state.notified !== undefined && (
+                  <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
+                    this.state.notified 
+                      ? 'bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-200' 
+                      : 'bg-yellow-50 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-200'
+                  }`}>
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                      this.state.notified 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-yellow-600 text-white'
+                    }`}>
+                      {this.state.notified ? '✓ Notificado' : 'ℹ Registrado'}
+                    </span>
+                    <span>
+                      {this.state.notified 
+                        ? 'Alerta enviado ao suporte. Estamos trabalhando na correção.'
+                        : 'Erro registrado no sistema. Notificação será enviada se recorrer.'}
+                    </span>
+                  </div>
+                )}
+                
+                {this.state.errorLogId && (
+                  <p className="text-xs text-muted-foreground">
+                    ID do erro: <code className="bg-muted px-1 py-0.5 rounded">{this.state.errorLogId}</code>
+                  </p>
+                )}
+              </div>
               
               {this.state.error && (
                 <details className="text-sm bg-muted p-3 rounded-lg">

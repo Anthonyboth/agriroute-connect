@@ -29,7 +29,7 @@ export class ErrorMonitoringService {
     return ErrorMonitoringService.instance;
   }
 
-  async captureError(error: Error, context?: any): Promise<void> {
+  async captureError(error: Error, context?: any): Promise<{ notified: boolean; errorLogId?: string }> {
     console.log('[ErrorMonitoringService] Erro capturado:', error.message);
 
     const errorCategory = this.classifyError(error);
@@ -62,7 +62,7 @@ export class ErrorMonitoringService {
       errorReport.userEmail = user.email;
     }
 
-    await this.sendToBackend(errorReport);
+    return await this.sendToBackend(errorReport);
   }
 
   private classifyError(error: Error): ErrorCategory {
@@ -132,25 +132,40 @@ export class ErrorMonitoringService {
     return error.code || error.status?.toString() || undefined;
   }
 
-  private async sendToBackend(report: ErrorReport): Promise<void> {
+  private async sendToBackend(report: ErrorReport): Promise<{ notified: boolean; errorLogId?: string }> {
     if (!this.isOnline) {
       console.log('[ErrorMonitoringService] Offline - adicionando à fila');
       this.errorQueue.push(report);
-      return;
+      return { notified: false };
     }
 
     try {
-      const { error } = await supabase.functions.invoke('report-error', {
+      console.log('[ErrorMonitoringService] Enviando relatório ao backend:', {
+        route: report.route,
+        errorMessage: report.errorMessage,
+        errorType: report.errorType
+      });
+
+      const { data, error } = await supabase.functions.invoke('report-error', {
         body: report
       });
 
       if (error) {
         console.error('[ErrorMonitoringService] Erro ao enviar relatório:', error);
         this.errorQueue.push(report);
+        return { notified: false };
       }
+
+      console.log('[ErrorMonitoringService] Resposta do backend:', data);
+      
+      return {
+        notified: data?.notified || false,
+        errorLogId: data?.errorLogId
+      };
     } catch (error) {
       console.error('[ErrorMonitoringService] Falha ao enviar relatório:', error);
       this.errorQueue.push(report);
+      return { notified: false };
     }
   }
 

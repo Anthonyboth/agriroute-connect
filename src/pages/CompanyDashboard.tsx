@@ -123,31 +123,54 @@ const CompanyDashboard = () => {
   };
 
   const handleAddVehicle = async (vehicleData: any) => {
-    if (!company) {
-      toast.error('Empresa não encontrada');
+    if (!company?.id || !profile?.id) {
+      toast.error('Informações da empresa não encontradas. Recarregue a página.');
       return;
     }
 
     try {
+      console.log('[CompanyDashboard] Salvando veículo da frota:', {
+        company_id: company.id,
+        driver_id: profile.id,
+        vehicle_type: vehicleData.vehicle_type,
+        license_plate: vehicleData.license_plate
+      });
+      
+      const vehicleToInsert = {
+        company_id: company.id,
+        driver_id: profile.id,
+        is_company_vehicle: true,
+        status: 'PENDING',
+        vehicle_type: vehicleData.vehicle_type,
+        license_plate: vehicleData.license_plate,
+        axle_count: vehicleData.axle_count || 2,
+        max_capacity_tons: vehicleData.max_capacity_tons || 0,
+        vehicle_specifications: vehicleData.vehicle_specifications || null,
+        vehicle_documents: vehicleData.vehicle_documents || [],
+        vehicle_photos: vehicleData.vehicle_photos || [],
+        crlv_url: vehicleData.crlv_url || null
+      };
+
       const { data, error } = await supabase
         .from('vehicles')
-        .insert({
-          ...vehicleData,
-          company_id: company.id,
-          driver_id: profile.id,
-          is_company_vehicle: true,
-          status: 'PENDING',
-        })
+        .insert(vehicleToInsert)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[CompanyDashboard] Erro ao salvar veículo:', error);
+        throw error;
+      }
 
-      toast.success('Veículo cadastrado! Aguardando aprovação do administrador.');
+      console.log('[CompanyDashboard] Veículo salvo com sucesso:', data);
+      
+      toast.success('✓ Veículo cadastrado! Aguardando aprovação do administrador.');
+      
+      // Recarregar lista da frota
       refetchCompany();
     } catch (error: any) {
-      console.error('Erro ao cadastrar veículo:', error);
-      toast.error(error.message || 'Erro ao cadastrar veículo');
+      console.error('[CompanyDashboard] Erro fatal ao cadastrar veículo:', error);
+      toast.error(error?.message || 'Erro ao cadastrar veículo. Tente novamente.');
     }
   };
   

@@ -57,9 +57,22 @@ serve(async (req) => {
 
     // Decidir se deve notificar Telegram
     let shouldNotify = false;
+    let notifyReason = '';
 
-    if (errorReport.errorCategory === 'CRITICAL') {
+    // REGRA TEMPORÁRIA: Notificar TODOS os erros de /dashboard/company
+    const isCompanyDashboard = errorReport.route?.includes('/dashboard/company');
+    const isReferenceError = errorReport.errorMessage?.includes('is not defined') || 
+                             errorReport.errorType === 'ReferenceError';
+
+    if (isCompanyDashboard || isReferenceError) {
       shouldNotify = true;
+      notifyReason = isCompanyDashboard 
+        ? 'Erro em /dashboard/company (monitoramento total ativo)'
+        : 'ReferenceError detectado (erro crítico de código)';
+      logStep('Notificação forçada', { reason: notifyReason });
+    } else if (errorReport.errorCategory === 'CRITICAL') {
+      shouldNotify = true;
+      notifyReason = 'Erro crítico';
       logStep('Notificação necessária: erro crítico');
     } else {
       // Verificar se é erro recorrente
@@ -71,11 +84,12 @@ serve(async (req) => {
 
       if (count && count >= 3) {
         shouldNotify = true;
+        notifyReason = `Erro recorrente (${count} ocorrências na última hora)`;
         logStep('Notificação necessária: erro recorrente', { count });
       }
 
-      // Verificar se já foi notificado recentemente
-      if (shouldNotify) {
+      // Verificar se já foi notificado recentemente (apenas para não-prioritários)
+      if (shouldNotify && !isCompanyDashboard && !isReferenceError) {
         const { count: recentNotifications } = await supabaseAdmin
           .from('error_logs')
           .select('*', { count: 'exact', head: true })
@@ -85,14 +99,23 @@ serve(async (req) => {
 
         if (recentNotifications && recentNotifications > 0) {
           shouldNotify = false;
+          notifyReason = '';
           logStep('Notificação cancelada: já notificado recentemente');
         }
       }
     }
 
+    // Adicionar motivo da notificação ao metadata
+    if (shouldNotify && notifyReason) {
+      enrichedReport.metadata = {
+        ...enrichedReport.metadata,
+        notify_reason: notifyReason
+      };
+    }
+
     // Enviar para Telegram se necessário
     if (shouldNotify) {
-      logStep('Enviando para Telegram');
+      logStep('Enviando para Telegram', { reason: notifyReason });
       
       try {
         const telegramResponse = await fetch(
@@ -111,12 +134,18 @@ serve(async (req) => {
         );
 
         if (!telegramResponse.ok) {
+          const responseText = await telegramResponse.text();
           logStep('Erro ao chamar send-telegram-alert', { 
-            status: telegramResponse.status 
+            status: telegramResponse.status,
+            body: responseText
           });
+        } else {
+          logStep('Telegram enviado com sucesso');
         }
       } catch (telegramError) {
-        logStep('Erro ao enviar para Telegram (não bloqueante)', telegramError);
+        logStep('Erro ao enviar para Telegram (não bloqueante)', {
+          error: telegramError instanceof Error ? telegramError.message : String(telegramError)
+        });
       }
     }
 
