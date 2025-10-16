@@ -5240,6 +5240,17 @@ export type Database = {
           service_types: string[]
         }[]
       }
+      fix_freight_status_for_partial_bookings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          accepted_trucks: number
+          available_slots: number
+          freight_id: string
+          new_status: Database["public"]["Enums"]["freight_status"]
+          old_status: Database["public"]["Enums"]["freight_status"]
+          required_trucks: number
+        }[]
+      }
       generate_admin_report: {
         Args: {
           p_period_end: string
@@ -5273,6 +5284,43 @@ export type Database = {
           requires_monitoring: boolean
           status: Database["public"]["Enums"]["freight_status"]
           urgency: string
+          weight: number
+        }[]
+      }
+      get_compatible_freights_for_driver_v2: {
+        Args: { p_driver_id: string }
+        Returns: {
+          accepted_trucks: number
+          available_slots: number
+          cargo_type: string
+          created_at: string
+          delivery_date: string
+          destination_address: string
+          destination_city: string
+          destination_lat: number
+          destination_lng: number
+          destination_state: string
+          distance_km: number
+          distance_m: number
+          id: string
+          is_full_booking: boolean
+          is_partial_booking: boolean
+          match_score: number
+          origin_address: string
+          origin_city: string
+          origin_lat: number
+          origin_lng: number
+          origin_state: string
+          pickup_date: string
+          price: number
+          producer_id: string
+          required_trucks: number
+          scheduled_date: string
+          service_type: string
+          status: Database["public"]["Enums"]["freight_status"]
+          urgency_level: string
+          urgent: boolean
+          vehicle_type: string
           weight: number
         }[]
       }

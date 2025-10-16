@@ -167,29 +167,29 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       <CardContent className="space-y-3 flex-1 overflow-y-auto">
         {/* Carretas Info */}
         {(freight.required_trucks && freight.required_trucks > 1) && (
-          <div className="flex items-center justify-between p-2 bg-secondary/20 rounded-lg border border-border/40">
-            <div className="flex items-center space-x-2 text-muted-foreground">
-              <Truck className="h-3 w-3" />
-              <span className="text-xs font-medium">Carretas:</span>
-            </div>
-            <div className="flex flex-col items-end space-y-1">
-              <div className="flex items-center space-x-2">
-                <span className={`font-semibold text-sm ${isFullyBooked ? 'text-success' : 'text-primary'}`}>
-                  {freight.accepted_trucks || 0}/{freight.required_trucks}
-                </span>
-                {isFullyBooked ? (
-                  <Badge variant="default" className="text-xs bg-success text-success-foreground">
-                    Completo
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className="text-xs">
-                    {availableSlots} vaga{availableSlots > 1 ? 's' : ''}
-                  </Badge>
-                )}
+          <div className="flex flex-col gap-2 p-2 bg-secondary/20 rounded-lg border border-border/40">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <Truck className="h-3 w-3" />
+                <span className="text-xs font-medium">Carretas:</span>
               </div>
-              <span className="text-xs text-muted-foreground">
-                R$ {(freight.price / freight.required_trucks).toFixed(2)}/carreta
+              <span className={`font-semibold text-sm ${isFullyBooked ? 'text-success' : 'text-primary'}`}>
+                {freight.accepted_trucks || 0}/{freight.required_trucks}
               </span>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              {availableSlots > 0 && (
+                <Badge variant="outline" className="text-green-600 border-green-600 animate-pulse text-xs">
+                  {availableSlots} {availableSlots === 1 ? 'vaga disponível' : 'vagas disponíveis'}!
+                </Badge>
+              )}
+              
+              {isFullyBooked && (
+                <Badge variant="default" className="text-xs bg-success text-success-foreground">
+                  Completo
+                </Badge>
+              )}
             </div>
           </div>
         )}

@@ -146,10 +146,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       }
 
       // Buscar fretes compatíveis usando a função RPC (agora considera user_cities)
-      const { data, error } = await supabase.rpc(
-        'get_compatible_freights_for_driver',
-        { p_driver_id: profile.id }
-      );
+    const { data, error } = await supabase.rpc(
+      'get_compatible_freights_for_driver_v2', // Nova versão com suporte a múltiplas carretas
+      { p_driver_id: profile.id }
+    );
 
       if (error) {
         console.error('❌ Erro ao carregar fretes compatíveis (RPC):', error);
@@ -206,6 +206,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               minimum_antt_price: f.minimum_antt_price || 0,
               required_trucks: f.required_trucks || 1,
               accepted_trucks: f.accepted_trucks || 0,
+              available_slots: f.available_slots || (f.required_trucks - f.accepted_trucks) || 1,
+              is_partial_booking: f.is_partial_booking || false,
               created_at: f.created_at,
             }))
             .filter((f) => allowedTypes.length === 0 || allowedTypes.includes(f.service_type));

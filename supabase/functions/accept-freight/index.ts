@@ -8,6 +8,8 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.warn('⚠️ DEPRECATED: accept-freight edge function está obsoleta para múltiplas carretas. Use accept-freight-multiple.');
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -43,12 +45,32 @@ serve(async (req) => {
       });
     }
 
+    console.warn('⚠️ DEPRECATED: accept-freight edge function está obsoleta para múltiplas carretas. Use accept-freight-multiple.');
+    
     const body = await req.json().catch(() => ({}));
     const freightId: string | undefined = body.freight_id;
     if (!freightId) {
       return new Response(
         JSON.stringify({ error: "freight_id is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verificar se é frete de múltiplas carretas
+    const { data: freightCheck, error: checkError } = await supabase
+      .from('freights')
+      .select('required_trucks')
+      .eq('id', freightId)
+      .maybeSingle();
+    
+    if (!checkError && freightCheck && freightCheck.required_trucks > 1) {
+      console.error('Tentativa de usar accept-freight para múltiplas carretas:', freightId);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Esta função não suporta fretes com múltiplas carretas. Use accept-freight-multiple.',
+          required_trucks: freightCheck.required_trucks
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
