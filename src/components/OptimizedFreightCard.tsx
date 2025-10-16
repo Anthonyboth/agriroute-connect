@@ -19,6 +19,7 @@ import {
   X
 } from 'lucide-react';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
+import { getFreightTypeLabel, shouldShowAntt } from '@/lib/freight-type-labels';
 
 interface FreightCardProps {
   freight: {
@@ -168,7 +169,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
             <div className="flex items-center space-x-4 flex-1 min-w-0">
               {serviceIcon}
               <h3 className="font-bold text-foreground truncate text-xl">
-                {getCargoTypeLabel(freight.cargo_type)}
+                {getFreightTypeLabel(freight.cargo_type, freight.service_type)}
               </h3>
             </div>
             <div className="flex items-center space-x-3 flex-shrink-0">
@@ -291,9 +292,11 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
         <div className="flex items-center justify-between w-full p-5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border-2 border-border/60">
           <div className="text-left">
             <p className="font-bold text-3xl text-primary">R$ {formattedPrice}</p>
-            <p className="text-base text-muted-foreground mt-2 font-medium">
-              Min. ANTT: R$ {formattedMinPrice}
-            </p>
+            {shouldShowAntt(freight.service_type, freight.cargo_type) && (
+              <p className="text-base text-muted-foreground mt-2 font-medium">
+                Min. ANTT: R$ {formattedMinPrice}
+              </p>
+            )}
           </div>
           <div className="text-right">
             <DollarSign className="h-10 w-10 text-accent ml-auto" />

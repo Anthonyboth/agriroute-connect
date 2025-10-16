@@ -152,3 +152,6 @@ verify_jwt = true
 
 [functions.admin-fix-advance-amounts]
 verify_jwt = true
+
+[functions.admin-recalculate-all-antt]
+verify_jwt = false
