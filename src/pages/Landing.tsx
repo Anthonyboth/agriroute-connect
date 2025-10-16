@@ -12,6 +12,7 @@ import ServiceRequestModal from '@/components/ServiceRequestModal';
 import { ContactModal } from '@/components/ContactModal';
 import ReportModal from '@/components/ReportModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail, CheckCircle2, Building2 } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import heroImage from '@/assets/hero-logistics.jpg';
 import agriRouteLogo from '@/assets/agriroute-full-logo.png';
 import { supabase } from '@/integrations/supabase/client';
@@ -264,9 +265,12 @@ const fetchRealStats = async () => {
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Leaf className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-foreground">AgriRoute</span>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Leaf className="h-8 w-8 text-primary" />
+              <span className="text-2xl font-bold text-foreground">AgriRoute</span>
+            </div>
+            <ThemeToggle />
           </div>
             <nav className="hidden md:flex items-center space-x-6">
               <a href="#features" className="text-muted-foreground hover:text-foreground transition-smooth">
