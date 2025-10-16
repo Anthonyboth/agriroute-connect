@@ -1,4 +1,4 @@
-// Traduções para português brasileiro
+// Traduções para português brasileiro - Textos corrigidos
 
 export const statusTranslations = {
   // Estados de frete
@@ -19,7 +19,10 @@ export const statusTranslations = {
   // Estados de validação
   'VALIDATED': 'Validado',
   'EXPIRED': 'Expirado',
-  'COMPLETED': 'Concluído'
+  'COMPLETED': 'Concluído',
+  
+  // Estados de serviço
+  'IN_PROGRESS': 'Em Andamento'
 };
 
 export const buttonTranslations = {
@@ -47,7 +50,9 @@ export const buttonTranslations = {
   'Filter': 'Filtrar',
   'Clear': 'Limpar',
   'Apply': 'Aplicar',
-  'Reset': 'Redefinir'
+  'Reset': 'Redefinir',
+  'Rate': 'Avaliar',
+  'Comment': 'Comentar'
 };
 
 export const messageTranslations = {
@@ -66,7 +71,9 @@ export const messageTranslations = {
   'Failed': 'Falhou',
   'Invalid': 'Inválido',
   'Required': 'Obrigatório',
-  'Optional': 'Opcional'
+  'Optional': 'Opcional',
+  'Rating': 'Avaliação',
+  'Comment': 'Comentário'
 };
 
 export const fieldTranslations = {
@@ -88,7 +95,9 @@ export const fieldTranslations = {
   'Origin': 'Origem',
   'Destination': 'Destino',
   'Distance': 'Distância',
-  'Duration': 'Duração'
+  'Duration': 'Duração',
+  'Rating': 'Avaliação',
+  'Comment': 'Comentário'
 };
 
 export const translate = (key: string, category: 'status' | 'button' | 'message' | 'field' = 'message'): string => {
@@ -102,7 +111,7 @@ export const translate = (key: string, category: 'status' | 'button' | 'message'
   return translations[category][key as keyof typeof translations[typeof category]] || key;
 };
 
-// Função para traduzir mensagens de toast comuns
+// Mensagens de toast padronizadas em português correto
 export const toastMessages = {
   success: {
     created: 'Criado com sucesso!',
@@ -113,26 +122,34 @@ export const toastMessages = {
     completed: 'Concluído com sucesso!',
     accepted: 'Aceito com sucesso!',
     rejected: 'Rejeitado com sucesso!',
-    cancelled: 'Cancelado com sucesso!'
+    cancelled: 'Cancelado com sucesso!',
+    ratingSubmitted: 'Avaliação enviada com sucesso!'
   },
   error: {
     generic: 'Erro ao processar solicitação',
-    network: 'Erro de conexão',
+    network: 'Erro de conexão. Verifique sua internet.',
     validation: 'Dados inválidos',
-    permission: 'Sem permissão',
-    notFound: 'Não encontrado',
+    permission: 'Você não tem permissão para esta ação',
+    notFound: 'Registro não encontrado',
     create: 'Erro ao criar',
     update: 'Erro ao atualizar',
     delete: 'Erro ao excluir',
     save: 'Erro ao salvar',
     send: 'Erro ao enviar',
-    load: 'Erro ao carregar'
+    load: 'Erro ao carregar',
+    ratingFailed: 'Erro ao enviar avaliação. Tente novamente.'
   },
   info: {
     loading: 'Carregando...',
     processing: 'Processando...',
     waiting: 'Aguardando...',
     noData: 'Nenhum dado disponível',
-    noResults: 'Nenhum resultado encontrado'
+    noResults: 'Nenhum resultado encontrado',
+    alreadyRated: 'Você já avaliou este item'
+  },
+  warning: {
+    unsavedChanges: 'Você tem alterações não salvas',
+    confirmAction: 'Por favor, confirme sua ação',
+    selectRating: 'Por favor, selecione uma nota de 1 a 5 estrelas'
   }
 };

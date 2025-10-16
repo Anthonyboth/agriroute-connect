@@ -1,15 +1,10 @@
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { InteractiveStarRating } from '@/components/InteractiveStarRating';
 import { Star, X } from 'lucide-react';
+import { appTexts } from '@/lib/app-texts';
 
 interface ServiceAutoRatingModalProps {
   isOpen: boolean;
@@ -48,7 +43,7 @@ export const ServiceAutoRatingModal: React.FC<ServiceAutoRatingModalProps> = ({
     }
   };
 
-  const roleText = raterRole === 'CLIENT' ? 'o prestador' : 'o cliente';
+  const roleText = raterRole === 'CLIENT' ? 'o Prestador' : 'o Cliente';
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -56,10 +51,10 @@ export const ServiceAutoRatingModal: React.FC<ServiceAutoRatingModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Star className="h-5 w-5 text-yellow-500" />
-            Avalie {roleText}
+            {appTexts.ratings.rateService} - {roleText}
           </DialogTitle>
           <DialogDescription>
-            {ratedUserName ? `Como foi sua experiência com ${ratedUserName}` : `Como foi sua experiência`}
+            {ratedUserName ? `Como foi sua experiência com ${ratedUserName}` : appTexts.ratings.howWasService}
             {serviceType && ` no serviço de ${serviceType}`}?
           </DialogDescription>
         </DialogHeader>
@@ -73,25 +68,25 @@ export const ServiceAutoRatingModal: React.FC<ServiceAutoRatingModalProps> = ({
             />
             {rating > 0 && (
               <p className="text-sm text-muted-foreground">
-                {rating === 1 && 'Muito ruim'}
-                {rating === 2 && 'Ruim'}
-                {rating === 3 && 'Regular'}
-                {rating === 4 && 'Bom'}
-                {rating === 5 && 'Excelente'}
+                {appTexts.ratings.satisfaction[rating as 1 | 2 | 3 | 4 | 5]}
               </p>
             )}
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              Comentário (opcional)
+              {appTexts.ratings.commentOptional}
             </label>
             <Textarea
-              placeholder="Compartilhe sua experiência..."
+              placeholder={appTexts.ratings.commentPlaceholder}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={3}
+              maxLength={500}
             />
+            <p className="text-xs text-muted-foreground text-right">
+              {comment.length}/500
+            </p>
           </div>
         </div>
 
@@ -101,15 +96,14 @@ export const ServiceAutoRatingModal: React.FC<ServiceAutoRatingModalProps> = ({
             onClick={onClose}
             disabled={isSubmitting}
           >
-            <X className="h-4 w-4 mr-2" />
-            Avaliar depois
+            {appTexts.ratings.rateLater}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={rating === 0 || isSubmitting}
           >
             <Star className="h-4 w-4 mr-2" />
-            {isSubmitting ? 'Enviando...' : 'Enviar Avaliação'}
+            {isSubmitting ? appTexts.general.sending : appTexts.ratings.submitRating}
           </Button>
         </div>
       </DialogContent>

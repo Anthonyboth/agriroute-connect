@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Star, Calendar } from 'lucide-react';
 import { ServiceAutoRatingModal } from './ServiceAutoRatingModal';
-import { useServiceRating } from '@/hooks/useServiceRating';
-import { toast } from 'sonner';
+import { useServiceRatingSubmit } from '@/hooks/useServiceRatingSubmit';
+import { appTexts } from '@/lib/app-texts';
 
 interface PendingService {
   id: string;
@@ -25,15 +25,7 @@ export const PendingServiceRatingsPanel: React.FC = () => {
   const [selectedService, setSelectedService] = useState<PendingService | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isClient = selectedService?.client_id === profile?.id;
-  const ratedUserId = isClient ? selectedService?.provider_id : selectedService?.client_id;
-  const raterRole: 'CLIENT' | 'PROVIDER' = isClient ? 'CLIENT' : 'PROVIDER';
-
-  const { submitRating } = useServiceRating({
-    serviceRequestId: selectedService?.id || '',
-    ratedUserId: ratedUserId || '',
-    raterRole,
-  });
+  const { submitRating, isSubmitting: isSubmittingHook } = useServiceRatingSubmit();
 
   useEffect(() => {
     if (!profile) return;
@@ -111,16 +103,38 @@ export const PendingServiceRatingsPanel: React.FC = () => {
   };
 
   const handleSubmitRating = async (rating: number, comment?: string) => {
-    if (isSubmitting) return;
+    if (!selectedService) {
+      console.error('[PendingServiceRatingsPanel] Nenhum serviço selecionado');
+      return;
+    }
+
+    if (isSubmitting || isSubmittingHook) return;
     
     setIsSubmitting(true);
+    
+    const isClient = selectedService.client_id === profile?.id;
+    const ratedUserId = isClient ? selectedService.provider_id : selectedService.client_id;
+    const raterRole: 'CLIENT' | 'PROVIDER' = isClient ? 'CLIENT' : 'PROVIDER';
+
+    console.log('[PendingServiceRatingsPanel] Submetendo avaliação:', {
+      serviceRequestId: selectedService.id,
+      ratedUserId,
+      raterRole,
+      rating,
+    });
+
     try {
-      const result = await submitRating(rating, comment);
+      const result = await submitRating({
+        serviceRequestId: selectedService.id,
+        ratedUserId,
+        raterRole,
+        rating,
+        comment,
+      });
+
       if (result.success) {
         // Optimistic update - remover imediatamente da lista
-        setPendingServices(prev => prev.filter(s => s.id !== selectedService?.id));
-        
-        toast.success('Avaliação enviada com sucesso!');
+        setPendingServices(prev => prev.filter(s => s.id !== selectedService.id));
         setSelectedService(null);
         
         // Recarregar em background para garantir sincronização
@@ -157,7 +171,7 @@ export const PendingServiceRatingsPanel: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Star className="h-5 w-5 text-yellow-500" />
-            Avaliações Pendentes ({pendingServices.length})
+            {appTexts.pendingRatings.count(pendingServices.length)}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -176,7 +190,7 @@ export const PendingServiceRatingsPanel: React.FC = () => {
                   <div className="flex-1">
                     <p className="font-medium">{service.service_type}</p>
                     <p className="text-sm text-muted-foreground">
-                      {isServiceClient ? 'Prestador' : 'Cliente'}: {otherUserName}
+                      {isServiceClient ? appTexts.pendingRatings.provider : appTexts.pendingRatings.client}: {otherUserName}
                     </p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                       <Calendar className="h-3 w-3" />
@@ -186,10 +200,10 @@ export const PendingServiceRatingsPanel: React.FC = () => {
                   <Button
                     size="sm"
                     onClick={() => setSelectedService(service)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isSubmittingHook}
                   >
                     <Star className="h-4 w-4 mr-2" />
-                    Avaliar
+                    {appTexts.pendingRatings.rateButton}
                   </Button>
                 </div>
               );
@@ -208,7 +222,7 @@ export const PendingServiceRatingsPanel: React.FC = () => {
               ? selectedService.provider_name
               : selectedService.client_name
           }
-          raterRole={raterRole}
+          raterRole={selectedService.client_id === profile?.id ? 'CLIENT' : 'PROVIDER'}
           serviceType={selectedService.service_type}
         />
       )}

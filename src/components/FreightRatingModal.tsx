@@ -6,6 +6,7 @@ import { InteractiveStarRating } from '@/components/InteractiveStarRating';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Star, User } from 'lucide-react';
+import { appTexts } from '@/lib/app-texts';
 
 interface FreightRatingModalProps {
   freight?: {
@@ -50,7 +51,7 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
   const handleSubmitRating = async () => {
     if (rating === 0) {
       toast({
-        title: "Avaliação obrigatória",
+        title: appTexts.ratings.required,
         description: "Por favor, selecione uma nota de 1 a 5 estrelas.",
         variant: "destructive",
       });
@@ -115,7 +116,7 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
       }
 
       toast({
-        title: "Avaliação enviada",
+        title: appTexts.ratings.success,
         description: `Sua avaliação para ${ratedUserName} foi enviada com sucesso.`,
       });
       
@@ -125,8 +126,8 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
     } catch (error: any) {
       console.error('Erro ao enviar avaliação:', error);
       toast({
-        title: "Erro ao enviar avaliação",
-        description: error.message || 'Erro desconhecido',
+        title: appTexts.ratings.error,
+        description: error.message || appTexts.errors.generic,
         variant: "destructive",
       });
     } finally {
@@ -140,7 +141,7 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Star className="h-5 w-5 text-primary" />
-            Avaliar {isProducerRating ? 'Motorista' : 'Produtor'}
+            {isProducerRating ? appTexts.ratings.rateDriver : appTexts.ratings.rateProducer}
           </DialogTitle>
         </DialogHeader>
         
@@ -153,7 +154,7 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
             <div>
               <p className="font-medium">{ratedUserName}</p>
               <p className="text-sm text-muted-foreground">
-                {isProducerRating ? 'Motorista responsável' : 'Produtor do frete'}
+                {isProducerRating ? appTexts.ratings.driverResponsible : appTexts.ratings.freightProducer}
               </p>
             </div>
           </div>
@@ -161,7 +162,7 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
           {/* Rating */}
           <div className="space-y-3">
             <label className="text-sm font-medium">
-              Como você avalia o serviço prestado?
+              {appTexts.ratings.howWasFreight}
             </label>
             <div className="flex justify-center">
               <InteractiveStarRating 
@@ -171,11 +172,7 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
             </div>
             {rating > 0 && (
               <p className="text-center text-sm text-muted-foreground">
-                {rating === 1 && "Muito insatisfeito"}
-                {rating === 2 && "Insatisfeito"}
-                {rating === 3 && "Neutro"}
-                {rating === 4 && "Satisfeito"}
-                {rating === 5 && "Muito satisfeito"}
+                {appTexts.ratings.satisfaction[rating as 1 | 2 | 3 | 4 | 5]}
               </p>
             )}
           </div>
@@ -183,10 +180,10 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
           {/* Comment */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              Comentários (opcional)
+              {appTexts.ratings.commentOptional}
             </label>
             <Textarea
-              placeholder="Conte mais sobre sua experiência..."
+              placeholder={appTexts.ratings.commentPlaceholder}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={3}
@@ -200,14 +197,14 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
           {/* Buttons */}
           <div className="flex gap-3 pt-4">
             <Button variant="outline" onClick={onClose} className="flex-1">
-              Cancelar
+              {appTexts.ratings.cancel}
             </Button>
             <Button 
               onClick={handleSubmitRating} 
               disabled={loading || rating === 0}
               className="flex-1"
             >
-              {loading ? 'Enviando...' : 'Enviar Avaliação'}
+              {loading ? appTexts.general.sending : appTexts.ratings.submitRating}
             </Button>
           </div>
         </div>
