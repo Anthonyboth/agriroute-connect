@@ -49,6 +49,8 @@ import { UnifiedHistory } from '@/components/UnifiedHistory';
 import { CompanyDriverBadge } from '@/components/CompanyDriverBadge';
 import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 import { DriverAutoLocationTracking } from '@/components/DriverAutoLocationTracking';
+import { useAutoRating } from '@/hooks/useAutoRating';
+import { AutoRatingModal } from '@/components/AutoRatingModal';
 
 interface Freight {
   id: string;
@@ -185,6 +187,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   // Estados para controle de consentimento de tracking
   const [freightAwaitingConsent, setFreightAwaitingConsent] = useState<string | null>(null);
   const [showTrackingConsentModal, setShowTrackingConsentModal] = useState(false);
+  
+  // Estado para controlar avaliações automáticas
+  const [activeFreightForRating, setActiveFreightForRating] = useState<Freight | null>(null);
   const [filters, setFilters] = useState({
     cargo_type: 'all',
     service_type: 'all',
@@ -323,7 +328,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     [myAssignments]
   );
 
-  // Excluir DELIVERED_PENDING_CONFIRMATION dos ativos (frete reportado mas aguarda confirmação)
+  // Excluir DELIVERED_PENDING_CONFIRMATION e DELIVERED dos ativos
   const activeStatuses = ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT'];
   
   const visibleOngoing = useMemo(
@@ -991,6 +996,80 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   // Atualizar em tempo real contadores e listas ao mudar fretes/propostas
   useEffect(() => {
     if (!profile?.id) return;
+    
+    // Monitoramento de mudanças de status para avaliação automática
+    const ratingChannel = supabase
+      .channel('driver-rating-trigger')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'freights',
+        filter: `driver_id=eq.${profile.id}`
+      }, async (payload) => {
+        const newStatus = payload.new.status;
+        const oldStatus = payload.old?.status;
+
+        // Se mudou para DELIVERED_PENDING_CONFIRMATION, motorista avalia produtor
+        if (newStatus === 'DELIVERED_PENDING_CONFIRMATION' && oldStatus !== 'DELIVERED_PENDING_CONFIRMATION') {
+          const { data: freightData } = await supabase
+            .from('freights')
+            .select(`
+              *,
+              producer:profiles!freights_producer_id_fkey(id, full_name, role)
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (freightData?.producer) {
+            const { data: existingRating } = await supabase
+              .from('ratings')
+              .select('id')
+              .eq('freight_id', freightData.id)
+              .eq('rater_user_id', profile.id)
+              .maybeSingle();
+
+            if (!existingRating) {
+              setActiveFreightForRating(freightData as Freight);
+            }
+          }
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'freight_assignments',
+        filter: `driver_id=eq.${profile.id}`
+      }, async (payload) => {
+        const newStatus = payload.new.status;
+        const oldStatus = payload.old?.status;
+
+        if (newStatus === 'DELIVERED_PENDING_CONFIRMATION' && oldStatus !== 'DELIVERED_PENDING_CONFIRMATION') {
+          const { data: freightData } = await supabase
+            .from('freights')
+            .select(`
+              *,
+              producer:profiles!freights_producer_id_fkey(id, full_name, role)
+            `)
+            .eq('id', payload.new.freight_id)
+            .single();
+
+          if (freightData?.producer) {
+            const { data: existingRating } = await supabase
+              .from('ratings')
+              .select('id')
+              .eq('freight_id', freightData.id)
+              .eq('rater_user_id', profile.id)
+              .maybeSingle();
+
+            if (!existingRating) {
+              setActiveFreightForRating(freightData as Freight);
+            }
+          }
+        }
+      })
+      .subscribe();
+
+    // Canal normal de updates
     const channel = supabase
       .channel('realtime-freights-driver')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'freights' }, () => {
@@ -1032,6 +1111,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       .subscribe();
 
     return () => {
+      supabase.removeChannel(ratingChannel);
       supabase.removeChannel(channel);
     };
   }, [profile?.id]);
@@ -2357,6 +2437,25 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           setFreightAwaitingConsent(null);
         }}
       />
+
+      {/* Modal de Avaliação Automática */}
+      {activeFreightForRating && (
+        <AutoRatingModal
+          isOpen={true}
+          onClose={() => setActiveFreightForRating(null)}
+          freightId={activeFreightForRating.id}
+          userToRate={
+            activeFreightForRating.producer
+              ? {
+                  id: activeFreightForRating.producer.id,
+                  full_name: activeFreightForRating.producer.full_name,
+                  role: 'PRODUTOR' as const
+                }
+              : null
+          }
+          currentUserProfile={profile}
+        />
+      )}
     </div>
   );
 };

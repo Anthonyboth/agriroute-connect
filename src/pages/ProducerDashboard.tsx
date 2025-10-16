@@ -36,6 +36,8 @@ import { UnifiedHistory } from '@/components/UnifiedHistory';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 import { showErrorToast } from '@/lib/error-handler';
 import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
+import { useAutoRating } from '@/hooks/useAutoRating';
+import { AutoRatingModal } from '@/components/AutoRatingModal';
 
 const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
@@ -78,6 +80,9 @@ const ProducerDashboard = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [serviceRequests, setServiceRequests] = useState<any[]>([]);
+  
+  // Estado para controlar avaliações automáticas
+  const [activeFreightForRating, setActiveFreightForRating] = useState<any>(null);
 
   // Buscar fretes - otimizado
   const fetchFreights = useCallback(async () => {
@@ -362,6 +367,45 @@ const ProducerDashboard = () => {
     
     console.log('Configurando realtime para produtor:', profile.id);
     
+    // Canal para monitorar mudanças de status e disparar avaliação
+    const ratingChannel = supabase
+      .channel('producer-rating-trigger')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'freights',
+        filter: `producer_id=eq.${profile.id}`
+      }, async (payload) => {
+        const newStatus = payload.new.status;
+        const oldStatus = payload.old?.status;
+
+        // Se mudou para DELIVERED, produtor avalia motorista
+        if (newStatus === 'DELIVERED' && oldStatus !== 'DELIVERED') {
+          const { data: freightData } = await supabase
+            .from('freights')
+            .select(`
+              *,
+              driver:profiles!freights_driver_id_fkey(id, full_name, role)
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (freightData?.driver) {
+            const { data: existingRating } = await supabase
+              .from('ratings')
+              .select('id')
+              .eq('freight_id', freightData.id)
+              .eq('rater_user_id', profile.id)
+              .maybeSingle();
+
+            if (!existingRating) {
+              setActiveFreightForRating(freightData);
+            }
+          }
+        }
+      })
+      .subscribe();
+    
     const channel = supabase
       .channel('realtime-freights-producer')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'freights' }, (payload) => {
@@ -388,6 +432,7 @@ const ProducerDashboard = () => {
 
     return () => {
       console.log('Removendo canal realtime');
+      supabase.removeChannel(ratingChannel);
       supabase.removeChannel(channel);
     };
   }, [profile?.id, fetchFreights, fetchProposals, fetchExternalPayments, fetchFreightPayments, fetchServiceRequests]);
@@ -1721,6 +1766,25 @@ const ProducerDashboard = () => {
         isOpen={servicesModalOpen}
         onClose={() => setServicesModalOpen(false)}
       />
+
+      {/* Modal de Avaliação Automática */}
+      {activeFreightForRating && (
+        <AutoRatingModal
+          isOpen={true}
+          onClose={() => setActiveFreightForRating(null)}
+          freightId={activeFreightForRating.id}
+          userToRate={
+            activeFreightForRating.driver
+              ? {
+                  id: activeFreightForRating.driver.id,
+                  full_name: activeFreightForRating.driver.full_name,
+                  role: 'MOTORISTA' as const
+                }
+              : null
+          }
+          currentUserProfile={profile}
+        />
+      )}
     </div>
   );
 };

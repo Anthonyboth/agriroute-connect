@@ -79,11 +79,22 @@ export const useAutoRating = ({ freightId, freightStatus, currentUserProfile, fr
   useEffect(() => {
     const handleAutoRating = async () => {
       // Só executa se:
-      // 1. Status é DELIVERED
+      // 1. Status é DELIVERED ou DELIVERED_PENDING_CONFIRMATION
       // 2. Temos um usuário logado
       // 3. Ainda não checamos se precisa mostrar avaliação
       // 4. Temos dados do frete
-      if (freightStatus !== 'DELIVERED' || !currentUserProfile || hasCheckedRating || !freight) {
+      const acceptedStatuses = ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION'];
+      if (!acceptedStatuses.includes(freightStatus) || !currentUserProfile || hasCheckedRating || !freight) {
+        return;
+      }
+      
+      // Se for DELIVERED_PENDING_CONFIRMATION, só mostrar para motorista (avalia produtor)
+      if (freightStatus === 'DELIVERED_PENDING_CONFIRMATION' && currentUserProfile.role !== 'MOTORISTA') {
+        return;
+      }
+      
+      // Se for DELIVERED, só mostrar para produtor (avalia motorista)
+      if (freightStatus === 'DELIVERED' && currentUserProfile.role !== 'PRODUTOR') {
         return;
       }
 
