@@ -323,6 +323,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     [myAssignments]
   );
 
+  // Excluir DELIVERED_PENDING_CONFIRMATION dos ativos (frete reportado mas aguarda confirmação)
   const activeStatuses = ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT'];
   
   const visibleOngoing = useMemo(
@@ -598,7 +599,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         throw freightError;
       }
 
-      // Buscar fretes via freight_assignments (transportadora scenarios)
+      // Buscar fretes via freight_assignments (remover DELIVERED_PENDING_CONFIRMATION dos ativos)
       const { data: assignmentData, error: assignmentError } = await supabase
         .from('freight_assignments')
         .select(`
@@ -608,7 +609,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           accepted_at
         `)
         .eq('driver_id', profile.id)
-        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
+        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
         .order('accepted_at', { ascending: false })
         .limit(100);
 

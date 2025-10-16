@@ -31,7 +31,7 @@ export const useActiveFreight = (): ActiveFreightInfo => {
 
     const checkActiveFreights = async () => {
       try {
-        // Verificar fretes diretos do motorista
+        // Verificar fretes diretos do motorista (EXCLUIR DELIVERED_PENDING_CONFIRMATION)
         const { data: directFreights } = await supabase
           .from('freights')
           .select('id, status')
@@ -50,7 +50,7 @@ export const useActiveFreight = (): ActiveFreightInfo => {
           return;
         }
 
-        // Verificar assignments de transportadora
+        // Verificar assignments de transportadora (EXCLUIR DELIVERED_PENDING_CONFIRMATION)
         const { data: assignments } = await supabase
           .from('freight_assignments')
           .select('id, freight_id, status')
