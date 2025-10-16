@@ -5367,15 +5367,14 @@ export type Database = {
           delivery_date: string
           destination_address: string
           destination_city: string
-          destination_lat: number
-          destination_lng: number
           destination_state: string
           distance_km: number
           distance_m: number
-          id: string
-          is_full_booking: boolean
+          freight_id: string
           is_partial_booking: boolean
           match_score: number
+          match_type: string
+          minimum_antt_price: number
           origin_address: string
           origin_city: string
           origin_lat: number
@@ -5384,13 +5383,12 @@ export type Database = {
           pickup_date: string
           price: number
           producer_id: string
+          producer_name: string
+          producer_phone: string
           required_trucks: number
-          scheduled_date: string
           service_type: string
           status: Database["public"]["Enums"]["freight_status"]
           urgency: string
-          urgent: boolean
-          vehicle_type: string
           weight: number
         }[]
       }

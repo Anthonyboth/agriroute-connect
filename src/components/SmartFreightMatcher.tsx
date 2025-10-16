@@ -157,15 +157,15 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         try {
           const { data: uc } = await supabase
             .from('user_cities')
-            .select('city_id, city_name, state, cities(name, state)')
+            .select('city_id, cities(name, state)')
             .eq('user_id', user!.id)
             .eq('is_active', true)
             .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
 
           const cityIds = (uc || []).map((u: any) => u.city_id).filter(Boolean);
           const cityNames = (uc || []).map((u: any) => ({ 
-            city: u.city_name || u.cities?.name, 
-            state: u.state || u.cities?.state 
+            city: u.cities?.name, 
+            state: u.cities?.state 
           })).filter((c: any) => c.city && c.state);
 
           if (cityIds.length === 0 && cityNames.length === 0) {
@@ -233,7 +233,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               pickup_date: f.pickup_date,
               delivery_date: f.delivery_date,
               price: f.price || 0,
-              urgency: (f.urgency_level || 'LOW') as string,
+              urgency: (f.urgency || 'LOW') as string,
               status: f.status,
               service_type: normalizeServiceType(f.service_type),
               distance_km: f.match_distance_m ? Math.round((f.match_distance_m / 1000) * 10) / 10 : 0,
