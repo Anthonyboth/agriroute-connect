@@ -5392,16 +5392,13 @@ export type Database = {
           destination_city: string
           destination_lat: number
           destination_lng: number
-          destination_state: string
           freight_id: string
           origin_city: string
           origin_lat: number
           origin_lng: number
-          origin_state: string
           pickup_date: string
           price: number
           producer_id: string
-          requires_monitoring: boolean
           status: Database["public"]["Enums"]["freight_status"]
           urgency: string
           weight: number
@@ -5571,6 +5568,28 @@ export type Database = {
           price: number
           producer_id: string
           service_type: string
+          status: Database["public"]["Enums"]["freight_status"]
+          urgency: string
+          weight: number
+        }[]
+      }
+      get_nearby_freights_for_driver: {
+        Args: { p_driver_id: string; p_radius_km?: number }
+        Returns: {
+          cargo_type: string
+          created_at: string
+          delivery_date: string
+          destination_city: string
+          destination_lat: number
+          destination_lng: number
+          distance_km: number
+          freight_id: string
+          origin_city: string
+          origin_lat: number
+          origin_lng: number
+          pickup_date: string
+          price: number
+          producer_id: string
           status: Database["public"]["Enums"]["freight_status"]
           urgency: string
           weight: number
