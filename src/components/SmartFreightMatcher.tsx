@@ -157,14 +157,18 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         try {
           const { data: uc } = await supabase
             .from('user_cities')
-            .select('city_id, cities(name, state)')
+            .select('city_id, city_name, state, cities(name, state)')
             .eq('user_id', user!.id)
             .eq('is_active', true)
             .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
 
           const cityIds = (uc || []).map((u: any) => u.city_id).filter(Boolean);
+          const cityNames = (uc || []).map((u: any) => ({ 
+            city: u.city_name || u.cities?.name, 
+            state: u.state || u.cities?.state 
+          })).filter((c: any) => c.city && c.state);
 
-          if (cityIds.length === 0) {
+          if (cityIds.length === 0 && cityNames.length === 0) {
             setHasActiveCities(false);
             toast.info('Configure suas cidades de atendimento para ver fretes compatíveis.');
             setCompatibleFreights([]);
@@ -172,16 +176,46 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             return;
           }
 
-          // Buscar fretes abertos que batam com as cidades (por ID)
-          const { data: freightsByCity, error: fbErr } = await supabase
-            .from('freights')
-            .select('*')
-            .eq('status', 'OPEN')
-            .or(`origin_city_id.in.(${cityIds.join(',')}),destination_city_id.in.(${cityIds.join(',')})`)
-            .order('created_at', { ascending: false })
-            .limit(200);
+          let freightsByCity: any[] = [];
 
-          if (fbErr) throw fbErr;
+          // Tentar buscar por city_id primeiro
+          if (cityIds.length > 0) {
+            const { data: cityIdFreights, error: fbErr } = await supabase
+              .from('freights')
+              .select('*')
+              .eq('status', 'OPEN')
+              .or(`origin_city_id.in.(${cityIds.join(',')}),destination_city_id.in.(${cityIds.join(',')})`)
+              .order('created_at', { ascending: false })
+              .limit(200);
+
+            if (!fbErr && cityIdFreights) {
+              freightsByCity = cityIdFreights;
+            }
+          }
+
+          // FALLBACK SECUNDÁRIO: Se não achou por ID, buscar por nome/estado
+          if (freightsByCity.length === 0 && cityNames.length > 0) {
+            console.log('[SmartFreightMatcher] Fallback secundário: busca por nome/estado');
+            
+            // Construir OR conditions para cada cidade
+            const orConditions: string[] = [];
+            for (const { city, state } of cityNames) {
+              orConditions.push(`and(origin_city.ilike.%${city}%,origin_state.ilike.%${state}%)`);
+              orConditions.push(`and(destination_city.ilike.%${city}%,destination_state.ilike.%${state}%)`);
+            }
+            
+            const { data: nameFreights } = await supabase
+              .from('freights')
+              .select('*')
+              .eq('status', 'OPEN')
+              .or(orConditions.join(','))
+              .order('created_at', { ascending: false })
+              .limit(200);
+              
+            if (nameFreights) {
+              freightsByCity = nameFreights;
+            }
+          }
 
            const allowedTypes = Array.from(new Set(
              (Array.isArray(profile?.service_types) ? (profile?.service_types as unknown as string[]) : [])
@@ -199,7 +233,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               pickup_date: f.pickup_date,
               delivery_date: f.delivery_date,
               price: f.price || 0,
-              urgency: (f.urgency || 'LOW') as string,
+              urgency: (f.urgency_level || 'LOW') as string,
               status: f.status,
               service_type: normalizeServiceType(f.service_type),
               distance_km: f.match_distance_m ? Math.round((f.match_distance_m / 1000) * 10) / 10 : 0,

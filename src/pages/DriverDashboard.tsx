@@ -371,13 +371,11 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         console.warn('Erro no matching espacial:', spatialError);
       }
 
-      // Usar a mesma RPC que o SmartFreightMatcher usa para consistência
-      let query = supabase.rpc(
-        'get_compatible_freights_for_driver',
+      // Usar RPC get_freights_for_driver (corrigida para retornar apenas fretes)
+      const { data: freights, error } = await supabase.rpc(
+        'get_freights_for_driver',
         { p_driver_id: profile.id }
       );
-
-      const { data: freights, error } = await query;
 
       if (error) {
         console.error('Erro ao carregar fretes:', error);
@@ -437,9 +435,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         }
       }
 
-      // Mapear os dados para o formato esperado
+      // Mapear os dados para o formato esperado (RPC já retorna formato correto)
       const formattedFreights = (freights || []).map((f: any) => ({
-        id: f.freight_id,
+        id: f.id,
         cargo_type: f.cargo_type,
         weight: f.weight,
         origin_address: f.origin_address,
@@ -450,14 +448,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         urgency: f.urgency,
         status: f.status,
         distance_km: f.distance_km,
-        minimum_antt_price: f.minimum_antt_price,
-        service_type: f.service_type,
-        producer: f.producer_name ? {
-          id: f.producer_id,
-          full_name: f.producer_name,
-          contact_phone: f.producer_phone,
-          role: 'PRODUTOR'
-        } : undefined
+        minimum_antt_price: 0,
+        service_type: f.service_type
       }));
 
       if (isMountedRef.current) setAvailableFreights(formattedFreights);
