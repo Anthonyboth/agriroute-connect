@@ -60,7 +60,7 @@ serve(async (req) => {
     // Recarregar dados do frete para ter contagem mais recente
     const { data: freightFresh, error: reloadError } = await supabase
       .from("freights")
-      .select("id, required_trucks, accepted_trucks, service_type, price, distance_km, pricing_type, status")
+      .select("id, required_trucks, accepted_trucks, service_type, price, distance_km, status")
       .eq("id", freight_id)
       .single();
 
@@ -132,24 +132,6 @@ serve(async (req) => {
       }
       
       console.log(`[VALIDATION] FRETE_MOTO price OK - R$${currentPrice}`);
-    }
-
-    // POR KM: Bloquear se distance_km não disponível
-    if (freightFresh.pricing_type === 'PER_KM' && (!freightFresh.distance_km || freightFresh.distance_km <= 0)) {
-      console.log(`[VALIDATION] PER_KM without distance - {${JSON.stringify({
-        freight_id,
-        pricing_type: freightFresh.pricing_type,
-        distance_km: freightFresh.distance_km
-      })}}`);
-      
-      return new Response(
-        JSON.stringify({ 
-          error: "Este frete está configurado como 'Por KM' mas não tem distância calculada. Entre em contato com o produtor para ajustar para 'Valor Fixo'.",
-          pricing_type: 'PER_KM',
-          distance_km: freightFresh.distance_km
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
     
     // Motorista individual só pode aceitar 1 carreta
@@ -229,7 +211,7 @@ serve(async (req) => {
     // Calcular agreed_price baseado no tipo de serviço
     const originalPrice = freightFresh.price || 0;
     let agreedPrice = originalPrice;
-    let pricingType = freightFresh.pricing_type || 'FIXED';
+    let pricingType = 'FIXED'; // Default sempre FIXED
     
     // FRETE_MOTO: Garantir mínimo R$10
     if (freightFresh.service_type === 'FRETE_MOTO') {

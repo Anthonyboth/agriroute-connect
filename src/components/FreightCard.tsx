@@ -80,6 +80,31 @@ export const FreightCard: React.FC<FreightCardProps> = ({
 
   const handleAcceptFreight = async (numTrucks = 1) => {
     try {
+      // Primeiro: verificar se o solicitante tem cadastro
+      const { data: checkData, error: checkError } = await supabase.functions.invoke(
+        'check-freight-requester',
+        {
+          body: { freight_id: freight.id }
+        }
+      );
+
+      if (checkError) {
+        console.error('Error checking requester:', checkError);
+        toast.error("Erro ao verificar solicitante");
+        return;
+      }
+
+      // Se solicitante não tem cadastro, mostrar mensagem e não aceitar
+      if (checkData?.has_registration === false) {
+        toast.error("O solicitante não possui cadastro. Este frete foi movido para o histórico.");
+        // Aguardar um pouco e recarregar para refletir mudança
+        setTimeout(() => {
+          onAction?.('accept'); // Trigger refresh/tab change
+        }, 1500);
+        return;
+      }
+
+      // Se tem cadastro, proceder com aceite normal
       const { data, error } = await supabase.functions.invoke(
         'accept-freight-multiple',
         {
