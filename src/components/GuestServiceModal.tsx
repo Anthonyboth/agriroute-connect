@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { User, MessageCircle, Mail, Truck, Home, Package } from 'lucide-react';
+import { showErrorToast } from '@/lib/error-handler';
 import { LocationFillButton } from './LocationFillButton';
 import { UserLocationSelector } from './UserLocationSelector';
 import { supabase } from '@/integrations/supabase/client';
@@ -181,7 +182,6 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
           service_type: selectedSubService,
           contact_name: formData.name,
           contact_phone: formData.phone,
-          contact_email: formData.email || null,
           location_address: formData.origin,
           location_lat: formData.origin_lat,
           location_lng: formData.origin_lng,
@@ -222,7 +222,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
       
     } catch (error) {
       console.error('Erro ao salvar solicitação:', error);
-      toast.error('Erro ao enviar solicitação. Tente novamente.');
+      showErrorToast(toast, 'Erro ao enviar solicitação', error);
     } finally {
       setLoading(false);
     }
