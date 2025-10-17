@@ -45,6 +45,17 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
     return allServices.filter(s => s.category === cat && !s.showOnlyInAllTab).length;
   };
 
+  // Calculate base services and total count for "All Services" tab
+  const baseServices = mode === 'driver'
+    ? ALL_SERVICE_TYPES.filter(s => s.category === 'freight')
+    : mode === 'provider'
+      ? ALL_SERVICE_TYPES.filter(s => s.category !== 'freight' && s.providerVisible)
+      : ALL_SERVICE_TYPES;
+
+  const allTabCount = mode === 'driver'
+    ? baseServices.length
+    : baseServices.filter(s => !s.hideFromAllTab).length;
+
   const categoryCards = [
     {
       id: 'freight',
@@ -92,7 +103,7 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
       title: 'Todos os Serviços',
       description: 'Veja a lista completa de serviços disponíveis',
       color: 'bg-gradient-to-br from-primary/10 to-accent/10 text-primary dark:from-primary/20 dark:to-accent/20 border-primary/30',
-      count: ALL_SERVICE_TYPES.length
+      count: allTabCount
     }
   ];
 
