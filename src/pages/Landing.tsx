@@ -7,6 +7,7 @@ import AuthModal from '@/components/AuthModal';
 import MudancaModal from '@/components/MudancaModal';
 import GuestServiceModal from '@/components/GuestServiceModal';
 import HowItWorksModal from '@/components/HowItWorksModal';
+import { FreightTransportModal } from '@/components/FreightTransportModal';
 import { ServicesModal } from '@/components/ServicesModal';
 import ServiceRequestModal from '@/components/ServiceRequestModal';
 import { ContactModal } from '@/components/ContactModal';
@@ -52,6 +53,7 @@ const Landing = () => {
     isOpen: false,
   });
 const [servicesModal, setServicesModal] = useState(false);
+const [freightTransportModal, setFreightTransportModal] = useState(false);
 const [requestModalOpen, setRequestModalOpen] = useState(false);
 const [selectedService, setSelectedService] = useState<any | null>(null);
 const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' }>({
@@ -362,7 +364,7 @@ const fetchRealStats = async () => {
               <Button 
                 variant="outline"
                 size="lg"
-                onClick={() => setServicesModal(true)}
+                onClick={() => setFreightTransportModal(true)}
                 className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base md:text-lg px-8 py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce"
               >
                 <Wrench className="mr-2 h-5 w-5" />
@@ -649,6 +651,11 @@ const fetchRealStats = async () => {
       <MudancaModal
         isOpen={mudancaModal}
         onClose={() => setMudancaModal(false)}
+      />
+
+      <FreightTransportModal
+        isOpen={freightTransportModal}
+        onClose={() => setFreightTransportModal(false)}
       />
 
       <ServicesModal 

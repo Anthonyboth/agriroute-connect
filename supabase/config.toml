@@ -182,3 +182,6 @@ verify_jwt = false
 
 [functions.process-telegram-queue]
 verify_jwt = false
+
+[functions.validate-guest-user]
+verify_jwt = false

@@ -23,15 +23,20 @@ import { calculateFreightPrice, convertWeightToKg } from '@/lib/freight-calculat
 interface CreateFreightModalProps {
   onFreightCreated: () => void;
   userProfile: any;
+  guestMode?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModalProps) => {
+const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, isOpen: externalIsOpen, onClose: externalOnClose }: CreateFreightModalProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showAxlesSelector, setShowAxlesSelector] = useState(false);
   const [calculatedAnttPrice, setCalculatedAnttPrice] = useState<number | null>(null);
   const [anttDetails, setAnttDetails] = useState<any>(null);
   const [calculatedDistance, setCalculatedDistance] = useState<number>(0);
+  const [validationResult, setValidationResult] = useState<any>(null);
+  const [showUserExistsWarning, setShowUserExistsWarning] = useState(false);
   const [formData, setFormData] = useState({
     cargo_type: '',
     weight: '',
@@ -62,8 +67,21 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     pickup_observations: '',
     delivery_observations: '',
     payment_method: 'DIRETO',
-    required_trucks: '1'
+    required_trucks: '1',
+    guest_name: '',
+    guest_email: '',
+    guest_phone: '',
+    guest_document: ''
   });
+
+  const isModalOpen = externalIsOpen !== undefined ? externalIsOpen : open;
+  const handleModalClose = () => {
+    if (externalOnClose) {
+      externalOnClose();
+    } else {
+      setOpen(false);
+    }
+  };
 
   // Evitar travamentos: aplica timeout nas chamadas de edge functions
   const withTimeoutAny = (promise: Promise<any>, ms = 5000): Promise<any> => {
@@ -230,14 +248,64 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
     }
   }, [formData.cargo_type, formData.vehicle_axles_required, calculatedDistance, formData.high_performance, formData.vehicle_ownership, showAxlesSelector]);
 
+  const validateGuestUser = async () => {
+    if (!guestMode) return true;
+    
+    if (!formData.guest_document) {
+      toast.error('CPF/CNPJ é obrigatório');
+      return false;
+    }
+
+    if (!formData.guest_name || !formData.guest_phone) {
+      toast.error('Nome e telefone são obrigatórios');
+      return false;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-guest-user', {
+        body: {
+          name: formData.guest_name,
+          email: formData.guest_email,
+          phone: formData.guest_phone,
+          document: formData.guest_document
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.user_exists) {
+        setValidationResult(data);
+        setShowUserExistsWarning(true);
+        toast.error(data.message);
+        return false;
+      }
+
+      setValidationResult(data);
+      return true;
+    } catch (error) {
+      console.error('Erro na validação:', error);
+      toast.error('Erro ao validar informações');
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Verificar autenticação antes de criar frete
-    if (!userProfile?.id) {
-      toast.error('Faça login como produtor para criar um frete.');
-      setLoading(false);
-      return;
+    // VALIDAÇÃO GUEST
+    if (guestMode) {
+      const isValid = await validateGuestUser();
+      if (!isValid) {
+        setLoading(false);
+        return;
+      }
+    } else {
+      // Verificar autenticação antes de criar frete
+      if (!userProfile?.id) {
+        toast.error('Faça login como produtor para criar um frete.');
+        setLoading(false);
+        return;
+      }
     }
     
     setLoading(true);
@@ -311,7 +379,18 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
       }
 
       const freightData = {
-        producer_id: userProfile.id,
+        producer_id: guestMode ? null : userProfile.id,
+        
+        // NOVOS campos guest
+        is_guest_freight: guestMode,
+        prospect_user_id: guestMode ? validationResult?.prospect_id : null,
+        guest_contact_name: guestMode ? formData.guest_name : null,
+        guest_contact_phone: guestMode ? formData.guest_phone : null,
+        guest_contact_email: guestMode ? formData.guest_email : null,
+        guest_contact_document: guestMode ? formData.guest_document.replace(/\D/g, '') : null,
+        allow_counter_proposals: !guestMode,
+        show_contact_after_accept: guestMode,
+        
         cargo_type: formData.cargo_type,
         weight: convertWeightToKg(weight), // Usar utilitário
         origin_address: formData.origin_address,
@@ -378,8 +457,18 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         }
       }
 
-      toast.success('Frete criado com sucesso! Motoristas qualificados serão notificados automaticamente.');
-      setOpen(false);
+      toast.success(
+        guestMode 
+          ? 'Solicitação enviada! Motoristas da região serão notificados.' 
+          : 'Frete criado com sucesso! Motoristas qualificados serão notificados automaticamente.'
+      );
+      
+      if (externalOnClose) {
+        externalOnClose();
+      } else {
+        setOpen(false);
+      }
+      
       setFormData({
         cargo_type: '',
         weight: '',
@@ -410,7 +499,11 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
         pickup_observations: '',
         delivery_observations: '',
         payment_method: 'DIRETO',
-        required_trucks: '1'
+        required_trucks: '1',
+        guest_name: '',
+        guest_email: '',
+        guest_phone: '',
+        guest_document: ''
       });
       onFreightCreated();
     } catch (error) {
@@ -433,22 +526,120 @@ const CreateFreightModal = ({ onFreightCreated, userProfile }: CreateFreightModa
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-green-600 hover:bg-green-700">
-          <Plus className="mr-2 h-4 w-4" />
-          Criar Novo Frete
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isModalOpen} onOpenChange={externalOnClose || setOpen}>
+      {!guestMode && (
+        <DialogTrigger asChild>
+          <Button className="bg-green-600 hover:bg-green-700">
+            <Plus className="mr-2 h-4 w-4" />
+            Criar Novo Frete
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Criar Novo Frete</DialogTitle>
+          <DialogTitle>{guestMode ? 'Solicitar Frete Rural sem Cadastro' : 'Criar Novo Frete'}</DialogTitle>
           <DialogDescription>
-            Preencha os detalhes do frete. Motoristas qualificados na região serão notificados automaticamente.
+            {guestMode 
+              ? 'Preencha os detalhes do frete. Motoristas da região serão notificados automaticamente.'
+              : 'Preencha os detalhes do frete. Motoristas qualificados na região serão notificados automaticamente.'
+            }
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto max-h-[60vh] pr-2">
+          {guestMode && (
+            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+              <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Solicitação sem Cadastro</strong><br/>
+                  Preencha seus dados para que motoristas possam entrar em contato. 
+                  Você receberá notificações por WhatsApp.
+                </AlertDescription>
+              </Alert>
+              
+              <h3 className="font-semibold text-sm">Seus Dados de Contato</h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="guest_name">Nome Completo *</Label>
+                <Input
+                  id="guest_name"
+                  value={formData.guest_name}
+                  onChange={(e) => handleInputChange('guest_name', e.target.value)}
+                  placeholder="Seu nome completo"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="guest_phone">WhatsApp *</Label>
+                <Input
+                  id="guest_phone"
+                  value={formData.guest_phone}
+                  onChange={(e) => handleInputChange('guest_phone', e.target.value)}
+                  placeholder="(00) 00000-0000"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Será exibido para o motorista APÓS aceitar o frete
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="guest_email">Email (opcional)</Label>
+                <Input
+                  id="guest_email"
+                  type="email"
+                  value={formData.guest_email}
+                  onChange={(e) => handleInputChange('guest_email', e.target.value)}
+                  placeholder="seu@email.com"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="guest_document">CPF ou CNPJ *</Label>
+                <Input
+                  id="guest_document"
+                  value={formData.guest_document}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    if (value.length <= 14) {
+                      handleInputChange('guest_document', value);
+                    }
+                  }}
+                  placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                  required
+                  maxLength={18}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Necessário para controle e segurança
+                </p>
+              </div>
+
+              {showUserExistsWarning && validationResult?.user_exists && (
+                <Alert variant="destructive">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Conta Encontrada!</strong><br/>
+                    {validationResult.message}
+                    <div className="mt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          handleModalClose();
+                          window.location.href = '/auth';
+                        }}
+                      >
+                        Ir para Login
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cargo_type">Tipo de Carga *</Label>

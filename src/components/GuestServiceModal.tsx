@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { User, MessageCircle, Mail, Truck, Home, Package } from 'lucide-react';
+import { User, MessageCircle, Mail, Truck, Home, Package, Info, AlertCircle } from 'lucide-react';
 import { showErrorToast } from '@/lib/error-handler';
 import { LocationFillButton } from './LocationFillButton';
 import { UserLocationSelector } from './UserLocationSelector';
@@ -43,6 +44,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
     name: '',
     phone: '',
     email: '',
+    document: '',
     origin: '',
     destination: '',
     description: '',
@@ -62,6 +64,9 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
     },
     needsPackaging: false
   });
+
+  const [validationResult, setValidationResult] = useState<any>(null);
+  const [showUserExistsWarning, setShowUserExistsWarning] = useState(false);
 
   const serviceInfo = {
     GUINCHO: {
@@ -131,8 +136,46 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
 
   const info = serviceInfo[serviceType];
 
+  const validateGuestUser = async () => {
+    if (!formData.document) {
+      toast.error('CPF/CNPJ é obrigatório');
+      return false;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-guest-user', {
+        body: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          document: formData.document
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.user_exists) {
+        setValidationResult(data);
+        setShowUserExistsWarning(true);
+        toast.error(data.message);
+        return false;
+      }
+
+      setValidationResult(data);
+      return data.prospect_id;
+    } catch (error) {
+      console.error('Erro na validação:', error);
+      toast.error('Erro ao validar informações');
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // VALIDAR GUEST
+    const prospectId = await validateGuestUser();
+    if (!prospectId) return;
     
     // Validar campos de carga se não for guincho
     if (selectedSubService !== 'GUINCHO') {
@@ -179,9 +222,12 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
         .from('service_requests')
         .insert({
           client_id: null, // NULL = solicitação de convidado
+          prospect_user_id: prospectId,
           service_type: selectedSubService,
           contact_name: formData.name,
           contact_phone: formData.phone,
+          contact_email: formData.email,
+          contact_document: formData.document.replace(/\D/g, ''),
           location_address: formData.origin,
           location_lat: formData.origin_lat,
           location_lng: formData.origin_lng,
@@ -308,6 +354,60 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                       />
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email (opcional)</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        placeholder="seu@email.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="document">CPF ou CNPJ *</Label>
+                      <Input
+                        id="document"
+                        value={formData.document}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+                          if (value.length <= 14) {
+                            handleInputChange('document', value);
+                          }
+                        }}
+                        placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                        required
+                        maxLength={18}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Necessário para identificação e controle de solicitações
+                      </p>
+                    </div>
+                  </div>
+
+                  {showUserExistsWarning && validationResult?.user_exists && (
+                    <Alert variant="destructive">
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Conta Encontrada!</strong><br/>
+                        {validationResult.message}
+                        <div className="mt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              onClose();
+                              window.location.href = '/auth';
+                            }}
+                          >
+                            Ir para Login
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-2">

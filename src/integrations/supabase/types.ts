@@ -2032,6 +2032,7 @@ export type Database = {
         Row: {
           accepted_by_company: boolean | null
           accepted_trucks: number
+          allow_counter_proposals: boolean | null
           cargo_category_antt: string | null
           cargo_type: string
           commission_amount: number | null
@@ -2060,9 +2061,14 @@ export type Database = {
           extra_fees_description: string | null
           fiscal_documents_url: string | null
           flexible_dates: boolean | null
+          guest_contact_document: string | null
+          guest_contact_email: string | null
+          guest_contact_name: string | null
+          guest_contact_phone: string | null
           high_performance: boolean | null
           id: string
           is_full_booking: boolean | null
+          is_guest_freight: boolean | null
           is_scheduled: boolean | null
           last_location_update: string | null
           metadata: Json | null
@@ -2081,12 +2087,14 @@ export type Database = {
           price_per_km: number | null
           problem_description: string | null
           producer_id: string
+          prospect_user_id: string | null
           required_trucks: number
           route_geom: unknown | null
           route_waypoints: Json | null
           scheduled_date: string | null
           service_radius_km: number | null
           service_type: string | null
+          show_contact_after_accept: boolean | null
           status: Database["public"]["Enums"]["freight_status"]
           toll_cost: number | null
           tracking_ended_at: string | null
@@ -2104,6 +2112,7 @@ export type Database = {
         Insert: {
           accepted_by_company?: boolean | null
           accepted_trucks?: number
+          allow_counter_proposals?: boolean | null
           cargo_category_antt?: string | null
           cargo_type: string
           commission_amount?: number | null
@@ -2132,9 +2141,14 @@ export type Database = {
           extra_fees_description?: string | null
           fiscal_documents_url?: string | null
           flexible_dates?: boolean | null
+          guest_contact_document?: string | null
+          guest_contact_email?: string | null
+          guest_contact_name?: string | null
+          guest_contact_phone?: string | null
           high_performance?: boolean | null
           id?: string
           is_full_booking?: boolean | null
+          is_guest_freight?: boolean | null
           is_scheduled?: boolean | null
           last_location_update?: string | null
           metadata?: Json | null
@@ -2153,12 +2167,14 @@ export type Database = {
           price_per_km?: number | null
           problem_description?: string | null
           producer_id: string
+          prospect_user_id?: string | null
           required_trucks?: number
           route_geom?: unknown | null
           route_waypoints?: Json | null
           scheduled_date?: string | null
           service_radius_km?: number | null
           service_type?: string | null
+          show_contact_after_accept?: boolean | null
           status?: Database["public"]["Enums"]["freight_status"]
           toll_cost?: number | null
           tracking_ended_at?: string | null
@@ -2176,6 +2192,7 @@ export type Database = {
         Update: {
           accepted_by_company?: boolean | null
           accepted_trucks?: number
+          allow_counter_proposals?: boolean | null
           cargo_category_antt?: string | null
           cargo_type?: string
           commission_amount?: number | null
@@ -2204,9 +2221,14 @@ export type Database = {
           extra_fees_description?: string | null
           fiscal_documents_url?: string | null
           flexible_dates?: boolean | null
+          guest_contact_document?: string | null
+          guest_contact_email?: string | null
+          guest_contact_name?: string | null
+          guest_contact_phone?: string | null
           high_performance?: boolean | null
           id?: string
           is_full_booking?: boolean | null
+          is_guest_freight?: boolean | null
           is_scheduled?: boolean | null
           last_location_update?: string | null
           metadata?: Json | null
@@ -2225,12 +2247,14 @@ export type Database = {
           price_per_km?: number | null
           problem_description?: string | null
           producer_id?: string
+          prospect_user_id?: string | null
           required_trucks?: number
           route_geom?: unknown | null
           route_waypoints?: Json | null
           scheduled_date?: string | null
           service_radius_km?: number | null
           service_type?: string | null
+          show_contact_after_accept?: boolean | null
           status?: Database["public"]["Enums"]["freight_status"]
           toll_cost?: number | null
           tracking_ended_at?: string | null
@@ -2293,6 +2317,13 @@ export type Database = {
             columns: ["producer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freights_prospect_user_id_fkey"
+            columns: ["prospect_user_id"]
+            isOneToOne: false
+            referencedRelation: "prospect_users"
             referencedColumns: ["id"]
           },
         ]
@@ -3092,6 +3123,66 @@ export type Database = {
         }
         Relationships: []
       }
+      prospect_users: {
+        Row: {
+          blacklist_reason: string | null
+          converted_to_user_id: string | null
+          created_at: string | null
+          document: string
+          document_type: string
+          email: string | null
+          first_request_date: string | null
+          full_name: string
+          id: string
+          is_blacklisted: boolean | null
+          last_city: string | null
+          last_request_date: string | null
+          last_state: string | null
+          metadata: Json | null
+          phone: string
+          total_requests: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          blacklist_reason?: string | null
+          converted_to_user_id?: string | null
+          created_at?: string | null
+          document: string
+          document_type: string
+          email?: string | null
+          first_request_date?: string | null
+          full_name: string
+          id?: string
+          is_blacklisted?: boolean | null
+          last_city?: string | null
+          last_request_date?: string | null
+          last_state?: string | null
+          metadata?: Json | null
+          phone: string
+          total_requests?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          blacklist_reason?: string | null
+          converted_to_user_id?: string | null
+          created_at?: string | null
+          document?: string
+          document_type?: string
+          email?: string | null
+          first_request_date?: string | null
+          full_name?: string
+          id?: string
+          is_blacklisted?: boolean | null
+          last_city?: string | null
+          last_request_date?: string | null
+          last_state?: string | null
+          metadata?: Json | null
+          phone?: string
+          total_requests?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       provider_notification_limits: {
         Row: {
           created_at: string | null
@@ -3840,6 +3931,8 @@ export type Database = {
           client_id: string | null
           client_rating: number | null
           completed_at: string | null
+          contact_document: string | null
+          contact_email: string | null
           contact_name: string | null
           contact_phone: string
           contact_phone_encrypted: string | null
@@ -3856,6 +3949,7 @@ export type Database = {
           location_state: string | null
           preferred_datetime: string | null
           problem_description: string
+          prospect_user_id: string | null
           provider_comment: string | null
           provider_id: string | null
           provider_notes: string | null
@@ -3881,6 +3975,8 @@ export type Database = {
           client_id?: string | null
           client_rating?: number | null
           completed_at?: string | null
+          contact_document?: string | null
+          contact_email?: string | null
           contact_name?: string | null
           contact_phone: string
           contact_phone_encrypted?: string | null
@@ -3897,6 +3993,7 @@ export type Database = {
           location_state?: string | null
           preferred_datetime?: string | null
           problem_description: string
+          prospect_user_id?: string | null
           provider_comment?: string | null
           provider_id?: string | null
           provider_notes?: string | null
@@ -3922,6 +4019,8 @@ export type Database = {
           client_id?: string | null
           client_rating?: number | null
           completed_at?: string | null
+          contact_document?: string | null
+          contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string
           contact_phone_encrypted?: string | null
@@ -3938,6 +4037,7 @@ export type Database = {
           location_state?: string | null
           preferred_datetime?: string | null
           problem_description?: string
+          prospect_user_id?: string | null
           provider_comment?: string | null
           provider_id?: string | null
           provider_notes?: string | null
@@ -3978,6 +4078,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "city_hierarchy"
             referencedColumns: ["city_id"]
+          },
+          {
+            foreignKeyName: "service_requests_prospect_user_id_fkey"
+            columns: ["prospect_user_id"]
+            isOneToOne: false
+            referencedRelation: "prospect_users"
+            referencedColumns: ["id"]
           },
         ]
       }
