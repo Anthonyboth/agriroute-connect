@@ -206,14 +206,27 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
       // Executar matching espacial automático
       if (data?.id) {
         try {
-          await supabase.functions.invoke('service-provider-spatial-matching', {
-            body: { 
-              service_request_id: data.id,
-              notify_providers: true 
-            }
+          const matchingPayload = {
+            service_request_id: data.id,
+            request_lat: formData.origin_lat,
+            request_lng: formData.origin_lng,
+            service_type: selectedSubService,
+            notify_providers: true
+          };
+
+          console.log('📍 Executando matching espacial com:', matchingPayload);
+
+          const { data: matchData, error: matchError } = await supabase.functions.invoke('service-provider-spatial-matching', {
+            body: matchingPayload
           });
+
+          if (matchError) {
+            console.error('❌ Erro no matching:', matchError);
+          } else {
+            console.log('✅ Matching executado com sucesso:', matchData);
+          }
         } catch (matchError) {
-          console.error('Erro no matching:', matchError);
+          console.error('❌ Exceção no matching:', matchError);
         }
       }
 

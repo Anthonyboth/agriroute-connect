@@ -175,14 +175,43 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         preferred_datetime: formData.preferred_time ? new Date().toISOString() : null,
         additional_info: formData.additional_info || null,
         status: 'OPEN'
-      });
+      })
+      .select()
+      .single();
 
       if (error) {
         showErrorToast(toast, 'Erro ao enviar solicitação', error);
         return;
       }
 
-      toast.success('Solicitação enviada com sucesso! Entraremos em contato em breve.');
+      // Executar matching espacial para notificar prestadores
+      if (data?.id) {
+        try {
+          const matchingPayload = {
+            service_request_id: data.id,
+            request_lat: formData.location_lat,
+            request_lng: formData.location_lng,
+            service_type: serviceId,
+            notify_providers: true
+          };
+
+          console.log('📍 Executando matching espacial para usuário autenticado:', matchingPayload);
+
+          const { data: matchData, error: matchError } = await supabase.functions.invoke('service-provider-spatial-matching', {
+            body: matchingPayload
+          });
+
+          if (matchError) {
+            console.error('❌ Erro no matching:', matchError);
+          } else {
+            console.log('✅ Matching executado com sucesso:', matchData);
+          }
+        } catch (matchError) {
+          console.error('❌ Exceção no matching:', matchError);
+        }
+      }
+
+      toast.success('Solicitação enviada com sucesso! Prestadores próximos foram notificados.');
       onClose();
     } catch (error) {
       console.error('Erro:', error);
