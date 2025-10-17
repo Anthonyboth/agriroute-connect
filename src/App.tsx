@@ -274,7 +274,7 @@ const RedirectIfAuthed = () => {
     case 'PRODUTOR':
       to = '/dashboard/producer';
       break;
-    case 'PRESTADOR_SERVI\u00C7OS':
+    case 'PRESTADOR_SERVICOS':
       to = '/dashboard/service-provider';
       break;
     default:
@@ -360,7 +360,7 @@ const App = () => (
           <Route 
             path="/dashboard/service-provider" 
             element={
-              <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRESTADOR_SERVI\u00C7OS"]}>
+              <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRESTADOR_SERVICOS"]}>
                 <ServiceProviderDashboard />
               </ProtectedRoute>
             } 
