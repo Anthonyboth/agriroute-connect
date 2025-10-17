@@ -85,6 +85,14 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
       description: 'Entregas, mensageiro e serviços na cidade',
       color: 'bg-cyan-50 text-cyan-600 dark:bg-cyan-900/20 border-cyan-200',
       count: countByCategory('urban')
+    },
+    {
+      id: 'all',
+      icon: '📋',
+      title: 'Todos os Serviços',
+      description: 'Veja a lista completa de serviços disponíveis',
+      color: 'bg-gradient-to-br from-primary/10 to-accent/10 text-primary dark:from-primary/20 dark:to-accent/20 border-primary/30',
+      count: ALL_SERVICE_TYPES.length
     }
   ];
 
@@ -126,13 +134,17 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
             <DialogTitle className="text-2xl font-bold text-center">
               {viewMode === 'categories' 
                 ? '🎯 Escolha a Categoria de Serviço' 
-                : `${categoryCards.find(c => c.id === selectedCategory)?.icon} ${categoryCards.find(c => c.id === selectedCategory)?.title}`
+                : selectedCategory === 'all'
+                  ? '📋 Todos os Serviços'
+                  : `${categoryCards.find(c => c.id === selectedCategory)?.icon} ${categoryCards.find(c => c.id === selectedCategory)?.title}`
               }
             </DialogTitle>
             <DialogDescription className="text-center text-lg">
               {viewMode === 'categories'
                 ? 'Selecione o tipo de serviço que você precisa'
-                : 'Escolha o serviço específico'
+                : selectedCategory === 'all'
+                  ? 'Todos os serviços disponíveis na plataforma'
+                  : 'Escolha o serviço específico'
               }
             </DialogDescription>
           </DialogHeader>
@@ -193,7 +205,7 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
               title=""
               description=""
               initialCategory={selectedCategory}
-              hideCategoryFilter={true}
+              hideCategoryFilter={selectedCategory !== 'all'}
             />
           )}
         </DialogContent>
