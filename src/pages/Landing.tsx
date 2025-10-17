@@ -364,7 +364,7 @@ const fetchRealStats = async () => {
               <Button 
                 variant="outline"
                 size="lg"
-                onClick={() => setFreightTransportModal(true)}
+                onClick={() => setServicesModal(true)}
                 className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base md:text-lg px-8 py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce"
               >
                 <Wrench className="mr-2 h-5 w-5" />
@@ -651,11 +651,6 @@ const fetchRealStats = async () => {
       <MudancaModal
         isOpen={mudancaModal}
         onClose={() => setMudancaModal(false)}
-      />
-
-      <FreightTransportModal
-        isOpen={freightTransportModal}
-        onClose={() => setFreightTransportModal(false)}
       />
 
       <ServicesModal 

@@ -37,6 +37,8 @@ interface ServiceCatalogGridProps {
   showCheckboxes?: boolean;
   title?: string;
   description?: string;
+  initialCategory?: string;
+  hideCategoryFilter?: boolean;
 }
 
 export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
@@ -46,10 +48,12 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
   onServiceRequest,
   showCheckboxes = false,
   title,
-  description
+  description,
+  initialCategory,
+  hideCategoryFilter = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'all');
 
   // Filter services based on mode
   // For drivers: only show freight services (category 'freight')
@@ -138,21 +142,23 @@ export const ServiceCatalogGrid: React.FC<ServiceCatalogGridProps> = ({
       </div>
 
       {/* Category Filters */}
-      <div className="flex flex-wrap justify-center gap-3">
-        {categories.map((category) => (
-          <Button
-            key={category.id}
-            variant={selectedCategory === category.id ? "default" : "outline"}
-            onClick={() => setSelectedCategory(category.id)}
-            className="rounded-full"
-          >
-            {category.label}
-            <Badge variant="secondary" className="ml-2">
-              {category.count}
-            </Badge>
-          </Button>
-        ))}
-      </div>
+      {!hideCategoryFilter && (
+        <div className="flex flex-wrap justify-center gap-3">
+          {categories.map((category) => (
+            <Button
+              key={category.id}
+              variant={selectedCategory === category.id ? "default" : "outline"}
+              onClick={() => setSelectedCategory(category.id)}
+              className="rounded-full"
+            >
+              {category.label}
+              <Badge variant="secondary" className="ml-2">
+                {category.count}
+              </Badge>
+            </Button>
+          ))}
+        </div>
+      )}
 
       {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
