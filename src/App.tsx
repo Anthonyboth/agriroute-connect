@@ -88,6 +88,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
 }) => {
   const { isAuthenticated, isApproved, isAdmin, loading, profile, signOut } = useAuth();
   const { isCompanyDriver, isLoading: isLoadingCompany } = useCompanyDriver();
+  const location = useLocation();
 
   if (loading || isLoadingCompany) {
     return <ComponentLoader />;
@@ -192,25 +193,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   if (isAuthenticated && profile) {
     const currentPath = window.location.pathname;
     
-    // Check if user is a transport company
-    const checkTransportCompany = async () => {
-      const { data: transportCompanyData } = await supabase
-        .from('transport_companies')
-        .select('id')
-        .eq('profile_id', profile.id)
-        .maybeSingle();
-
-      const isCompany = !!transportCompanyData;
-      const isTransportMode = profile.active_mode === 'TRANSPORTADORA';
-
-      // Redirect to company dashboard if user is transport company
-      if ((isCompany || isTransportMode) && currentPath === '/dashboard/driver') {
-        return true; // Signal that redirect is needed
-      }
-      return false;
-    };
-
-    // Check synchronously for immediate redirects
+    // Check if user is a transport company (kept simple - synchronous checks handled elsewhere)
     if (currentPath === '/dashboard/driver' && profile.active_mode === 'TRANSPORTADORA') {
       return <Navigate to="/dashboard/company" replace />;
     }
@@ -291,7 +274,7 @@ const RedirectIfAuthed = () => {
     case 'PRODUTOR':
       to = '/dashboard/producer';
       break;
-    case 'PRESTADOR_SERVICOS':
+    case 'PRESTADOR_SERVI\u00C7OS':
       to = '/dashboard/service-provider';
       break;
     default:
@@ -353,7 +336,7 @@ const App = () => (
             <Route 
               path="/admin" 
               element={
-                <ProtectedRoute requiresAuth adminOnly allowedRoles={['ADMIN']}>
+                <ProtectedRoute requiresAuth adminOnly allowedRoles={["ADMIN"]}>
                   <AdminPanel />
                 </ProtectedRoute>
               } 
@@ -361,7 +344,7 @@ const App = () => (
             <Route 
               path="/dashboard/producer" 
               element={
-                <ProtectedRoute requiresAuth requiresApproval allowedRoles={['PRODUTOR']}>
+                <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRODUTOR"]}>
                   <ProducerDashboard />
                 </ProtectedRoute>
               } 
@@ -369,7 +352,7 @@ const App = () => (
             <Route 
               path="/dashboard/driver" 
               element={
-                <ProtectedRoute requiresAuth requiresApproval allowedRoles={['MOTORISTA', 'MOTORISTA_AFILIADO']}>
+                <ProtectedRoute requiresAuth requiresApproval allowedRoles={["MOTORISTA", "MOTORISTA_AFILIADO"]}>
                   <DriverDashboard />
                 </ProtectedRoute>
               } 
@@ -377,7 +360,7 @@ const App = () => (
           <Route 
             path="/dashboard/service-provider" 
             element={
-              <ProtectedRoute requiresAuth requiresApproval allowedRoles={['PRESTADOR_SERVICOS']}>
+              <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRESTADOR_SERVI\u00C7OS"]}>
                 <ServiceProviderDashboard />
               </ProtectedRoute>
             } 
@@ -385,7 +368,7 @@ const App = () => (
           <Route 
             path="/dashboard/company" 
             element={
-              <ProtectedRoute requiresAuth requiresApproval allowedRoles={['TRANSPORTADORA']}>
+              <ProtectedRoute requiresAuth requiresApproval allowedRoles={["TRANSPORTADORA"]}>
                 <CompanyDashboard />
               </ProtectedRoute>
             } 
@@ -418,28 +401,28 @@ const App = () => (
             <Route path="/payment/success" element={<PaymentSuccess />} />
             <Route path="/payment/cancel" element={<PaymentCancel />} />
             <Route path="/service-payment/success" element={
-              <Suspense fallback={<ComponentLoader />}>
+              <Suspense fallback={<ComponentLoader />}> 
                 <ServicePaymentSuccess />
               </Suspense>
             } />
             <Route path="/service-payment/cancel" element={
-              <Suspense fallback={<ComponentLoader />}>
+              <Suspense fallback={<ComponentLoader />}> 
                 <ServicePaymentCancel />
               </Suspense>
             } />
             <Route path="/company-invite/:inviteCode" element={
-              <Suspense fallback={<ComponentLoader />}>
+              <Suspense fallback={<ComponentLoader />}> 
                 <CompanyInviteAccept />
               </Suspense>
             } />
             <Route path="/cadastro-afiliado/:companyId" element={
-              <Suspense fallback={<ComponentLoader />}>
+              <Suspense fallback={<ComponentLoader />}> 
                 <AffiliateSignup />
               </Suspense>
             } />
             <Route path="/cadastro-motorista" element={<DriverInviteSignup />} />
             <Route path="/cadastro-motorista-afiliado" element={
-              <Suspense fallback={<ComponentLoader />}>
+              <Suspense fallback={<ComponentLoader />}> 
                 {React.createElement(lazy(() => import('./pages/AffiliatedDriverSignup')))}
               </Suspense>
             } />
