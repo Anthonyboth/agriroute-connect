@@ -21,7 +21,7 @@ export const DriverCityManager: React.FC<DriverCityManagerProps> = ({
   // Este componente será removido em versões futuras
   
   useEffect(() => {
-    console.warn('⚠️ DriverCityManager está DEPRECIADO. Use UserCityManager com userRole="MOTORISTA"');
+    console.warn('DriverCityManager está DEPRECIADO. Use UserCityManager com userRole="MOTORISTA"');
   }, []);
 
   const [serviceCities, setServiceCities] = useState<string[]>([]);

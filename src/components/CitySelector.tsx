@@ -289,7 +289,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
         {/* Helper text */}
         {!error && !searchTerm && (
           <p className="text-xs text-muted-foreground mt-1">
-            💡 Digite para buscar e selecione uma cidade da lista
+            Digite para buscar e selecione uma cidade da lista
           </p>
         )}
         
@@ -297,7 +297,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
         {!error && searchTerm && value?.city && !value?.id && (
           <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-1 flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" />
-            ⚠️ Selecione da lista para validar (clicar na opção)
+            Selecione da lista para validar (clicar na opção)
           </p>
         )}
         

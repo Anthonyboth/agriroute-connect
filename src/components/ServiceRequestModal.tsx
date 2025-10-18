@@ -150,7 +150,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
       const cityId = formData.city_id || await getCityId(formData.city, formData.state);
 
       if (!cityId) {
-        console.warn('⚠️ city_id não encontrado para:', {
+        console.warn('city_id não encontrado para:', {
           city: formData.city,
           state: formData.state
         });
@@ -195,19 +195,19 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
             notify_providers: true
           };
 
-          console.log('📍 Executando matching espacial para usuário autenticado:', matchingPayload);
+          console.log('Executando matching espacial para usuário autenticado:', matchingPayload);
 
           const { data: matchData, error: matchError } = await supabase.functions.invoke('service-provider-spatial-matching', {
             body: matchingPayload
           });
 
           if (matchError) {
-            console.error('❌ Erro no matching:', matchError);
+            console.error('Erro no matching:', matchError);
           } else {
-            console.log('✅ Matching executado com sucesso:', matchData);
+            console.log('Matching executado com sucesso:', matchData);
           }
         } catch (matchError) {
-          console.error('❌ Exceção no matching:', matchError);
+          console.error('Exceção no matching:', matchError);
         }
       }
 

@@ -212,7 +212,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                 <h3 className="font-semibold text-lg">{proposal.driver?.full_name || 'Motorista'}</h3>
                 {proposal.driver?.rating && (
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <span>⭐ {proposal.driver.rating.toFixed(1)}</span>
+                    <span>{proposal.driver.rating.toFixed(1)}★</span>
                     {proposal.driver.total_ratings && (
                       <span>({proposal.driver.total_ratings} avaliações)</span>
                     )}

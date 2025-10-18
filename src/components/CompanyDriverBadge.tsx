@@ -50,7 +50,7 @@ export const CompanyDriverBadge = ({ companyName, isAffiliated = false }: Compan
           )}
         </div>
         <p className="mt-3 text-xs text-muted-foreground border-t border-border pt-2">
-          💡 Para ter acesso completo como motorista independente, você pode criar um novo cadastro com outro email.
+          Para ter acesso completo como motorista independente, você pode criar um novo cadastro com outro email.
         </p>
       </AlertDescription>
     </Alert>

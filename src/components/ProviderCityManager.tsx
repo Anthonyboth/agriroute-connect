@@ -20,7 +20,7 @@ export const ProviderCityManager: React.FC<ProviderCityManagerProps> = ({
 
   // DEPRECATION WARNING
   useEffect(() => {
-    console.warn('⚠️ DEPRECATED: ProviderCityManager está obsoleto. Use UserCityManager com userRole="PRESTADOR_SERVICOS" em vez disso.');
+    console.warn('DEPRECATED: ProviderCityManager está obsoleto. Use UserCityManager com userRole="PRESTADOR_SERVICOS" em vez disso.');
   }, []);
   const [serviceCities, setServiceCities] = useState<string[]>([]);
   const [currentCity, setCurrentCity] = useState<{city: string, state: string} | null>(null);

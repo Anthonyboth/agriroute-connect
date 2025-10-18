@@ -118,7 +118,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       console.log('🔍 Buscando fretes compatíveis para driver:', profile.id);
 
       if (allowedTypesFromProfile.length === 0) {
-        console.warn('ℹ️ Sem tipos de serviço configurados. Nada a exibir.');
+        console.warn('Sem tipos de serviço configurados. Nada a exibir.');
         toast.info('Configure seus tipos de serviço para ver fretes.');
         setCompatibleFreights([]);
         setTowingRequests([]);
@@ -140,9 +140,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       );
 
       if (spatialError) {
-        console.warn('⚠️ Erro no matching espacial:', spatialError);
+        console.warn('Erro no matching espacial:', spatialError);
       } else {
-        console.log('✅ Matching espacial executado:', spatialData);
+        console.log('Matching espacial executado:', spatialData);
       }
 
       // Buscar fretes compatíveis usando RPC exclusiva (APENAS fretes, nunca serviços)
@@ -152,7 +152,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     );
 
       if (error) {
-        console.error('❌ Erro ao carregar fretes compatíveis (RPC):', error);
+        console.error('Erro ao carregar fretes compatíveis (RPC):', error);
         // Fallback: buscar por cidades de atendimento ativas (user_cities)
         try {
           const { data: uc } = await supabase
@@ -254,14 +254,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           
           toast.success(`${mapped.length} fretes compatíveis encontrados pelas suas cidades configuradas!`);
         } catch (fbError: any) {
-          console.error('❌ Fallback por cidades falhou:', fbError);
+          console.error('Fallback por cidades falhou:', fbError);
           toast.error('Erro ao carregar fretes. Tente novamente.');
           setCompatibleFreights([]);
         }
         return;
       }
 
-      console.log(`📦 RPC retornou ${data?.length || 0} fretes`);
+      console.log(`RPC retornou ${data?.length || 0} fretes`);
       
       // Normalizar tipos de serviço nos fretes retornados e garantir freight_id
       const normalizedData = (data || []).map((f: any) => ({
@@ -304,7 +304,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           return allowedCities.has(oKey) || allowedCities.has(dKey);
         });
       } else {
-        console.warn('ℹ️ Sem cidades de atendimento ativas. Nada a exibir.');
+        console.warn('Sem cidades de atendimento ativas. Nada a exibir.');
         toast.info('Configure suas cidades de atendimento para ver fretes.');
         setCompatibleFreights([]);
         setTowingRequests([]);
@@ -312,7 +312,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         return;
       }
       
-      console.log(`✅ Após filtros: ${filteredByType.length} fretes compatíveis`, {
+      console.log(`Após filtros: ${filteredByType.length} fretes compatíveis`, {
         allowedTypes,
         totalFromRPC: data?.length || 0,
         afterFilter: filteredByType.length

@@ -222,7 +222,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           filter: `user_id=eq.${user?.id}`
         },
         (payload) => {
-          console.log('🏙️ user_cities mudou para prestador:', payload);
+          console.log('user_cities mudou para prestador:', payload);
           
           // Filtrar apenas mudanças que afetam matching
           const relevantChanges = ['INSERT', 'DELETE'];
@@ -297,19 +297,19 @@ export const ServiceProviderDashboard: React.FC = () => {
     // Throttle: minimum 10s between non-manual fetches
     const now = Date.now();
     if (silent && (now - lastFetchRef.current) < 10000) {
-      console.log('⏱️ Throttled fetch request');
+      console.log('Throttled fetch request');
       return;
     }
     
     // Prevent concurrent fetches
     if (inFlightRef.current) {
-      console.log('⏱️ Fetch already in progress');
+      console.log('Fetch already in progress');
       return;
     }
     
     const providerId = getProviderProfileId();
     if (!providerId) {
-      console.warn('⚠️ Provider ID not found');
+      console.warn('Provider ID not found');
       setInitialLoading(false);
       return;
     }
@@ -345,12 +345,12 @@ export const ServiceProviderDashboard: React.FC = () => {
         );
 
         if (spatialError) {
-          console.warn('⚠️ Spatial matching warning:', spatialError);
+          console.warn('Spatial matching warning:', spatialError);
         } else {
-          console.log('✅ Spatial matching completed:', spatialData);
+          console.log('Spatial matching completed:', spatialData);
         }
       } catch (spatialError) {
-        console.warn('⚠️ Spatial matching failed (non-critical):', spatialError);
+        console.warn('Spatial matching failed (non-critical):', spatialError);
       }
 
       // 2. Fetch based on scope
@@ -372,16 +372,16 @@ export const ServiceProviderDashboard: React.FC = () => {
           );
 
           if (cityError) {
-            console.warn('⚠️ Error fetching services:', cityError);
+            console.warn('Error fetching services:', cityError);
           } else {
             cityBasedRequests = data || [];
-            console.log('✅ Services found (já filtrado pela RPC):', {
+            console.log('Services found (já filtrado pela RPC):', {
               total: cityBasedRequests.length,
               serviceTypes: [...new Set(cityBasedRequests.map((r: any) => r.service_type))]
             });
           }
         } catch (cityError) {
-          console.warn('⚠️ Service requests query failed:', cityError);
+          console.warn('Service requests query failed:', cityError);
         }
       }
 
@@ -394,7 +394,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           .order('created_at', { ascending: false });
 
         if (providerError) {
-          console.error('❌ Error fetching provider requests:', providerError);
+          console.error('Error fetching provider requests:', providerError);
           throw providerError;
         }
         
@@ -433,7 +433,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         (cityBasedRequests || []).forEach((r: any) => {
           // FILTRO: Verificar se o service_type está na lista do prestador
           if (providerServiceTypes.length > 0 && !providerServiceTypes.includes(r.service_type)) {
-            console.warn(`⚠️ Service type ${r.service_type} not in provider's service list:`, providerServiceTypes);
+            console.warn(`Service type ${r.service_type} not in provider's service list:`, providerServiceTypes);
             return;
           }
           
@@ -483,7 +483,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         setOwnRequests(own);
         setInitialLoading(false);
         
-        console.log(`✅ Full update completed`, {
+        console.log(`Full update completed`, {
           available: available.length,
           own: own.length,
           filteredOutFreight: cityBasedRequests.length - available.length
@@ -496,7 +496,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         (cityBasedRequests || []).forEach((r: any) => {
           // FILTRO: Verificar se o service_type está na lista do prestador
           if (providerServiceTypes.length > 0 && !providerServiceTypes.includes(r.service_type)) {
-            console.warn(`⚠️ Service type ${r.service_type} not in provider's service list:`, providerServiceTypes);
+            console.warn(`Service type ${r.service_type} not in provider's service list:`, providerServiceTypes);
             return;
           }
           
@@ -532,11 +532,11 @@ export const ServiceProviderDashboard: React.FC = () => {
         setAvailableRequests(available);
         setLastAvailableRefresh(new Date());
         
-        console.log(`✅ Available requests updated: ${available.length}`);
+        console.log(`Available requests updated: ${available.length}`);
       }
       
     } catch (error: any) {
-      console.error('❌ Error fetching service requests:', error);
+      console.error('Error fetching service requests:', error);
       setInitialLoading(false);
       toast({
         title: "Erro ao carregar solicitações",

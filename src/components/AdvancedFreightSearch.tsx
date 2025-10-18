@@ -576,7 +576,7 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Avaliação mínima: {filters.minimum_rating} ⭐</Label>
+                  <Label>Avaliação mínima: {filters.minimum_rating}★</Label>
                   <input
                     type="range"
                     min="0"

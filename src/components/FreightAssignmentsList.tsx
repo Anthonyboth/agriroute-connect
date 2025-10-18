@@ -102,7 +102,7 @@ export const FreightAssignmentsList: React.FC<FreightAssignmentsListProps> = ({
                       <span className="font-medium">{assignment.driver?.full_name || 'Motorista'}</span>
                       {assignment.driver?.rating && typeof assignment.driver.rating === 'number' && (
                         <Badge variant="outline" className="text-xs">
-                          ⭐ {assignment.driver.rating.toFixed(1)}
+                          {assignment.driver.rating.toFixed(1)}★
                         </Badge>
                       )}
                     </div>

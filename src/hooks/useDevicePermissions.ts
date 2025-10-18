@@ -153,7 +153,7 @@ export const useDevicePermissions = () => {
         // Não sincronizar câmera/microfone até serem usados
       });
     } catch (error) {
-      console.error('❌ Erro ao verificar permissões:', error);
+      console.error('Erro ao verificar permissões:', error);
     } finally {
       setLoading(false);
     }
@@ -211,7 +211,7 @@ export const useDevicePermissions = () => {
 
       return granted;
     } catch (error) {
-      console.error(`❌ Erro ao solicitar permissão de ${type}:`, error);
+      console.error(`Erro ao solicitar permissão de ${type}:`, error);
       toast.error(`Erro ao solicitar permissão de ${getPermissionLabel(type)}`);
       return false;
     }

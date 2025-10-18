@@ -102,7 +102,7 @@ export const CompanyInviteModal: React.FC<CompanyInviteModalProps> = ({
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    💡 O motorista será automaticamente vinculado como afiliado à sua empresa
+                    O motorista será automaticamente vinculado como afiliado à sua empresa
                   </p>
                 </div>
               )}

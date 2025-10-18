@@ -524,7 +524,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                       </div>
                       <div className="flex flex-col gap-2">
                         <div className="bg-blue-50 border border-blue-200 rounded-md p-2 text-xs text-blue-800">
-                          💡 <strong>Pagamento direto:</strong> Faça o pagamento diretamente ao motorista via PIX ou transferência bancária.
+                          <strong>Pagamento direto:</strong> Faça o pagamento diretamente ao motorista via PIX ou transferência bancária.
                         </div>
                         <div className="flex gap-2">
                           <Button

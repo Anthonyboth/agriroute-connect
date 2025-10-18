@@ -183,7 +183,7 @@ export const CompanyActiveFreights: React.FC = () => {
                           <span className="font-medium">{freight.driver.full_name}</span>
                           {freight.driver.rating && (
                             <Badge variant="outline" className="text-xs">
-                              ⭐ {freight.driver.rating.toFixed(1)}
+                              {freight.driver.rating.toFixed(1)}★
                             </Badge>
                           )}
                         </div>

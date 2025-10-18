@@ -148,7 +148,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
 
       return (data?.minimum_freight_value as number) ?? 0;
     } catch (error) {
-      console.error('❌ Erro ao calcular ANTT:', error);
+      console.error('Erro ao calcular ANTT:', error);
       toast.error("Não foi possível calcular o preço mínimo ANTT. Tente novamente.");
       return 0;
     }
@@ -218,11 +218,11 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
       });
       
       if (error) {
-        console.error('❌ Error calculating ANTT:', error);
+        console.error('Error calculating ANTT:', error);
         throw error;
       }
       
-      console.log('✅ ANTT calculated:', data);
+      console.log('ANTT calculated:', data);
       setCalculatedAnttPrice(data.minimum_freight_value);
       setAnttDetails(data.calculation_details);
       
@@ -355,7 +355,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
       const destinationCityId = formData.destination_city_id || await getCityId(formData.destination_city, formData.destination_state);
 
       if (!originCityId || !destinationCityId) {
-        console.warn('⚠️ city_id não encontrado:', {
+        console.warn('city_id não encontrado:', {
           origin: { city: formData.origin_city, state: formData.origin_state, id: originCityId },
           destination: { city: formData.destination_city, state: formData.destination_state, id: destinationCityId }
         });
@@ -681,7 +681,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
                 required
               />
               <p className="text-xs text-muted-foreground">
-                💡 Peso total em toneladas. Ex: 300 = 300 toneladas = 300.000 kg
+                Peso total em toneladas. Ex: 300 = 300 toneladas = 300.000 kg
               </p>
             </div>
 
@@ -812,7 +812,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  💡 Valor POR CARRETA. Total = R$ {(parseFloat(formData.price || '0') * parseInt(formData.required_trucks)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  Valor POR CARRETA. Total = R$ {(parseFloat(formData.price || '0') * parseInt(formData.required_trucks)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
             ) : (
@@ -830,7 +830,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
                 />
                 {formData.price_per_km && calculatedDistance > 0 && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-xs font-medium text-blue-900 mb-2">📊 Preview de Cálculo:</p>
+                    <p className="text-xs font-medium text-blue-900 mb-2">Preview de Cálculo:</p>
                     <div className="text-xs text-blue-800 space-y-1">
                       <p>• Por carreta: R$ {(parseFloat(formData.price_per_km) * calculatedDistance).toFixed(2)}</p>
                       <p className="font-semibold">
@@ -912,7 +912,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
                     checked={formData.high_performance} 
                     onCheckedChange={(checked) => handleInputChange('high_performance', checked)} 
                   />
-                  <Label htmlFor="high_performance" className="text-sm">⚡ Alto Desempenho</Label>
+                  <Label htmlFor="high_performance" className="text-sm">Alto Desempenho</Label>
                 </div>
                 
                 <p className="text-xs text-muted-foreground">

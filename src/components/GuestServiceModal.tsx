@@ -115,7 +115,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
     MUDANCA: {
       title: 'Solicitar Mudança',
       description: 'Mudança residencial e comercial',
-      icon: '📦',
+      icon: '',
       subServices: [
         { id: 'MUDANCA_RESIDENCIAL', name: 'Mudança Residencial', description: 'Casa ou apartamento', price: 'A partir de R$ 200' },
         { id: 'MUDANCA_COMERCIAL', name: 'Mudança Comercial', description: 'Escritórios e lojas', price: 'A partir de R$ 300' }
@@ -125,7 +125,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
     FRETE_URBANO: {
       title: 'Solicitar Frete Urbano',
       description: 'Transporte rápido dentro da cidade',
-      icon: '🚚',
+      icon: '',
       subServices: [
         { id: 'FRETE_MOTO', name: 'Frete de Moto', description: 'Entregas até 0.02t', price: 'A partir de R$ 15' },
         { id: 'FRETE_VAN', name: 'Frete de Van', description: 'Cargas até 1 tonelada', price: 'A partir de R$ 45' }
@@ -260,19 +260,19 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
             notify_providers: true
           };
 
-          console.log('📍 Executando matching espacial com:', matchingPayload);
+          console.log('Executando matching espacial com:', matchingPayload);
 
           const { data: matchData, error: matchError } = await supabase.functions.invoke('service-provider-spatial-matching', {
             body: matchingPayload
           });
 
           if (matchError) {
-            console.error('❌ Erro no matching:', matchError);
+            console.error('Erro no matching:', matchError);
           } else {
-            console.log('✅ Matching executado com sucesso:', matchData);
+            console.log('Matching executado com sucesso:', matchData);
           }
         } catch (matchError) {
-          console.error('❌ Exceção no matching:', matchError);
+          console.error('Exceção no matching:', matchError);
         }
       }
 
@@ -458,7 +458,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                       <Separator className="my-4" />
                       <div className="space-y-4">
                         <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                          📦 Informações da Carga
+                          Informações da Carga
                         </h4>
                         
                         {/* Tipo de Carga */}
@@ -517,7 +517,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                           </div>
                           {selectedSubService === 'FRETE_MOTO' && formData.cargoWeight && (
                             <p className="text-xs text-muted-foreground">
-                              ⚠️ Motos com carretinha suportam até 150kg
+                              Motos com carretinha suportam até 150kg
                             </p>
                           )}
                         </div>

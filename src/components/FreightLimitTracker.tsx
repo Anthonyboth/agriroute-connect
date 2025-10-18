@@ -160,7 +160,7 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
         {remainingFreights > 0 && (
           <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
             <p className="text-sm text-green-800 dark:text-green-200">
-              🎉 Você ainda pode aceitar <strong>{remainingFreights}</strong> fretes gratuitos do seu cadastro!
+              Você ainda pode aceitar <strong>{remainingFreights}</strong> fretes gratuitos do seu cadastro!
             </p>
           </div>
         )}

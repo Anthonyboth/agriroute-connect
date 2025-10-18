@@ -286,7 +286,7 @@ export const DetailedAddressModal: React.FC<DetailedAddressModalProps> = ({
               />
 
             <div className="text-xs text-muted-foreground">
-              💡 Clique no mapa para marcar a localização exata do endereço
+              Clique no mapa para marcar a localização exata do endereço
             </div>
           </div>
         </div>

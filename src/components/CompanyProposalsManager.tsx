@@ -163,7 +163,7 @@ export const CompanyProposalsManager: React.FC = () => {
                   <span className="font-semibold">{proposal.driver.full_name}</span>
                   {proposal.driver.rating && (
                     <Badge variant="outline" className="text-xs">
-                      ⭐ {proposal.driver.rating.toFixed(1)}
+                      {proposal.driver.rating.toFixed(1)}★
                     </Badge>
                   )}
                 </div>

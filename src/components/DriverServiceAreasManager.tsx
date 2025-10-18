@@ -40,7 +40,7 @@ const DriverServiceAreasManager = ({ onAreasUpdate }: DriverServiceAreasManagerP
   // Este componente será removido em versões futuras
   
   useEffect(() => {
-    console.warn('⚠️ DriverServiceAreasManager está DEPRECIADO. Use UserCityManager com userRole="MOTORISTA"');
+    console.warn('DriverServiceAreasManager está DEPRECIADO. Use UserCityManager com userRole="MOTORISTA"');
   }, []);
 
   const [serviceAreas, setServiceAreas] = useState<DriverServiceArea[]>([]);

@@ -55,7 +55,7 @@ export const ANTTValidation: React.FC<ANTTValidationProps> = ({
         <AlertTriangle className="h-4 w-4 text-red-600" />
         <AlertDescription className="space-y-3">
           <div className="text-red-800">
-            <p className="font-semibold">⚠️ Valor TOTAL abaixo do mínimo ANTT</p>
+            <p className="font-semibold">Valor TOTAL abaixo do mínimo ANTT</p>
             <div className="mt-2 space-y-1 text-sm">
               <p>Por carreta: <strong>R$ {proposedPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></p>
               {requiredTrucks > 1 && (
@@ -104,7 +104,7 @@ export const ANTTValidation: React.FC<ANTTValidationProps> = ({
       <DollarSign className="h-4 w-4 text-green-600" />
       <AlertDescription className="text-green-800">
         <div className="flex items-center justify-between mb-2">
-          <span className="font-semibold">✅ Valor adequado (ANTT)</span>
+          <span className="font-semibold">Valor adequado (ANTT)</span>
           <Badge variant="secondary" className="bg-green-100 text-green-700">
             +{percentageDiff.toFixed(1)}% do mínimo
           </Badge>

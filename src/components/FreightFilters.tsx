@@ -218,7 +218,7 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            ℹ️ Selecione as cidades da lista para filtros mais precisos
+            Selecione as cidades da lista para filtros mais precisos
           </p>
         </div>
 

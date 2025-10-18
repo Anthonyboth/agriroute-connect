@@ -19,7 +19,7 @@ export const useGPSMonitoring = (
   useEffect(() => {
     if (!isActive || !freightId) return;
 
-    console.log('🛰️ Iniciando monitoramento de GPS para frete:', freightId);
+    console.log('Iniciando monitoramento de GPS para frete:', freightId);
     
     let consecutiveFailures = 0;
     const MAX_FAILURES = 2; // Reportar após 2 falhas consecutivas para evitar falsos positivos
@@ -30,7 +30,7 @@ export const useGPSMonitoring = (
         
         // GPS está funcionando corretamente
         consecutiveFailures = 0;
-        console.log('✅ GPS ativo:', {
+        console.log('GPS ativo:', {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
           accuracy: position.coords.accuracy
@@ -38,11 +38,11 @@ export const useGPSMonitoring = (
         
       } catch (error) {
         consecutiveFailures++;
-        console.warn(`⚠️ Falha ao obter localização (${consecutiveFailures}/${MAX_FAILURES}):`, error);
+        console.warn(`Falha ao obter localização (${consecutiveFailures}/${MAX_FAILURES}):`, error);
         
         // Só reportar incidente após múltiplas falhas consecutivas
         if (consecutiveFailures >= MAX_FAILURES) {
-          console.error('🚨 GPS desligado ou sem permissão - reportando incidente');
+          console.error('GPS desligado ou sem permissão - reportando incidente');
           
           // Reportar incidente ao backend
           try {
@@ -59,7 +59,7 @@ export const useGPSMonitoring = (
               }
             });
 
-            toast.error('⚠️ GPS desligado detectado!', {
+            toast.error('GPS desligado detectado!', {
               description: 'Reative o GPS imediatamente para continuar o transporte.',
               duration: 10000,
             });
@@ -81,7 +81,6 @@ export const useGPSMonitoring = (
 
     // Cleanup
     return () => {
-      console.log('🛑 Parando monitoramento de GPS para frete:', freightId);
       clearInterval(intervalId);
     };
   }, [freightId, isActive, checkInterval]);

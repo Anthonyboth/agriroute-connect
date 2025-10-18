@@ -92,9 +92,9 @@ export const usePushNotifications = () => {
             registration = await navigator.serviceWorker.register('/sw.js');
           }
           await navigator.serviceWorker.ready;
-          console.log('✅ Service worker registrado com sucesso');
+          console.log('Service worker registrado com sucesso');
         } catch (error) {
-          console.error('❌ Erro ao registrar service worker:', error);
+          console.error('Erro ao registrar service worker:', error);
           toast.error('Erro ao configurar notificações');
           return;
         }
@@ -115,16 +115,16 @@ export const usePushNotifications = () => {
         });
 
       if (error) {
-        console.error('❌ Erro ao salvar configuração:', error);
+        console.error('Erro ao salvar configuração:', error);
         throw error;
       }
 
       setIsSubscribed(true);
       toast.success('Notificações ativadas com sucesso!');
       
-      console.log('✅ Push notifications configuradas');
+      console.log('Push notifications configuradas');
     } catch (error) {
-      console.error('❌ Erro ao ativar notificações push:', error);
+      console.error('Erro ao ativar notificações push:', error);
       toast.error('Erro ao ativar notificações push');
     } finally {
       setLoading(false);

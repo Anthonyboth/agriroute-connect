@@ -241,7 +241,7 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
 
           {/* Importante */}
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">⚠️ Importante</h4>
+            <h4 className="font-medium text-blue-900 mb-2">Importante</h4>
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• Confirme apenas se a carga foi realmente recebida</li>
               <li>• Após a confirmação, o pagamento será processado para o motorista</li>

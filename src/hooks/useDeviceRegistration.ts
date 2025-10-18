@@ -15,7 +15,7 @@ export const useDeviceRegistration = () => {
     const register = async () => {
       try {
         await registerDevice(profile.id);
-        console.log('✅ Dispositivo registrado');
+        console.log('Dispositivo registrado');
 
         // Sincronizar permissões realmente verificadas
         const deviceId = getDeviceId();
@@ -26,7 +26,7 @@ export const useDeviceRegistration = () => {
           // Não sincronizar câmera/microfone até serem usados
         });
       } catch (error) {
-        console.error('❌ Erro ao registrar dispositivo:', error);
+        console.error('Erro ao registrar dispositivo:', error);
       }
     };
 

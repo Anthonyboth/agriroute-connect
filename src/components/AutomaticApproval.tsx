@@ -114,7 +114,7 @@ export class AutomaticApprovalService {
             errors: [`${docField} não fornecido`]
           };
           allMandatoryValid = false;
-          console.log(`❌ Mandatory document missing: ${docField}`);
+          console.log(`Mandatory document missing: ${docField}`);
         } else {
           const validation = await this.validateDocumentImage(docUrl, docField);
           validationResults[docField] = validation;
@@ -137,7 +137,7 @@ export class AutomaticApprovalService {
           validatedCount++;
           console.log(`✓ Optional document validated: ${docField} - valid: ${validation.isValid}`);
         } else {
-          console.log(`ℹ Optional document not provided: ${docField} (not penalized)`);
+          console.log(`Optional document not provided: ${docField} (not penalized)`);
         }
       }
 
@@ -172,11 +172,11 @@ export class AutomaticApprovalService {
           .eq('id', profileId);
         
         if (updateError) {
-          console.error('❌ ERRO ao atualizar status do perfil:', updateError);
+          console.error('ERRO ao atualizar status do perfil:', updateError);
           throw updateError;
         }
         
-        console.log('✅ Status do perfil atualizado com sucesso!');
+        console.log('Status do perfil atualizado com sucesso!');
 
         // Create validation history
         await supabase
