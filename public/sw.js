@@ -4,8 +4,8 @@ self.addEventListener('push', function(event) {
   const title = data.title || 'Nova Notificação';
   const options = {
     body: data.message || '',
-    icon: '/favicon.png',
-    badge: '/favicon-32x32.png',
+    icon: '/android-chrome-192x192.png',
+    badge: '/android-chrome-192x192.png',
     data: data.data || {},
     tag: data.type || 'notification',
     requireInteraction: data.requireInteraction || false,
