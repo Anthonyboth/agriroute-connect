@@ -12,49 +12,140 @@ serve(async (req) => {
   }
 
   try {
-    const { freight_id, num_trucks = 1 } = await req.json();
+    // ================================================
+    // 1. VALIDATE REQUEST BODY
+    // ================================================
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (jsonError) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid request format. Please provide valid JSON data.",
+          details: "Request body must be valid JSON"
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { freight_id, num_trucks = 1 } = requestBody;
+    
+    // Validate required parameters
+    if (!freight_id) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Missing required parameter: freight_id",
+          details: "Please provide a valid freight ID to accept"
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate num_trucks is a positive integer
+    if (typeof num_trucks !== 'number' || num_trucks < 1 || !Number.isInteger(num_trucks)) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid parameter: num_trucks must be a positive integer",
+          details: `Received: ${num_trucks}`
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    // ================================================
+    // 2. VALIDATE AUTHENTICATION
+    // ================================================
     const authHeader = req.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "");
-    const { data: { user } } = await supabase.auth.getUser(token);
     
-    if (!user) {
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ 
+          error: "Authentication required",
+          details: "Please provide an Authorization header with a valid token"
+        }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 1. Buscar perfil
-    const { data: profile } = await supabase
+    const token = authHeader?.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid or expired authentication token",
+          details: "Please log in again to continue"
+        }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ================================================
+    // 3. VALIDATE USER PROFILE
+    // ================================================
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("id, role")
       .eq("user_id", user.id)
       .single();
 
+    if (profileError || !profile) {
+      return new Response(
+        JSON.stringify({ 
+          error: "User profile not found",
+          details: "Please complete your profile setup before accepting freights"
+        }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const isTransportCompany = profile?.role === 'TRANSPORTADORA';
 
-    // 2. Buscar frete
-    const { data: freight } = await supabase
+    // ================================================
+    // 4. VALIDATE FREIGHT EXISTS AND IS AVAILABLE
+    // ================================================
+    const { data: freight, error: freightError } = await supabase
       .from("freights")
       .select("*")
       .eq("id", freight_id)
       .single();
 
-    if (!freight || freight.status !== "OPEN") {
+    if (freightError || !freight) {
       return new Response(
-        JSON.stringify({ error: "Freight not available" }),
+        JSON.stringify({ 
+          error: "Freight not found",
+          details: "The freight you are trying to accept does not exist or has been removed"
+        }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (freight.status !== "OPEN") {
+      const statusMessages = {
+        'ACCEPTED': 'This freight has already been fully accepted by other drivers',
+        'IN_TRANSIT': 'This freight is already in transit',
+        'DELIVERED': 'This freight has already been delivered',
+        'CANCELLED': 'This freight has been cancelled by the producer',
+        'COMPLETED': 'This freight has been completed'
+      };
+      
+      return new Response(
+        JSON.stringify({ 
+          error: "Freight not available",
+          details: statusMessages[freight.status] || `This freight is not available (status: ${freight.status})`,
+          current_status: freight.status
+        }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // ================================================
-    // 3. PREFLIGHT CHECK: Recarregar frete com dados atualizados
+    // 5. PREFLIGHT CHECK: Recarregar frete com dados atualizados
     // ================================================
     
     // Recarregar dados do frete para ter contagem mais recente
@@ -67,7 +158,10 @@ serve(async (req) => {
     if (reloadError || !freightFresh) {
       console.error(`[PREFLIGHT] Error reloading freight - ${reloadError?.message}`);
       return new Response(
-        JSON.stringify({ error: "Erro ao verificar disponibilidade do frete" }),
+        JSON.stringify({ 
+          error: "Error verifying freight availability",
+          details: "Unable to check current freight status. Please try again."
+        }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -75,7 +169,11 @@ serve(async (req) => {
     // Status check
     if (freightFresh.status !== "OPEN") {
       return new Response(
-        JSON.stringify({ error: "Este frete não está mais disponível" }),
+        JSON.stringify({ 
+          error: "Freight is no longer available",
+          details: "This freight was accepted by another driver while you were viewing it. Please check other available freights.",
+          current_status: freightFresh.status
+        }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -95,8 +193,11 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: availableSlots > 0 
-            ? `Apenas ${availableSlots} vaga(s) disponível(is). Você tentou aceitar ${num_trucks} carreta(s).`
-            : "Este frete já está com todas as vagas preenchidas",
+            ? `Only ${availableSlots} slot(s) available. You attempted to accept ${num_trucks} truck(s).`
+            : "All slots for this freight have been filled",
+          details: availableSlots > 0
+            ? `Please reduce the number of trucks to ${availableSlots} or less`
+            : "Another driver accepted the remaining slots while you were processing this request",
           available_slots: availableSlots,
           required_trucks: freightFresh.required_trucks,
           accepted_trucks: freightFresh.accepted_trucks,
@@ -107,7 +208,7 @@ serve(async (req) => {
     }
 
     // ================================================
-    // 4. VALIDAÇÕES ESPECÍFICAS POR TIPO DE SERVIÇO
+    // 6. VALIDAÇÕES ESPECÍFICAS POR TIPO DE SERVIÇO
     // ================================================
     
     // FRETE_MOTO: Preço mínimo R$10
@@ -123,7 +224,8 @@ serve(async (req) => {
         
         return new Response(
           JSON.stringify({ 
-            error: `Fretes de moto devem ter valor mínimo de R$ 10,00. Valor atual: R$ ${currentPrice.toFixed(2)}. Entre em contato com o produtor para ajustar.`,
+            error: `Motorcycle freight must have a minimum price of R$ 10.00. Current price: R$ ${currentPrice.toFixed(2)}. Please contact the producer to adjust.`,
+            details: "This freight does not meet the minimum price requirement for motorcycle deliveries",
             minimum_price: 10,
             current_price: currentPrice
           }),
@@ -137,12 +239,16 @@ serve(async (req) => {
     // Motorista individual só pode aceitar 1 carreta
     if (!isTransportCompany && num_trucks > 1) {
       return new Response(
-        JSON.stringify({ error: "Individual drivers can only accept 1 truck per freight" }),
+        JSON.stringify({ 
+          error: "Individual drivers can only accept 1 truck per freight",
+          details: "Only transport companies can accept multiple trucks. Individual drivers are limited to one truck per freight.",
+          requested_trucks: num_trucks
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 5. Verificar se motorista já tem assignment ativo para esse frete
+    // 7. Verificar se motorista já tem assignment ativo para esse frete
     const { data: activeAssignments } = await supabase
       .from("freight_assignments")
       .select("id, status")
@@ -151,15 +257,27 @@ serve(async (req) => {
       .in("status", ["ACCEPTED", "IN_TRANSIT", "LOADING", "LOADED"]);
 
     if (activeAssignments && activeAssignments.length > 0) {
+      const statusDescriptions = {
+        'ACCEPTED': 'already accepted',
+        'IN_TRANSIT': 'in transit',
+        'LOADING': 'loading',
+        'LOADED': 'loaded'
+      };
+      const currentStatus = activeAssignments[0].status;
+      const statusDesc = statusDescriptions[currentStatus] || currentStatus.toLowerCase();
+      
       return new Response(
         JSON.stringify({ 
-          error: "Você já tem uma carreta em andamento para este frete. Complete a entrega atual primeiro." 
+          error: "You already have an active assignment for this freight",
+          details: `You have a truck ${statusDesc} for this freight. Please complete the current delivery before accepting another truck for the same freight.`,
+          current_assignment_status: currentStatus,
+          assignment_count: activeAssignments.length
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 6. Verificar se tem DELIVERED sem avaliação
+    // 8. Verificar se tem DELIVERED sem avaliação
     const { data: deliveredAssignments } = await supabase
       .from("freight_assignments")
       .select("id")
@@ -181,7 +299,9 @@ serve(async (req) => {
       if (!rating) {
         return new Response(
           JSON.stringify({ 
-            error: "Complete a avaliação da entrega anterior antes de aceitar novamente este frete." 
+            error: "Rating required before re-acceptance",
+            details: "You have completed a delivery for this freight but haven't rated the producer yet. Please complete the rating before accepting another truck for this freight.",
+            action_required: "Rate the producer in your completed deliveries"
           }),
           { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -191,7 +311,7 @@ serve(async (req) => {
       console.log(`✅ Re-aceitação permitida: Motorista ${profile.id} já completou e avaliou`);
     }
 
-    // 5. Buscar company_id se transportadora
+    // 9. Buscar company_id se transportadora
     let company_id = null;
     let availableDrivers: string[] = [];
     
@@ -240,9 +360,11 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({ 
-            error: `Você não tem motoristas aprovados suficientes para aceitar ${num_trucks} carreta(s). Motoristas disponíveis: ${availableDrivers.length}. Vá em "Motoristas" para ativar/convidar mais motoristas.`,
+            error: `You don't have enough approved drivers to accept ${num_trucks} truck(s). Available drivers: ${availableDrivers.length}. Go to "Drivers" to activate/invite more drivers.`,
+            details: "Transport companies need enough active and approved drivers to accept multiple trucks",
             available_drivers: availableDrivers.length,
-            requested_trucks: num_trucks
+            requested_trucks: num_trucks,
+            action_required: "Activate or invite more drivers in the Drivers section"
           }),
           { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -275,7 +397,7 @@ serve(async (req) => {
         console.error('[VEHICLES] Error fetching vehicles:', vehicleError);
         return new Response(
           JSON.stringify({ 
-            error: 'Erro ao buscar veículos disponíveis',
+            error: 'Error fetching available vehicles',
             details: vehicleError.message 
           }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -305,12 +427,13 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({
-            error: `Você não tem veículos aprovados suficientes. Disponíveis: ${freeVehicles.length}, Necessários: ${num_trucks}.`,
+            error: `You don't have enough approved vehicles. Available: ${freeVehicles.length}, Required: ${num_trucks}.`,
+            details: "Register more vehicles in the Fleet tab and wait for administrator approval",
             available_vehicles: freeVehicles.length,
             total_approved: totalApproved,
             vehicles_in_use: usedVehicleIds.size,
             requested_trucks: num_trucks,
-            suggestion: 'Cadastre mais veículos na aba "Frota" e aguarde aprovação do administrador.'
+            action_required: 'Register more vehicles in the "Fleet" section'
           }),
           { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -321,7 +444,7 @@ serve(async (req) => {
     }
 
     // ================================================
-    // 6. CRIAR ASSIGNMENTS COM VALIDAÇÕES
+    // 10. CRIAR ASSIGNMENTS COM VALIDAÇÕES
     // ================================================
     
     const assignments = [];
@@ -393,7 +516,8 @@ serve(async (req) => {
         if (error.code === '23505') {
           return new Response(
             JSON.stringify({ 
-              error: "Você já aceitou este frete com este motorista. Tente com outro motorista disponível.",
+              error: "This freight has already been accepted with this driver",
+              details: "You cannot accept the same freight multiple times with the same driver. Try using a different available driver.",
               postgres_error: error.message
             }),
             { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -403,7 +527,8 @@ serve(async (req) => {
         // Outros erros
         return new Response(
           JSON.stringify({ 
-            error: error.message,
+            error: "Error creating freight assignment",
+            details: error.message,
             assignment_index: i + 1,
             total_requested: num_trucks
           }),
@@ -418,7 +543,7 @@ serve(async (req) => {
     console.log(`[ASSIGNMENTS] Successfully created ${assignments.length} assignments for freight ${freight_id}`);
 
     // ================================================
-    // 6.5. VINCULAR MOTORISTA AO FRETE (para fretes de carreta única)
+    // 10.5. VINCULAR MOTORISTA AO FRETE (para fretes de carreta única)
     // ================================================
     
     if ((freightFresh.required_trucks || 1) === 1 && !freight.driver_id) {
@@ -435,7 +560,7 @@ serve(async (req) => {
       }
     }
 
-    // 7. Notificar produtor (com mensagem especial para re-aceitações)
+    // 11. Notificar produtor (com mensagem especial para re-aceitações)
     const remainingSlots = availableSlots - num_trucks;
     
     // Buscar user_id do produtor
@@ -484,7 +609,7 @@ serve(async (req) => {
     // TRATAMENTO DE ERROS COM MENSAGENS AMIGÁVEIS
     // ================================================
     
-    let errorMessage = "Erro ao aceitar frete";
+    let errorMessage = "Failed to accept freight";
     let statusCode = 500;
     let errorDetails = null;
     
@@ -499,23 +624,23 @@ serve(async (req) => {
       
       switch (error.code) {
         case '23505': // Duplicate key
-          errorMessage = "Você já aceitou este frete com este motorista";
+          errorMessage = "This freight has already been accepted with this driver";
           statusCode = 409;
           break;
         case '23514': // Check constraint violation (accepted_trucks)
-          errorMessage = "Este frete não tem vagas disponíveis. Outro motorista aceitou antes de você.";
+          errorMessage = "This freight has no available slots. Another driver accepted it before you.";
           statusCode = 409;
           break;
         case '23503': // Foreign key violation
-          errorMessage = "Dados inválidos. Verifique o frete ou veículo selecionado";
+          errorMessage = "Invalid data provided. Please check the freight or vehicle selection";
           statusCode = 400;
           break;
         case '42703': // Undefined column
-          errorMessage = "Erro de configuração do banco de dados. Entre em contato com o suporte";
+          errorMessage = "Database configuration error. Please contact support";
           statusCode = 500;
           break;
         case 'P0001': // Raised exception (custom validations)
-          errorMessage = error.message || "Validação de regra de negócio falhou";
+          errorMessage = error.message || "Business rule validation failed";
           statusCode = 400;
           break;
         default:
