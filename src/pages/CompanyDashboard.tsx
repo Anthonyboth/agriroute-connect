@@ -87,12 +87,12 @@ import { cn } from '@/lib/utils';
 // Definição centralizada de todas as tabs
 const COMPANY_TABS = [
   { value: 'overview', label: 'Visão Geral', shortLabel: 'Visão', icon: Building2 },
+  { value: 'ai-freights', label: 'Fretes IA', shortLabel: 'IA', icon: Brain },
   { value: 'drivers', label: 'Motoristas', shortLabel: 'Mot', icon: Users },
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck },
   { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínc', icon: Link2 },
   { value: 'freights', label: 'Fretes', shortLabel: 'Fretes', icon: Package },
   { value: 'scheduled', label: 'Agendamentos', shortLabel: 'Agend', icon: Calendar },
-  { value: 'ai-freights', label: 'Fretes IA', shortLabel: 'IA', icon: Brain },
   { value: 'active', label: 'Em Andamento', shortLabel: 'Ativo', icon: Navigation },
   { value: 'proposals', label: 'Propostas', shortLabel: 'Prop', icon: FileText },
   { value: 'payments', label: 'Pagamentos', shortLabel: 'Pag', icon: DollarSign },
