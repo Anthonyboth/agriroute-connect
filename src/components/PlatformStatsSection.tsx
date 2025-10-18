@@ -10,15 +10,12 @@ export const PlatformStatsSection: React.FC = () => {
     return (
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+        <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Nossos Números</h2>
-            <p className="text-muted-foreground text-lg">
-              O impacto da AgriRoute no agronegócio brasileiro
-            </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="rounded-xl border bg-card shadow-sm p-6 md:p-8">
+              <div key={i} className="rounded-xl border bg-card p-6 md:p-8">
                 <div className="flex flex-col items-center text-center space-y-2">
                   <Skeleton className="h-10 w-24" />
                   <Skeleton className="h-4 w-32" />
@@ -53,18 +50,14 @@ export const PlatformStatsSection: React.FC = () => {
   return (
     <section className="py-16 bg-muted/30">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12 animate-fade-in">
+        <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Nossos Números</h2>
-          <p className="text-muted-foreground text-lg">
-            O impacto da AgriRoute no agronegócio brasileiro
-          </p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto animate-fade-in">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
           {statsData.map((stat, index) => (
             <div
               key={stat.label}
-              className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-all p-6 md:p-8 animate-fade-in"
-              style={{ animationDelay: `${index * 100}ms` }}
+              className="rounded-xl border bg-card p-6 md:p-8"
             >
               <div className="flex flex-col items-center text-center">
                 <p className="text-4xl md:text-5xl font-extrabold text-primary leading-tight mb-2">
