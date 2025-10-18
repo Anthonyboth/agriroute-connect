@@ -58,6 +58,44 @@ export type Database = {
           },
         ]
       }
+      admin_password_reset_limits: {
+        Row: {
+          admin_profile_id: string
+          created_at: string
+          id: string
+          max_resets_per_hour: number
+          reset_count: number
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          admin_profile_id: string
+          created_at?: string
+          id?: string
+          max_resets_per_hour?: number
+          reset_count?: number
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          admin_profile_id?: string
+          created_at?: string
+          id?: string
+          max_resets_per_hour?: number
+          reset_count?: number
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_password_reset_limits_admin_profile_id_fkey"
+            columns: ["admin_profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_reports: {
         Row: {
           active_drivers: number | null
@@ -3365,6 +3403,69 @@ export type Database = {
         }
         Relationships: []
       }
+      security_alerts: {
+        Row: {
+          admin_profile_id: string | null
+          alert_type: string
+          created_at: string
+          details: Json
+          id: string
+          ip_address: unknown | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          target_user_email: string | null
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          admin_profile_id?: string | null
+          alert_type: string
+          created_at?: string
+          details?: Json
+          id?: string
+          ip_address?: unknown | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+          target_user_email?: string | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          admin_profile_id?: string | null
+          alert_type?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          ip_address?: unknown | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          target_user_email?: string | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_alerts_admin_profile_id_fkey"
+            columns: ["admin_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_alerts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_audit_log: {
         Row: {
           action: string
@@ -5275,6 +5376,10 @@ export type Database = {
         Args: { p_provider_id: string }
         Returns: boolean
       }
+      check_admin_reset_rate_limit: {
+        Args: { p_admin_profile_id: string }
+        Returns: Json
+      }
       check_expired_documents: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -5336,6 +5441,14 @@ export type Database = {
       detect_suspicious_access: {
         Args: { rows_accessed: number; table_accessed: string }
         Returns: boolean
+      }
+      detect_suspicious_admin_activity: {
+        Args: {
+          p_activity_type: string
+          p_admin_profile_id: string
+          p_details?: Json
+        }
+        Returns: undefined
       }
       driver_update_freight_status: {
         Args: {
@@ -6125,6 +6238,10 @@ export type Database = {
       update_payment_deadline_status: {
         Args: { p_freight_id: string }
         Returns: undefined
+      }
+      validate_password_strength: {
+        Args: { password: string }
+        Returns: Json
       }
     }
     Enums: {

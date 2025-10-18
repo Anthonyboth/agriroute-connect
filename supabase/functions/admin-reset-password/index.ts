@@ -53,15 +53,55 @@ serve(async (req) => {
       throw new Error('Acesso negado. Apenas administradores podem resetar senhas.');
     }
 
+    // Buscar profile_id do admin para rate limiting
+    const { data: adminProfile, error: adminProfileError } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (adminProfileError || !adminProfile) {
+      throw new Error('Perfil do administrador não encontrado');
+    }
+
     const { user_email, new_password, reset_reason } = await req.json() as ResetPasswordRequest;
 
     if (!user_email || !new_password) {
       throw new Error('E-mail e nova senha são obrigatórios');
     }
 
-    if (new_password.length < 6) {
-      throw new Error('A senha deve ter no mínimo 6 caracteres');
+    // 🔒 SEGURANÇA 1: Validar força da senha (12+ chars, complexidade)
+    const { data: passwordValidation, error: validationError } = await supabaseClient
+      .rpc('validate_password_strength', { password: new_password });
+
+    if (validationError) {
+      console.error('Erro ao validar senha:', validationError);
+      throw new Error('Erro ao validar requisitos de senha');
     }
+
+    if (!passwordValidation.valid) {
+      throw new Error(passwordValidation.message);
+    }
+
+    // 🔒 SEGURANÇA 2: Rate Limiting (5 resets/hora por admin)
+    const { data: rateLimitCheck, error: rateLimitError } = await supabaseClient
+      .rpc('check_admin_reset_rate_limit', { 
+        p_admin_profile_id: adminProfile.id 
+      });
+
+    if (rateLimitError) {
+      console.error('Erro ao verificar rate limit:', rateLimitError);
+      throw new Error('Erro ao verificar limite de operações');
+    }
+
+    if (!rateLimitCheck.allowed) {
+      throw new Error(
+        `Limite de operações atingido. Você já realizou ${rateLimitCheck.reset_count} resets na última hora. ` +
+        `Aguarde até ${new Date(rateLimitCheck.window_resets_at).toLocaleTimeString('pt-BR')} para fazer novos resets.`
+      );
+    }
+
+    console.log(`[RATE-LIMIT] Admin ${user.email}: ${rateLimitCheck.reset_count}/${rateLimitCheck.max_per_hour} resets, ${rateLimitCheck.remaining} restantes`);
 
     // Buscar o usuário pelo e-mail
     const { data: targetUser, error: findError } = await supabaseClient.auth.admin.listUsers();
@@ -86,12 +126,9 @@ serve(async (req) => {
       throw new Error('Erro ao atualizar senha: ' + updateError.message);
     }
 
-    // Registrar no audit log
-    const { data: adminProfile } = await supabaseClient
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
+    // 🔒 SEGURANÇA 3: Registrar no audit log com IP e User Agent
+    const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const userAgent = req.headers.get('user-agent') || 'unknown';
 
     if (adminProfile) {
       await supabaseClient.from('audit_logs').insert({
@@ -103,9 +140,29 @@ serve(async (req) => {
           target_user_id: userToReset.id,
           reset_reason: reset_reason || 'Solicitação via WhatsApp',
           admin_action: true,
-          admin_id: user.id
+          admin_id: user.id,
+          security_metadata: {
+            ip_address: clientIP,
+            user_agent: userAgent,
+            timestamp: new Date().toISOString(),
+            rate_limit_status: rateLimitCheck
+          }
         },
+        ip_address: clientIP,
+        user_agent: userAgent,
         timestamp: new Date().toISOString()
+      });
+
+      // 🔒 SEGURANÇA 4: Detectar atividade suspeita (5+ resets/hora)
+      await supabaseClient.rpc('detect_suspicious_admin_activity', {
+        p_admin_profile_id: adminProfile.id,
+        p_activity_type: 'PASSWORD_RESET',
+        p_details: {
+          target_email: user_email,
+          reset_count: rateLimitCheck.reset_count,
+          ip_address: clientIP,
+          user_agent: userAgent
+        }
       });
     }
 
