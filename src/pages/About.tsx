@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Leaf, Truck, Users, MapPin, Shield, Clock, Target, Heart, Award } from 'lucide-react';
-import PlatformStats from '@/components/PlatformStats';
+import { PlatformStatsSection } from '@/components/PlatformStatsSection';
 
 const About = () => {
   const navigate = useNavigate();
@@ -115,7 +115,7 @@ const About = () => {
               O impacto da AgriRoute no agronegócio brasileiro
             </p>
           </div>
-          <PlatformStats />
+          <PlatformStatsSection />
         </div>
       </section>
 

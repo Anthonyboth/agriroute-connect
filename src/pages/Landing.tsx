@@ -17,14 +17,13 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import heroImage from '@/assets/hero-logistics.jpg';
 import agriRouteLogo from '@/assets/agriroute-full-logo.png';
 import { supabase } from '@/integrations/supabase/client';
-import { formatTonsCompactFromKg } from '@/lib/utils';
 import Autoplay from "embla-carousel-autoplay";
 import { 
   Carousel, 
   CarouselContent, 
   CarouselItem 
 } from "@/components/ui/carousel";
-import { StatsCard } from '@/components/ui/stats-card';
+import { PlatformStatsSection } from '@/components/PlatformStatsSection';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -61,15 +60,6 @@ const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userTy
 });
   const [contactModal, setContactModal] = useState(false);
   const [reportModal, setReportModal] = useState(false);
-  const [realStats, setRealStats] = useState({
-    totalProducers: 0,
-    totalDrivers: 0,
-    totalServiceProviders: 0,
-    totalWeight: 0,
-    completedFreights: 0,
-    totalUsers: 0,
-    averageRating: 0
-  });
 
   const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA') => {
     setHowItWorksModal({ isOpen: true, userType });
@@ -103,47 +93,6 @@ const handleServiceSelect = (service: any) => {
   setServicesModal(false);
   setTimeout(() => setRequestModalOpen(true), 0);
 };
-
-const fetchRealStats = async () => {
-    try {
-      const { data, error } = await supabase.rpc('get_platform_stats');
-      
-      if (!error && data && data.length > 0) {
-        const row = data[0] as any;
-        setRealStats({
-          totalProducers: Number(row.produtores) || 0,
-          totalDrivers: Number(row.motoristas) || 0,
-          totalServiceProviders: Number(row.prestadores) || 0,
-          totalWeight: Math.round(Number(row.peso_total) || 0),
-          completedFreights: Number(row.fretes_entregues) || 0,
-          totalUsers: Number(row.total_usuarios) || 0,
-          averageRating: Math.round(((Number(row.avaliacao_media) || 0) * 10)) / 10,
-        });
-      } else {
-        console.error('Erro ao buscar estatísticas:', error);
-        setRealStats({
-          totalProducers: 0,
-          totalDrivers: 0,
-          totalServiceProviders: 0,
-          totalWeight: 0,
-          completedFreights: 0,
-          totalUsers: 0,
-          averageRating: 0,
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error);
-      setRealStats({
-        totalProducers: 0,
-        totalDrivers: 0,
-        totalServiceProviders: 0,
-        totalWeight: 0,
-        completedFreights: 0,
-        totalUsers: 0,
-        averageRating: 0,
-      });
-    }
-  };
 
   const { profiles, switchProfile, session, isAuthenticated } = useAuth();
   const redirectedRef = useRef(false);
@@ -226,17 +175,6 @@ const fetchRealStats = async () => {
 
     return () => { cancelled = true; };
   }, [navigate, switchProfile, session?.user?.id, profiles]);
-
-  useEffect(() => {
-    fetchRealStats();
-
-    // Reduzir frequência de atualização
-    const interval = setInterval(fetchRealStats, 120000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
 
   const features = [
     {
@@ -376,96 +314,7 @@ const fetchRealStats = async () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Nossos Números
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              Resultados que comprovam nossa excelência
-            </p>
-          </div>
-          
-          {/* Grid 3-2 Layout */}
-          <div className="max-w-5xl mx-auto px-4">
-            {/* Desktop: Grid 3-2 */}
-            <div className="hidden md:block space-y-6">
-              {/* First row: 3 cards */}
-              <div className="grid grid-cols-3 gap-6">
-                <StatsCard
-                  icon={<Users className="w-7 h-7" />}
-                  label="Produtores Conectados"
-                  value={realStats.totalProducers.toLocaleString('pt-BR')}
-                  iconColor="text-primary"
-                />
-                <StatsCard
-                  icon={<Truck className="w-7 h-7" />}
-                  label="Motoristas Ativos"
-                  value={realStats.totalDrivers.toLocaleString('pt-BR')}
-                  iconColor="text-emerald-600"
-                />
-                <StatsCard
-                  icon={<Wrench className="w-7 h-7" />}
-                  label="Prestadores Ativos"
-                  value={realStats.totalServiceProviders.toLocaleString('pt-BR')}
-                  iconColor="text-blue-600"
-                />
-              </div>
-              
-              {/* Second row: 2 cards centered */}
-              <div className="grid grid-cols-2 gap-6 max-w-3xl mx-auto">
-                <StatsCard
-                  icon={<Truck className="w-7 h-7" />}
-                  label="Toneladas Transportadas"
-                  value={formatTonsCompactFromKg(realStats.totalWeight)}
-                  iconColor="text-amber-600"
-                />
-                <StatsCard
-                  icon={<Star className="w-7 h-7 fill-amber-500 text-amber-500" />}
-                  label="Avaliação Média"
-                  value={realStats.averageRating > 0 ? `${realStats.averageRating.toFixed(1)} ★` : '0 ★'}
-                  iconColor="text-amber-500"
-                />
-              </div>
-            </div>
-            
-            {/* Mobile: Grid simples */}
-            <div className="md:hidden grid grid-cols-1 gap-4">
-              <StatsCard
-                icon={<Users className="w-6 h-6" />}
-                label="Produtores Conectados"
-                value={realStats.totalProducers.toLocaleString('pt-BR')}
-                iconColor="text-primary"
-              />
-              <StatsCard
-                icon={<Truck className="w-6 h-6" />}
-                label="Motoristas Ativos"
-                value={realStats.totalDrivers.toLocaleString('pt-BR')}
-                iconColor="text-emerald-600"
-              />
-              <StatsCard
-                icon={<Wrench className="w-6 h-6" />}
-                label="Prestadores Ativos"
-                value={realStats.totalServiceProviders.toLocaleString('pt-BR')}
-                iconColor="text-blue-600"
-              />
-              <StatsCard
-                icon={<Truck className="w-6 h-6" />}
-                label="Toneladas Transportadas"
-                value={formatTonsCompactFromKg(realStats.totalWeight)}
-                iconColor="text-amber-600"
-              />
-              <StatsCard
-                icon={<Star className="w-6 h-6 fill-amber-500 text-amber-500" />}
-                label="Avaliação Média"
-                value={realStats.averageRating > 0 ? `${realStats.averageRating.toFixed(1)} ★` : '0 ★'}
-                iconColor="text-amber-500"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+      <PlatformStatsSection />
 
       {/* Features Section */}
       <section id="features" className="py-20">

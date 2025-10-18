@@ -9,6 +9,8 @@ interface OptimizedStats {
   averageRating: number;
   activeDrivers: number;
   activeProducers: number;
+  activeServiceProviders: number;
+  totalWeight: number;
   completedFreights: number;
   loading: boolean;
   error: string | null;
@@ -31,6 +33,8 @@ export const useOptimizedStats = () => {
     averageRating: 0,
     activeDrivers: 0,
     activeProducers: 0,
+    activeServiceProviders: 0,
+    totalWeight: 0,
     completedFreights: 0,
     loading: true,
     error: null
@@ -109,6 +113,8 @@ export const useOptimizedStats = () => {
           averageRating: Number(row.avaliacao_media) || 0,
           activeDrivers: Number(row.motoristas) || 0,
           activeProducers: Number(row.produtores) || 0,
+          activeServiceProviders: Number(row.prestadores) || 0,
+          totalWeight: Math.round(Number(row.peso_total) || 0),
           completedFreights: Number(row.fretes_entregues) || 0,
           loading: false,
           error: null
@@ -124,6 +130,8 @@ export const useOptimizedStats = () => {
           averageRating: 0,
           activeDrivers: 0,
           activeProducers: 0,
+          activeServiceProviders: 0,
+          totalWeight: 0,
           completedFreights: 0,
           loading: false,
           error: 'Dados não disponíveis'
@@ -144,6 +152,8 @@ export const useOptimizedStats = () => {
           averageRating: 0,
           activeDrivers: 0,
           activeProducers: 0,
+          activeServiceProviders: 0,
+          totalWeight: 0,
           completedFreights: 0,
           loading: false, 
           error: error.message?.includes('Timeout') ? 'Tempo esgotado' : 'Erro de conexão'
@@ -170,6 +180,8 @@ export const useOptimizedStats = () => {
     stats.averageRating,
     stats.activeDrivers,
     stats.activeProducers,
+    stats.activeServiceProviders,
+    stats.totalWeight,
     stats.completedFreights,
     stats.loading,
     stats.error

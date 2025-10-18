@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Leaf, Newspaper, Download, ExternalLink, Users, Trophy, TrendingUp, Calendar } from 'lucide-react';
-import PlatformStats from '@/components/PlatformStats';
+import { PlatformStatsSection } from '@/components/PlatformStatsSection';
 
 const Press = () => {
   const navigate = useNavigate();
@@ -64,7 +64,7 @@ const Press = () => {
       {/* Stats Section */}
       <section className="py-12 bg-muted/30">
         <div className="container mx-auto px-4">
-          <PlatformStats />
+          <PlatformStatsSection />
         </div>
       </section>
 
