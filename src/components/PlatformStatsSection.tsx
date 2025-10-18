@@ -1,5 +1,4 @@
 import React from 'react';
-import { StatsCard } from '@/components/ui/stats-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useOptimizedStats } from '@/hooks/useOptimizedStats';
 import { formatTonsCompactFromKg } from '@/lib/utils';
@@ -20,11 +19,10 @@ export const PlatformStatsSection: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-card rounded-lg border p-6 shadow-sm">
-                <div className="flex flex-col items-center justify-center space-y-3">
-                  <Skeleton className="h-12 w-24" />
-                  <Skeleton className="h-4 w-32" />
-                </div>
+              <div key={i} className="rounded-xl border bg-card shadow-sm p-5 md:p-6">
+                <Skeleton className="h-8 w-8 mb-3" />
+                <Skeleton className="h-10 w-20 mb-2" />
+                <Skeleton className="h-4 w-28" />
               </div>
             ))}
           </div>
@@ -73,16 +71,18 @@ export const PlatformStatsSection: React.FC = () => {
           {statsData.map((stat, index) => (
             <div
               key={stat.label}
-              className="animate-fade-in"
+              className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-all p-5 md:p-6 animate-fade-in"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <StatsCard
-                icon={stat.icon}
-                label={stat.label}
-                value={stat.value}
-                iconColor={stat.iconColor}
-                className="bg-card shadow-md hover:shadow-lg transition-shadow"
-              />
+              <div className={`mb-3 ${stat.iconColor}`}>
+                {stat.icon}
+              </div>
+              <p className="text-4xl md:text-5xl font-extrabold text-emerald-600 leading-tight">
+                {stat.value}
+              </p>
+              <p className="mt-1 text-sm md:text-base font-medium text-muted-foreground">
+                {stat.label}
+              </p>
             </div>
           ))}
         </div>
