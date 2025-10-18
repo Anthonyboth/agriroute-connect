@@ -13,7 +13,7 @@ export const PlatformStatsSection: React.FC = () => {
         <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Nossos Números</h2>
             <p className="text-muted-foreground text-lg">
-              Resultados que comprovam nossa excelência
+              O impacto da AgriRoute no agronegócio brasileiro
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
@@ -56,7 +56,7 @@ export const PlatformStatsSection: React.FC = () => {
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Nossos Números</h2>
           <p className="text-muted-foreground text-lg">
-            Resultados que comprovam nossa excelência
+            O impacto da AgriRoute no agronegócio brasileiro
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
