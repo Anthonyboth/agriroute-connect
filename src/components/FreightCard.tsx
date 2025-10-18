@@ -115,7 +115,14 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         }
       );
 
-      if (error) throw error;
+      if (error) {
+        // Extract user-friendly message from edge function response
+        const errorMsg = (error as any)?.context?.response?.error 
+          || (error as any)?.message 
+          || 'Não foi possível aceitar o frete';
+        toast.error(errorMsg);
+        return;
+      }
 
       const label = freight.service_type === 'FRETE_MOTO' ? 'frete' : 'carreta';
       toast.success(
@@ -125,8 +132,10 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       onAction?.('accept');
     } catch (error: any) {
       console.error('Error accepting freight:', error);
-      // Exibir mensagem específica do backend se disponível
-      const errorMessage = error.message || error.error || "Erro ao aceitar frete";
+      const errorMessage = (error as any)?.context?.response?.error 
+        || error?.message 
+        || error?.error 
+        || "Erro ao aceitar frete";
       toast.error(errorMessage);
     }
   };

@@ -61,7 +61,14 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
         }
       );
 
-      if (error) throw error;
+      if (error) {
+        // Extract user-friendly message from edge function response
+        const errorMsg = (error as any)?.context?.response?.error 
+          || (error as any)?.message 
+          || 'Não foi possível aceitar o frete';
+        toast.error(errorMsg);
+        return;
+      }
 
       toast.success('Frete aceito com sucesso!', {
         description: 'O frete foi atribuído à sua transportadora.'
@@ -69,7 +76,10 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
 
       onAccept?.();
     } catch (error: any) {
-      showErrorToast(toast, 'Erro ao aceitar frete', error);
+      const errorMessage = (error as any)?.context?.response?.error 
+        || error?.message 
+        || 'Erro ao aceitar frete';
+      toast.error(errorMessage);
     } finally {
       setAccepting(false);
     }

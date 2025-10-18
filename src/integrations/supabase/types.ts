@@ -5722,7 +5722,7 @@ export type Database = {
           producer_phone: string
           required_trucks: number
           service_type: string
-          status: Database["public"]["Enums"]["freight_status"]
+          status: string
           urgency: string
           weight: number
         }[]

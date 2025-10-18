@@ -408,15 +408,15 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           const { data: uc } = await supabase
             .from('user_cities')
-            .select('city_id, city_name, state, cities(name, state)')
+            .select('city_id, cities(name, state)')
             .eq('user_id', userId)
             .eq('is_active', true)
             .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
 
           const cityIds = (uc || []).map((u: any) => u.city_id).filter(Boolean);
           const cityNames = (uc || []).map((u: any) => ({ 
-            city: u.city_name || u.cities?.name, 
-            state: u.state || u.cities?.state 
+            city: u.cities?.name, 
+            state: u.cities?.state
           })).filter((c: any) => c.city && c.state);
 
           if (cityIds.length === 0 && cityNames.length === 0) {
@@ -682,8 +682,13 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         return true;
       });
       
-      // Filtrar fretes que já foram concluídos (mesmo que status seja OPEN ou outro)
+      // Filtrar fretes que já foram concluídos ou cancelados
       const filteredOngoing = dedupedOngoing.filter((item: any) => {
+        // Sempre excluir DELIVERED e CANCELLED
+        if (item.status === 'DELIVERED' || item.status === 'CANCELLED') {
+          return false;
+        }
+        
         // Para service_requests, manter a lógica atual
         if (item.is_service_request) {
           return true;
@@ -700,6 +705,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             confirmed_by_producer: metadata.confirmed_by_producer
           });
           return false; // Não mostrar como ativo
+        }
+
+        // Para multi-carretas, se não está OPEN e sem vagas, não exibir
+        if (item.required_trucks && item.required_trucks > 1) {
+          const availableSlots = (item.required_trucks || 1) - (item.accepted_trucks || 0);
+          if (item.status !== 'OPEN' && availableSlots <= 0) {
+            return false;
+          }
         }
 
         return true;
@@ -1307,8 +1320,15 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           const { data: acceptData, error: acceptError } = await (supabase as any).functions.invoke('accept-freight-multiple', {
             body: { freight_id: freightId, num_trucks: 1 },
           });
-          if (acceptError || !acceptData?.success) {
-            throw acceptError || new Error('Falha ao aceitar o frete');
+          if (acceptError) {
+            // Extract user-friendly message from edge function response
+            const errorMsg = (acceptError as any)?.context?.response?.error 
+              || (acceptError as any)?.message 
+              || 'Falha ao aceitar o frete';
+            throw new Error(errorMsg);
+          }
+          if (!acceptData?.success) {
+            throw new Error('Falha ao aceitar o frete');
           }
 
           toast.success(
