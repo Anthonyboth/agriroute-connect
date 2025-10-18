@@ -351,13 +351,10 @@ const handleServiceSelect = (service: any) => {
       {/* CTA Section */}
       <section className="py-20 gradient-hero">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-12">
             Pronto para revolucionar seu negócio?
           </h2>
-          <p className="text-xl text-primary-foreground/90 mb-12 max-w-2xl mx-auto">
-            Junte-se à maior rede de logística agrícola do Brasil
-          </p>
-          <Button 
+          <Button
             size="lg"
             onClick={() => navigate('/auth')}
             className="bg-background text-foreground text-lg px-8 py-6 rounded-xl hover:scale-105 transition-bounce shadow-xl"
