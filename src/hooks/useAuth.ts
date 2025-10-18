@@ -77,7 +77,7 @@ export const useAuth = () => {
     fetchingRef.current = true;
     
     try {
-      console.log('[useAuth] Buscando perfil para userId:', userId);
+      // SECURITY: Removed sensitive logging - user data should not be logged to console
       
       const profilesData = await queryWithTimeout(
         async () => {
@@ -99,7 +99,7 @@ export const useAuth = () => {
       if (!mountedRef.current) return;
       
       if (profilesData && profilesData.length > 0) {
-        console.log('[useAuth] Perfis encontrados:', profilesData.length);
+        // SECURITY: Removed sensitive logging
         
         // Buscar roles de user_roles para cada perfil
         const profilesWithRoles = await Promise.all(
@@ -130,7 +130,7 @@ export const useAuth = () => {
         }
         
         setProfile(activeProfile as UserProfile);
-        console.log('[useAuth] Perfil ativo com roles:', activeProfile);
+        // SECURITY: Removed sensitive profile data logging
       } else {
         setProfile(null);
         setProfiles([]);
@@ -145,10 +145,10 @@ export const useAuth = () => {
       setProfile(null);
       setProfiles([]);
 
-      // Handle auth errors
-      const status = (error as any)?.status ?? (error as any)?.code ?? (error as any)?.context?.response?.status ?? null;
-      const message = String((error as any)?.message ?? '');
-      if (status === 401 || status === 403 || message.includes('sub claim')) {
+        // Handle auth errors without logging sensitive data
+        const status = (error as any)?.status ?? (error as any)?.code ?? (error as any)?.context?.response?.status ?? null;
+        const message = String((error as any)?.message ?? '');
+        if (status === 401 || status === 403 || message.includes('sub claim')) {
         try {
           localStorage.removeItem('current_profile_id');
           await supabase.auth.signOut({ scope: 'local' });
@@ -198,7 +198,7 @@ export const useAuth = () => {
         setProfileError(null);
       } else if (insertError?.code === '23505') {
         // Document already in use - set error and stop the loop
-        console.warn('[useAuth] CPF/CNPJ já em uso:', meta.document?.slice(-4));
+        // SECURITY: Removed document logging
         setProfileError({
           code: 'DOCUMENT_IN_USE',
           message: 'Este CPF/CNPJ já está cadastrado no sistema',
@@ -399,7 +399,8 @@ export const useAuth = () => {
         if (error) throw error;
         setCompanyStatus(data?.status || null);
       } catch (error) {
-        console.error('[useAuth] Erro ao buscar status da transportadora:', error);
+        // SECURITY: Log error type only, no sensitive data
+        console.error('[useAuth] Erro ao buscar status da transportadora');
         setCompanyStatus(null);
       }
     };

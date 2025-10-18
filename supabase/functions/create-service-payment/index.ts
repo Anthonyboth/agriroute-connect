@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,11 +46,14 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { serviceRequestId } = await req.json();
-    
-    if (!serviceRequestId) {
-      throw new Error("Service request ID is required");
-    }
+    // SECURITY: Validate input with Zod schema to prevent injection attacks
+    const ServicePaymentSchema = z.object({
+      serviceRequestId: z.string().uuid('Invalid service request ID format')
+    });
+
+    const body = await req.json();
+    const validated = ServicePaymentSchema.parse(body);
+    const { serviceRequestId } = validated;
 
     // Buscar o service request
     const { data: serviceRequest, error: serviceError } = await supabaseAdmin

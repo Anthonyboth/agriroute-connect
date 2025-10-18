@@ -109,7 +109,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.send-notification]
-verify_jwt = false
+verify_jwt = true
 
 [functions.verify-payment-status]
 verify_jwt = true
@@ -121,13 +121,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.send-whatsapp]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-email-notification]
-verify_jwt = false
+verify_jwt = true
 
 [functions.tracking-service]
-verify_jwt = false
+verify_jwt = true
 
 [functions.accept-freight]
 verify_jwt = true
