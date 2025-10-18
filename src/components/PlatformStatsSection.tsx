@@ -67,7 +67,7 @@ export const PlatformStatsSection: React.FC = () => {
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="flex flex-col items-center text-center">
-                <p className="text-4xl md:text-5xl font-extrabold text-emerald-600 leading-tight mb-2">
+                <p className="text-4xl md:text-5xl font-extrabold text-primary leading-tight mb-2">
                   {stat.value}
                 </p>
                 <p className="text-sm md:text-base font-medium text-muted-foreground">
