@@ -27,8 +27,18 @@ export async function driverUpdateFreightStatus({
     });
 
     if (error) {
-      console.error('[STATUS-UPDATE] RPC error:', error);
-      toast.error('Erro ao atualizar status do frete');
+      console.error('[STATUS-UPDATE] RPC error:', {
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        freightId,
+        newStatus,
+        notes,
+        location
+      });
+      toast.error('Erro ao atualizar status do frete: ' + (error.message || 'Erro desconhecido'));
       return false;
     }
     

@@ -685,7 +685,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       // Filtrar fretes que já foram concluídos ou cancelados
       const filteredOngoing = dedupedOngoing.filter((item: any) => {
         // Sempre excluir DELIVERED e CANCELLED
-        if (item.status === 'DELIVERED' || item.status === 'CANCELLED') {
+        if (item.status === 'DELIVERED' || item.status === 'CANCELLED' || item.status === 'COMPLETED') {
           return false;
         }
         
@@ -695,14 +695,20 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         }
         
         // Para fretes tradicionais, verificar metadata de conclusão
+        // Verificar se há confirmação do produtor no metadata (vários formatos possíveis)
         const metadata = item.metadata || {};
+        const isConfirmedByProducer = 
+          metadata.delivery_confirmed_at || 
+          metadata.confirmed_by_producer === true ||
+          metadata.confirmed_by_producer_at ||
+          metadata.delivery_confirmed_by_producer === true;
         
-        if (metadata.delivery_confirmed_at || metadata.confirmed_by_producer) {
+        if (isConfirmedByProducer) {
           console.warn('🚨 [DriverDashboard] Frete já concluído aparecendo como ativo:', {
             id: item.id,
             status: item.status,
-            delivery_confirmed_at: metadata.delivery_confirmed_at,
-            confirmed_by_producer: metadata.confirmed_by_producer
+            metadata_keys: Object.keys(metadata),
+            metadata
           });
           return false; // Não mostrar como ativo
         }
