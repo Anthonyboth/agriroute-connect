@@ -126,7 +126,7 @@ serve(async (req) => {
     }
 
     if (freight.status !== "OPEN") {
-      const statusMessages = {
+      const statusMessages: Record<string, string> = {
         'ACCEPTED': 'This freight has already been fully accepted by other drivers',
         'IN_TRANSIT': 'This freight is already in transit',
         'DELIVERED': 'This freight has already been delivered',
@@ -137,7 +137,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: "Freight not available",
-          details: statusMessages[freight.status] || `This freight is not available (status: ${freight.status})`,
+          details: statusMessages[freight.status as string] || `This freight is not available (status: ${freight.status})`,
           current_status: freight.status
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -257,14 +257,14 @@ serve(async (req) => {
       .in("status", ["ACCEPTED", "IN_TRANSIT", "LOADING", "LOADED"]);
 
     if (activeAssignments && activeAssignments.length > 0) {
-      const statusDescriptions = {
+      const statusDescriptions: Record<string, string> = {
         'ACCEPTED': 'already accepted',
         'IN_TRANSIT': 'in transit',
         'LOADING': 'loading',
         'LOADED': 'loaded'
       };
       const currentStatus = activeAssignments[0].status;
-      const statusDesc = statusDescriptions[currentStatus] || currentStatus.toLowerCase();
+      const statusDesc = statusDescriptions[currentStatus as string] || currentStatus.toLowerCase();
       
       return new Response(
         JSON.stringify({ 

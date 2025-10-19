@@ -61,18 +61,21 @@ serve(async (req) => {
       );
     }
 
+    // Cast freights to single object (Supabase returns array for joins)
+    const freight = Array.isArray(proposal.freights) ? proposal.freights[0] : proposal.freights;
+
     console.log('[ACCEPT-PROPOSAL] Proposal found:', {
       proposal_id: proposal.id,
       freight_id: proposal.freight_id,
       driver_id: proposal.driver_id,
       proposed_price: proposal.proposed_price,
-      freight_status: proposal.freights.status,
-      required_trucks: proposal.freights.required_trucks,
-      accepted_trucks: proposal.freights.accepted_trucks
+      freight_status: freight.status,
+      required_trucks: freight.required_trucks,
+      accepted_trucks: freight.accepted_trucks
     });
 
     // 2. Validar permissão (produtor é dono do frete)
-    if (proposal.freights.producer_id !== producer_id) {
+    if (freight.producer_id !== producer_id) {
       return new Response(
         JSON.stringify({ error: "Apenas o produtor pode aceitar propostas" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -80,7 +83,7 @@ serve(async (req) => {
     }
 
     // 3. Validar se frete ainda tem vagas
-    if (proposal.freights.accepted_trucks >= proposal.freights.required_trucks) {
+    if (freight.accepted_trucks >= freight.required_trucks) {
       return new Response(
         JSON.stringify({ error: "Todas as carretas já foram contratadas" }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -111,11 +114,11 @@ serve(async (req) => {
     }
 
     // 6. Validar valor contra ANTT
-    if (proposal.proposed_price < (proposal.freights.minimum_antt_price || 0)) {
+    if (proposal.proposed_price < (freight.minimum_antt_price || 0)) {
       return new Response(
         JSON.stringify({ 
           error: "Valor abaixo do mínimo ANTT",
-          minimum_antt_price: proposal.freights.minimum_antt_price
+          minimum_antt_price: freight.minimum_antt_price
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -130,7 +133,7 @@ serve(async (req) => {
         proposal_id: proposal.id,
         agreed_price: proposal.proposed_price,
         pricing_type: 'FIXED',
-        minimum_antt_price: proposal.freights.minimum_antt_price,
+        minimum_antt_price: freight.minimum_antt_price,
         status: 'ACCEPTED'
       })
       .select()
@@ -145,7 +148,7 @@ serve(async (req) => {
     }
 
     // 7.5. Vincular motorista ao frete (se carreta única)
-    if (proposal.freights.required_trucks === 1) {
+    if (freight.required_trucks === 1) {
       const { error: driverLinkError } = await supabase
         .from("freights")
         .update({ 
@@ -205,12 +208,12 @@ serve(async (req) => {
         },
         freight: {
           id: proposal.freight_id,
-          required_trucks: proposal.freights.required_trucks,
-          accepted_trucks: proposal.freights.accepted_trucks + 1,
-          remaining_trucks: proposal.freights.required_trucks - (proposal.freights.accepted_trucks + 1)
+          required_trucks: freight.required_trucks,
+          accepted_trucks: freight.accepted_trucks + 1,
+          remaining_trucks: freight.required_trucks - (freight.accepted_trucks + 1)
         },
-        message: proposal.freights.required_trucks - (proposal.freights.accepted_trucks + 1) > 0
-          ? `Proposta aceita! Ainda faltam ${proposal.freights.required_trucks - (proposal.freights.accepted_trucks + 1)} carretas.`
+        message: freight.required_trucks - (freight.accepted_trucks + 1) > 0
+          ? `Proposta aceita! Ainda faltam ${freight.required_trucks - (freight.accepted_trucks + 1)} carretas.`
           : 'Proposta aceita! Todas as carretas foram contratadas.'
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
