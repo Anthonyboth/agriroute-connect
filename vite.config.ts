@@ -19,4 +19,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    sourcemap: mode !== 'production' || process.env.ENABLE_SOURCEMAPS === 'true',
+  },
 }));
