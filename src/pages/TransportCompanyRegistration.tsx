@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 import { Loader2, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { validateCNPJ } from '@/utils/cpfValidator';
-import { safeAppendChild } from '@/utils/domUtils';
 
 const TransportCompanyRegistration: React.FC = () => {
   const navigate = useNavigate();
@@ -87,7 +86,7 @@ const TransportCompanyRegistration: React.FC = () => {
       const m = document.createElement('meta');
       m.setAttribute('name', 'description');
       m.setAttribute('content', desc);
-      safeAppendChild(document.head, m);
+      document.head.appendChild(m);
     }
     const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     const href = `${window.location.origin}/cadastro-transportadora`;
@@ -97,7 +96,7 @@ const TransportCompanyRegistration: React.FC = () => {
       const link = document.createElement('link');
       link.setAttribute('rel', 'canonical');
       link.setAttribute('href', href);
-      safeAppendChild(document.head, link);
+      document.head.appendChild(link);
     }
   }, []);
 
