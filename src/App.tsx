@@ -15,11 +15,6 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import ConfirmEmail from "./pages/ConfirmEmail";
 import CompleteProfile from "./pages/CompleteProfile";
-import AdminPanel from "./pages/AdminPanel";
-import ProducerDashboard from "./pages/ProducerDashboard";
-import DriverDashboard from "./pages/DriverDashboard";
-import CompanyDashboard from "./pages/CompanyDashboard";
-import ServiceProviderDashboard from "./pages/ServiceProviderDashboard";
 import ServiceProviderRegistration from "./pages/ServiceProviderRegistration";
 import Services from "./pages/Services";
 import NotFound from "./pages/NotFound";
@@ -49,6 +44,11 @@ const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess")
 const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
 const CompanyInviteAccept = lazy(() => import("./pages/CompanyInviteAccept"));
 const AffiliateSignup = lazy(() => import("./pages/AffiliateSignup"));
+const AdminPanel = lazy(() => import("./pages/AdminPanel"));
+const ProducerDashboard = lazy(() => import("./pages/ProducerDashboard"));
+const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
+const CompanyDashboard = lazy(() => import("./pages/CompanyDashboard"));
+const ServiceProviderDashboard = lazy(() => import("./pages/ServiceProviderDashboard"));
 import DriverInviteSignup from "./pages/DriverInviteSignup";
 import { AlertCircle } from 'lucide-react';
 
@@ -337,7 +337,9 @@ const App = () => (
               path="/admin" 
               element={
                 <ProtectedRoute requiresAuth adminOnly allowedRoles={["ADMIN"]}>
-                  <AdminPanel />
+                  <Suspense fallback={<ComponentLoader />}>
+                    <AdminPanel />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
@@ -345,7 +347,9 @@ const App = () => (
               path="/dashboard/producer" 
               element={
                 <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRODUTOR"]}>
-                  <ProducerDashboard />
+                  <Suspense fallback={<ComponentLoader />}>
+                    <ProducerDashboard />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
@@ -353,7 +357,9 @@ const App = () => (
               path="/dashboard/driver" 
               element={
                 <ProtectedRoute requiresAuth requiresApproval allowedRoles={["MOTORISTA", "MOTORISTA_AFILIADO"]}>
-                  <DriverDashboard />
+                  <Suspense fallback={<ComponentLoader />}>
+                    <DriverDashboard />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
@@ -361,7 +367,9 @@ const App = () => (
             path="/dashboard/service-provider" 
             element={
               <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRESTADOR_SERVICOS"]}>
-                <ServiceProviderDashboard />
+                <Suspense fallback={<ComponentLoader />}>
+                  <ServiceProviderDashboard />
+                </Suspense>
               </ProtectedRoute>
             } 
           />
@@ -369,7 +377,9 @@ const App = () => (
             path="/dashboard/company" 
             element={
               <ProtectedRoute requiresAuth requiresApproval allowedRoles={["TRANSPORTADORA"]}>
-                <CompanyDashboard />
+                <Suspense fallback={<ComponentLoader />}>
+                  <CompanyDashboard />
+                </Suspense>
               </ProtectedRoute>
             } 
           />
