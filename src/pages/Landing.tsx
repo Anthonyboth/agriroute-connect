@@ -12,7 +12,7 @@ import { ServicesModal } from '@/components/ServicesModal';
 import ServiceRequestModal from '@/components/ServiceRequestModal';
 import { ContactModal } from '@/components/ContactModal';
 import ReportModal from '@/components/ReportModal';
-import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail, CheckCircle2, Building2 } from 'lucide-react';
+import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench, Home, MessageCircle, Mail, CheckCircle2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import heroImage from '@/assets/hero-logistics.jpg';
 import agriRouteLogo from '@/assets/agriroute-full-logo.png';
@@ -55,13 +55,13 @@ const [servicesModal, setServicesModal] = useState(false);
 const [freightTransportModal, setFreightTransportModal] = useState(false);
 const [requestModalOpen, setRequestModalOpen] = useState(false);
 const [selectedService, setSelectedService] = useState<any | null>(null);
-const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' }>({
+  const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' }>({
   isOpen: false,
 });
   const [contactModal, setContactModal] = useState(false);
   const [reportModal, setReportModal] = useState(false);
 
-  const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA') => {
+  const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA') => {
     setHowItWorksModal({ isOpen: true, userType });
   };
 
@@ -72,9 +72,7 @@ const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userTy
   const handleProceedToDashboard = () => {
     const userType = howItWorksModal.userType;
     if (userType) {
-      const route = userType === 'PRODUTOR' ? '/dashboard/producer' : 
-                    userType === 'MOTORISTA' ? '/dashboard/driver' :
-                    '/cadastro-transportadora';
+      const route = userType === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver';
       navigate(route);
     }
     closeHowItWorksModal();
@@ -286,15 +284,6 @@ const handleServiceSelect = (service: any) => {
               >
                 <Truck className="mr-2 h-5 w-5" />
                 Sou Motorista
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
-                size="lg"
-                onClick={() => handleGetStarted('TRANSPORTADORA')}
-                className="bg-secondary text-secondary-foreground text-lg px-8 py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce"
-              >
-                <Building2 className="mr-2 h-5 w-5" />
-                Sou Transportadora
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>

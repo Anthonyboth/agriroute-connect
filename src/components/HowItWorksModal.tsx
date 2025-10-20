@@ -7,7 +7,7 @@ import { CheckCircle, Truck, Users, MapPin, DollarSign, Clock, FileText, Buildin
 interface HowItWorksModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userType: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA';
+  userType: 'PRODUTOR' | 'MOTORISTA';
   onProceed?: () => void;
 }
 
@@ -123,25 +123,19 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
     }
   ];
 
-  const steps = userType === 'PRODUTOR' ? producerSteps : 
-              userType === 'MOTORISTA' ? driverSteps : 
-              transportadoraSteps;
+  const steps = userType === 'PRODUTOR' ? producerSteps : driverSteps;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center mb-2">
-            {userType === 'PRODUTOR' ? 'Como Funciona para Produtores' : 
-             userType === 'MOTORISTA' ? 'Como Funciona para Motoristas' :
-             'Como Funciona para Transportadoras'}
+            {userType === 'PRODUTOR' ? 'Como Funciona para Produtores' : 'Como Funciona para Motoristas'}
           </DialogTitle>
           <DialogDescription className="text-center text-lg">
             {userType === 'PRODUTOR' 
               ? 'Conecte sua produção ao destino de forma simples e segura'
-              : userType === 'MOTORISTA'
-              ? 'Encontre fretes rentáveis e expanda seu negócio de transporte'
-              : 'Gerencie sua frota e motoristas com eficiência e aumente seus lucros'
+              : 'Encontre fretes rentáveis e expanda seu negócio de transporte'
             }
           </DialogDescription>
         </DialogHeader>
@@ -153,12 +147,10 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                  {userType === 'PRODUTOR' ? '🌾' : userType === 'MOTORISTA' ? '🚛' : '🏢'}
+                  {userType === 'PRODUTOR' ? '🌾' : '🚛'}
                 </div>
                 <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  {userType === 'PRODUTOR' ? 'Fluxo do Produtor' : 
-                   userType === 'MOTORISTA' ? 'Fluxo do Motorista' :
-                   'Fluxo da Transportadora'}
+                  {userType === 'PRODUTOR' ? 'Fluxo do Produtor' : 'Fluxo do Motorista'}
                 </h3>
               </div>
             </div>
