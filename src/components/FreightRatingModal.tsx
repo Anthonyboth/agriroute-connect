@@ -81,16 +81,18 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
       const ratedUserId = isProducerRating ? freightData.driver_id : freightData.producer_id;
       const ratingType = isProducerRating ? 'PRODUCER_TO_DRIVER' : 'DRIVER_TO_PRODUCER';
 
-      // Submit rating
+      // Submit rating (upsert to handle duplicate 409 errors)
       const { error: ratingError } = await supabase
         .from('freight_ratings')
-        .insert({
+        .upsert({
           freight_id: effectiveFreightId,
           rater_id: profile.id,
           rated_user_id: ratedUserId,
           rating: rating,
           comment: comment.trim() || null,
           rating_type: ratingType
+        }, {
+          onConflict: 'freight_id,rater_id'
         });
 
       if (ratingError) throw ratingError;

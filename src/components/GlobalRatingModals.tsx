@@ -107,13 +107,15 @@ export const GlobalRatingModals: React.FC = () => {
 
       const { error } = await supabase
         .from('freight_ratings')
-        .insert({
+        .upsert({
           freight_id: freightId,
           rater_id: profile.id,
           rated_user_id: freightRatedUserId,
           rating: freightRating,
           comment: freightComment || null,
           rating_type: ratingType,
+        }, {
+          onConflict: 'freight_id,rater_id'
         });
 
       if (error) throw error;
