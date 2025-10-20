@@ -1,3 +1,4 @@
+// src/components/PlatformStatsSection.tsx
 import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useOptimizedStats } from '@/hooks/useOptimizedStats';
@@ -60,13 +61,14 @@ export const PlatformStatsSection: React.FC = () => {
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
-          {statsData.map((stat, index) => (
+          {statsData.map((stat) => (
             <div
               key={stat.label}
               className="rounded-xl border bg-card p-6 md:p-8"
             >
               <div className="flex flex-col items-center text-center">
-                <p className="text-4xl md:text-5xl font-extrabold text-primary leading-tight mb-2">
+                {/* Removido font-extrabold -> font-normal para números */}
+                <p className="text-4xl md:text-5xl font-normal text-primary leading-tight mb-2">
                   {stat.value}
                 </p>
                 <p className="text-sm md:text-base font-medium text-muted-foreground">
