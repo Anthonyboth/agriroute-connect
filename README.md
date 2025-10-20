@@ -36,6 +36,14 @@ npm i
 npm run dev
 ```
 
+### Build Configuration
+
+**Sourcemaps**: By default, sourcemaps are enabled in development mode and disabled in production builds for security. To enable sourcemaps in production (e.g., for debugging), set the environment variable:
+
+```sh
+ENABLE_SOURCEMAPS=true npm run build
+```
+
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).
