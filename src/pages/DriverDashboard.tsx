@@ -162,6 +162,7 @@ const DriverDashboard = () => {
     checkTransportCompany();
   }, [profile?.id, profile?.active_mode]);
   
+  
   const [availableFreights, setAvailableFreights] = useState<Freight[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
   const [counterOffers, setCounterOffers] = useState<any[]>([]);
@@ -318,6 +319,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       toast.error("Erro inesperado ao encerrar o chamado.");
     }
   };
+
 
   const [loading, setLoading] = useState(true);
   const [availableCountUI, setAvailableCountUI] = useState(0);
@@ -913,6 +915,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       toast.error('Erro ao rejeitar proposta');
     }
   };
+
 
   // Estado para contar check-ins
   const [totalCheckins, setTotalCheckins] = useState(0);

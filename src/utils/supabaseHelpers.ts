@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 
 export async function safeSelect<T = any>(table: string, builder: (q: any) => Promise<{ data: T; error: any }>) {
   try {
-    const q = supabase.from(table);
+    const q = (supabase as any).from(table);
     const { data, error } = await builder(q);
     if (error) {
       console.error(`Supabase select error on ${table}`, error);
@@ -25,7 +25,7 @@ export async function safeSelect<T = any>(table: string, builder: (q: any) => Pr
 
 export async function safeRpc(fnName: string, params?: any) {
   try {
-    const { data, error } = await supabase.rpc(fnName, params || {});
+    const { data, error } = await (supabase.rpc as any)(fnName, params || {});
     if (error) {
       console.error(`Supabase rpc error: ${fnName}`, error);
       toast.error('Erro ao executar operação no servidor');
@@ -41,7 +41,7 @@ export async function safeRpc(fnName: string, params?: any) {
 
 export async function safeUpsert(table: string, payload: any, opts?: any) {
   try {
-    const { data, error } = await supabase.from(table).upsert(payload, opts || {});
+    const { data, error } = await (supabase as any).from(table).upsert(payload, opts || {});
     if (error) {
       console.error(`Supabase upsert error on ${table}`, error);
       toast.error('Erro ao salvar dados');
