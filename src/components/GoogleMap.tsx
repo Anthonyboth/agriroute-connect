@@ -1,6 +1,5 @@
 import React, { useRef, useEffect } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
-import { safeClearChildren, safeAppendChild } from '@/utils/domUtils';
 
 interface GoogleMapProps {
   center?: { lat: number; lng: number };
@@ -78,7 +77,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         // Fallback para quando não há chave de API - usando DOM seguro
         if (mapRef.current) {
           // Clear existing content safely
-          safeClearChildren(mapRef.current);
+          mapRef.current.textContent = '';
           
           // Create fallback UI using DOM methods (prevents XSS)
           const container = document.createElement('div');
@@ -95,10 +94,10 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           subtitle.className = 'text-sm text-muted-foreground';
           subtitle.textContent = 'Configure a chave da API do Google Maps';
           
-          safeAppendChild(innerDiv, title);
-          safeAppendChild(innerDiv, subtitle);
-          safeAppendChild(container, innerDiv);
-          safeAppendChild(mapRef.current, container);
+          innerDiv.appendChild(title);
+          innerDiv.appendChild(subtitle);
+          container.appendChild(innerDiv);
+          mapRef.current.appendChild(container);
         }
       }
     };
