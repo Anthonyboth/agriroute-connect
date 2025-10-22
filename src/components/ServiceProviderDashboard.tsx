@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { 
   MapPin, 
@@ -256,7 +256,7 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   // Monitorar disponibilidade do serviço em tempo real enquanto modal está aberto
   useEffect(() => {
-    if (!showRequestModal || !selectedRequest) return;
+    if (!showRequestModal || !selectedRequest?.id) return;
 
     const checkInterval = setInterval(async () => {
       try {
@@ -264,9 +264,12 @@ export const ServiceProviderDashboard: React.FC = () => {
           .from('service_requests')
           .select('provider_id, status')
           .eq('id', selectedRequest.id)
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
+        if (error || !data) {
+          console.error('Error checking service availability:', error);
+          return;
+        }
 
         // Se foi aceito por outro prestador, notificar e fechar modal
         if (data.provider_id !== null || data.status !== 'OPEN') {
@@ -440,7 +443,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           
           const client = clientsMap.get(r.client_id);
           available.push({
-            id: r.request_id,
+            id: r.id || r.request_id,
             service_type: r.service_type,
             location_address: r.location_address,
             city_name: r.city_name,
@@ -503,7 +506,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           
           const client = clientsMap.get(r.client_id);
           available.push({
-            id: r.request_id,
+            id: r.id || r.request_id,
             service_type: r.service_type,
             location_address: r.location_address,
             city_name: r.city_name,
@@ -613,6 +616,17 @@ export const ServiceProviderDashboard: React.FC = () => {
   };
 
   const handleAcceptFromModal = async (requestId: string) => {
+    if (!requestId) {
+      toast({
+        title: "Erro",
+        description: "ID do serviço ausente.",
+        variant: "destructive",
+      });
+      setShowRequestModal(false);
+      setSelectedRequest(null);
+      return;
+    }
+    
     setIsAccepting(true);
     
     try {
@@ -631,10 +645,29 @@ export const ServiceProviderDashboard: React.FC = () => {
         .from('service_requests')
         .select('provider_id, status')
         .eq('id', requestId)
-        .single();
+        .maybeSingle();
 
       if (checkError) {
-        throw new Error('Erro ao verificar disponibilidade do serviço');
+        console.error('Error checking service availability:', checkError);
+        toast({
+          title: "Erro",
+          description: "Erro ao verificar disponibilidade do serviço.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!currentRequest) {
+        toast({
+          title: "Serviço Indisponível",
+          description: "Serviço não encontrado ou indisponível.",
+          variant: "destructive",
+        });
+        setShowRequestModal(false);
+        setSelectedRequest(null);
+        fetchServiceRequests({ scope: 'all', silent: true });
+        refreshCounts();
+        return;
       }
 
       // Verificar se já foi aceito por outro prestador
@@ -1359,6 +1392,9 @@ export const ServiceProviderDashboard: React.FC = () => {
                 <Wrench className="h-5 w-5 text-green-600" />
                 Detalhes da Solicitação
               </DialogTitle>
+              <DialogDescription>
+                Informações completas sobre a solicitação de serviço
+              </DialogDescription>
             </DialogHeader>
             
             {selectedRequest && (
