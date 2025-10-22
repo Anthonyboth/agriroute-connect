@@ -603,7 +603,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       // Filtrar fretes que já foram concluídos ou cancelados
       const filteredOngoing = dedupedOngoing.filter((item: any) => {
         // Sempre excluir DELIVERED e CANCELLED
-        if (item.status === 'DELIVERED' || item.status === 'CANCELLED' || item.status === 'COMPLETED') {
+        if (['DELIVERED', 'CANCELLED', 'COMPLETED'].includes(item.status)) {
+          console.log(`🔍 [DriverDashboard] Excluindo frete ${item.id} - Status: ${item.status}`);
           return false;
         }
         
@@ -622,12 +623,25 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           metadata.delivery_confirmed_by_producer === true;
         
         if (isConfirmedByProducer) {
-          console.warn('🚨 [DriverDashboard] Frete já concluído aparecendo como ativo:', {
+          console.warn('🚨 [DriverDashboard] Frete confirmado com status inconsistente:', {
             id: item.id,
             status: item.status,
-            metadata_keys: Object.keys(metadata),
-            metadata
+            metadata_keys: Object.keys(metadata)
           });
+          
+          // ✅ Tentar atualizar status automaticamente
+          supabase
+            .from('freights')
+            .update({ status: 'COMPLETED', updated_at: new Date().toISOString() })
+            .eq('id', item.id)
+            .then(({ error }) => {
+              if (error) {
+                console.error('❌ Erro ao corrigir status do frete:', error);
+              } else {
+                console.log('✅ Status do frete corrigido automaticamente');
+              }
+            });
+          
           return false; // Não mostrar como ativo
         }
 
@@ -1751,15 +1765,17 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                   <h4 className="text-sm font-semibold text-green-600">Seus Contratos Ativos</h4>
                   <Badge variant="outline" className="text-xs">{myAssignments.length}</Badge>
                 </div>
-                {myAssignments.map((assignment) => (
-                  <MyAssignmentCard
-                    key={assignment.id}
-                    assignment={assignment}
-                    onAction={() => {
-                      setSelectedFreightId(assignment.freight_id);
-                      setShowDetails(true);
-                    }}
-                  />
+                {myAssignments && myAssignments.length > 0 && myAssignments.map((assignment) => (
+                  assignment?.id ? (
+                    <MyAssignmentCard
+                      key={`assignment-${assignment.id}-${assignment.freight_id}`}
+                      assignment={assignment}
+                      onAction={() => {
+                        setSelectedFreightId(assignment.freight_id);
+                        setShowDetails(true);
+                      }}
+                    />
+                  ) : null
                 ))}
               </div>
             )}
@@ -1767,7 +1783,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             {visibleOngoing.length > 0 ? (
               <div className="space-y-4">
                 {visibleOngoing.map((freight) => (
-                  <Card key={freight.id} className="shadow-sm border border-border/50 hover:shadow-md transition-shadow">
+                  <Card key={`ongoing-${freight.id}`} className="shadow-sm border border-border/50 hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       {/* Header com tipo de carga e status */}
                       <div className="flex items-center justify-between mb-3">
@@ -1916,8 +1932,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             {myProposals.some(p => p.status === 'PENDING') ? (
               <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
                 {myProposals.filter(p => p.status === 'PENDING').map((proposal) => (
-                  proposal.freight && (
-                    <div key={proposal.id} className="relative">
+                  proposal.freight && proposal.id ? (
+                    <div key={`proposal-${proposal.id}`} className="relative">
                        <FreightCard 
                          freight={{
                            ...proposal.freight,
@@ -2071,7 +2087,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             {counterOffers.length > 0 ? (
               <div className="space-y-4">
                 {counterOffers.map((offer) => (
-                  <Card key={offer.id} className="p-4">
+                  <Card key={`offer-${offer.id}`} className="p-4">
                     <div className="space-y-3">
                       <div className="flex justify-between items-start">
                         <div>
@@ -2145,8 +2161,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               </Card>
             ) : (
               <div className="space-y-4">
-                {pendingPayments.map((payment) => (
-                  <Card key={payment.id} className="border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-900/10">
+                {pendingPayments && pendingPayments.length > 0 && pendingPayments.map((payment) => (
+                  <Card key={`payment-${payment.id}`} className="border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-900/10">
                     <CardContent className="p-4">
                       <div className="space-y-3">
                         <div className="flex justify-between items-start">
