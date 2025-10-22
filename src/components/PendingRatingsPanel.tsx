@@ -94,7 +94,7 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = ({
     if (userProfileId) {
       fetchPendingRatings();
     }
-  }, [userProfileId, userRole]);
+  }, [userProfileId]); // Removed userRole - it doesn't change after mount
 
   const handleRatingSubmitted = () => {
     fetchPendingRatings(); // Refresh the list

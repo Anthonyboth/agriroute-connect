@@ -44,13 +44,15 @@ export const registerDevice = async (profileId: string): Promise<UserDevice | nu
     
     if (error) {
       console.error('❌ Erro ao registrar dispositivo:', error);
-      return null;
+      // Don't show success message if there was an error
+      throw error;
     }
     
     console.log('✅ Dispositivo registrado:', data);
     return data;
   } catch (error) {
     console.error('❌ Erro ao registrar dispositivo:', error);
+    // Return null but don't swallow the error - let caller handle it
     return null;
   }
 };

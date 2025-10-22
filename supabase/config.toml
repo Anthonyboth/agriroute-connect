@@ -1,7 +1,7 @@
 project_id = "shnvtxejjecbnztdbbbl"
 
 [functions.spatial-freight-matching]
-verify_jwt = false
+verify_jwt = true
 
 [functions.driver-service-areas] 
 verify_jwt = true
@@ -160,7 +160,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.admin-recalculate-all-antt]
-verify_jwt = false
+verify_jwt = true
 
 [functions.accept-freight-multiple]
 verify_jwt = true

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,10 +8,15 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-interface FreightMatchRequest {
-  freight_id: string;
-  notify_drivers?: boolean;
-}
+// Input validation schemas
+const FreightMatchRequestSchema = z.object({
+  freight_id: z.string().uuid('Invalid freight_id format'),
+  notify_drivers: z.boolean().optional().default(true),
+});
+
+const GetMatchesSchema = z.object({
+  freight_id: z.string().uuid('Invalid freight_id format'),
+});
 
 interface DriverAreaData {
   driver_id: string;
@@ -30,56 +36,138 @@ serve(async (req) => {
   }
 
   try {
+    // Get JWT token from Authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Initialize Supabase client with user's JWT
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      }
     );
 
-    if (req.method === 'POST') {
-      const { freight_id, notify_drivers = true }: FreightMatchRequest = await req.json();
+    // Verify user is authenticated
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-      if (!freight_id) {
+    if (req.method === 'POST') {
+      // Validate input
+      const body = await req.json();
+      const validation = FreightMatchRequestSchema.safeParse(body);
+      
+      if (!validation.success) {
         return new Response(
-          JSON.stringify({ error: 'freight_id is required' }),
+          JSON.stringify({ 
+            error: 'Invalid input', 
+            details: validation.error.errors 
+          }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      console.log(`Starting spatial matching for freight: ${freight_id}`);
+      const { freight_id, notify_drivers } = validation.data;
+
+      // Get user's profile
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile) {
+        return new Response(
+          JSON.stringify({ error: 'Profile not found' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Verify user is the freight owner (producer)
+      const { data: freight, error: freightError } = await supabaseClient
+        .from('freights')
+        .select('producer_id, cargo_type, origin_address, destination_address, price, weight')
+        .eq('id', freight_id)
+        .single();
+
+      if (freightError || !freight) {
+        return new Response(
+          JSON.stringify({ error: 'Freight not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (freight.producer_id !== profile.id) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: You are not the freight owner' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check rate limit
+      const { data: canProceed } = await supabaseClient
+        .rpc('check_rate_limit', { 
+          endpoint_name: 'spatial-freight-matching',
+          max_requests: 10,
+          time_window: '00:01:00'
+        });
+
+      if (!canProceed) {
+        return new Response(
+          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`[Spatial Matching] Starting for freight: ${freight_id} by user: ${user.id}`);
+
+      // Use service role for RPC execution
+      const supabaseService = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
 
       // Execute the spatial matching function
-      const { data: matchResults, error: matchError } = await supabaseClient
+      const { data: matchResults, error: matchError } = await supabaseService
         .rpc('execute_freight_matching', { freight_uuid: freight_id });
 
       if (matchError) {
-        console.error('Error executing freight matching:', matchError);
+        console.error('[Spatial Matching] Error executing:', matchError);
         return new Response(
           JSON.stringify({ error: 'Failed to execute spatial matching', details: matchError }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      console.log(`Found ${matchResults?.length || 0} potential matches`);
+      console.log(`[Spatial Matching] Found ${matchResults?.length || 0} potential matches`);
 
-      // Get additional driver information for matched drivers
+      // Enrich matches with driver information
       const driverIds = [...new Set((matchResults || []).map((match: any) => match.driver_id))];
       
       let enrichedMatches: DriverAreaData[] = [];
       if (driverIds.length > 0) {
-        const { data: driverProfiles, error: profileError } = await supabaseClient
+        const { data: driverProfiles } = await supabaseService
           .from('profiles')
-          .select('id, full_name, user_id')
+          .select('id, full_name')
           .in('id', driverIds)
           .eq('role', 'MOTORISTA')
           .eq('status', 'APPROVED');
 
-        if (profileError) {
-          console.error('Error fetching driver profiles:', profileError);
-        }
-
-        // Get user cities details (new system)
         const areaIds = (matchResults || []).map((match: any) => match.driver_area_id);
-        const { data: userCities, error: areaError } = await supabaseClient
+        const { data: userCities } = await supabaseService
           .from('user_cities')
           .select(`
             id, 
@@ -88,11 +176,6 @@ serve(async (req) => {
           `)
           .in('id', areaIds);
 
-        if (areaError) {
-          console.error('Error fetching user cities:', areaError);
-        }
-
-        // Enrich match data
         enrichedMatches = (matchResults || []).map((match: any) => {
           const driverProfile = driverProfiles?.find(p => p.id === match.driver_id);
           const userCity = userCities?.find((uc: any) => uc.id === match.driver_area_id);
@@ -110,71 +193,51 @@ serve(async (req) => {
       // Send notifications if requested
       let notificationResults = null;
       if (notify_drivers && enrichedMatches.length > 0) {
-        console.log(`Sending notifications to ${enrichedMatches.length} drivers`);
+        console.log(`[Spatial Matching] Sending notifications to ${enrichedMatches.length} drivers`);
         
-        // Get freight details for notification
-        const { data: freightData, error: freightError } = await supabaseClient
-          .from('freights')
-          .select('cargo_type, origin_address, destination_address, price, weight')
-          .eq('id', freight_id)
-          .single();
+        const notificationPromises = enrichedMatches.map(async (match) => {
+          const { data: canNotify } = await supabaseService
+            .rpc('can_notify_driver', { p_driver_id: match.driver_id });
 
-        if (!freightError && freightData) {
-          const notificationPromises = enrichedMatches.map(async (match) => {
-            // Check if driver can be notified (throttling)
-            const { data: canNotify, error: throttleError } = await supabaseClient
-              .rpc('can_notify_driver', { p_driver_id: match.driver_id });
+          if (!canNotify) {
+            return { driver_id: match.driver_id, notified: false, reason: 'throttled' };
+          }
 
-            if (throttleError || !canNotify) {
-              console.log(`Skipping notification for driver ${match.driver_id} due to throttling`);
-              return { driver_id: match.driver_id, notified: false, reason: 'throttled' };
-            }
-
-            // Get driver's user_id for notification
-            const driverProfile = enrichedMatches.find(m => m.driver_id === match.driver_id);
-            if (!driverProfile) return { driver_id: match.driver_id, notified: false, reason: 'no_profile' };
-
-            // Create notification
-            try {
-              const { error: notifyError } = await supabaseClient.functions.invoke('send-notification', {
-                body: {
-                  user_id: match.driver_id,
-                  title: `Novo Frete Disponível - ${freightData.cargo_type}`,
-                  message: `${freightData.origin_address} → ${freightData.destination_address}. Valor: R$ ${freightData.price}`,
-                  type: 'freight_match',
-                  data: {
-                    freight_id,
-                    match_type: match.match_type,
-                    distance_m: match.distance_m,
-                    match_score: match.match_score,
-                    cargo_type: freightData.cargo_type,
-                    weight: freightData.weight
-                  }
+          try {
+            const { error: notifyError } = await supabaseService.functions.invoke('send-notification', {
+              body: {
+                user_id: match.driver_id,
+                title: `Novo Frete Disponível - ${freight.cargo_type}`,
+                message: `${freight.origin_address} → ${freight.destination_address}. Valor: R$ ${freight.price}`,
+                type: 'freight_match',
+                data: {
+                  freight_id,
+                  match_type: match.match_type,
+                  distance_m: match.distance_m,
+                  match_score: match.match_score,
+                  cargo_type: freight.cargo_type,
+                  weight: freight.weight
                 }
-              });
-
-              if (notifyError) {
-                console.error(`Failed to notify driver ${match.driver_id}:`, notifyError);
-                return { driver_id: match.driver_id, notified: false, reason: notifyError.message };
               }
+            });
 
-              // Update match record with notification timestamp
-              await supabaseClient
-                .from('freight_matches')
-                .update({ notified_at: new Date().toISOString() })
-                .eq('freight_id', freight_id)
-                .eq('driver_id', match.driver_id);
-
-              return { driver_id: match.driver_id, notified: true };
-            } catch (error) {
-              console.error(`Exception notifying driver ${match.driver_id}:`, error);
-              return { driver_id: match.driver_id, notified: false, reason: 'exception' };
+            if (notifyError) {
+              return { driver_id: match.driver_id, notified: false, reason: notifyError.message };
             }
-          });
 
-          notificationResults = await Promise.all(notificationPromises);
-          console.log('Notification results:', notificationResults);
-        }
+            await supabaseService
+              .from('freight_matches')
+              .update({ notified_at: new Date().toISOString() })
+              .eq('freight_id', freight_id)
+              .eq('driver_id', match.driver_id);
+
+            return { driver_id: match.driver_id, notified: true };
+          } catch (error) {
+            return { driver_id: match.driver_id, notified: false, reason: 'exception' };
+          }
+        });
+
+        notificationResults = await Promise.all(notificationPromises);
       }
 
       const response = {
@@ -197,10 +260,35 @@ serve(async (req) => {
       const url = new URL(req.url);
       const freight_id = url.searchParams.get('freight_id');
 
-      if (!freight_id) {
+      const validation = GetMatchesSchema.safeParse({ freight_id });
+      
+      if (!validation.success) {
         return new Response(
-          JSON.stringify({ error: 'freight_id parameter is required' }),
+          JSON.stringify({ 
+            error: 'Invalid freight_id parameter',
+            details: validation.error.errors
+          }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Verify user owns the freight
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      const { data: freight } = await supabaseClient
+        .from('freights')
+        .select('producer_id')
+        .eq('id', validation.data.freight_id)
+        .single();
+
+      if (!freight || freight.producer_id !== profile?.id) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -214,7 +302,7 @@ serve(async (req) => {
           ),
           profiles(full_name)
         `)
-        .eq('freight_id', freight_id)
+        .eq('freight_id', validation.data.freight_id)
         .order('match_score', { ascending: false });
 
       if (error) {
@@ -227,7 +315,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          freight_id,
+          freight_id: validation.data.freight_id,
           matches: matches || [] 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -240,7 +328,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Spatial matching error:', error);
+    console.error('[Spatial Matching] Error:', error);
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error', 

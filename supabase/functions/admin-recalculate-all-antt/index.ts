@@ -39,14 +39,74 @@ serve(async (req) => {
   }
 
   try {
+    // Get JWT token from Authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Initialize Supabase client with user's JWT
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      }
+    );
+
+    // Verify user is authenticated and is admin
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user has admin role
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'ADMIN') {
+      console.error(`[ADMIN-RECALC] Unauthorized access attempt by user: ${user.id}`);
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check rate limit
+    const { data: canProceed } = await supabaseClient
+      .rpc('check_rate_limit', { 
+        endpoint_name: 'admin-recalculate-all-antt',
+        max_requests: 2,
+        time_window: '01:00:00'
+      });
+
+    if (!canProceed) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. This operation can only be run twice per hour.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[ADMIN-RECALC] Starting recalculation by admin user: ${user.id}`);
+
+    // Use service role for bulk operations
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    console.log('[ADMIN-RECALC] Iniciando recálculo de TODOS os fretes ativos');
-
-    // Buscar TODOS os fretes ativos tipo CARGA
+    // Fetch active CARGA freights
     const { data: freights, error: fetchError } = await supabase
       .from('freights')
       .select('id, cargo_type, distance_km, vehicle_axles_required, high_performance, required_trucks, minimum_antt_price')
@@ -56,11 +116,11 @@ serve(async (req) => {
       .gt('distance_km', 0);
 
     if (fetchError) {
-      console.error('[ADMIN-RECALC] Erro ao buscar fretes:', fetchError);
+      console.error('[ADMIN-RECALC] Error fetching freights:', fetchError);
       throw fetchError;
     }
 
-    console.log(`[ADMIN-RECALC] Encontrados ${freights?.length || 0} fretes para processar`);
+    console.log(`[ADMIN-RECALC] Found ${freights?.length || 0} freights to process`);
 
     const results = {
       total: freights?.length || 0,
@@ -76,9 +136,6 @@ serve(async (req) => {
         const tableType = freight.high_performance ? 'C' : 'A';
         const axles = freight.vehicle_axles_required || 5;
 
-        console.log(`[ADMIN-RECALC] Processando frete ${freight.id}: ${freight.cargo_type} -> ${anttCategory}`);
-
-        // Buscar taxa ANTT
         const { data: rates, error: rateError } = await supabase
           .from('antt_rates')
           .select('rate_per_km, fixed_charge')
@@ -88,7 +145,7 @@ serve(async (req) => {
           .maybeSingle();
 
         if (rateError) {
-          console.error(`[ADMIN-RECALC] Erro ao buscar taxa ANTT para frete ${freight.id}:`, rateError);
+          console.error(`[ADMIN-RECALC] Error fetching rate for freight ${freight.id}:`, rateError);
         }
 
         let ratePerKm: number, fixedCharge: number;
@@ -97,9 +154,8 @@ serve(async (req) => {
           ratePerKm = rates.rate_per_km;
           fixedCharge = rates.fixed_charge;
         } else {
-          // Fallback para Carga Geral
-          console.log(`[ADMIN-RECALC] Usando fallback Carga Geral para frete ${freight.id}`);
-          const { data: fallback, error: fallbackError } = await supabase
+          // Fallback to Carga Geral
+          const { data: fallback } = await supabase
             .from('antt_rates')
             .select('rate_per_km, fixed_charge')
             .eq('table_type', tableType)
@@ -107,8 +163,7 @@ serve(async (req) => {
             .eq('axles', axles)
             .maybeSingle();
 
-          if (fallbackError || !fallback) {
-            console.error(`[ADMIN-RECALC] Sem fallback para frete ${freight.id}`);
+          if (!fallback) {
             results.skipped++;
             continue;
           }
@@ -116,14 +171,10 @@ serve(async (req) => {
           fixedCharge = fallback.fixed_charge;
         }
 
-        // Calcular ANTT POR CARRETA
         const anttPerTruck = parseFloat(
           ((ratePerKm * freight.distance_km) + fixedCharge).toFixed(2)
         );
 
-        console.log(`[ADMIN-RECALC] Frete ${freight.id}: ANTT calculado = R$ ${anttPerTruck}`);
-
-        // Atualizar frete
         const { error: updateError } = await supabase
           .from('freights')
           .update({
@@ -133,7 +184,7 @@ serve(async (req) => {
           .eq('id', freight.id);
 
         if (updateError) {
-          console.error(`[ADMIN-RECALC] Erro ao atualizar frete ${freight.id}:`, updateError);
+          console.error(`[ADMIN-RECALC] Error updating freight ${freight.id}:`, updateError);
           throw updateError;
         }
 
@@ -147,19 +198,29 @@ serve(async (req) => {
         });
 
       } catch (error) {
-        console.error(`[ADMIN-RECALC] Erro no frete ${freight.id}:`, error);
+        console.error(`[ADMIN-RECALC] Error processing freight ${freight.id}:`, error);
         results.errors++;
       }
     }
 
-    console.log('[ADMIN-RECALC] Finalizado:', results);
+    // Log audit trail
+    await supabase
+      .from('audit_logs')
+      .insert({
+        user_id: user.id,
+        table_name: 'freights',
+        operation: 'ADMIN_ANTT_RECALC',
+        new_data: results
+      });
+
+    console.log('[ADMIN-RECALC] Completed:', results);
 
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('[ADMIN-RECALC] Erro geral:', error);
+    console.error('[ADMIN-RECALC] Error:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

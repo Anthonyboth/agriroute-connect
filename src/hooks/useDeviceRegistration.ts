@@ -11,22 +11,34 @@ export const useDeviceRegistration = () => {
   useEffect(() => {
     if (!profile) return;
 
+    let isRegistering = false;
+
     // Registrar dispositivo ao fazer login
     const register = async () => {
-      try {
-        await registerDevice(profile.id);
-        console.log('Dispositivo registrado');
+      if (isRegistering) return;
+      isRegistering = true;
 
-        // Sincronizar permissões realmente verificadas
-        const deviceId = getDeviceId();
-        await syncDevicePermissions(deviceId, {
-          location: permissions.location === 'granted',
-          push: permissions.notifications === 'granted',
-          storage: permissions.storage === 'granted'
-          // Não sincronizar câmera/microfone até serem usados
-        });
+      try {
+        const result = await registerDevice(profile.id);
+        
+        // Only log success if registration actually succeeded
+        if (result) {
+          console.log('✅ Dispositivo registrado com sucesso');
+
+          // Sincronizar permissões realmente verificadas
+          const deviceId = getDeviceId();
+          await syncDevicePermissions(deviceId, {
+            location: permissions.location === 'granted',
+            push: permissions.notifications === 'granted',
+            storage: permissions.storage === 'granted'
+          });
+        } else {
+          console.warn('⚠️ Falha ao registrar dispositivo (sem resultado)');
+        }
       } catch (error) {
-        console.error('Erro ao registrar dispositivo:', error);
+        console.error('❌ Erro ao registrar dispositivo:', error);
+      } finally {
+        isRegistering = false;
       }
     };
 
@@ -39,5 +51,5 @@ export const useDeviceRegistration = () => {
     }, 5 * 60 * 1000); // 5 minutos
 
     return () => clearInterval(interval);
-  }, [profile, permissions]);
+  }, [profile?.id]); // Only depend on profile.id to avoid excessive re-runs
 };
