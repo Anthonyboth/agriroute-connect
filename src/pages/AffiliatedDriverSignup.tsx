@@ -189,46 +189,49 @@ const AffiliatedDriverSignup = () => {
         return;
       }
 
-      // 4. Criar vínculo automático em company_drivers
+      // 4. Criar solicitação de vínculo com status PENDING
       const { error: linkError } = await supabase
         .from('company_drivers')
         .insert({
           company_id: companyId,
           driver_profile_id: profileData.id,
-          status: 'ACTIVE',
-          can_accept_freights: false, // Motoristas afiliados não podem aceitar fretes
-          can_manage_vehicles: false, // Motoristas afiliados não podem gerenciar veículos
+          status: 'PENDING', // ✅ Aguarda aprovação da transportadora
+          can_accept_freights: false,
+          can_manage_vehicles: false,
           affiliation_type: 'AFFILIATED',
-          invited_by: null, // Auto-cadastro
-          notes: 'Cadastro automático como motorista afiliado'
+          invited_by: null,
+          notes: 'Solicitação de cadastro como motorista afiliado - aguardando aprovação'
         });
 
       if (linkError) {
         console.error('Erro ao criar vínculo:', linkError);
-        toast.warning('Cadastro criado, mas houve erro ao vincular. Entre em contato com o suporte.');
+        toast.error('Erro ao solicitar vínculo. Entre em contato com o suporte.');
+        setLoading(false);
+        return;
       }
 
-      // 5. Criar notificação para a transportadora
+      // 5. Criar notificação para a transportadora sobre nova solicitação
       const { data: companyData } = await supabase
         .from('transport_companies')
-        .select('profile_id')
+        .select('profile_id, company_name')
         .eq('id', companyId)
         .single();
 
       if (companyData) {
         await supabase.from('notifications').insert({
           user_id: companyData.profile_id,
-          title: 'Novo Motorista Afiliado',
-          message: `${fullName} se cadastrou como motorista afiliado da sua transportadora`,
-          type: 'company_affiliated_driver',
+          title: 'Nova Solicitação de Motorista',
+          message: `${fullName} solicitou vínculo como motorista afiliado`,
+          type: 'driver_approval_pending',
           data: {
             driver_profile_id: profileData.id,
-            driver_name: fullName
+            driver_name: fullName,
+            requires_action: true
           }
         });
       }
 
-      toast.success('Cadastro realizado com sucesso! Verifique seu email para confirmar.');
+      toast.success(`Solicitação enviada! Aguarde aprovação de ${companyData?.company_name || 'transportadora'}.`);
       
       // Redirecionar para tela de confirmação
       setTimeout(() => {

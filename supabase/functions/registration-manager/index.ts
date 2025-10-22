@@ -63,12 +63,12 @@ serve(async (req) => {
       .eq('profile_id', profile.id)
       .single()
 
-    // Verificar se é motorista afiliado
+    // Verificar se é motorista afiliado (ACTIVE ou PENDING)
     const { data: companyDriver } = await supabaseClient
       .from('company_drivers')
-      .select('*')
+      .select('*, company:company_id(company_name)')
       .eq('driver_profile_id', profile.id)
-      .eq('status', 'ACTIVE')
+      .in('status', ['ACTIVE', 'PENDING'])
       .single()
 
     // Determinar modo de cadastro
@@ -76,7 +76,9 @@ serve(async (req) => {
     
     if (profile.role === 'TRANSPORTADORA' || company) {
       mode = 'TRANSPORTADORA'
-    } else if (profile.role === 'MOTORISTA_AFILIADO' || (profile.role === 'MOTORISTA' && companyDriver)) {
+    } else if (companyDriver?.status === 'PENDING') {
+      mode = 'MOTORISTA_AFILIADO_PENDENTE'
+    } else if (profile.role === 'MOTORISTA_AFILIADO' || (profile.role === 'MOTORISTA' && companyDriver?.status === 'ACTIVE')) {
       mode = 'MOTORISTA_AFILIADO'
     } else if (profile.role === 'MOTORISTA' && !companyDriver) {
       mode = 'MOTORISTA_AUTONOMO'
@@ -99,6 +101,9 @@ serve(async (req) => {
         break
       case 'MOTORISTA_AUTONOMO':
         steps = ['dados_basicos', 'documentos_basicos', 'documentos_e_veiculos']
+        break
+      case 'MOTORISTA_AFILIADO_PENDENTE':
+        steps = ['aguardando_aprovacao']
         break
       case 'MOTORISTA_AFILIADO':
       case 'PRODUTOR':
@@ -138,7 +143,11 @@ serve(async (req) => {
           id: profile.id,
           role: profile.role,
           status: profile.status
-        }
+        },
+        companyDriver: companyDriver ? {
+          status: companyDriver.status,
+          companyName: companyDriver.company?.company_name
+        } : null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )

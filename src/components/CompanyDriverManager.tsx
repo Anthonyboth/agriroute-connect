@@ -27,7 +27,15 @@ import {
 } from '@/components/ui/select';
 
 export const CompanyDriverManager: React.FC = () => {
-  const { drivers, isLoadingDrivers, removeDriver } = useTransportCompany();
+  const { 
+    drivers, 
+    isLoadingDrivers, 
+    pendingDrivers, 
+    isLoadingPending,
+    removeDriver,
+    approveDriver,
+    rejectDriver 
+  } = useTransportCompany();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [driverToRemove, setDriverToRemove] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,6 +58,54 @@ export const CompanyDriverManager: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {/* Solicitações Pendentes */}
+      {pendingDrivers && pendingDrivers.length > 0 && (
+        <Card className="border-yellow-500/50 bg-yellow-50/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-yellow-700">
+              <Users className="h-5 w-5" />
+              Solicitações Pendentes ({pendingDrivers.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {pendingDrivers.map((driver: any) => (
+                <div key={driver.id} className="flex items-center justify-between p-4 border rounded-lg bg-background">
+                  <div className="flex-1">
+                    <p className="font-semibold">{driver.driver?.full_name}</p>
+                    <p className="text-sm text-muted-foreground">{driver.driver?.email}</p>
+                    <p className="text-sm text-muted-foreground">{driver.driver?.contact_phone}</p>
+                    {driver.driver?.rating > 0 && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm">{driver.driver.rating.toFixed(1)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => approveDriver.mutate(driver.driver_profile_id)}
+                      disabled={approveDriver.isPending}
+                    >
+                      Aprovar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => rejectDriver.mutate(driver.driver_profile_id)}
+                      disabled={rejectDriver.isPending}
+                    >
+                      Rejeitar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Cabeçalho com ações */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div>
