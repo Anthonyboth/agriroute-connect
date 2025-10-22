@@ -201,8 +201,8 @@ export class ErrorMonitoringService {
       });
 
       if (error) {
-        console.error('[ErrorMonitoringService] Erro ao enviar relatório:', error);
-        this.errorQueue.push(report);
+        // Log mas não propagar - monitoring não deve quebrar a aplicação
+        console.debug('[ErrorMonitoringService] Falha ao enviar (não crítico):', error.message);
         return { notified: false };
       }
 
@@ -213,8 +213,8 @@ export class ErrorMonitoringService {
         errorLogId: data?.errorLogId
       };
     } catch (error) {
-      console.error('[ErrorMonitoringService] Falha ao enviar relatório:', error);
-      this.errorQueue.push(report);
+      // Fail silently - erro de monitoramento não deve impactar usuário
+      console.debug('[ErrorMonitoringService] Erro capturado e suprimido:', error instanceof Error ? error.message : String(error));
       return { notified: false };
     }
   }

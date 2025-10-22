@@ -27,7 +27,7 @@ interface PendingRatingsPanelProps {
   userProfileId: string;
 }
 
-export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = ({
+export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.memo(({
   userRole,
   userProfileId
 }) => {
@@ -91,10 +91,25 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = ({
   };
 
   useEffect(() => {
-    if (userProfileId) {
-      fetchPendingRatings();
-    }
-  }, [userProfileId]); // Removed userRole - it doesn't change after mount
+    let mounted = true;
+    
+    const loadRatings = async () => {
+      if (!userProfileId || !mounted) return;
+      
+      try {
+        setLoading(true);
+        await fetchPendingRatings();
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    
+    loadRatings();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [userProfileId]);
 
   const handleRatingSubmitted = () => {
     fetchPendingRatings(); // Refresh the list
@@ -151,7 +166,7 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = ({
           ) : (
             <div className="space-y-4">
               {pendingRatings.map((freight) => (
-                <Card key={freight.id} className="border-l-4 border-l-amber-500 bg-amber-50/50">
+                <Card key={`rating-${freight.id}-${freight.updated_at}`} className="border-l-4 border-l-amber-500 bg-amber-50/50">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div>
@@ -218,4 +233,8 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = ({
       )}
     </>
   );
-};
+}, (prevProps, nextProps) => {
+  // Evitar re-renders desnecessários
+  return prevProps.userProfileId === nextProps.userProfileId &&
+         prevProps.userRole === nextProps.userRole;
+});
