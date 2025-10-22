@@ -7,6 +7,7 @@ import { Star, Calendar } from 'lucide-react';
 import { ServiceAutoRatingModal } from './ServiceAutoRatingModal';
 import { useServiceRatingSubmit } from '@/hooks/useServiceRatingSubmit';
 import { appTexts } from '@/lib/app-texts';
+import { toast } from 'sonner';
 
 interface PendingService {
   id: string;
@@ -42,6 +43,8 @@ export const PendingServiceRatingsPanel: React.FC = () => {
         .select('id, service_type, updated_at, client_id, provider_id')
         .eq('status', 'COMPLETED')
         .or(`client_id.eq.${profile.id},provider_id.eq.${profile.id}`)
+        .not('client_id', 'is', null)
+        .not('provider_id', 'is', null)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -55,7 +58,7 @@ export const PendingServiceRatingsPanel: React.FC = () => {
       const allProfileIds = Array.from(new Set([
         ...services.map(s => s.client_id),
         ...services.map(s => s.provider_id)
-      ]));
+      ])).filter(id => id != null);
 
       const { data: profilesData } = await supabase
         .from('profiles')
@@ -108,6 +111,18 @@ export const PendingServiceRatingsPanel: React.FC = () => {
       return;
     }
 
+    // Validação defensiva antes de determinar ratedUserId
+    if (!selectedService.client_id || !selectedService.provider_id) {
+      console.error('[PendingServiceRatingsPanel] Service request com IDs inválidos:', {
+        serviceId: selectedService.id,
+        client_id: selectedService.client_id,
+        provider_id: selectedService.provider_id,
+      });
+      toast.error('Erro: Dados do serviço estão incompletos. Por favor, contate o suporte.');
+      setSelectedService(null);
+      return;
+    }
+
     if (isSubmitting || isSubmittingHook) return;
     
     setIsSubmitting(true);
@@ -115,6 +130,19 @@ export const PendingServiceRatingsPanel: React.FC = () => {
     const isClient = selectedService.client_id === profile?.id;
     const ratedUserId = isClient ? selectedService.provider_id : selectedService.client_id;
     const raterRole: 'CLIENT' | 'PROVIDER' = isClient ? 'CLIENT' : 'PROVIDER';
+
+    // Validação adicional do ratedUserId
+    if (!ratedUserId) {
+      console.error('[PendingServiceRatingsPanel] ratedUserId inválido após determinação:', {
+        isClient,
+        provider_id: selectedService.provider_id,
+        client_id: selectedService.client_id,
+      });
+      toast.error('Erro: Não foi possível identificar o usuário a ser avaliado.');
+      setIsSubmitting(false);
+      setSelectedService(null);
+      return;
+    }
 
     console.log('[PendingServiceRatingsPanel] Submetendo avaliação:', {
       serviceRequestId: selectedService.id,

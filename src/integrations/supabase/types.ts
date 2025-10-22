@@ -4029,7 +4029,7 @@ export type Database = {
           city_lng: number | null
           city_name: string | null
           client_comment: string | null
-          client_id: string | null
+          client_id: string
           client_rating: number | null
           completed_at: string | null
           contact_document: string | null
@@ -4052,7 +4052,7 @@ export type Database = {
           problem_description: string
           prospect_user_id: string | null
           provider_comment: string | null
-          provider_id: string | null
+          provider_id: string
           provider_notes: string | null
           provider_rating: number | null
           service_radius_km: number | null
@@ -4073,7 +4073,7 @@ export type Database = {
           city_lng?: number | null
           city_name?: string | null
           client_comment?: string | null
-          client_id?: string | null
+          client_id: string
           client_rating?: number | null
           completed_at?: string | null
           contact_document?: string | null
@@ -4096,7 +4096,7 @@ export type Database = {
           problem_description: string
           prospect_user_id?: string | null
           provider_comment?: string | null
-          provider_id?: string | null
+          provider_id: string
           provider_notes?: string | null
           provider_rating?: number | null
           service_radius_km?: number | null
@@ -4117,7 +4117,7 @@ export type Database = {
           city_lng?: number | null
           city_name?: string | null
           client_comment?: string | null
-          client_id?: string | null
+          client_id?: string
           client_rating?: number | null
           completed_at?: string | null
           contact_document?: string | null
@@ -4140,7 +4140,7 @@ export type Database = {
           problem_description?: string
           prospect_user_id?: string | null
           provider_comment?: string | null
-          provider_id?: string | null
+          provider_id?: string
           provider_notes?: string | null
           provider_rating?: number | null
           service_radius_km?: number | null

@@ -50,7 +50,13 @@ export function useServiceRatingSubmit() {
     }
 
     if (!isValidUUID(ratedUserId)) {
-      console.error('[useServiceRatingSubmit] ID de usuário avaliado inválido:', ratedUserId);
+      console.error('[useServiceRatingSubmit] ID de usuário avaliado inválido:', {
+        ratedUserId,
+        type: typeof ratedUserId,
+        isNull: ratedUserId === null,
+        isUndefined: ratedUserId === undefined,
+        isEmpty: ratedUserId === '',
+      });
       toast.error('Erro ao processar avaliação: identificador de usuário inválido');
       return { success: false, error: 'Invalid rated user ID' };
     }

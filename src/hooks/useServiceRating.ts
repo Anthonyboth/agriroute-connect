@@ -52,6 +52,16 @@ export const useServiceRating = ({ serviceRequestId, ratedUserId, raterRole }: S
 
   const submitRating = async (rating: number, comment?: string) => {
     try {
+      // Validação do ratedUserId antes de prosseguir
+      if (!ratedUserId || ratedUserId.trim() === '') {
+        console.error('[useServiceRating] ratedUserId inválido:', {
+          ratedUserId,
+          type: typeof ratedUserId,
+        });
+        toast.error('Erro: Identificador de usuário inválido');
+        return { success: false, error: new Error('invalid_rated_user_id') };
+      }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
