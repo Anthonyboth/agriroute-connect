@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { queryWithTimeout } from '@/lib/query-utils';
+import { queryWithTimeout, subscriptionWithRetry } from '@/lib/query-utils';
 
 export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -49,26 +49,31 @@ export const useNotifications = () => {
     if (profile) {
       fetchUnreadCount();
       
-      // Configurar real-time subscription para mudanças nas notificações
-      const subscription = supabase
-        .channel('notifications_changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${profile.id}`
-          },
-          () => {
-            fetchUnreadCount();
+      // Configurar real-time subscription com retry
+      const { cleanup } = subscriptionWithRetry(
+        'notifications_changes',
+        (channel) => {
+          channel.on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${profile.id}`
+            },
+            () => fetchUnreadCount()
+          );
+        },
+        {
+          maxRetries: 3,
+          retryDelayMs: 2000,
+          onError: (error) => {
+            console.error('[useNotifications] Subscription error:', error);
           }
-        )
-        .subscribe();
+        }
+      );
 
-      return () => {
-        subscription.unsubscribe();
-      };
+      return cleanup;
     }
   }, [profile, fetchUnreadCount]);
 

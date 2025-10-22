@@ -90,7 +90,9 @@ export const useOptimizedStats = () => {
 
       setStats(prev => ({ ...prev, loading: true, error: null }));
 
-      console.log('[useOptimizedStats] Buscando estatísticas...');
+      if (import.meta.env.DEV) {
+        console.log('[useOptimizedStats] Buscando estatísticas...');
+      }
       
       const data = await queryWithTimeout(
         async () => {
@@ -120,7 +122,9 @@ export const useOptimizedStats = () => {
           error: null
         };
         
-        console.log('[useOptimizedStats] Estatísticas carregadas:', newStats);
+        if (import.meta.env.DEV) {
+          console.log('[useOptimizedStats] Estatísticas carregadas:', newStats);
+        }
         setStats(newStats);
         setCachedStats(newStats);
       } else {
@@ -143,7 +147,9 @@ export const useOptimizedStats = () => {
       // Tentar usar cache mesmo em erro
       const cached = getCachedStats();
       if (cached) {
-        console.log('[useOptimizedStats] Usando cache após erro');
+        if (import.meta.env.DEV) {
+          console.log('[useOptimizedStats] Usando cache após erro');
+        }
         setStats({ ...cached, error: 'Dados em cache' });
       } else {
         setStats({ 

@@ -32,9 +32,13 @@ export async function queryWithTimeout<T>(
     );
 
     try {
-      console.log(`[QueryUtils] ${operationName} - Tentativa ${attemptNumber + 1}/${retries + 1}`);
+      if (import.meta.env.DEV) {
+        console.log(`[QueryUtils] ${operationName} - Tentativa ${attemptNumber + 1}/${retries + 1}`);
+      }
       const result = await Promise.race([queryFn(), timeoutPromise]);
-      console.log(`[QueryUtils] ${operationName} - Sucesso`);
+      if (import.meta.env.DEV) {
+        console.log(`[QueryUtils] ${operationName} - Sucesso`);
+      }
       return result;
     } catch (error: any) {
       const isTimeout = error.message?.includes('Timeout');
@@ -115,6 +119,77 @@ export function debounce<T extends (...args: any[]) => any>(
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), waitMs);
+  };
+}
+
+/**
+ * Subscription with retry logic and exponential backoff
+ */
+export function subscriptionWithRetry(
+  channelName: string,
+  setupFn: (channel: any) => any,
+  options: {
+    maxRetries?: number;
+    retryDelayMs?: number;
+    onError?: (error: Error) => void;
+  } = {}
+): { channel: any; cleanup: () => void } {
+  const { maxRetries = 3, retryDelayMs = 2000, onError } = options;
+  let retries = 0;
+  let channel: any;
+  let isCleanedUp = false;
+
+  const setup = () => {
+    if (isCleanedUp) return;
+
+    const supabase = (window as any).__supabaseClient;
+    if (!supabase) {
+      console.error('[subscriptionWithRetry] Supabase client not available');
+      return;
+    }
+
+    channel = supabase.channel(channelName);
+    setupFn(channel);
+
+    channel.on('system', { event: '*' }, (payload: any) => {
+      if (isCleanedUp) return;
+
+      if ((payload.status === 'CHANNEL_ERROR' || payload.status === 'SUBSCRIPTION_ERROR') && retries < maxRetries) {
+        retries++;
+        const delay = retryDelayMs * Math.pow(2, retries - 1); // Exponential backoff
+        
+        if (import.meta.env.DEV) {
+          console.log(`[subscriptionWithRetry] ${channelName} erro, retry ${retries}/${maxRetries} em ${delay}ms`);
+        }
+
+        setTimeout(() => {
+          if (!isCleanedUp) {
+            supabase.removeChannel(channel);
+            setup();
+          }
+        }, delay);
+      } else if (payload.status === 'CHANNEL_ERROR' && retries >= maxRetries) {
+        const error = new Error(`Subscription ${channelName} falhou após ${maxRetries} tentativas`);
+        console.error('[subscriptionWithRetry]', error);
+        onError?.(error);
+      }
+    });
+
+    channel.subscribe();
+  };
+
+  // Delay initial connection by 1 second to allow auth to settle
+  setTimeout(setup, 1000);
+
+  return {
+    channel,
+    cleanup: () => {
+      isCleanedUp = true;
+      const supabase = (window as any).__supabaseClient;
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
+    }
   };
 }
 

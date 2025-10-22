@@ -69,10 +69,22 @@ export const useAuth = () => {
   // Prevent multiple simultaneous fetches
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
+  const lastFetchTimestamp = useRef<number>(0);
+  const FETCH_THROTTLE_MS = 2000;
 
   // Memoized fetch function to prevent recreation on every render
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
     if (fetchingRef.current || !mountedRef.current) return;
+    
+    // Throttle: prevent too frequent calls
+    const now = Date.now();
+    if (!force && now - lastFetchTimestamp.current < FETCH_THROTTLE_MS) {
+      if (import.meta.env.DEV) {
+        console.log('[useAuth] Fetch throttled');
+      }
+      return;
+    }
+    lastFetchTimestamp.current = now;
     
     fetchingRef.current = true;
     
