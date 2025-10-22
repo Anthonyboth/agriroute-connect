@@ -32,7 +32,6 @@ export const useDeviceRegistration = () => {
       } catch (error) {
         console.error('❌ Erro ao registrar dispositivo:', error);
         // Não mostrar toast - usuário não precisa saber desse erro técnico
-        // O sistema funciona mesmo sem registro de dispositivo
       } finally {
         isRegistering = false;
       }

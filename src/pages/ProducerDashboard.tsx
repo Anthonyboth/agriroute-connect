@@ -327,7 +327,7 @@ const ProducerDashboard = () => {
       console.log('loadData: Profile disponível, executando imediatamente');
       loadData();
     }
-  }, [profile?.id, profile?.role, fetchFreights, fetchProposals, fetchExternalPayments, fetchFreightPayments, fetchServiceRequests]);
+  }, [profile?.id, profile?.role]);
 
   // Abrir frete automaticamente quando vem de notificação
   useEffect(() => {
@@ -421,7 +421,7 @@ const ProducerDashboard = () => {
       supabase.removeChannel(ratingChannel);
       supabase.removeChannel(channel);
     };
-  }, [profile?.id, fetchFreights, fetchProposals, fetchExternalPayments, fetchFreightPayments, fetchServiceRequests]);
+  }, [profile?.id]);
 
   const handleAcceptProposal = async (proposalId: string) => {
     try {
