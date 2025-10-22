@@ -39,6 +39,14 @@ class ErrorBoundary extends Component<Props, State> {
     }
 
     console.error('ErrorBoundary caught error:', error, errorInfo);
+    console.error('🚨 ErrorBoundary detalhes:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack?.slice(0, 500),
+      componentStack: errorInfo.componentStack?.slice(0, 500),
+      timestamp: new Date().toISOString(),
+      location: window.location.pathname
+    });
     
     // Detectar painel baseado na URL
     const currentPath = window.location.pathname;

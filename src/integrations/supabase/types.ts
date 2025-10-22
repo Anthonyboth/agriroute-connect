@@ -5635,6 +5635,14 @@ export type Database = {
           required_trucks: number
         }[]
       }
+      fix_freight_statuses: {
+        Args: never
+        Returns: {
+          freight_id: string
+          new_status: string
+          old_status: string
+        }[]
+      }
       generate_admin_report: {
         Args: {
           p_period_end: string

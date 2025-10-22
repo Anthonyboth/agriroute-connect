@@ -2012,7 +2012,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                         </div>
                       )}
                     </div>
-                  )
+                  ) : null
                 ))}
               </div>
             ) : (
