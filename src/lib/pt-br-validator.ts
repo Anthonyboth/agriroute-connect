@@ -148,7 +148,19 @@ export function normalizeServiceType(serviceType: string): string {
     'MUDANCA': 'Mudança',
   };
   
-  return serviceNames[serviceType] || serviceType;
+  // Se encontrou mapeamento, retornar
+  if (serviceNames[serviceType]) {
+    return serviceNames[serviceType];
+  }
+  
+  // Caso contrário, formatar automaticamente:
+  // PIVO_IRRIGACAO -> Pivô Irrigação
+  // BORRACHEIRO -> Borracheiro
+  return serviceType
+    .toLowerCase()
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 /**

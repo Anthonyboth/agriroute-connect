@@ -58,6 +58,7 @@ import { UserCityManager } from '@/components/UserCityManager';
 import { ServiceHistory } from '@/components/ServiceHistory';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 import { ServicesModal } from '@/components/ServicesModal';
+import { normalizeServiceType } from '@/lib/pt-br-validator';
 
 interface ServiceRequest {
   id: string;
@@ -818,7 +819,7 @@ export const ServiceProviderDashboard: React.FC = () => {
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
       const problemDescription = (request.problem_description || '').toLowerCase();
-      const serviceTypeName = serviceTypes.find(t => t.value === request.service_type)?.label.toLowerCase() || request.service_type.toLowerCase();
+      const serviceTypeName = normalizeServiceType(request.service_type).toLowerCase();
       
       if (!problemDescription.includes(searchLower) && !serviceTypeName.includes(searchLower)) {
         return false;
@@ -1104,7 +1105,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                       <CardContent className="p-4 group-hover:bg-gradient-to-br group-hover:from-white group-hover:to-primary/10 dark:group-hover:from-gray-900 dark:group-hover:to-primary/5 transition-all duration-300">
                         <div className="flex items-center justify-between mb-3">
                           <h3 className="font-semibold text-sm">
-                            {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
+                            {normalizeServiceType(request.service_type)}
                           </h3>
                           <Badge variant={getUrgencyColor(request.urgency)} className="text-xs shadow-sm">
                             {request.urgency === 'URGENT' ? 'Urgente' : 
@@ -1200,7 +1201,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium text-sm">
-                            {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
+                            {normalizeServiceType(request.service_type)}
                           </h3>
                           {!request.client_id && (
                             <Badge variant="outline" className="text-xs">
@@ -1286,7 +1287,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                      <CardContent className="p-4">
                        <div className="flex items-center justify-between mb-3">
                          <h3 className="font-medium text-sm">
-                           {serviceTypes.find(t => t.value === request.service_type)?.label || request.service_type}
+                           {normalizeServiceType(request.service_type)}
                          </h3>
                          <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
                            Concluído
@@ -1366,7 +1367,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold">
-                      {serviceTypes.find(t => t.value === selectedRequest.service_type)?.label || selectedRequest.service_type}
+                      {normalizeServiceType(selectedRequest.service_type)}
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       Solicitado em {new Date(selectedRequest.created_at).toLocaleString('pt-BR')}

@@ -20,6 +20,7 @@ import {
   Eye
 } from 'lucide-react';
 import { ServiceChat } from './ServiceChat';
+import { normalizeServiceType } from '@/lib/pt-br-validator';
 
 interface ServiceRequest {
   id: string;
@@ -139,36 +140,6 @@ export const ServiceHistory: React.FC = () => {
     return urgencyMap[urgency] || { label: urgency, variant: 'default' };
   };
 
-  const getServiceTypeLabel = (type: string) => {
-    const typeMap: Record<string, string> = {
-      'GUINCHO': 'Guincho',
-      'MUDANCA': 'Mudança',
-      'MECANICO': 'Mecânico',
-      'BORRACHEIRO': 'Borracheiro',
-      'ELETRICISTA_AUTOMOTIVO': 'Eletricista Automotivo',
-      'COMBUSTIVEL': 'Entrega de Combustível',
-      'CHAVEIRO': 'Chaveiro',
-      'SOLDADOR': 'Soldador',
-      'PINTURA': 'Pintura',
-      'VIDRACEIRO': 'Vidraceiro',
-      'AR_CONDICIONADO': 'Ar Condicionado',
-      'FREIOS': 'Freios',
-      'SUSPENSAO': 'Suspensão',
-      'AGRONOMO': 'Agrônomo',
-      'VETERINARIO': 'Veterinário',
-      'MECANICO_AGRICOLA': 'Mecânico Agrícola',
-      'ELETRICISTA': 'Eletricista',
-      'ENCANADOR': 'Encanador',
-      'PEDREIRO': 'Pedreiro',
-      'PINTOR': 'Pintor',
-      'MARCENEIRO': 'Marceneiro',
-      'JARDINEIRO': 'Jardineiro',
-      'LIMPEZA': 'Limpeza',
-      'DEDETIZACAO': 'Dedetização',
-      'SEGURANCA': 'Segurança'
-    };
-    return typeMap[type] || type;
-  };
 
   const filteredServices = services.filter(service => {
     if (activeTab === 'all') return true;
@@ -289,7 +260,7 @@ export const ServiceHistory: React.FC = () => {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <CardTitle className="text-lg">
-                                {getServiceTypeLabel(service.service_type)}
+                                {normalizeServiceType(service.service_type)}
                               </CardTitle>
                               <Badge variant={statusBadge.variant}>
                                 <StatusIcon className="h-3 w-3 mr-1" />
@@ -370,7 +341,7 @@ export const ServiceHistory: React.FC = () => {
         <DialogContent className="max-w-3xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>
-              {selectedService && getServiceTypeLabel(selectedService.service_type)}
+              {selectedService && normalizeServiceType(selectedService.service_type)}
             </DialogTitle>
           </DialogHeader>
           {selectedService && (
