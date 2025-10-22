@@ -220,7 +220,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
       // Inserir na tabela service_requests com client_id NULL (guest)
       const { data, error } = await supabase
         .from('service_requests')
-        .insert({
+        .insert([{
           client_id: null, // NULL = solicitação de convidado
           prospect_user_id: prospectId,
           service_type: selectedSubService,
@@ -243,7 +243,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
             preferredTime: formData.preferredTime || null,
             cargoDetails: cargoDetails
           })
-        } as any)
+        } as any])
         .select()
         .single();
 

@@ -159,7 +159,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
       // Latitude/longitude não são obrigatórios; cidade e endereço estruturado bastam para o match por cidade.
 
       // Criar solicitação de serviço na tabela service_requests
-      const { data, error } = await supabase.from('service_requests').insert({
+      const { data, error } = await supabase.from('service_requests').insert([{
         client_id: profile?.id || null, // NULL se não estiver logado
         service_type: serviceId,
         contact_name: formData.name,
@@ -175,7 +175,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         preferred_datetime: formData.preferred_time ? new Date().toISOString() : null,
         additional_info: formData.additional_info || null,
         status: 'OPEN'
-      } as any)
+      } as any])
       .select()
       .single();
 
