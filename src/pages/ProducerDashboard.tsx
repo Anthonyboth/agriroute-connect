@@ -27,7 +27,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star, MessageCircle } from 'lucide-react';
 import { Wrench } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
@@ -526,32 +526,68 @@ const ProducerDashboard = () => {
     setCounterProposalModalOpen(true);
   };
 
-  const handleFreightAction = async (action: 'edit' | 'cancel', freight: any) => {
+  const handleFreightAction = async (action: 'edit' | 'cancel' | 'request-cancel', freight: any) => {
     if (action === 'edit') {
       setSelectedFreight(freight);
       setEditFreightModalOpen(true);
     } else if (action === 'cancel') {
       setFreightToCancel(freight);
       setConfirmDialogOpen(true);
+    } else if (action === 'request-cancel') {
+      // Abrir detalhes do frete para contato via chat
+      setSelectedFreightDetails(freight);
+      toast.info('Entre em contato com o motorista via chat para solicitar o cancelamento', {
+        duration: 5000,
+      });
     }
   };
 
   const confirmCancelFreight = async () => {
     if (!freightToCancel) return;
     
+    // Validar se pode cancelar diretamente
+    const canCancelDirectly = ['OPEN', 'ACCEPTED', 'LOADING'].includes(freightToCancel.status);
+    
+    if (!canCancelDirectly) {
+      toast.error('Este frete está em andamento. Solicite o cancelamento via chat com o motorista.');
+      setConfirmDialogOpen(false);
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('freights')
-        .update({ status: 'CANCELLED' })
+        .update({ 
+          status: 'CANCELLED',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', freightToCancel.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error cancelling freight:', error);
+        throw error;
+      }
+
+      // Notificar motorista se houver um assignado
+      if (freightToCancel.driver_id) {
+        await supabase.functions.invoke('send-notification', {
+          body: {
+            user_id: freightToCancel.driver_profiles?.user_id,
+            title: 'Frete Cancelado',
+            message: `O frete de ${freightToCancel.cargo_type} foi cancelado pelo produtor.`,
+            type: 'freight_cancelled',
+            data: { freight_id: freightToCancel.id }
+          }
+        }).catch(err => console.warn('Notification failed:', err));
+      }
 
       toast.success('Frete cancelado com sucesso!');
+      setConfirmDialogOpen(false);
+      setFreightToCancel(null);
       fetchFreights();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error cancelling freight:', error);
-      toast.error('Erro ao cancelar frete');
+      toast.error(error.message || 'Erro ao cancelar frete');
     }
   };
 
@@ -1217,14 +1253,30 @@ const ProducerDashboard = () => {
                           <Eye className="h-4 w-4 mr-2" />
                           Ver Detalhes
                         </Button>
-                        {freight.status === 'IN_NEGOTIATION' && (
+                        
+                        {/* Cancelamento direto para ACCEPTED e LOADING */}
+                        {['ACCEPTED', 'LOADING'].includes(freight.status) && (
                           <Button 
                             size="sm" 
                             variant="destructive"
                             className="flex-1 hover:shadow-lg transition-all duration-300"
                             onClick={() => handleFreightAction('cancel', freight)}
                           >
+                            <X className="h-4 w-4 mr-2" />
                             Cancelar Frete
+                          </Button>
+                        )}
+                        
+                        {/* Solicitar cancelamento via chat para LOADED e IN_TRANSIT */}
+                        {['LOADED', 'IN_TRANSIT'].includes(freight.status) && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1 border-destructive text-destructive hover:bg-destructive/10"
+                            onClick={() => handleFreightAction('request-cancel', freight)}
+                          >
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            Solicitar Cancelamento
                           </Button>
                         )}
                       </div>

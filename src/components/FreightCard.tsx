@@ -20,7 +20,8 @@ import {
   Wrench,
   Home,
   Edit,
-  X
+  X,
+  MessageCircle
 } from 'lucide-react';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
@@ -39,14 +40,14 @@ interface FreightCardProps {
     delivery_date: string;
     price: number;
     urgency: 'LOW' | 'MEDIUM' | 'HIGH';
-    status: 'OPEN' | 'IN_TRANSIT' | 'DELIVERED' | 'IN_NEGOTIATION' | 'ACCEPTED' | 'CANCELLED';
+    status: 'OPEN' | 'IN_TRANSIT' | 'DELIVERED' | 'IN_NEGOTIATION' | 'ACCEPTED' | 'CANCELLED' | 'LOADING' | 'LOADED';
     distance_km: number;
     minimum_antt_price: number;
     service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO';
     required_trucks?: number;
     accepted_trucks?: number;
   };
-  onAction?: (action: 'propose' | 'accept' | 'complete' | 'edit' | 'cancel') => void;
+  onAction?: (action: 'propose' | 'accept' | 'complete' | 'edit' | 'cancel' | 'request-cancel') => void;
   showActions?: boolean;
   showProducerActions?: boolean;
   hidePrice?: boolean;
@@ -401,7 +402,9 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               <Edit className="h-4 w-4 mr-2" />
               Editar
             </Button>
-            {freight.status === 'OPEN' && (
+            
+            {/* Cancelamento direto para OPEN, ACCEPTED, LOADING */}
+            {['OPEN', 'ACCEPTED', 'LOADING'].includes(freight.status) && (
               <Button 
                 onClick={() => onAction('cancel')}
                 className="flex-1"
@@ -410,6 +413,19 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               >
                 <X className="h-4 w-4 mr-2" />
                 Cancelar
+              </Button>
+            )}
+            
+            {/* Solicitar cancelamento via chat para LOADED, IN_TRANSIT */}
+            {['LOADED', 'IN_TRANSIT'].includes(freight.status) && (
+              <Button 
+                onClick={() => onAction('request-cancel')}
+                className="flex-1 border-destructive text-destructive hover:bg-destructive/10"
+                size="sm"
+                variant="outline"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Solicitar Cancelamento
               </Button>
             )}
           </div>
