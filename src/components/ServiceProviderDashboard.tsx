@@ -487,6 +487,13 @@ export const ServiceProviderDashboard: React.FC = () => {
         setOwnRequests(own);
         setInitialLoading(false);
         
+        console.log('🔍 DEBUG ownRequests:', {
+          total: own.length,
+          ids: own.map(r => r.id),
+          statuses: own.map(r => r.status),
+          hasProvider: own.map(r => !!r.provider_id)
+        });
+        
         console.log(`Full update completed`, {
           available: available.length,
           own: own.length,
@@ -754,12 +761,17 @@ export const ServiceProviderDashboard: React.FC = () => {
       const request = [...availableRequests, ...ownRequests].find(r => r.id === requestId);
       if (!request) throw new Error('Solicitação não encontrada');
 
+      // Validar que o serviço tem informações de cliente
+      if (!request.client_id && !request.contact_name) {
+        throw new Error('Serviço sem informações de cliente. Não é possível concluir.');
+      }
+
       const { error } = await supabase
         .from('service_requests')
         .update({ 
           status: 'COMPLETED',
           completed_at: new Date().toISOString(),
-          final_price: request.estimated_price // Definir o preço final como o estimado
+          final_price: request.estimated_price
         })
         .eq('id', requestId);
 
@@ -780,7 +792,7 @@ export const ServiceProviderDashboard: React.FC = () => {
       console.error('Error completing request:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível marcar como concluído",
+        description: error?.message || "Não foi possível marcar como concluído",
         variant: "destructive"
       });
     }
@@ -1226,9 +1238,18 @@ export const ServiceProviderDashboard: React.FC = () => {
               </Badge>
             </div>
             
-            {ownRequests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).length > 0 ? (
-              <div className="space-y-4">
-                {ownRequests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS')).map((request) => (
+            {(() => {
+              const acceptedFiltered = ownRequests.filter(r => r.provider_id && (r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS'));
+              console.log('🔍 DEBUG Accepted Tab:', {
+                totalOwn: ownRequests.length,
+                filtered: acceptedFiltered.length,
+                ownStatuses: ownRequests.map(r => ({ id: r.id, status: r.status, hasProvider: !!r.provider_id })),
+                filteredStatuses: acceptedFiltered.map(r => ({ id: r.id, status: r.status }))
+              });
+              
+              return acceptedFiltered.length > 0 ? (
+                <div className="space-y-4">
+                  {acceptedFiltered.map((request) => (
                   <Card key={request.id} className="shadow-lg border-l-[6px] border-l-orange-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-white to-orange-50/30 dark:from-gray-900 dark:to-orange-950/20">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -1302,7 +1323,8 @@ export const ServiceProviderDashboard: React.FC = () => {
                 <Play className="h-16 w-16 mx-auto text-muted-foreground animate-pulse" />
                 <p className="text-muted-foreground">Nenhum serviço em andamento.</p>
               </Card>
-            )}
+            );
+            })()}
           </TabsContent>
 
           <TabsContent value="completed" className="space-y-4">
