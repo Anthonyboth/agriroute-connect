@@ -97,10 +97,11 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
       if (!userProfileId || !mounted) return;
       
       try {
-        setLoading(true);
         await fetchPendingRatings();
-      } finally {
-        if (mounted) setLoading(false);
+      } catch (error) {
+        if (mounted) {
+          console.error('Erro ao carregar avaliações:', error);
+        }
       }
     };
     
@@ -166,53 +167,55 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
           ) : (
             <div className="space-y-4">
               {pendingRatings.map((freight) => (
-                <Card key={`rating-${freight.id}-${freight.updated_at}`} className="border-l-4 border-l-amber-500 bg-amber-50/50">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h4 className="font-semibold">{freight.cargo_type}</h4>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                          <User className="h-3 w-3" />
-                          <span>
-                            {userRole === 'PRODUTOR' 
-                              ? freight.driver_profiles?.full_name || 'Motorista'
-                              : freight.producer_profiles?.full_name || 'Produtor'
-                            }
-                          </span>
+                <React.Fragment key={`rating-${freight.id}-${freight.updated_at}`}>
+                  <Card className="border-l-4 border-l-amber-500 bg-amber-50/50">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-semibold">{freight.cargo_type}</h4>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                            <User className="h-3 w-3" />
+                            <span>
+                              {userRole === 'PRODUTOR' 
+                                ? freight.driver_profiles?.full_name || 'Motorista'
+                                : freight.producer_profiles?.full_name || 'Produtor'
+                              }
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-lg">
+                            R$ {freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-lg">
-                          R$ {freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                    </div>
 
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="h-3 w-3 text-green-600" />
-                        <span className="truncate">{freight.origin_address}</span>
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="h-3 w-3 text-green-600" />
+                          <span className="truncate">{freight.origin_address}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="h-3 w-3 text-red-600" />
+                          <span className="truncate">{freight.destination_address}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          <span>Concluído em {format(new Date(freight.updated_at), 'dd/MM/yyyy HH:mm')}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="h-3 w-3 text-red-600" />
-                        <span className="truncate">{freight.destination_address}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>Concluído em {format(new Date(freight.updated_at), 'dd/MM/yyyy HH:mm')}</span>
-                      </div>
-                    </div>
 
-                    <Button 
-                      onClick={() => openRatingModal(freight)}
-                      className="w-full"
-                      size="sm"
-                    >
-                      <Star className="h-4 w-4 mr-2" />
-                      Avaliar {userRole === 'PRODUTOR' ? 'Motorista' : 'Produtor'}
-                    </Button>
-                  </CardContent>
-                </Card>
+                      <Button 
+                        onClick={() => openRatingModal(freight)}
+                        className="w-full"
+                        size="sm"
+                      >
+                        <Star className="h-4 w-4 mr-2" />
+                        Avaliar {userRole === 'PRODUTOR' ? 'Motorista' : 'Produtor'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </React.Fragment>
               ))}
             </div>
           )}
@@ -234,7 +237,7 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
     </>
   );
 }, (prevProps, nextProps) => {
-  // Evitar re-renders desnecessários
+  // Memoização: só re-renderizar se props mudarem
   return prevProps.userProfileId === nextProps.userProfileId &&
          prevProps.userRole === nextProps.userRole;
 });

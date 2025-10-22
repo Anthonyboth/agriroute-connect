@@ -184,37 +184,34 @@ export class ErrorMonitoringService {
 
   private async sendToBackend(report: ErrorReport): Promise<{ notified: boolean; errorLogId?: string }> {
     if (!this.isOnline) {
-      console.log('[ErrorMonitoringService] Offline - adicionando à fila');
+      console.debug('[ErrorMonitoringService] Offline - adicionando à fila');
       this.errorQueue.push(report);
       return { notified: false };
     }
 
     try {
-      console.log('[ErrorMonitoringService] Enviando relatório ao backend:', {
-        route: report.route,
-        errorMessage: report.errorMessage,
-        errorType: report.errorType
-      });
-
+      // Adicionar try-catch específico para não quebrar a aplicação
       const { data, error } = await supabase.functions.invoke('report-error', {
         body: report
+      }).catch((invokeError) => {
+        // Fail silently - monitoring não deve quebrar a aplicação
+        console.debug('[ErrorMonitoringService] Invoke falhou (não crítico):', invokeError?.message || invokeError);
+        return { data: null, error: invokeError };
       });
 
       if (error) {
-        // Log mas não propagar - monitoring não deve quebrar a aplicação
-        console.debug('[ErrorMonitoringService] Falha ao enviar (não crítico):', error.message);
+        // Log mas não propagar erro
+        console.debug('[ErrorMonitoringService] Edge function retornou erro (não crítico):', error?.message || error);
         return { notified: false };
       }
 
-      console.log('[ErrorMonitoringService] Resposta do backend:', data);
-      
       return {
         notified: data?.notified || false,
         errorLogId: data?.errorLogId
       };
     } catch (error) {
-      // Fail silently - erro de monitoramento não deve impactar usuário
-      console.debug('[ErrorMonitoringService] Erro capturado e suprimido:', error instanceof Error ? error.message : String(error));
+      // Fail silently - monitoring não deve quebrar a aplicação
+      console.debug('[ErrorMonitoringService] Erro capturado e suprimido:', error);
       return { notified: false };
     }
   }
