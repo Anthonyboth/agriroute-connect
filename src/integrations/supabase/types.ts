@@ -6068,14 +6068,19 @@ export type Database = {
       get_services_for_provider: {
         Args: { p_provider_id: string }
         Returns: {
+          city_name: string
           client_id: string
           contact_name: string
           contact_phone: string
           created_at: string
+          distance_km: number
+          id: string
           location_address: string
+          location_lat: number
+          location_lng: number
           problem_description: string
-          request_id: string
           service_type: string
+          state: string
           status: string
           urgency: string
         }[]
