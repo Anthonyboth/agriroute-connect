@@ -6079,6 +6079,18 @@ export type Database = {
           star_rating: number
         }[]
       }
+      get_user_rating_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          average_rating: number
+          five_star: number
+          four_star: number
+          one_star: number
+          three_star: number
+          total_ratings: number
+          two_star: number
+        }[]
+      }
       get_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
