@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
-import { getDeviceInfo } from '@/utils/deviceDetection';
+import { getDeviceInfo, getDeviceId } from '@/utils/deviceDetection';
 import { toast } from 'sonner';
+import { ErrorMonitoringService } from './errorMonitoringService';
 
 export interface UserDevice {
   id: string;
@@ -52,8 +53,32 @@ export const registerDevice = async (profileId: string): Promise<UserDevice> => 
     
     console.log('✅ Dispositivo registrado:', data);
     return data;
-  } catch (error) {
-    console.error('❌ Erro ao registrar dispositivo:', error);
+  } catch (error: any) {
+    // ✅ LOG DETALHADO
+    console.error('❌ Erro ao registrar dispositivo:', {
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+      profileId: profileId,
+      deviceId: getDeviceId(),
+      fullError: error
+    });
+    
+    // ✅ ENVIAR PARA TELEGRAM
+    await ErrorMonitoringService.getInstance().captureError(
+      new Error(`Device Registration Failed: ${error?.message || 'Unknown error'}`),
+      {
+        module: 'deviceService',
+        functionName: 'registerDevice',
+        profileId,
+        deviceId: getDeviceId(),
+        errorCode: error?.code,
+        errorDetails: error?.details,
+        errorHint: error?.hint
+      }
+    );
+    
     throw error;
   }
 };

@@ -29,8 +29,15 @@ export const useDeviceRegistration = () => {
           push: permissions.notifications === 'granted',
           storage: permissions.storage === 'granted'
         });
-      } catch (error) {
-        console.error('❌ Erro ao registrar dispositivo:', error);
+      } catch (error: any) {
+        // ✅ LOG DETALHADO (deviceService.ts já envia para Telegram, não duplicar)
+        console.error('❌ Erro ao registrar dispositivo no hook:', {
+          message: error?.message,
+          code: error?.code,
+          details: error?.details,
+          profileId: profile.id,
+          fullError: error
+        });
         // Não mostrar toast - usuário não precisa saber desse erro técnico
       } finally {
         isRegistering = false;

@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
+import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 import {
   Dialog,
   DialogContent,
@@ -80,7 +81,34 @@ export const GlobalRatingModals: React.FC = () => {
       setServiceComment('');
       closeServiceRating();
     } catch (error: any) {
-      console.error('Erro ao enviar avaliação:', error);
+      // ✅ LOG DETALHADO
+      console.error('❌ Erro ao enviar avaliação de serviço:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        serviceRequestId: serviceRequestId,
+        ratedUserId: serviceRatedUserId,
+        rating: serviceRating,
+        fullError: error
+      });
+      
+      // ✅ ENVIAR PARA TELEGRAM
+      await ErrorMonitoringService.getInstance().captureError(
+        new Error(`Service Rating Submission Failed: ${error?.message || 'Unknown error'}`),
+        {
+          module: 'GlobalRatingModals',
+          functionName: 'handleServiceRatingSubmit',
+          serviceRequestId,
+          ratedUserId: serviceRatedUserId,
+          rating: serviceRating,
+          errorCode: error?.code,
+          errorDetails: error?.details,
+          errorHint: error?.hint,
+          userFacing: true
+        }
+      );
+      
       showErrorToast(toast, 'Falha ao enviar avaliação', error);
     } finally {
       setServiceSubmitting(false);
@@ -127,7 +155,34 @@ export const GlobalRatingModals: React.FC = () => {
       setFreightComment('');
       closeFreightRating();
     } catch (error: any) {
-      console.error('Erro ao enviar avaliação:', error);
+      // ✅ LOG DETALHADO
+      console.error('❌ Erro ao enviar avaliação de frete:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        freightId: freightId,
+        ratedUserId: freightRatedUserId,
+        rating: freightRating,
+        fullError: error
+      });
+      
+      // ✅ ENVIAR PARA TELEGRAM
+      await ErrorMonitoringService.getInstance().captureError(
+        new Error(`Freight Rating Submission Failed: ${error?.message || 'Unknown error'}`),
+        {
+          module: 'GlobalRatingModals',
+          functionName: 'handleFreightRatingSubmit',
+          freightId,
+          ratedUserId: freightRatedUserId,
+          rating: freightRating,
+          errorCode: error?.code,
+          errorDetails: error?.details,
+          errorHint: error?.hint,
+          userFacing: true
+        }
+      );
+      
       showErrorToast(toast, 'Falha ao enviar avaliação', error);
     } finally {
       setFreightSubmitting(false);

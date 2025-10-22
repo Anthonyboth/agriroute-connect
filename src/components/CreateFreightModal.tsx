@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -99,8 +100,32 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
       const { data, error } = await withTimeoutAny(invoke, 5000);
       if (error) throw error;
       return data.distance_km;
-    } catch (error) {
-      console.error('Error calculating distance:', error);
+    } catch (error: any) {
+      // ✅ LOG DETALHADO
+      console.error('❌ Error calculating distance:', {
+        message: error?.message,
+        status: error?.status,
+        statusCode: error?.statusCode,
+        context: error?.context,
+        origin: origin,
+        destination: destination,
+        fullError: error
+      });
+      
+      // ✅ ENVIAR PARA TELEGRAM
+      await ErrorMonitoringService.getInstance().captureError(
+        new Error(`Calculate Route Failed: ${error?.message || 'Unknown error'}`),
+        {
+          module: 'CreateFreightModal',
+          functionName: 'calculateDistance',
+          origin,
+          destination,
+          errorStatus: error?.status,
+          errorStatusCode: error?.statusCode,
+          userFacing: true
+        }
+      );
+      
       // Fallback para cálculo local
       return Math.floor(Math.random() * 800) + 100;
     }
@@ -447,12 +472,48 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
           });
           
           if (matchingResponse.error) {
-            console.error('Error in spatial matching:', matchingResponse.error);
+            // ✅ LOG DETALHADO
+            console.error('❌ Error in spatial matching:', {
+              message: matchingResponse.error?.message,
+              status: matchingResponse.error?.status,
+              context: matchingResponse.error?.context,
+              freightId: insertedFreight.id,
+              fullError: matchingResponse.error
+            });
+            
+            // ✅ ENVIAR PARA TELEGRAM
+            await ErrorMonitoringService.getInstance().captureError(
+              new Error(`Spatial Matching Failed: ${matchingResponse.error?.message || 'Unknown error'}`),
+              {
+                module: 'CreateFreightModal',
+                functionName: 'handleCreateFreight - spatial matching',
+                freightId: insertedFreight.id,
+                errorStatus: matchingResponse.error?.status,
+                userFacing: true
+              }
+            );
           } else {
-            console.log('Spatial matching completed:', matchingResponse.data);
+            console.log('✅ Spatial matching completed:', matchingResponse.data);
           }
-        } catch (matchingError) {
-          console.error('Failed to trigger spatial matching:', matchingError);
+        } catch (matchingError: any) {
+          // ✅ LOG DETALHADO
+          console.error('❌ Failed to trigger spatial matching:', {
+            message: matchingError?.message,
+            freightId: insertedFreight.id,
+            fullError: matchingError
+          });
+          
+          // ✅ ENVIAR PARA TELEGRAM
+          await ErrorMonitoringService.getInstance().captureError(
+            new Error(`Spatial Matching Exception: ${matchingError?.message || 'Unknown error'}`),
+            {
+              module: 'CreateFreightModal',
+              functionName: 'handleCreateFreight - spatial matching exception',
+              freightId: insertedFreight.id,
+              userFacing: true
+            }
+          );
+          
           // Don't block freight creation if matching fails
         }
       }
