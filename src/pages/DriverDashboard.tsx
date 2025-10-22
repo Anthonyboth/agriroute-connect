@@ -182,9 +182,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   const [showLocationManager, setShowLocationManager] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [isTransportCompany, setIsTransportCompany] = useState(false);
-  // Dialog para detalhes de serviços urbanos (GUINCHO/MUDANCA)
-  const [showServiceRequestDialog, setShowServiceRequestDialog] = useState(false);
-  const [selectedServiceRequest, setSelectedServiceRequest] = useState<Freight | null>(null);
+  // ✅ REMOVIDO: Dialog de service_request (motoristas não veem serviços)
   // Estados para controle de consentimento de tracking
   const [freightAwaitingConsent, setFreightAwaitingConsent] = useState<string | null>(null);
   const [showTrackingConsentModal, setShowTrackingConsentModal] = useState(false);
@@ -275,50 +273,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     });
   };
   
-  // Função para encerrar chamado de serviço
-  const handleCompleteServiceRequest = async (serviceId: string) => {
-    if (!profile?.id) {
-      toast.error("Erro: perfil não encontrado");
-      return;
-    }
-
-    try {
-      // Validar que o serviço pertence ao prestador e está no status correto
-      const { data: updateData, error } = await supabase
-        .from('service_requests')
-        .update({ 
-          status: 'COMPLETED',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', serviceId)
-        .eq('provider_id', profile.id)
-        .eq('status', 'ACCEPTED')
-        .select();
-
-      if (error) {
-        console.error('Erro ao encerrar chamado:', error);
-        toast.error("Não foi possível encerrar o chamado. Tente novamente.");
-        return;
-      }
-
-      if (!updateData || updateData.length === 0) {
-        toast.error("Este serviço já não está mais disponível ou não pertence a você");
-        await fetchOngoingFreights();
-        return;
-      }
-
-      toast.success("O chamado foi encerrado com sucesso.");
-
-      // Fechar dialog e atualizar lista
-      setShowServiceRequestDialog(false);
-      setSelectedServiceRequest(null);
-      await fetchOngoingFreights();
-      
-    } catch (error) {
-      console.error('Erro ao encerrar chamado:', error);
-      toast.error("Erro inesperado ao encerrar o chamado.");
-    }
-  };
+  // ✅ REMOVIDO: handleCompleteServiceRequest (motoristas não gerenciam service_requests)
 
 
   const [loading, setLoading] = useState(true);
@@ -534,15 +489,13 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       const ongoing = (data?.ongoingFreights as any[]) || [];
       
       if (isMountedRef.current) setMyProposals(proposals);
-      // Preservar serviços aceitos (service_requests) já no estado e mesclar com fretes em andamento da edge function
+      // ✅ Não mesclar service_requests (motoristas não veem serviços)
       if (isMountedRef.current) {
-        setOngoingFreights((prev) => {
-          const serviceRequests = (prev || []).filter((f: any) => (f as any).is_service_request);
-          const merged = [...ongoing, ...serviceRequests].filter(
-            (item, index, self) => self.findIndex((x: any) => x.id === item.id) === index
-          );
-          return merged;
-        });
+        // Remover duplicatas mas não mesclar com service_requests
+        const dedupedOngoing = ongoing.filter(
+          (item: any, index: number, self: any[]) => self.findIndex((x: any) => x.id === item.id) === index
+        );
+        setOngoingFreights(dedupedOngoing);
       }
 
       if (ongoing.length > 0) {
@@ -586,18 +539,19 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     }
   }, [profile?.id, profile?.role]);
 
-  // Buscar fretes em andamento - baseado em propostas aceitas
+  // ✅ Buscar APENAS fretes em andamento (nunca service_requests)
   const fetchOngoingFreights = useCallback(async () => {
     // Don't fetch if user is not a driver
     if (!profile?.id || profile.role !== 'MOTORISTA') return;
 
-    console.log('🔍 Buscando fretes e serviços ativos do motorista:', profile.id);
+    console.log('🔍 Buscando APENAS fretes ativos do motorista:', profile.id);
     try {
-      // Buscar fretes vinculados ao motorista diretamente
+      // ✅ Buscar fretes vinculados ao motorista diretamente
       const { data: freightData, error: freightError } = await supabase
         .from('freights')
         .select('*, producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, role)')
         .eq('driver_id', profile.id)
+        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
         .order('updated_at', { ascending: false })
         .limit(100);
 
@@ -606,7 +560,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         throw freightError;
       }
 
-      // Buscar fretes via freight_assignments (remover DELIVERED_PENDING_CONFIRMATION dos ativos)
+      // ✅ Buscar fretes via freight_assignments
       const { data: assignmentData, error: assignmentError } = await supabase
         .from('freight_assignments')
         .select(`
@@ -633,48 +587,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         return freight;
       });
       
-      // Buscar service_requests aceitos pelo motorista
-      const { data: serviceData, error: serviceError } = await supabase
-        .from('service_requests')
-        .select('*')
-        .eq('provider_id', profile.id)
-        .in('status', ['ACCEPTED', 'IN_PROGRESS'])
-        .order('updated_at', { ascending: false })
-        .limit(100);
-
-      if (serviceError) {
-        console.error('❌ Erro buscando serviços aceitos:', serviceError);
-      }
+      // ✅ REMOVIDO: Não buscar service_requests aqui (motoristas não veem serviços)
       
-      // Converter service_requests para formato de frete
-      const convertedServices = (serviceData || []).map(service => ({
-        id: service.id,
-        cargo_type: service.service_type === 'GUINCHO' ? 'Guincho' : 'Mudança',
-        weight: 0,
-        origin_address: service.location_address,
-        destination_address: service.location_address,
-        pickup_date: service.created_at,
-        delivery_date: service.created_at,
-        price: service.estimated_price || 0,
-        status: service.status,
-        service_type: service.service_type,
-        producer_id: service.client_id,
-        driver_id: service.provider_id,
-        created_at: service.created_at,
-        updated_at: service.updated_at,
-        urgency: 'MEDIUM' as const,
-        distance_km: 0,
-        minimum_antt_price: 0,
-        is_service_request: true, // Flag para identificar que é um service_request
-        // Informações específicas do service_request
-        problem_description: service.problem_description,
-        contact_phone: service.contact_phone,
-        contact_name: service.contact_name,
-        additional_info: service.additional_info,
-      }));
-      
-      // Combinar fretes diretos, assignments e serviços aceitos
-      const allOngoing = [...(freightData || []), ...(assignmentFreights || []), ...convertedServices];
+      // ✅ Combinar APENAS fretes diretos e assignments (sem service_requests)
+      const allOngoing = [...(freightData || []), ...(assignmentFreights || [])];
       
       // Deduplicate by id
       const seen = new Set();
@@ -728,7 +644,6 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       
       console.log('📦 Fretes diretos encontrados:', freightData?.length || 0);
       console.log('🚚 Fretes via assignments encontrados:', assignmentFreights?.length || 0);
-      console.log('🔧 Serviços aceitos encontrados:', serviceData?.length || 0);
       console.log('📊 Total de itens ativos (deduplicado):', dedupedOngoing.length);
       console.log('✅ Total de itens após filtro de conclusão:', filteredOngoing.length);
       if (isMountedRef.current) setOngoingFreights(filteredOngoing);
@@ -1912,13 +1827,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                           variant="outline"
                           className="flex-1 h-8 text-xs border-primary/30 hover:bg-primary/5"
                           onClick={() => {
-                            if (freight.is_service_request) {
-                              setSelectedServiceRequest(freight);
-                              setShowServiceRequestDialog(true);
-                            } else {
-                              setSelectedFreightId(freight.id);
-                              setShowDetails(true);
-                            }
+                            setSelectedFreightId(freight.id);
+                            setShowDetails(true);
                           }}
                         >
                           Ver Detalhes
@@ -2387,106 +2297,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           </div>
         </div>
       )}
-      {/* Detalhes do Chamado de Serviço (GUINCHO/MUDANCA) */}
-      <Dialog open={showServiceRequestDialog} onOpenChange={(open) => { if (!open) setShowServiceRequestDialog(false); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedServiceRequest?.service_type === 'GUINCHO' ? 'Chamado de Guincho' : 'Serviço de Mudança'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 text-sm">
-            {/* Informações do Solicitante */}
-            {(selectedServiceRequest?.contact_name || selectedServiceRequest?.contact_phone) && (
-              <div>
-                <h4 className="font-semibold text-primary mb-2">Solicitante</h4>
-                <div className="space-y-2">
-                  {selectedServiceRequest?.contact_name && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Nome:</span>
-                      <span className="font-medium">{selectedServiceRequest.contact_name}</span>
-                    </div>
-                  )}
-                  {selectedServiceRequest?.contact_phone && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Telefone:</span>
-                      <a
-                        href={getWhatsAppUrl(selectedServiceRequest.contact_phone)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm transition-colors"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                        {formatPhone(selectedServiceRequest.contact_phone)}
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            {/* Local do Atendimento */}
-            <div>
-              <h4 className="font-semibold text-primary mb-2">Local do Atendimento</h4>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Endereço:</span>
-                <span className="font-medium max-w-[200px] text-right">
-                  {selectedServiceRequest?.origin_address}
-                </span>
-              </div>
-            </div>
-
-            {/* Descrição do Problema */}
-            {selectedServiceRequest?.problem_description && (
-              <div>
-                <h4 className="font-semibold text-primary mb-2">Descrição do Problema</h4>
-                <p className="text-muted-foreground bg-muted p-2 rounded text-xs">
-                  {selectedServiceRequest.problem_description}
-                </p>
-              </div>
-            )}
-
-            {/* Informações Adicionais */}
-            {selectedServiceRequest?.additional_info && (
-              <div>
-                <h4 className="font-semibold text-primary mb-2">Informações Adicionais</h4>
-                <p className="text-muted-foreground bg-muted p-2 rounded text-xs">
-                  {selectedServiceRequest.additional_info}
-                </p>
-              </div>
-            )}
-
-            {/* Status e Data */}
-            <div className="border-t pt-3 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Status:</span>
-                <Badge variant="secondary">{selectedServiceRequest?.status}</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Criado em:</span>
-                <span className="font-medium text-xs">
-                  {selectedServiceRequest?.pickup_date && new Date(selectedServiceRequest.pickup_date).toLocaleString('pt-BR')}
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex justify-between gap-2 mt-6">
-            <Button variant="outline" onClick={() => setShowServiceRequestDialog(false)}>
-              Fechar
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={() => selectedServiceRequest && handleCompleteServiceRequest(selectedServiceRequest.id)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Encerrar Chamado
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* ✅ REMOVIDO: Dialog de service_request (motoristas não veem serviços) */}
       
-      <ServicesModal 
+      <ServicesModal
         isOpen={servicesModalOpen}
         onClose={() => setServicesModalOpen(false)}
       />

@@ -5680,34 +5680,17 @@ export type Database = {
       get_freights_for_driver: {
         Args: { p_driver_id: string }
         Returns: {
-          accepted_trucks: number
-          available_slots: number
           cargo_type: string
           created_at: string
           delivery_date: string
           destination_address: string
-          destination_city: string
-          destination_state: string
-          distance_km: number
-          distance_m: number
-          freight_id: string
-          is_partial_booking: boolean
-          match_score: number
-          match_type: string
-          minimum_antt_price: number
+          id: string
           origin_address: string
-          origin_city: string
-          origin_lat: number
-          origin_lng: number
-          origin_state: string
           pickup_date: string
           price: number
           producer_id: string
-          producer_name: string
-          producer_phone: string
-          required_trucks: number
           service_type: string
-          status: string
+          status: Database["public"]["Enums"]["freight_status"]
           urgency: string
           weight: number
         }[]
@@ -6035,29 +6018,16 @@ export type Database = {
       get_services_for_provider: {
         Args: { p_provider_id: string }
         Returns: {
-          additional_info: string
-          city_name: string
           client_id: string
-          client_name: string
-          client_phone: string
           contact_name: string
           contact_phone: string
           created_at: string
-          distance_m: number
-          estimated_price: number
-          is_emergency: boolean
           location_address: string
-          location_lat: number
-          location_lng: number
-          match_score: number
-          match_type: string
           problem_description: string
           request_id: string
           service_type: string
-          state: string
           status: string
           urgency: string
-          vehicle_info: string
         }[]
       }
       get_services_in_city: {
