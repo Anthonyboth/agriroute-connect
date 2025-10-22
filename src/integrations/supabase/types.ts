@@ -776,6 +776,48 @@ export type Database = {
           },
         ]
       }
+      driver_checkins: {
+        Row: {
+          checked_at: string
+          created_at: string | null
+          driver_profile_id: string
+          freight_id: string
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          checked_at?: string
+          created_at?: string | null
+          driver_profile_id: string
+          freight_id: string
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          checked_at?: string
+          created_at?: string | null
+          driver_profile_id?: string
+          freight_id?: string
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_checkins_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_checkins_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_notification_limits: {
         Row: {
           created_at: string | null
@@ -5365,8 +5407,16 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      can_manage_company: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_notify_driver: { Args: { p_driver_id: string }; Returns: boolean }
       can_notify_provider: { Args: { p_provider_id: string }; Returns: boolean }
+      can_view_company: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       check_admin_reset_rate_limit: {
         Args: { p_admin_profile_id: string }
         Returns: Json
