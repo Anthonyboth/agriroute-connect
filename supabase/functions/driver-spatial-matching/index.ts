@@ -63,7 +63,7 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    if (profErr || !profile || profile.role !== 'MOTORISTA') {
+    if (profErr || !profile || !['MOTORISTA', 'TRANSPORTADORA'].includes(profile.role)) {
       return new Response(JSON.stringify({ error: 'Driver profile not found' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

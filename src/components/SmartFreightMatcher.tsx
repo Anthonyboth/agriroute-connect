@@ -295,15 +295,39 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       const activeCities = (ucActive || []).length > 0;
       setHasActiveCities(activeCities);
 
+      // Helper para normalizar formato "Cidade, Estado" ou "Cidade" + estado separado
+      const normalizeCityState = (city: string, state: string) => {
+        // Remove ", MT" ou ", Estado" do final do nome da cidade
+        const cleanCity = String(city || '')
+          .replace(/,\s*(MT|GO|SP|RJ|MG|PR|SC|RS|BA|PE|CE|RN|PB|AL|SE|PI|MA|TO|PA|AP|RR|AM|AC|RO|MS|DF)\s*$/i, '')
+          .trim()
+          .toLowerCase();
+        
+        let cleanState = String(state || '').trim().toUpperCase();
+        
+        // Se não tem estado mas a cidade tem padrão "Cidade, Estado"
+        if (!cleanState && city?.includes(',')) {
+          const parts = String(city).split(',').map(p => p.trim());
+          cleanState = (parts[1] || '').toUpperCase();
+          return `${parts[0].toLowerCase()}|${cleanState}`;
+        }
+        
+        return `${cleanCity}|${cleanState}`;
+      };
+
       if (activeCities) {
         const allowedCities = new Set(
           (ucActive || [])
-            .map((u: any) => `${String(u.cities?.name || '').toLowerCase()}|${String(u.cities?.state || '').toLowerCase()}`)
+            .map((u: any) => {
+              const cityName = String(u.cities?.name || '').trim().toLowerCase();
+              const state = String(u.cities?.state || '').trim().toUpperCase();
+              return `${cityName}|${state}`;
+            })
         );
 
         filteredByType = filteredByType.filter((f: any) => {
-          const oKey = `${String(f.origin_city || '').toLowerCase()}|${String(f.origin_state || '').toLowerCase()}`;
-          const dKey = `${String(f.destination_city || '').toLowerCase()}|${String(f.destination_state || '').toLowerCase()}`;
+          const oKey = normalizeCityState(f.origin_city, f.origin_state);
+          const dKey = normalizeCityState(f.destination_city, f.destination_state);
           return allowedCities.has(oKey) || allowedCities.has(dKey);
         });
       } else {
