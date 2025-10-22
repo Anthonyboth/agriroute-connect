@@ -261,8 +261,7 @@ const Landing: React.FC = () => {
             </span>
           </h1>
           <p className="text-lg md:text-xl lg:text-2xl text-foreground/80 mb-12 max-w-3xl mx-auto font-medium px-4 leading-relaxed">
-            A plataforma que revoluciona o transporte agrícola brasileiro, 
-            conectando pessoas de forma inteligente.
+            Plataforma para conectar e organizar o transporte agrícola de forma inteligente.
           </p>
           
           {/* Main Action Buttons - Centered Group */}
@@ -341,7 +340,7 @@ const Landing: React.FC = () => {
       <section className="py-20 gradient-hero">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-12">
-            Pronto para revolucionar seu negócio?
+            Pronto para organizar seu transporte com mais eficiência?
           </h2>
           <Button
             size="lg"

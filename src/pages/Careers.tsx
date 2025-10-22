@@ -33,7 +33,7 @@ const Careers = () => {
     {
       icon: Lightbulb,
       title: "Inovação",
-      description: "Buscamos constantemente novas soluções tecnológicas para revolucionar a logística agrícola."
+      description: "Buscamos constantemente novas soluções tecnológicas para aprimorar a logística agrícola."
     },
     {
       icon: Users,
@@ -96,7 +96,7 @@ const Careers = () => {
             Construa o Futuro do Agronegócio
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Junte-se à nossa equipe e ajude a revolucionar a logística agrícola brasileira. 
+            Junte-se à nossa equipe e ajude a aprimorar a logística agrícola brasileira. 
             Estamos em busca de talentos apaixonados por tecnologia e agronegócio.
           </p>
         </div>

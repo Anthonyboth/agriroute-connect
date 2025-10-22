@@ -12,12 +12,12 @@ const About = () => {
     {
       icon: Target,
       title: 'Missão',
-      description: 'Revolucionar o transporte agrícola brasileiro, conectando pessoas através de tecnologia inovadora, garantindo eficiência, transparência e segurança em toda a cadeia logística.'
+      description: 'Conectar produtores, transportadoras e motoristas com tecnologia para melhorar eficiência, transparência e segurança na logística agrícola.'
     },
     {
       icon: Heart,
       title: 'Visão',
-      description: 'Ser a principal plataforma de logística agrícola do Brasil, contribuindo para o crescimento sustentável do agronegócio e fortalecendo a economia rural.'
+      description: 'Tornar-se uma plataforma confiável para logística agrícola no Brasil, contribuindo para o crescimento sustentável do setor.'
     },
     {
       icon: Award,
@@ -76,7 +76,7 @@ const About = () => {
           </h1>
           <p className="text-xl text-primary-foreground/90 max-w-3xl mx-auto">
             Somos a ponte tecnológica que conecta o campo brasileiro aos centros de consumo, 
-            revolucionando a logística agrícola com inovação, eficiência e sustentabilidade.
+            aprimorando a logística agrícola com inovação, eficiência e sustentabilidade.
           </p>
         </div>
       </section>
@@ -170,9 +170,8 @@ const About = () => {
                 em cada transporte realizado.
               </p>
               <p>
-                Hoje, somos a principal plataforma de logística agrícola do Brasil, contribuindo 
-                para o fortalecimento do agronegócio nacional e apoiando milhares de famílias 
-                que dependem do setor.
+                Estamos em desenvolvimento contínuo e trabalhando para ampliar nossa base de usuários 
+                e parceiros no Brasil, contribuindo para o fortalecimento do agronegócio nacional.
               </p>
             </div>
           </div>
