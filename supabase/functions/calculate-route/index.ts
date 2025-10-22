@@ -63,16 +63,46 @@ serve(async (req) => {
     
     const googleData = await googleResponse.json();
     
+    // If Google Maps API returns an error (REQUEST_DENIED, OVER_QUERY_LIMIT, etc.), return simulation
     if (googleData.status !== 'OK' || !googleData.rows?.[0]?.elements?.[0]) {
-      console.error('[CALCULATE-ROUTE] Invalid response from Google Maps:', googleData);
-      throw new Error(`Google Maps API returned status: ${googleData.status}`);
+      console.warn('[CALCULATE-ROUTE] Google Maps API error, using fallback simulation. Status:', googleData.status);
+      const distance_km = Math.floor(Math.random() * 800) + 200;
+      const duration_hours = Math.round((distance_km / 80) * 10) / 10;
+      const toll_cost = Math.round(distance_km * 0.20 * 100) / 100;
+      const fuel_cost = Math.round((distance_km / 3.5) * 6.50 * 100) / 100;
+      
+      return new Response(JSON.stringify({
+        distance_km,
+        duration_hours,
+        toll_cost,
+        fuel_cost,
+        route_points: [],
+        is_simulation: true
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     
     const element = googleData.rows[0].elements[0];
     
+    // If the specific route element has an error, return simulation
     if (element.status !== 'OK') {
-      console.error('[CALCULATE-ROUTE] Element status error:', element.status);
-      throw new Error(`Route calculation failed: ${element.status}`);
+      console.warn('[CALCULATE-ROUTE] Element status error, using fallback simulation. Element status:', element.status);
+      const distance_km = Math.floor(Math.random() * 800) + 200;
+      const duration_hours = Math.round((distance_km / 80) * 10) / 10;
+      const toll_cost = Math.round(distance_km * 0.20 * 100) / 100;
+      const fuel_cost = Math.round((distance_km / 3.5) * 6.50 * 100) / 100;
+      
+      return new Response(JSON.stringify({
+        distance_km,
+        duration_hours,
+        toll_cost,
+        fuel_cost,
+        route_points: [],
+        is_simulation: true
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     
     // Extrair distância e duração reais
