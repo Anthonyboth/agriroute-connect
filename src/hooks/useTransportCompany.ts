@@ -52,6 +52,8 @@ export const useTransportCompany = () => {
       return data;
     },
     enabled: !!company?.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Criar transportadora
@@ -277,7 +279,9 @@ export const useTransportCompany = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!company?.id
+    enabled: !!company?.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Aprovar motorista
@@ -290,10 +294,27 @@ export const useTransportCompany = () => {
         .eq('company_id', company.id)
         .eq('driver_profile_id', driverProfileId);
       if (error) throw error;
+      return { driverProfileId, companyId: company.id };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company-drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['pending-drivers'] });
+    onSuccess: (data) => {
+      // Invalidar com query key específica e forçar refetch
+      queryClient.invalidateQueries({ 
+        queryKey: ['company-drivers'],
+        exact: false 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['pending-drivers'],
+        exact: false 
+      });
+      
+      // Forçar refetch imediato
+      queryClient.refetchQueries({ 
+        queryKey: ['company-drivers', data.companyId] 
+      });
+      queryClient.refetchQueries({ 
+        queryKey: ['pending-drivers', data.companyId] 
+      });
+      
       toast.success('Motorista aprovado!');
     }
   });
@@ -308,10 +329,23 @@ export const useTransportCompany = () => {
         .eq('company_id', company.id)
         .eq('driver_profile_id', driverProfileId);
       if (error) throw error;
+      return { driverProfileId, companyId: company.id };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company-drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['pending-drivers'] });
+    onSuccess: (data) => {
+      // Invalidar e forçar refetch
+      queryClient.invalidateQueries({ 
+        queryKey: ['company-drivers'],
+        exact: false 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['pending-drivers'],
+        exact: false 
+      });
+      
+      queryClient.refetchQueries({ 
+        queryKey: ['pending-drivers', data.companyId] 
+      });
+      
       toast.success('Motorista rejeitado');
     }
   });
