@@ -143,7 +143,7 @@ export const GlobalRatingModals: React.FC = () => {
           comment: freightComment || null,
           rating_type: ratingType,
         }, {
-          onConflict: 'freight_id,rater_id'
+          onConflict: 'freight_id,rater_id,rating_type'
         });
 
       if (error) throw error;
