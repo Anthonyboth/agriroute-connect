@@ -18,6 +18,7 @@ interface AddressData {
   zipCode: string;
   reference: string;
   fullAddress: string;
+  city_id?: string;
   lat?: number;
   lng?: number;
 }
@@ -204,12 +205,13 @@ export const DetailedAddressModal: React.FC<DetailedAddressModalProps> = ({
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <CitySelector
-                  value={{ city: addressData.city, state: addressData.state }}
+                  value={{ city: addressData.city, state: addressData.state, id: addressData.city_id }}
                   onChange={(c) => {
                     setAddressData((prev) => ({
                       ...prev,
                       city: c.city || '',
                       state: c.state || '',
+                      city_id: c.id,
                       lat: c.lat ?? prev.lat,
                       lng: c.lng ?? prev.lng,
                     }));

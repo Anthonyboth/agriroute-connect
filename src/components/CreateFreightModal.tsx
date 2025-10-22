@@ -705,7 +705,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
 
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
   <CitySelector
-    value={{ city: formData.origin_city, state: formData.origin_state }}
+    value={{ city: formData.origin_city, state: formData.origin_state, id: formData.origin_city_id }}
     onChange={(city) => {
       handleInputChange('origin_city', city.city);
       handleInputChange('origin_state', city.state);
@@ -732,7 +732,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
 
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
   <CitySelector
-    value={{ city: formData.destination_city, state: formData.destination_state }}
+    value={{ city: formData.destination_city, state: formData.destination_state, id: formData.destination_city_id }}
     onChange={(city) => {
       handleInputChange('destination_city', city.city);
       handleInputChange('destination_state', city.state);

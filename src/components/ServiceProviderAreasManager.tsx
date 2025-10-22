@@ -26,6 +26,7 @@ interface ServiceProviderArea {
 interface ServiceAreaFormData {
   city_name: string;
   state: string;
+  city_id?: string;
   lat: number;
   lng: number;
   radius_km: number;
@@ -347,8 +348,8 @@ const ServiceProviderAreasManager = () => {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
 <CitySelector
-  value={{ city: formData.city_name, state: formData.state }}
-  onChange={(c) => setFormData(prev => ({ ...prev, city_name: c.city, state: c.state, lat: c.lat ?? prev.lat, lng: c.lng ?? prev.lng }))}
+  value={{ city: formData.city_name, state: formData.state, id: formData.city_id }}
+  onChange={(c) => setFormData(prev => ({ ...prev, city_name: c.city, state: c.state, city_id: c.id, lat: c.lat ?? prev.lat, lng: c.lng ?? prev.lng }))}
   label="Cidade de Atendimento *"
   placeholder="Digite e selecione a cidade"
   required
