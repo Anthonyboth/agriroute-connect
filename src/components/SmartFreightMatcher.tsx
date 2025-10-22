@@ -105,23 +105,93 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   };
 
   const allowedTypesFromProfile = React.useMemo(() => {
+    // Para TRANSPORTADORA sem config, permitir todos os tipos
+    if (profile?.role === 'TRANSPORTADORA') {
+      if (!profile?.service_types || profile.service_types.length === 0) {
+        console.log('🔎 TRANSPORTADORA sem config → permitindo todos os tipos');
+        return ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO'];
+      }
+    }
+    
     const types = Array.from(new Set(
       (Array.isArray(profile?.service_types) ? (profile?.service_types as unknown as string[]) : [])
         .map((t) => normalizeServiceType(String(t)))
     )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO'].includes(t));
     console.log('🔎 allowedTypesFromProfile:', types);
     return types;
-  }, [profile?.service_types]);
+  }, [profile?.role, profile?.service_types]);
   
   const fetchCompatibleFreights = async () => {
     if (!profile?.id) return;
 
+    const isCompany = profile.role === 'TRANSPORTADORA';
     setLoading(true);
+    
     try {
-      console.log('🔍 Buscando fretes compatíveis para driver:', profile.id);
+      console.log(`🔍 Buscando fretes para ${isCompany ? 'TRANSPORTADORA' : 'MOTORISTA'}:`, profile.id);
+      console.log('🔧 Tipos permitidos:', allowedTypesFromProfile);
 
-      if (allowedTypesFromProfile.length === 0) {
-        console.warn('Sem tipos de serviço configurados. Nada a exibir.');
+      // TRANSPORTADORA: carregar fretes diretamente, SEM chamar driver-spatial-matching
+      if (isCompany) {
+        console.log("📦 Modo TRANSPORTADORA: carregando fretes abertos diretamente");
+        
+        const { data: directFreights, error: directError } = await supabase
+          .from('freights')
+          .select('*')
+          .in('status', ['OPEN', 'IN_NEGOTIATION'])
+          .is('driver_id', null)
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (directError) {
+          console.error("❌ Erro ao carregar fretes para transportadora:", directError);
+          toast.error('Erro ao carregar fretes.');
+          setLoading(false);
+          return;
+        }
+
+        if (directFreights) {
+          console.log(`✅ ${directFreights.length} fretes brutos carregados para transportadora`);
+          
+          // Mapear para formato esperado
+          const mapped: CompatibleFreight[] = directFreights.map((f: any) => ({
+            freight_id: f.id,
+            cargo_type: f.cargo_type,
+            weight: f.weight || 0,
+            origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
+            destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
+            pickup_date: f.pickup_date,
+            delivery_date: f.delivery_date,
+            price: f.price || 0,
+            urgency: (f.urgency || 'LOW') as string,
+            status: f.status,
+            service_type: normalizeServiceType(f.service_type),
+            distance_km: 0,
+            minimum_antt_price: f.minimum_antt_price || 0,
+            required_trucks: f.required_trucks || 1,
+            accepted_trucks: f.accepted_trucks || 0,
+            created_at: f.created_at,
+          }));
+
+          // Filtrar por tipo apenas se não for default "todos"
+          const filtered = allowedTypesFromProfile.length === 4
+            ? mapped // Todos os tipos permitidos
+            : mapped.filter(f => allowedTypesFromProfile.includes(f.service_type));
+
+          console.log(`✅ ${filtered.length} fretes após filtro de tipo`);
+          setCompatibleFreights(filtered);
+          
+          const highUrgency = filtered.filter(f => f.urgency === 'HIGH').length;
+          onCountsChange?.({ total: filtered.length, highUrgency });
+          
+          setLoading(false);
+          return;
+        }
+      }
+
+      // MOTORISTA: verificar config antes de prosseguir
+      if (!isCompany && allowedTypesFromProfile.length === 0) {
+        console.warn('⚠️ Motorista sem tipos de serviço configurados');
         toast.info('Configure seus tipos de serviço para ver fretes.');
         setCompatibleFreights([]);
         setTowingRequests([]);
@@ -129,7 +199,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         return;
       }
       
-      // Primeiro executar o matching espacial baseado nas áreas de serviço
+      // Executar matching espacial para MOTORISTA
       const { data: { session } } = await supabase.auth.getSession();
       const { data: spatialData, error: spatialError } = await supabase.functions.invoke(
         'driver-spatial-matching',
@@ -143,9 +213,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       );
 
       if (spatialError) {
-        console.warn('Erro no matching espacial:', spatialError);
+        console.warn('⚠️ Erro no matching espacial:', spatialError);
       } else {
-        console.log('Matching espacial executado:', spatialData);
+        console.log('✅ Matching espacial executado:', spatialData);
       }
 
       // Buscar fretes compatíveis usando RPC exclusiva (APENAS fretes, nunca serviços)
@@ -339,10 +409,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         return;
       }
       
-      console.log(`Após filtros: ${filteredByType.length} fretes compatíveis`, {
+      console.log(`✅ Após filtros: ${filteredByType.length} fretes compatíveis`, {
+        role: profile.role,
+        isCompany,
         allowedTypes,
         totalFromRPC: data?.length || 0,
-        afterFilter: filteredByType.length
+        afterTypeFilter: filteredByType.length
       });
       
       setCompatibleFreights(filteredByType);

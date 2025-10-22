@@ -63,11 +63,20 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    if (profErr || !profile || !['MOTORISTA', 'TRANSPORTADORA'].includes(profile.role)) {
-      return new Response(JSON.stringify({ error: 'Driver profile not found' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (profErr || !profile) {
+      console.error('❌ Profile not found for user:', user.id, profErr);
+      return new Response(
+        JSON.stringify({ error: 'Profile not found', userId: user.id }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!['MOTORISTA', 'MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(profile.role)) {
+      console.error('❌ Forbidden role:', profile.role, 'for user:', user.id);
+      return new Response(
+        JSON.stringify({ error: 'Forbidden role', role: profile.role }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const driverId = profile.id as string;
