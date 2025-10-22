@@ -55,7 +55,7 @@ const Landing: React.FC = () => {
   const [freightTransportModal, setFreightTransportModal] = useState(false);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<any | null>(null);
-  const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' }>({
+  const [howItWorksModal, setHowItWorksModal] = useState<{ isOpen: boolean; userType?: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' }>({
     isOpen: false,
   });
   const [contactModal, setContactModal] = useState(false);

@@ -1,18 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Truck, Users, MapPin, DollarSign, Clock, FileText, Building2, FileCheck, UserPlus, Package, Users2, BarChart3 } from 'lucide-react';
+import { BecomeCompanyModal } from './BecomeCompanyModal';
 
 interface HowItWorksModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userType: 'PRODUTOR' | 'MOTORISTA';
+  userType: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA';
   onProceed?: () => void;
 }
 
 const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, userType, onProceed }) => {
-  const isProducer = userType === 'PRODUTOR';
+  const [viewType, setViewType] = useState<'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA'>(userType);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const isProducer = viewType === 'PRODUTOR';
 
   const producerSteps = [
     {
@@ -123,22 +126,51 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
     }
   ];
 
-  const steps = userType === 'PRODUTOR' ? producerSteps : driverSteps;
+  const steps = viewType === 'PRODUTOR' ? producerSteps : 
+                viewType === 'TRANSPORTADORA' ? transportadoraSteps : 
+                driverSteps;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center mb-2">
-            {userType === 'PRODUTOR' ? 'Como Funciona para Produtores' : 'Como Funciona para Motoristas'}
-          </DialogTitle>
-          <DialogDescription className="text-center text-lg">
-            {userType === 'PRODUTOR' 
-              ? 'Conecte sua produção ao destino de forma simples e segura'
-              : 'Encontre fretes rentáveis e expanda seu negócio de transporte'
-            }
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center mb-2">
+              {viewType === 'PRODUTOR' ? 'Como Funciona para Produtores' : 
+               viewType === 'TRANSPORTADORA' ? 'Como Funciona para Transportadoras' :
+               'Como Funciona para Motoristas'}
+            </DialogTitle>
+            <DialogDescription className="text-center text-lg">
+              {viewType === 'PRODUTOR' 
+                ? 'Conecte sua produção ao destino de forma simples e segura'
+                : viewType === 'TRANSPORTADORA'
+                ? 'Gerencie sua frota e motoristas com eficiência e tecnologia'
+                : 'Encontre fretes rentáveis e expanda seu negócio de transporte'
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Toggle buttons for Motorista/Transportadora */}
+          {userType === 'MOTORISTA' && (
+            <div className="flex justify-center gap-3 mb-6 px-4">
+              <Button
+                variant={viewType === 'MOTORISTA' ? 'default' : 'outline'}
+                onClick={() => setViewType('MOTORISTA')}
+                className="flex-1 max-w-[200px]"
+              >
+                <Truck className="mr-2 h-4 w-4" />
+                Sou Motorista
+              </Button>
+              <Button
+                variant={viewType === 'TRANSPORTADORA' ? 'default' : 'outline'}
+                onClick={() => setViewType('TRANSPORTADORA')}
+                className="flex-1 max-w-[200px]"
+              >
+                <Building2 className="mr-2 h-4 w-4" />
+                Transportadora
+              </Button>
+            </div>
+          )}
 
         {/* Fluxograma Visual Aprimorado */}
         <div className="my-8">
@@ -147,10 +179,12 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                  {userType === 'PRODUTOR' ? '🌾' : '🚛'}
+                  {viewType === 'PRODUTOR' ? '🌾' : viewType === 'TRANSPORTADORA' ? '🏢' : '🚛'}
                 </div>
                 <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  {userType === 'PRODUTOR' ? 'Fluxo do Produtor' : 'Fluxo do Motorista'}
+                  {viewType === 'PRODUTOR' ? 'Fluxo do Produtor' : 
+                   viewType === 'TRANSPORTADORA' ? 'Fluxo da Transportadora' :
+                   'Fluxo do Motorista'}
                 </h3>
               </div>
             </div>
@@ -255,7 +289,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
           </CardHeader>
           <CardContent className="relative z-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {userType === 'PRODUTOR' ? (
+              {viewType === 'PRODUTOR' ? (
                 <>
                   <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
                     <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
@@ -294,7 +328,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
                     </div>
                   </div>
                 </>
-              ) : userType === 'MOTORISTA' ? (
+              ) : viewType === 'MOTORISTA' ? (
                 <>
                   <div className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-primary/10 hover:shadow-md transition-all group">
                     <div className="p-2 rounded-full bg-success/10 group-hover:bg-success/20 transition-colors">
@@ -400,19 +434,32 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose, user
           <Button 
             size="lg" 
             className="px-12 py-4 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent text-primary-foreground rounded-full shadow-glow hover:shadow-xl hover:scale-105 transition-all duration-300"
-            onClick={onProceed || onClose}
+            onClick={() => {
+              if (viewType === 'TRANSPORTADORA') {
+                setShowRegisterModal(true);
+              } else {
+                if (onProceed) onProceed();
+                else onClose();
+              }
+            }}
           >
             <span className="mr-3">
-              {userType === 'PRODUTOR' ? '🌾' : userType === 'MOTORISTA' ? '🚛' : '🏢'}
+              {viewType === 'PRODUTOR' ? '🌾' : viewType === 'MOTORISTA' ? '🚛' : '🏢'}
             </span>
-            {userType === 'PRODUTOR' ? 'Começar como Produtor' : 
-             userType === 'MOTORISTA' ? 'Começar como Motorista' :
-             'Começar como Transportadora'}
+            {viewType === 'PRODUTOR' ? 'Começar como Produtor' : 
+             viewType === 'MOTORISTA' ? 'Começar como Motorista' :
+             'Cadastrar Minha Transportadora'}
             <span className="ml-3">→</span>
           </Button>
         </div>
       </DialogContent>
     </Dialog>
+
+    <BecomeCompanyModal 
+      open={showRegisterModal} 
+      onOpenChange={setShowRegisterModal}
+    />
+  </>
   );
 };
 
