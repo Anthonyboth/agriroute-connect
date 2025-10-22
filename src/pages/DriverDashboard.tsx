@@ -1931,7 +1931,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </div>
             {myProposals.some(p => p.status === 'PENDING') ? (
               <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-                {myProposals.filter(p => p.status === 'PENDING').map((proposal) => (
+                {myProposals.filter(p => p.status === 'PENDING').map((proposal) => 
                   proposal.freight && proposal.id ? (
                     <div key={`proposal-${proposal.id}`} className="relative">
                        <FreightCard 
@@ -2013,7 +2013,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                       )}
                     </div>
                   ) : null
-                ))}
+                )}
               </div>
             ) : (
               <div className="text-center py-12 space-y-6">
