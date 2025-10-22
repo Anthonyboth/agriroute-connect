@@ -243,7 +243,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
             preferredTime: formData.preferredTime || null,
             cargoDetails: cargoDetails
           })
-        })
+        } as any)
         .select()
         .single();
 

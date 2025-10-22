@@ -175,7 +175,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         preferred_datetime: formData.preferred_time ? new Date().toISOString() : null,
         additional_info: formData.additional_info || null,
         status: 'OPEN'
-      })
+      } as any)
       .select()
       .single();
 
