@@ -19,24 +19,20 @@ export const useDeviceRegistration = () => {
       isRegistering = true;
 
       try {
-        const result = await registerDevice(profile.id);
-        
-        // Only log success if registration actually succeeded
-        if (result) {
-          console.log('✅ Dispositivo registrado com sucesso');
+        await registerDevice(profile.id);
+        console.log('✅ Dispositivo registrado com sucesso');
 
-          // Sincronizar permissões realmente verificadas
-          const deviceId = getDeviceId();
-          await syncDevicePermissions(deviceId, {
-            location: permissions.location === 'granted',
-            push: permissions.notifications === 'granted',
-            storage: permissions.storage === 'granted'
-          });
-        } else {
-          console.warn('⚠️ Falha ao registrar dispositivo (sem resultado)');
-        }
+        // Sincronizar permissões realmente verificadas
+        const deviceId = getDeviceId();
+        await syncDevicePermissions(deviceId, {
+          location: permissions.location === 'granted',
+          push: permissions.notifications === 'granted',
+          storage: permissions.storage === 'granted'
+        });
       } catch (error) {
         console.error('❌ Erro ao registrar dispositivo:', error);
+        // Não mostrar toast - usuário não precisa saber desse erro técnico
+        // O sistema funciona mesmo sem registro de dispositivo
       } finally {
         isRegistering = false;
       }

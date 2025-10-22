@@ -329,21 +329,6 @@ const ProducerDashboard = () => {
     }
   }, [profile?.id, profile?.role, fetchFreights, fetchProposals, fetchExternalPayments, fetchFreightPayments, fetchServiceRequests]);
 
-  // Carregar pagamentos junto com outros dados
-  useEffect(() => {
-    if (profile?.id && profile?.role === 'PRODUTOR') {
-      fetchExternalPayments();
-      fetchFreightPayments();
-    }
-  }, [profile?.id, profile?.role, fetchExternalPayments, fetchFreightPayments]);
-
-  // Recarregar solicitações de serviço quando o perfil carregar
-  useEffect(() => {
-    if (profile?.id && profile?.role === 'PRODUTOR') {
-      fetchServiceRequests();
-    }
-  }, [profile?.id, profile?.role, fetchServiceRequests]);
-
   // Abrir frete automaticamente quando vem de notificação
   useEffect(() => {
     const state = location.state as any;

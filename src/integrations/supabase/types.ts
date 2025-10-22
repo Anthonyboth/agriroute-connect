@@ -19,7 +19,7 @@ export type Database = {
           attempted_route: string
           created_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           profile_id: string | null
           required_roles: string[]
           user_agent: string | null
@@ -30,7 +30,7 @@ export type Database = {
           attempted_route: string
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           profile_id?: string | null
           required_roles: string[]
           user_agent?: string | null
@@ -41,7 +41,7 @@ export type Database = {
           attempted_route?: string
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           profile_id?: string | null
           required_roles?: string[]
           user_agent?: string | null
@@ -255,7 +255,7 @@ export type Database = {
       audit_logs: {
         Row: {
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           new_data: Json | null
           old_data: Json | null
           operation: string
@@ -267,7 +267,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_data?: Json | null
           old_data?: Json | null
           operation: string
@@ -279,7 +279,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_data?: Json | null
           old_data?: Json | null
           operation?: string
@@ -904,14 +904,14 @@ export type Database = {
           city_name: string
           created_at: string | null
           driver_id: string
-          geom: unknown | null
+          geom: unknown
           id: string
           is_active: boolean | null
           lat: number
           lng: number
           radius_km: number
           radius_m: number | null
-          service_area: unknown | null
+          service_area: unknown
           state: string | null
           updated_at: string | null
         }
@@ -919,14 +919,14 @@ export type Database = {
           city_name: string
           created_at?: string | null
           driver_id: string
-          geom?: unknown | null
+          geom?: unknown
           id?: string
           is_active?: boolean | null
           lat: number
           lng: number
           radius_km?: number
           radius_m?: number | null
-          service_area?: unknown | null
+          service_area?: unknown
           state?: string | null
           updated_at?: string | null
         }
@@ -934,14 +934,14 @@ export type Database = {
           city_name?: string
           created_at?: string | null
           driver_id?: string
-          geom?: unknown | null
+          geom?: unknown
           id?: string
           is_active?: boolean | null
           lat?: number
           lng?: number
           radius_km?: number
           radius_m?: number | null
-          service_area?: unknown | null
+          service_area?: unknown
           state?: string | null
           updated_at?: string | null
         }
@@ -1262,7 +1262,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           new_data: Json | null
           old_data: Json | null
           operation: string
@@ -1274,7 +1274,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_data?: Json | null
           old_data?: Json | null
           operation: string
@@ -1286,7 +1286,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_data?: Json | null
           old_data?: Json | null
           operation?: string
@@ -2088,7 +2088,7 @@ export type Database = {
           destination_address: string
           destination_city: string | null
           destination_city_id: string | null
-          destination_geog: unknown | null
+          destination_geog: unknown
           destination_lat: number | null
           destination_lng: number | null
           destination_state: string | null
@@ -2114,7 +2114,7 @@ export type Database = {
           origin_address: string
           origin_city: string | null
           origin_city_id: string | null
-          origin_geog: unknown | null
+          origin_geog: unknown
           origin_lat: number | null
           origin_lng: number | null
           origin_state: string | null
@@ -2127,7 +2127,7 @@ export type Database = {
           producer_id: string
           prospect_user_id: string | null
           required_trucks: number
-          route_geom: unknown | null
+          route_geom: unknown
           route_waypoints: Json | null
           scheduled_date: string | null
           service_radius_km: number | null
@@ -2168,7 +2168,7 @@ export type Database = {
           destination_address: string
           destination_city?: string | null
           destination_city_id?: string | null
-          destination_geog?: unknown | null
+          destination_geog?: unknown
           destination_lat?: number | null
           destination_lng?: number | null
           destination_state?: string | null
@@ -2194,7 +2194,7 @@ export type Database = {
           origin_address: string
           origin_city?: string | null
           origin_city_id?: string | null
-          origin_geog?: unknown | null
+          origin_geog?: unknown
           origin_lat?: number | null
           origin_lng?: number | null
           origin_state?: string | null
@@ -2207,7 +2207,7 @@ export type Database = {
           producer_id: string
           prospect_user_id?: string | null
           required_trucks?: number
-          route_geom?: unknown | null
+          route_geom?: unknown
           route_waypoints?: Json | null
           scheduled_date?: string | null
           service_radius_km?: number | null
@@ -2248,7 +2248,7 @@ export type Database = {
           destination_address?: string
           destination_city?: string | null
           destination_city_id?: string | null
-          destination_geog?: unknown | null
+          destination_geog?: unknown
           destination_lat?: number | null
           destination_lng?: number | null
           destination_state?: string | null
@@ -2274,7 +2274,7 @@ export type Database = {
           origin_address?: string
           origin_city?: string | null
           origin_city_id?: string | null
-          origin_geog?: unknown | null
+          origin_geog?: unknown
           origin_lat?: number | null
           origin_lng?: number | null
           origin_state?: string | null
@@ -2287,7 +2287,7 @@ export type Database = {
           producer_id?: string
           prospect_user_id?: string | null
           required_trucks?: number
-          route_geom?: unknown | null
+          route_geom?: unknown
           route_waypoints?: Json | null
           scheduled_date?: string | null
           service_radius_km?: number | null
@@ -2782,7 +2782,7 @@ export type Database = {
         Row: {
           city_name: string
           created_at: string | null
-          geom: unknown | null
+          geom: unknown
           id: string
           is_active: boolean | null
           lat: number
@@ -2795,7 +2795,7 @@ export type Database = {
         Insert: {
           city_name: string
           created_at?: string | null
-          geom?: unknown | null
+          geom?: unknown
           id?: string
           is_active?: boolean | null
           lat: number
@@ -2808,7 +2808,7 @@ export type Database = {
         Update: {
           city_name?: string
           created_at?: string | null
-          geom?: unknown | null
+          geom?: unknown
           id?: string
           is_active?: boolean | null
           lat?: number
@@ -3410,7 +3410,7 @@ export type Database = {
           created_at: string
           details: Json
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           resolved: boolean
           resolved_at: string | null
           resolved_by: string | null
@@ -3425,7 +3425,7 @@ export type Database = {
           created_at?: string
           details?: Json
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resolved?: boolean
           resolved_at?: string | null
           resolved_by?: string | null
@@ -3440,7 +3440,7 @@ export type Database = {
           created_at?: string
           details?: Json
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resolved?: boolean
           resolved_at?: string | null
           resolved_by?: string | null
@@ -3472,7 +3472,7 @@ export type Database = {
           created_at: string
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           resource: string | null
           success: boolean
           user_agent: string | null
@@ -3483,7 +3483,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource?: string | null
           success?: boolean
           user_agent?: string | null
@@ -3494,7 +3494,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource?: string | null
           success?: boolean
           user_agent?: string | null
@@ -3508,7 +3508,7 @@ export type Database = {
           blocked_until: string | null
           created_by: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           is_permanent: boolean | null
           notes: string | null
           reason: string
@@ -3519,7 +3519,7 @@ export type Database = {
           blocked_until?: string | null
           created_by?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_permanent?: boolean | null
           notes?: string | null
           reason: string
@@ -3530,7 +3530,7 @@ export type Database = {
           blocked_until?: string | null
           created_by?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_permanent?: boolean | null
           notes?: string | null
           reason?: string
@@ -3543,7 +3543,7 @@ export type Database = {
           access_type: string | null
           accessed_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           request_id: string | null
           user_agent: string | null
           user_id: string | null
@@ -3552,7 +3552,7 @@ export type Database = {
           access_type?: string | null
           accessed_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           request_id?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -3561,7 +3561,7 @@ export type Database = {
           access_type?: string | null
           accessed_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           request_id?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -3721,7 +3721,7 @@ export type Database = {
         Row: {
           city_name: string
           created_at: string | null
-          geom: unknown | null
+          geom: unknown
           id: string
           is_active: boolean | null
           lat: number
@@ -3729,7 +3729,7 @@ export type Database = {
           provider_id: string
           radius_km: number
           radius_m: number | null
-          service_area: unknown | null
+          service_area: unknown
           service_types: string[] | null
           state: string | null
           updated_at: string | null
@@ -3737,7 +3737,7 @@ export type Database = {
         Insert: {
           city_name: string
           created_at?: string | null
-          geom?: unknown | null
+          geom?: unknown
           id?: string
           is_active?: boolean | null
           lat: number
@@ -3745,7 +3745,7 @@ export type Database = {
           provider_id: string
           radius_km?: number
           radius_m?: number | null
-          service_area?: unknown | null
+          service_area?: unknown
           service_types?: string[] | null
           state?: string | null
           updated_at?: string | null
@@ -3753,7 +3753,7 @@ export type Database = {
         Update: {
           city_name?: string
           created_at?: string | null
-          geom?: unknown | null
+          geom?: unknown
           id?: string
           is_active?: boolean | null
           lat?: number
@@ -3761,7 +3761,7 @@ export type Database = {
           provider_id?: string
           radius_km?: number
           radius_m?: number | null
-          service_area?: unknown | null
+          service_area?: unknown
           service_types?: string[] | null
           state?: string | null
           updated_at?: string | null
@@ -4431,7 +4431,7 @@ export type Database = {
           created_at: string
           freight_id: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           user_agent: string | null
           user_id: string
         }
@@ -4441,7 +4441,7 @@ export type Database = {
           created_at?: string
           freight_id: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id: string
         }
@@ -4451,7 +4451,7 @@ export type Database = {
           created_at?: string
           freight_id?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id?: string
         }
@@ -4894,7 +4894,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_active_at: string | null
-          last_location: unknown | null
+          last_location: unknown
           location_enabled: boolean | null
           microphone_enabled: boolean | null
           os: string | null
@@ -4914,7 +4914,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_active_at?: string | null
-          last_location?: unknown | null
+          last_location?: unknown
           location_enabled?: boolean | null
           microphone_enabled?: boolean | null
           os?: string | null
@@ -4934,7 +4934,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_active_at?: string | null
-          last_location?: unknown | null
+          last_location?: unknown
           location_enabled?: boolean | null
           microphone_enabled?: boolean | null
           os?: string | null
@@ -5337,10 +5337,7 @@ export type Database = {
           status: string
         }[]
       }
-      auto_confirm_deliveries: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      auto_confirm_deliveries: { Args: never; Returns: undefined }
       auto_insert_city: {
         Args: {
           city_name: string
@@ -5368,26 +5365,14 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
-      can_notify_driver: {
-        Args: { p_driver_id: string }
-        Returns: boolean
-      }
-      can_notify_provider: {
-        Args: { p_provider_id: string }
-        Returns: boolean
-      }
+      can_notify_driver: { Args: { p_driver_id: string }; Returns: boolean }
+      can_notify_provider: { Args: { p_provider_id: string }; Returns: boolean }
       check_admin_reset_rate_limit: {
         Args: { p_admin_profile_id: string }
         Returns: Json
       }
-      check_expired_documents: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      check_low_ratings: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      check_expired_documents: { Args: never; Returns: undefined }
+      check_low_ratings: { Args: never; Returns: undefined }
       check_mutual_ratings_complete: {
         Args: { freight_id_param: string }
         Returns: boolean
@@ -5401,25 +5386,19 @@ export type Database = {
         Returns: boolean
       }
       cities_needing_geocoding: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           id: string
           name: string
           state: string
         }[]
       }
-      cleanup_expired_requests: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_expired_requests: { Args: never; Returns: undefined }
       confirm_checkin_as_counterpart: {
         Args: { p_checkin_id: string; p_observations?: string }
         Returns: boolean
       }
-      confirm_delivery: {
-        Args: { freight_id_param: string }
-        Returns: Json
-      }
+      confirm_delivery: { Args: { freight_id_param: string }; Returns: Json }
       create_additional_profile: {
         Args: {
           p_document?: string
@@ -5460,10 +5439,7 @@ export type Database = {
         }
         Returns: Json
       }
-      encrypt_document: {
-        Args: { doc: string }
-        Returns: string
-      }
+      encrypt_document: { Args: { doc: string }; Returns: string }
       encrypt_sensitive_data: {
         Args: { data: string; key?: string }
         Returns: string
@@ -5522,35 +5498,53 @@ export type Database = {
           status: string
         }[]
       }
-      find_drivers_by_origin: {
-        Args:
-          | { freight_uuid: string }
-          | { origin_city_param: string; origin_state_param: string }
-        Returns: {
-          distance_km: number
-          driver_id: string
-          driver_name: string
-          driver_rating: number
-          service_types: string[]
-        }[]
-      }
-      find_drivers_by_route: {
-        Args:
-          | {
+      find_drivers_by_origin:
+        | {
+            Args: { origin_city_param: string; origin_state_param: string }
+            Returns: {
+              distance_km: number
+              driver_id: string
+              driver_name: string
+              driver_rating: number
+              service_types: string[]
+            }[]
+          }
+        | {
+            Args: { freight_uuid: string }
+            Returns: {
+              distance_m: number
+              driver_area_id: string
+              driver_id: string
+              match_method: string
+              radius_km: number
+            }[]
+          }
+      find_drivers_by_route:
+        | {
+            Args: {
               destination_city_param: string
               destination_state_param: string
               origin_city_param: string
               origin_state_param: string
             }
-          | { freight_uuid: string }
-        Returns: {
-          driver_id: string
-          driver_name: string
-          driver_rating: number
-          match_score: number
-          service_types: string[]
-        }[]
-      }
+            Returns: {
+              driver_id: string
+              driver_name: string
+              driver_rating: number
+              match_score: number
+              service_types: string[]
+            }[]
+          }
+        | {
+            Args: { freight_uuid: string }
+            Returns: {
+              distance_to_route_m: number
+              driver_area_id: string
+              driver_id: string
+              match_method: string
+              radius_km: number
+            }[]
+          }
       find_providers_by_location: {
         Args: { request_id: string; request_lat: number; request_lng: number }
         Returns: {
@@ -5581,7 +5575,7 @@ export type Database = {
         }[]
       }
       fix_freight_status_for_partial_bookings: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           accepted_trucks: number
           available_slots: number
@@ -5599,10 +5593,7 @@ export type Database = {
         }
         Returns: string
       }
-      generate_invite_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_invite_code: { Args: never; Returns: string }
       get_compatible_freights_for_driver: {
         Args: { p_driver_id: string }
         Returns: {
@@ -5684,14 +5675,8 @@ export type Database = {
           vehicle_info: string
         }[]
       }
-      get_current_user_safe: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_email_by_document: {
-        Args: { p_doc: string }
-        Returns: string
-      }
+      get_current_user_safe: { Args: never; Returns: string }
+      get_email_by_document: { Args: { p_doc: string }; Returns: string }
       get_freights_for_driver: {
         Args: { p_driver_id: string }
         Returns: {
@@ -5765,34 +5750,58 @@ export type Database = {
           weight: number
         }[]
       }
-      get_freights_in_radius: {
-        Args:
-          | { p_driver_id: string }
-          | { p_driver_id: string; radius_km?: number }
-        Returns: {
-          cargo_type: string
-          created_at: string
-          delivery_date: string
-          destination_city: string
-          destination_lat: number
-          destination_lng: number
-          destination_state: string
-          distance_from_driver: number
-          distance_km: number
-          id: string
-          origin_city: string
-          origin_lat: number
-          origin_lng: number
-          origin_state: string
-          pickup_date: string
-          price: number
-          producer_id: string
-          service_type: string
-          status: Database["public"]["Enums"]["freight_status"]
-          urgency: string
-          weight: number
-        }[]
-      }
+      get_freights_in_radius:
+        | {
+            Args: { p_driver_id: string }
+            Returns: {
+              cargo_type: string
+              created_at: string
+              delivery_date: string
+              destination_city: string
+              destination_lat: number
+              destination_lng: number
+              destination_state: string
+              distance_from_driver: number
+              distance_km: number
+              id: string
+              origin_city: string
+              origin_lat: number
+              origin_lng: number
+              origin_state: string
+              pickup_date: string
+              price: number
+              producer_id: string
+              service_type: string
+              status: Database["public"]["Enums"]["freight_status"]
+              urgency: string
+              weight: number
+            }[]
+          }
+        | {
+            Args: { p_driver_id: string; radius_km?: number }
+            Returns: {
+              cargo_type: string
+              created_at: string
+              delivery_date: string
+              destination_city: string
+              destination_lat: number
+              destination_lng: number
+              destination_state: string
+              distance_km: number
+              freight_id: string
+              origin_city: string
+              origin_lat: number
+              origin_lng: number
+              origin_state: string
+              pickup_date: string
+              price: number
+              producer_id: string
+              requires_monitoring: boolean
+              status: Database["public"]["Enums"]["freight_status"]
+              urgency: string
+              weight: number
+            }[]
+          }
       get_nearby_freights_for_driver: {
         Args: { p_driver_id: string; p_radius_km?: number }
         Returns: {
@@ -5816,7 +5825,7 @@ export type Database = {
         }[]
       }
       get_platform_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           avaliacao_media: number
           fretes_entregues: number
@@ -5864,7 +5873,7 @@ export type Database = {
         }[]
       }
       get_public_service_requests: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           destination_city: string
@@ -5884,7 +5893,7 @@ export type Database = {
         }[]
       }
       get_public_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           active_freights: number
           total_drivers: number
@@ -5931,7 +5940,7 @@ export type Database = {
         }[]
       }
       get_secure_user_profile: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           email: string
@@ -6071,7 +6080,7 @@ export type Database = {
         }[]
       }
       get_user_role: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
       get_user_roles: {
@@ -6080,23 +6089,33 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
         }[]
       }
-      get_users_in_city: {
-        Args:
-          | { p_city_id: string }
-          | {
+      get_users_in_city:
+        | {
+            Args: { p_city_id: string }
+            Returns: {
+              city_name: string
+              city_state: string
+              full_name: string
+              rating: number
+              role: Database["public"]["Enums"]["user_role"]
+              user_id: string
+            }[]
+          }
+        | {
+            Args: {
               p_city_id: string
               p_include_nearby?: boolean
               p_type: Database["public"]["Enums"]["user_city_type"]
             }
-        Returns: {
-          city_name: string
-          city_state: string
-          full_name: string
-          rating: number
-          role: Database["public"]["Enums"]["user_role"]
-          user_id: string
-        }[]
-      }
+            Returns: {
+              city_id: string
+              city_name: string
+              city_state: string
+              distance_m: number
+              radius_km: number
+              user_id: string
+            }[]
+          }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
@@ -6111,14 +6130,8 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_affiliated_driver: {
-        Args: { p_profile_id: string }
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
+      is_affiliated_driver: { Args: { p_profile_id: string }; Returns: boolean }
       is_company_driver: {
         Args: { p_company_id: string; p_user_id: string }
         Returns: boolean
@@ -6131,18 +6144,12 @@ export type Database = {
         Args: { freight_id: string; user_profile_id: string }
         Returns: boolean
       }
-      is_ip_blacklisted: {
-        Args: { check_ip: unknown }
-        Returns: boolean
-      }
+      is_ip_blacklisted: { Args: { check_ip: unknown }; Returns: boolean }
       is_service_compatible: {
         Args: { driver_service_types: string[]; freight_service_type: string }
         Returns: boolean
       }
-      is_transport_company: {
-        Args: { p_user_id: string }
-        Returns: boolean
-      }
+      is_transport_company: { Args: { p_user_id: string }; Returns: boolean }
       log_security_event: {
         Args: {
           details?: Json
@@ -6152,12 +6159,19 @@ export type Database = {
         }
         Returns: undefined
       }
-      log_sensitive_data_access: {
-        Args:
-          | { access_type: string; accessed_id: string; accessed_table: string }
-          | { access_type: string; request_id: string }
-        Returns: undefined
-      }
+      log_sensitive_data_access:
+        | {
+            Args: { access_type: string; request_id: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              access_type: string
+              accessed_id: string
+              accessed_table: string
+            }
+            Returns: undefined
+          }
       mark_freight_messages_as_read: {
         Args: { p_freight_id: string }
         Returns: undefined
@@ -6189,7 +6203,7 @@ export type Database = {
         }[]
       }
       migrate_freight_requests_to_freights: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           from_table: string
           migrated_id: string
@@ -6210,10 +6224,7 @@ export type Database = {
         }
         Returns: Json
       }
-      sanitize_document: {
-        Args: { doc: string }
-        Returns: string
-      }
+      sanitize_document: { Args: { doc: string }; Returns: string }
       search_cities: {
         Args: { limit_count?: number; search_term: string }
         Returns: {
@@ -6239,10 +6250,7 @@ export type Database = {
         Args: { p_freight_id: string }
         Returns: undefined
       }
-      validate_password_strength: {
-        Args: { password: string }
-        Returns: Json
-      }
+      validate_password_strength: { Args: { password: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "driver" | "producer" | "service_provider"

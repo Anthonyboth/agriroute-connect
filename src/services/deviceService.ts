@@ -22,7 +22,7 @@ export interface UserDevice {
 }
 
 // Registrar dispositivo no banco
-export const registerDevice = async (profileId: string): Promise<UserDevice | null> => {
+export const registerDevice = async (profileId: string): Promise<UserDevice> => {
   try {
     const deviceInfo = await getDeviceInfo();
     
@@ -43,17 +43,18 @@ export const registerDevice = async (profileId: string): Promise<UserDevice | nu
       .single();
     
     if (error) {
-      console.error('❌ Erro ao registrar dispositivo:', error);
-      // Don't show success message if there was an error
       throw error;
+    }
+    
+    if (!data) {
+      throw new Error('No data returned from device registration');
     }
     
     console.log('✅ Dispositivo registrado:', data);
     return data;
   } catch (error) {
     console.error('❌ Erro ao registrar dispositivo:', error);
-    // Return null but don't swallow the error - let caller handle it
-    return null;
+    throw error;
   }
 };
 

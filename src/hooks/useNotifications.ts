@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { queryWithTimeout } from '@/lib/query-utils';
@@ -8,7 +8,7 @@ export const useNotifications = () => {
   const [loading, setLoading] = useState(false);
   const { profile } = useAuth();
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     if (!profile) return;
 
     setLoading(true);
@@ -43,7 +43,7 @@ export const useNotifications = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profile]);
 
   useEffect(() => {
     if (profile) {
@@ -70,7 +70,7 @@ export const useNotifications = () => {
         subscription.unsubscribe();
       };
     }
-  }, [profile]);
+  }, [profile, fetchUnreadCount]);
 
   return {
     unreadCount,
