@@ -106,6 +106,30 @@ interface ServiceProviderStats {
   total_earnings: number;
 }
 
+// Helper para sempre mostrar a cidade, não o endereço específico
+const getDisplayLocation = (request: ServiceRequest): string => {
+  // Prioridade 1: city_name + state
+  if (request.city_name && request.state) {
+    return `${request.city_name}, ${request.state}`;
+  }
+  
+  // Prioridade 2: city_name sozinho
+  if (request.city_name) {
+    return request.city_name;
+  }
+  
+  // Prioridade 3: Tentar extrair cidade do location_address se tiver formato "Cidade, UF"
+  if (request.location_address?.includes(',')) {
+    const match = request.location_address.match(/([^,]+),\s*([A-Z]{2})/);
+    if (match) {
+      return `${match[1].trim()}, ${match[2]}`;
+    }
+  }
+  
+  // Fallback: mostrar location_address mesmo
+  return request.location_address || 'Localização não especificada';
+};
+
 export const ServiceProviderDashboard: React.FC = () => {
   const { toast } = useToast();
   const { user, profile, profiles } = useAuth();
@@ -1165,7 +1189,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                           </p>
                           <p className="text-sm text-muted-foreground">
                             <MapPin className="inline h-3 w-3 mr-1" />
-                            {request.location_address}
+                            {getDisplayLocation(request)}
                           </p>
                            {request.estimated_price && (
                              <p className="text-sm font-semibold text-green-600">
@@ -1275,7 +1299,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                          </p>
                          <p className="text-sm text-muted-foreground">
                            <MapPin className="inline h-3 w-3 mr-1" />
-                           {request.location_address}
+                           {getDisplayLocation(request)}
                          </p>
                          {/* DADOS DE CONTATO - Apenas para solicitações aceitas pelo prestador */}
                          {request.provider_id && (request.status === 'ACCEPTED' || request.status === 'IN_PROGRESS') && (
@@ -1355,7 +1379,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                          </p>
                          <p className="text-sm text-muted-foreground">
                            <MapPin className="inline h-3 w-3 mr-1" />
-                           {request.location_address}
+                           {getDisplayLocation(request)}
                          </p>
                          {request.final_price && (
                            <p className="text-sm font-medium text-green-600">
@@ -1469,12 +1493,11 @@ export const ServiceProviderDashboard: React.FC = () => {
                     Localização
                   </h4>
                   <div className="text-sm bg-muted p-3 rounded-lg space-y-1">
-                    <p>{selectedRequest.location_address}</p>
-                    {(selectedRequest.city_name || selectedRequest.state) && (
-                      <p className="text-muted-foreground font-medium">
-                        {selectedRequest.city_name}
-                        {selectedRequest.city_name && selectedRequest.state && ' - '}
-                        {selectedRequest.state}
+                    <p className="font-medium">{getDisplayLocation(selectedRequest)}</p>
+                    {selectedRequest.location_address && 
+                     selectedRequest.location_address !== getDisplayLocation(selectedRequest) && (
+                      <p className="text-xs text-muted-foreground">
+                        Local específico: {selectedRequest.location_address}
                       </p>
                     )}
                   </div>

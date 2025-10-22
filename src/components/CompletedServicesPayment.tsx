@@ -13,6 +13,8 @@ interface CompletedService {
   service_type: string;
   problem_description: string;
   location_address: string;
+  city_name?: string;
+  state?: string;
   final_price: number | null;
   estimated_price: number;
   status: string;
@@ -27,6 +29,26 @@ interface CompletedService {
     amount: number;
   };
 }
+
+// Helper para sempre mostrar a cidade, não o endereço específico
+const getDisplayLocation = (service: CompletedService): string => {
+  if (service.city_name && service.state) {
+    return `${service.city_name}, ${service.state}`;
+  }
+  
+  if (service.city_name) {
+    return service.city_name;
+  }
+  
+  if (service.location_address?.includes(',')) {
+    const match = service.location_address.match(/([^,]+),\s*([A-Z]{2})/);
+    if (match) {
+      return `${match[1].trim()}, ${match[2]}`;
+    }
+  }
+  
+  return service.location_address || 'Localização não especificada';
+};
 
 export const CompletedServicesPayment: React.FC = () => {
   const [services, setServices] = useState<CompletedService[]>([]);
@@ -167,7 +189,7 @@ export const CompletedServicesPayment: React.FC = () => {
 
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <MapPin className="h-3 w-3" />
-                      {service.location_address}
+                      {getDisplayLocation(service)}
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">

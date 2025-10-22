@@ -30,6 +30,8 @@ interface ServiceRequest {
   location_address: string;
   location_city: string | null;
   location_state: string | null;
+  city_name?: string;
+  state?: string;
   problem_description: string;
   urgency: string;
   status: string;
@@ -44,6 +46,33 @@ interface ServiceRequest {
     full_name: string;
   };
 }
+
+// Helper para sempre mostrar a cidade, não o endereço específico
+const getDisplayLocation = (service: ServiceRequest): string => {
+  // Prioridade 1: city_name + state
+  if (service.city_name && service.state) {
+    return `${service.city_name}, ${service.state}`;
+  }
+  
+  // Prioridade 2: location_city + location_state
+  if (service.location_city && service.location_state) {
+    return `${service.location_city}, ${service.location_state}`;
+  }
+  
+  // Prioridade 3: city_name ou location_city sozinho
+  if (service.city_name) return service.city_name;
+  if (service.location_city) return service.location_city;
+  
+  // Prioridade 4: Tentar extrair do location_address
+  if (service.location_address?.includes(',')) {
+    const match = service.location_address.match(/([^,]+),\s*([A-Z]{2})/);
+    if (match) {
+      return `${match[1].trim()}, ${match[2]}`;
+    }
+  }
+  
+  return service.location_address || 'Localização não especificada';
+};
 
 export const ServiceHistory: React.FC = () => {
   const { profile } = useAuth();
@@ -283,10 +312,11 @@ export const ServiceHistory: React.FC = () => {
                             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                             <div>
                               <p className="font-medium">Local:</p>
-                              <p className="text-muted-foreground">{service.location_address}</p>
-                              {service.location_city && service.location_state && (
+                              <p className="text-muted-foreground">{getDisplayLocation(service)}</p>
+                              {service.location_address && 
+                               service.location_address !== getDisplayLocation(service) && (
                                 <p className="text-muted-foreground text-xs">
-                                  {service.location_city}, {service.location_state}
+                                  Local específico: {service.location_address}
                                 </p>
                               )}
                             </div>
