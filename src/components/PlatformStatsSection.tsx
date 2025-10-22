@@ -18,7 +18,7 @@ export const PlatformStatsSection: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="rounded-xl border bg-card p-6 md:p-8">
+              <div key={`stats-skeleton-${i}`} className="rounded-xl border bg-card p-6 md:p-8">
                 <div className="flex flex-col items-center text-center space-y-2">
                   <Skeleton className="h-10 w-24" />
                   <Skeleton className="h-4 w-32" />

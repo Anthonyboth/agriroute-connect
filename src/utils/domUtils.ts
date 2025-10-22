@@ -80,3 +80,57 @@ export function safeRemove(node: Node | null | undefined): boolean {
     return false;
   }
 }
+
+/**
+ * Safely removes all child nodes from an element
+ * 
+ * This function iterates through all child nodes and removes them safely,
+ * preventing NotFoundError exceptions that can occur when nodes are
+ * already detached or being manipulated by other code.
+ * 
+ * @param el - The element whose children should be removed
+ * @returns The number of children successfully removed
+ * 
+ * @example
+ * ```typescript
+ * const container = document.getElementById('container');
+ * const removedCount = safeClearChildren(container);
+ * console.log(`Removed ${removedCount} children`);
+ * ```
+ */
+export function safeClearChildren(el: Element | null | undefined): number {
+  if (!el || !isElementAttached(el)) {
+    return 0;
+  }
+  
+  let removed = 0;
+  try {
+    // Create a snapshot of children since live collection changes during removal
+    const children = Array.from(el.childNodes);
+    for (const child of children) {
+      try {
+        if ('remove' in child && typeof (child as any).remove === 'function') {
+          (child as any).remove();
+        } else if (child.parentNode) {
+          child.parentNode.removeChild(child);
+        }
+        removed++;
+      } catch (e) {
+        console.warn('[domUtils] Error removing child:', e);
+      }
+    }
+  } catch (e) {
+    console.warn('[domUtils] Error clearing children:', e);
+  }
+  return removed;
+}
+
+/**
+ * Optional version of safeRemove that accepts possibly undefined nodes
+ * 
+ * @param node - The DOM node to remove (can be null or undefined)
+ * @returns true if the node was removed, false otherwise
+ */
+export function optionalRemove(node?: Node | null): boolean {
+  return safeRemove(node ?? null);
+}

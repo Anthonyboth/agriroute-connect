@@ -78,6 +78,10 @@ const TransportCompanyRegistration: React.FC = () => {
   // Basic SEO
   useEffect(() => {
     document.title = 'Cadastro de Transportadora | AgriRoute';
+    
+    let createdMeta: HTMLMetaElement | null = null;
+    let createdLink: HTMLLinkElement | null = null;
+    
     const metaDesc = document.querySelector('meta[name="description"]');
     const desc = 'Cadastro de transportadora no AgriRoute: crie sua empresa e gerencie motoristas e fretes.';
     if (metaDesc) {
@@ -87,7 +91,9 @@ const TransportCompanyRegistration: React.FC = () => {
       m.setAttribute('name', 'description');
       m.setAttribute('content', desc);
       document.head.appendChild(m);
+      createdMeta = m;
     }
+    
     const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     const href = `${window.location.origin}/cadastro-transportadora`;
     if (canonical) {
@@ -97,7 +103,26 @@ const TransportCompanyRegistration: React.FC = () => {
       link.setAttribute('rel', 'canonical');
       link.setAttribute('href', href);
       document.head.appendChild(link);
+      createdLink = link;
     }
+    
+    return () => {
+      // Only remove elements we created
+      if (createdMeta && createdMeta.parentNode) {
+        try {
+          createdMeta.parentNode.removeChild(createdMeta);
+        } catch (e) {
+          console.warn('[TransportCompanyRegistration] Error removing meta:', e);
+        }
+      }
+      if (createdLink && createdLink.parentNode) {
+        try {
+          createdLink.parentNode.removeChild(createdLink);
+        } catch (e) {
+          console.warn('[TransportCompanyRegistration] Error removing link:', e);
+        }
+      }
+    };
   }, []);
 
   useEffect(() => {

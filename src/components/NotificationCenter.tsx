@@ -361,7 +361,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <Card key={i}>
+                <Card key={`notification-skeleton-${i}`}>
                   <CardContent className="pt-6">
                     <div className="flex gap-3">
                       <Skeleton className="h-10 w-10 rounded-full" />
