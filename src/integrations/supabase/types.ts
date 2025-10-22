@@ -4094,7 +4094,7 @@ export type Database = {
           problem_description: string
           prospect_user_id: string | null
           provider_comment: string | null
-          provider_id: string
+          provider_id: string | null
           provider_notes: string | null
           provider_rating: number | null
           service_radius_km: number | null
@@ -4138,7 +4138,7 @@ export type Database = {
           problem_description: string
           prospect_user_id?: string | null
           provider_comment?: string | null
-          provider_id: string
+          provider_id?: string | null
           provider_notes?: string | null
           provider_rating?: number | null
           service_radius_km?: number | null
@@ -4182,7 +4182,7 @@ export type Database = {
           problem_description?: string
           prospect_user_id?: string | null
           provider_comment?: string | null
-          provider_id?: string
+          provider_id?: string | null
           provider_notes?: string | null
           provider_rating?: number | null
           service_radius_km?: number | null
