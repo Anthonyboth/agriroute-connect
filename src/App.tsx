@@ -114,8 +114,9 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
             userRoles: profile.roles || [profile.role]
           }
         });
-      } catch (error) {
-        console.error('Erro ao logar acesso negado:', error);
+      } catch (error: any) {
+        // Silenciar erro - não impacta UX
+        console.debug('[App] Log de acesso negado falhou (não crítico):', error?.message);
       }
     };
     logAccessDenied();

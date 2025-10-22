@@ -39,11 +39,19 @@ serve(async (req) => {
 
     const { route, requiredRoles, userRoles } = await req.json();
 
+    // Validar se é um IP válido
+    const isValidIP = (ip: string): boolean => {
+      if (!ip || ip === 'unknown') return false;
+      const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+      const ipv6Regex = /^([0-9a-fA-F]{0,4}:){7}[0-9a-fA-F]{0,4}$/;
+      return ipv4Regex.test(ip) || ipv6Regex.test(ip);
+    };
+
     // Obter IP e User-Agent
-    const ipAddress = req.headers.get('cf-connecting-ip') || 
-                      req.headers.get('x-forwarded-for') || 
-                      req.headers.get('x-real-ip') || 
-                      'unknown';
+    const rawIP = req.headers.get('cf-connecting-ip') || 
+                  req.headers.get('x-forwarded-for') || 
+                  req.headers.get('x-real-ip');
+    const ipAddress = rawIP && isValidIP(rawIP) ? rawIP : null;
     const userAgent = req.headers.get('user-agent') || 'unknown';
 
     console.log('[log-access-denied] Tentativa de acesso negado:', {
@@ -52,18 +60,20 @@ serve(async (req) => {
       route,
       requiredRoles,
       userRoles,
-      ipAddress
+      rawIP,
+      validatedIP: ipAddress,
+      isValidIP: ipAddress !== null
     });
 
-    // Inserir log
+    // Inserir log com validações
     const { error: insertError } = await supabase
       .from('access_denied_logs')
       .insert({
         user_id: user.id,
-        profile_id: profile?.id,
-        attempted_route: route,
-        required_roles: requiredRoles,
-        user_roles: userRoles,
+        profile_id: profile?.id || null,
+        attempted_route: route || 'unknown',
+        required_roles: Array.isArray(requiredRoles) ? requiredRoles : [],
+        user_roles: Array.isArray(userRoles) ? userRoles : [],
         ip_address: ipAddress,
         user_agent: userAgent
       });
