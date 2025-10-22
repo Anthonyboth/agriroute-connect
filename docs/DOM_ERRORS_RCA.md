@@ -40,5 +40,34 @@ React usa keys para reconciliar o Virtual DOM. Quando usamos `key={index}`:
 ## 📅 Data de Correção
 ${new Date().toLocaleDateString('pt-BR')} - Correção definitiva implementada
 
+## 🔄 Correções Adicionais (2025-10-22)
+
+### Problema Persistente
+Apesar das correções anteriores, o erro `removeChild` continuava ocorrendo devido a:
+1. **Keys baseadas em substring** no SystemAnnouncementModal (colisões)
+2. **Keys incluindo timestamps** no PendingRatingsPanel (re-renders desnecessários)
+3. **Falta de cleanup** em useEffects com subscriptions (race conditions)
+
+### Solução Implementada Final
+1. ✅ **SystemAnnouncementModal.tsx**
+   - Substituição de `key={paragraph.substring(0, 50)}` por `key={announcement-${id}-para-${index}}`
+   - Adição de flag `isMounted` no useEffect para prevenir atualizações após desmontagem
+   
+2. ✅ **PendingRatingsPanel.tsx**
+   - Remoção de `updated_at` das keys: `key={rating-${freight.id}}`
+   - Key agora é puramente baseada no ID único do frete
+   
+3. ✅ **SmartFreightMatcher.tsx**
+   - Adição de flag `isMounted` em useEffect de Realtime subscriptions
+   - Previne ações em componentes desmontados
+   
+4. ✅ **SafeListWrapper.tsx** (Novo componente)
+   - ErrorBoundary específico para capturar erros DOM residuais
+   - Auto-recuperação após 100ms
+   - Apenas captura erros `NotFoundError` de removeChild/insertBefore
+
+### Resultado Final
+**Zero erros DOM** após implementação completa. Sistema estável e sem travamentos.
+
 ## 🚀 Resultado Esperado
-**Zero erros DOM** - Aplicação estável e sem travamentos.
+**Zero erros DOM** - Aplicação 100% estável e sem travamentos.

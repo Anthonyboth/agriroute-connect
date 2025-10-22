@@ -167,7 +167,7 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
           ) : (
             <div className="space-y-4">
               {pendingRatings.map((freight) => (
-                <React.Fragment key={`rating-${freight.id}-${freight.updated_at}`}>
+                <React.Fragment key={`rating-${freight.id}`}>
                   <Card className="border-l-4 border-l-amber-500 bg-amber-50/50">
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start mb-3">

@@ -14,7 +14,18 @@ export const SystemAnnouncementModal = () => {
   } | null>(null);
 
   useEffect(() => {
-    checkAndShowAnnouncement();
+    let isMounted = true;
+    
+    const loadAnnouncement = async () => {
+      if (!isMounted) return;
+      await checkAndShowAnnouncement();
+    };
+    
+    loadAnnouncement();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const checkAndShowAnnouncement = async () => {
@@ -109,8 +120,8 @@ export const SystemAnnouncementModal = () => {
         <div className="space-y-4 py-4">
           {/* Mensagem principal */}
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
-            {mainParagraphs.map((paragraph) => (
-              <p key={paragraph.substring(0, 50)} className="text-sm leading-relaxed text-muted-foreground">
+            {mainParagraphs.map((paragraph, index) => (
+              <p key={`announcement-${announcement.id}-para-${index}`} className="text-sm leading-relaxed text-muted-foreground">
                 {paragraph}
               </p>
             ))}

@@ -68,6 +68,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
 
   // Realtime: Ouvir mudanças em user_cities e recarregar fretes automaticamente
   useEffect(() => {
+    let isMounted = true;
     if (!profile?.id || !user?.id) return;
 
     const channel = supabase
@@ -81,6 +82,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
+          if (!isMounted) return;
           console.log('user_cities mudou:', payload);
           toast.info('Suas cidades de atendimento foram atualizadas. Recarregando fretes...');
           fetchCompatibleFreights();
@@ -89,6 +91,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
   }, [profile?.id, user?.id]);
