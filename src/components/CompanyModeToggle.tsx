@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Truck, User } from 'lucide-react';
+import { Truck, User, UserCheck } from 'lucide-react';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { AffiliationRequestModal } from './AffiliationRequestModal';
 
 interface CompanyModeToggleProps {
   currentMode?: 'MOTORISTA' | 'TRANSPORTADORA';
@@ -22,6 +23,7 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
   const { isTransportCompany } = useTransportCompany();
   const { hasRole } = useAuth();
   const [isChangingMode, setIsChangingMode] = useState(false);
+  const [affiliationModalOpen, setAffiliationModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleToggleMode = async (checked: boolean) => {
@@ -59,20 +61,41 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
   // Se não é transportadora, mostrar botão para virar transportadora
   if (!isTransportCompany) {
     return (
-      <div className="w-full">
-        <Button
-          onClick={() => navigate('/cadastro-transportadora')}
-          variant="outline"
-          className="w-full justify-start"
-          size="sm"
-        >
-          <Truck className="mr-2 h-4 w-4" />
-          Transformar em Transportadora
-        </Button>
-        <p className="text-xs text-muted-foreground mt-1 px-2">
-          Cadastre mais veículos, gerencie motoristas e aceite mais fretes.
-        </p>
-      </div>
+      <>
+        <div className="w-full space-y-2">
+          <Button
+            onClick={() => navigate('/cadastro-transportadora')}
+            variant="outline"
+            className="w-full justify-start"
+            size="sm"
+          >
+            <Truck className="mr-2 h-4 w-4" />
+            Transformar em Transportadora
+          </Button>
+          <p className="text-xs text-muted-foreground px-2">
+            Cadastre mais veículos, gerencie motoristas e aceite mais fretes.
+          </p>
+          
+          <Button
+            onClick={() => setAffiliationModalOpen(true)}
+            variant="outline"
+            className="w-full justify-start"
+            size="sm"
+          >
+            <UserCheck className="mr-2 h-4 w-4" />
+            Solicitar Afiliação
+          </Button>
+          <p className="text-xs text-muted-foreground px-2">
+            Faça parte de uma transportadora existente
+          </p>
+        </div>
+
+        <AffiliationRequestModal
+          isOpen={affiliationModalOpen}
+          onClose={() => setAffiliationModalOpen(false)}
+          currentProfile={currentProfile}
+        />
+      </>
     );
   }
 

@@ -12,7 +12,11 @@ import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { useAffiliationValidation } from '@/hooks/useAffiliationValidation';
 import { CompanyInviteModal } from './CompanyInviteModal';
 import { DriverDetailsModal } from './driver-details/DriverDetailsModal';
-import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Check, AlertCircle, LogOut } from 'lucide-react';
+import { AffiliationSettingsModal } from './AffiliationSettingsModal';
+import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Check, AlertCircle, LogOut, Bell } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +55,12 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
+  const [affiliationSettings, setAffiliationSettings] = useState<{
+    isOpen: boolean;
+    requestId: string | null;
+    driver: any | null;
+  }>({ isOpen: false, requestId: null, driver: null });
+  const queryClient = useQueryClient();
 
   // Filtrar motoristas
 
@@ -177,11 +187,15 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
                           size="sm"
                           className="flex-1 bg-green-600 hover:bg-green-700"
                           onClick={() => {
-                            console.log('🚀 Aprovando motorista:', driver.driver?.full_name);
-                            approveDriver.mutate(driver.driver_profile_id);
+                            console.log('🚀 Configurando permissões para:', driver.driver?.full_name);
+                            setAffiliationSettings({
+                              isOpen: true,
+                              requestId: driver.id,
+                              driver: driver.driver
+                            });
                           }}
                           disabled={approveDriver.isPending}
-                          title="Aprovar vínculo do motorista"
+                          title="Configurar permissões e aprovar"
                         >
                           {approveDriver.isPending ? (
                             <>
@@ -423,6 +437,45 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
           onOpenChange={(open) => !open && setSelectedDriver(null)}
         />
       )}
+
+      <AffiliationSettingsModal
+        isOpen={affiliationSettings.isOpen}
+        onClose={() => setAffiliationSettings({ isOpen: false, requestId: null, driver: null })}
+        driver={affiliationSettings.driver}
+        onSave={async (settings) => {
+          if (!affiliationSettings.requestId) return;
+
+          const { error } = await supabase
+            .from('company_drivers')
+            .update({
+              status: 'ACTIVE',
+              can_accept_freights: settings.can_accept_freights,
+              can_manage_vehicles: settings.can_manage_vehicles,
+              accepted_at: new Date().toISOString()
+            })
+            .eq('id', affiliationSettings.requestId);
+
+          if (error) {
+            toast.error('Erro ao aprovar solicitação');
+            throw error;
+          }
+
+          // Notificar motorista
+          const driver = pendingDrivers?.find((d: any) => d.id === affiliationSettings.requestId);
+          if (driver) {
+            await supabase.from('notifications').insert({
+              user_id: driver.driver_profile_id,
+              title: 'Afiliação Aprovada!',
+              message: `Sua solicitação de afiliação à ${company?.company_name} foi aprovada!`,
+              type: 'affiliation_approved'
+            });
+          }
+
+          toast.success('Motorista afiliado com sucesso!');
+          queryClient.invalidateQueries({ queryKey: ['pending-drivers'] });
+          queryClient.invalidateQueries({ queryKey: ['company-drivers'] });
+        }}
+      />
     </div>
   );
 };

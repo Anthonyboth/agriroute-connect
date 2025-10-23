@@ -5,13 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Image, MessageCircle, User, Truck, MapPin, Navigation } from 'lucide-react';
+import { Send, Image, MessageCircle, User, Truck, MapPin, Navigation, Check, Package, DollarSign } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { useLocationPermission } from '@/hooks/useLocationPermission';
 import { queryWithTimeout, subscriptionWithErrorHandler } from '@/lib/query-utils';
+import { CompanyFreightAcceptModal } from './CompanyFreightAcceptModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,7 @@ interface Message {
   location_lng?: number;
   location_address?: string;
   created_at: string;
+  metadata?: any;
   sender?: {
     full_name: string;
     role: string;
@@ -58,6 +60,8 @@ export const FreightChat: React.FC<FreightChatProps> = ({
   const [isSendingLocation, setIsSendingLocation] = useState(false);
   const [showLocationConfirm, setShowLocationConfirm] = useState(false);
   const [freightInfo, setFreightInfo] = useState<any>(null);
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [selectedSharedFreight, setSelectedSharedFreight] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -73,6 +77,7 @@ export const FreightChat: React.FC<FreightChatProps> = ({
   const isProducer = freightInfo?.producer_id === currentUserProfile?.id;
   const isDriver = freightInfo?.driver_id === currentUserProfile?.id;
   const canShareLocation = freightInfo?.status && ['ACCEPTED', 'IN_TRANSIT'].includes(freightInfo.status);
+  const isCompanyOwner = currentUserProfile?.role === 'TRANSPORTADORA' || !!currentUserProfile?.transport_company;
 
   const fetchMessages = async () => {
     try {
@@ -454,6 +459,94 @@ export const FreightChat: React.FC<FreightChatProps> = ({
                                 </Button>
                               )}
                             </div>
+                          )}
+
+                          {message.message_type === 'FREIGHT_SHARE' && message.metadata && (
+                            <Card className="bg-blue-50/50 border-blue-200 mt-2">
+                              <CardContent className="p-4 space-y-3">
+                                <div className="flex items-start gap-2">
+                                  <Truck className="h-5 w-5 text-blue-600 mt-0.5" />
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-blue-900 text-sm">🚛 Frete Compartilhado</p>
+                                    <p className="text-xs text-blue-700 mt-1">{message.message}</p>
+                                  </div>
+                                </div>
+
+                                {message.metadata.freight_data && (
+                                  <div className="space-y-2 p-3 bg-white rounded border text-xs">
+                                    <div className="flex items-center gap-2">
+                                      <Package className="h-3 w-3 text-muted-foreground" />
+                                      <span><strong>Carga:</strong> {message.metadata.freight_data.cargo_type}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <MapPin className="h-3 w-3 text-green-600" />
+                                      <span><strong>Origem:</strong> {message.metadata.freight_data.origin_address}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <MapPin className="h-3 w-3 text-red-600" />
+                                      <span><strong>Destino:</strong> {message.metadata.freight_data.destination_address}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <DollarSign className="h-3 w-3 text-primary" />
+                                      <span><strong>Preço:</strong> R$ {message.metadata.freight_data.price?.toFixed(2)}</span>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {isCompanyOwner && message.metadata.freight_data && (
+                                  <div className="flex gap-2 pt-2">
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => {
+                                        setSelectedSharedFreight({
+                                          freight: message.metadata.freight_data,
+                                          driverId: message.metadata.shared_by,
+                                          driverName: message.sender?.full_name
+                                        });
+                                        setShowAcceptModal(true);
+                                      }}
+                                      className="flex-1"
+                                    >
+                                      <Check className="mr-2 h-3 w-3" />
+                                      Aceitar Frete
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => {
+                                        setSelectedSharedFreight({
+                                          freight: message.metadata.freight_data,
+                                          driverId: message.metadata.shared_by,
+                                          driverName: message.sender?.full_name
+                                        });
+                                        setShowAcceptModal(true);
+                                      }}
+                                      className="flex-1"
+                                    >
+                                      <MessageCircle className="mr-2 h-3 w-3" />
+                                      Contra-propor
+                                    </Button>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          )}
+
+                          {message.message_type === 'COUNTER_PROPOSAL' && message.metadata && (
+                            <Card className="bg-orange-50/50 border-orange-200 mt-2">
+                              <CardContent className="p-4 space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <DollarSign className="h-5 w-5 text-orange-600 mt-0.5" />
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-orange-900 text-sm">💰 Contraproposta</p>
+                                    <div className="text-xs text-orange-700 mt-2 space-y-1">
+                                      <p><strong>Valor Original:</strong> R$ {message.metadata.original_price?.toFixed(2)}</p>
+                                      <p><strong>Novo Valor:</strong> R$ {message.metadata.counter_price?.toFixed(2)}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
                           )}
                         </div>
                       </div>

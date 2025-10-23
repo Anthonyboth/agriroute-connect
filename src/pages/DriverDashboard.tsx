@@ -36,7 +36,7 @@ import { useGPSMonitoring } from '@/hooks/useGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { TrackingConsentModal } from '@/components/TrackingConsentModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Wrench } from 'lucide-react';
+import { Wrench, Send } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
@@ -52,6 +52,7 @@ import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 import { DriverAutoLocationTracking } from '@/components/DriverAutoLocationTracking';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { AutoRatingModal } from '@/components/AutoRatingModal';
+import { useDriverPermissions } from '@/hooks/useDriverPermissions';
 
 interface Freight {
   id: string;
@@ -102,6 +103,7 @@ const DriverDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
   const { unreadCount } = useNotifications();
   const { isCompanyDriver, companyName, companyId, canAcceptFreights, canManageVehicles, isAffiliated } = useCompanyDriver();
+  const { mustUseChat } = useDriverPermissions();
   const navigate = useNavigate();
   const location = useLocation();
 
