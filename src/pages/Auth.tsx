@@ -22,6 +22,7 @@ import { ProfileSelectorModal } from '@/components/ProfileSelectorModal';
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [loginField, setLoginField] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
@@ -51,10 +52,16 @@ const Auth = () => {
   useEffect(() => {
     // Remove automatic redirect from auth page - let RedirectIfAuthed handle it
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        // Just log, don't redirect from here
-        console.log('User already authenticated, RedirectIfAuthed will handle redirect');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // Just log, don't redirect from here
+          console.log('User already authenticated, RedirectIfAuthed will handle redirect');
+        }
+      } catch (err) {
+        console.error('Session check failed:', err);
+      } finally {
+        setIsCheckingSession(false);
       }
     };
     
@@ -413,6 +420,15 @@ const Auth = () => {
       toast.error('Erro ao reenviar o email de confirmação.');
     }
   };
+
+  // Mostrar loading enquanto verifica sessão
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-6 py-10 md:px-8 md:py-16">

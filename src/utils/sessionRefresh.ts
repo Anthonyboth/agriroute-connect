@@ -56,4 +56,13 @@ export function stopSessionRefresh() {
     refreshInterval = null;
     console.log('[SessionRefresh] Sistema de refresh parado');
   }
+  
+  // ✅ Limpar qualquer estado remanescente
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('device_reg_'));
+    if (keys.length > 0 && !localStorage.getItem('sb-shnvtxejjecbnztdbbbl-auth-token')) {
+      // Só limpar se não houver sessão ativa
+      keys.forEach(k => localStorage.removeItem(k));
+    }
+  } catch {}
 }

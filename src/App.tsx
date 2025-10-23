@@ -10,6 +10,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { AuthErrorBoundary } from "@/components/AuthErrorBoundary";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -320,8 +321,15 @@ const DeviceSetup = () => {
 // Component to handle session refresh
 const SessionManager = () => {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
   
   React.useEffect(() => {
+    // ✅ Não iniciar refresh na rota /auth
+    if (location.pathname === '/auth') {
+      stopSessionRefresh();
+      return;
+    }
+
     if (isAuthenticated) {
       startSessionRefresh();
     } else {
@@ -329,7 +337,7 @@ const SessionManager = () => {
     }
     
     return () => stopSessionRefresh();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, location.pathname]);
   
   return null;
 };
@@ -353,7 +361,11 @@ const App = () => (
             <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/landing" element={<Landing />} />
-            <Route path="/auth" element={<RedirectIfAuthed />} />
+            <Route path="/auth" element={
+              <AuthErrorBoundary>
+                <RedirectIfAuthed />
+              </AuthErrorBoundary>
+            } />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/confirm-email" element={<ConfirmEmail />} />
             <Route 

@@ -14,7 +14,11 @@ export const useDeviceRegistration = () => {
   const hasRegistered = useRef(false);
 
   useEffect(() => {
-    if (!user || !profile) return;
+    // ✅ CRITICAL: Só executar se user E profile existirem
+    if (!user || !profile) {
+      console.log('⏭️ useDeviceRegistration: Aguardando autenticação completa');
+      return;
+    }
 
     // ✅ LOCALSTORAGE com timestamp: prevenir múltiplos registros por 30 minutos
     const registrationKey = `device_reg_v2:${user.id}`;
