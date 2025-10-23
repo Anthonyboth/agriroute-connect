@@ -21,6 +21,10 @@ interface CompatibleFreight {
   weight: number;
   origin_address: string;
   destination_address: string;
+  origin_city?: string;
+  origin_state?: string;
+  destination_city?: string;
+  destination_state?: string;
   pickup_date: string;
   delivery_date: string;
   price: number;
@@ -170,6 +174,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             weight: f.weight || 0,
             origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
             destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
+            origin_city: f.origin_city,
+            origin_state: f.origin_state,
+            destination_city: f.destination_city,
+            destination_state: f.destination_state,
             pickup_date: f.pickup_date,
             delivery_date: f.delivery_date,
             price: f.price || 0,
@@ -306,6 +314,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               weight: f.weight || 0,
               origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
               destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
+              origin_city: f.origin_city,
+              origin_state: f.origin_state,
+              destination_city: f.destination_city,
+              destination_state: f.destination_state,
               pickup_date: f.pickup_date,
               delivery_date: f.delivery_date,
               price: f.price || 0,
@@ -844,6 +856,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                           weight: (freight.weight / 1000),
                           origin_address: freight.origin_address,
                           destination_address: freight.destination_address,
+                          origin_city: freight.origin_city,
+                          origin_state: freight.origin_state,
+                          destination_city: freight.destination_city,
+                          destination_state: freight.destination_state,
                           pickup_date: freight.pickup_date,
                           delivery_date: freight.delivery_date,
                           price: freight.price,

@@ -30,6 +30,10 @@ interface FreightCardProps {
     weight: number;
     origin_address: string;
     destination_address: string;
+    origin_city?: string;
+    origin_state?: string;
+    destination_city?: string;
+    destination_state?: string;
     pickup_date: string;
     delivery_date: string;
     price: number;
@@ -280,6 +284,11 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
               <MapPin className="h-4 w-4 text-primary" />
               Origem
             </p>
+            {freight.origin_city && freight.origin_state && (
+              <p className="text-lg font-bold text-primary pl-7">
+                {freight.origin_city.toUpperCase()} - {freight.origin_state.toUpperCase()}
+              </p>
+            )}
             <p className="text-accessible text-foreground/80 pl-7 leading-relaxed">
               {freight.origin_address}
             </p>
@@ -290,6 +299,11 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
               <ArrowRight className="h-4 w-4 text-accent" />
               Destino
             </p>
+            {freight.destination_city && freight.destination_state && (
+              <p className="text-lg font-bold text-primary pl-7">
+                {freight.destination_city.toUpperCase()} - {freight.destination_state.toUpperCase()}
+              </p>
+            )}
             <p className="text-accessible text-foreground/80 pl-7 leading-relaxed">
               {freight.destination_address}
             </p>

@@ -36,6 +36,10 @@ interface FreightCardProps {
     weight: number;
     origin_address: string;
     destination_address: string;
+    origin_city?: string;
+    origin_state?: string;
+    destination_city?: string;
+    destination_state?: string;
     pickup_date: string;
     delivery_date: string;
     price: number;
@@ -244,6 +248,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               <MapPin className="h-3 w-3 text-primary" />
               Origem
             </p>
+            {freight.origin_city && freight.origin_state && (
+              <p className="text-sm font-bold text-primary pl-4">
+                {freight.origin_city.toUpperCase()} - {freight.origin_state.toUpperCase()}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground pl-4 line-clamp-1">{freight.origin_address}</p>
           </div>
           
@@ -252,6 +261,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               <ArrowRight className="h-3 w-3 text-accent" />
               Destino
             </p>
+            {freight.destination_city && freight.destination_state && (
+              <p className="text-sm font-bold text-primary pl-4">
+                {freight.destination_city.toUpperCase()} - {freight.destination_state.toUpperCase()}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground pl-4 line-clamp-1">{freight.destination_address}</p>
           </div>
         </div>
