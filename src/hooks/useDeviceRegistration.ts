@@ -16,11 +16,17 @@ export const useDeviceRegistration = () => {
   useEffect(() => {
     if (!user || !profile) return;
 
-    // ✅ SENTINELA DE SESSÃO: prevenir múltiplos registros por sessão/usuário
-    const sessionKey = `device_reg_v1:${user.id}`;
-    if (sessionStorage.getItem(sessionKey)) {
-      hasRegistered.current = true;
-      return;
+    // ✅ LOCALSTORAGE com timestamp: prevenir múltiplos registros por 30 minutos
+    const registrationKey = `device_reg_v2:${user.id}`;
+    const lastRegistration = localStorage.getItem(registrationKey);
+    
+    // Se já registrou nos últimos 30 minutos, não registrar novamente
+    if (lastRegistration) {
+      const timeSinceRegistration = Date.now() - parseInt(lastRegistration);
+      if (timeSinceRegistration < 30 * 60 * 1000) { // 30 minutos
+        console.log('⏭️ Device já registrado nesta sessão, pulando...');
+        return;
+      }
     }
 
     // ✅ PREVENIR REGISTRO DUPLICADO na mesma sessão
@@ -43,11 +49,14 @@ export const useDeviceRegistration = () => {
 
     // Registrar dispositivo ao fazer login
     const register = async () => {
+      hasRegistered.current = true;
       isRegistering = true;
-      const sessionKey = `device_reg_v1:${user.id}`;
       
       try {
         await registerDevice(user.id);
+        
+        // Marcar como registrado com timestamp
+        localStorage.setItem(registrationKey, Date.now().toString());
         console.log('✅ Dispositivo registrado com sucesso');
 
         // Sincronizar permissões realmente verificadas
@@ -57,12 +66,12 @@ export const useDeviceRegistration = () => {
           push: permissions.notifications === 'granted',
           storage: permissions.storage === 'granted'
         });
-        
-        // ✅ MARCAR COMO REGISTRADO NA SESSÃO
-        sessionStorage.setItem(sessionKey, Date.now().toString());
-        hasRegistered.current = true;
       } catch (error: any) {
-        console.error('❌ Erro ao registrar dispositivo:', error?.message);
+        console.error('❌ Erro ao registrar dispositivo:', {
+          message: error?.message,
+          code: error?.code,
+        });
+        hasRegistered.current = false;
       } finally {
         isRegistering = false;
         registrationPromise = null;

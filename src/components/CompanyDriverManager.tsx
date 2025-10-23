@@ -12,7 +12,18 @@ import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { useAffiliationValidation } from '@/hooks/useAffiliationValidation';
 import { CompanyInviteModal } from './CompanyInviteModal';
 import { DriverDetailsModal } from './driver-details/DriverDetailsModal';
-import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Check, AlertCircle } from 'lucide-react';
+import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Check, AlertCircle, LogOut } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface CompanyDriverManagerProps {
   inModal?: boolean;
@@ -373,6 +384,43 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
                       <Eye className="h-4 w-4 mr-2" />
                       Ver Detalhes
                     </Button>
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                        >
+                          <LogOut className="h-4 w-4 mr-2" />
+                          Remover
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmar Remoção</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja remover <strong>{cd.driver?.full_name}</strong> da transportadora?
+                            <br /><br />
+                            O motorista perderá acesso aos fretes da empresa mas poderá solicitar re-afiliação no futuro.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={async () => {
+                              try {
+                                await removeDriver(cd.driver_profile_id);
+                              } catch (error) {
+                                console.error('Erro ao remover motorista:', error);
+                              }
+                            }}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Confirmar Remoção
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>
