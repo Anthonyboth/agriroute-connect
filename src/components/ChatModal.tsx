@@ -9,8 +9,10 @@ import { FreightChat } from './FreightChat';
 import { ServiceChat } from './ServiceChat';
 import { DocumentRequestModal } from './DocumentRequestModal';
 import { DriverChatTab } from './driver-details/DriverChatTab';
+import { FreightShareCard } from './FreightShareCard';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useEffect } from 'react';
 
 interface ChatModalProps {
   conversation: ChatConversation | null;
@@ -18,6 +20,7 @@ interface ChatModalProps {
   onClose: () => void;
   userProfileId: string;
   userRole: string;
+  onMarkFreightShareAsRead?: (messageId: string) => void;
 }
 
 export const ChatModal = ({
@@ -26,7 +29,14 @@ export const ChatModal = ({
   onClose,
   userProfileId,
   userRole,
+  onMarkFreightShareAsRead,
 }: ChatModalProps) => {
+  // Mark freight share as read when opened
+  useEffect(() => {
+    if (conversation?.type === 'FREIGHT_SHARE' && isOpen && onMarkFreightShareAsRead) {
+      onMarkFreightShareAsRead(conversation.metadata.messageId);
+    }
+  }, [conversation, isOpen, onMarkFreightShareAsRead]);
   // Buscar dados adicionais conforme necessário
   const { data: freightData } = useQuery({
     queryKey: ['freight-chat-data', conversation?.metadata?.freightId],
@@ -108,6 +118,19 @@ export const ChatModal = ({
             isOpen={true}
             onClose={onClose}
           />
+        );
+
+      case 'FREIGHT_SHARE':
+        return (
+          <div className="p-4">
+            <FreightShareCard
+              freightData={conversation.metadata.freightData}
+              messageId={conversation.metadata.messageId}
+              onAccept={() => {
+                onClose();
+              }}
+            />
+          </div>
         );
 
       default:

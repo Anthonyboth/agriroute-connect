@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Truck, Wrench, MessageSquare, FileText, X } from 'lucide-react';
+import { Truck, Wrench, MessageSquare, FileText, X, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChatConversation } from '@/hooks/useUnifiedChats';
@@ -26,6 +26,8 @@ export const ChatConversationCard = ({
         return <Wrench className="h-4 w-4" />;
       case 'DOCUMENT_REQUEST':
         return <FileText className="h-4 w-4" />;
+      case 'FREIGHT_SHARE':
+        return <Share2 className="h-4 w-4 text-accent" />;
       default:
         return <MessageSquare className="h-4 w-4" />;
     }

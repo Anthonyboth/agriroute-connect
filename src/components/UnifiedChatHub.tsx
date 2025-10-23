@@ -17,6 +17,7 @@ export const UnifiedChatHub = ({ userProfileId, userRole }: UnifiedChatHubProps)
     isLoading,
     closeConversation,
     reopenConversation,
+    markFreightShareAsRead,
   } = useUnifiedChats(userProfileId, userRole);
 
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
@@ -106,6 +107,7 @@ export const UnifiedChatHub = ({ userProfileId, userRole }: UnifiedChatHubProps)
         onClose={() => setSelectedConversation(null)}
         userProfileId={userProfileId}
         userRole={userRole}
+        onMarkFreightShareAsRead={(messageId) => markFreightShareAsRead.mutate(messageId)}
       />
     </>
   );

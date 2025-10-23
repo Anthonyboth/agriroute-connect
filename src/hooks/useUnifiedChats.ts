@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 export interface ChatConversation {
   id: string;
-  type: 'FREIGHT' | 'SERVICE' | 'DIRECT_CHAT' | 'DOCUMENT_REQUEST';
+  type: 'FREIGHT' | 'SERVICE' | 'DIRECT_CHAT' | 'DOCUMENT_REQUEST' | 'FREIGHT_SHARE';
   title: string;
   lastMessage: string;
   lastMessageTime: string;
@@ -220,7 +220,54 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
         allConversations.push(...Array.from(chatMap.values()));
       }
 
-      // 4. SOLICITAÇÕES DE DOCUMENTOS (apenas MOTORISTA)
+      // 4. FRETES COMPARTILHADOS (apenas TRANSPORTADORA)
+      if (userRole === 'TRANSPORTADORA') {
+        const { data: companyData } = await supabase
+          .from('transport_companies')
+          .select('id')
+          .eq('profile_id', userProfileId)
+          .single();
+
+        if (companyData) {
+          const { data: internalMessages } = await supabase
+            .from('company_internal_messages')
+            .select('id, message, created_at, read_at, chat_closed_by, sender_id, sender:profiles!company_internal_messages_sender_id_fkey(full_name)')
+            .eq('company_id', companyData.id)
+            .eq('message_type', 'SYSTEM')
+            .order('created_at', { ascending: false });
+
+          internalMessages?.forEach((msg: any) => {
+            try {
+              const messageData = JSON.parse(msg.message);
+              if (messageData.type === 'FREIGHT_SHARE') {
+                const freightData = messageData.freightData;
+                const closedBy = (msg.chat_closed_by as any) || {};
+
+                allConversations.push({
+                  id: `freight-share-${msg.id}`,
+                  type: 'FREIGHT_SHARE' as const,
+                  title: `Frete Compartilhado: ${freightData.cargo_type || 'Carga'} - ${freightData.origin_city} → ${freightData.destination_city}`,
+                  lastMessage: `Compartilhado por ${msg.sender?.full_name || 'Motorista'} - R$ ${Number(freightData.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+                  lastMessageTime: msg.created_at,
+                  unreadCount: msg.read_at ? 0 : 1,
+                  otherParticipant: {
+                    name: msg.sender?.full_name || 'Motorista',
+                  },
+                  metadata: {
+                    messageId: msg.id,
+                    freightData: freightData,
+                  },
+                  isClosed: closedBy[userProfileId] === true,
+                });
+              }
+            } catch (e) {
+              console.error('Error parsing freight share message:', e);
+            }
+          });
+        }
+      }
+
+      // 5. SOLICITAÇÕES DE DOCUMENTOS (apenas MOTORISTA)
       if (['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(userRole)) {
         const { data: docRequests } = await supabase
           .from('document_requests')
@@ -333,6 +380,23 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
       .subscribe();
     channels.push(docChannel);
 
+    // Company internal messages (freight shares)
+    const internalChannel = supabase
+      .channel('company-internal-messages-unified')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'company_internal_messages',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['unified-chats'] });
+        }
+      )
+      .subscribe();
+    channels.push(internalChannel);
+
     return () => {
       channels.forEach((channel) => supabase.removeChannel(channel));
     };
@@ -396,6 +460,22 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
             .from('company_driver_chats')
             .update({ chat_closed_by: updatedClosedBy })
             .eq('id', lastMessage.id);
+        }
+      } else if (type === 'FREIGHT_SHARE') {
+        const messageId = conversationId;
+        const { data: message } = await supabase
+          .from('company_internal_messages')
+          .select('id, chat_closed_by')
+          .eq('id', messageId)
+          .single();
+
+        if (message) {
+          const currentClosedBy = (message.chat_closed_by as any) || {};
+          const updatedClosedBy = { ...currentClosedBy, [userProfileId]: true };
+          await supabase
+            .from('company_internal_messages')
+            .update({ chat_closed_by: updatedClosedBy })
+            .eq('id', message.id);
         }
       }
     },
@@ -466,6 +546,22 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
             .update({ chat_closed_by: updatedClosedBy })
             .eq('id', lastMessage.id);
         }
+      } else if (type === 'FREIGHT_SHARE') {
+        const messageId = conversationId;
+        const { data: message } = await supabase
+          .from('company_internal_messages')
+          .select('id, chat_closed_by')
+          .eq('id', messageId)
+          .single();
+
+        if (message) {
+          const currentClosedBy = (message.chat_closed_by as any) || {};
+          const updatedClosedBy = { ...currentClosedBy, [userProfileId]: false };
+          await supabase
+            .from('company_internal_messages')
+            .update({ chat_closed_by: updatedClosedBy })
+            .eq('id', message.id);
+        }
       }
     },
     onSuccess: () => {
@@ -474,6 +570,18 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
     },
     onError: () => {
       toast.error('Erro ao reabrir conversa');
+    },
+  });
+
+  const markFreightShareAsRead = useMutation({
+    mutationFn: async (messageId: string) => {
+      await supabase
+        .from('company_internal_messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('id', messageId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['unified-chats'] });
     },
   });
 
@@ -491,5 +599,6 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
     totalUnread,
     closeConversation,
     reopenConversation,
+    markFreightShareAsRead,
   };
 };
