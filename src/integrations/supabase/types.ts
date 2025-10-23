@@ -5608,6 +5608,10 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_profile: {
+        Args: { _target_profile: string; _viewer: string }
+        Returns: boolean
+      }
       check_admin_reset_rate_limit: {
         Args: { p_admin_profile_id: string }
         Returns: Json
@@ -6381,6 +6385,10 @@ export type Database = {
         Returns: boolean
       }
       is_ip_blacklisted: { Args: { check_ip: unknown }; Returns: boolean }
+      is_profile_owner: {
+        Args: { _profile_id: string; _viewer: string }
+        Returns: boolean
+      }
       is_service_compatible: {
         Args: { driver_service_types: string[]; freight_service_type: string }
         Returns: boolean
