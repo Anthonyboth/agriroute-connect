@@ -443,7 +443,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           const { data: uc } = await supabase
             .from('user_cities')
             .select('city_id, cities(name, state)')
-            .or(`user_id.eq.${userId},profile_id.eq.${profile.id}`)
+            .eq('user_id', userId)
             .eq('is_active', true)
             .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
 

@@ -287,7 +287,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             const { data: uc } = await supabase
               .from('user_cities')
               .select('city_id, cities(name, state)')
-              .or(`user_id.eq.${user!.id},profile_id.eq.${profile.id}`)
+              .eq('user_id', user!.id)
               .eq('is_active', true)
               .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
 
@@ -432,7 +432,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       const { data: ucActive } = await supabase
         .from('user_cities')
         .select('cities(name, state)')
-        .or(`user_id.eq.${user!.id},profile_id.eq.${profile.id}`)
+        .eq('user_id', user!.id)
         .eq('is_active', true)
         .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
 
