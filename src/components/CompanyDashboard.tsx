@@ -203,6 +203,7 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
         activeDrivers={stats.activeDrivers}
         totalEarnings={stats.totalEarnings}
         pendingProposals={stats.pendingProposals}
+        onNavigateToTab={onNavigateToReport}
       />
 
 

@@ -10,6 +10,7 @@ interface CompanyFreightStatsProps {
   activeDrivers: number;
   totalEarnings: number;
   pendingProposals: number;
+  onNavigateToTab?: (tab: string) => void;
 }
 
 export const CompanyFreightStats: React.FC<CompanyFreightStatsProps> = ({
@@ -18,6 +19,7 @@ export const CompanyFreightStats: React.FC<CompanyFreightStatsProps> = ({
   activeDrivers,
   totalEarnings,
   pendingProposals,
+  onNavigateToTab,
 }) => {
   const { visible, toggle } = useEarningsVisibility(false);
   
@@ -32,24 +34,28 @@ export const CompanyFreightStats: React.FC<CompanyFreightStatsProps> = ({
         value={totalFreights}
         icon={<Package className="h-6 w-6" />}
         iconColor="text-blue-600"
+        onClick={() => onNavigateToTab?.('freights')}
       />
       <StatsCard
         label="Fretes Ativos"
         value={activeFreights}
         icon={<TrendingUp className="h-6 w-6" />}
         iconColor="text-green-600"
+        onClick={() => onNavigateToTab?.('freights')}
       />
       <StatsCard
         label="Motoristas Ativos"
         value={activeDrivers}
         icon={<Users className="h-6 w-6" />}
         iconColor="text-purple-600"
+        onClick={() => onNavigateToTab?.('drivers')}
       />
       <StatsCard
         label="Ganhos Totais"
         value={formattedEarnings}
         icon={<DollarSign className="h-6 w-6" />}
         iconColor="text-emerald-600"
+        onClick={() => onNavigateToTab?.('balance')}
         actionButton={
           <Button
             variant="ghost"
@@ -73,6 +79,7 @@ export const CompanyFreightStats: React.FC<CompanyFreightStatsProps> = ({
         value={pendingProposals}
         icon={<Truck className="h-6 w-6" />}
         iconColor="text-orange-600"
+        onClick={() => onNavigateToTab?.('freights')}
       />
     </div>
   );
