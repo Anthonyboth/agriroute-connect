@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { queryWithTimeout } from '@/lib/query-utils';
+import { clearSupabaseAuthStorage } from '@/utils/authRecovery';
+import { toast } from 'sonner';
 
 interface UserProfile {
   id: string;
@@ -182,6 +184,7 @@ export const useAuth = () => {
           localStorage.removeItem('current_profile_id');
           await supabase.auth.signOut({ scope: 'local' });
         } catch {}
+        try { clearSupabaseAuthStorage(); } catch {}
         setUser(null);
         setSession(null);
       }
@@ -278,6 +281,21 @@ export const useAuth = () => {
         
         setSession(session);
         setUser(session?.user ?? null);
+
+        // Correção de sessão inválida: quando o refresh falha e o Supabase não entrega session
+        if ((event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'SIGNED_OUT') && !session) {
+          // Evitar chamadas Supabase aqui (deadlock prevention)
+          clearSupabaseAuthStorage();
+          setProfile(null);
+          setProfiles([]);
+          setInitialized(true);
+          setLoading(false);
+          setTimeout(() => {
+            try { toast.error('Sua sessão expirou. Faça login novamente.'); } catch {}
+            window.location.href = '/';
+          }, 0);
+          return;
+        }
         
         if (session?.user) {
           // Validate UUID format

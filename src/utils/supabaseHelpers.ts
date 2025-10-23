@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { handleAuthError } from '@/utils/authRecovery';
 
 /**
  * Centraliza chamadas ao Supabase e exibe toasts amigáveis em caso de erro.
@@ -12,6 +13,8 @@ export async function safeSelect<T = any>(table: string, builder: (q: any) => Pr
     const { data, error } = await builder(q);
     if (error) {
       console.error(`Supabase select error on ${table}`, error);
+      const handled = await handleAuthError(error);
+      if (handled) return { data: null, error };
       toast.error('Erro ao comunicar com o servidor');
       return { data: null, error };
     }
@@ -28,6 +31,8 @@ export async function safeRpc(fnName: string, params?: any) {
     const { data, error } = await (supabase.rpc as any)(fnName, params || {});
     if (error) {
       console.error(`Supabase rpc error: ${fnName}`, error);
+      const handled = await handleAuthError(error);
+      if (handled) return { data: null, error };
       toast.error('Erro ao executar operação no servidor');
       return { data: null, error };
     }
@@ -44,6 +49,8 @@ export async function safeUpsert(table: string, payload: any, opts?: any) {
     const { data, error } = await (supabase as any).from(table).upsert(payload, opts || {});
     if (error) {
       console.error(`Supabase upsert error on ${table}`, error);
+      const handled = await handleAuthError(error);
+      if (handled) return { data: null, error };
       toast.error('Erro ao salvar dados');
       return { data: null, error };
     }
