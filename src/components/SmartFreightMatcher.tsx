@@ -189,14 +189,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         }
       }
 
-      // MOTORISTA: verificar config antes de prosseguir
+      // MOTORISTA: usar fallback se sem config
+      let effectiveTypes = allowedTypesFromProfile;
       if (!isCompany && allowedTypesFromProfile.length === 0) {
-        console.warn('⚠️ Motorista sem tipos de serviço configurados');
-        toast.info('Configure seus tipos de serviço para ver fretes.');
-        setCompatibleFreights([]);
-        setTowingRequests([]);
-        setLoading(false);
-        return;
+        console.info('ℹ️ Motorista sem tipos configurados → usando fallback [CARGA]');
+        effectiveTypes = ['CARGA'];
+        toast.info('Configure seus tipos de serviço nas configurações.', { duration: 3000 });
       }
       
       // Executar matching espacial para MOTORISTA

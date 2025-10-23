@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getCurrentPositionSafe } from '@/utils/location';
+import { getCurrentPositionSafe, checkPermissionSafe, requestPermissionSafe } from '@/utils/location';
 import { toast } from 'sonner';
 
 /**
@@ -19,12 +19,25 @@ export const useGPSMonitoring = (
   useEffect(() => {
     if (!isActive || !freightId) return;
 
-    console.log('Iniciando monitoramento de GPS para frete:', freightId);
-    
+    let mounted = true;
     let consecutiveFailures = 0;
-    const MAX_FAILURES = 2; // Reportar após 2 falhas consecutivas para evitar falsos positivos
+    let intervalId: NodeJS.Timeout;
+    const MAX_FAILURES = 2;
 
-    const checkGPSStatus = async () => {
+    const initMonitoring = async () => {
+      // Verificar permissão antes de iniciar
+      const hasPerm = await checkPermissionSafe();
+      if (!hasPerm) {
+        const granted = await requestPermissionSafe();
+        if (!granted || !mounted) {
+          toast.info('Ative sua localização para monitoramento do frete.', { duration: 5000 });
+          return;
+        }
+      }
+
+      console.log('Iniciando monitoramento de GPS para frete:', freightId);
+
+      const checkGPSStatus = async () => {
       try {
         const position = await getCurrentPositionSafe();
         
@@ -38,11 +51,10 @@ export const useGPSMonitoring = (
         
       } catch (error) {
         consecutiveFailures++;
-        console.warn(`Falha ao obter localização (${consecutiveFailures}/${MAX_FAILURES}):`, error);
         
         // Só reportar incidente após múltiplas falhas consecutivas
         if (consecutiveFailures >= MAX_FAILURES) {
-          console.error('GPS desligado ou sem permissão - reportando incidente');
+          console.error('GPS desligado - reportando incidente');
           
           // Reportar incidente ao backend
           try {
@@ -73,15 +85,19 @@ export const useGPSMonitoring = (
       }
     };
 
-    // Verificação inicial imediata
-    checkGPSStatus();
+      // Verificação inicial imediata
+      checkGPSStatus();
 
-    // Configurar verificação periódica
-    const intervalId = setInterval(checkGPSStatus, checkInterval);
+      // Configurar verificação periódica
+      intervalId = setInterval(checkGPSStatus, checkInterval);
+    };
+
+    initMonitoring();
 
     // Cleanup
     return () => {
-      clearInterval(intervalId);
+      mounted = false;
+      if (intervalId) clearInterval(intervalId);
     };
   }, [freightId, isActive, checkInterval]);
 };

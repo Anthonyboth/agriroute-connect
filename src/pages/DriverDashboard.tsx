@@ -18,6 +18,7 @@ import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
 import { MyAssignmentCard } from '@/components/MyAssignmentCard';
+import { SafeListWrapper } from '@/components/SafeListWrapper';
 
 import { DriverPayouts } from '@/components/DriverPayouts';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
@@ -1765,105 +1766,109 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                   <h4 className="text-sm font-semibold text-green-600">Seus Contratos Ativos</h4>
                   <Badge variant="outline" className="text-xs">{myAssignments.length}</Badge>
                 </div>
-                {myAssignments && myAssignments.length > 0 && myAssignments.map((assignment) => (
-                  assignment?.id ? (
-                    <MyAssignmentCard
-                      key={`assignment-${assignment.id}-${assignment.freight_id}`}
-                      assignment={assignment}
-                      onAction={() => {
-                        setSelectedFreightId(assignment.freight_id);
-                        setShowDetails(true);
-                      }}
-                    />
-                  ) : null
-                ))}
+                <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando lista...</div>}>
+                  {myAssignments && myAssignments.length > 0 && myAssignments.map((assignment) => (
+                    assignment?.id ? (
+                      <MyAssignmentCard
+                        key={`assignment-${assignment.id}-${assignment.freight_id}`}
+                        assignment={assignment}
+                        onAction={() => {
+                          setSelectedFreightId(assignment.freight_id);
+                          setShowDetails(true);
+                        }}
+                      />
+                    ) : null
+                  ))}
+                </SafeListWrapper>
               </div>
             )}
             
             {visibleOngoing.length > 0 ? (
-              <div className="space-y-4">
-                {visibleOngoing.map((freight) => (
-                  <Card key={`ongoing-${freight.id}`} className="shadow-sm border border-border/50 hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      {/* Header com tipo de carga e status */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-2">
-                          <Package className="h-4 w-4 text-primary" />
-                          <h3 className="font-medium text-foreground text-sm">
-                            {getCargoTypeLabel(freight.cargo_type)}
-                          </h3>
+              <SafeListWrapper>
+                <div className="space-y-4">
+                  {visibleOngoing.map((freight) => (
+                    <Card key={`ongoing-${freight.id}`} className="shadow-sm border border-border/50 hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        {/* Header com tipo de carga e status */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-2">
+                            <Package className="h-4 w-4 text-primary" />
+                            <h3 className="font-medium text-foreground text-sm">
+                              {getCargoTypeLabel(freight.cargo_type)}
+                            </h3>
+                          </div>
+                          <Badge variant="default" className="text-xs bg-primary text-primary-foreground px-2 py-1">
+                            {freight.status === 'ACCEPTED' ? 'Aceito' : 'Ativo'}
+                          </Badge>
                         </div>
-                        <Badge variant="default" className="text-xs bg-primary text-primary-foreground px-2 py-1">
-                          {freight.status === 'ACCEPTED' ? 'Aceito' : 'Ativo'}
-                        </Badge>
-                      </div>
 
-                      {/* Origem e Destino simplificados - apenas cidades */}
-                      <div className="space-y-2 text-sm mb-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">De:</span>
-                          <span className="font-medium truncate max-w-[200px]">
-                            {freight.origin_address.split(',').slice(-2).join(',').trim()}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Para:</span>
-                          <span className="font-medium truncate max-w-[200px]">
-                            {freight.destination_address.split(',').slice(-2).join(',').trim()}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Valor em destaque */}
-                      <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-3 rounded-lg border border-border/20 mb-3">
-                        <div className="text-center">
-                          <span className="text-lg font-bold text-primary">
-                            R$ {freight.price?.toLocaleString('pt-BR')}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Botões de ação simplificados */}
-                      <div className="flex gap-2">
-                        {!freight.is_service_request && (freight.status === 'ACCEPTED' || freight.status === 'LOADING' || freight.status === 'IN_TRANSIT') && (
-                          <Button 
-                            size="sm" 
-                            className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => {
-                              setInitialCheckinType(null);
-                              setSelectedFreightForCheckin(freight.id);
-                              setShowCheckinModal(true);
-                            }}
-                          >
-                            Check-in
-                          </Button>
-                        )}
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="flex-1 h-8 text-xs border-primary/30 hover:bg-primary/5"
-                          onClick={() => {
-                            setSelectedFreightId(freight.id);
-                            setShowDetails(true);
-                          }}
-                        >
-                          Ver Detalhes
-                        </Button>
-                      </div>
-
-                      {/* Check-ins counter - apenas contador simples */}
-                      {freightCheckins[freight.id] > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border/30">
-                          <div className="flex items-center justify-center text-xs text-muted-foreground">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            {freightCheckins[freight.id]} check-in{freightCheckins[freight.id] !== 1 ? 's' : ''} realizado{freightCheckins[freight.id] !== 1 ? 's' : ''}
+                        {/* Origem e Destino simplificados - apenas cidades */}
+                        <div className="space-y-2 text-sm mb-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">De:</span>
+                            <span className="font-medium truncate max-w-[200px]">
+                              {freight.origin_address.split(',').slice(-2).join(',').trim()}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Para:</span>
+                            <span className="font-medium truncate max-w-[200px]">
+                              {freight.destination_address.split(',').slice(-2).join(',').trim()}
+                            </span>
                           </div>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+
+                        {/* Valor em destaque */}
+                        <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-3 rounded-lg border border-border/20 mb-3">
+                          <div className="text-center">
+                            <span className="text-lg font-bold text-primary">
+                              R$ {freight.price?.toLocaleString('pt-BR')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Botões de ação simplificados */}
+                        <div className="flex gap-2">
+                          {!freight.is_service_request && (freight.status === 'ACCEPTED' || freight.status === 'LOADING' || freight.status === 'IN_TRANSIT') && (
+                            <Button 
+                              size="sm" 
+                              className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() => {
+                                setInitialCheckinType(null);
+                                setSelectedFreightForCheckin(freight.id);
+                                setShowCheckinModal(true);
+                              }}
+                            >
+                              Check-in
+                            </Button>
+                          )}
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1 h-8 text-xs border-primary/30 hover:bg-primary/5"
+                            onClick={() => {
+                              setSelectedFreightId(freight.id);
+                              setShowDetails(true);
+                            }}
+                          >
+                            Ver Detalhes
+                          </Button>
+                        </div>
+
+                        {/* Check-ins counter - apenas contador simples */}
+                        {freightCheckins[freight.id] > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border/30">
+                            <div className="flex items-center justify-center text-xs text-muted-foreground">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              {freightCheckins[freight.id]} check-in{freightCheckins[freight.id] !== 1 ? 's' : ''} realizado{freightCheckins[freight.id] !== 1 ? 's' : ''}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </SafeListWrapper>
             ) : (
               !myAssignments || myAssignments.length === 0 ? (
                 <div className="text-center py-12">
@@ -2254,30 +2259,31 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       </div>
       
       {/* Modal de Check-in */}
-      {selectedFreightForCheckin && (
-<FreightCheckinModal
-  isOpen={showCheckinModal}
-  onClose={() => {
-    setShowCheckinModal(false);
-    setSelectedFreightForCheckin(null);
-    setInitialCheckinType(null);
-  }}
-  freightId={selectedFreightForCheckin}
-  currentUserProfile={profile}
-  initialType={initialCheckinType || undefined}
-  onCheckinCreated={() => {
-    fetchOngoingFreights();
-    fetchDriverCheckins(); // Atualizar contadores de check-ins
-    setShowCheckinModal(false);
-    setSelectedFreightForCheckin(null);
-    setInitialCheckinType(null);
-    // Preservar o estado de visualização de detalhes - não limpar selectedFreightId nem showDetails
-  }}
-/>
-      )}
+      {selectedFreightForCheckin ? (
+        <FreightCheckinModal
+          key={selectedFreightForCheckin}
+          isOpen={showCheckinModal}
+          onClose={() => {
+            setShowCheckinModal(false);
+            setSelectedFreightForCheckin(null);
+            setInitialCheckinType(null);
+          }}
+          freightId={selectedFreightForCheckin}
+          currentUserProfile={profile}
+          initialType={initialCheckinType || undefined}
+          onCheckinCreated={() => {
+            fetchOngoingFreights();
+            fetchDriverCheckins();
+            setShowCheckinModal(false);
+            setSelectedFreightForCheckin(null);
+            setInitialCheckinType(null);
+          }}
+        />
+      ) : null}
 
       {/* Modal de Desistência */}
       <FreightWithdrawalModal
+        key={selectedFreightForWithdrawal?.id || 'withdrawal-modal'}
         isOpen={showWithdrawalModal}
         onClose={() => {
           setShowWithdrawalModal(false);
@@ -2293,8 +2299,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       />
 
       {/* Modal de Configuração de Localização */}
-      {showLocationManager && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      {showLocationManager ? (
+        <div key="location-manager-overlay" className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -2312,7 +2318,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </div>
           </div>
         </div>
-      )}
+      ) : null}
       {/* ✅ REMOVIDO: Dialog de service_request (motoristas não veem serviços) */}
       
       <ServicesModal
