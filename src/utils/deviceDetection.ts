@@ -50,6 +50,16 @@ export const getDeviceId = (): string => {
   return deviceId;
 };
 
+// Resetar device ID (útil quando há conflito)
+export const resetDeviceId = (): string => {
+  try {
+    localStorage.removeItem('device_id');
+  } catch (error) {
+    console.warn('Failed to clear device_id from localStorage:', error);
+  }
+  return getDeviceId(); // Gera novo ID
+};
+
 // Detectar tipo de dispositivo
 export const getDeviceType = (): 'mobile' | 'tablet' | 'desktop' => {
   const ua = navigator.userAgent.toLowerCase();

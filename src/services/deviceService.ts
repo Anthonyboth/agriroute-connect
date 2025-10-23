@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { getDeviceInfo, getDeviceId } from '@/utils/deviceDetection';
+import { getDeviceInfo, getDeviceId, resetDeviceId } from '@/utils/deviceDetection';
 import { toast } from 'sonner';
 import { ErrorMonitoringService } from './errorMonitoringService';
 
@@ -75,10 +75,32 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
         .maybeSingle();
       
       if (insertError) {
-        // If device_id conflict with another user, just log and continue
+        // If device_id conflict with another user, retry with new ID
         if (insertError.code === '23505') {
-          console.warn('⚠️ Device already registered to another user');
-          throw new Error('This device is already registered to another account');
+          console.warn('⚠️ Device already registered to another user. Generating new ID and retrying...');
+          
+          const newDeviceId = resetDeviceId();
+          const retryInfo = { ...deviceInfo, deviceId: newDeviceId };
+          
+          const { data: retryData, error: retryError } = await supabase
+            .from('user_devices')
+            .insert({
+              user_id: authUser.id,
+              device_id: newDeviceId,
+              device_name: retryInfo.deviceName,
+              device_type: retryInfo.deviceType,
+              os: retryInfo.os,
+              browser: retryInfo.browser,
+              user_agent: retryInfo.userAgent,
+              last_active_at: now,
+              is_active: true,
+            })
+            .select()
+            .maybeSingle();
+          
+          if (retryError) throw retryError;
+          console.log('✅ Device registered with new ID:', retryData);
+          return retryData!;
         }
         throw insertError;
       }
@@ -94,6 +116,9 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
     console.log('✅ Dispositivo registrado (UPDATE):', updateData);
     return updateData;
   } catch (error: any) {
+    // Não reportar erro 23505 (conflito de device - esperado em multi-user)
+    const is23505Error = error?.code === '23505' || /already registered/i.test(error?.message);
+    
     // ✅ LOG DETALHADO
     console.error('❌ Erro ao registrar dispositivo:', {
       message: error?.message,
@@ -102,22 +127,25 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
       hint: error?.hint,
       userId: userId,
       deviceId: getDeviceId(),
-      fullError: error
+      fullError: error,
+      willReport: !is23505Error
     });
     
-    // ✅ ENVIAR PARA TELEGRAM
-    await ErrorMonitoringService.getInstance().captureError(
-      new Error(`Device Registration Failed: ${error?.message || 'Unknown error'}`),
-      {
-        module: 'deviceService',
-        functionName: 'registerDevice',
-        userId,
-        deviceId: getDeviceId(),
-        errorCode: error?.code,
-        errorDetails: error?.details,
-        errorHint: error?.hint
-      }
-    );
+    // ✅ ENVIAR PARA TELEGRAM (exceto erro 23505)
+    if (!is23505Error) {
+      await ErrorMonitoringService.getInstance().captureError(
+        new Error(`Device Registration Failed: ${error?.message || 'Unknown error'}`),
+        {
+          module: 'deviceService',
+          functionName: 'registerDevice',
+          userId,
+          deviceId: getDeviceId(),
+          errorCode: error?.code,
+          errorDetails: error?.details,
+          errorHint: error?.hint
+        }
+      );
+    }
     
     throw error;
   }

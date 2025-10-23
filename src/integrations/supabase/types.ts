@@ -386,18 +386,65 @@ export type Database = {
         }
         Relationships: []
       }
+      company_driver_chats: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          driver_profile_id: string
+          id: string
+          is_read: boolean | null
+          message: string
+          sender_type: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          driver_profile_id: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          sender_type: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          driver_profile_id?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_driver_chats_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_driver_chats_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_drivers: {
         Row: {
           accepted_at: string | null
           affiliation_type: string | null
           can_accept_freights: boolean | null
           can_manage_vehicles: boolean | null
+          chat_enabled_at: string | null
           company_id: string
           created_at: string | null
           driver_profile_id: string
           id: string
           invited_at: string | null
           invited_by: string | null
+          left_at: string | null
           notes: string | null
           status: string | null
           updated_at: string | null
@@ -407,12 +454,14 @@ export type Database = {
           affiliation_type?: string | null
           can_accept_freights?: boolean | null
           can_manage_vehicles?: boolean | null
+          chat_enabled_at?: string | null
           company_id: string
           created_at?: string | null
           driver_profile_id: string
           id?: string
           invited_at?: string | null
           invited_by?: string | null
+          left_at?: string | null
           notes?: string | null
           status?: string | null
           updated_at?: string | null
@@ -422,12 +471,14 @@ export type Database = {
           affiliation_type?: string | null
           can_accept_freights?: boolean | null
           can_manage_vehicles?: boolean | null
+          chat_enabled_at?: string | null
           company_id?: string
           created_at?: string | null
           driver_profile_id?: string
           id?: string
           invited_at?: string | null
           invited_by?: string | null
+          left_at?: string | null
           notes?: string | null
           status?: string | null
           updated_at?: string | null

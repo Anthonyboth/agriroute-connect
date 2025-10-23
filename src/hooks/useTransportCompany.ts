@@ -54,7 +54,17 @@ export const useTransportCompany = () => {
             phone,
             contact_phone,
             rating,
-            total_ratings
+            total_ratings,
+            profile_photo_url,
+            selfie_url,
+            cnh_photo_url,
+            cnh_category,
+            cnh_expiry_date,
+            cpf_cnpj,
+            document,
+            rntrc,
+            document_validation_status,
+            cnh_validation_status
           )
         `)
         .eq('company_id', company.id)
@@ -368,6 +378,33 @@ export const useTransportCompany = () => {
     }
   });
 
+  // Desligar motorista da transportadora
+  const leaveCompany = useMutation({
+    mutationFn: async (driverProfileId: string) => {
+      if (!company?.id) throw new Error('Transportadora não encontrada');
+      
+      const { error } = await supabase
+        .from('company_drivers')
+        .update({ 
+          status: 'LEFT',
+          left_at: new Date().toISOString()
+        })
+        .eq('company_id', company.id)
+        .eq('driver_profile_id', driverProfileId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-drivers'] });
+      toast.success('Motorista desligado da transportadora');
+    },
+    onError: (error: any) => {
+      console.error('Erro ao desligar motorista:', error);
+      toast.error('Erro ao desligar motorista');
+    },
+  });
+
   // Criar convite de motorista com token
   const createDriverInvite = useMutation({
     mutationFn: async () => {
@@ -418,6 +455,7 @@ export const useTransportCompany = () => {
     removeDriver: removeDriver.mutateAsync,
     approveDriver,
     rejectDriver,
+    leaveCompany,
     assignVehicleToDriver: assignVehicleToDriver.mutateAsync,
     removeVehicleAssignment: removeVehicleAssignment.mutateAsync,
   };

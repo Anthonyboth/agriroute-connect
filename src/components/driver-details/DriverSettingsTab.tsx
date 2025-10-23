@@ -3,9 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Truck, Settings2 } from "lucide-react";
+import { Truck, Settings2, LogOut, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useTransportCompany } from "@/hooks/useTransportCompany";
 
 interface DriverSettingsTabProps {
   driverProfileId: string;
@@ -14,6 +27,7 @@ interface DriverSettingsTabProps {
 
 export const DriverSettingsTab = ({ driverProfileId, companyId }: DriverSettingsTabProps) => {
   const queryClient = useQueryClient();
+  const { leaveCompany } = useTransportCompany();
 
   const { data: permissions, isLoading } = useQuery({
     queryKey: ['driver-permissions', driverProfileId, companyId],
@@ -123,6 +137,56 @@ export const DriverSettingsTab = ({ driverProfileId, companyId }: DriverSettings
             Este motorista está afiliado à sua transportadora e pode trabalhar em fretes de sua empresa.
             As configurações acima controlam o nível de autonomia do motorista dentro do sistema.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <CardTitle className="text-destructive flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Zona de Perigo
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Desligar o motorista da transportadora irá remover seu acesso aos fretes da empresa. 
+            O motorista poderá solicitar nova afiliação no futuro.
+          </p>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="w-full">
+                <LogOut className="h-4 w-4 mr-2" />
+                Desligar Motorista da Empresa
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar Desligamento</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja desligar este motorista da transportadora? 
+                  <br /><br />
+                  <strong>O que acontece:</strong>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>O motorista perderá acesso aos fretes da empresa</li>
+                    <li>Todos os dados históricos serão mantidos</li>
+                    <li>O motorista pode solicitar re-afiliação no futuro</li>
+                  </ul>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={() => {
+                    leaveCompany.mutate(driverProfileId);
+                  }}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  Confirmar Desligamento
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
       </Card>
     </div>

@@ -128,7 +128,48 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'fade-in': 'fade-in 0.5s ease-out forwards'
+				'fade-in': 'fade-in 0.5s ease-out forwards',
+				'pulse-border': 'pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+			},
+			keyframes: {
+				...{
+					'accordion-down': {
+						from: {
+							height: '0'
+						},
+						to: {
+							height: 'var(--radix-accordion-content-height)'
+						}
+					},
+					'accordion-up': {
+						from: {
+							height: 'var(--radix-accordion-content-height)'
+						},
+						to: {
+							height: '0'
+						}
+					},
+					'fade-in': {
+						'0%': {
+							opacity: '0',
+							transform: 'translateY(10px)'
+						},
+						'100%': {
+							opacity: '1',
+							transform: 'translateY(0)'
+						}
+					}
+				},
+				'pulse-border': {
+					'0%, 100%': { 
+						borderColor: 'hsl(142 76% 36%)',
+						boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.7)'
+					},
+					'50%': { 
+						borderColor: 'hsl(142 72% 29%)',
+						boxShadow: '0 0 0 4px rgba(34, 197, 94, 0)'
+					}
+				}
 			}
 		}
 	},
