@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
+import { SafeListWrapper } from '@/components/SafeListWrapper';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -58,12 +59,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   }, [profile]);
 
   useEffect(() => {
-    // Limpar e recarregar quando os tipos de serviço mudarem
-    setCompatibleFreights([]);
-    setTowingRequests([]);
-    if (profile?.id) {
-      fetchCompatibleFreights();
-    }
+    // Recarregar quando os tipos de serviço mudarem (sem limpar arrays antes)
+    if (!profile?.id) return;
+    setLoading(true);
+    fetchCompatibleFreights().finally(() => setLoading(false));
   }, [JSON.stringify(profile?.service_types)]);
 
   // Realtime: Ouvir mudanças em user_cities e recarregar fretes automaticamente
@@ -800,119 +799,123 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           <>
             {/* Fretes padrão */}
             {filteredFreights.length > 0 && (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredFreights.map((freight) => (
-                  <div key={freight.freight_id} className="relative h-full">
-                    <FreightCard
-                      freight={{
-                        id: freight.freight_id,
-                        cargo_type: freight.cargo_type,
-                        weight: (freight.weight / 1000),
-                        origin_address: freight.origin_address,
-                        destination_address: freight.destination_address,
-                        pickup_date: freight.pickup_date,
-                        delivery_date: freight.delivery_date,
-                        price: freight.price,
-                        urgency: freight.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
-                        status: 'OPEN' as const,
-                        distance_km: freight.distance_km,
-                        minimum_antt_price: freight.minimum_antt_price,
-                        required_trucks: freight.required_trucks,
-                        accepted_trucks: freight.accepted_trucks,
-                        service_type: freight.service_type as 'CARGA' | 'GUINCHO' | 'MUDANCA',
-                      }}
-                      onAction={(action) => handleFreightAction(freight.freight_id, action)}
-                      showActions={true}
-                      isAffiliatedDriver={isAffiliated}
-                      driverCompanyId={companyId}
-                    />
-                  </div>
-                ))}
-              </div>
+              <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando lista...</div>}>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredFreights.map((freight) => (
+                    <div key={freight.freight_id} className="relative h-full">
+                      <FreightCard
+                        freight={{
+                          id: freight.freight_id,
+                          cargo_type: freight.cargo_type,
+                          weight: (freight.weight / 1000),
+                          origin_address: freight.origin_address,
+                          destination_address: freight.destination_address,
+                          pickup_date: freight.pickup_date,
+                          delivery_date: freight.delivery_date,
+                          price: freight.price,
+                          urgency: freight.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
+                          status: 'OPEN' as const,
+                          distance_km: freight.distance_km,
+                          minimum_antt_price: freight.minimum_antt_price,
+                          required_trucks: freight.required_trucks,
+                          accepted_trucks: freight.accepted_trucks,
+                          service_type: freight.service_type as 'CARGA' | 'GUINCHO' | 'MUDANCA',
+                        }}
+                        onAction={(action) => handleFreightAction(freight.freight_id, action)}
+                        showActions={true}
+                        isAffiliatedDriver={isAffiliated}
+                        driverCompanyId={companyId}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </SafeListWrapper>
             )}
 
             {/* Chamados de Guincho/Mudança */}
             {filteredRequests.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="font-semibold">Chamados de Guincho/Mudança</h4>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredRequests.map((r: any) => (
-                    <Card key={r.id} className="freight-card-standard border-l-4 border-l-orange-500 min-h-[600px] flex flex-col">
-                      <CardHeader className="pb-3 flex-shrink-0">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            {r.service_type === 'GUINCHO' ? (
-                              <Wrench className="h-5 w-5 text-orange-600" />
-                            ) : (
-                              <Truck className="h-5 w-5 text-blue-600" />
-                            )}
-                            <div>
-                              <CardTitle className="text-base">
-                                {r.service_type === 'GUINCHO' ? 'Guincho' : 'Mudança/Frete Urbano'}
-                              </CardTitle>
-                              <div className="flex items-center gap-2 mt-1">
-                                {r.is_emergency && (
-                                  <Badge variant="destructive" className="text-xs">Emergência</Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3 flex-1 flex flex-col justify-between overflow-y-auto">
-                        <div className="space-y-2">
-                          <div className="flex items-start gap-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-sm font-medium">Local</p>
-                              <p className="text-sm text-muted-foreground">{r.location_address}</p>
-                            </div>
-                          </div>
-                          {r.problem_description && (
-                            <div className="flex items-start gap-2">
-                              <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando lista...</div>}>
+                <div className="space-y-3">
+                  <h4 className="font-semibold">Chamados de Guincho/Mudança</h4>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {filteredRequests.map((r: any) => (
+                      <Card key={r.id} className="freight-card-standard border-l-4 border-l-orange-500 min-h-[600px] flex flex-col">
+                        <CardHeader className="pb-3 flex-shrink-0">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2">
+                              {r.service_type === 'GUINCHO' ? (
+                                <Wrench className="h-5 w-5 text-orange-600" />
+                              ) : (
+                                <Truck className="h-5 w-5 text-blue-600" />
+                              )}
                               <div>
-                                <p className="text-sm font-medium">Descrição</p>
-                                <p className="text-sm text-muted-foreground">{r.problem_description}</p>
+                                <CardTitle className="text-base">
+                                  {r.service_type === 'GUINCHO' ? 'Guincho' : 'Mudança/Frete Urbano'}
+                                </CardTitle>
+                                <div className="flex items-center gap-2 mt-1">
+                                  {r.is_emergency && (
+                                    <Badge variant="destructive" className="text-xs">Emergência</Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          )}
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            Há {Math.floor((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60))} min
                           </div>
-                          {r.estimated_price && (
-                            <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                              <DollarSign className="h-4 w-4 text-green-600" />
-                              <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                                Valor: R$ {r.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </span>
+                        </CardHeader>
+                        <CardContent className="space-y-3 flex-1 flex flex-col justify-between overflow-y-auto">
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-2">
+                              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium">Local</p>
+                                <p className="text-sm text-muted-foreground">{r.location_address}</p>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                        <Button className="w-full" size="sm" onClick={async () => {
-                          try {
-                            if (!profile?.id) return;
-                            const { error } = await supabase
-                              .from('service_requests')
-                              .update({ provider_id: profile.id, status: 'ACCEPTED', accepted_at: new Date().toISOString() })
-                              .eq('id', r.id)
-                              .eq('status', 'OPEN');
-                            if (error) throw error;
-                            toast.success('Solicitação aceita com sucesso!');
-                            setTowingRequests(prev => prev.filter((x:any) => x.id !== r.id));
-                          } catch (e:any) {
-                            console.error('Erro ao aceitar solicitação:', e);
-                            toast.error('Erro ao aceitar solicitação');
-                          }
-                        }}>
-                          Aceitar Solicitação
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+                            {r.problem_description && (
+                              <div className="flex items-start gap-2">
+                                <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <p className="text-sm font-medium">Descrição</p>
+                                  <p className="text-sm text-muted-foreground">{r.problem_description}</p>
+                                </div>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              Há {Math.floor((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60))} min
+                            </div>
+                            {r.estimated_price && (
+                              <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                <DollarSign className="h-4 w-4 text-green-600" />
+                                <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                                  Valor: R$ {r.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <Button className="w-full" size="sm" onClick={async () => {
+                            try {
+                              if (!profile?.id) return;
+                              const { error } = await supabase
+                                .from('service_requests')
+                                .update({ provider_id: profile.id, status: 'ACCEPTED', accepted_at: new Date().toISOString() })
+                                .eq('id', r.id)
+                                .eq('status', 'OPEN');
+                              if (error) throw error;
+                              toast.success('Solicitação aceita com sucesso!');
+                              setTowingRequests(prev => prev.filter((x:any) => x.id !== r.id));
+                            } catch (e:any) {
+                              console.error('Erro ao aceitar solicitação:', e);
+                              toast.error('Erro ao aceitar solicitação');
+                            }
+                          }}>
+                            Aceitar Solicitação
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              </SafeListWrapper>
             )}
           </>
         )}

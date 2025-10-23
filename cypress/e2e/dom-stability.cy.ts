@@ -11,7 +11,8 @@ describe('DOM Stability - No removeChild/insertBefore Errors', () => {
     '/privacidade',
     '/cookies',
     '/carreiras',
-    '/dashboard/company'
+    '/dashboard/company',
+    '/dashboard/driver'
   ];
 
   pagesToTest.forEach(page => {
