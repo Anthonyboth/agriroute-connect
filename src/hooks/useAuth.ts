@@ -283,17 +283,28 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
 
         // Correção de sessão inválida: quando o refresh falha e o Supabase não entrega session
-        if ((event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'SIGNED_OUT') && !session) {
+        if (!session) {
           // Evitar chamadas Supabase aqui (deadlock prevention)
           clearSupabaseAuthStorage();
           setProfile(null);
           setProfiles([]);
           setInitialized(true);
           setLoading(false);
-          setTimeout(() => {
-            try { toast.error('Sua sessão expirou. Faça login novamente.'); } catch {}
-            window.location.href = '/';
-          }, 0);
+
+          const onAuthPage = window.location.pathname === '/auth';
+          const shouldForceLogin = event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED';
+
+          if (shouldForceLogin && !onAuthPage) {
+            try {
+              const path = window.location.pathname + window.location.search + window.location.hash;
+              localStorage.setItem('redirect_after_login', path);
+            } catch {}
+            setTimeout(() => {
+              try { toast.error('Sua sessão expirou. Faça login novamente.'); } catch {}
+              window.location.replace('/auth');
+            }, 0);
+          }
+          // USER_UPDATED sem session: não redirecionar, aguardar próximo evento
           return;
         }
         

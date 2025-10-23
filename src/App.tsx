@@ -272,6 +272,13 @@ const RedirectIfAuthed = () => {
     return <ComponentLoader />; // aguardando resolução do perfil
   }
   
+  // Consumir redirect_after_login se existir
+  const after = localStorage.getItem('redirect_after_login');
+  if (after && after !== window.location.pathname) {
+    localStorage.removeItem('redirect_after_login');
+    return <Navigate to={after} replace />;
+  }
+  
   // Redirecionar transportadoras
   if (isCompany) {
     return <Navigate to="/dashboard/company" replace />;
