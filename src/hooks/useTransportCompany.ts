@@ -29,7 +29,12 @@ export const useTransportCompany = () => {
   const { data: drivers, isLoading: isLoadingDrivers } = useQuery({
     queryKey: ['company-drivers', company?.id],
     queryFn: async () => {
-      if (!company?.id) return [];
+      if (!company?.id) {
+        console.log('[useTransportCompany] No company ID');
+        return [];
+      }
+      
+      console.log('[useTransportCompany] Fetching drivers for company:', company.id);
       
       const { data, error } = await supabase
         .from('company_drivers')
@@ -48,7 +53,12 @@ export const useTransportCompany = () => {
         .eq('status', 'ACTIVE')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('[useTransportCompany] Error fetching drivers:', error);
+        throw error;
+      }
+      
+      console.log('[useTransportCompany] Drivers data:', data);
       return data;
     },
     enabled: !!company?.id,
