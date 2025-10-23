@@ -322,21 +322,35 @@ const DeviceSetup = () => {
 const SessionManager = () => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
+  const timeoutRef = React.useRef<NodeJS.Timeout>();
   
   React.useEffect(() => {
+    // ✅ Limpar timeout anterior
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
     // ✅ Não iniciar refresh na rota /auth
     if (location.pathname === '/auth') {
       stopSessionRefresh();
       return;
     }
 
-    if (isAuthenticated) {
-      startSessionRefresh();
-    } else {
-      stopSessionRefresh();
-    }
+    // ✅ DEBOUNCE: aguardar 300ms antes de iniciar/parar
+    timeoutRef.current = setTimeout(() => {
+      if (isAuthenticated) {
+        startSessionRefresh();
+      } else {
+        stopSessionRefresh();
+      }
+    }, 300);
     
-    return () => stopSessionRefresh();
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      stopSessionRefresh();
+    };
   }, [isAuthenticated, location.pathname]);
   
   return null;

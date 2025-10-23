@@ -3,6 +3,7 @@ import { useAuth } from './useAuth';
 import { useDevicePermissions } from './useDevicePermissions';
 import { registerDevice, updateLastActivity, syncDevicePermissions } from '@/services/deviceService';
 import { getDeviceId } from '@/utils/deviceDetection';
+import { supabase } from '@/integrations/supabase/client';
 
 // ✅ Flags globais para prevenir múltiplas chamadas simultâneas
 let isRegistering = false;
@@ -57,6 +58,19 @@ export const useDeviceRegistration = () => {
       isRegistering = true;
       
       try {
+        // ✅ AGUARDAR propagação do JWT (500ms é suficiente)
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // ✅ Verificar sessão antes de registrar
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          console.warn('⚠️ Sessão não encontrada, cancelando registro');
+          hasRegistered.current = false;
+          isRegistering = false;
+          registrationPromise = null;
+          return;
+        }
+        
         await registerDevice(user.id);
         
         // Marcar como registrado com timestamp

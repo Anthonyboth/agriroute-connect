@@ -25,11 +25,18 @@ export interface UserDevice {
 // Registrar dispositivo no banco
 export const registerDevice = async (userId: string): Promise<UserDevice> => {
   try {
-    // Get authenticated user to ensure we're using auth.uid()
+    // ✅ GARANTIR que temos sessão E token válidos
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session || !session.access_token) {
+      throw new Error('No valid session found');
+    }
+    
+    // Verificar se o JWT está realmente válido
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
     
-    if (authError || !authUser) {
-      throw new Error('User not authenticated');
+    if (authError || !authUser || authUser.id !== userId) {
+      throw new Error('Authentication mismatch');
     }
     
     const deviceInfo = await getDeviceInfo();
@@ -75,6 +82,39 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
         .maybeSingle();
       
       if (insertError) {
+        // ✅ RETRY se for erro de RLS (JWT não propagado ainda)
+        if (insertError.code === '42501') {
+          console.warn('⚠️ RLS error - JWT may not be ready. Retrying in 1s...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Verificar sessão novamente
+          const { data: { session: retrySession } } = await supabase.auth.getSession();
+          if (!retrySession) {
+            throw new Error('Session expired during registration');
+          }
+          
+          // Tentar inserir novamente
+          const { data: retryData, error: retryError } = await supabase
+            .from('user_devices')
+            .insert({
+              user_id: authUser.id,
+              device_id: deviceInfo.deviceId,
+              device_name: deviceInfo.deviceName,
+              device_type: deviceInfo.deviceType,
+              os: deviceInfo.os,
+              browser: deviceInfo.browser,
+              user_agent: deviceInfo.userAgent,
+              last_active_at: now,
+              is_active: true,
+            })
+            .select()
+            .maybeSingle();
+          
+          if (retryError) throw retryError;
+          console.log('✅ Device registered on retry:', retryData);
+          return retryData!;
+        }
+        
         // If device_id conflict with another user, retry with new ID
         if (insertError.code === '23505') {
           console.warn('⚠️ Device already registered to another user. Generating new ID and retrying...');
