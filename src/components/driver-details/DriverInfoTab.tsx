@@ -14,13 +14,20 @@ export const DriverInfoTab = ({ driverProfileId }: DriverInfoTabProps) => {
   const { data: driver, isLoading } = useQuery({
     queryKey: ['driver-info', driverProfileId],
     queryFn: async () => {
+      console.log('🔍 Buscando motorista:', driverProfileId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', driverProfileId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao buscar motorista:', error);
+        throw error;
+      }
+      
+      console.log('✅ Motorista encontrado:', data);
       return data;
     },
   });
@@ -35,7 +42,22 @@ export const DriverInfoTab = ({ driverProfileId }: DriverInfoTabProps) => {
   }
 
   if (!driver) {
-    return <div className="text-center py-8 text-muted-foreground">Motorista não encontrado</div>;
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <div className="text-center">
+            <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+            <h3 className="text-lg font-semibold mb-2">Motorista não encontrado</h3>
+            <p className="text-sm text-muted-foreground">
+              Este motorista pode ter sido removido ou os dados estão indisponíveis.
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              ID buscado: {driverProfileId}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -47,8 +69,10 @@ export const DriverInfoTab = ({ driverProfileId }: DriverInfoTabProps) => {
         <CardContent className="space-y-4">
           <div className="flex items-start gap-4">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={undefined} />
-              <AvatarFallback>{driver.full_name?.substring(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarImage src={driver.profile_photo_url || driver.selfie_url} />
+              <AvatarFallback className="text-2xl bg-primary/10">
+                {driver.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
+              </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <h3 className="text-2xl font-semibold">{driver.full_name}</h3>

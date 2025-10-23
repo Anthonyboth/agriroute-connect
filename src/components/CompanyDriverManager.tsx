@@ -55,6 +55,16 @@ export const CompanyDriverManager: React.FC = () => {
   };
 
   // Filtrar motoristas
+  // 🔍 DEBUG: Verificar dados
+  React.useEffect(() => {
+    if (drivers) {
+      console.log('=== MOTORISTAS DEBUG ===');
+      console.log('Total:', drivers.length);
+      console.log('Dados:', drivers);
+      console.log('========================');
+    }
+  }, [drivers]);
+
   const filteredDrivers = (drivers || []).filter((cd: any) => {
     const term = searchTerm.trim().toLowerCase();
     const name = cd.driver?.full_name?.toLowerCase() || '';
@@ -290,10 +300,19 @@ export const CompanyDriverManager: React.FC = () => {
 
                     {/* Foto do motorista */}
                     <div className="flex items-center gap-3 mb-3">
-                      <Avatar className="h-16 w-16">
-                        <AvatarImage src={cd.driver?.profile_photo_url || undefined} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                          {cd.driver?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?'}
+                      <Avatar className="h-16 w-16 border-2 border-muted">
+                        <AvatarImage 
+                          src={cd.driver?.profile_photo_url || cd.driver?.selfie_url} 
+                          alt={cd.driver?.full_name}
+                        />
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-xl font-bold">
+                          {cd.driver?.full_name
+                            ?.split(' ')
+                            .filter((n: string) => n.length > 0)
+                            .map((n: string) => n[0])
+                            .join('')
+                            .slice(0, 2)
+                            .toUpperCase() || '??'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
