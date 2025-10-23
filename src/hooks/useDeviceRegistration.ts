@@ -1,23 +1,46 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { useDevicePermissions } from './useDevicePermissions';
 import { registerDevice, updateLastActivity, syncDevicePermissions } from '@/services/deviceService';
 import { getDeviceId } from '@/utils/deviceDetection';
 
+// ✅ Flags globais para prevenir múltiplas chamadas simultâneas
+let isRegistering = false;
+let registrationPromise: Promise<void> | null = null;
+
 export const useDeviceRegistration = () => {
   const { user, profile } = useAuth();
   const { permissions } = useDevicePermissions();
+  const hasRegistered = useRef(false);
 
   useEffect(() => {
     if (!user || !profile) return;
 
-    let isRegistering = false;
+    // ✅ PREVENIR REGISTRO DUPLICADO na mesma sessão
+    if (hasRegistered.current) {
+      console.log('⏭️ Dispositivo já registrado nesta sessão, pulando...');
+      return;
+    }
+
+    // ✅ PREVENIR CHAMADAS SIMULTÂNEAS entre múltiplos hooks
+    if (isRegistering) {
+      console.log('⏳ Registro de dispositivo já em andamento, aguardando...');
+      return;
+    }
+
+    // ✅ REUSAR PROMISE EXISTENTE SE HOUVER
+    if (registrationPromise) {
+      console.log('♻️ Reusando promise de registro existente');
+      registrationPromise.then(() => {
+        hasRegistered.current = true;
+      });
+      return;
+    }
 
     // Registrar dispositivo ao fazer login
     const register = async () => {
-      if (isRegistering) return;
       isRegistering = true;
-
+      
       try {
         await registerDevice(user.id);
         console.log('✅ Dispositivo registrado com sucesso');
@@ -29,22 +52,22 @@ export const useDeviceRegistration = () => {
           push: permissions.notifications === 'granted',
           storage: permissions.storage === 'granted'
         });
+        
+        hasRegistered.current = true;
       } catch (error: any) {
-        // ✅ LOG DETALHADO (deviceService.ts já envia para Telegram, não duplicar)
         console.error('❌ Erro ao registrar dispositivo no hook:', {
           message: error?.message,
           code: error?.code,
           details: error?.details,
           profileId: profile.id,
-          fullError: error
         });
-        // Não mostrar toast - usuário não precisa saber desse erro técnico
       } finally {
         isRegistering = false;
+        registrationPromise = null;
       }
     };
 
-    register();
+    registrationPromise = register();
 
     // Atualizar atividade a cada 5 minutos
     const deviceId = getDeviceId();
@@ -52,6 +75,8 @@ export const useDeviceRegistration = () => {
       updateLastActivity(deviceId);
     }, 5 * 60 * 1000); // 5 minutos
 
-    return () => clearInterval(interval);
-  }, [user?.id, profile?.id]); // Depend on user.id for registration
+    return () => {
+      clearInterval(interval);
+    };
+  }, [user?.id, profile?.id]);
 };

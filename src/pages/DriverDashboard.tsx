@@ -812,6 +812,24 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     }
   };
 
+  const handleRejectCounterOffer = async (messageId: string) => {
+    try {
+      // Marcar a mensagem como lida/rejeitada
+      const { error } = await supabase
+        .from('freight_messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('id', messageId);
+
+      if (error) throw error;
+
+      toast.success('Contra-proposta rejeitada');
+      fetchCounterOffers();
+    } catch (error) {
+      console.error('Error rejecting counter offer:', error);
+      toast.error('Erro ao rejeitar contra-proposta');
+    }
+  };
+
   const handleAcceptProposal = async (proposalId: string) => {
     try {
       const { error } = await supabase
@@ -915,6 +933,30 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     } catch (error) {
       console.error('Error confirming payment:', error);
       toast.error('Erro ao confirmar recebimento');
+    }
+  };
+
+  // Aliases para manter compatibilidade com handlers no JSX
+  const handleConfirmPayment = confirmPaymentReceived;
+
+  const handleDisputePayment = async (paymentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('external_payments')
+        .update({ 
+          status: 'disputed',
+          accepted_by_driver: false,
+          disputed_at: new Date().toISOString()
+        })
+        .eq('id', paymentId);
+
+      if (error) throw error;
+
+      toast.success('Pagamento contestado. O produtor será notificado.');
+      fetchPendingPayments();
+    } catch (error) {
+      console.error('Error disputing payment:', error);
+      toast.error('Erro ao contestar pagamento');
     }
   };
 
@@ -1936,89 +1978,64 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </div>
             {myProposals.some(p => p.status === 'PENDING') ? (
               <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-                {myProposals.filter(p => p.status === 'PENDING').map((proposal) => 
-                  proposal.freight && proposal.id ? (
-                    <div key={`proposal-${proposal.id}`} className="relative">
-                       <FreightCard 
-                         freight={{
-                           ...proposal.freight,
-                           status: proposal.freight.status as 'OPEN' | 'IN_TRANSIT' | 'DELIVERED',
-                           service_type: (proposal.freight.service_type === 'GUINCHO' || 
-                                        proposal.freight.service_type === 'MUDANCA' || 
-                                        proposal.freight.service_type === 'CARGA') 
-                                       ? proposal.freight.service_type as 'GUINCHO' | 'MUDANCA' | 'CARGA'
-                                       : undefined
-                         }}
-                        showActions={false}
-                      />
-                      
-                      {/* Informações compactas da proposta */}
-                      <div className="mt-3 p-3 bg-gradient-to-r from-card to-secondary/10 border rounded-lg">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium">Sua Proposta:</span>
-                          <span className="text-lg font-bold text-primary">
-                            R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
-                          </span>
-                        </div>
+                <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando propostas...</div>}>
+                  {myProposals.filter(p => p.status === 'PENDING').map((proposal) => 
+                    proposal.freight && proposal.id ? (
+                      <div key={`proposal-${proposal.id}`} className="relative">
+                         <FreightCard 
+                           freight={{
+                             ...proposal.freight,
+                             status: proposal.freight.status as 'OPEN' | 'IN_TRANSIT' | 'DELIVERED',
+                             service_type: (proposal.freight.service_type === 'GUINCHO' || 
+                                          proposal.freight.service_type === 'MUDANCA' || 
+                                          proposal.freight.service_type === 'CARGA') 
+                                         ? proposal.freight.service_type as 'GUINCHO' | 'MUDANCA' | 'CARGA'
+                                         : undefined
+                           }}
+                          showActions={false}
+                        />
                         
-                        <div className="flex justify-between items-center">
-                          <Badge 
-                            variant={
-                              proposal.status === 'ACCEPTED' ? 'default' :
-                              proposal.status === 'PENDING' ? 'secondary' : 'destructive'
-                            }
-                            className="text-xs"
-                          >
-                            {proposal.status === 'ACCEPTED' ? 'Aceita' :
-                             proposal.status === 'PENDING' ? 'Aguardando' : 
-                             proposal.status === 'REJECTED' ? 'Rejeitada' :
-                             proposal.status === 'CANCELLED' ? 'Cancelada' : proposal.status}
-                          </Badge>
-                          
-                          {/* Diferença de preço compacta */}
-                          {proposal.freight?.price && (
-                            <span className={`text-xs font-medium ${
-                              proposal.proposed_price > proposal.freight.price ? 'text-red-600' : 
-                              proposal.proposed_price < proposal.freight.price ? 'text-green-600' : 'text-muted-foreground'
-                            }`}>
-                              {proposal.proposed_price > proposal.freight.price ? '+' : 
-                               proposal.proposed_price < proposal.freight.price ? '-' : ''}
-                              R$ {Math.abs(proposal.proposed_price - proposal.freight.price).toLocaleString('pt-BR')}
+                        {/* Informações compactas da proposta */}
+                        <div className="mt-3 p-3 bg-gradient-to-r from-card to-secondary/10 border rounded-lg">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium">Sua Proposta:</span>
+                            <span className="text-lg font-bold text-primary">
+                              R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
                             </span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            <Badge 
+                              variant={
+                                proposal.status === 'ACCEPTED' ? 'default' :
+                                proposal.status === 'PENDING' ? 'secondary' : 'destructive'
+                              }
+                              className="text-xs"
+                              title={
+                                proposal.status === 'ACCEPTED' ? 'Aceita pelo produtor' :
+                                proposal.status === 'PENDING' ? 'Aguardando análise' : 'Rejeitada'
+                              }
+                            >
+                              {proposal.status === 'ACCEPTED' ? '✅ Aceita' :
+                               proposal.status === 'PENDING' ? '⏳ Pendente' : '❌ Rejeitada'}
+                            </Badge>
+                            
+                            <span className="text-xs text-muted-foreground">
+                              Enviada {new Date(proposal.created_at).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
+                          
+                          {proposal.message && (
+                            <div className="mt-3 pt-3 border-t">
+                              <p className="text-xs text-muted-foreground mb-1">Mensagem:</p>
+                              <p className="text-sm">{proposal.message}</p>
+                            </div>
                           )}
                         </div>
                       </div>
-
-                      {/* Ações baseadas no status */}
-                      {proposal.status === 'ACCEPTED' && (
-                        <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                          <p className="text-sm text-center text-green-700 dark:text-green-300 font-medium">
-                            ✅ Proposta aceita! Verifique a aba "Em Andamento"
-                          </p>
-                        </div>
-                      )}
-                      
-                      {proposal.status === 'PENDING' && (
-                        <Button 
-                          variant="outline" 
-                          className="w-full mt-4 border-2 border-destructive/20 hover:border-destructive/40 hover:bg-destructive/5" 
-                          size="sm"
-                          onClick={() => handleFreightAction(proposal.freight!.id, 'cancel')}
-                        >
-                          Cancelar Proposta
-                        </Button>
-                      )}
-
-                      {proposal.status === 'REJECTED' && (
-                        <div className="mt-4 p-3 bg-muted/40 rounded-lg border border-border/40">
-                          <p className="text-xs text-center text-muted-foreground">
-                            Proposta rejeitada. Você pode fazer uma nova proposta se desejar.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ) : null
-                )}
+                    ) : null
+                  )}
+                </SafeListWrapper>
               </div>
             ) : (
               <div className="text-center py-12 space-y-6">
@@ -2091,47 +2108,50 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             <h3 className="text-lg font-semibold">Contra-ofertas Recebidas</h3>
             {counterOffers.length > 0 ? (
               <div className="space-y-4">
-                {counterOffers.map((offer) => (
-                  <Card key={`offer-${offer.id}`} className="p-4">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold">
-                            Contra-proposta de {offer.sender?.full_name || 'Produtor'}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {offer.freight?.cargo_type} - {offer.freight?.origin_address} → {offer.freight?.destination_address}
-                          </p>
+                <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando ofertas...</div>}>
+                  {counterOffers.map((offer) => (
+                    <Card key={`offer-${offer.id}`} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-semibold">
+                              Contra-proposta de {offer.sender?.full_name || 'Produtor'}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {offer.freight?.cargo_type} - {offer.freight?.origin_address} → {offer.freight?.destination_address}
+                            </p>
+                          </div>
+                          <Badge variant={offer.read_at ? 'default' : 'secondary'}>
+                            {offer.read_at ? 'Processada' : 'Nova'}
+                          </Badge>
                         </div>
-                        <Badge variant={offer.read_at ? 'default' : 'secondary'}>
-                          {offer.read_at ? 'Processada' : 'Nova'}
-                        </Badge>
-                      </div>
 
-                      <div className="bg-secondary/30 p-3 rounded-lg">
-                        <p className="text-sm whitespace-pre-line">{offer.message}</p>
-                      </div>
-
-                      {!offer.read_at && (
-                        <div className="flex gap-2 pt-2">
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleAcceptCounterOffer(offer.id, offer.freight_id)}
-                            className="gradient-primary"
-                          >
-                            Aceitar Contra-proposta
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                          >
-                            Rejeitar
-                          </Button>
+                        <div className="bg-secondary/30 p-3 rounded-lg">
+                          <p className="text-sm whitespace-pre-line">{offer.message}</p>
                         </div>
-                      )}
-                    </div>
-                  </Card>
-                ))}
+
+                        {!offer.read_at && (
+                          <div className="flex gap-2 pt-2">
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleAcceptCounterOffer(offer.id, offer.freight_id)}
+                              className="gradient-primary"
+                            >
+                              Aceitar R$ {offer.proposed_price?.toLocaleString('pt-BR')}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleRejectCounterOffer(offer.id)}
+                            >
+                              Recusar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </SafeListWrapper>
               </div>
             ) : (
               <p className="text-muted-foreground text-center py-8">
@@ -2166,76 +2186,80 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               </Card>
             ) : (
               <div className="space-y-4">
-                {pendingPayments && pendingPayments.length > 0 && pendingPayments.map((payment) => (
-                  <Card key={`payment-${payment.id}`} className="border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-900/10">
-                    <CardContent className="p-4">
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-semibold text-lg">
-                              💰 Pagamento Disponível
-                            </h4>
-                            <p className="text-sm text-muted-foreground">
-                              Frete: {payment.freight?.cargo_type}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {payment.freight?.origin_address} → {payment.freight?.destination_address}
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300">
-                            Aguardando Confirmação
-                          </Badge>
-                        </div>
-
-                        <div className="bg-white/60 dark:bg-gray-800/60 p-3 rounded-lg border">
-                          <div className="flex justify-between items-center">
+                <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando pagamentos...</div>}>
+                  {pendingPayments && pendingPayments.length > 0 && pendingPayments.map((payment) => (
+                    <Card key={`payment-${payment.id}`} className="border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-900/10">
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
                             <div>
-                              <p className="text-sm font-medium">Valor informado pelo produtor:</p>
-                              <p className="text-2xl font-bold text-green-600">
-                                R$ {payment.amount?.toLocaleString('pt-BR')}
+                              <h4 className="font-semibold text-lg">
+                                💰 Pagamento Disponível
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                Frete: {payment.freight?.cargo_type}
                               </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs text-muted-foreground">Produtor:</p>
-                              <p className="text-sm font-medium">{payment.producer?.full_name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {new Date(payment.created_at).toLocaleDateString('pt-BR')}
+                                {payment.freight?.origin_address} → {payment.freight?.destination_address}
                               </p>
                             </div>
+                            <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300">
+                              Aguardando Confirmação
+                            </Badge>
                           </div>
-                        </div>
 
-                        {payment.notes && (
-                          <div className="bg-muted/30 p-2 rounded text-sm">
-                            <p className="font-medium">Observações:</p>
-                            <p>{payment.notes}</p>
+                          <div className="bg-white/60 dark:bg-gray-800/60 p-3 rounded-lg border">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="text-sm font-medium">Valor informado pelo produtor:</p>
+                                <p className="text-2xl font-bold text-green-600">
+                                  R$ {payment.amount?.toLocaleString('pt-BR')}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-muted-foreground">Produtor:</p>
+                                <p className="text-sm font-medium">{payment.producer?.full_name}</p>
+                              </div>
+                            </div>
                           </div>
-                        )}
 
-                        <div className="flex gap-3">
-                          <Button 
-                            className="flex-1 bg-green-600 hover:bg-green-700"
-                            onClick={() => confirmPaymentReceived(payment.id)}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Confirmar Recebimento
-                          </Button>
-                          <Button 
-                            variant="outline"
-                            className="flex-1 border-red-200 hover:bg-red-50 text-red-600"
-                            onClick={() => {
-                              // TODO: Implementar função para contestar pagamento
-                              toast.info('Funcionalidade em desenvolvimento - Entre em contato com o produtor');
-                            }}
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Contestar
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              className="gradient-primary flex-1"
+                              onClick={() => handleConfirmPayment(payment.id)}
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Confirmar Recebimento
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              onClick={() => handleDisputePayment(payment.id)}
+                            >
+                              <MessageSquare className="mr-2 h-4 w-4" />
+                              Contestar
+                            </Button>
+                          </div>
+
+                          {payment.payment_method && (
+                            <p className="text-xs text-muted-foreground">
+                              Método: {payment.payment_method === 'PIX' ? '💳 PIX' : 
+                                      payment.payment_method === 'TED' ? '🏦 TED' : 
+                                      payment.payment_method === 'MONEY' ? '💵 Dinheiro' : payment.payment_method}
+                              {payment.created_at && ` • ${new Date(payment.created_at).toLocaleDateString('pt-BR')}`}
+                            </p>
+                          )}
+
+                          {payment.payment_notes && (
+                            <div className="bg-blue-50/50 dark:bg-blue-900/10 p-2 rounded text-xs">
+                              <p className="font-medium mb-1">Observações:</p>
+                              <p className="text-muted-foreground">{payment.payment_notes}</p>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </SafeListWrapper>
               </div>
             )}
           </TabsContent>

@@ -117,6 +117,17 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       (Array.isArray(profile?.service_types) ? (profile?.service_types as unknown as string[]) : [])
         .map((t) => normalizeServiceType(String(t)))
     )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO'].includes(t));
+    
+    // ✅ FALLBACK UNIVERSAL: Se array vazio, usar default baseado no role
+    if (types.length === 0) {
+      const defaultTypes = profile?.role === 'MOTORISTA' 
+        ? ['CARGA'] // Motorista sem config → apenas CARGA
+        : ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO']; // Outros → todos
+      
+      console.log(`🔎 allowedTypesFromProfile vazio → usando fallback ${profile?.role}:`, defaultTypes);
+      return defaultTypes;
+    }
+    
     console.log('🔎 allowedTypesFromProfile:', types);
     return types;
   }, [profile?.role, profile?.service_types]);
