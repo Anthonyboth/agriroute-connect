@@ -16,21 +16,25 @@ export const useDeviceRegistration = () => {
   useEffect(() => {
     if (!user || !profile) return;
 
+    // ✅ SENTINELA DE SESSÃO: prevenir múltiplos registros por sessão/usuário
+    const sessionKey = `device_reg_v1:${user.id}`;
+    if (sessionStorage.getItem(sessionKey)) {
+      hasRegistered.current = true;
+      return;
+    }
+
     // ✅ PREVENIR REGISTRO DUPLICADO na mesma sessão
     if (hasRegistered.current) {
-      console.log('⏭️ Dispositivo já registrado nesta sessão, pulando...');
       return;
     }
 
     // ✅ PREVENIR CHAMADAS SIMULTÂNEAS entre múltiplos hooks
     if (isRegistering) {
-      console.log('⏳ Registro de dispositivo já em andamento, aguardando...');
       return;
     }
 
     // ✅ REUSAR PROMISE EXISTENTE SE HOUVER
     if (registrationPromise) {
-      console.log('♻️ Reusando promise de registro existente');
       registrationPromise.then(() => {
         hasRegistered.current = true;
       });
@@ -40,6 +44,7 @@ export const useDeviceRegistration = () => {
     // Registrar dispositivo ao fazer login
     const register = async () => {
       isRegistering = true;
+      const sessionKey = `device_reg_v1:${user.id}`;
       
       try {
         await registerDevice(user.id);
@@ -53,14 +58,11 @@ export const useDeviceRegistration = () => {
           storage: permissions.storage === 'granted'
         });
         
+        // ✅ MARCAR COMO REGISTRADO NA SESSÃO
+        sessionStorage.setItem(sessionKey, Date.now().toString());
         hasRegistered.current = true;
       } catch (error: any) {
-        console.error('❌ Erro ao registrar dispositivo no hook:', {
-          message: error?.message,
-          code: error?.code,
-          details: error?.details,
-          profileId: profile.id,
-        });
+        console.error('❌ Erro ao registrar dispositivo:', error?.message);
       } finally {
         isRegistering = false;
         registrationPromise = null;

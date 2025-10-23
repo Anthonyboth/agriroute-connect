@@ -5,6 +5,7 @@ import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { CompanyFreightStats } from './CompanyFreightStats';
 import { FreightCard } from './FreightCard';
 import { MyAssignmentCard } from './MyAssignmentCard';
+import { SafeListWrapper } from './SafeListWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Truck, MapPin, RefreshCw } from 'lucide-react';
@@ -218,13 +219,15 @@ export const CompanyDashboard: React.FC = () => {
             </p>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {availableFreights.map((freight) => (
-                <FreightCard
-                  key={freight.id}
-                  freight={freight}
-                  onAction={() => {}}
-                />
-              ))}
+              <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando fretes...</div>}>
+                {availableFreights.map((freight) => (
+                  <FreightCard
+                    key={freight.id}
+                    freight={freight}
+                    onAction={() => {}}
+                  />
+                ))}
+              </SafeListWrapper>
             </div>
           )}
         </CardContent>
@@ -248,13 +251,15 @@ export const CompanyDashboard: React.FC = () => {
             </p>
           ) : (
             <div className="space-y-4">
-              {activeFreights.map((assignment) => (
-                <MyAssignmentCard
-                  key={assignment.id}
-                  assignment={assignment}
-                  onAction={() => {}}
-                />
-              ))}
+              <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando fretes ativos...</div>}>
+                {activeFreights.map((assignment) => (
+                  <MyAssignmentCard
+                    key={assignment.id}
+                    assignment={assignment}
+                    onAction={() => {}}
+                  />
+                ))}
+              </SafeListWrapper>
             </div>
           )}
         </CardContent>
@@ -278,20 +283,22 @@ export const CompanyDashboard: React.FC = () => {
             </p>
           ) : (
             <div className="space-y-3">
-              {activeDriversList.map((driver) => (
-                <div key={driver.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{driver.name}</p>
-                    <p className="text-sm text-muted-foreground">{driver.lastFreight}</p>
-                    {driver.phone && (
-                      <p className="text-xs text-muted-foreground">{driver.phone}</p>
-                    )}
+              <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando motoristas...</div>}>
+                {activeDriversList.map((driver) => (
+                  <div key={driver.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{driver.name}</p>
+                      <p className="text-sm text-muted-foreground">{driver.lastFreight}</p>
+                      {driver.phone && (
+                        <p className="text-xs text-muted-foreground">{driver.phone}</p>
+                      )}
+                    </div>
+                    <Badge variant="secondary">
+                      {driver.activeFreights} {driver.activeFreights === 1 ? 'frete' : 'fretes'}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary">
-                    {driver.activeFreights} {driver.activeFreights === 1 ? 'frete' : 'fretes'}
-                  </Badge>
-                </div>
-              ))}
+                ))}
+              </SafeListWrapper>
             </div>
           )}
         </CardContent>
