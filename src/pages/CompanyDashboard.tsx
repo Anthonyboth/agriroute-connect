@@ -125,18 +125,6 @@ const CompanyDashboard = () => {
     await fetchActiveFreights();
   };
 
-  // Handler para navegar para relatórios
-  const handleNavigateToReport = (tabValue: string) => {
-    setActiveTab(tabValue);
-    // Scroll suave até as tabs
-    setTimeout(() => {
-      const tabsElement = document.querySelector('[role="tablist"]');
-      if (tabsElement) {
-        tabsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
-  };
-
   const handleAddVehicle = async (vehicleData: any) => {
     if (!company?.id || !profile?.id) {
       toast.error('Informações da empresa não encontradas. Recarregue a página.');
@@ -516,7 +504,7 @@ const CompanyDashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
           <TabsContent value="overview" className="mt-6">
-            <CompanyDashboardComponent onNavigateToReport={handleNavigateToReport} />
+            <CompanyDashboardComponent />
           </TabsContent>
 
           <TabsContent value="drivers" className="mt-6">

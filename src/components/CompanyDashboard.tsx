@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { CompanyFreightStats } from './CompanyFreightStats';
-import { CompanyReportCards } from './CompanyReportCards';
 import { FreightCard } from './FreightCard';
 import { MyAssignmentCard } from './MyAssignmentCard';
 import { SafeListWrapper } from './SafeListWrapper';
@@ -13,11 +12,9 @@ import { Truck, MapPin, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
-interface CompanyDashboardProps {
-  onNavigateToReport?: (tab: string) => void;
-}
+interface CompanyDashboardProps {}
 
-export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateToReport }) => {
+export const CompanyDashboard: React.FC<CompanyDashboardProps> = () => {
   const { company, drivers } = useTransportCompany();
   const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -205,11 +202,6 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
         totalEarnings={stats.totalEarnings}
         pendingProposals={stats.pendingProposals}
       />
-
-      {/* Cards de Relatórios */}
-      {onNavigateToReport && (
-        <CompanyReportCards onNavigate={onNavigateToReport} />
-      )}
 
       {/* Fretes Disponíveis */}
       <Card>

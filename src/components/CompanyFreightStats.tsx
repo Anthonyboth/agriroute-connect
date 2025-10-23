@@ -1,6 +1,8 @@
 import React from 'react';
 import { StatsCard } from '@/components/ui/stats-card';
-import { Package, Truck, TrendingUp, DollarSign, Users } from 'lucide-react';
+import { Package, Truck, TrendingUp, DollarSign, Users, Eye, EyeOff } from 'lucide-react';
+import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
+import { Button } from '@/components/ui/button';
 
 interface CompanyFreightStatsProps {
   totalFreights: number;
@@ -17,6 +19,12 @@ export const CompanyFreightStats: React.FC<CompanyFreightStatsProps> = ({
   totalEarnings,
   pendingProposals,
 }) => {
+  const { visible, toggle } = useEarningsVisibility(false);
+  
+  const formattedEarnings = visible 
+    ? `R$ ${totalEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    : 'R$ •••••';
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
       <StatsCard
@@ -39,9 +47,26 @@ export const CompanyFreightStats: React.FC<CompanyFreightStatsProps> = ({
       />
       <StatsCard
         label="Ganhos Totais"
-        value={`R$ ${totalEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+        value={formattedEarnings}
         icon={<DollarSign className="h-6 w-6" />}
         iconColor="text-emerald-600"
+        actionButton={
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggle();
+            }}
+            className="h-8 w-8 p-0"
+          >
+            {visible ? (
+              <EyeOff className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Eye className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+        }
       />
       <StatsCard
         label="Propostas Pendentes"
