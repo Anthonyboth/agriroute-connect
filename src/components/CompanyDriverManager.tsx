@@ -49,8 +49,12 @@ export const CompanyDriverManager: React.FC = () => {
 
   // Filtrar motoristas
   const filteredDrivers = (drivers || []).filter((cd: any) => {
-    const matchesSearch = cd.driver?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         cd.driver?.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = searchTerm.trim().toLowerCase();
+    const name = cd.driver?.full_name?.toLowerCase() || '';
+    const email = cd.driver?.email?.toLowerCase() || '';
+    const phone = (cd.driver?.phone || cd.driver?.contact_phone || '').toLowerCase();
+    
+    const matchesSearch = term === '' || name.includes(term) || email.includes(term) || phone.includes(term);
     const matchesStatus = statusFilter === 'all' || cd.status === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -187,10 +191,10 @@ export const CompanyDriverManager: React.FC = () => {
                           <span>{cd.driver.email}</span>
                         </div>
                       )}
-                      {cd.driver?.phone && (
+                      {(cd.driver?.phone || cd.driver?.contact_phone) && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Phone className="h-4 w-4" />
-                          <span>{cd.driver.phone}</span>
+                          <span>{cd.driver?.phone || cd.driver?.contact_phone}</span>
                         </div>
                       )}
                     </div>

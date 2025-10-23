@@ -39,12 +39,20 @@ export const useTransportCompany = () => {
       const { data, error } = await supabase
         .from('company_drivers')
         .select(`
-          *,
-          driver:profiles!company_drivers_driver_profile_id_fkey (
+          id,
+          company_id,
+          driver_profile_id,
+          status,
+          created_at,
+          can_accept_freights,
+          can_manage_vehicles,
+          notes,
+          driver:profiles(
             id,
             full_name,
             email,
             phone,
+            contact_phone,
             rating,
             total_ratings
           )
