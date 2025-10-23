@@ -114,19 +114,29 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
           description: "As informações do veículo foram atualizadas com sucesso.",
         });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('vehicles')
           .insert({
             ...vehiclePayload,
             vehicle_type: vehiclePayload.vehicle_type as any
-          });
+          })
+          .select()
+          .single();
 
         if (error) throw error;
         
-        toast({
-          title: "Veículo cadastrado",
-          description: "O veículo foi cadastrado com sucesso.",
-        });
+        // Mensagem diferenciada com base no status retornado
+        if (data?.status === 'PENDING') {
+          toast({
+            title: "Veículo cadastrado",
+            description: "⚠️ Seu veículo foi cadastrado e aguarda aprovação do administrador da transportadora.",
+          });
+        } else {
+          toast({
+            title: "✅ Veículo aprovado",
+            description: "Seu veículo foi cadastrado e aprovado automaticamente!",
+          });
+        }
       }
 
       resetForm();

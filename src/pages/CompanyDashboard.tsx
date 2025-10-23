@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CompanyDashboard as CompanyDashboardComponent } from '@/components/CompanyDashboard';
+import { PendingVehiclesApproval } from '@/components/PendingVehiclesApproval';
 import { CompanyDriverManager } from '@/components/CompanyDriverManager';
 import { AdvancedVehicleManager } from '@/components/AdvancedVehicleManager';
 import { CompanyFleetVehicleList } from '@/components/CompanyFleetVehicleList';
@@ -450,6 +451,13 @@ const CompanyDashboard = () => {
         <div className="mb-6">
           <PendingRatingsPanel userRole="MOTORISTA" userProfileId={profile?.id || ''} />
         </div>
+
+        {/* Painel de aprovação de veículos pendentes */}
+        {company && (
+          <div className="mb-6">
+            <PendingVehiclesApproval companyId={company.id} />
+          </div>
+        )}
 
         {/* Navegação Responsiva por Tabs */}
         {isMobile || isTablet ? (
