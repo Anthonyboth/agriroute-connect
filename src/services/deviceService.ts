@@ -23,36 +23,76 @@ export interface UserDevice {
 }
 
 // Registrar dispositivo no banco
-export const registerDevice = async (profileId: string): Promise<UserDevice> => {
+export const registerDevice = async (userId: string): Promise<UserDevice> => {
   try {
-    const deviceInfo = await getDeviceInfo();
+    // Get authenticated user to ensure we're using auth.uid()
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
     
-    const { data, error } = await supabase
+    if (authError || !authUser) {
+      throw new Error('User not authenticated');
+    }
+    
+    const deviceInfo = await getDeviceInfo();
+    const now = new Date().toISOString();
+    
+    // Try UPDATE first (for existing device owned by this user)
+    const { data: updateData, error: updateError } = await supabase
       .from('user_devices')
-      .upsert({
-        user_id: profileId,
-        device_id: deviceInfo.deviceId,
+      .update({
         device_name: deviceInfo.deviceName,
         device_type: deviceInfo.deviceType,
         os: deviceInfo.os,
         browser: deviceInfo.browser,
         user_agent: deviceInfo.userAgent,
-        last_active_at: new Date().toISOString(),
+        last_active_at: now,
         is_active: true,
-      }, { onConflict: 'device_id' })
+      })
+      .eq('device_id', deviceInfo.deviceId)
+      .eq('user_id', authUser.id)
       .select()
-      .single();
+      .maybeSingle();
     
-    if (error) {
-      throw error;
+    if (updateError) {
+      throw updateError;
     }
     
-    if (!data) {
-      throw new Error('No data returned from device registration');
+    // If update didn't affect any rows, try INSERT
+    if (!updateData) {
+      const { data: insertData, error: insertError } = await supabase
+        .from('user_devices')
+        .insert({
+          user_id: authUser.id,
+          device_id: deviceInfo.deviceId,
+          device_name: deviceInfo.deviceName,
+          device_type: deviceInfo.deviceType,
+          os: deviceInfo.os,
+          browser: deviceInfo.browser,
+          user_agent: deviceInfo.userAgent,
+          last_active_at: now,
+          is_active: true,
+        })
+        .select()
+        .maybeSingle();
+      
+      if (insertError) {
+        // If device_id conflict with another user, just log and continue
+        if (insertError.code === '23505') {
+          console.warn('⚠️ Device already registered to another user');
+          throw new Error('This device is already registered to another account');
+        }
+        throw insertError;
+      }
+      
+      if (!insertData) {
+        throw new Error('No data returned from device registration');
+      }
+      
+      console.log('✅ Dispositivo registrado (INSERT):', insertData);
+      return insertData;
     }
     
-    console.log('✅ Dispositivo registrado:', data);
-    return data;
+    console.log('✅ Dispositivo registrado (UPDATE):', updateData);
+    return updateData;
   } catch (error: any) {
     // ✅ LOG DETALHADO
     console.error('❌ Erro ao registrar dispositivo:', {
@@ -60,7 +100,7 @@ export const registerDevice = async (profileId: string): Promise<UserDevice> => 
       code: error?.code,
       details: error?.details,
       hint: error?.hint,
-      profileId: profileId,
+      userId: userId,
       deviceId: getDeviceId(),
       fullError: error
     });
@@ -71,7 +111,7 @@ export const registerDevice = async (profileId: string): Promise<UserDevice> => 
       {
         module: 'deviceService',
         functionName: 'registerDevice',
-        profileId,
+        userId,
         deviceId: getDeviceId(),
         errorCode: error?.code,
         errorDetails: error?.details,

@@ -95,7 +95,7 @@ export function CompanyInternalChat() {
           .select(`
             driver_profile_id,
             status,
-            profiles:driver_profile_id (
+            driver:profiles!company_drivers_driver_profile_id_fkey(
               id,
               full_name
             )
@@ -105,8 +105,8 @@ export function CompanyInternalChat() {
 
         if (driversData) {
           const formattedDrivers = driversData.map((d: any) => ({
-            id: d.profiles.id,
-            full_name: d.profiles.full_name,
+            id: d.driver.id,
+            full_name: d.driver.full_name,
             status: d.status
           }));
           setDrivers(formattedDrivers);

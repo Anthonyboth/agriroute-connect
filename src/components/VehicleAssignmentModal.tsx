@@ -37,7 +37,7 @@ export const VehicleAssignmentModal = ({
         .from('company_drivers')
         .select(`
           driver_profile_id,
-          driver:driver_profile_id(
+          driver:profiles!company_drivers_driver_profile_id_fkey(
             id,
             full_name,
             phone
