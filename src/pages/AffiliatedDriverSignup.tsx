@@ -6,11 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle, XCircle, Users, AlertTriangle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Users, AlertTriangle, User, FileText, Truck, Shield, Camera } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
 import { validateDocument, formatDocument, validateCNPJ, formatCNPJ } from '@/utils/cpfValidator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getErrorMessage } from '@/lib/error-handler';
+import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { DocumentUpload } from '@/components/DocumentUpload';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { CameraSelfie } from '@/components/CameraSelfie';
 
 const AffiliatedDriverSignup = () => {
   const navigate = useNavigate();
@@ -18,6 +26,8 @@ const AffiliatedDriverSignup = () => {
   const companyCNPJFromURL = searchParams.get('companyCNPJ') || '';
   const inviteToken = searchParams.get('inviteToken');
 
+  // Control states
+  const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [validatingCompany, setValidatingCompany] = useState(false);
   const [companyValid, setCompanyValid] = useState<boolean | null>(null);
@@ -25,22 +35,57 @@ const AffiliatedDriverSignup = () => {
   const [companyId, setCompanyId] = useState<string>('');
   const [cnpjLocalValid, setCnpjLocalValid] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  const [showSelfieModal, setShowSelfieModal] = useState(false);
 
-// Form fields
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [document, setDocument] = useState('');
-  const [password, setPassword] = useState('');
+  // Form data
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    document: '',
+    password: '',
+    // Endereço
+    address_zip: '',
+    address_street: '',
+    address_number: '',
+    address_complement: '',
+    address_neighborhood: '',
+    address_city: '',
+    address_state: '',
+    // Emergência
+    emergency_contact_name: '',
+    emergency_contact_phone: '',
+    // Profissional
+    cnh_number: '',
+    cnh_category: '',
+    cnh_expiry_date: '',
+    rntrc: '',
+    antt_number: '',
+    cooperative: '',
+  });
+
+  // Document URLs
+  const [documentUrls, setDocumentUrls] = useState({
+    selfie: '',
+    document_photo: '',
+    cnh_photo: '',
+    address_proof: '',
+  });
+
+  // Terms acceptance
+  const [acceptedTerms, setAcceptedTerms] = useState({
+    documentsResponsibility: false,
+    termsOfUse: false,
+    privacyPolicy: false,
+  });
+
   const normalizedFromURL = (companyCNPJFromURL || '').replace(/\D/g, '');
   const [companyCNPJ, setCompanyCNPJ] = useState(normalizedFromURL ? formatDocument(normalizedFromURL) : '');
-  const [showForm, setShowForm] = useState(false);
   const cnpjDigits = companyCNPJ.replace(/\D/g, '');
 
-  // Validar CNPJ localmente e buscar transportadora
+  // Validate company CNPJ
   useEffect(() => {
     const validateCompanyCNPJ = async () => {
-      // Validação local
       const isLocallyValid = cnpjDigits.length === 14 && validateCNPJ(cnpjDigits);
       setCnpjLocalValid(isLocallyValid);
       
@@ -58,15 +103,12 @@ const AffiliatedDriverSignup = () => {
         return;
       }
 
-      // Buscar no banco usando RPC seguro
       setIsValidating(true);
       setValidatingCompany(true);
       try {
         const { data, error } = await supabase.rpc('find_company_by_cnpj', {
           p_cnpj: cnpjDigits
         });
-
-        console.log('RPC find_company_by_cnpj resultado:', { data, error });
 
         if (error || !data || data.length === 0) {
           setCompanyValid(false);
@@ -110,49 +152,98 @@ const AffiliatedDriverSignup = () => {
     }
   }, [companyCNPJ, cnpjDigits]);
 
-  useEffect(() => {
-    if (companyValid && (companyCNPJFromURL || inviteToken)) {
-      setShowForm(true);
+  const handleNextStep = async () => {
+    switch (currentStep) {
+      case 1:
+        if (!companyValid) {
+          toast.error('CNPJ da transportadora inválido');
+          return;
+        }
+        break;
+        
+      case 2:
+        if (!formData.fullName || !formData.email || !formData.phone || !formData.document || !formData.password) {
+          toast.error('Preencha todos os campos obrigatórios');
+          return;
+        }
+        if (!validateDocument(formData.document)) {
+          toast.error('CPF/CNPJ inválido');
+          return;
+        }
+        if (formData.password.length < 6) {
+          toast.error('A senha deve ter no mínimo 6 caracteres');
+          return;
+        }
+        if (!formData.address_zip || !formData.address_street || !formData.address_city || !formData.address_state) {
+          toast.error('Preencha o endereço completo');
+          return;
+        }
+        break;
+        
+      case 3:
+        if (!documentUrls.selfie || !documentUrls.document_photo || 
+            !documentUrls.cnh_photo || !documentUrls.address_proof) {
+          toast.error('Envie todos os documentos obrigatórios');
+          return;
+        }
+        break;
+        
+      case 4:
+        if (!formData.cnh_category || !formData.cnh_number || !formData.cnh_expiry_date) {
+          toast.error('Preencha os dados da CNH');
+          return;
+        }
+        
+        const expiryDate = new Date(formData.cnh_expiry_date);
+        if (expiryDate < new Date()) {
+          toast.error('CNH vencida. Por favor, renove antes de continuar.');
+          return;
+        }
+        
+        const daysUntilExpiry = Math.floor((expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        if (daysUntilExpiry < 90) {
+          toast.message('Atenção', {
+            description: `Sua CNH vence em ${daysUntilExpiry} dias. Considere renová-la em breve.`
+          });
+        }
+        break;
+        
+      case 5:
+        if (!acceptedTerms.documentsResponsibility || 
+            !acceptedTerms.termsOfUse || 
+            !acceptedTerms.privacyPolicy) {
+          toast.error('Você deve aceitar todos os termos para continuar');
+          return;
+        }
+        await handleSubmit();
+        return;
     }
-  }, [companyValid, companyCNPJFromURL, inviteToken]);
+    
+    setCurrentStep(prev => prev + 1);
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePreviousStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
     setLoading(true);
 
-    // Validações
-    if (!companyValid) {
-      toast.error('CNPJ da transportadora inválido');
-      setLoading(false);
-      return;
-    }
-
-    if (!validateDocument(document)) {
-      toast.error('CPF/CNPJ inválido');
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      toast.error('A senha deve ter no mínimo 6 caracteres');
-      setLoading(false);
-      return;
-    }
-
     try {
-      // Sanitize document - only digits
-      const cleanDoc = document.replace(/\D/g, '');
+      const cleanDoc = formData.document.replace(/\D/g, '');
 
-      // 1. Criar usuário no Supabase Auth
+      // 1. Create user
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
+        email: formData.email,
+        password: formData.password,
         options: {
           emailRedirectTo: `${window.location.origin}/confirm-email`,
           data: {
-            full_name: fullName,
+            full_name: formData.fullName,
             role: 'MOTORISTA_AFILIADO',
-            phone,
+            phone: formData.phone,
             document: cleanDoc,
             is_affiliated_driver: true,
             affiliated_company_cnpj: companyCNPJ.replace(/\D/g, '')
@@ -160,57 +251,72 @@ const AffiliatedDriverSignup = () => {
         }
       });
 
-      if (authError) {
-        toast.error(getErrorMessage(authError));
-        setLoading(false);
-        return;
-      }
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Erro ao criar usuário');
 
-      if (!authData.user) {
-        toast.error('Erro ao criar usuário');
-        setLoading(false);
-        return;
-      }
-
-      // 2. Aguardar criação do perfil (trigger handle_new_user)
+      // 2. Wait for profile creation
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // 3. Buscar o profile_id criado
+      // 3. Get profile_id
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('user_id', authData.user.id)
         .single();
 
-      if (profileError || !profileData) {
-        console.error('Erro ao buscar perfil:', profileError);
-        toast.error('Perfil criado, mas houve erro. Entre em contato com o suporte.');
-        setLoading(false);
-        return;
-      }
+      if (profileError || !profileData) throw new Error('Erro ao criar perfil');
 
-      // 4. Criar solicitação de vínculo com status PENDING
+      // 4. Update profile with all data
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: formData.fullName,
+          contact_phone: formData.phone,
+          cpf_cnpj: cleanDoc,
+          // Address
+          address_street: formData.address_street,
+          address_number: formData.address_number,
+          address_complement: formData.address_complement,
+          address_neighborhood: formData.address_neighborhood,
+          address_city: formData.address_city,
+          address_state: formData.address_state,
+          address_zip: formData.address_zip,
+          // Emergency
+          emergency_contact_name: formData.emergency_contact_name,
+          emergency_contact_phone: formData.emergency_contact_phone,
+          // Documents
+          selfie_url: documentUrls.selfie,
+          document_photo_url: documentUrls.document_photo,
+          cnh_photo_url: documentUrls.cnh_photo,
+          address_proof_url: documentUrls.address_proof,
+          // Professional
+          cnh_number: formData.cnh_number,
+          cnh_category: formData.cnh_category,
+          cnh_expiry_date: formData.cnh_expiry_date,
+          rntrc: formData.rntrc || null,
+          antt_number: formData.antt_number || null,
+          cooperative: formData.cooperative || null,
+        })
+        .eq('id', profileData.id);
+
+      if (updateError) throw updateError;
+
+      // 5. Create company link
       const { error: linkError } = await supabase
         .from('company_drivers')
         .insert({
           company_id: companyId,
           driver_profile_id: profileData.id,
-          status: 'PENDING', // ✅ Aguarda aprovação da transportadora
+          status: 'PENDING',
           can_accept_freights: false,
           can_manage_vehicles: false,
           affiliation_type: 'AFFILIATED',
-          invited_by: null,
-          notes: 'Solicitação de cadastro como motorista afiliado - aguardando aprovação'
+          notes: 'Cadastro completo - aguardando aprovação'
         });
 
-      if (linkError) {
-        console.error('Erro ao criar vínculo:', linkError);
-        toast.error('Erro ao solicitar vínculo. Entre em contato com o suporte.');
-        setLoading(false);
-        return;
-      }
+      if (linkError) throw linkError;
 
-      // 5. Criar notificação para a transportadora sobre nova solicitação
+      // 6. Notify company
       const { data: companyData } = await supabase
         .from('transport_companies')
         .select('profile_id, company_name')
@@ -220,35 +326,66 @@ const AffiliatedDriverSignup = () => {
       if (companyData) {
         await supabase.from('notifications').insert({
           user_id: companyData.profile_id,
-          title: 'Nova Solicitação de Motorista',
-          message: `${fullName} solicitou vínculo como motorista afiliado`,
+          title: 'Novo Motorista com Cadastro Completo',
+          message: `${formData.fullName} solicitou vínculo. Todos os documentos foram enviados.`,
           type: 'driver_approval_pending',
           data: {
             driver_profile_id: profileData.id,
-            driver_name: fullName,
+            driver_name: formData.fullName,
+            has_complete_profile: true,
+            documents_count: 4,
             requires_action: true
           }
         });
       }
 
-      toast.success(`Solicitação enviada! Aguarde aprovação de ${companyData?.company_name || 'transportadora'}.`);
+      toast.success(`Cadastro enviado! Aguarde aprovação de ${companyData?.company_name}.`);
       
-      // Redirecionar para tela de confirmação
       setTimeout(() => {
         navigate('/auth');
       }, 2000);
 
     } catch (error: any) {
       console.error('Erro no cadastro:', error);
-      toast.error(getErrorMessage(error));
+      toast.error(error.message || 'Erro ao completar cadastro');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSelfieCapture = async (imageBlob: Blob, uploadMethod: 'CAMERA' | 'GALLERY') => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const fileExt = imageBlob.type.split('/')[1];
+      const fileName = `${Date.now()}_selfie.${fileExt}`;
+      const filePath = `temp/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(filePath, imageBlob);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(filePath);
+
+      setDocumentUrls(prev => ({ ...prev, selfie: publicUrl }));
+      setShowSelfieModal(false);
+      toast.success('Selfie enviada com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao enviar selfie:', error);
+      toast.error('Erro ao enviar selfie. Tente novamente.');
+    }
+  };
+
+  const progress = (currentStep / 5) * 100;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-6 py-10">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-2xl">
         <CardHeader className="text-center">
           <BackButton to="/auth" />
           <div className="flex justify-center mb-4">
@@ -256,138 +393,104 @@ const AffiliatedDriverSignup = () => {
           </div>
           <CardTitle>Cadastro de Motorista Afiliado</CardTitle>
           <CardDescription>
-            Cadastre-se como motorista vinculado a uma transportadora
+            Preencha todas as informações e documentos necessários
           </CardDescription>
+          <Progress value={progress} className="mt-4" />
+          <p className="text-sm text-muted-foreground mt-2">
+            Etapa {currentStep} de 5
+          </p>
         </CardHeader>
 
         <CardContent>
-          <div className="space-y-4">
-            {/* CNPJ da Transportadora */}
-            <div className="space-y-2">
-              <Label htmlFor="companyCNPJ">CNPJ da Transportadora *</Label>
-              <Input
-                id="companyCNPJ"
-                value={companyCNPJ}
-                onChange={(e) => setCompanyCNPJ(formatCNPJ(e.target.value))}
-                placeholder="00.000.000/0000-00"
-                required
-                disabled={!!companyCNPJFromURL || !!inviteToken} // Desabilitar se vier de link de convite
-                maxLength={18}
-              />
-              
-              {/* Feedback de validação */}
-              {companyCNPJ.length > 0 && (
-                <div className="text-sm">
-                  {cnpjDigits.length < 14 && (
-                    <p className="text-muted-foreground">
-                      Faltam {14 - cnpjDigits.length} dígitos ({cnpjDigits.length}/14)
-                    </p>
-                  )}
-                  {isValidating && cnpjLocalValid && (
-                    <p className="text-blue-600 animate-pulse flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Validando CNPJ...
-                    </p>
-                  )}
-                </div>
-              )}
-              
-              {companyValid === true && (
-                <Alert className="border-success bg-success/10">
-                  <CheckCircle className="h-4 w-4 text-success" />
-                  <AlertTitle className="text-success">Transportadora Válida</AlertTitle>
-                  <AlertDescription className="text-success">
-                    {companyName}
-                  </AlertDescription>
-                </Alert>
-              )}
-              {companyValid === false && cnpjLocalValid && (
-                <Alert variant="destructive" className="mt-4">
-                  <XCircle className="h-4 w-4" />
-                  <AlertTitle>CNPJ não encontrado</AlertTitle>
-                  <AlertDescription className="space-y-3">
-                    <p>Esta transportadora não está cadastrada no AgriRoute.</p>
-                    <div className="flex flex-col gap-2 mt-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => {
-                          const message = `Olá! Para eu me afiliar como motorista, preciso que a sua empresa se cadastre no AgriRoute: ${window.location.origin}/auth (escolha "Transportadora" no cadastro)`;
-                          window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                        }}
-                      >
-                        <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                        </svg>
-                        Convidar transportadora via WhatsApp
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="w-full"
-                        onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/auth`);
-                          toast.success('Link de cadastro copiado!');
-                        }}
-                      >
-                        Copiar link de cadastro
-                      </Button>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Peça para a transportadora se cadastrar no AgriRoute escolhendo a opção "Transportadora" no cadastro.
+          {/* STEP 1: Company Validation */}
+          {currentStep === 1 && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="companyCNPJ">CNPJ da Transportadora *</Label>
+                <Input
+                  id="companyCNPJ"
+                  value={companyCNPJ}
+                  onChange={(e) => setCompanyCNPJ(formatCNPJ(e.target.value))}
+                  placeholder="00.000.000/0000-00"
+                  required
+                  disabled={!!companyCNPJFromURL || !!inviteToken}
+                  maxLength={18}
+                />
+                
+                {companyCNPJ.length > 0 && (
+                  <div className="text-sm">
+                    {cnpjDigits.length < 14 && (
+                      <p className="text-muted-foreground">
+                        Faltam {14 - cnpjDigits.length} dígitos ({cnpjDigits.length}/14)
                       </p>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
+                    )}
+                    {isValidating && cnpjLocalValid && (
+                      <p className="text-blue-600 animate-pulse flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Validando CNPJ...
+                      </p>
+                    )}
+                  </div>
+                )}
+                
+                {companyValid === true && (
+                  <Alert className="border-success bg-success/10">
+                    <CheckCircle className="h-4 w-4 text-success" />
+                    <AlertTitle className="text-success">Transportadora Válida</AlertTitle>
+                    <AlertDescription className="text-success">
+                      {companyName}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {companyValid === false && cnpjLocalValid && (
+                  <Alert variant="destructive">
+                    <XCircle className="h-4 w-4" />
+                    <AlertTitle>CNPJ não encontrado</AlertTitle>
+                    <AlertDescription>
+                      Esta transportadora não está cadastrada no AgriRoute.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+              
+              <Alert className="border-primary/30 bg-primary/5">
+                <Users className="h-4 w-4 text-primary" />
+                <AlertTitle>Sobre o Cadastro de Afiliado</AlertTitle>
+                <AlertDescription className="text-sm space-y-2 mt-2">
+                  <p>Como motorista afiliado você poderá:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Ver fretes disponíveis</li>
+                    <li>Preencher suas cidades de atuação</li>
+                    <li>Ver agenda montada pela transportadora</li>
+                    <li>Realizar check-ins de fretes</li>
+                  </ul>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    ⚠️ Valores e pagamentos são gerenciados pela transportadora
+                  </p>
+                </AlertDescription>
+              </Alert>
             </div>
+          )}
 
-            {/* Botão Continuar - aparece quando CNPJ for válido localmente */}
-            {cnpjLocalValid && !showForm && (
-              <Button 
-                type="button"
-                className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold"
-                onClick={() => {
-                  if (companyValid === true) {
-                    setShowForm(true);
-                  } else if (companyValid === null || isValidating) {
-                    toast.error('Aguardando validação do CNPJ...');
-                  } else if (companyValid === false) {
-                    toast.error('CNPJ não encontrado. Convide a transportadora primeiro.');
-                  }
-                }}
-                disabled={companyValid !== true}
-              >
-                Continuar
-              </Button>
-            )}
+          {/* STEP 2: Basic Data */}
+          {currentStep === 2 && (
+            <div className="space-y-4">
+              <Alert>
+                <User className="h-4 w-4" />
+                <AlertTitle>Dados Pessoais</AlertTitle>
+                <AlertDescription>
+                  Preencha suas informações básicas e endereço
+                </AlertDescription>
+              </Alert>
 
-            {/* Etapa 2: Informações do Motorista Afiliado */}
-            {showForm && companyValid === true && (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <Alert className="border-primary/30 bg-primary/5">
-                  <Users className="h-4 w-4 text-primary" />
-                  <AlertTitle>Sobre o Cadastro de Afiliado</AlertTitle>
-                  <AlertDescription className="text-sm space-y-2 mt-2">
-                    <p>Como motorista afiliado você poderá:</p>
-                    <ul className="list-disc list-inside space-y-1 ml-2">
-                      <li>Ver fretes disponíveis</li>
-                      <li>Preencher suas cidades de atuação</li>
-                      <li>Ver agenda montada pela transportadora</li>
-                      <li>Realizar check-ins de fretes</li>
-                    </ul>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      ⚠️ Valores e pagamentos são gerenciados pela transportadora
-                    </p>
-                  </AlertDescription>
-                </Alert>
-
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="fullName">Nome Completo *</Label>
                   <Input
                     id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    value={formData.fullName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
                     placeholder="Seu nome completo"
                     required
                   />
@@ -398,8 +501,8 @@ const AffiliatedDriverSignup = () => {
                   <Input
                     id="email"
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="seu@email.com"
                     required
                   />
@@ -409,8 +512,8 @@ const AffiliatedDriverSignup = () => {
                   <Label htmlFor="phone">Telefone *</Label>
                   <Input
                     id="phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                     placeholder="(00) 00000-0000"
                     required
                   />
@@ -420,8 +523,8 @@ const AffiliatedDriverSignup = () => {
                   <Label htmlFor="document">CPF/CNPJ *</Label>
                   <Input
                     id="document"
-                    value={document}
-                    onChange={(e) => setDocument(formatDocument(e.target.value))}
+                    value={formData.document}
+                    onChange={(e) => setFormData(prev => ({ ...prev, document: formatDocument(e.target.value) }))}
                     placeholder="000.000.000-00"
                     required
                   />
@@ -432,44 +535,427 @@ const AffiliatedDriverSignup = () => {
                   <Input
                     id="password"
                     type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={formData.password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="Mínimo 6 caracteres"
                     required
                     minLength={6}
                   />
                 </div>
+              </div>
 
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={loading || !companyValid}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Cadastrando...
-                    </>
-                  ) : (
-                    'Cadastrar como Motorista Afiliado'
-                  )}
-                </Button>
-              </form>
+              <Separator className="my-4" />
+              <h3 className="font-semibold mb-3">Endereço</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="address_zip">CEP *</Label>
+                  <Input
+                    id="address_zip"
+                    value={formData.address_zip}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address_zip: e.target.value }))}
+                    placeholder="00000-000"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="address_street">Rua/Logradouro *</Label>
+                  <Input
+                    id="address_street"
+                    value={formData.address_street}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address_street: e.target.value }))}
+                    placeholder="Nome da rua"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address_number">Número *</Label>
+                  <Input
+                    id="address_number"
+                    value={formData.address_number}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address_number: e.target.value }))}
+                    placeholder="123"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address_complement">Complemento</Label>
+                  <Input
+                    id="address_complement"
+                    value={formData.address_complement}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address_complement: e.target.value }))}
+                    placeholder="Apto, bloco..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address_neighborhood">Bairro *</Label>
+                  <Input
+                    id="address_neighborhood"
+                    value={formData.address_neighborhood}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address_neighborhood: e.target.value }))}
+                    placeholder="Nome do bairro"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address_city">Cidade *</Label>
+                  <Input
+                    id="address_city"
+                    value={formData.address_city}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address_city: e.target.value }))}
+                    placeholder="Nome da cidade"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address_state">Estado *</Label>
+                  <Input
+                    id="address_state"
+                    value={formData.address_state}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address_state: e.target.value }))}
+                    placeholder="UF"
+                    maxLength={2}
+                    required
+                  />
+                </div>
+              </div>
+
+              <Separator className="my-4" />
+              <h3 className="font-semibold mb-3">Contato de Emergência</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="emergency_contact_name">Nome do Contato</Label>
+                  <Input
+                    id="emergency_contact_name"
+                    value={formData.emergency_contact_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, emergency_contact_name: e.target.value }))}
+                    placeholder="Nome completo"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="emergency_contact_phone">Telefone de Emergência</Label>
+                  <Input
+                    id="emergency_contact_phone"
+                    value={formData.emergency_contact_phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, emergency_contact_phone: e.target.value }))}
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: Documents */}
+          {currentStep === 3 && (
+            <div className="space-y-4">
+              <Alert>
+                <Camera className="h-4 w-4" />
+                <AlertTitle>Documentos Obrigatórios</AlertTitle>
+                <AlertDescription>
+                  Envie fotos nítidas e legíveis de todos os documentos
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-4">
+                <div>
+                  <Label>Selfie *</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full mt-2"
+                    onClick={() => setShowSelfieModal(true)}
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    {documentUrls.selfie ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                        Selfie enviada
+                      </>
+                    ) : (
+                      'Tirar Selfie'
+                    )}
+                  </Button>
+                </div>
+
+                <DocumentUpload
+                  label="Foto do RG ou CNH (frente)"
+                  fileType="document_photo"
+                  onUploadComplete={(url) => 
+                    setDocumentUrls(prev => ({ ...prev, document_photo: url }))
+                  }
+                  currentFile={documentUrls.document_photo}
+                  required
+                />
+
+                <DocumentUpload
+                  label="Foto da CNH (verso)"
+                  fileType="cnh_photo"
+                  onUploadComplete={(url) => 
+                    setDocumentUrls(prev => ({ ...prev, cnh_photo: url }))
+                  }
+                  currentFile={documentUrls.cnh_photo}
+                  required
+                />
+
+                <DocumentUpload
+                  label="Comprovante de Residência"
+                  fileType="address_proof"
+                  accept="image/*,application/pdf"
+                  onUploadComplete={(url) => 
+                    setDocumentUrls(prev => ({ ...prev, address_proof: url }))
+                  }
+                  currentFile={documentUrls.address_proof}
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: Professional Data */}
+          {currentStep === 4 && (
+            <div className="space-y-4">
+              <Alert>
+                <Truck className="h-4 w-4" />
+                <AlertTitle>Dados Profissionais</AlertTitle>
+                <AlertDescription>
+                  Informações da sua CNH e registros profissionais
+                </AlertDescription>
+              </Alert>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cnh_category">Categoria da CNH *</Label>
+                  <Select
+                    value={formData.cnh_category}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, cnh_category: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="A">A</SelectItem>
+                      <SelectItem value="B">B</SelectItem>
+                      <SelectItem value="C">C</SelectItem>
+                      <SelectItem value="D">D</SelectItem>
+                      <SelectItem value="E">E</SelectItem>
+                      <SelectItem value="AB">AB</SelectItem>
+                      <SelectItem value="AC">AC</SelectItem>
+                      <SelectItem value="AD">AD</SelectItem>
+                      <SelectItem value="AE">AE</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cnh_number">Número da CNH *</Label>
+                  <Input
+                    id="cnh_number"
+                    value={formData.cnh_number}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cnh_number: e.target.value }))}
+                    placeholder="00000000000"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cnh_expiry_date">Data de Validade da CNH *</Label>
+                  <Input
+                    id="cnh_expiry_date"
+                    type="date"
+                    value={formData.cnh_expiry_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cnh_expiry_date: e.target.value }))}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="rntrc">RNTRC</Label>
+                  <Input
+                    id="rntrc"
+                    value={formData.rntrc}
+                    onChange={(e) => setFormData(prev => ({ ...prev, rntrc: e.target.value }))}
+                    placeholder="00000000"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="antt_number">Número ANTT</Label>
+                  <Input
+                    id="antt_number"
+                    value={formData.antt_number}
+                    onChange={(e) => setFormData(prev => ({ ...prev, antt_number: e.target.value }))}
+                    placeholder="000000"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cooperative">Cooperativa</Label>
+                  <Input
+                    id="cooperative"
+                    value={formData.cooperative}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cooperative: e.target.value }))}
+                    placeholder="Nome da cooperativa"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5: Review and Terms */}
+          {currentStep === 5 && (
+            <div className="space-y-6">
+              <Card className="bg-muted/50">
+                <CardHeader>
+                  <CardTitle className="text-base">Resumo do Cadastro</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div>
+                    <strong>Nome:</strong> {formData.fullName}
+                  </div>
+                  <div>
+                    <strong>CPF/CNPJ:</strong> {formData.document}
+                  </div>
+                  <div>
+                    <strong>Telefone:</strong> {formData.phone}
+                  </div>
+                  <div>
+                    <strong>CNH:</strong> {formData.cnh_category} - Válida até {formData.cnh_expiry_date}
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <strong>Documentos Enviados:</strong>
+                    <div className="flex flex-wrap gap-2">
+                      {documentUrls.selfie && (
+                        <Badge variant="outline" className="bg-green-50">
+                          <CheckCircle className="h-3 w-3 mr-1 text-green-600" />
+                          Selfie
+                        </Badge>
+                      )}
+                      {documentUrls.document_photo && (
+                        <Badge variant="outline" className="bg-green-50">
+                          <CheckCircle className="h-3 w-3 mr-1 text-green-600" />
+                          RG/CNH
+                        </Badge>
+                      )}
+                      {documentUrls.cnh_photo && (
+                        <Badge variant="outline" className="bg-green-50">
+                          <CheckCircle className="h-3 w-3 mr-1 text-green-600" />
+                          CNH
+                        </Badge>
+                      )}
+                      {documentUrls.address_proof && (
+                        <Badge variant="outline" className="bg-green-50">
+                          <CheckCircle className="h-3 w-3 mr-1 text-green-600" />
+                          Comprovante
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-4">
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="docs"
+                    checked={acceptedTerms.documentsResponsibility}
+                    onCheckedChange={(checked) =>
+                      setAcceptedTerms(prev => ({ ...prev, documentsResponsibility: !!checked }))
+                    }
+                  />
+                  <Label htmlFor="docs" className="text-sm leading-relaxed cursor-pointer">
+                    Declaro que as informações e documentos enviados são verdadeiros e de minha responsabilidade
+                  </Label>
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="terms"
+                    checked={acceptedTerms.termsOfUse}
+                    onCheckedChange={(checked) =>
+                      setAcceptedTerms(prev => ({ ...prev, termsOfUse: !!checked }))
+                    }
+                  />
+                  <Label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
+                    Li e aceito os Termos de Uso
+                  </Label>
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="privacy"
+                    checked={acceptedTerms.privacyPolicy}
+                    onCheckedChange={(checked) =>
+                      setAcceptedTerms(prev => ({ ...prev, privacyPolicy: !!checked }))
+                    }
+                  />
+                  <Label htmlFor="privacy" className="text-sm leading-relaxed cursor-pointer">
+                    Li e aceito a Política de Privacidade
+                  </Label>
+                </div>
+              </div>
+
+              <Alert className="border-success bg-success/10">
+                <CheckCircle className="h-4 w-4 text-success" />
+                <AlertDescription>
+                  Seu cadastro está completo! Após enviar, aguarde a aprovação da transportadora.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          {/* Navigation Buttons */}
+          <div className="flex gap-2 mt-6">
+            {currentStep > 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePreviousStep}
+                disabled={loading}
+              >
+                Voltar
+              </Button>
             )}
-          </div>
-
-          <p className="text-xs text-center text-muted-foreground mt-4">
-            Já tem uma conta?{' '}
+            
             <Button
-              variant="link"
-              className="text-xs p-0 h-auto"
-              onClick={() => navigate('/auth')}
+              type="button"
+              className="flex-1"
+              onClick={handleNextStep}
+              disabled={loading || (currentStep === 1 && companyValid !== true)}
             >
-              Faça login
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processando...
+                </>
+              ) : currentStep === 5 ? (
+                'Enviar Solicitação'
+              ) : (
+                'Continuar'
+              )}
             </Button>
-          </p>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Selfie Modal */}
+      <Dialog open={showSelfieModal} onOpenChange={setShowSelfieModal}>
+        <DialogContent className="max-w-md p-0">
+          <CameraSelfie
+            onCapture={handleSelfieCapture}
+            onCancel={() => setShowSelfieModal(false)}
+            autoStart={true}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
