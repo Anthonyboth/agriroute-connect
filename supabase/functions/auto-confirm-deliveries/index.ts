@@ -18,22 +18,24 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    console.log("Starting auto-confirm deliveries process...");
+    console.log("[AUTO-CONFIRM] 🚀 Iniciando processo de auto-confirmação de entregas...");
 
-    // Executar a função que confirma automaticamente as entregas
-    const { error } = await supabase.rpc('auto_confirm_deliveries');
+    // Executar a função RPC que confirma automaticamente as entregas
+    const { data, error } = await supabase.rpc('auto_confirm_deliveries');
 
     if (error) {
-      console.error("Error auto-confirming deliveries:", error);
+      console.error("[AUTO-CONFIRM] ❌ Erro ao executar RPC:", error);
       throw error;
     }
 
-    console.log("Auto-confirm deliveries completed successfully");
+    console.log("[AUTO-CONFIRM] ✅ Processo concluído com sucesso!");
+    console.log("[AUTO-CONFIRM] 📊 Resultado:", JSON.stringify(data));
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: "Auto-confirm deliveries process completed",
+        result: data,
         timestamp: new Date().toISOString()
       }),
       {
@@ -43,7 +45,8 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error("Error in auto-confirm-deliveries function:", error);
+    console.error("[AUTO-CONFIRM] ❌ Erro fatal:", error);
+    console.error("[AUTO-CONFIRM] 📝 Stack trace:", error.stack);
     
     return new Response(
       JSON.stringify({ 

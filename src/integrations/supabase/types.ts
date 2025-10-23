@@ -358,6 +358,41 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_confirm_logs: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string | null
+          freight_id: string | null
+          hours_elapsed: number | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string | null
+          freight_id?: string | null
+          hours_elapsed?: number | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string | null
+          freight_id?: string | null
+          hours_elapsed?: number | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_confirm_logs_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       balance_transactions: {
         Row: {
           amount: number
@@ -5570,7 +5605,7 @@ export type Database = {
           status: string
         }[]
       }
-      auto_confirm_deliveries: { Args: never; Returns: undefined }
+      auto_confirm_deliveries: { Args: never; Returns: Json }
       auto_insert_city: {
         Args: {
           city_name: string
