@@ -355,18 +355,16 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 Aceitar Frete por Moto
               </Button>
             ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button 
                   onClick={() => setBulkAcceptorOpen(true)}
                   className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
-                  size="sm"
                 >
-                  Aceitar Carretas ({availableSlots} disponíveis)
+                  Aceitar ({availableSlots} vagas)
                 </Button>
                 <Button 
                   onClick={() => setProposalModalOpen(true)}
                   className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                  size="sm"
                   variant="outline"
                 >
                   Contra proposta
