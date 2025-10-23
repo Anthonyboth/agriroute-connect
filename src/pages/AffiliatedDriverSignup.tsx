@@ -36,6 +36,7 @@ const AffiliatedDriverSignup = () => {
   const [cnpjLocalValid, setCnpjLocalValid] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [showSelfieModal, setShowSelfieModal] = useState(false);
+  const [selfieBlobPending, setSelfieBlobPending] = useState<Blob | null>(null);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -266,7 +267,35 @@ const AffiliatedDriverSignup = () => {
 
       if (profileError || !profileData) throw new Error('Erro ao criar perfil');
 
-      // 4. Update profile with all data
+      // 4. Upload selfie após autenticação
+      let selfieUrl = documentUrls.selfie;
+      if (selfieBlobPending) {
+        try {
+          const fileExt = selfieBlobPending.type.split('/')[1] || 'jpg';
+          const fileName = `${Date.now()}_selfie.${fileExt}`;
+          const filePath = `${authData.user.id}/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('profile-photos')
+            .upload(filePath, selfieBlobPending);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('profile-photos')
+            .getPublicUrl(filePath);
+
+          selfieUrl = publicUrl;
+          console.log('✅ Selfie uploaded successfully:', selfieUrl);
+        } catch (error: any) {
+          console.error('⚠️ Erro ao fazer upload da selfie:', error);
+          toast.message('Selfie não foi enviada', {
+            description: 'Continue o cadastro. Você poderá enviá-la depois no perfil.'
+          });
+        }
+      }
+
+      // 5. Update profile with all data
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -285,7 +314,7 @@ const AffiliatedDriverSignup = () => {
           emergency_contact_name: formData.emergency_contact_name,
           emergency_contact_phone: formData.emergency_contact_phone,
           // Documents
-          selfie_url: documentUrls.selfie,
+          selfie_url: selfieUrl,
           document_photo_url: documentUrls.document_photo,
           cnh_photo_url: documentUrls.cnh_photo,
           address_proof_url: documentUrls.address_proof,
@@ -301,7 +330,7 @@ const AffiliatedDriverSignup = () => {
 
       if (updateError) throw updateError;
 
-      // 5. Create company link
+      // 6. Create company link
       const { error: linkError } = await supabase
         .from('company_drivers')
         .insert({
@@ -316,7 +345,7 @@ const AffiliatedDriverSignup = () => {
 
       if (linkError) throw linkError;
 
-      // 6. Notify company
+      // 7. Notify company
       const { data: companyData } = await supabase
         .from('transport_companies')
         .select('profile_id, company_name')
@@ -355,29 +384,18 @@ const AffiliatedDriverSignup = () => {
 
   const handleSelfieCapture = async (imageBlob: Blob, uploadMethod: 'CAMERA' | 'GALLERY') => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
-      const fileExt = imageBlob.type.split('/')[1];
-      const fileName = `${Date.now()}_selfie.${fileExt}`;
-      const filePath = `temp/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('profile-photos')
-        .upload(filePath, imageBlob);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('profile-photos')
-        .getPublicUrl(filePath);
-
-      setDocumentUrls(prev => ({ ...prev, selfie: publicUrl }));
+      // Armazenar Blob em memória - upload será feito após autenticação
+      setSelfieBlobPending(imageBlob);
+      
+      // Criar preview local
+      const previewUrl = URL.createObjectURL(imageBlob);
+      setDocumentUrls(prev => ({ ...prev, selfie: previewUrl }));
+      
       setShowSelfieModal(false);
-      toast.success('Selfie enviada com sucesso!');
+      toast.success('Selfie capturada! Será enviada após completar o cadastro.');
     } catch (error: any) {
-      console.error('Erro ao enviar selfie:', error);
-      toast.error('Erro ao enviar selfie. Tente novamente.');
+      console.error('Erro ao capturar selfie:', error);
+      toast.error('Erro ao capturar selfie. Tente novamente.');
     }
   };
 
