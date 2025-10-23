@@ -95,7 +95,7 @@ export const DriverDetailsModal = ({
             <DriverInfoTab driverData={driver?.driver} />
           </TabsContent>
           <TabsContent value="location" className="mt-4">
-            <DriverLocationTab driverProfileId={driverProfileId} />
+            <DriverLocationTab driverProfileId={driverProfileId} companyId={companyId} />
           </TabsContent>
           <TabsContent value="freights" className="mt-4">
             <DriverFreightsTab driverProfileId={driverProfileId} />

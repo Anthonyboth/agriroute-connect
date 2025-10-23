@@ -10,10 +10,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface DriverLocationTabProps {
   driverProfileId: string;
+  companyId?: string;
 }
 
-export const DriverLocationTab = ({ driverProfileId }: DriverLocationTabProps) => {
-  const { currentLocation, isLoading, refreshLocation } = useDriverTracking(driverProfileId);
+export const DriverLocationTab = ({ driverProfileId, companyId }: DriverLocationTabProps) => {
+  const { currentLocation, isLoading, refreshLocation } = useDriverTracking(driverProfileId, companyId);
 
   const { data: driver } = useQuery({
     queryKey: ['driver-name', driverProfileId],

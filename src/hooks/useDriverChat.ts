@@ -7,7 +7,7 @@ export const useDriverChat = (companyId: string, driverProfileId: string) => {
   const queryClient = useQueryClient();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Buscar mensagens existentes
+  // Buscar mensagens existentes com polling fallback
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['driver-chat', companyId, driverProfileId],
     queryFn: async () => {
@@ -22,6 +22,7 @@ export const useDriverChat = (companyId: string, driverProfileId: string) => {
       return data || [];
     },
     enabled: !!companyId && !!driverProfileId,
+    refetchInterval: 5000, // Polling fallback when Realtime fails
   });
 
   // Contar mensagens não lidas
