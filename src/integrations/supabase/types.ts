@@ -6390,6 +6390,27 @@ export type Database = {
         | "F400"
         | "STRADA"
         | "CARRO_PEQUENO"
+        | "RODOTREM_7_EIXOS"
+        | "RODOTREM_9_EIXOS"
+        | "BITREM_7_EIXOS"
+        | "BITREM_9_EIXOS"
+        | "TRITREM_9_EIXOS"
+        | "TRITREM_11_EIXOS"
+        | "CAVALO_MECANICO_TOCO"
+        | "CAVALO_MECANICO_TRUCK"
+        | "CARRETA_SIDER"
+        | "CARRETA_GRANELEIRA"
+        | "CARRETA_PRANCHA"
+        | "CARRETA_TANQUE"
+        | "CARRETA_FRIGORIFICA"
+        | "CARRETA_3_EIXOS"
+        | "CARRETA_2_EIXOS"
+        | "CAMINHAO_3_4"
+        | "CAMINHAO_TRUCK"
+        | "CAMINHONETE"
+        | "VLC_URBANO"
+        | "PICKUP"
+        | "OUTROS"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6606,6 +6627,27 @@ export const Constants = {
         "F400",
         "STRADA",
         "CARRO_PEQUENO",
+        "RODOTREM_7_EIXOS",
+        "RODOTREM_9_EIXOS",
+        "BITREM_7_EIXOS",
+        "BITREM_9_EIXOS",
+        "TRITREM_9_EIXOS",
+        "TRITREM_11_EIXOS",
+        "CAVALO_MECANICO_TOCO",
+        "CAVALO_MECANICO_TRUCK",
+        "CARRETA_SIDER",
+        "CARRETA_GRANELEIRA",
+        "CARRETA_PRANCHA",
+        "CARRETA_TANQUE",
+        "CARRETA_FRIGORIFICA",
+        "CARRETA_3_EIXOS",
+        "CARRETA_2_EIXOS",
+        "CAMINHAO_3_4",
+        "CAMINHAO_TRUCK",
+        "CAMINHONETE",
+        "VLC_URBANO",
+        "PICKUP",
+        "OUTROS",
       ],
     },
   },
