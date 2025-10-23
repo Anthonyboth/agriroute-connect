@@ -64,7 +64,21 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
       
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          errorMessage = 'Permissão negada para acessar a câmera. Verifique as configurações do navegador.';
+          errorMessage = 'Permissão de câmera negada';
+          
+          // Fallback automático: Oferecer upload de arquivo
+          toast.error('Permissão de câmera negada', {
+            description: 'Você pode enviar uma foto da galeria',
+            action: {
+              label: 'Escolher Arquivo',
+              onClick: () => fileInputRef.current?.click()
+            }
+          });
+          
+          // Mostrar apenas opção de galeria
+          setUploadMethod(null);
+          setCapturedImage(null);
+          return;
         } else if (error.name === 'NotFoundError') {
           errorMessage = 'Câmera não encontrada no dispositivo.';
         } else if (error.name === 'NotReadableError') {

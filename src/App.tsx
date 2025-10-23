@@ -39,6 +39,7 @@ import { ComponentLoader } from '@/components/LazyComponents';
 import { ScrollToTop } from './components/ScrollToTop';
 import { PermissionPrompts } from './components/PermissionPrompts';
 import { useDeviceRegistration } from './hooks/useDeviceRegistration';
+import { startSessionRefresh, stopSessionRefresh } from './utils/sessionRefresh';
 const PressPage = lazy(() => import("./pages/Press"));
 const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess"));
 const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
@@ -305,6 +306,23 @@ const DeviceSetup = () => {
   return null;
 };
 
+// Component to handle session refresh
+const SessionManager = () => {
+  const { isAuthenticated } = useAuth();
+  
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      startSessionRefresh();
+    } else {
+      stopSessionRefresh();
+    }
+    
+    return () => stopSessionRefresh();
+  }, [isAuthenticated]);
+  
+  return null;
+};
+
 const App = () => (
   <ErrorBoundary>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
@@ -320,6 +338,7 @@ const App = () => (
               >
             <ScrollToTop />
             <DeviceSetup />
+            <SessionManager />
             <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/landing" element={<Landing />} />

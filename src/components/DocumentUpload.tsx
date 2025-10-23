@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Upload, Check, X, Camera } from 'lucide-react';
 import { validateImageQuality } from '@/utils/imageValidator';
+import { uploadWithAuthRetry } from '@/utils/authUploadHelper';
 
 interface DocumentUploadProps {
   onUploadComplete: (url: string) => void;
@@ -43,13 +44,12 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
 
     console.log('Starting file upload...', { fileName: file.name, bucketName, fileType });
     
-    // ✅ FASE 3 - MÉDIO: Validação de qualidade de imagem
+    // Validação de qualidade de imagem (se habilitado)
     if (enableQualityCheck && file.type.startsWith('image/')) {
       const validationResult = await validateImageQuality(file);
       
       if (!validationResult.valid) {
         toast.error(`Qualidade insuficiente: ${validationResult.reason}`);
-        // Reset input
         event.target.value = '';
         return;
       }
@@ -57,47 +57,31 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     
     setUploading(true);
     try {
-      console.log('Getting authenticated user...');
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
       
-      if (userError) {
-        console.error('Error getting user:', userError);
-        throw new Error(`Authentication error: ${userError.message}`);
-      }
-      
-      if (!user) {
-        console.error('No authenticated user found');
-        throw new Error('User not authenticated - please log in first');
-      }
-
-      console.log('User authenticated:', user.id);
-
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${fileType}_${Date.now()}.${fileExt}`;
       
-      console.log('Uploading to storage...', { fileName, bucketName });
-
-      const { error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(fileName, file);
-
-      if (uploadError) {
-        console.error('Storage upload error:', uploadError);
-        throw new Error(`Upload failed: ${uploadError.message}`);
+      // Usar upload com retry de autenticação
+      const result = await uploadWithAuthRetry({
+        file,
+        bucketName,
+        fileName
+      });
+      
+      if ('error' in result) {
+        if (result.error === 'AUTH_EXPIRED') {
+          return; // Já está redirecionando para login
+        }
+        throw new Error(result.error);
       }
-
-      console.log('Upload successful, getting public URL...');
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(fileName);
-
-      console.log('Upload complete:', publicUrl);
       
       setUploaded(true);
       setFileName(file.name);
-      onUploadComplete(publicUrl);
+      onUploadComplete(result.publicUrl);
       toast.success(`${label} enviado com sucesso!`);
+      
     } catch (error) {
       console.error('Error uploading file:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';

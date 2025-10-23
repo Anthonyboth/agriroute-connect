@@ -48,3 +48,35 @@ export async function handleAuthError(error: any, redirectTo: string = '/') {
   }
   return false;
 }
+
+export async function ensureAuthBeforeAction(actionName: string): Promise<boolean> {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error || !session) {
+      console.warn(`[Auth] ${actionName}: Sessão inválida, tentando refresh...`);
+      
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError || !refreshData.session) {
+        toast.error('Sessão expirada. Faça login novamente.');
+        
+        setTimeout(() => {
+          localStorage.setItem('redirect_after_login', window.location.pathname);
+          window.location.href = '/auth';
+        }, 1500);
+        
+        return false;
+      }
+      
+      console.log(`[Auth] ${actionName}: Sessão renovada`);
+      return true;
+    }
+    
+    return true;
+    
+  } catch (err) {
+    console.error(`[Auth] ${actionName}: Erro ao verificar sessão`, err);
+    return false;
+  }
+}

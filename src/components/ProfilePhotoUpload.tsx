@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Upload, Camera, User, X } from 'lucide-react';
+import { uploadWithAuthRetry } from '@/utils/authUploadHelper';
 
 interface ProfilePhotoUploadProps {
   currentPhotoUrl?: string;
@@ -59,20 +60,22 @@ export const ProfilePhotoUpload: React.FC<ProfilePhotoUploadProps> = ({
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/profile_${Date.now()}.${fileExt}`;
 
-      // Fazer upload da imagem
-      const { error: uploadError } = await supabase.storage
-        .from('profile-photos')
-        .upload(fileName, file);
+      // Usar upload com retry de autenticação
+      const result = await uploadWithAuthRetry({
+        file,
+        bucketName: 'profile-photos',
+        fileName
+      });
+      
+      if ('error' in result) {
+        if (result.error === 'AUTH_EXPIRED') {
+          return; // Já está redirecionando para login
+        }
+        throw new Error(result.error);
+      }
 
-      if (uploadError) throw uploadError;
-
-      // Obter URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('profile-photos')
-        .getPublicUrl(fileName);
-
-      setPhotoUrl(publicUrl);
-      onUploadComplete(publicUrl);
+      setPhotoUrl(result.publicUrl);
+      onUploadComplete(result.publicUrl);
       toast.success('Foto de perfil atualizada com sucesso!');
     } catch (error: any) {
       console.error('Error uploading profile photo:', error);
