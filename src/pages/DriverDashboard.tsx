@@ -141,7 +141,7 @@ const DriverDashboard = () => {
     }
 
     // Redirect other roles
-    if (profile.role && profile.role !== 'MOTORISTA') {
+    if (profile.role && profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO') {
       const correctRoute = profile.role === 'PRODUTOR' ? '/dashboard/producer' : 
                           profile.role === 'ADMIN' ? '/admin' : '/';
       navigate(correctRoute, { replace: true });
@@ -302,7 +302,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   // Buscar fretes disponíveis - com match inteligente por região
   const fetchAvailableFreights = useCallback(async () => {
     // Don't fetch if user is not a driver
-    if (!profile?.id || profile.role !== 'MOTORISTA') return;
+    if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
 
     try {
       // Motoristas de empresa: buscar apenas fretes da transportadora
@@ -481,7 +481,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   // Buscar propostas do motorista - otimizado
   const fetchMyProposals = useCallback(async () => {
     // Don't fetch if user is not a driver
-    if (!profile?.id || profile.role !== 'MOTORISTA') return;
+    if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
 
     try {
       const { data, error } = await (supabase as any).functions.invoke('driver-proposals');
@@ -546,7 +546,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   // ✅ Buscar APENAS fretes em andamento (nunca service_requests)
   const fetchOngoingFreights = useCallback(async () => {
     // Don't fetch if user is not a driver
-    if (!profile?.id || profile.role !== 'MOTORISTA') return;
+    if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
 
     console.log('🔍 Buscando APENAS fretes ativos do motorista:', profile.id);
     try {
@@ -689,7 +689,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
   // Buscar solicitações de transporte (guincho, mudanças) disponíveis para motoristas
   const fetchTransportRequests = useCallback(async () => {
-    if (!profile?.id || profile.role !== 'MOTORISTA') return;
+    if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
 
     try {
       console.log('🔍 Buscando solicitações de transporte para motorista:', profile.id);
