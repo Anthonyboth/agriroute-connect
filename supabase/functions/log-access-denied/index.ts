@@ -18,20 +18,27 @@ serve(async (req) => {
       throw new Error('Sem autorização');
     }
 
-    const supabase = createClient(
+    // Client for user authentication (uses anon key + user's Authorization header)
+    const supabaseUser = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    // Client for admin operations (uses service role key, bypasses RLS)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     // Verificar autenticação
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
     if (authError || !user) {
       throw new Error('Usuário não autenticado');
     }
 
     // Buscar profile_id
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseUser
       .from('profiles')
       .select('id')
       .eq('user_id', user.id)
@@ -65,8 +72,8 @@ serve(async (req) => {
       isValidIP: ipAddress !== null
     });
 
-    // Inserir log com validações
-    const { error: insertError } = await supabase
+    // Inserir log com validações (usando client admin para bypass RLS)
+    const { error: insertError } = await supabaseAdmin
       .from('access_denied_logs')
       .insert({
         user_id: user.id,

@@ -99,9 +99,40 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
     return <Navigate to="/auth" replace />;
   }
 
-  // Verificar se o usuário tem o role correto (verificar em user_roles E profiles.role por compatibilidade)
+  // Redirect to correct dashboard BEFORE checking allowedRoles (better UX)
+  if (isAuthenticated && profile) {
+    const currentPath = window.location.pathname;
+    
+    // Check if user is a transport company
+    if (currentPath === '/dashboard/driver' && profile.active_mode === 'TRANSPORTADORA') {
+      return <Navigate to="/dashboard/company" replace />;
+    }
+    
+    // Only redirect if user is on a specific dashboard that doesn't match their role
+    if (currentPath === '/dashboard/producer' && profile.role !== 'PRODUTOR') {
+      return <Navigate to={profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO' ? '/dashboard/driver' : profile.role === 'ADMIN' ? '/admin' : '/dashboard/service-provider'} replace />;
+    }
+    if (currentPath === '/dashboard/driver' && profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO') {
+      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : profile.role === 'ADMIN' ? '/admin' : '/dashboard/service-provider'} replace />;
+    }
+    if (currentPath === '/admin' && profile.role !== 'ADMIN') {
+      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver'} replace />;
+    }
+    if (currentPath === '/dashboard/service-provider' && profile.role !== 'PRESTADOR_SERVICOS') {
+      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO' ? '/dashboard/driver' : '/admin'} replace />;
+    }
+    if (currentPath === '/dashboard/company' && profile.role !== 'TRANSPORTADORA' && profile.active_mode !== 'TRANSPORTADORA') {
+      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO' ? '/dashboard/driver' : '/dashboard/service-provider'} replace />;
+    }
+  }
+
+  // Verificar se o usuário tem o role correto (verificar em user_roles E profiles.role por compatibilidade + active_mode)
   const hasRequiredRole = allowedRoles && profile ? 
-    allowedRoles.some(r => profile.roles?.includes(r) || profile.role === r) : 
+    allowedRoles.some(r => 
+      profile.roles?.includes(r) || 
+      profile.role === r || 
+      (r === 'TRANSPORTADORA' && profile.active_mode === 'TRANSPORTADORA')
+    ) : 
     true;
 
   if (allowedRoles && profile && !hasRequiredRole) {
@@ -193,30 +224,6 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
 
   if (adminOnly && !isAdmin) {
     return <Navigate to="/" replace />;
-  }
-
-  // Simplify role-based redirection - only redirect if explicitly on wrong dashboard
-  if (isAuthenticated && profile) {
-    const currentPath = window.location.pathname;
-    
-    // Check if user is a transport company (kept simple - synchronous checks handled elsewhere)
-    if (currentPath === '/dashboard/driver' && profile.active_mode === 'TRANSPORTADORA') {
-      return <Navigate to="/dashboard/company" replace />;
-    }
-    
-    // Only redirect if user is on a specific dashboard that doesn't match their role
-    if (currentPath === '/dashboard/producer' && profile.role !== 'PRODUTOR') {
-      return <Navigate to={profile.role === 'MOTORISTA' ? '/dashboard/driver' : profile.role === 'ADMIN' ? '/admin' : '/dashboard/service-provider'} replace />;
-    }
-    if (currentPath === '/dashboard/driver' && profile.role !== 'MOTORISTA') {
-      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : profile.role === 'ADMIN' ? '/admin' : '/dashboard/service-provider'} replace />;
-    }
-    if (currentPath === '/admin' && profile.role !== 'ADMIN') {
-      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver'} replace />;
-    }
-    if (currentPath === '/dashboard/service-provider' && profile.role !== 'PRESTADOR_SERVICOS') {
-      return <Navigate to={profile.role === 'PRODUTOR' ? '/dashboard/producer' : profile.role === 'MOTORISTA' ? '/dashboard/driver' : '/admin'} replace />;
-    }
   }
 
   return <>{children}</>;
