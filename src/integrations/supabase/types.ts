@@ -490,6 +490,7 @@ export type Database = {
       }
       company_driver_chats: {
         Row: {
+          chat_closed_by: Json | null
           company_id: string
           created_at: string | null
           driver_profile_id: string
@@ -499,6 +500,7 @@ export type Database = {
           sender_type: string
         }
         Insert: {
+          chat_closed_by?: Json | null
           company_id: string
           created_at?: string | null
           driver_profile_id: string
@@ -508,6 +510,7 @@ export type Database = {
           sender_type: string
         }
         Update: {
+          chat_closed_by?: Json | null
           company_id?: string
           created_at?: string | null
           driver_profile_id?: string
@@ -611,6 +614,7 @@ export type Database = {
       }
       company_internal_messages: {
         Row: {
+          chat_closed_by: Json | null
           company_id: string
           created_at: string | null
           id: string
@@ -624,6 +628,7 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          chat_closed_by?: Json | null
           company_id: string
           created_at?: string | null
           id?: string
@@ -637,6 +642,7 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          chat_closed_by?: Json | null
           company_id?: string
           created_at?: string | null
           id?: string
@@ -1990,6 +1996,7 @@ export type Database = {
       }
       freight_messages: {
         Row: {
+          chat_closed_by: Json | null
           created_at: string
           freight_id: string
           id: string
@@ -2007,6 +2014,7 @@ export type Database = {
           target_vehicle_id: string | null
         }
         Insert: {
+          chat_closed_by?: Json | null
           created_at?: string
           freight_id: string
           id?: string
@@ -2024,6 +2032,7 @@ export type Database = {
           target_vehicle_id?: string | null
         }
         Update: {
+          chat_closed_by?: Json | null
           created_at?: string
           freight_id?: string
           id?: string
@@ -3876,6 +3885,7 @@ export type Database = {
       }
       service_messages: {
         Row: {
+          chat_closed_by: Json | null
           created_at: string
           id: string
           image_url: string | null
@@ -3886,6 +3896,7 @@ export type Database = {
           service_request_id: string
         }
         Insert: {
+          chat_closed_by?: Json | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -3896,6 +3907,7 @@ export type Database = {
           service_request_id: string
         }
         Update: {
+          chat_closed_by?: Json | null
           created_at?: string
           id?: string
           image_url?: string | null
