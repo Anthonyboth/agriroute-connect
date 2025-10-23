@@ -27,7 +27,7 @@ import { toast } from 'sonner';
 import type { UserDevice } from '@/services/deviceService';
 
 export const DeviceManager = () => {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { permissions, loading, requestPermission, checkAllPermissions } = useDevicePermissions();
   const { rules, contextMessage } = useContextualPermissions();
   const [deviceInfo, setDeviceInfo] = useState<Awaited<ReturnType<typeof getDeviceInfo>> | null>(null);
@@ -39,16 +39,16 @@ export const DeviceManager = () => {
   }, []);
 
   useEffect(() => {
-    if (profile) {
+    if (user) {
       loadActiveDevices();
     }
-  }, [profile]);
+  }, [user]);
 
   const loadActiveDevices = async () => {
-    if (!profile) return;
+    if (!user) return;
     
     setLoadingDevices(true);
-    const devices = await getActiveDevices(profile.id);
+    const devices = await getActiveDevices(user.id);
     setActiveDevices(devices);
     setLoadingDevices(false);
   };

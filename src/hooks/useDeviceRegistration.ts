@@ -5,11 +5,11 @@ import { registerDevice, updateLastActivity, syncDevicePermissions } from '@/ser
 import { getDeviceId } from '@/utils/deviceDetection';
 
 export const useDeviceRegistration = () => {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { permissions } = useDevicePermissions();
 
   useEffect(() => {
-    if (!profile) return;
+    if (!user || !profile) return;
 
     let isRegistering = false;
 
@@ -19,7 +19,7 @@ export const useDeviceRegistration = () => {
       isRegistering = true;
 
       try {
-        await registerDevice(profile.id);
+        await registerDevice(user.id);
         console.log('✅ Dispositivo registrado com sucesso');
 
         // Sincronizar permissões realmente verificadas
@@ -53,5 +53,5 @@ export const useDeviceRegistration = () => {
     }, 5 * 60 * 1000); // 5 minutos
 
     return () => clearInterval(interval);
-  }, [profile?.id]); // Only depend on profile.id to avoid excessive re-runs
+  }, [user?.id, profile?.id]); // Depend on user.id for registration
 };

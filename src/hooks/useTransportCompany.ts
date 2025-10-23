@@ -47,7 +47,7 @@ export const useTransportCompany = () => {
           can_accept_freights,
           can_manage_vehicles,
           notes,
-          driver:profiles(
+          driver:profiles!company_drivers_driver_profile_id_fkey(
             id,
             full_name,
             email,
@@ -60,9 +60,9 @@ export const useTransportCompany = () => {
         .eq('company_id', company.id)
         .eq('status', 'ACTIVE')
         .order('created_at', { ascending: false });
-      
+
       if (error) {
-        console.error('[useTransportCompany] Error fetching drivers:', error);
+        console.error('[useTransportCompany] Error fetching drivers:', error.message, error.details);
         throw error;
       }
       
