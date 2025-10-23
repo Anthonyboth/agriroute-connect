@@ -41,7 +41,7 @@ export const CompanyFreightStats: React.FC<CompanyFreightStatsProps> = ({
         value={activeFreights}
         icon={<TrendingUp className="h-6 w-6" />}
         iconColor="text-green-600"
-        onClick={() => onNavigateToTab?.('freights')}
+        onClick={() => onNavigateToTab?.('active')}
       />
       <StatsCard
         label="Motoristas Ativos"
@@ -79,7 +79,7 @@ export const CompanyFreightStats: React.FC<CompanyFreightStatsProps> = ({
         value={pendingProposals}
         icon={<Truck className="h-6 w-6" />}
         iconColor="text-orange-600"
-        onClick={() => onNavigateToTab?.('freights')}
+        onClick={() => onNavigateToTab?.('proposals')}
       />
     </div>
   );
