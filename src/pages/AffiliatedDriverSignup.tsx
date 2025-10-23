@@ -17,7 +17,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { DocumentUpload } from '@/components/DocumentUpload';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@/components/ui/dialog';
 import { CameraSelfie } from '@/components/CameraSelfie';
 
 const AffiliatedDriverSignup = () => {
@@ -235,8 +236,9 @@ const AffiliatedDriverSignup = () => {
     try {
       const cleanDoc = formData.document.replace(/\D/g, '');
 
-      // 1. Create user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // 1. Create user or sign in if exists
+      let authData;
+      const { data: signUpData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -252,20 +254,56 @@ const AffiliatedDriverSignup = () => {
         }
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Erro ao criar usuário');
+      // If user already exists, try to sign in
+      if (authError) {
+        const isUserExists = authError.status === 422 || 
+                            authError.message?.toLowerCase().includes('already') ||
+                            authError.message?.toLowerCase().includes('registered');
+        
+        if (isUserExists) {
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: formData.email,
+            password: formData.password
+          });
 
-      // 2. Wait for profile creation
-      await new Promise(resolve => setTimeout(resolve, 2000));
+          if (signInError) {
+            toast.error('Email já cadastrado. Entre com sua senha ou redefina-a para continuar.');
+            setLoading(false);
+            return;
+          }
 
-      // 3. Get profile_id
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', authData.user.id)
-        .single();
+          authData = signInData;
+        } else {
+          throw authError;
+        }
+      } else {
+        authData = signUpData;
+      }
 
-      if (profileError || !profileData) throw new Error('Erro ao criar perfil');
+      if (!authData.user) throw new Error('Erro ao autenticar usuário');
+
+      // 2. Wait for profile creation with retries
+      let profileData = null;
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      while (!profileData && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 1000 + attempts * 500));
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, metadata')
+          .eq('user_id', authData.user.id)
+          .single();
+
+        if (!error && data) {
+          profileData = data;
+          break;
+        }
+        attempts++;
+      }
+
+      if (!profileData) throw new Error('Erro ao criar perfil');
 
       // 4. Upload selfie após autenticação
       let selfieUrl = documentUrls.selfie;
@@ -295,7 +333,12 @@ const AffiliatedDriverSignup = () => {
         }
       }
 
-      // 5. Update profile with all data
+      // 5. Update profile with all data (store CNH in metadata)
+      const updatedMetadata = {
+        ...(profileData.metadata || {}),
+        cnh_number: formData.cnh_number
+      };
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -318,32 +361,53 @@ const AffiliatedDriverSignup = () => {
           document_photo_url: documentUrls.document_photo,
           cnh_photo_url: documentUrls.cnh_photo,
           address_proof_url: documentUrls.address_proof,
-          // Professional
-          cnh_number: formData.cnh_number,
+          // Professional (CNH number now in metadata)
           cnh_category: formData.cnh_category,
           cnh_expiry_date: formData.cnh_expiry_date,
           rntrc: formData.rntrc || null,
           antt_number: formData.antt_number || null,
           cooperative: formData.cooperative || null,
+          metadata: updatedMetadata
         })
         .eq('id', profileData.id);
 
       if (updateError) throw updateError;
 
-      // 6. Create company link
-      const { error: linkError } = await supabase
+      // 6. Create or update company link (avoid duplicates)
+      const { data: existingLink } = await supabase
         .from('company_drivers')
-        .insert({
-          company_id: companyId,
-          driver_profile_id: profileData.id,
-          status: 'PENDING',
-          can_accept_freights: false,
-          can_manage_vehicles: false,
-          affiliation_type: 'AFFILIATED',
-          notes: 'Cadastro completo - aguardando aprovação'
-        });
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('driver_profile_id', profileData.id)
+        .maybeSingle();
 
-      if (linkError) throw linkError;
+      if (existingLink) {
+        // Update existing link
+        const { error: updateLinkError } = await supabase
+          .from('company_drivers')
+          .update({
+            status: 'PENDING',
+            notes: 'Cadastro atualizado - aguardando aprovação'
+          })
+          .eq('id', existingLink.id);
+
+        if (updateLinkError) throw updateLinkError;
+      } else {
+        // Create new link
+        const { error: linkError } = await supabase
+          .from('company_drivers')
+          .insert({
+            company_id: companyId,
+            driver_profile_id: profileData.id,
+            status: 'PENDING',
+            can_accept_freights: false,
+            can_manage_vehicles: false,
+            affiliation_type: 'AFFILIATED',
+            notes: 'Cadastro completo - aguardando aprovação'
+          });
+
+        if (linkError) throw linkError;
+      }
 
       // 7. Notify company
       const { data: companyData } = await supabase
@@ -967,6 +1031,12 @@ const AffiliatedDriverSignup = () => {
       {/* Selfie Modal */}
       <Dialog open={showSelfieModal} onOpenChange={setShowSelfieModal}>
         <DialogContent className="max-w-md p-0">
+          <VisuallyHidden>
+            <DialogTitle>Capturar Selfie</DialogTitle>
+            <DialogDescription>
+              Use sua câmera para tirar uma selfie para o cadastro
+            </DialogDescription>
+          </VisuallyHidden>
           <CameraSelfie
             onCapture={handleSelfieCapture}
             onCancel={() => setShowSelfieModal(false)}
