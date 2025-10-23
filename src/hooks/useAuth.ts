@@ -414,9 +414,21 @@ export const useAuth = () => {
         // ✅ Tratamento resiliente de erros do WebSocket (não bloqueante)
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           console.warn('[Realtime] Perfil: status=', status, '(conexão em tempo real indisponível)');
-          try {
-            toast.message('Conexão em tempo real indisponível. Você ainda pode usar o app normalmente.');
-          } catch {}
+          
+          // Cooldown de 15 minutos para evitar spam de notificações
+          const key = 'realtime_warn_shown_at';
+          const now = Date.now();
+          const last = parseInt(sessionStorage.getItem(key) || '0', 10);
+          const cooldown = 15 * 60 * 1000; // 15 minutos
+          
+          if (now - last > cooldown) {
+            try {
+              toast.message('Conexão em tempo real indisponível. Você ainda pode usar o app normalmente.', {
+                id: 'realtime-warning'
+              });
+              sessionStorage.setItem(key, String(now));
+            } catch {}
+          }
         } else if (status === 'SUBSCRIBED') {
           if (import.meta.env.DEV) {
             console.log('[Realtime] Perfil: conectado com sucesso');
