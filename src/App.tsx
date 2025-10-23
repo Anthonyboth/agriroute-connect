@@ -147,7 +147,11 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
     );
   }
 
-  if (requiresApproval && !isApproved) {
+  // Check if user is effectively approved (either directly or via company_drivers.status = 'ACTIVE')
+  const effectivelyApproved = isApproved || 
+    ((profile?.role === 'MOTORISTA_AFILIADO' || profile?.role === 'MOTORISTA') && isCompanyDriver);
+
+  if (requiresApproval && !effectivelyApproved) {
     const handleGoHome = () => {
       // Fazer logout e ir para página inicial
       signOut();

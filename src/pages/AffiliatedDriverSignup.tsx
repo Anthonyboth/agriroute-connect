@@ -432,7 +432,7 @@ const AffiliatedDriverSignup = () => {
         });
       }
 
-      toast.success(`Cadastro enviado! Aguarde aprovação de ${companyData?.company_name}.`);
+      toast.success(`Cadastro enviado! Aguarde aprovação de ${companyData?.company_name || 'sua transportadora'}.`);
       
       setTimeout(() => {
         navigate('/auth');
