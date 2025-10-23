@@ -36,11 +36,11 @@ export const DriverLocationTab = ({ driverProfileId }: DriverLocationTabProps) =
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium">Localização não disponível</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            O motorista ainda não compartilhou sua localização
+          <p className="text-lg font-medium mb-2">Localização não disponível</p>
+          <p className="text-sm text-muted-foreground text-center max-w-md">
+            O motorista precisa ativar o GPS e abrir o aplicativo para compartilhar sua localização.
           </p>
-          <Button onClick={refreshLocation} className="mt-4" variant="outline">
+          <Button onClick={refreshLocation} className="mt-4" variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Tentar Novamente
           </Button>
