@@ -42,7 +42,7 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
-    if (!profile || profile.role !== "MOTORISTA") {
+    if (!profile || (profile.role !== "MOTORISTA" && profile.role !== "MOTORISTA_AFILIADO")) {
       return new Response(
         JSON.stringify({ error: "Not a driver" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
