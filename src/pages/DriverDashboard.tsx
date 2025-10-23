@@ -527,7 +527,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
   // Buscar assignments do motorista (fretes com valores individualizados)
   const fetchMyAssignments = useCallback(async () => {
-    if (!profile?.id || profile.role !== 'MOTORISTA') return;
+    if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
 
     try {
       const { data, error } = await supabase.functions.invoke('get-driver-assignments');
@@ -986,21 +986,42 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     }
   }, [profile?.id]);
 
-  // Carregar dados - otimizado
+  // Carregar dados - otimizado com fetches condicionais baseados em permissões
   useEffect(() => {
     const loadData = async () => {
       if (!profile?.id || !isMountedRef.current) return;
       if (isMountedRef.current) setLoading(true);
       try {
-        await Promise.all([
-          fetchAvailableFreights(),
-          fetchMyProposals(),
-          fetchMyAssignments(),
+        // Construir lista de fetches baseado em permissões
+        const fetchPromises = [
           fetchOngoingFreights(),
-          fetchTransportRequests(),
+          fetchMyAssignments(),
           fetchDriverCheckins(),
           fetchPendingPayments()
-        ]);
+        ];
+        
+        // Apenas buscar fretes disponíveis, propostas e serviços se tiver permissão
+        if (canAcceptFreights) {
+          fetchPromises.push(
+            fetchAvailableFreights(),
+            fetchMyProposals(),
+            fetchTransportRequests()
+          );
+        } else {
+          // Se não pode aceitar fretes, garantir que estados estão vazios
+          if (isMountedRef.current) {
+            setAvailableFreights([]);
+            setMyProposals([]);
+            setTransportRequests([]);
+          }
+        }
+        
+        await Promise.all(fetchPromises);
+        
+        // Se deve usar chat, ir direto para tab "ongoing"
+        if (mustUseChat || !canAcceptFreights) {
+          setActiveTab('ongoing');
+        }
       } catch (err) {
         if (isMountedRef.current) {
           console.error('Erro ao carregar dados do dashboard do motorista:', err);
@@ -1012,7 +1033,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     };
 
     loadData();
-  }, [profile?.id]);
+  }, [profile?.id, canAcceptFreights, mustUseChat]);
 
   // Atualizar em tempo real contadores e listas ao mudar fretes/propostas
   useEffect(() => {
@@ -1090,52 +1111,82 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       })
       .subscribe();
 
-    // Canal normal de updates
-    const channel = supabase
-      .channel('realtime-freights-driver')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'freights' }, () => {
-        fetchAvailableFreights();
-        fetchOngoingFreights();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_matches' }, () => {
-        fetchAvailableFreights();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_proposals' }, () => {
-        fetchMyProposals();
-      })
-      .on('postgres_changes', { 
+    // Canal normal de updates - condicional baseado em permissões
+    const channelBuilder = supabase.channel('realtime-freights-driver');
+    
+    // Sempre escutar mudanças nos fretes do motorista e assignments
+    channelBuilder.on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'freights',
+      filter: `driver_id=eq.${profile.id}`
+    }, () => {
+      fetchOngoingFreights();
+    });
+    
+    channelBuilder.on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'freight_assignments',
+      filter: `driver_id=eq.${profile.id}`
+    }, () => {
+      fetchMyAssignments();
+    });
+    
+    channelBuilder.on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'external_payments', 
+      filter: `driver_id=eq.${profile.id}` 
+    }, (payload) => {
+      console.log('Mudança detectada em external_payments:', payload);
+      fetchPendingPayments();
+    });
+    
+    // Apenas se pode aceitar fretes, escutar mudanças gerais e propostas
+    if (canAcceptFreights) {
+      channelBuilder.on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
-        table: 'freight_assignments',
-        filter: `driver_id=eq.${profile.id}`
+        table: 'freights' 
       }, () => {
-        fetchMyAssignments();
-      })
-      .on('postgres_changes', {
+        fetchAvailableFreights();
+      });
+      
+      channelBuilder.on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'freight_matches' 
+      }, () => {
+        fetchAvailableFreights();
+      });
+      
+      channelBuilder.on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'freight_proposals' 
+      }, () => {
+        fetchMyProposals();
+      });
+      
+      channelBuilder.on('postgres_changes', {
         event: '*', 
         schema: 'public', 
         table: 'service_requests', 
         filter: `provider_id=eq.${profile.id}` 
       }, () => {
-        fetchOngoingFreights(); // Atualizar quando service_requests mudarem
-        fetchTransportRequests(); // Também atualizar a lista de disponíveis
-      })
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'external_payments', 
-        filter: `driver_id=eq.${profile.id}` 
-      }, (payload) => {
-        console.log('Mudança detectada em external_payments:', payload);
-        fetchPendingPayments();
-      })
-      .subscribe();
+        fetchOngoingFreights();
+        fetchTransportRequests();
+      });
+    }
+    
+    const channel = channelBuilder.subscribe();
 
     return () => {
       supabase.removeChannel(ratingChannel);
       supabase.removeChannel(channel);
     };
-  }, [profile?.id]);
+  }, [profile?.id, canAcceptFreights]);
 
   // Carregar contra-ofertas - debounced para evitar chamadas excessivas
   useEffect(() => {
@@ -1188,6 +1239,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
   const handleFreightAction = async (freightId: string, action: 'propose' | 'accept' | 'complete' | 'cancel') => {
     if (!profile?.id) return;
+    
+    // ✅ Bloquear ações de aceitar/propor para afiliados sem permissão
+    if ((action === 'propose' || action === 'accept') && (!canAcceptFreights || mustUseChat)) {
+      toast.error('Negociação via transportadora', {
+        description: 'Entre em contato com sua transportadora pelo chat para negociar fretes.'
+      });
+      return;
+    }
 
     try {
       if (action === 'cancel') {
@@ -1515,15 +1574,18 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               </Badge>
             )}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-              <Button 
-                variant="default"
-                size="sm"
-                onClick={() => setActiveTab('available')}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
-              >
-                <Brain className="mr-1 h-4 w-4" />
-                Ver Fretes IA
-              </Button>
+              {/* ✅ Apenas mostrar botão "Ver Fretes IA" se pode aceitar fretes */}
+              {canAcceptFreights && (
+                <Button 
+                  variant="default"
+                  size="sm"
+                  onClick={() => setActiveTab('available')}
+                  className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                >
+                  <Brain className="mr-1 h-4 w-4" />
+                  Ver Fretes IA
+                </Button>
+              )}
               
               <Button 
                 variant="default"
@@ -1562,14 +1624,17 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       <div className="container max-w-7xl mx-auto py-4 px-4">
         {/* Stats Cards Compactos - Navegáveis */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <StatsCard
-            size="sm"
-            icon={<MapPin className="h-5 w-5" />}
-            iconColor="text-primary"
-            label="Disponíveis"
-            value={availableCountUI}
-            onClick={() => setActiveTab('available')}
-          />
+          {/* ✅ Apenas mostrar stats de fretes disponíveis se pode aceitar fretes */}
+          {canAcceptFreights && (
+            <StatsCard
+              size="sm"
+              icon={<MapPin className="h-5 w-5" />}
+              iconColor="text-primary"
+              label="Disponíveis"
+              value={availableCountUI}
+              onClick={() => setActiveTab('available')}
+            />
+          )}
 
           <StatsCard
             size="sm"
@@ -1580,14 +1645,17 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             onClick={() => setActiveTab('ongoing')}
           />
 
-          <StatsCard
-            size="sm"
-            icon={<CheckCircle className="h-5 w-5" />}
-            iconColor="text-green-500"
-            label="Propostas"
-            value={statistics.pendingProposals}
-            onClick={() => setActiveTab('my-trips')}
-          />
+          {/* ✅ Apenas mostrar stats de propostas se pode aceitar fretes */}
+          {canAcceptFreights && (
+            <StatsCard
+              size="sm"
+              icon={<CheckCircle className="h-5 w-5" />}
+              iconColor="text-green-500"
+              label="Propostas"
+              value={statistics.pendingProposals}
+              onClick={() => setActiveTab('my-trips')}
+            />
+          )}
 
           {/* Saldo - apenas para motoristas independentes e não afiliados */}
           {!isCompanyDriver && (
@@ -1635,14 +1703,17 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full overflow-x-auto pb-2">
             <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
-              <TabsTrigger 
-                value="available" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                <Brain className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Fretes IA</span>
-                <span className="sm:hidden">IA</span>
-              </TabsTrigger>
+              {/* ✅ Apenas mostrar tab "available" se pode aceitar fretes */}
+              {canAcceptFreights && (
+                <TabsTrigger 
+                  value="available" 
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                >
+                  <Brain className="h-3 w-3 mr-1" />
+                  <span className="hidden sm:inline">Fretes IA</span>
+                  <span className="sm:hidden">IA</span>
+                </TabsTrigger>
+              )}
               <TabsTrigger 
                 value="ongoing" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
@@ -1675,14 +1746,17 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 <span className="hidden sm:inline">Cidades</span>
                 <span className="sm:hidden">Cidades</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="my-trips" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                <CheckCircle className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Propostas</span>
-                <span className="sm:hidden">Propos</span>
-              </TabsTrigger>
+              {/* ✅ Apenas mostrar tab "my-trips" (propostas) se pode aceitar fretes */}
+              {canAcceptFreights && (
+                <TabsTrigger 
+                  value="my-trips" 
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                >
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  <span className="hidden sm:inline">Propostas</span>
+                  <span className="sm:hidden">Propos</span>
+                </TabsTrigger>
+              )}
               <TabsTrigger 
                 value="services" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
@@ -1745,6 +1819,18 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           {/* Auto-tracking para motoristas */}
           <DriverAutoLocationTracking />
+          
+          {/* ✅ Banner informativo para afiliados sem permissão de aceitar fretes */}
+          {isAffiliated && !canAcceptFreights && (
+            <Alert className="mb-4 border-blue-500 bg-blue-50 dark:bg-blue-950/20">
+              <MessageSquare className="h-4 w-4 text-blue-600" />
+              <AlertTitle className="text-blue-900 dark:text-blue-100">Motorista Afiliado</AlertTitle>
+              <AlertDescription className="text-blue-800 dark:text-blue-200">
+                Você é motorista afiliado a <strong>{companyName}</strong>. As negociações de fretes ocorrem via transportadora. 
+                Entre em contato com a empresa pelo chat para informações sobre fretes disponíveis.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* ✅ FASE 4 - Alerta de Localização Desativada (apenas para motoristas independentes) */}
           {!isTransportCompany && !profile?.location_enabled && (
