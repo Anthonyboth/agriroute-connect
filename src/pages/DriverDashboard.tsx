@@ -107,6 +107,9 @@ const DriverDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ✅ Definir permissão unificada: autônomo vê fretes, empresa só se canAcceptFreights
+  const canSeeFreights = !isCompanyDriver || canAcceptFreights;
+
   // Redirect to correct dashboard based on role and mode
   React.useEffect(() => {
     if (!profile?.id) return;
@@ -1101,6 +1104,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     const loadData = async () => {
       if (!profile?.id || !isMountedRef.current) return;
       if (isMountedRef.current) setLoading(true);
+      
+      console.log('[DriverDashboard] 🚀 Perfil:', { 
+        isCompanyDriver, 
+        canAcceptFreights, 
+        canSeeFreights, 
+        role: profile?.role 
+      });
+      
       try {
         // Construir lista de fetches baseado em permissões
         const fetchPromises = [
@@ -1110,15 +1121,15 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           fetchPendingPayments()
         ];
         
-        // Apenas buscar fretes disponíveis, propostas e serviços se tiver permissão
-        if (canAcceptFreights) {
+        // ✅ Usar canSeeFreights: autônomos sempre veem, empresas só se permitido
+        if (canSeeFreights) {
           fetchPromises.push(
             fetchAvailableFreights(),
             fetchMyProposals(),
             fetchTransportRequests()
           );
         } else {
-          // Se não pode aceitar fretes, garantir que estados estão vazios
+          // Se não pode ver fretes, garantir que estados estão vazios
           if (isMountedRef.current) {
             setAvailableFreights([]);
             setMyProposals([]);
@@ -1128,8 +1139,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         
         await Promise.all(fetchPromises);
         
-        // Se deve usar chat, ir direto para tab "ongoing"
-        if (mustUseChat || !canAcceptFreights) {
+        // ✅ Se deve usar chat ou não pode ver fretes, ir para tab "ongoing"
+        if (mustUseChat || !canSeeFreights) {
           setActiveTab('ongoing');
         }
       } catch (err) {
@@ -1143,7 +1154,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     };
 
     loadData();
-  }, [profile?.id, canAcceptFreights, mustUseChat]);
+  }, [profile?.id, canSeeFreights, mustUseChat]);
 
   // Atualizar em tempo real contadores e listas ao mudar fretes/propostas
   useEffect(() => {
@@ -1253,8 +1264,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       fetchPendingPayments();
     });
     
-    // Apenas se pode aceitar fretes, escutar mudanças gerais e propostas
-    if (canAcceptFreights) {
+    // ✅ Usar canSeeFreights para subscriptions
+    if (canSeeFreights) {
       channelBuilder.on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
@@ -1296,7 +1307,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       supabase.removeChannel(ratingChannel);
       supabase.removeChannel(channel);
     };
-  }, [profile?.id, canAcceptFreights]);
+  }, [profile?.id, canSeeFreights]);
 
   // Carregar contra-ofertas - debounced para evitar chamadas excessivas
   useEffect(() => {
@@ -1684,8 +1695,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               </Badge>
             )}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-              {/* ✅ Apenas mostrar botão "Ver Fretes IA" se pode aceitar fretes */}
-              {canAcceptFreights && (
+              {/* ✅ Mostrar botão "Ver Fretes IA" se canSeeFreights */}
+              {canSeeFreights && (
                 <Button 
                   variant="default"
                   size="sm"
@@ -1734,8 +1745,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       <div className="container max-w-7xl mx-auto py-4 px-4">
         {/* Stats Cards Compactos - Navegáveis */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {/* ✅ Apenas mostrar stats de fretes disponíveis se pode aceitar fretes */}
-          {canAcceptFreights && (
+          {/* ✅ Mostrar stats de fretes disponíveis se canSeeFreights */}
+          {canSeeFreights && (
             <StatsCard
               size="sm"
               icon={<MapPin className="h-5 w-5" />}
@@ -1755,8 +1766,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             onClick={() => setActiveTab('ongoing')}
           />
 
-          {/* ✅ Apenas mostrar stats de propostas se pode aceitar fretes */}
-          {canAcceptFreights && (
+          {/* ✅ Mostrar stats de propostas se canSeeFreights */}
+          {canSeeFreights && (
             <StatsCard
               size="sm"
               icon={<CheckCircle className="h-5 w-5" />}
@@ -1813,8 +1824,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full overflow-x-auto pb-2">
             <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
-              {/* ✅ Apenas mostrar tab "available" se pode aceitar fretes */}
-              {canAcceptFreights && (
+              {/* ✅ Mostrar tab "available" se canSeeFreights */}
+              {canSeeFreights && (
                 <TabsTrigger 
                   value="available" 
                   className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
@@ -1856,8 +1867,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 <span className="hidden sm:inline">Cidades</span>
                 <span className="sm:hidden">Cidades</span>
               </TabsTrigger>
-              {/* ✅ Apenas mostrar tab "my-trips" (propostas) se pode aceitar fretes */}
-              {canAcceptFreights && (
+              {/* ✅ Mostrar tab "my-trips" (propostas) se canSeeFreights */}
+              {canSeeFreights && (
                 <TabsTrigger 
                   value="my-trips" 
                   className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
