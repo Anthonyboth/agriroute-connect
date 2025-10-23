@@ -42,7 +42,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log('Starting file upload...', { fileName: file.name, bucketName, fileType });
+    console.log('📤 Iniciando upload...', { fileName: file.name, bucketName, fileType });
     
     // Validação de qualidade de imagem (se habilitado)
     if (enableQualityCheck && file.type.startsWith('image/')) {
@@ -57,35 +57,43 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      // Extrair extensão do arquivo
+      const fileExt = file.name.split('.').pop() || 'jpg';
       
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${fileType}_${Date.now()}.${fileExt}`;
+      console.log('🔐 Chamando uploadWithAuthRetry com retry automático...');
       
-      // Usar upload com retry de autenticação
+      // Usar upload com retry de autenticação (gera fileName internamente)
       const result = await uploadWithAuthRetry({
         file,
         bucketName,
-        fileName
+        fileType,
+        fileExt
       });
       
       if ('error' in result) {
         if (result.error === 'AUTH_EXPIRED') {
+          console.log('🔄 Sessão expirada, redirecionando...');
           return; // Já está redirecionando para login
         }
+        console.error('❌ Erro no upload:', result.error);
         throw new Error(result.error);
       }
       
+      console.log('✅ Upload concluído com sucesso!');
       setUploaded(true);
       setFileName(file.name);
       onUploadComplete(result.publicUrl);
       toast.success(`${label} enviado com sucesso!`);
       
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('❌ Erro fatal no upload:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      toast.error(`Erro ao enviar ${label.toLowerCase()}: ${errorMessage}`);
+      
+      if (errorMessage.includes('autenticad')) {
+        toast.error('Sessão expirada. Por favor, faça login novamente.');
+      } else {
+        toast.error(`Erro ao enviar ${label.toLowerCase()}: ${errorMessage}`);
+      }
     } finally {
       setUploading(false);
     }

@@ -4,21 +4,27 @@ import { toast } from 'sonner';
 interface UploadWithRetryOptions {
   file: File;
   bucketName: string;
-  fileName: string;
+  fileType: string;
+  fileExt: string;
   maxRetries?: number;
 }
 
 export async function uploadWithAuthRetry({
   file,
   bucketName,
-  fileName,
+  fileType,
+  fileExt,
   maxRetries = 2
 }: UploadWithRetryOptions): Promise<{ publicUrl: string } | { error: string }> {
+  
+  console.log(`[Upload] Iniciando upload - Tentativas máximas: ${maxRetries + 1}`);
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       // 1. Verificar sessão atual
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      console.log(`[Upload] Tentativa ${attempt + 1}: Sessão ${session ? 'encontrada' : 'não encontrada'}`);
       
       if (sessionError || !session) {
         // 2. Tentar refresh de sessão
@@ -30,6 +36,7 @@ export async function uploadWithAuthRetry({
           if (refreshError || !refreshData.session) {
             if (attempt === maxRetries - 1) {
               // Última tentativa falhou - redirecionar para login
+              console.error('[Upload] Todas tentativas de refresh falharam');
               toast.error('Sua sessão expirou. Redirecionando para login...');
               setTimeout(() => {
                 localStorage.setItem('redirect_after_login', window.location.pathname);
@@ -46,28 +53,43 @@ export async function uploadWithAuthRetry({
         }
       }
       
-      // 3. Verificar usuário autenticado
+      // 3. Obter usuário autenticado (com retry interno)
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !user) {
+        console.error(`[Upload] Tentativa ${attempt + 1}: Erro ao obter usuário`, userError?.message);
         if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, 500)); // Wait antes de retry
+          console.log(`[Upload] Aguardando 500ms antes de tentar novamente...`);
+          await new Promise(resolve => setTimeout(resolve, 500));
           continue;
         }
-        throw new Error('User not authenticated');
+        throw new Error('Usuário não autenticado após todas as tentativas');
       }
       
-      // 4. Fazer upload
+      console.log(`[Upload] Usuário autenticado: ${user.id}`);
+      
+      // 4. Gerar nome do arquivo com user.id
+      const fileName = `${user.id}/${fileType}_${Date.now()}.${fileExt}`;
+      console.log(`[Upload] Nome do arquivo gerado: ${fileName}`);
+      
+      // 5. Fazer upload
       const { error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(fileName, file);
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('[Upload] Erro no upload:', uploadError.message);
+        throw uploadError;
+      }
       
-      // 5. Obter URL pública
+      console.log('[Upload] Upload concluído com sucesso');
+      
+      // 6. Obter URL pública
       const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
         .getPublicUrl(fileName);
+      
+      console.log('[Upload] URL pública obtida:', publicUrl);
       
       return { publicUrl };
       
@@ -79,10 +101,12 @@ export async function uploadWithAuthRetry({
       }
       
       // Wait antes de retry
+      console.log(`[Upload] Aguardando 1s antes da próxima tentativa...`);
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
   
+  console.error('[Upload] Máximo de tentativas excedido');
   return { error: 'MAX_RETRIES_EXCEEDED' };
 }
 

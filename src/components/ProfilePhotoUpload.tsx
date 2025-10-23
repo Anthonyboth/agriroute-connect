@@ -54,32 +54,41 @@ export const ProfilePhotoUpload: React.FC<ProfilePhotoUploadProps> = ({
 
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      console.log('📤 Iniciando upload da foto de perfil...');
+      
+      // Extrair extensão do arquivo
+      const fileExt = file.name.split('.').pop() || 'jpg';
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/profile_${Date.now()}.${fileExt}`;
-
-      // Usar upload com retry de autenticação
+      // Usar upload com retry de autenticação (gera fileName internamente)
       const result = await uploadWithAuthRetry({
         file,
         bucketName: 'profile-photos',
-        fileName
+        fileType: 'profile',
+        fileExt
       });
       
       if ('error' in result) {
         if (result.error === 'AUTH_EXPIRED') {
+          console.log('🔄 Sessão expirada, redirecionando...');
           return; // Já está redirecionando para login
         }
+        console.error('❌ Erro no upload:', result.error);
         throw new Error(result.error);
       }
 
+      console.log('✅ Foto de perfil enviada com sucesso!');
       setPhotoUrl(result.publicUrl);
       onUploadComplete(result.publicUrl);
       toast.success('Foto de perfil atualizada com sucesso!');
     } catch (error: any) {
-      console.error('Error uploading profile photo:', error);
-      toast.error('Erro ao enviar foto. Tente novamente.');
+      console.error('❌ Erro fatal no upload da foto de perfil:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      if (errorMessage.includes('autenticad')) {
+        toast.error('Sessão expirada. Por favor, faça login novamente.');
+      } else {
+        toast.error('Erro ao enviar foto. Tente novamente.');
+      }
     } finally {
       setUploading(false);
     }
