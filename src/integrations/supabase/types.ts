@@ -153,6 +153,73 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliated_drivers_tracking: {
+        Row: {
+          can_accept_autonomous_freights: boolean | null
+          company_id: string | null
+          created_at: string | null
+          current_freight_id: string | null
+          current_lat: number | null
+          current_lng: number | null
+          driver_profile_id: string | null
+          id: string
+          is_available: boolean | null
+          last_gps_update: string | null
+          tracking_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          can_accept_autonomous_freights?: boolean | null
+          company_id?: string | null
+          created_at?: string | null
+          current_freight_id?: string | null
+          current_lat?: number | null
+          current_lng?: number | null
+          driver_profile_id?: string | null
+          id?: string
+          is_available?: boolean | null
+          last_gps_update?: string | null
+          tracking_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          can_accept_autonomous_freights?: boolean | null
+          company_id?: string | null
+          created_at?: string | null
+          current_freight_id?: string | null
+          current_lat?: number | null
+          current_lng?: number | null
+          driver_profile_id?: string | null
+          id?: string
+          is_available?: boolean | null
+          last_gps_update?: string | null
+          tracking_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliated_drivers_tracking_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliated_drivers_tracking_current_freight_id_fkey"
+            columns: ["current_freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliated_drivers_tracking_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       antt_freight_prices: {
         Row: {
           base_price: number

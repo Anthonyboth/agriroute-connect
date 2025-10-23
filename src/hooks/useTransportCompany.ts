@@ -439,6 +439,45 @@ export const useTransportCompany = () => {
     }
   });
 
+  // Atualizar permissão de autonomia para motorista afiliado
+  const updateDriverAutonomyPermission = useMutation({
+    mutationFn: async ({ 
+      driverProfileId, 
+      canAcceptAutonomous 
+    }: { 
+      driverProfileId: string; 
+      canAcceptAutonomous: boolean; 
+    }) => {
+      if (!company?.id) throw new Error('Transportadora não encontrada');
+      
+      const { error } = await supabase
+        .from('affiliated_drivers_tracking')
+        .update({ 
+          can_accept_autonomous_freights: canAcceptAutonomous,
+          updated_at: new Date().toISOString()
+        })
+        .eq('driver_profile_id', driverProfileId)
+        .eq('company_id', company.id);
+      
+      if (error) throw error;
+      
+      toast.success(
+        canAcceptAutonomous 
+          ? '✅ Motorista pode aceitar fretes como autônomo' 
+          : '🔒 Motorista restrito a fretes da empresa'
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-drivers', company?.id] });
+      queryClient.invalidateQueries({ queryKey: ['drivers-tracking', company?.id] });
+      queryClient.invalidateQueries({ queryKey: ['driver-autonomy'] });
+    },
+    onError: (error: any) => {
+      console.error('[updateDriverAutonomyPermission] Error:', error);
+      toast.error('Erro ao atualizar permissão: ' + error.message);
+    }
+  });
+
   return {
     company,
     isLoadingCompany,
@@ -458,5 +497,6 @@ export const useTransportCompany = () => {
     leaveCompany,
     assignVehicleToDriver: assignVehicleToDriver.mutateAsync,
     removeVehicleAssignment: removeVehicleAssignment.mutateAsync,
+    updateDriverAutonomyPermission,
   };
 };

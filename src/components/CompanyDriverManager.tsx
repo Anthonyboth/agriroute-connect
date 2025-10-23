@@ -288,18 +288,29 @@ export const CompanyDriverManager: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Avaliação */}
-                    {cd.driver?.rating > 0 && (
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 text-sm">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-medium">{cd.driver.rating.toFixed(1)}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          ({cd.driver.total_ratings} avaliações)
-                        </span>
+                    {/* Foto do motorista */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <Avatar className="h-16 w-16">
+                        <AvatarImage src={cd.driver?.profile_photo_url || undefined} />
+                        <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                          {cd.driver?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h4 className="font-semibold text-lg">{cd.driver?.full_name}</h4>
+                        {cd.driver?.rating > 0 && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="flex items-center gap-1 text-sm">
+                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                              <span className="font-medium">{cd.driver.rating.toFixed(1)}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              ({cd.driver.total_ratings} avaliações)
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
 
                     {/* Permissões */}
                     <div className="flex flex-wrap gap-2">

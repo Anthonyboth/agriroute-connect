@@ -27,7 +27,7 @@ interface DriverSettingsTabProps {
 
 export const DriverSettingsTab = ({ driverProfileId, companyId }: DriverSettingsTabProps) => {
   const queryClient = useQueryClient();
-  const { leaveCompany } = useTransportCompany();
+  const { leaveCompany, updateDriverAutonomyPermission } = useTransportCompany();
 
   const { data: permissions, isLoading } = useQuery({
     queryKey: ['driver-permissions', driverProfileId, companyId],
@@ -39,6 +39,22 @@ export const DriverSettingsTab = ({ driverProfileId, companyId }: DriverSettings
         .eq('company_id', companyId)
         .eq('status', 'ACTIVE')
         .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Buscar permissão de autonomia do tracking
+  const { data: autonomyPermission } = useQuery({
+    queryKey: ['driver-autonomy', driverProfileId, companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('affiliated_drivers_tracking')
+        .select('can_accept_autonomous_freights')
+        .eq('driver_profile_id', driverProfileId)
+        .eq('company_id', companyId)
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -137,6 +153,38 @@ export const DriverSettingsTab = ({ driverProfileId, companyId }: DriverSettings
             Este motorista está afiliado à sua transportadora e pode trabalhar em fretes de sua empresa.
             As configurações acima controlam o nível de autonomia do motorista dentro do sistema.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Truck className="h-5 w-5" />
+            Fretes Autônomos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="autonomy-permission" className="text-base">
+                Aceitar Fretes como Autônomo
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Motorista pode aceitar fretes independentes, mas nunca terá 2 fretes simultâneos (regra da plataforma)
+              </p>
+            </div>
+            <Switch
+              id="autonomy-permission"
+              checked={autonomyPermission?.can_accept_autonomous_freights ?? true}
+              onCheckedChange={(checked) => 
+                updateDriverAutonomyPermission.mutate({ 
+                  driverProfileId, 
+                  canAcceptAutonomous: checked 
+                })
+              }
+              disabled={updateDriverAutonomyPermission.isPending}
+            />
+          </div>
         </CardContent>
       </Card>
 
