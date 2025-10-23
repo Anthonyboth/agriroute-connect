@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, Building2 } from 'lucide-react';
+import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, Building2, Truck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NotificationCenter } from '@/components/NotificationCenter';
@@ -22,6 +22,8 @@ import SubscriptionPlans from '@/components/SubscriptionPlans';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CompanyModeToggle } from '@/components/CompanyModeToggle';
 import { NotificationPreferencesModal } from '@/components/NotificationPreferencesModal';
+import { useCompanyDriver } from '@/hooks/useCompanyDriver';
+import { AffiliationDetailsModal } from '@/components/AffiliationDetailsModal';
 
 interface User {
   name: string;
@@ -79,8 +81,10 @@ const Header: React.FC<HeaderProps> = ({
   const [showAddProfile, setShowAddProfile] = useState(false);
   const [showPlanos, setShowPlanos] = useState(false);
   const [showNotificationPrefs, setShowNotificationPrefs] = useState(false);
+  const [showAffiliation, setShowAffiliation] = useState(false);
 
   const [isTransportCompany, setIsTransportCompany] = React.useState(false);
+  const { isCompanyDriver } = useCompanyDriver();
 
   // Verificar se é transportadora
   React.useEffect(() => {
@@ -105,6 +109,7 @@ const Header: React.FC<HeaderProps> = ({
     ...(user?.role !== 'PRODUTOR' ? [{ icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) }] : []),
     { icon: Bell, label: 'Notificações', action: () => setShowNotificationPrefs(true) },
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
+    ...(isCompanyDriver ? [{ icon: Truck, label: 'Minha Afiliação', action: () => setShowAffiliation(true) }] : []),
   ];
 
   return (
@@ -332,6 +337,11 @@ const Header: React.FC<HeaderProps> = ({
       <NotificationPreferencesModal
         isOpen={showNotificationPrefs}
         onClose={() => setShowNotificationPrefs(false)}
+      />
+
+      <AffiliationDetailsModal
+        isOpen={showAffiliation}
+        onClose={() => setShowAffiliation(false)}
       />
     </>
   );

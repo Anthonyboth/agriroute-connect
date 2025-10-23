@@ -278,7 +278,6 @@ export const useTransportCompany = () => {
     },
   });
 
-  // Query para motoristas pendentes
   const { data: pendingDrivers, isLoading: isLoadingPending } = useQuery({
     queryKey: ['pending-drivers', company?.id],
     queryFn: async () => {
@@ -293,20 +292,27 @@ export const useTransportCompany = () => {
             full_name,
             email,
             contact_phone,
-            rating
+            rating,
+            total_ratings,
+            profile_photo_url,
+            selfie_url,
+            cnh_photo_url,
+            cpf_cnpj,
+            document,
+            rntrc,
+            document_validation_status,
+            cnh_validation_status,
+            cnh_expiry_date
           )
         `)
         .eq('company_id', company.id)
         .eq('status', 'PENDING')
-        .order('invited_at', { ascending: true });
-
+        .order('created_at', { ascending: false });
+      
       if (error) throw error;
       return data;
     },
     enabled: !!company?.id,
-    staleTime: 1000 * 60 * 2, // Cache por 2 minutos (pendentes mudam mais)
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
   });
 
   // Aprovar motorista
@@ -322,7 +328,6 @@ export const useTransportCompany = () => {
       return { driverProfileId, companyId: company.id };
     },
     onSuccess: (data) => {
-      // Invalidar com query key específica e forçar refetch
       queryClient.invalidateQueries({ 
         queryKey: ['company-drivers'],
         exact: false 
@@ -332,7 +337,6 @@ export const useTransportCompany = () => {
         exact: false 
       });
       
-      // Forçar refetch imediato
       queryClient.refetchQueries({ 
         queryKey: ['company-drivers', data.companyId] 
       });
@@ -341,7 +345,11 @@ export const useTransportCompany = () => {
       });
       
       toast.success('Motorista aprovado!');
-    }
+    },
+    onError: (error: any) => {
+      console.error('Erro ao aprovar motorista:', error);
+      toast.error(error?.message || 'Erro ao aprovar motorista. Verifique as permissões.');
+    },
   });
 
   // Rejeitar motorista
@@ -357,7 +365,6 @@ export const useTransportCompany = () => {
       return { driverProfileId, companyId: company.id };
     },
     onSuccess: (data) => {
-      // Invalidar e forçar refetch
       queryClient.invalidateQueries({ 
         queryKey: ['company-drivers'],
         exact: false 
@@ -372,7 +379,11 @@ export const useTransportCompany = () => {
       });
       
       toast.success('Motorista rejeitado');
-    }
+    },
+    onError: (error: any) => {
+      console.error('Erro ao rejeitar motorista:', error);
+      toast.error(error?.message || 'Erro ao rejeitar motorista. Verifique as permissões.');
+    },
   });
 
   // Desligar motorista da transportadora

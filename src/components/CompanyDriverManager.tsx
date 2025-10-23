@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
@@ -40,6 +41,7 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
+  const [driverToApproveWithWarning, setDriverToApproveWithWarning] = useState<any | null>(null);
 
   // Filtrar motoristas
 
@@ -163,11 +165,21 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
                         <Button
                           size="sm"
                           className="flex-1"
-                          onClick={() => approveDriver.mutate(driver.driver_profile_id)}
-                          disabled={!validation.isValid || approveDriver.isPending}
-                          title={!validation.isValid ? 'Motorista com dados incompletos' : 'Aprovar motorista'}
+                          onClick={() => {
+                            if (!validation.isValid) {
+                              setDriverToApproveWithWarning({
+                                profileId: driver.driver_profile_id,
+                                missing: validation.missingFields,
+                                name: driver.driver?.full_name || 'Motorista'
+                              });
+                            } else {
+                              approveDriver.mutate(driver.driver_profile_id);
+                            }
+                          }}
+                          disabled={approveDriver.isPending}
+                          title="Aprovar motorista"
                         >
-                          Aprovar
+                          {approveDriver.isPending ? 'Aprovando...' : 'Aprovar'}
                         </Button>
                         <Button
                           size="sm"
@@ -175,7 +187,7 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
                           onClick={() => rejectDriver.mutate(driver.driver_profile_id)}
                           disabled={rejectDriver.isPending}
                         >
-                          Rejeitar
+                          {rejectDriver.isPending ? 'Rejeitando...' : 'Rejeitar'}
                         </Button>
                       </div>
                     </div>
@@ -396,6 +408,34 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
           onOpenChange={(open) => !open && setSelectedDriver(null)}
         />
       )}
+
+      {/* AlertDialog de Confirmação */}
+      <AlertDialog open={!!driverToApproveWithWarning} onOpenChange={(open) => !open && setDriverToApproveWithWarning(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aprovar motorista com dados incompletos?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{driverToApproveWithWarning?.name}</strong> ainda não completou:{' '}
+              <span className="font-medium">{driverToApproveWithWarning?.missing?.join(', ')}</span>.
+              <br /><br />
+              Você poderá exigir os documentos depois. Deseja aprovar mesmo assim?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (driverToApproveWithWarning?.profileId) {
+                  approveDriver.mutate(driverToApproveWithWarning.profileId);
+                }
+                setDriverToApproveWithWarning(null);
+              }}
+            >
+              Aprovar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
