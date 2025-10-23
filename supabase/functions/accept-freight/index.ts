@@ -136,6 +136,38 @@ if (!consent?.consent_given) {
 
     const driverId: string = profile.id as string;
 
+    // ✅ VALIDAÇÃO: Motorista autônomo só pode ter 1 frete em andamento
+    const { data: activeFreights, error: activeFreightsError } = await supabase
+      .from("freights")
+      .select("id, status, cargo_type")
+      .eq("driver_id", driverId)
+      .in("status", ["ACCEPTED", "LOADING", "LOADED", "IN_TRANSIT"]);
+
+    if (activeFreightsError) {
+      console.error("Error checking active freights:", activeFreightsError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Unable to verify active freights",
+          details: "Please try again in a moment"
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (activeFreights && activeFreights.length > 0) {
+      const currentFreight = activeFreights[0];
+      return new Response(
+        JSON.stringify({ 
+          error: "Você já possui um frete em andamento",
+          details: `Você já está com um frete ativo (${currentFreight.cargo_type || 'Carga'}). Complete a entrega atual antes de aceitar um novo frete.`,
+          current_freight_id: currentFreight.id,
+          current_freight_status: currentFreight.status,
+          code: "ACTIVE_FREIGHT_EXISTS"
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Fetch freight
     const { data: freight, error: freightFetchErr } = await supabase
       .from("freights")

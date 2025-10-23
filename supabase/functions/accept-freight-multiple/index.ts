@@ -378,6 +378,53 @@ serve(async (req) => {
     } else {
       // Motorista autônomo usa seu próprio perfil
       availableDrivers = [profile.id];
+      
+      // ✅ VALIDAÇÃO: Motorista autônomo só pode ter 1 frete em andamento
+      const { data: activeFreights, error: activeFreightsError } = await supabase
+        .from("freights")
+        .select("id, status, cargo_type")
+        .eq("driver_id", profile.id)
+        .in("status", ["ACCEPTED", "LOADING", "LOADED", "IN_TRANSIT"]);
+
+      if (activeFreightsError) {
+        console.error("[VALIDATION] Error checking active freights:", activeFreightsError);
+        return new Response(
+          JSON.stringify({ 
+            error: "Unable to verify active freights",
+            details: "Please try again in a moment"
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Verificar também freight_assignments (sistema novo)
+      const { data: activeAssignmentsCheck, error: assignmentsError } = await supabase
+        .from("freight_assignments")
+        .select("id, status, freight:freights(id, cargo_type)")
+        .eq("driver_id", profile.id)
+        .in("status", ["ACCEPTED", "IN_TRANSIT", "LOADING", "LOADED"]);
+
+      if (assignmentsError) {
+        console.error("[VALIDATION] Error checking active assignments:", assignmentsError);
+      }
+
+      const totalActive = (activeFreights?.length || 0) + (activeAssignmentsCheck?.length || 0);
+
+      if (totalActive > 0) {
+        const currentFreight = activeFreights?.[0] || (activeAssignmentsCheck?.[0]?.freight as any);
+        console.log(`[VALIDATION] Driver ${profile.id} already has ${totalActive} active freight(s)`);
+        
+        return new Response(
+          JSON.stringify({ 
+            error: "Você já possui um frete em andamento",
+            details: `Você já está com um frete ativo (${currentFreight?.cargo_type || 'Carga'}). Complete a entrega atual antes de aceitar um novo frete.`,
+            current_freight_id: currentFreight?.id,
+            active_freight_count: totalActive,
+            code: "ACTIVE_FREIGHT_EXISTS"
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // ===== VALIDAÇÃO DE VEÍCULOS DISPONÍVEIS (TRANSPORTADORAS) =====
