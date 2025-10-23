@@ -13,12 +13,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { CitySelector } from './CitySelector';
 import { FreightCard } from './FreightCard';
 import { cn } from '@/lib/utils';
-import { useCompanyDriver } from '@/hooks/useCompanyDriver';
-import { useDriverPermissions } from '@/hooks/useDriverPermissions';
-
 interface DriverAvailabilityAreasManagerProps {
   driverId?: string;
   onFreightAction?: (freightId: string, action: string) => void;
+  // ✅ Receber permissões como props para evitar duplicação de hooks
+  canAcceptFreights?: boolean;
+  isAffiliated?: boolean;
+  companyId?: string | null;
 }
 
 interface AvailabilityEntry {
@@ -51,11 +52,12 @@ interface Freight {
 
 export const DriverAvailabilityAreasManager: React.FC<DriverAvailabilityAreasManagerProps> = ({
   driverId,
-  onFreightAction
+  onFreightAction,
+  canAcceptFreights = false,
+  isAffiliated = false,
+  companyId = null
 }) => {
-  // ✅ Obter permissões do motorista
-  const { isAffiliated, companyId } = useCompanyDriver();
-  const { canAcceptFreights } = useDriverPermissions();
+  // ✅ Permissões recebidas via props (evita duplicação de hooks)
   
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedCity, setSelectedCity] = useState<{city: string, state: string} | null>(null);

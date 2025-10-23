@@ -1944,6 +1944,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             <DriverAvailabilityAreasManager 
               driverId={profile?.id}
               onFreightAction={handleFreightAction}
+              canAcceptFreights={canAcceptFreights}
+              isAffiliated={isAffiliated}
+              companyId={companyId}
             />
           </TabsContent>
 

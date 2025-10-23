@@ -73,6 +73,7 @@ export const useAuth = () => {
   const mountedRef = useRef(true);
   const lastFetchTimestamp = useRef<number>(0);
   const FETCH_THROTTLE_MS = 2000;
+  const hasFixedActiveModeRef = useRef(false); // ✅ Flag para evitar loop infinito
 
   // Memoized fetch function to prevent recreation on every render
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
@@ -271,11 +272,15 @@ export const useAuth = () => {
     }
   };
 
-  // ✅ AUTOCORREÇÃO: Corrigir motoristas afiliados com active_mode errado
+  // ✅ AUTOCORREÇÃO: Corrigir motoristas afiliados com active_mode errado (apenas uma vez)
   useEffect(() => {
     const fixAffiliatedDriverActiveMode = async () => {
+      // ✅ Executar apenas uma vez por sessão
+      if (hasFixedActiveModeRef.current) return;
+      
       if (profile?.role === 'MOTORISTA_AFILIADO' && profile?.active_mode === 'TRANSPORTADORA') {
         console.log('🔧 Corrigindo active_mode de motorista afiliado...');
+        hasFixedActiveModeRef.current = true; // ✅ Marcar como executado
         
         try {
           const { error } = await supabase
@@ -297,7 +302,12 @@ export const useAuth = () => {
     };
 
     fixAffiliatedDriverActiveMode();
-  }, [profile?.id, profile?.role, profile?.active_mode]);
+  }, [profile?.id, profile?.role]); // ✅ Removido profile?.active_mode das dependências
+
+  // ✅ Resetar flag quando usuário trocar
+  useEffect(() => {
+    hasFixedActiveModeRef.current = false;
+  }, [profile?.id]);
 
   useEffect(() => {
     mountedRef.current = true;

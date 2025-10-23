@@ -33,6 +33,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { useCompanyDriver } from '@/hooks/useCompanyDriver';
+import { useDriverPermissions } from '@/hooks/useDriverPermissions';
 import { toast } from 'sonner';
 import { 
   MapPin, 
@@ -119,6 +121,10 @@ const CompanyDashboard = () => {
   const [driverFileModalOpen, setDriverFileModalOpen] = useState(false);
   const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
   const { company, isLoadingCompany, drivers, pendingDrivers } = useTransportCompany();
+  
+  // ✅ Obter permissões do motorista para passar aos componentes filhos
+  const { isAffiliated, companyId } = useCompanyDriver();
+  const { canAcceptFreights } = useDriverPermissions();
   
   const refetchCompany = async () => {
     // Força re-fetch buscando company novamente
@@ -673,6 +679,9 @@ const CompanyDashboard = () => {
                 setSelectedFreightId(freightId);
                 setShowDetails(true);
               }}
+              canAcceptFreights={canAcceptFreights}
+              isAffiliated={isAffiliated}
+              companyId={companyId}
             />
           </TabsContent>
 
