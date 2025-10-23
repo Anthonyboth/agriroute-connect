@@ -283,6 +283,7 @@ const RedirectIfAuthed = () => {
       to = '/admin';
       break;
     case 'MOTORISTA':
+    case 'MOTORISTA_AFILIADO':
       to = '/dashboard/driver';
       break;
     case 'PRODUTOR':
