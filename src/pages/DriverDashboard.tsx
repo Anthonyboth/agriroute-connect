@@ -2501,6 +2501,13 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             <UnifiedHistory userRole="MOTORISTA" />
           </TabsContent>
 
+          <TabsContent value="chat" className="mt-6">
+            <UnifiedChatHub 
+              userProfileId={profile?.id || ''}
+              userRole="MOTORISTA"
+            />
+          </TabsContent>
+
         </Tabs>
       </div>
       
