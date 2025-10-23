@@ -359,27 +359,91 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       );
 
       if (spatialError) {
-        console.warn('Erro no matching espacial:', spatialError);
+        console.warn('[fetchAvailableFreights] ⚠️ Erro no matching espacial:', spatialError);
+      } else {
+        console.log('[fetchAvailableFreights] ✅ Matching espacial retornou:', spatialData);
       }
 
-      // Usar RPC get_freights_for_driver (corrigida para retornar apenas fretes)
-      const { data: freights, error } = await supabase.rpc(
+      // 1️⃣ PRIORIDADE: Usar fretes do matching espacial imediatamente
+      if (spatialData?.freights && Array.isArray(spatialData.freights)) {
+        platformFreights = spatialData.freights
+          .filter((f: any) => (f.accepted_trucks || 0) < (f.required_trucks || 1))
+          .map((f: any) => ({
+            id: f.id || f.freight_id,
+            cargo_type: f.cargo_type,
+            weight: f.weight || 0,
+            origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
+            destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
+            pickup_date: String(f.pickup_date || ''),
+            delivery_date: String(f.delivery_date || ''),
+            price: f.price || 0,
+            urgency: f.urgency || 'LOW',
+            status: f.status,
+            distance_km: f.distance_km || 0,
+            minimum_antt_price: f.minimum_antt_price || 0,
+            service_type: f.service_type,
+            accepted_trucks: f.accepted_trucks || 0,
+            required_trucks: f.required_trucks || 1
+          }));
+        console.log('[fetchAvailableFreights] 📦 Fretes do matching espacial:', platformFreights.length);
+      }
+
+      // 2️⃣ TENTAR RPC: Se funcionar, combinar com espacial (deduplicar)
+      const { data: freights, error: rpcError } = await supabase.rpc(
         'get_freights_for_driver',
         { p_driver_id: profile.id }
       );
 
-      if (error) {
-        console.error('Erro ao carregar fretes:', error);
-        // Fallback geral usando user_cities (IDs) se a RPC falhar por qualquer motivo
+      if (rpcError) {
+        console.warn('[fetchAvailableFreights] ⚠️ RPC falhou (não bloqueante):', rpcError);
+        // Continuar com os fretes do matching espacial
+      } else if (freights && Array.isArray(freights)) {
+        console.log('[fetchAvailableFreights] ✅ RPC retornou:', freights.length, 'fretes');
+        const rpcFreights = freights
+          .filter((f: any) => (f.accepted_trucks || 0) < (f.required_trucks || 1))
+          .map((f: any) => ({
+            id: f.id,
+            cargo_type: f.cargo_type,
+            weight: f.weight,
+            origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
+            destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
+            pickup_date: String(f.pickup_date || ''),
+            delivery_date: String(f.delivery_date || ''),
+            price: f.price,
+            urgency: f.urgency,
+            status: f.status,
+            distance_km: f.distance_km,
+            minimum_antt_price: f.minimum_antt_price,
+            service_type: f.service_type,
+            accepted_trucks: f.accepted_trucks || 0,
+            required_trucks: f.required_trucks || 1
+          }));
+
+        // Combinar com spatial e deduplicar
+        const combined = [...platformFreights, ...rpcFreights];
+        const uniqueMap = new Map<string, Freight>();
+        combined.forEach(f => {
+          if (!uniqueMap.has(f.id)) {
+            uniqueMap.set(f.id, f);
+          }
+        });
+        platformFreights = Array.from(uniqueMap.values());
+        console.log('[fetchAvailableFreights] 🔀 Após combinar spatial + RPC:', platformFreights.length);
+      }
+
+      // 3️⃣ FALLBACK: Se ainda vazio, buscar por user_cities
+      if (platformFreights.length === 0) {
+        console.log('[fetchAvailableFreights] 🔄 Usando fallback por cidades');
         try {
           const { data: userRes } = await supabase.auth.getUser();
           const userId = userRes?.user?.id;
           if (!userId) throw new Error('Usuário não autenticado');
 
+          // Ajustar query para cobrir user_id OU profile_id
           const { data: uc } = await supabase
             .from('user_cities')
             .select('city_id, cities(name, state)')
-            .eq('user_id', userId)
+            .or(`user_id.eq.${userId},profile_id.eq.${profile.id}`)
             .eq('is_active', true)
             .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
 
@@ -390,6 +454,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           })).filter((c: any) => c.city && c.state);
 
           if (cityIds.length === 0 && cityNames.length === 0) {
+            console.log('[fetchAvailableFreights] ℹ️ Sem cidades configuradas');
             if (isMountedRef.current) setAvailableFreights([]);
             return;
           }
@@ -413,7 +478,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           // Fallback secundário: buscar por nome/estado se não achou por ID
           if (freightsByCity.length === 0 && cityNames.length > 0) {
-            console.log('[DriverDashboard] Fallback: busca por nome/estado');
+            console.log('[fetchAvailableFreights] 🔄 Fallback: busca por nome/estado');
             
             const orConditions: string[] = [];
             for (const { city, state } of cityNames) {
@@ -444,43 +509,23 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             weight: f.weight,
             origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
             destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
-            pickup_date: f.pickup_date,
-            delivery_date: f.delivery_date,
+            pickup_date: String(f.pickup_date || ''),
+            delivery_date: String(f.delivery_date || ''),
             price: f.price,
             urgency: f.urgency,
             status: f.status,
             distance_km: f.distance_km,
             minimum_antt_price: f.minimum_antt_price,
-            service_type: f.service_type
+            service_type: f.service_type,
+            accepted_trucks: f.accepted_trucks || 0,
+            required_trucks: f.required_trucks || 1
           }));
 
-          console.log('[fetchAvailableFreights] Fretes da plataforma (fallback):', platformFreights.length);
+          console.log('[fetchAvailableFreights] 📦 Fretes da plataforma (fallback):', platformFreights.length);
         } catch (fbErr) {
-          console.error('Fallback por cidades falhou:', fbErr);
+          console.error('[fetchAvailableFreights] ❌ Fallback por cidades falhou:', fbErr);
           if (isMountedRef.current) toast.error('Erro ao carregar fretes. Tente novamente.');
-          return;
         }
-      } else {
-        // RPC funcionou: mapear os resultados
-        platformFreights = ((freights as any[]) || [])
-          .filter((f: any) => (f.accepted_trucks || 0) < (f.required_trucks || 1))
-          .map((f: any) => ({
-            id: f.id,
-            cargo_type: f.cargo_type,
-            weight: f.weight,
-            origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
-            destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
-            pickup_date: f.pickup_date,
-            delivery_date: f.delivery_date,
-            price: f.price,
-            urgency: f.urgency,
-            status: f.status,
-            distance_km: f.distance_km,
-            minimum_antt_price: f.minimum_antt_price,
-            service_type: f.service_type
-          }));
-
-        console.log('[fetchAvailableFreights] Fretes da plataforma (RPC success):', platformFreights.length);
       }
 
       // Se também é motorista de empresa COM permissão: buscar fretes da transportadora e combinar
@@ -588,13 +633,21 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       const { data, error } = await supabase.functions.invoke('get-driver-assignments');
       
       if (error) {
-        console.error('Error fetching assignments:', error);
+        console.error('[fetchMyAssignments] ❌ Edge function error:', {
+          message: error.message,
+          context: error.context,
+          details: error
+        });
         return;
       }
       
       if (isMountedRef.current) setMyAssignments(data?.assignments || []);
-    } catch (error) {
-      console.error('Error fetching assignments:', error);
+    } catch (error: any) {
+      console.error('[fetchMyAssignments] ❌ Catch error:', {
+        message: error?.message,
+        stack: error?.stack,
+        full: error
+      });
     }
   }, [profile?.id, profile?.role]);
 

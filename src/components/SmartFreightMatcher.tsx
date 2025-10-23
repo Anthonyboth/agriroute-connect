@@ -236,128 +236,183 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         console.log('✅ Matching espacial executado:', spatialData);
       }
 
-      // Buscar fretes compatíveis usando RPC exclusiva (APENAS fretes, nunca serviços)
-    const { data, error } = await supabase.rpc(
-      'get_freights_for_driver', // RPC exclusiva com separação de tipos
-      { p_driver_id: profile.id }
-    );
+      // 1️⃣ PRIORIDADE: Usar fretes do matching espacial imediatamente
+      let spatialFreights: CompatibleFreight[] = [];
+      if (spatialData?.freights && Array.isArray(spatialData.freights)) {
+        spatialFreights = spatialData.freights
+          .filter((f: any) => allowedTypesFromProfile.includes(normalizeServiceType(f.service_type)))
+          .map((f: any) => ({
+            freight_id: f.id || f.freight_id,
+            cargo_type: f.cargo_type,
+            weight: f.weight || 0,
+            origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
+            destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
+            origin_city: f.origin_city,
+            origin_state: f.origin_state,
+            destination_city: f.destination_city,
+            destination_state: f.destination_state,
+            pickup_date: String(f.pickup_date || ''),
+            delivery_date: String(f.delivery_date || ''),
+            price: f.price || 0,
+            urgency: (f.urgency || 'LOW') as string,
+            status: f.status,
+            service_type: normalizeServiceType(f.service_type),
+            distance_km: f.distance_km || 0,
+            minimum_antt_price: f.minimum_antt_price || 0,
+            required_trucks: f.required_trucks || 1,
+            accepted_trucks: f.accepted_trucks || 0,
+            created_at: f.created_at,
+          }));
+        
+        console.log(`📦 Spatial matching retornou ${spatialFreights.length} fretes`);
+        
+        // Emitir contagem imediatamente
+        setCompatibleFreights(spatialFreights);
+        const highUrgency = spatialFreights.filter(f => f.urgency === 'HIGH').length;
+        onCountsChange?.({ total: spatialFreights.length, highUrgency });
+      }
 
-      if (error) {
-        console.error('Erro ao carregar fretes compatíveis (RPC):', error);
-        // Fallback: buscar por cidades de atendimento ativas (user_cities)
-        try {
-          const { data: uc } = await supabase
-            .from('user_cities')
-            .select('city_id, cities(name, state)')
-            .eq('user_id', user!.id)
-            .eq('is_active', true)
-            .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
+      // 2️⃣ TENTAR RPC: Se funcionar, combinar com espacial (deduplicar)
+      const { data, error: rpcError } = await supabase.rpc(
+        'get_freights_for_driver',
+        { p_driver_id: profile.id }
+      );
 
-          const cityIds = (uc || []).map((u: any) => u.city_id).filter(Boolean);
-          const cityNames = (uc || []).map((u: any) => ({ 
-            city: u.cities?.name, 
-            state: u.cities?.state 
-          })).filter((c: any) => c.city && c.state);
+      if (rpcError) {
+        console.warn('⚠️ RPC falhou (não bloqueante):', rpcError);
+        // Continuar com fretes do matching espacial
+        // Buscar fallback por cidades apenas se spatial também está vazio
+        if (spatialFreights.length === 0) {
+          try {
+            const { data: uc } = await supabase
+              .from('user_cities')
+              .select('city_id, cities(name, state)')
+              .or(`user_id.eq.${user!.id},profile_id.eq.${profile.id}`)
+              .eq('is_active', true)
+              .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
 
-          if (cityIds.length === 0 && cityNames.length === 0) {
-            setHasActiveCities(false);
-            toast.info('Configure suas cidades de atendimento para ver fretes compatíveis.');
-            setCompatibleFreights([]);
-            setTowingRequests([]);
-            return;
-          }
+            const cityIds = (uc || []).map((u: any) => u.city_id).filter(Boolean);
+            const cityNames = (uc || []).map((u: any) => ({ 
+              city: u.cities?.name, 
+              state: u.cities?.state 
+            })).filter((c: any) => c.city && c.state);
 
-          let freightsByCity: any[] = [];
-
-          // Tentar buscar por city_id primeiro
-          if (cityIds.length > 0) {
-            const { data: cityIdFreights, error: fbErr } = await supabase
-              .from('freights')
-              .select('*')
-              .eq('status', 'OPEN')
-              .or(`origin_city_id.in.(${cityIds.join(',')}),destination_city_id.in.(${cityIds.join(',')})`)
-              .order('created_at', { ascending: false })
-              .limit(200);
-
-            if (!fbErr && cityIdFreights) {
-              freightsByCity = cityIdFreights;
+            if (cityIds.length === 0 && cityNames.length === 0) {
+              setHasActiveCities(false);
+              toast.info('Configure suas cidades de atendimento para ver fretes compatíveis.');
+              setCompatibleFreights(spatialFreights); // Manter fretes do spatial
+              setTowingRequests([]);
+              setLoading(false);
+              return;
             }
-          }
 
-          // FALLBACK SECUNDÁRIO: Se não achou por ID, buscar por nome/estado
-          if (freightsByCity.length === 0 && cityNames.length > 0) {
-            console.log('[SmartFreightMatcher] Fallback secundário: busca por nome/estado');
-            
-            // Construir OR conditions para cada cidade
-            const orConditions: string[] = [];
-            for (const { city, state } of cityNames) {
-              orConditions.push(`and(origin_city.ilike.%${city}%,origin_state.ilike.%${state}%)`);
-              orConditions.push(`and(destination_city.ilike.%${city}%,destination_state.ilike.%${state}%)`);
+            let freightsByCity: any[] = [];
+
+            // Tentar buscar por city_id primeiro
+            if (cityIds.length > 0) {
+              const { data: cityIdFreights, error: fbErr } = await supabase
+                .from('freights')
+                .select('*')
+                .eq('status', 'OPEN')
+                .or(`origin_city_id.in.(${cityIds.join(',')}),destination_city_id.in.(${cityIds.join(',')})`)
+                .order('created_at', { ascending: false })
+                .limit(200);
+
+              if (!fbErr && cityIdFreights) {
+                freightsByCity = cityIdFreights;
+              }
             }
-            
-            const { data: nameFreights } = await supabase
-              .from('freights')
-              .select('*')
-              .eq('status', 'OPEN')
-              .or(orConditions.join(','))
-              .order('created_at', { ascending: false })
-              .limit(200);
+
+            // FALLBACK SECUNDÁRIO: Se não achou por ID, buscar por nome/estado
+            if (freightsByCity.length === 0 && cityNames.length > 0) {
+              console.log('[SmartFreightMatcher] Fallback secundário: busca por nome/estado');
               
-            if (nameFreights) {
-              freightsByCity = nameFreights;
+              // Construir OR conditions para cada cidade
+              const orConditions: string[] = [];
+              for (const { city, state } of cityNames) {
+                orConditions.push(`and(origin_city.ilike.%${city}%,origin_state.ilike.%${state}%)`);
+                orConditions.push(`and(destination_city.ilike.%${city}%,destination_state.ilike.%${state}%)`);
+              }
+              
+              const { data: nameFreights } = await supabase
+                .from('freights')
+                .select('*')
+                .eq('status', 'OPEN')
+                .or(orConditions.join(','))
+                .order('created_at', { ascending: false })
+                .limit(200);
+                
+              if (nameFreights) {
+                freightsByCity = nameFreights;
+              }
             }
+
+            // Mapear para o formato esperado pela UI
+            const fallbackMapped: CompatibleFreight[] = (freightsByCity || [])
+              .map((f: any) => ({
+                freight_id: f.id,
+                cargo_type: f.cargo_type,
+                weight: f.weight || 0,
+                origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
+                destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
+                origin_city: f.origin_city,
+                origin_state: f.origin_state,
+                destination_city: f.destination_city,
+                destination_state: f.destination_state,
+                pickup_date: String(f.pickup_date || ''),
+                delivery_date: String(f.delivery_date || ''),
+                price: f.price || 0,
+                urgency: (f.urgency || 'LOW') as string,
+                status: f.status,
+                service_type: normalizeServiceType(f.service_type),
+                distance_km: f.match_distance_m ? Math.round((f.match_distance_m / 1000) * 10) / 10 : 0,
+                minimum_antt_price: f.minimum_antt_price || 0,
+                required_trucks: f.required_trucks || 1,
+                accepted_trucks: f.accepted_trucks || 0,
+                created_at: f.created_at,
+              }))
+              .filter((f) => allowedTypesFromProfile.length === 0 || allowedTypesFromProfile.includes(f.service_type));
+
+            // Combinar spatial com fallback e deduplicar
+            const combined = [...spatialFreights, ...fallbackMapped];
+            const uniqueMap = new Map<string, CompatibleFreight>();
+            combined.forEach(f => {
+              if (!uniqueMap.has(f.freight_id)) {
+                uniqueMap.set(f.freight_id, f);
+              }
+            });
+            const final = Array.from(uniqueMap.values());
+            
+            setCompatibleFreights(final);
+            
+            // Emit count
+            const highUrgency = final.filter(f => f.urgency === 'HIGH').length;
+            onCountsChange?.({ total: final.length, highUrgency });
+            
+            console.log(`✅ ${final.length} fretes após combinar spatial + fallback`);
+            toast.success(`${final.length} fretes compatíveis encontrados!`);
+          } catch (fbError: any) {
+            console.error('Fallback por cidades falhou:', fbError);
+            // Manter fretes do spatial mesmo com erro no fallback
+            setCompatibleFreights(spatialFreights);
           }
-
-          // Mapear para o formato esperado pela UI
-          const mapped: CompatibleFreight[] = (freightsByCity || [])
-            .map((f: any) => ({
-              freight_id: f.id,
-              cargo_type: f.cargo_type,
-              weight: f.weight || 0,
-              origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
-              destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
-              origin_city: f.origin_city,
-              origin_state: f.origin_state,
-              destination_city: f.destination_city,
-              destination_state: f.destination_state,
-              pickup_date: f.pickup_date,
-              delivery_date: f.delivery_date,
-              price: f.price || 0,
-              urgency: (f.urgency || 'LOW') as string,
-              status: f.status,
-              service_type: normalizeServiceType(f.service_type),
-              distance_km: f.match_distance_m ? Math.round((f.match_distance_m / 1000) * 10) / 10 : 0,
-              minimum_antt_price: f.minimum_antt_price || 0,
-              required_trucks: f.required_trucks || 1,
-              accepted_trucks: f.accepted_trucks || 0,
-              available_slots: f.available_slots || (f.required_trucks - f.accepted_trucks) || 1,
-              is_partial_booking: f.is_partial_booking || false,
-              created_at: f.created_at,
-            }))
-            .filter((f) => allowedTypesFromProfile.length === 0 || allowedTypesFromProfile.includes(f.service_type));
-
-          setCompatibleFreights(mapped);
-          
-          // Emit count immediately for fallback
-          const highUrgency = mapped.filter(f => f.urgency === 'HIGH').length;
-          onCountsChange?.({ total: mapped.length, highUrgency });
-          
-          toast.success(`${mapped.length} fretes compatíveis encontrados pelas suas cidades configuradas!`);
-        } catch (fbError: any) {
-          console.error('Fallback por cidades falhou:', fbError);
-          toast.error('Erro ao carregar fretes. Tente novamente.');
-          setCompatibleFreights([]);
         }
+        setLoading(false);
         return;
       }
 
-      console.log(`RPC retornou ${data?.length || 0} fretes`);
+      // RPC sucesso: combinar com spatial
+      console.log(`✅ RPC retornou ${data?.length || 0} fretes`);
       
       // Normalizar tipos de serviço nos fretes retornados e garantir freight_id
       const normalizedData = (data || []).map((f: any) => ({
         ...f,
         freight_id: f.freight_id ?? f.id,
-        service_type: normalizeServiceType(f.service_type)
+        service_type: normalizeServiceType(f.service_type),
+        pickup_date: String(f.pickup_date || ''),
+        delivery_date: String(f.delivery_date || ''),
+        required_trucks: f.required_trucks || 1,
+        accepted_trucks: f.accepted_trucks || 0
       }));
 
       console.log(`📊 Usando allowedTypesFromProfile consistente:`, allowedTypesFromProfile);
@@ -377,7 +432,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       const { data: ucActive } = await supabase
         .from('user_cities')
         .select('cities(name, state)')
-        .eq('user_id', user!.id)
+        .or(`user_id.eq.${user!.id},profile_id.eq.${profile.id}`)
         .eq('is_active', true)
         .in('type', ['MOTORISTA_ORIGEM', 'MOTORISTA_DESTINO']);
 
@@ -465,19 +520,50 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         return;
       }
       
-      console.log(`✅ Após filtros: ${filteredByType.length} fretes compatíveis`, {
-        role: profile.role,
-        isCompany,
-        allowedTypesFromProfile,
-        totalFromRPC: data?.length || 0,
-        afterTypeFilter: filteredByType.length
+      // Combinar spatial + RPC e deduplicar
+      const rpcMapped: CompatibleFreight[] = filteredByType.map((f: any) => ({
+        freight_id: f.freight_id,
+        cargo_type: f.cargo_type,
+        weight: f.weight || 0,
+        origin_address: f.origin_address || `${f.origin_city || ''}, ${f.origin_state || ''}`,
+        destination_address: f.destination_address || `${f.destination_city || ''}, ${f.destination_state || ''}`,
+        origin_city: f.origin_city,
+        origin_state: f.origin_state,
+        destination_city: f.destination_city,
+        destination_state: f.destination_state,
+        pickup_date: f.pickup_date,
+        delivery_date: f.delivery_date,
+        price: f.price || 0,
+        urgency: f.urgency,
+        status: f.status,
+        service_type: f.service_type,
+        distance_km: f.distance_km || 0,
+        minimum_antt_price: f.minimum_antt_price || 0,
+        required_trucks: f.required_trucks,
+        accepted_trucks: f.accepted_trucks,
+        created_at: f.created_at,
+      }));
+
+      const combined = [...spatialFreights, ...rpcMapped];
+      const uniqueMap = new Map<string, CompatibleFreight>();
+      combined.forEach(f => {
+        if (!uniqueMap.has(f.freight_id)) {
+          uniqueMap.set(f.freight_id, f);
+        }
+      });
+      const finalFreights = Array.from(uniqueMap.values());
+
+      console.log(`✅ Após combinar spatial + RPC: ${finalFreights.length} fretes`, {
+        spatial: spatialFreights.length,
+        rpc: rpcMapped.length,
+        final: finalFreights.length
       });
       
-      setCompatibleFreights(filteredByType);
+      setCompatibleFreights(finalFreights);
       
       // Emit count immediately after setting freights
-      const highUrgency = filteredByType.filter((f: any) => f.urgency === 'HIGH').length;
-      onCountsChange?.({ total: filteredByType.length, highUrgency });
+      const highUrgency = finalFreights.filter((f: any) => f.urgency === 'HIGH').length;
+      onCountsChange?.({ total: finalFreights.length, highUrgency });
 
       // Buscar chamados de serviço (GUINCHO/MUDANCA) abertos e sem prestador atribuído
       if (allowedTypesFromProfile.some(t => t === 'GUINCHO' || t === 'MUDANCA')) {
@@ -492,13 +578,13 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         setTowingRequests(sr || []);
         
         // Update count with towing requests
-        const currentHighUrgency = filteredByType.filter((f: any) => f.urgency === 'HIGH').length;
-        onCountsChange?.({ total: filteredByType.length + (sr?.length || 0), highUrgency: currentHighUrgency });
+        const currentHighUrgency = finalFreights.filter((f: any) => f.urgency === 'HIGH').length;
+        onCountsChange?.({ total: finalFreights.length + (sr?.length || 0), highUrgency: currentHighUrgency });
       } else {
         setTowingRequests([]);
       }
       // Notificação de novos matches (rate limiting: 5 minutos)
-      if (spatialData?.created > 0 || filteredByType.length > 0) {
+      if (spatialData?.created > 0 || finalFreights.length > 0) {
         const lastNotificationKey = `lastMatchNotification_${profile.id}`;
         const lastNotification = localStorage.getItem(lastNotificationKey);
         const now = Date.now();
@@ -509,8 +595,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           if (spatialData?.created > 0) {
             toast.success(`${spatialData.created} novos matches espaciais criados!`);
           }
-          if (filteredByType.length > 0) {
-            toast.success(`${filteredByType.length} fretes compatíveis encontrados via suas cidades configuradas!`);
+          if (finalFreights.length > 0) {
+            toast.success(`${finalFreights.length} fretes compatíveis encontrados!`);
           }
         }
       }
