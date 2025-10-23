@@ -154,13 +154,30 @@ export const useAuth = () => {
       console.error('[useAuth] Erro ao buscar perfil:', error);
       
       if (!mountedRef.current) return;
+      
+      // CRÍTICO: Detectar recursão infinita em RLS e parar o loop
+      const errorCode = (error as any)?.code;
+      const errorMessage = String((error as any)?.message ?? '');
+      const isInfiniteRecursion = errorCode === '42P17' || errorMessage.includes('infinite recursion detected in policy');
+      
+      if (isInfiniteRecursion) {
+        console.error('[useAuth] ⚠️ Recursão infinita detectada em RLS policy. Sistema aguardando correção...');
+        setProfileError({
+          code: 'RLS_RECURSION',
+          message: 'Erro de configuração detectado. Aguarde alguns instantes e recarregue a página.'
+        });
+        setProfile(null);
+        setProfiles([]);
+        setLoading(false);
+        return; // Parar o loop aqui
+      }
+      
       setProfile(null);
       setProfiles([]);
 
-        // Handle auth errors without logging sensitive data
-        const status = (error as any)?.status ?? (error as any)?.code ?? (error as any)?.context?.response?.status ?? null;
-        const message = String((error as any)?.message ?? '');
-        if (status === 401 || status === 403 || message.includes('sub claim')) {
+      // Handle auth errors without logging sensitive data
+      const status = (error as any)?.status ?? errorCode ?? (error as any)?.context?.response?.status ?? null;
+      if (status === 401 || status === 403 || errorMessage.includes('sub claim')) {
         try {
           localStorage.removeItem('current_profile_id');
           await supabase.auth.signOut({ scope: 'local' });

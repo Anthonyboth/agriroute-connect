@@ -42,14 +42,23 @@ export async function queryWithTimeout<T>(
       return result;
     } catch (error: any) {
       const isTimeout = error.message?.includes('Timeout');
+      const isInfiniteRecursion = error.code === '42P17' || error.message?.includes('infinite recursion detected in policy');
       
       // Log detalhado do erro
       console.error(`[QueryUtils] ${operationName} - Erro:`, {
         message: error.message,
+        code: error.code,
         isTimeout,
+        isInfiniteRecursion,
         attempt: attemptNumber + 1,
         retriesLeft: retries - attemptNumber
       });
+
+      // CRÍTICO: Não retry em casos de recursão infinita de RLS
+      if (isInfiniteRecursion) {
+        console.error(`[QueryUtils] ${operationName} - Recursão infinita detectada em policy RLS. Não será feito retry.`);
+        throw new Error('Erro de configuração de segurança. Aguarde alguns instantes e tente novamente.');
+      }
 
       // Se ainda temos tentativas e não é erro de autenticação
       if (attemptNumber < retries && !error.message?.includes('JWT')) {
