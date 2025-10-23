@@ -105,7 +105,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
     const currentPath = window.location.pathname;
     
     // Check if user is a transport company
-    if (currentPath === '/dashboard/driver' && profile.active_mode === 'TRANSPORTADORA') {
+    if (currentPath === '/dashboard/driver' && profile.active_mode === 'TRANSPORTADORA' && profile.role !== 'MOTORISTA_AFILIADO') {
       return <Navigate to="/dashboard/company" replace />;
     }
     

@@ -11,6 +11,7 @@ import { Brain, Filter, RefreshCw, Search, Zap, Package, Truck, Wrench, MapPin, 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
+import { useDriverPermissions } from '@/hooks/useDriverPermissions';
 import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
@@ -49,6 +50,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
 }) => {
   const { profile, user } = useAuth();
   const { isAffiliated, companyId } = useCompanyDriver();
+  const { canAcceptFreights, mustUseChat, companyId: permissionCompanyId } = useDriverPermissions();
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
   const [towingRequests, setTowingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -873,8 +875,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                         }}
                         onAction={(action) => handleFreightAction(freight.freight_id, action)}
                         showActions={true}
+                        canAcceptFreights={canAcceptFreights}
                         isAffiliatedDriver={isAffiliated}
-                        driverCompanyId={companyId}
+                        driverCompanyId={companyId || permissionCompanyId}
                       />
                     </div>
                   ))}

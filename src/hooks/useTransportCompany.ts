@@ -340,6 +340,23 @@ export const useTransportCompany = () => {
       }
       
       console.log('✅ Motorista aprovado:', data);
+      
+      // ✅ CRÍTICO: Atualizar role do perfil para MOTORISTA_AFILIADO e limpar active_mode
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          role: 'MOTORISTA_AFILIADO',
+          active_mode: null  // Limpar active_mode para evitar redirecionamento incorreto
+        })
+        .eq('id', driverProfileId);
+
+      if (profileError) {
+        console.error('❌ Erro ao atualizar profile do motorista:', profileError);
+        throw profileError;
+      }
+      
+      console.log('✅ Profile atualizado para MOTORISTA_AFILIADO');
+      
       return { driverProfileId, companyId: company.id };
     },
     onSuccess: (data) => {

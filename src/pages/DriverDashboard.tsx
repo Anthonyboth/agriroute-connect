@@ -113,7 +113,8 @@ const DriverDashboard = () => {
 
     // Check if user is in transport company mode
     const checkTransportMode = async () => {
-      if (profile.active_mode === 'TRANSPORTADORA') {
+      // ✅ NÃO redirecionar motoristas afiliados mesmo se tiverem active_mode TRANSPORTADORA
+      if (profile.active_mode === 'TRANSPORTADORA' && profile.role !== 'MOTORISTA_AFILIADO') {
         navigate('/dashboard/company', { replace: true });
         return;
       }
