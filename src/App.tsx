@@ -235,6 +235,72 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   return <>{children}</>;
 };
 
+// ✅ Componente para autoredirecionar da home "/" para o painel correto
+const AuthedLanding = () => {
+  const { isAuthenticated, profile, loading } = useAuth();
+  const [isCheckingCompany, setIsCheckingCompany] = React.useState(false);
+  const [isCompany, setIsCompany] = React.useState(false);
+  
+  // Verificar se é transportadora
+  React.useEffect(() => {
+    const checkCompany = async () => {
+      if (profile?.role === 'MOTORISTA') {
+        setIsCheckingCompany(true);
+        const { data } = await supabase
+          .from('transport_companies')
+          .select('id')
+          .eq('profile_id', profile.id)
+          .maybeSingle();
+        
+        const isCompanyUser = !!data || profile.active_mode === 'TRANSPORTADORA';
+        setIsCompany(isCompanyUser);
+        setIsCheckingCompany(false);
+      }
+    };
+    
+    if (profile) {
+      checkCompany();
+    }
+  }, [profile]);
+  
+  // Aguardar resolução
+  if (loading || isCheckingCompany) {
+    return <ComponentLoader />;
+  }
+  
+  // Se não autenticado, mostrar Landing normal
+  if (!isAuthenticated || !profile) {
+    return <Landing />;
+  }
+  
+  // ✅ Usuário autenticado: redirecionar para painel apropriado
+  // Redirecionar transportadoras
+  if (isCompany) {
+    return <Navigate to="/dashboard/company" replace />;
+  }
+  
+  let to = "/";
+  switch (profile?.role) {
+    case 'ADMIN':
+      to = '/admin';
+      break;
+    case 'MOTORISTA':
+    case 'MOTORISTA_AFILIADO':
+      to = '/dashboard/driver';
+      break;
+    case 'PRODUTOR':
+      to = '/dashboard/producer';
+      break;
+    case 'PRESTADOR_SERVICOS':
+      to = '/dashboard/service-provider';
+      break;
+    default:
+      to = '/';
+  }
+  
+  return <Navigate to={to} replace />;
+};
+
 const RedirectIfAuthed = () => {
   const { isAuthenticated, profile, loading, profiles } = useAuth();
   const [isCheckingCompany, setIsCheckingCompany] = React.useState(false);
@@ -386,7 +452,7 @@ const App = () => (
             <DeviceSetup />
             <SessionManager />
             <Routes>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={<AuthedLanding />} />
             <Route path="/landing" element={<Landing />} />
             <Route path="/auth" element={
               <AuthErrorBoundary>
