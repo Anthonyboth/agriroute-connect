@@ -30,11 +30,8 @@ export const useTransportCompany = () => {
     queryKey: ['company-drivers', company?.id],
     queryFn: async () => {
       if (!company?.id) {
-        console.log('[useTransportCompany] No company ID');
         return [];
       }
-      
-      console.log('[useTransportCompany] Fetching drivers for company:', company.id);
       
       const { data, error } = await supabase
         .from('company_drivers')
@@ -68,20 +65,19 @@ export const useTransportCompany = () => {
           )
         `)
         .eq('company_id', company.id)
-        .eq('status', 'ACTIVE')
+        .in('status', ['ACTIVE', 'INACTIVE'])
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[useTransportCompany] Error fetching drivers:', error.message, error.details);
         throw error;
       }
       
-      console.log('[useTransportCompany] Drivers data:', data);
       return data;
     },
     enabled: !!company?.id,
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 1000 * 60 * 5, // Cache por 5 minutos
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   // Criar transportadora
@@ -308,8 +304,9 @@ export const useTransportCompany = () => {
       return data;
     },
     enabled: !!company?.id,
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 1000 * 60 * 2, // Cache por 2 minutos (pendentes mudam mais)
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   // Aprovar motorista

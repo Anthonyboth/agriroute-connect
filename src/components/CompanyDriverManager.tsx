@@ -47,23 +47,21 @@ export const CompanyDriverManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   const handleRemoveDriver = async () => {
-    if (!driverToRemove) return;
-    await removeDriver(driverToRemove);
-    setDriverToRemove(null);
+    if (!driverToRemove || isRemoving) return;
+    
+    setIsRemoving(true);
+    try {
+      await removeDriver(driverToRemove);
+    } finally {
+      setIsRemoving(false);
+      setDriverToRemove(null);
+    }
   };
 
   // Filtrar motoristas
-  // 🔍 DEBUG: Verificar dados
-  React.useEffect(() => {
-    if (drivers) {
-      console.log('=== MOTORISTAS DEBUG ===');
-      console.log('Total:', drivers.length);
-      console.log('Dados:', drivers);
-      console.log('========================');
-    }
-  }, [drivers]);
 
   const filteredDrivers = (drivers || []).filter((cd: any) => {
     const term = searchTerm.trim().toLowerCase();
@@ -236,8 +234,14 @@ export const CompanyDriverManager: React.FC = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nome ou email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  defaultValue={searchTerm}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    clearTimeout((window as any).__searchTimeout);
+                    (window as any).__searchTimeout = setTimeout(() => {
+                      setSearchTerm(value);
+                    }, 300);
+                  }}
                   className="pl-10"
                 />
               </div>
@@ -257,6 +261,13 @@ export const CompanyDriverManager: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Contador de resultados */}
+      {!isLoadingDrivers && drivers && drivers.length > 0 && (
+        <div className="text-sm text-muted-foreground px-1">
+          Exibindo {filteredDrivers.length} de {drivers.length} motoristas
+        </div>
+      )}
 
       {/* Lista de motoristas */}
       {isLoadingDrivers ? (

@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { User, MapPin, Truck, TrendingUp, Car, Settings, MessageCircle } from "lucide-react";
@@ -67,6 +67,9 @@ export const DriverDetailsModal = ({
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Detalhes do Motorista</DialogTitle>
+          <DialogDescription>
+            Visualize informações completas, localização, fretes, performance e configurações do motorista.
+          </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="info" className="w-full">
