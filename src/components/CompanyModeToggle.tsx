@@ -67,10 +67,9 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
             onClick={() => navigate('/cadastro-transportadora')}
             variant="outline"
             className="w-full justify-start"
-            size="sm"
           >
             <Truck className="mr-2 h-4 w-4" />
-            Transformar em Transportadora
+            Virar Transportadora
           </Button>
           <p className="text-xs text-muted-foreground px-2">
             Cadastre mais veículos, gerencie motoristas e aceite mais fretes.
@@ -80,7 +79,6 @@ export const CompanyModeToggle: React.FC<CompanyModeToggleProps> = ({
             onClick={() => setAffiliationModalOpen(true)}
             variant="outline"
             className="w-full justify-start"
-            size="sm"
           >
             <UserCheck className="mr-2 h-4 w-4" />
             Solicitar Afiliação
