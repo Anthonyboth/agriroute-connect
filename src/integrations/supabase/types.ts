@@ -6380,6 +6380,10 @@ export type Database = {
         Args: { p_freight_id: string }
         Returns: boolean
       }
+      is_driver_visible_for_company: {
+        Args: { _profile_id: string }
+        Returns: boolean
+      }
       is_freight_owner: {
         Args: { freight_id: string; user_profile_id: string }
         Returns: boolean
