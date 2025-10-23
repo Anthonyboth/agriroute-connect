@@ -5253,7 +5253,10 @@ export type Database = {
           primary_identification: string | null
           status: string
           updated_at: string
+          vehicle_documents: Json | null
           vehicle_photo_url: string | null
+          vehicle_photos: Json | null
+          vehicle_specifications: string | null
           vehicle_type: Database["public"]["Enums"]["vehicle_type"]
           vehicle_validation_status: string | null
         }
@@ -5277,7 +5280,10 @@ export type Database = {
           primary_identification?: string | null
           status?: string
           updated_at?: string
+          vehicle_documents?: Json | null
           vehicle_photo_url?: string | null
+          vehicle_photos?: Json | null
+          vehicle_specifications?: string | null
           vehicle_type: Database["public"]["Enums"]["vehicle_type"]
           vehicle_validation_status?: string | null
         }
@@ -5301,7 +5307,10 @@ export type Database = {
           primary_identification?: string | null
           status?: string
           updated_at?: string
+          vehicle_documents?: Json | null
           vehicle_photo_url?: string | null
+          vehicle_photos?: Json | null
+          vehicle_specifications?: string | null
           vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
           vehicle_validation_status?: string | null
         }
