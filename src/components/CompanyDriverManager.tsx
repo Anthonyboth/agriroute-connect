@@ -5,12 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
-import { useDriverValidation } from '@/hooks/useDriverValidation';
+import { useAffiliationValidation } from '@/hooks/useAffiliationValidation';
 import { CompanyInviteModal } from './CompanyInviteModal';
 import { DriverDetailsModal } from './driver-details/DriverDetailsModal';
 import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Check, AlertCircle } from 'lucide-react';
@@ -41,7 +40,6 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
-  const [driverToApproveWithWarning, setDriverToApproveWithWarning] = useState<any | null>(null);
 
   // Filtrar motoristas
 
@@ -71,7 +69,7 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
           <CardContent>
             <div className="space-y-4">
               {pendingDrivers.map((driver: any) => {
-                const validation = useDriverValidation(driver.driver);
+                const validation = useAffiliationValidation(driver.driver);
                 
                 return (
                   <div 
@@ -119,14 +117,13 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
                             <Check className="h-3 w-3 mr-1" /> Documentos OK
                           </Badge>
                         )}
-                        {!driver.driver?.cnh_photo_url && (
-                          <Badge variant="destructive" className="text-xs">
-                            <AlertCircle className="h-3 w-3 mr-1" /> Falta CNH
+                        {validation.hasAllDocuments ? (
+                          <Badge variant="outline" className="text-xs bg-green-50 border-green-500 text-green-700">
+                            <Check className="h-3 w-3 mr-1" /> Perfil Completo
                           </Badge>
-                        )}
-                        {!driver.driver?.profile_photo_url && !driver.driver?.selfie_url && (
-                          <Badge variant="destructive" className="text-xs">
-                            <AlertCircle className="h-3 w-3 mr-1" /> Falta Foto
+                        ) : (
+                          <Badge variant="outline" className="text-xs bg-blue-50 border-blue-500 text-blue-700">
+                            Documentos pendentes ({validation.optionalFields.length})
                           </Badge>
                         )}
                       </div>
@@ -135,27 +132,30 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
                       <div>
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-muted-foreground">Completude do Perfil</span>
-                          <span className="font-bold text-foreground">{validation.score}%</span>
+                          <span className="font-bold text-foreground">{validation.completionPercentage}%</span>
                         </div>
-                        <Progress value={validation.score} className="h-2" />
+                        <Progress value={validation.completionPercentage} className="h-2" />
                       </div>
 
-                      {/* Avisos de dados faltando */}
-                      {validation.missingFields.length > 0 && (
-                        <Alert variant="destructive" className="py-2">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription className="text-xs">
-                            <strong>Dados faltando:</strong> {validation.missingFields.join(', ')}
+                      {/* Avisos de documentos opcionais */}
+                      {validation.optionalFields.length > 0 && (
+                        <Alert className="py-2 border-blue-500/50 bg-blue-50/10">
+                          <AlertCircle className="h-4 w-4 text-blue-600" />
+                          <AlertDescription className="text-xs text-blue-700">
+                            <strong>Documentos opcionais:</strong> {validation.optionalFields.join(', ')}
+                            <p className="mt-1 text-muted-foreground">
+                              Você pode aprovar agora e solicitar depois.
+                            </p>
                           </AlertDescription>
                         </Alert>
                       )}
 
-                      {/* Avisos gerais */}
-                      {validation.warnings.length > 0 && validation.missingFields.length === 0 && (
-                        <Alert className="py-2">
+                      {/* Avisos de dados obrigatórios faltando (apenas CPF/CNPJ) */}
+                      {validation.missingFields.length > 0 && (
+                        <Alert variant="destructive" className="py-2">
                           <AlertCircle className="h-4 w-4" />
                           <AlertDescription className="text-xs">
-                            {validation.warnings.join('; ')}
+                            <strong>Dados obrigatórios faltando:</strong> {validation.missingFields.join(', ')}
                           </AlertDescription>
                         </Alert>
                       )}
@@ -164,22 +164,25 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
                       <div className="flex gap-2 pt-2">
                         <Button
                           size="sm"
-                          className="flex-1"
+                          className="flex-1 bg-green-600 hover:bg-green-700"
                           onClick={() => {
-                            if (!validation.isValid) {
-                              setDriverToApproveWithWarning({
-                                profileId: driver.driver_profile_id,
-                                missing: validation.missingFields,
-                                name: driver.driver?.full_name || 'Motorista'
-                              });
-                            } else {
-                              approveDriver.mutate(driver.driver_profile_id);
-                            }
+                            console.log('🚀 Aprovando motorista:', driver.driver?.full_name);
+                            approveDriver.mutate(driver.driver_profile_id);
                           }}
                           disabled={approveDriver.isPending}
-                          title="Aprovar motorista"
+                          title="Aprovar vínculo do motorista"
                         >
-                          {approveDriver.isPending ? 'Aprovando...' : 'Aprovar'}
+                          {approveDriver.isPending ? (
+                            <>
+                              <Check className="h-4 w-4 mr-2 animate-spin" />
+                              Aprovando...
+                            </>
+                          ) : (
+                            <>
+                              <Check className="h-4 w-4 mr-2" />
+                              Aprovar
+                            </>
+                          )}
                         </Button>
                         <Button
                           size="sm"
@@ -408,34 +411,6 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
           onOpenChange={(open) => !open && setSelectedDriver(null)}
         />
       )}
-
-      {/* AlertDialog de Confirmação */}
-      <AlertDialog open={!!driverToApproveWithWarning} onOpenChange={(open) => !open && setDriverToApproveWithWarning(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Aprovar motorista com dados incompletos?</AlertDialogTitle>
-            <AlertDialogDescription>
-              <strong>{driverToApproveWithWarning?.name}</strong> ainda não completou:{' '}
-              <span className="font-medium">{driverToApproveWithWarning?.missing?.join(', ')}</span>.
-              <br /><br />
-              Você poderá exigir os documentos depois. Deseja aprovar mesmo assim?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (driverToApproveWithWarning?.profileId) {
-                  approveDriver.mutate(driverToApproveWithWarning.profileId);
-                }
-                setDriverToApproveWithWarning(null);
-              }}
-            >
-              Aprovar mesmo assim
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

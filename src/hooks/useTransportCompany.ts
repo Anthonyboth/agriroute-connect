@@ -319,12 +319,27 @@ export const useTransportCompany = () => {
   const approveDriver = useMutation({
     mutationFn: async (driverProfileId: string) => {
       if (!company?.id) throw new Error('Empresa não encontrada');
-      const { error } = await supabase
+      
+      console.log('🔄 Aprovando motorista:', driverProfileId, 'para empresa:', company.id);
+      
+      const { data, error } = await supabase
         .from('company_drivers')
-        .update({ status: 'ACTIVE', accepted_at: new Date().toISOString() })
+        .update({ 
+          status: 'ACTIVE', 
+          accepted_at: new Date().toISOString(),
+          can_accept_freights: true,
+          updated_at: new Date().toISOString()
+        })
         .eq('company_id', company.id)
-        .eq('driver_profile_id', driverProfileId);
-      if (error) throw error;
+        .eq('driver_profile_id', driverProfileId)
+        .select();
+        
+      if (error) {
+        console.error('❌ Erro ao aprovar:', error);
+        throw error;
+      }
+      
+      console.log('✅ Motorista aprovado:', data);
       return { driverProfileId, companyId: company.id };
     },
     onSuccess: (data) => {
@@ -344,11 +359,21 @@ export const useTransportCompany = () => {
         queryKey: ['pending-drivers', data.companyId] 
       });
       
-      toast.success('Motorista aprovado!');
+      toast.success('Motorista aprovado e já pode aceitar fretes!', {
+        duration: 5000
+      });
     },
     onError: (error: any) => {
-      console.error('Erro ao aprovar motorista:', error);
-      toast.error(error?.message || 'Erro ao aprovar motorista. Verifique as permissões.');
+      console.error('❌ Erro na aprovação:', error);
+      
+      // Mensagens de erro específicas
+      if (error.code === '42501') {
+        toast.error('Sem permissão para aprovar. Verifique se você é o administrador da transportadora.');
+      } else if (error.message?.includes('RLS') || error.message?.includes('policy')) {
+        toast.error('Erro de permissão no banco de dados. Entre em contato com o suporte.');
+      } else {
+        toast.error(`Erro ao aprovar: ${error.message || 'Tente novamente'}`);
+      }
     },
   });
 
@@ -356,12 +381,21 @@ export const useTransportCompany = () => {
   const rejectDriver = useMutation({
     mutationFn: async (driverProfileId: string) => {
       if (!company?.id) throw new Error('Empresa não encontrada');
+      
+      console.log('🔄 Rejeitando motorista:', driverProfileId);
+      
       const { error } = await supabase
         .from('company_drivers')
         .update({ status: 'REJECTED' })
         .eq('company_id', company.id)
         .eq('driver_profile_id', driverProfileId);
-      if (error) throw error;
+        
+      if (error) {
+        console.error('❌ Erro ao rejeitar:', error);
+        throw error;
+      }
+      
+      console.log('✅ Motorista rejeitado');
       return { driverProfileId, companyId: company.id };
     },
     onSuccess: (data) => {
@@ -381,8 +415,15 @@ export const useTransportCompany = () => {
       toast.success('Motorista rejeitado');
     },
     onError: (error: any) => {
-      console.error('Erro ao rejeitar motorista:', error);
-      toast.error(error?.message || 'Erro ao rejeitar motorista. Verifique as permissões.');
+      console.error('❌ Erro ao rejeitar motorista:', error);
+      
+      if (error.code === '42501') {
+        toast.error('Sem permissão para rejeitar. Verifique se você é o administrador da transportadora.');
+      } else if (error.message?.includes('RLS') || error.message?.includes('policy')) {
+        toast.error('Erro de permissão no banco de dados. Entre em contato com o suporte.');
+      } else {
+        toast.error(`Erro ao rejeitar: ${error.message || 'Tente novamente'}`);
+      }
     },
   });
 
