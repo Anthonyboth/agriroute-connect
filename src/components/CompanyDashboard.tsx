@@ -205,24 +205,6 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
         pendingProposals={stats.pendingProposals}
       />
 
-      {/* Card de Relatórios */}
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart className="h-5 w-5 text-blue-600" />
-            Relatórios
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-between gap-4 flex-wrap">
-          <p className="text-muted-foreground">
-            Acompanhe métricas detalhadas e exporte relatórios.
-          </p>
-          <Button onClick={() => onNavigateToReport?.('reports')}>
-            <BarChart className="h-4 w-4 mr-2" />
-            Abrir Relatórios
-          </Button>
-        </CardContent>
-      </Card>
 
       {/* Fretes Disponíveis */}
       <Card>
