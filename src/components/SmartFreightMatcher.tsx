@@ -298,11 +298,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             }
           }
 
-           const allowedTypes = Array.from(new Set(
-             (Array.isArray(profile?.service_types) ? (profile?.service_types as unknown as string[]) : [])
-               .map((t) => normalizeServiceType(String(t)))
-           )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO'].includes(t));
-
           // Mapear para o formato esperado pela UI
           const mapped: CompatibleFreight[] = (freightsByCity || [])
             .map((f: any) => ({
@@ -325,7 +320,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               is_partial_booking: f.is_partial_booking || false,
               created_at: f.created_at,
             }))
-            .filter((f) => allowedTypes.length === 0 || allowedTypes.includes(f.service_type));
+            .filter((f) => allowedTypesFromProfile.length === 0 || allowedTypesFromProfile.includes(f.service_type));
 
           setCompatibleFreights(mapped);
           
@@ -351,16 +346,18 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         service_type: normalizeServiceType(f.service_type)
       }));
 
-      // Filtrar pelos tipos de serviço que o motorista presta (CARGA, GUINCHO, MUDANCA, MOTO)
-      const allowedTypes = Array.from(new Set(
-        (Array.isArray(profile?.service_types) ? (profile?.service_types as unknown as string[]) : [])
-          .map((t) => normalizeServiceType(String(t)))
-      )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO'].includes(t));
+      console.log(`📊 Usando allowedTypesFromProfile consistente:`, allowedTypesFromProfile);
 
-      // Primeiro filtro por tipo de serviço
-      let filteredByType = allowedTypes.length === 0 
+      // Primeiro filtro por tipo de serviço usando allowedTypesFromProfile
+      let filteredByType = allowedTypesFromProfile.length === 0 
         ? normalizedData 
-        : normalizedData.filter((f: any) => allowedTypes.includes(f.service_type));
+        : normalizedData.filter((f: any) => {
+            const included = allowedTypesFromProfile.includes(f.service_type);
+            if (!included) {
+              console.log(`🚫 Frete ${f.freight_id} descartado por tipo: ${f.service_type} não está em`, allowedTypesFromProfile);
+            }
+            return included;
+          });
 
       // Filtro adicional por cidades ATIVAS do motorista (garantia contra dados antigos)
       const { data: ucActive } = await supabase
@@ -393,6 +390,17 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         return `${cleanCity}|${cleanState}`;
       };
 
+      // Extrair cidade/estado de address como fallback
+      const extractCityStateFromAddress = (address: string): { city: string; state: string } | null => {
+        if (!address) return null;
+        // Pattern: "Cidade, Estado" ou "Cidade - Estado" ou últimos elementos separados por vírgula
+        const match = address.match(/([^,\-]+)[,\-]\s*([A-Z]{2})\s*$/);
+        if (match) {
+          return { city: match[1].trim(), state: match[2].trim() };
+        }
+        return null;
+      };
+
       if (activeCities) {
         const allowedCities = new Set(
           (ucActive || [])
@@ -403,10 +411,36 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             })
         );
 
+        console.log(`🗺️ Cidades ativas do motorista:`, Array.from(allowedCities));
+
         filteredByType = filteredByType.filter((f: any) => {
-          const oKey = normalizeCityState(f.origin_city, f.origin_state);
-          const dKey = normalizeCityState(f.destination_city, f.destination_state);
-          return allowedCities.has(oKey) || allowedCities.has(dKey);
+          let oKey = normalizeCityState(f.origin_city, f.origin_state);
+          let dKey = normalizeCityState(f.destination_city, f.destination_state);
+          
+          // Fallback: tentar extrair de addresses se city/state estão vazios
+          if (!f.origin_city || !f.origin_state) {
+            const extracted = extractCityStateFromAddress(f.origin_address);
+            if (extracted) {
+              oKey = normalizeCityState(extracted.city, extracted.state);
+              console.log(`🔄 Origem extraída de address: ${oKey} (frete ${f.freight_id})`);
+            }
+          }
+          
+          if (!f.destination_city || !f.destination_state) {
+            const extracted = extractCityStateFromAddress(f.destination_address);
+            if (extracted) {
+              dKey = normalizeCityState(extracted.city, extracted.state);
+              console.log(`🔄 Destino extraído de address: ${dKey} (frete ${f.freight_id})`);
+            }
+          }
+
+          const included = allowedCities.has(oKey) || allowedCities.has(dKey);
+          
+          if (!included) {
+            console.log(`🚫 Frete ${f.freight_id} descartado por cidade: origem=${oKey}, destino=${dKey}`);
+          }
+          
+          return included;
         });
       } else {
         console.warn('Sem cidades de atendimento ativas. Nada a exibir.');
@@ -420,7 +454,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       console.log(`✅ Após filtros: ${filteredByType.length} fretes compatíveis`, {
         role: profile.role,
         isCompany,
-        allowedTypes,
+        allowedTypesFromProfile,
         totalFromRPC: data?.length || 0,
         afterTypeFilter: filteredByType.length
       });
@@ -432,11 +466,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       onCountsChange?.({ total: filteredByType.length, highUrgency });
 
       // Buscar chamados de serviço (GUINCHO/MUDANCA) abertos e sem prestador atribuído
-      if (allowedTypes.some(t => t === 'GUINCHO' || t === 'MUDANCA')) {
+      if (allowedTypesFromProfile.some(t => t === 'GUINCHO' || t === 'MUDANCA')) {
         const { data: sr, error: srErr } = await supabase
           .from('service_requests')
           .select('*')
-          .in('service_type', allowedTypes.filter(t => t === 'GUINCHO' || t === 'MUDANCA'))
+          .in('service_type', allowedTypesFromProfile.filter(t => t === 'GUINCHO' || t === 'MUDANCA'))
           .eq('status', 'OPEN')
           .is('provider_id', null)
           .order('created_at', { ascending: true });

@@ -5972,8 +5972,14 @@ export type Database = {
           created_at: string
           delivery_date: string
           destination_address: string
+          destination_city: string
+          destination_city_id: string
+          destination_state: string
           id: string
           origin_address: string
+          origin_city: string
+          origin_city_id: string
+          origin_state: string
           pickup_date: string
           price: number
           producer_id: string
