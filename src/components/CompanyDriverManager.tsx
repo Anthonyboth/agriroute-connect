@@ -385,42 +385,6 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
                       Ver Detalhes
                     </Button>
                     
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                        >
-                          <LogOut className="h-4 w-4 mr-2" />
-                          Remover
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirmar Remoção</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem certeza que deseja remover <strong>{cd.driver?.full_name}</strong> da transportadora?
-                            <br /><br />
-                            O motorista perderá acesso aos fretes da empresa mas poderá solicitar re-afiliação no futuro.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={async () => {
-                              try {
-                                await removeDriver(cd.driver_profile_id);
-                              } catch (error) {
-                                console.error('Erro ao remover motorista:', error);
-                              }
-                            }}
-                            className="bg-destructive hover:bg-destructive/90"
-                          >
-                            Confirmar Remoção
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>

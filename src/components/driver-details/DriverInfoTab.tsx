@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Phone, Mail, FileText, Calendar, MapPin } from "lucide-react";
+import { formatDocument } from "@/utils/document";
 
 interface DriverInfoTabProps {
   driverData: any;
@@ -69,7 +70,7 @@ export const DriverInfoTab = ({ driverData }: DriverInfoTabProps) => {
               <FileText className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm text-muted-foreground">Documento</p>
-                <p className="font-medium">{driver.id || 'Não informado'}</p>
+                <p className="font-medium">{driver.cpf ? formatDocument(driver.cpf) : 'Não informado'}</p>
               </div>
             </div>
 
