@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -86,6 +87,25 @@ const Header: React.FC<HeaderProps> = ({
   const [isTransportCompany, setIsTransportCompany] = React.useState(false);
   const { isCompanyDriver } = useCompanyDriver();
 
+  // Buscar solicitações de documentos pendentes para motoristas
+  const { data: pendingDocRequests } = useQuery({
+    queryKey: ['my-document-requests', userProfile?.id],
+    queryFn: async () => {
+      if (!userProfile?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('document_requests')
+        .select('*')
+        .eq('driver_profile_id', userProfile.id)
+        .eq('status', 'PENDING');
+        
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!userProfile?.id && (user?.role === 'MOTORISTA' || user?.role === 'MOTORISTA_AFILIADO'),
+    refetchInterval: 30000, // Atualizar a cada 30 segundos
+  });
+
   // Verificar se é transportadora
   React.useEffect(() => {
     const checkCompany = async () => {
@@ -156,6 +176,14 @@ const Header: React.FC<HeaderProps> = ({
                         {getUserInitials(user?.name)}
                       </AvatarFallback>
                     </Avatar>
+                    {pendingDocRequests && pendingDocRequests.length > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-1 -right-1 h-5 min-w-5 p-0 flex items-center justify-center text-xs"
+                      >
+                        {pendingDocRequests.length}
+                      </Badge>
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end">

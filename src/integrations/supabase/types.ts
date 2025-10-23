@@ -840,6 +840,70 @@ export type Database = {
           },
         ]
       }
+      document_requests: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string | null
+          driver_profile_id: string
+          id: string
+          notes: string | null
+          requested_at: string | null
+          requested_by: string | null
+          requested_fields: Json
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          driver_profile_id: string
+          id?: string
+          notes?: string | null
+          requested_at?: string | null
+          requested_by?: string | null
+          requested_fields?: Json
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          driver_profile_id?: string
+          id?: string
+          notes?: string | null
+          requested_at?: string | null
+          requested_by?: string | null
+          requested_fields?: Json
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_requests_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_availability: {
         Row: {
           available_date: string

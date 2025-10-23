@@ -5,8 +5,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Truck, Settings2, LogOut, AlertTriangle } from "lucide-react";
+import { Truck, Settings2, LogOut, AlertTriangle, FileText } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useTransportCompany } from "@/hooks/useTransportCompany";
+import { DriverDocumentRequestTab } from "./DriverDocumentRequestTab";
 
 interface DriverSettingsTabProps {
   driverData: any;
@@ -97,7 +99,20 @@ export const DriverSettingsTab = ({ driverData, companyId }: DriverSettingsTabPr
   }
 
   return (
-    <div className="space-y-4">
+    <Tabs defaultValue="permissions" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="permissions">
+          <Settings2 className="h-4 w-4 mr-2" />
+          Permissões
+        </TabsTrigger>
+        <TabsTrigger value="documents">
+          <FileText className="h-4 w-4 mr-2" />
+          Documentos
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="permissions" className="mt-4">
+        <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle>Permissões do Motorista</CardTitle>
@@ -238,6 +253,15 @@ export const DriverSettingsTab = ({ driverData, companyId }: DriverSettingsTabPr
           </AlertDialog>
         </CardContent>
       </Card>
-    </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="documents" className="mt-4">
+        <DriverDocumentRequestTab 
+          driverData={driverData} 
+          companyId={companyId} 
+        />
+      </TabsContent>
+    </Tabs>
   );
 };
