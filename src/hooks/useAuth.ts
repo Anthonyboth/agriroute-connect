@@ -394,7 +394,7 @@ export const useAuth = () => {
     };
   }, [fetchProfile]);
 
-  // Subscribe to profile changes for the current user id only
+  // Subscribe to profile changes for the current user id only (resilient to WebSocket failures)
   useEffect(() => {
     if (!session?.user?.id) return;
 
@@ -410,10 +410,27 @@ export const useAuth = () => {
         const newProfile = payload.new as UserProfile;
         fetchProfile(newProfile.user_id);
       })
-      .subscribe();
+      .subscribe((status) => {
+        // ✅ Tratamento resiliente de erros do WebSocket (não bloqueante)
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('[Realtime] Perfil: status=', status, '(conexão em tempo real indisponível)');
+          try {
+            toast.message('Conexão em tempo real indisponível. Você ainda pode usar o app normalmente.');
+          } catch {}
+        } else if (status === 'SUBSCRIBED') {
+          if (import.meta.env.DEV) {
+            console.log('[Realtime] Perfil: conectado com sucesso');
+          }
+        }
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      // ✅ Garantir cleanup mesmo se WebSocket falhou
+      try {
+        supabase.removeChannel(channel);
+      } catch (e) {
+        console.warn('[Realtime] Erro ao remover canal:', e);
+      }
     };
   }, [session?.user?.id, fetchProfile]);
 

@@ -179,9 +179,14 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
     );
   }
 
-  // Check if user is effectively approved (either directly or via company_drivers.status = 'ACTIVE')
-  const effectivelyApproved = isApproved || 
+  // ✅ CRÍTICO: Priorizar profile.status === 'APPROVED' para evitar bloqueios
+  // especialmente quando WebSocket falha (Firefox) e companyDriver data ainda carregando
+  const effectivelyApproved = (profile?.status === 'APPROVED') || isApproved || 
     ((profile?.role === 'MOTORISTA_AFILIADO' || profile?.role === 'MOTORISTA') && isCompanyDriver);
+
+  if (import.meta.env.DEV) {
+    console.log('[Auth] role:', profile?.role, 'status:', profile?.status, 'approved:', effectivelyApproved);
+  }
 
   if (requiresApproval && !effectivelyApproved) {
     const handleGoHome = () => {
