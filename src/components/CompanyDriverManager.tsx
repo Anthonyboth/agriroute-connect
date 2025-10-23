@@ -13,6 +13,10 @@ import { useDriverValidation } from '@/hooks/useDriverValidation';
 import { CompanyInviteModal } from './CompanyInviteModal';
 import { DriverDetailsModal } from './driver-details/DriverDetailsModal';
 import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Check, AlertCircle } from 'lucide-react';
+
+interface CompanyDriverManagerProps {
+  inModal?: boolean;
+}
 import {
   Select,
   SelectContent,
@@ -21,7 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-export const CompanyDriverManager: React.FC = () => {
+export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inModal = false }) => {
   const { 
     drivers, 
     isLoadingDrivers, 
@@ -184,22 +188,24 @@ export const CompanyDriverManager: React.FC = () => {
       )}
 
       {/* Cabeçalho com ações */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Motoristas Afiliados
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Gerencie os motoristas da sua transportadora
-          </p>
+      {!inModal && (
+        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Motoristas Afiliados
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Gerencie os motoristas da sua transportadora
+            </p>
+          </div>
+          
+          <Button onClick={() => setShowInviteModal(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Convidar Motorista
+          </Button>
         </div>
-        
-        <Button onClick={() => setShowInviteModal(true)}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Convidar Motorista
-        </Button>
-      </div>
+      )}
 
       {/* Filtros */}
       <Card>

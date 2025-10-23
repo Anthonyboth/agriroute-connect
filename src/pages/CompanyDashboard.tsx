@@ -84,6 +84,7 @@ import { ResponsiveTabNavigation } from '@/components/ui/responsive-tab-navigati
 import { ScrollIndicators } from '@/components/ui/scroll-indicators';
 import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { DriverFileModal } from '@/components/DriverFileModal';
 
 // Definição centralizada de todas as tabs
 const COMPANY_TABS = [
@@ -115,8 +116,9 @@ const CompanyDashboard = () => {
   const tabsScrollRef = React.useRef<HTMLDivElement>(null);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [driverFileModalOpen, setDriverFileModalOpen] = useState(false);
   const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
-  const { company, isLoadingCompany } = useTransportCompany();
+  const { company, isLoadingCompany, drivers, pendingDrivers } = useTransportCompany();
   
   const refetchCompany = async () => {
     // Força re-fetch buscando company novamente
@@ -412,11 +414,11 @@ const CompanyDashboard = () => {
               <Button 
                 variant="default"
                 size="sm"
-                onClick={() => setActiveTab('drivers')}
+                onClick={() => setDriverFileModalOpen(true)}
                 className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
               >
                 <Users className="mr-1 h-4 w-4" />
-                Motoristas
+                Fichário de Motoristas
               </Button>
               
               <Button 
@@ -768,6 +770,17 @@ const CompanyDashboard = () => {
             destination_address: selectedFreightForWithdrawal.destination_address,
             price: selectedFreightForWithdrawal.price,
           }}
+        />
+      )}
+
+      {/* Driver File Modal */}
+      {company && (
+        <DriverFileModal
+          open={driverFileModalOpen}
+          onOpenChange={setDriverFileModalOpen}
+          companyId={company.id}
+          affiliatedCount={drivers?.length || 0}
+          pendingCount={pendingDrivers?.length || 0}
         />
       )}
       
