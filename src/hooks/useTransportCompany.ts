@@ -35,7 +35,7 @@ export const useTransportCompany = () => {
         .from('company_drivers')
         .select(`
           *,
-          driver:driver_profile_id (
+          driver:profiles!company_drivers_driver_profile_id_fkey (
             id,
             full_name,
             email,
@@ -264,7 +264,7 @@ export const useTransportCompany = () => {
         .from('company_drivers')
         .select(`
           *,
-          driver:profiles!driver_profile_id(
+          driver:profiles!company_drivers_driver_profile_id_fkey (
             id,
             full_name,
             email,

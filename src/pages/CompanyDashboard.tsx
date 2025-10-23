@@ -140,7 +140,6 @@ const CompanyDashboard = () => {
         company_id: company.id,
         driver_id: profile.id,
         is_company_vehicle: true,
-        status: 'PENDING',
         vehicle_type: vehicleData.vehicle_type,
         license_plate: vehicleData.license_plate,
         axle_count: vehicleData.axle_count || 2,
@@ -164,7 +163,7 @@ const CompanyDashboard = () => {
 
       console.log('[CompanyDashboard] Veículo salvo com sucesso:', data);
       
-      toast.success('✓ Veículo cadastrado! Aguardando aprovação do administrador.');
+      toast.success('✅ Veículo cadastrado e aprovado automaticamente!');
       
       // Recarregar lista da frota
       refetchCompany();
