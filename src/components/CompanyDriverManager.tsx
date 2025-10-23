@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { CompanyInviteModal } from './CompanyInviteModal';
-import { Users, UserPlus, Trash2, Star, Truck, Phone, Mail, Search, Filter } from 'lucide-react';
+import { DriverDetailsModal } from './driver-details/DriverDetailsModal';
+import { Users, UserPlus, Trash2, Star, Truck, Phone, Mail, Search, Filter, Eye } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,12 +35,14 @@ export const CompanyDriverManager: React.FC = () => {
     isLoadingPending,
     removeDriver,
     approveDriver,
-    rejectDriver 
+    rejectDriver,
+    company 
   } = useTransportCompany();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [driverToRemove, setDriverToRemove] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
 
   const handleRemoveDriver = async () => {
     if (!driverToRemove) return;
@@ -239,6 +242,14 @@ export const CompanyDriverManager: React.FC = () => {
                   {/* Ações */}
                   <div className="flex sm:flex-col gap-2">
                     <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedDriver(cd.driver_profile_id)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Ver Detalhes
+                    </Button>
+                    <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => setDriverToRemove(cd.driver_profile_id)}
@@ -275,6 +286,15 @@ export const CompanyDriverManager: React.FC = () => {
 
       {/* Modals */}
       <CompanyInviteModal open={showInviteModal} onOpenChange={setShowInviteModal} />
+
+      {company && (
+        <DriverDetailsModal
+          driverProfileId={selectedDriver}
+          companyId={company.id}
+          open={!!selectedDriver}
+          onOpenChange={(open) => !open && setSelectedDriver(null)}
+        />
+      )}
 
       <AlertDialog open={!!driverToRemove} onOpenChange={() => setDriverToRemove(null)}>
         <AlertDialogContent>
