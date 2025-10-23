@@ -13,18 +13,19 @@ import { DriverSettingsTab } from "./DriverSettingsTab";
 import { DriverChatTab } from "./DriverChatTab";
 
 interface DriverDetailsModalProps {
-  driverProfileId: string | null;
+  driver: any | null;
   companyId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export const DriverDetailsModal = ({
-  driverProfileId,
+  driver,
   companyId,
   open,
   onOpenChange,
 }: DriverDetailsModalProps) => {
+  const driverProfileId = driver?.driver_profile_id || null;
   // Contar mensagens não lidas
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['driver-chat-unread', companyId, driverProfileId],
@@ -88,7 +89,7 @@ export const DriverDetailsModal = ({
           </TabsList>
 
           <TabsContent value="info" className="mt-4">
-            <DriverInfoTab driverProfileId={driverProfileId} />
+            <DriverInfoTab driverData={driver?.driver} />
           </TabsContent>
           <TabsContent value="location" className="mt-4">
             <DriverLocationTab driverProfileId={driverProfileId} />
@@ -103,7 +104,7 @@ export const DriverDetailsModal = ({
             <DriverVehiclesTab driverProfileId={driverProfileId} companyId={companyId} />
           </TabsContent>
           <TabsContent value="settings" className="mt-4">
-            <DriverSettingsTab driverProfileId={driverProfileId} companyId={companyId} />
+            <DriverSettingsTab driverData={driver} companyId={companyId} />
           </TabsContent>
           <TabsContent value="chat" className="mt-4">
             <DriverChatTab 

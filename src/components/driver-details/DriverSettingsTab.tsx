@@ -21,11 +21,12 @@ import {
 import { useTransportCompany } from "@/hooks/useTransportCompany";
 
 interface DriverSettingsTabProps {
-  driverProfileId: string;
+  driverData: any;
   companyId: string;
 }
 
-export const DriverSettingsTab = ({ driverProfileId, companyId }: DriverSettingsTabProps) => {
+export const DriverSettingsTab = ({ driverData, companyId }: DriverSettingsTabProps) => {
+  const driverProfileId = driverData?.driver_profile_id;
   const queryClient = useQueryClient();
   const { leaveCompany, updateDriverAutonomyPermission } = useTransportCompany();
 

@@ -46,7 +46,7 @@ export const CompanyDriverManager: React.FC = () => {
   const [driverToRemove, setDriverToRemove] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
+  const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
 
   const handleRemoveDriver = async () => {
     if (!driverToRemove) return;
@@ -360,7 +360,7 @@ export const CompanyDriverManager: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setSelectedDriver(cd.driver_profile_id)}
+                      onClick={() => setSelectedDriver(cd)}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Ver Detalhes
@@ -405,7 +405,7 @@ export const CompanyDriverManager: React.FC = () => {
 
       {company && (
         <DriverDetailsModal
-          driverProfileId={selectedDriver}
+          driver={selectedDriver}
           companyId={company.id}
           open={!!selectedDriver}
           onOpenChange={(open) => !open && setSelectedDriver(null)}

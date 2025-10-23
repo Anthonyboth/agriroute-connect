@@ -1,45 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Phone, Mail, FileText, Calendar, MapPin } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface DriverInfoTabProps {
-  driverProfileId: string;
+  driverData: any;
 }
 
-export const DriverInfoTab = ({ driverProfileId }: DriverInfoTabProps) => {
-  const { data: driver, isLoading } = useQuery({
-    queryKey: ['driver-info', driverProfileId],
-    queryFn: async () => {
-      console.log('🔍 Buscando motorista:', driverProfileId);
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', driverProfileId)
-        .single();
-
-      if (error) {
-        console.error('❌ Erro ao buscar motorista:', error);
-        throw error;
-      }
-      
-      console.log('✅ Motorista encontrado:', data);
-      return data;
-    },
-  });
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-48 w-full" />
-      </div>
-    );
-  }
+export const DriverInfoTab = ({ driverData }: DriverInfoTabProps) => {
+  const driver = driverData;
 
   if (!driver) {
     return (
@@ -49,10 +18,7 @@ export const DriverInfoTab = ({ driverProfileId }: DriverInfoTabProps) => {
             <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
             <h3 className="text-lg font-semibold mb-2">Motorista não encontrado</h3>
             <p className="text-sm text-muted-foreground">
-              Este motorista pode ter sido removido ou os dados estão indisponíveis.
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              ID buscado: {driverProfileId}
+              Os dados deste motorista não estão disponíveis.
             </p>
           </div>
         </CardContent>
