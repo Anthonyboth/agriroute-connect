@@ -81,6 +81,8 @@ import { UnifiedHistory } from '@/components/UnifiedHistory';
 import { CompanyInviteModal } from '@/components/CompanyInviteModal';
 import { CompanyBalance } from '@/components/CompanyBalance';
 import { CompanyInternalChat } from '@/components/CompanyInternalChat';
+import { UnifiedChatHub } from '@/components/UnifiedChatHub';
+import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 import { CompanyReports } from '@/components/CompanyReports';
 import { ResponsiveTabNavigation } from '@/components/ui/responsive-tab-navigation';
 import { ScrollIndicators } from '@/components/ui/scroll-indicators';
@@ -125,6 +127,12 @@ const CompanyDashboard = () => {
   // ✅ Obter permissões do motorista para passar aos componentes filhos
   const { isAffiliated, companyId } = useCompanyDriver();
   const { canAcceptFreights } = useDriverPermissions();
+  
+  // Contador de mensagens não lidas
+  const { unreadCount: chatUnreadCount } = useUnreadChatsCount(
+    profile?.id || '', 
+    'TRANSPORTADORA'
+  );
   
   const refetchCompany = async () => {
     // Força re-fetch buscando company novamente
@@ -711,7 +719,10 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="chat" className="mt-6">
-            <CompanyInternalChat />
+            <UnifiedChatHub 
+              userProfileId={profile.id}
+              userRole="TRANSPORTADORA"
+            />
           </TabsContent>
 
           <TabsContent value="reports" className="mt-6">

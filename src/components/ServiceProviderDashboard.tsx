@@ -50,6 +50,8 @@ import { ContactInfoCard } from '@/components/ContactInfoCard';
 import ServiceProviderAreasManager from '@/components/ServiceProviderAreasManager';
 import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
 import { ServiceChatDialog } from '@/components/ServiceChatDialog';
+import { UnifiedChatHub } from '@/components/UnifiedChatHub';
+import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 
 import { LocationManager } from '@/components/LocationManager';
 import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
@@ -169,6 +171,12 @@ export const ServiceProviderDashboard: React.FC = () => {
   
   const providerId = getProviderProfileId();
   const { counts, refreshCounts } = useServiceRequestCounts(providerId);
+
+  // Contador de mensagens não lidas
+  const { unreadCount: chatUnreadCount } = useUnreadChatsCount(
+    profile?.id || '', 
+    'PRESTADOR_SERVICOS'
+  );
 
   useEffect(() => {
     if (!profile?.id || profile.role !== 'PRESTADOR_SERVICOS') return;
@@ -1096,6 +1104,19 @@ export const ServiceProviderDashboard: React.FC = () => {
                 <span className="hidden sm:inline">Histórico</span>
                 <span className="sm:hidden">Hist</span>
               </TabsTrigger>
+              <TabsTrigger 
+                value="chat" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+              >
+                <MessageSquare className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Chat</span>
+                <span className="sm:hidden">Chat</span>
+                {chatUnreadCount > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-4 px-1 text-xs">
+                    {chatUnreadCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -1426,6 +1447,13 @@ export const ServiceProviderDashboard: React.FC = () => {
 
           <TabsContent value="history" className="space-y-4">
             <ServiceHistory />
+          </TabsContent>
+
+          <TabsContent value="chat" className="space-y-4">
+            <UnifiedChatHub 
+              userProfileId={profile?.id || ''}
+              userRole="PRESTADOR_SERVICOS"
+            />
           </TabsContent>
 
         </Tabs>

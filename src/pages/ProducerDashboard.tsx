@@ -39,6 +39,8 @@ import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { FreightProposalsManager } from '@/components/FreightProposalsManager';
+import { UnifiedChatHub } from '@/components/UnifiedChatHub';
+import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 
 const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
@@ -84,6 +86,12 @@ const ProducerDashboard = () => {
   
   // Estado para controlar avaliações automáticas
   const [activeFreightForRating, setActiveFreightForRating] = useState<any>(null);
+
+  // Contador de mensagens não lidas
+  const { unreadCount: chatUnreadCount } = useUnreadChatsCount(
+    profile?.id || '', 
+    'PRODUTOR'
+  );
 
   // Buscar fretes - otimizado
   const fetchFreights = useCallback(async () => {
@@ -1104,6 +1112,19 @@ const ProducerDashboard = () => {
                 <span className="hidden sm:inline">Pagamentos</span>
                 <span className="sm:hidden">Pag</span>
               </TabsTrigger>
+              <TabsTrigger 
+                value="chat" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <MessageCircle className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Chat</span>
+                <span className="sm:hidden">Chat</span>
+                {chatUnreadCount > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-4 px-1 text-xs">
+                    {chatUnreadCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -1404,6 +1425,13 @@ const ProducerDashboard = () => {
 
           <TabsContent value="history" className="space-y-4">
             <UnifiedHistory userRole="PRODUTOR" />
+          </TabsContent>
+
+          <TabsContent value="chat" className="space-y-4">
+            <UnifiedChatHub 
+              userProfileId={profile.id}
+              userRole="PRODUTOR"
+            />
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4">

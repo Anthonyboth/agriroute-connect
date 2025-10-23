@@ -602,3 +602,9 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
     markFreightShareAsRead,
   };
 };
+
+// Hook auxiliar para contador de não lidas
+export const useUnreadChatsCount = (userProfileId: string, userRole: string) => {
+  const { totalUnread } = useUnifiedChats(userProfileId, userRole);
+  return { unreadCount: totalUnread };
+};
