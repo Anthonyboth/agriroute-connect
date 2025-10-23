@@ -8,13 +8,15 @@ import { MyAssignmentCard } from './MyAssignmentCard';
 import { SafeListWrapper } from './SafeListWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Truck, MapPin, RefreshCw } from 'lucide-react';
+import { Truck, MapPin, RefreshCw, BarChart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
-interface CompanyDashboardProps {}
+interface CompanyDashboardProps {
+  onNavigateToReport?: (tab: string) => void;
+}
 
-export const CompanyDashboard: React.FC<CompanyDashboardProps> = () => {
+export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateToReport }) => {
   const { company, drivers } = useTransportCompany();
   const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -202,6 +204,25 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = () => {
         totalEarnings={stats.totalEarnings}
         pendingProposals={stats.pendingProposals}
       />
+
+      {/* Card de Relatórios */}
+      <Card className="border-dashed">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart className="h-5 w-5 text-blue-600" />
+            Relatórios
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-muted-foreground">
+            Acompanhe métricas detalhadas e exporte relatórios.
+          </p>
+          <Button onClick={() => onNavigateToReport?.('reports')}>
+            <BarChart className="h-4 w-4 mr-2" />
+            Abrir Relatórios
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Fretes Disponíveis */}
       <Card>
