@@ -13,6 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { CitySelector } from './CitySelector';
 import { FreightCard } from './FreightCard';
 import { cn } from '@/lib/utils';
+import { useCompanyDriver } from '@/hooks/useCompanyDriver';
+import { useDriverPermissions } from '@/hooks/useDriverPermissions';
 
 interface DriverAvailabilityAreasManagerProps {
   driverId?: string;
@@ -51,6 +53,10 @@ export const DriverAvailabilityAreasManager: React.FC<DriverAvailabilityAreasMan
   driverId,
   onFreightAction
 }) => {
+  // ✅ Obter permissões do motorista
+  const { isAffiliated, companyId } = useCompanyDriver();
+  const { canAcceptFreights } = useDriverPermissions();
+  
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedCity, setSelectedCity] = useState<{city: string, state: string} | null>(null);
   const [availabilityEntries, setAvailabilityEntries] = useState<AvailabilityEntry[]>([]);
@@ -367,6 +373,9 @@ export const DriverAvailabilityAreasManager: React.FC<DriverAvailabilityAreasMan
                     minimum_antt_price: freight.minimum_antt_price || 0
                   }}
                   showActions={true}
+                  canAcceptFreights={canAcceptFreights}
+                  isAffiliatedDriver={isAffiliated}
+                  driverCompanyId={companyId}
                   onAction={(action) => onFreightAction?.(freight.id, action)}
                 />
               ))}

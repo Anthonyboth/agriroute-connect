@@ -317,8 +317,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
 
       {showActions && onAction && freight.status === 'OPEN' && !isFullyBooked && (
         <div className="px-6 pb-6">
-          {isAffiliatedDriver ? (
-            // Motorista afiliado: apenas compartilhar com transportadora
+          {isAffiliatedDriver && !canAcceptFreights ? (
+            // ✅ Motorista afiliado SEM permissão: apenas compartilhar com transportadora
             <ShareFreightToCompany 
               freight={freight}
               companyId={driverCompanyId}

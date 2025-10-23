@@ -10,14 +10,17 @@ export interface DriverPermissions {
 }
 
 export const useDriverPermissions = (): DriverPermissions => {
-  const { companyDriver, isCompanyDriver, canAcceptFreights, canManageVehicles } = useCompanyDriver();
+  const { companyDriver, canAcceptFreights, canManageVehicles } = useCompanyDriver();
+  
+  // ✅ CRÍTICO: Verificar se é AFILIADO (não apenas motorista de empresa)
+  const isAffiliatedDriver = companyDriver?.affiliation_type === 'AFFILIATED';
   
   return {
-    isAffiliated: isCompanyDriver,
+    isAffiliated: isAffiliatedDriver,
     canAcceptFreights,
     canManageVehicles,
     companyId: companyDriver?.company_id || null,
     companyName: companyDriver?.company?.company_name || null,
-    mustUseChat: isCompanyDriver && !canAcceptFreights,
+    mustUseChat: isAffiliatedDriver && !canAcceptFreights,
   };
 };

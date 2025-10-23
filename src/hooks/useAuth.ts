@@ -271,6 +271,34 @@ export const useAuth = () => {
     }
   };
 
+  // ✅ AUTOCORREÇÃO: Corrigir motoristas afiliados com active_mode errado
+  useEffect(() => {
+    const fixAffiliatedDriverActiveMode = async () => {
+      if (profile?.role === 'MOTORISTA_AFILIADO' && profile?.active_mode === 'TRANSPORTADORA') {
+        console.log('🔧 Corrigindo active_mode de motorista afiliado...');
+        
+        try {
+          const { error } = await supabase
+            .from('profiles')
+            .update({ active_mode: null })
+            .eq('id', profile.id);
+
+          if (error) {
+            console.error('Erro ao corrigir active_mode:', error);
+          } else {
+            console.log('✅ active_mode corrigido');
+            // Atualizar estado local para evitar redirects
+            setProfile((p) => p ? { ...p, active_mode: null } : p);
+          }
+        } catch (error) {
+          console.error('Erro ao corrigir active_mode:', error);
+        }
+      }
+    };
+
+    fixAffiliatedDriverActiveMode();
+  }, [profile?.id, profile?.role, profile?.active_mode]);
+
   useEffect(() => {
     mountedRef.current = true;
     
