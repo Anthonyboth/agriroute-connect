@@ -12,17 +12,7 @@ import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { useDriverValidation } from '@/hooks/useDriverValidation';
 import { CompanyInviteModal } from './CompanyInviteModal';
 import { DriverDetailsModal } from './driver-details/DriverDetailsModal';
-import { Users, UserPlus, Trash2, Star, Truck, Phone, Mail, Search, Filter, Eye, Check, AlertCircle } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Check, AlertCircle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -43,23 +33,9 @@ export const CompanyDriverManager: React.FC = () => {
     company 
   } = useTransportCompany();
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [driverToRemove, setDriverToRemove] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
-  const [isRemoving, setIsRemoving] = useState(false);
-
-  const handleRemoveDriver = async () => {
-    if (!driverToRemove || isRemoving) return;
-    
-    setIsRemoving(true);
-    try {
-      await removeDriver(driverToRemove);
-    } finally {
-      setIsRemoving(false);
-      setDriverToRemove(null);
-    }
-  };
 
   // Filtrar motoristas
 
@@ -376,14 +352,6 @@ export const CompanyDriverManager: React.FC = () => {
                       <Eye className="h-4 w-4 mr-2" />
                       Ver Detalhes
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDriverToRemove(cd.driver_profile_id)}
-                      title="Remover motorista"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -422,24 +390,6 @@ export const CompanyDriverManager: React.FC = () => {
           onOpenChange={(open) => !open && setSelectedDriver(null)}
         />
       )}
-
-      <AlertDialog open={!!driverToRemove} onOpenChange={() => setDriverToRemove(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remover Motorista</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja remover este motorista da sua transportadora?
-              Ele não terá mais acesso aos fretes da empresa.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRemoveDriver} className="bg-destructive text-destructive-foreground">
-              Remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
