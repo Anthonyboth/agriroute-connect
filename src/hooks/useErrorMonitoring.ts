@@ -7,24 +7,30 @@ import { ErrorMonitoringService } from '@/services/errorMonitoringService';
  */
 export function useErrorMonitoring() {
   useEffect(() => {
+    console.log('🔍 [useErrorMonitoring] Hook inicializado');
     const errorMonitoring = ErrorMonitoringService.getInstance();
     
     // Interceptar fetch para capturar erros de API
     const originalFetch = window.fetch;
     
     window.fetch = async (...args: Parameters<typeof fetch>) => {
+      console.log('🌐 [useErrorMonitoring] Fetch interceptado:', args[0]);
+      
       try {
         const response = await originalFetch(...args);
         
         // Capturar erros HTTP 400-599 de APIs Supabase
         if (!response.ok && typeof args[0] === 'string' && args[0].includes('supabase')) {
+          console.log('❌ [useErrorMonitoring] Erro HTTP capturado:', response.status);
+          
           const clonedResponse = response.clone();
           let errorData: any = {};
           
           try {
             errorData = await clonedResponse.json();
+            console.log('📋 [useErrorMonitoring] Dados do erro:', errorData);
           } catch {
-            // Se não for JSON, ignorar
+            console.warn('⚠️ [useErrorMonitoring] Não foi possível parsear JSON do erro');
           }
           
           errorMonitoring.captureError(
@@ -41,6 +47,7 @@ export function useErrorMonitoring() {
         
         return response;
       } catch (error) {
+        console.error('💥 [useErrorMonitoring] Erro de fetch:', error);
         // Capturar erros de rede (fetch falhou)
         errorMonitoring.captureError(error as Error, {
           source: 'fetch_error',
@@ -52,6 +59,7 @@ export function useErrorMonitoring() {
     };
     
     return () => {
+      console.log('🔍 [useErrorMonitoring] Hook desmontado');
       // Restaurar fetch original ao desmontar
       window.fetch = originalFetch;
     };

@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseWithErrorMonitoring } from '@/lib/supabaseErrorWrapper';
 import { toast } from 'sonner';
 import { Camera, Upload, MapPin, CheckCircle } from 'lucide-react';
 
@@ -150,11 +151,19 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
         }
       };
 
-      const { data: checkin, error: checkinError } = await supabase
-        .from('freight_checkins' as any)
-        .insert(checkinData)
-        .select()
-        .single() as any;
+      const { data: checkin, error: checkinError } = await supabaseWithErrorMonitoring(
+        () => supabase
+          .from('freight_checkins' as any)
+          .insert(checkinData)
+          .select()
+          .single() as any,
+        {
+          module: 'FreightCheckinModal',
+          functionName: 'handleSubmit',
+          operation: 'INSERT freight_checkins',
+          additionalInfo: { checkin_type: checkinType }
+        }
+      ) as { data: any; error: any };
 
       if (checkinError) throw checkinError;
 
