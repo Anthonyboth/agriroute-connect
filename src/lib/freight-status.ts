@@ -1,5 +1,61 @@
 // Tradução dos status de fretes para português brasileiro
 
+// Status canônicos do sistema
+export const CANONICAL_FREIGHT_STATUSES = [
+  'OPEN',
+  'IN_NEGOTIATION',
+  'ACCEPTED',
+  'LOADING',
+  'LOADED',
+  'IN_TRANSIT',
+  'DELIVERED_PENDING_CONFIRMATION',
+  'DELIVERED',
+  'COMPLETED',
+  'CANCELLED',
+  'REJECTED',
+  'PENDING'
+] as const;
+
+// Normalizar status (mapear sinônimos para canônicos)
+export const normalizeFreightStatus = (status: string): string => {
+  const normalized = status.toUpperCase().trim();
+  
+  // Mapear sinônimos comuns
+  const synonymMap: Record<string, string> = {
+    'PENDENTE': 'OPEN',
+    'ABERTO': 'OPEN',
+    'AGUARDANDO': 'OPEN',
+    'ACEITO': 'ACCEPTED',
+    'EM_NEGOCIACAO': 'IN_NEGOTIATION',
+    'NEGOCIANDO': 'IN_NEGOTIATION',
+    'CARREGANDO': 'LOADING',
+    'COLETANDO': 'LOADING',
+    'CARREGADO': 'LOADED',
+    'EM_TRANSPORTE': 'IN_TRANSIT',
+    'EM_TRANSITO': 'IN_TRANSIT',
+    'TRANSPORTE': 'IN_TRANSIT',
+    'ENTREGUE': 'DELIVERED',
+    'FINALIZADO': 'COMPLETED',
+    'CONCLUIDO': 'COMPLETED',
+    'CANCELADO': 'CANCELLED',
+    'REJEITADO': 'REJECTED'
+  };
+  
+  return synonymMap[normalized] || normalized;
+};
+
+// Verificar se status é "aberto" (disponível para aceitar)
+export const isOpenStatus = (status: string): boolean => {
+  const normalized = normalizeFreightStatus(status);
+  return ['OPEN', 'IN_NEGOTIATION', 'PENDING'].includes(normalized);
+};
+
+// Verificar se status é final (não pode mais ser alterado)
+export const isFinalStatus = (status: string): boolean => {
+  const normalized = normalizeFreightStatus(status);
+  return ['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED', 'CANCELLED'].includes(normalized);
+};
+
 export const getFreightStatusLabel = (status: string): string => {
   switch (status) {
     case 'OPEN':

@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { getCargoTypesByCategory } from '@/lib/cargo-types';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { normalizeFreightStatus, isOpenStatus } from '@/lib/freight-status';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -55,31 +56,60 @@ export const CompanySmartFreightMatcher: React.FC = () => {
 
     setLoading(true);
     try {
-      // Buscar fretes abertos que ainda não têm motorista atribuído
+      console.log('🔍 [Marketplace] Buscando fretes para company:', company.id);
+      
+      // Buscar fretes do MARKETPLACE (sem company_id atribuído)
       const { data: freights, error } = await supabase
         .from('freights')
         .select('*')
-        .in('status', ['OPEN', 'IN_NEGOTIATION'])
-        .is('driver_id', null)
+        .is('company_id', null) // ✅ Fretes sem transportadora atribuída
+        .is('driver_id', null)   // ✅ Fretes sem motorista atribuído
+        .eq('status', 'OPEN')    // ✅ Apenas fretes abertos
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
-
-      // Executar matching espacial para todos os motoristas ativos
-      const activeDrivers = drivers?.filter(d => d.status === 'ACTIVE') || [];
       
+      console.log(`📦 [Marketplace] ${freights?.length || 0} fretes retornados do banco`);
+      
+      if (!freights || freights.length === 0) {
+        console.warn('⚠️ [Marketplace] Nenhum frete encontrado no banco');
+        console.log('💡 [Marketplace] Verifique:');
+        console.log('   - Se existem fretes com status=OPEN');
+        console.log('   - Se driver_id=null');
+        console.log('   - Se company_id=null');
+        toast.info('Nenhum frete disponível no marketplace no momento');
+        setCompatibleFreights([]);
+        setMatchingStats({ total: 0, matched: 0, assigned: 0 });
+        setLoading(false);
+        return;
+      }
+
+      // Normalizar status e filtrar
       const matchedFreights: CompatibleFreight[] = [];
+      let discardedByDriver = 0;
+      let discardedByStatus = 0;
       
-      for (const freight of freights || []) {
-        // Verificar se algum motorista da empresa pode atender este frete
-        const canService = activeDrivers.some(driver => {
-          // Aqui você pode adicionar lógica de matching por áreas, tipo de serviço, etc.
-          return true; // Por enquanto, considera todos compatíveis
-        });
-
-        if (canService) {
-          matchedFreights.push({
+      for (const freight of freights) {
+        // Normalizar status
+        const normalizedStatus = normalizeFreightStatus(freight.status);
+        
+        // Verificar se já tem motorista (dupla checagem)
+        if (freight.driver_id) {
+          discardedByDriver++;
+          console.log(`❌ [Marketplace] Frete ${freight.id.slice(0,8)} descartado: já tem driver`);
+          continue;
+        }
+        
+        // Verificar se status é realmente "aberto"
+        if (!isOpenStatus(normalizedStatus)) {
+          discardedByStatus++;
+          console.log(`❌ [Marketplace] Frete ${freight.id.slice(0,8)} descartado: status ${freight.status} (normalizado: ${normalizedStatus})`);
+          continue;
+        }
+        
+        // ✅ Frete válido para marketplace
+        matchedFreights.push({
             freight_id: freight.id,
             cargo_type: freight.cargo_type,
             weight: freight.weight,
@@ -101,18 +131,22 @@ export const CompanySmartFreightMatcher: React.FC = () => {
             accepted_trucks: freight.accepted_trucks || 0,
             created_at: freight.created_at
           });
-        }
       }
+
+      console.log(`✅ [Marketplace] ${matchedFreights.length} fretes compatíveis após filtros`);
+      console.log(`📊 [Marketplace] Descartados: ${discardedByDriver} com driver, ${discardedByStatus} por status`);
 
       setCompatibleFreights(matchedFreights);
       setMatchingStats({
-        total: freights?.length || 0,
+        total: freights.length,
         matched: matchedFreights.length,
-        assigned: 0 // Será calculado depois
+        assigned: 0
       });
 
       if (matchedFreights.length > 0) {
-        toast.success(`${matchedFreights.length} fretes compatíveis encontrados!`);
+        toast.success(`${matchedFreights.length} fretes disponíveis no marketplace!`);
+      } else {
+        toast.info('Nenhum frete compatível encontrado. Verifique os filtros de status.');
       }
     } catch (error: any) {
       console.error('Erro ao buscar fretes compatíveis:', error);

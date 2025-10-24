@@ -20,6 +20,7 @@ import { UserCityManager } from '@/components/UserCityManager';
 import { DriverAvailabilityAreasManager } from '@/components/DriverAvailabilityAreasManager';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { SmartFreightMatcher } from '@/components/SmartFreightMatcher';
+import { CompanySmartFreightMatcher } from '@/components/CompanySmartFreightMatcher';
 import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
 import { MyAssignmentCard } from '@/components/MyAssignmentCard';
@@ -93,6 +94,7 @@ import { DriverFileModal } from '@/components/DriverFileModal';
 // Definição centralizada de todas as tabs
 const COMPANY_TABS = [
   { value: 'overview', label: 'Visão Geral', shortLabel: 'Visão', icon: Building2 },
+  { value: 'marketplace', label: 'Marketplace', shortLabel: 'Market', icon: TrendingUp },
   { value: 'ai-freights', label: 'Fretes IA', shortLabel: 'IA', icon: Brain },
   { value: 'drivers', label: 'Motoristas', shortLabel: 'Mot', icon: Users },
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck },
@@ -531,6 +533,10 @@ const CompanyDashboard = () => {
 
           <TabsContent value="overview" className="mt-6">
             <CompanyDashboardComponent onNavigateToReport={handleNavigateToReport} />
+          </TabsContent>
+
+          <TabsContent value="marketplace" className="mt-6">
+            <CompanySmartFreightMatcher />
           </TabsContent>
 
           <TabsContent value="drivers" className="mt-6">

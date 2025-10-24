@@ -64,11 +64,16 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
         .in('freight_id', freights.map(f => f.id))
         .eq('status', 'PENDING');
 
+      console.log(`📊 [CompanyDashboard] Buscando dados para company ${company.id}`);
+      console.log(`📦 [CompanyDashboard] ${freights.length} fretes da empresa encontrados`);
+      
       // Calcular stats
       const active = freights.filter(f => 
         ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'].includes(f.status)
       );
       const available = freights.filter(f => f.status === 'OPEN');
+      
+      console.log(`✅ [CompanyDashboard] ${active.length} ativos, ${available.length} disponíveis`);
       
       // Ganhos: somar apenas fretes entregues
       const delivered = freights.filter(f => f.status === 'DELIVERED');
@@ -207,15 +212,15 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
       />
 
 
-      {/* Fretes Disponíveis */}
+      {/* Fretes da Empresa */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <MapPin className="h-5 w-5 text-green-600" />
-            Fretes Disponíveis
+            Fretes da Sua Empresa (Abertos)
           </CardTitle>
           <CardDescription>
-            Últimos fretes abertos aguardando motoristas
+            Fretes criados pela sua transportadora aguardando motoristas
           </CardDescription>
         </CardHeader>
         <CardContent>

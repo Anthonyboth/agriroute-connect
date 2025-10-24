@@ -20,6 +20,24 @@ export const useTransportCompany = () => {
         .maybeSingle();
       
       if (error) throw error;
+      
+      // ✅ Se existe company mas role não é TRANSPORTADORA, corrigir
+      if (data && profile.role !== 'TRANSPORTADORA') {
+        console.log('🔧 [useTransportCompany] Corrigindo role para TRANSPORTADORA');
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ role: 'TRANSPORTADORA' })
+          .eq('id', profile.id);
+        
+        if (updateError) {
+          console.error('❌ [useTransportCompany] Erro ao atualizar role:', updateError);
+        } else {
+          console.log('✅ [useTransportCompany] Role atualizado para TRANSPORTADORA');
+          // Refetch profile
+          queryClient.invalidateQueries({ queryKey: ['profile'] });
+        }
+      }
+      
       return data;
     },
     enabled: !!profile?.id,
