@@ -100,10 +100,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   const { isCompanyDriver, isLoading: isLoadingCompany } = useCompanyDriver();
   const location = useLocation();
 
-  // ✅ Não bloquear pelo isLoadingCompany; apenas o carregamento do perfil
-  const isGuardLoading = loading;
-  
-  if (isGuardLoading) {
+  if (loading || isLoadingCompany) {
     return <ComponentLoader />;
   }
 
@@ -249,15 +246,34 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
 // ✅ Componente para autoredirecionar da home "/" para o painel correto
 const AuthedLanding = () => {
   const { isAuthenticated, profile, loading } = useAuth();
-  const isCompany = profile?.role === 'TRANSPORTADORA' || profile?.active_mode === 'TRANSPORTADORA';
+  const [isCheckingCompany, setIsCheckingCompany] = React.useState(false);
+  const [isCompany, setIsCompany] = React.useState(false);
   
-  if (loading) {
+  // Verificar se é transportadora
+  React.useEffect(() => {
+    const checkCompany = async () => {
+      if (profile?.role === 'MOTORISTA') {
+        setIsCheckingCompany(true);
+        const { data } = await supabase
+          .from('transport_companies')
+          .select('id')
+          .eq('profile_id', profile.id)
+          .maybeSingle();
+        
+        const isCompanyUser = !!data || profile.active_mode === 'TRANSPORTADORA';
+        setIsCompany(isCompanyUser);
+        setIsCheckingCompany(false);
+      }
+    };
+    
+    if (profile) {
+      checkCompany();
+    }
+  }, [profile]);
+  
+  // Aguardar resolução
+  if (loading || isCheckingCompany) {
     return <ComponentLoader />;
-  }
-  
-  // Se não autenticado, mostrar Landing normal
-  if (!isAuthenticated || !profile) {
-    return <Landing />;
   }
   
   // Se não autenticado, mostrar Landing normal
@@ -295,9 +311,32 @@ const AuthedLanding = () => {
 
 const RedirectIfAuthed = () => {
   const { isAuthenticated, profile, loading, profiles } = useAuth();
-  const isCompany = profile?.role === 'TRANSPORTADORA' || profile?.active_mode === 'TRANSPORTADORA';
+  const [isCheckingCompany, setIsCheckingCompany] = React.useState(false);
+  const [isCompany, setIsCompany] = React.useState(false);
   
-  if (loading) {
+  // Verificar se é transportadora
+  React.useEffect(() => {
+    const checkCompany = async () => {
+      if (profile?.role === 'MOTORISTA') {
+        setIsCheckingCompany(true);
+        const { data } = await supabase
+          .from('transport_companies')
+          .select('id')
+          .eq('profile_id', profile.id)
+          .maybeSingle();
+        
+        const isCompanyUser = !!data || profile.active_mode === 'TRANSPORTADORA';
+        setIsCompany(isCompanyUser);
+        setIsCheckingCompany(false);
+      }
+    };
+    
+    if (profile) {
+      checkCompany();
+    }
+  }, [profile]);
+  
+  if (loading || isCheckingCompany) {
     return <ComponentLoader />;
   }
   

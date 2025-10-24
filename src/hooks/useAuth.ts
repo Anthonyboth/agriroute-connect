@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { queryWithTimeout } from '@/lib/query-utils';
 import { clearSupabaseAuthStorage } from '@/utils/authRecovery';
 import { toast } from 'sonner';
-import { withLockOrJoin } from '@/utils/globalLocks';
 
 interface UserProfile {
   id: string;
@@ -81,207 +80,149 @@ export const useAuth = () => {
 
   // Memoized fetch function to prevent recreation on every render
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
-    const lockKey = `fetchProfile:${userId}`;
-    const startTime = Date.now();
+    if (fetchingRef.current || !mountedRef.current) return;
     
-    // ✅ GLOBAL LOCK COM JOIN: Prevenir múltiplas chamadas simultâneas
-    const result = await withLockOrJoin(lockKey, async () => {
-      if (fetchingRef.current || !mountedRef.current) return;
-      
-      // Throttle: prevent too frequent calls
-      const now = Date.now();
-      
-      // ✅ Cooldown após timeout: aguardar 20s antes de nova tentativa
-      if (lastTimeoutAt.current > 0 && now - lastTimeoutAt.current < TIMEOUT_COOLDOWN_MS) {
-        if (import.meta.env.DEV) {
-          console.log('[useAuth] Cooldown ativo após timeout. Aguarde...');
-        }
-        if (mountedRef.current) setLoading(false);
-        return;
+    // ✅ Bail-out: não chamar se estiver na rota /auth sem sessão
+    if (window.location.pathname === '/auth' && !force) {
+      if (import.meta.env.DEV) {
+        console.log('[useAuth] Skipping fetch - user on /auth');
       }
-      
-      if (!force && now - lastFetchTimestamp.current < FETCH_THROTTLE_MS) {
-        if (import.meta.env.DEV) {
-          console.log('[useAuth] Fetch throttled');
-        }
-        if (mountedRef.current) setLoading(false);
-        return;
+      return;
+    }
+    
+    // Throttle: prevent too frequent calls
+    const now = Date.now();
+    
+    // ✅ Cooldown após timeout: aguardar 20s antes de nova tentativa
+    if (lastTimeoutAt.current > 0 && now - lastTimeoutAt.current < TIMEOUT_COOLDOWN_MS) {
+      if (import.meta.env.DEV) {
+        console.log('[useAuth] Cooldown ativo após timeout. Aguarde...');
       }
-      lastFetchTimestamp.current = now;
+      return;
+    }
+    
+    if (!force && now - lastFetchTimestamp.current < FETCH_THROTTLE_MS) {
+      if (import.meta.env.DEV) {
+        console.log('[useAuth] Fetch throttled');
+      }
+      return;
+    }
+    lastFetchTimestamp.current = now;
+    
+    fetchingRef.current = true;
+    
+    try {
+      // SECURITY: Removed sensitive logging - user data should not be logged to console
       
-      fetchingRef.current = true;
+      const profilesData = await queryWithTimeout(
+        async () => {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', userId);
+          
+          if (error) throw error;
+          return data;
+        },
+        { 
+          timeoutMs: 12000, 
+          operationName: 'fetchProfile',
+          retries: 0 // ✅ Sem retry interno - nosso throttle/cooldown cuida
+        }
+      );
       
-      try {
-        // ✅ OTIMIZAÇÃO: Seleção enxuta + single row
-        const profilesData = await queryWithTimeout(
-          async () => {
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('id,user_id,full_name,phone,document,role,status,active_mode,selfie_url,email,cpf_cnpj,farm_name,rating')
-              .eq('user_id', userId)
-              .limit(10);
+      if (!mountedRef.current) return;
+      
+      if (profilesData && profilesData.length > 0) {
+        // SECURITY: Removed sensitive logging
+        
+        // Buscar roles de user_roles para cada perfil
+        const profilesWithRoles = await Promise.all(
+          profilesData.map(async (p: any) => {
+            const { data: rolesData } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', p.user_id);
             
-            if (error) throw error;
-            return data;
-          },
-          { 
-            timeoutMs: 25000, // ✅ Timeout aumentado
-            operationName: 'fetchProfile',
-            retries: 1, // ✅ Um único retry
-            retryDelayMs: 1000
-          }
+            return {
+              ...p,
+              roles: rolesData?.map(r => r.role) || []
+            };
+          })
         );
         
-        if (!mountedRef.current) return;
+        setProfiles(profilesWithRoles as UserProfile[]);
         
-        if (profilesData && profilesData.length > 0) {
-          // ✅ OTIMIZAÇÃO: Buscar todas as roles de uma vez
-          const userIds = [...new Set(profilesData.map(p => p.user_id))];
-          const { data: allRolesData } = await supabase
-            .from('user_roles')
-            .select('user_id, role')
-            .in('user_id', userIds);
-          
-          // Criar mapa de roles por user_id
-          const rolesMap = new Map<string, string[]>();
-          allRolesData?.forEach(r => {
-            const existing = rolesMap.get(r.user_id) || [];
-            existing.push(r.role);
-            rolesMap.set(r.user_id, existing);
-          });
-          
-          const profilesWithRoles = profilesData.map((p: any) => ({
-            ...p,
-            roles: rolesMap.get(p.user_id) || []
-          }));
-          
-          setProfiles(profilesWithRoles as UserProfile[]);
-          
-          // Verificar se há um perfil específico salvo no localStorage
-          const savedProfileId = localStorage.getItem('current_profile_id');
-          let activeProfile = profilesWithRoles[0]; // Default para o primeiro perfil
-          
-          if (savedProfileId) {
-            const savedProfile = profilesWithRoles.find(p => p.id === savedProfileId);
-            if (savedProfile) {
-              activeProfile = savedProfile;
-            }
-          }
-          
-          setProfile(activeProfile as UserProfile);
-          
-          const duration = Date.now() - startTime;
-          console.log(`[useAuth] ✅ Perfil carregado em ${duration}ms`);
-        } else {
-          setProfile(null);
-          setProfiles([]);
-          
-          // Auto-create profile only once
-          await tryAutoCreateProfile(userId);
-        }
-      } catch (error) {
-        console.error('[useAuth] Erro ao buscar perfil:', error);
+        // Verificar se há um perfil específico salvo no localStorage
+        const savedProfileId = localStorage.getItem('current_profile_id');
+        let activeProfile = profilesWithRoles[0]; // Default para o primeiro perfil
         
-        if (!mountedRef.current) return;
-        
-        // ✅ Detectar timeout e ativar cooldown + FALLBACK
-        const errorMessage = String((error as any)?.message ?? '');
-        const isTimeout = errorMessage.includes('Timeout') || errorMessage.includes('excedeu');
-        
-        if (isTimeout) {
-          lastTimeoutAt.current = Date.now();
-          console.warn('[useAuth] ⏱️ Timeout detectado. Tentando fallback com refreshSession...');
-          
-          // ✅ FALLBACK: Refresh da sessão e retry
-          try {
-            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-            
-            if (!refreshError && refreshData.session) {
-              console.log('[useAuth] 🔄 Sessão renovada. Reexecutando query...');
-              
-              // Retry com sessão renovada
-              const { data: retryData, error: retryError } = await supabase
-                .from('profiles')
-                .select('id,user_id,full_name,phone,document,role,status,active_mode,selfie_url,email,cpf_cnpj,farm_name,rating')
-                .eq('user_id', userId)
-                .limit(10);
-              
-              if (!retryError && retryData && retryData.length > 0) {
-                // Buscar roles
-                const userIds = [...new Set(retryData.map(p => p.user_id))];
-                const { data: allRolesData } = await supabase
-                  .from('user_roles')
-                  .select('user_id, role')
-                  .in('user_id', userIds);
-                
-                const rolesMap = new Map<string, string[]>();
-                allRolesData?.forEach(r => {
-                  const existing = rolesMap.get(r.user_id) || [];
-                  existing.push(r.role);
-                  rolesMap.set(r.user_id, existing);
-                });
-                
-                const profilesWithRoles = retryData.map((p: any) => ({
-                  ...p,
-                  roles: rolesMap.get(p.user_id) || []
-                }));
-                
-                setProfiles(profilesWithRoles as UserProfile[]);
-                setProfile(profilesWithRoles[0] as UserProfile);
-                
-                const duration = Date.now() - startTime;
-                console.log(`[useAuth] ✅ Perfil carregado via fallback em ${duration}ms`);
-                return; // Sucesso no fallback
-              }
-            }
-          } catch (fallbackError) {
-            console.error('[useAuth] ❌ Fallback também falhou:', fallbackError);
+        if (savedProfileId) {
+          const savedProfile = profilesWithRoles.find(p => p.id === savedProfileId);
+          if (savedProfile) {
+            activeProfile = savedProfile;
           }
         }
         
-        // CRÍTICO: Detectar recursão infinita em RLS e parar o loop
-        const errorCode = (error as any)?.code;
-        const isInfiniteRecursion = errorCode === '42P17' || errorMessage.includes('infinite recursion detected in policy');
-        
-        if (isInfiniteRecursion) {
-          console.error('[useAuth] ⚠️ Recursão infinita detectada em RLS policy. Sistema aguardando correção...');
-          setProfileError({
-            code: 'RLS_RECURSION',
-            message: 'Erro de configuração detectado. Aguarde alguns instantes e recarregue a página.'
-          });
-          setProfile(null);
-          setProfiles([]);
-          setLoading(false);
-          return; // Parar o loop aqui
-        }
-        
+        setProfile(activeProfile as UserProfile);
+        // SECURITY: Removed sensitive profile data logging
+      } else {
         setProfile(null);
         setProfiles([]);
-
-        // Handle auth errors without logging sensitive data
-        const status = (error as any)?.status ?? errorCode ?? (error as any)?.context?.response?.status ?? null;
-        if (status === 401 || status === 403 || errorMessage.includes('sub claim')) {
-          try {
-            localStorage.removeItem('current_profile_id');
-            await supabase.auth.signOut({ scope: 'local' });
-          } catch {}
-          try { clearSupabaseAuthStorage(); } catch {}
-          setUser(null);
-          setSession(null);
-        }
-      } finally {
-        // CRÍTICO: Sempre resetar fetchingRef, mesmo em caso de erro
-        fetchingRef.current = false;
-        if (mountedRef.current) {
-          setLoading(false);
-        }
+        
+        // Auto-create profile only once
+        await tryAutoCreateProfile(userId);
       }
-    }, 25000, 1500); // Timeout do lock, timeout do join
-    
-    // Resultado null = join timeout ou erro - não logar (silencioso)
-    if (result === null) {
-      if (mountedRef.current) setLoading(false);
-      return;
+    } catch (error) {
+      console.error('[useAuth] Erro ao buscar perfil:', error);
+      
+      if (!mountedRef.current) return;
+      
+      // ✅ Detectar timeout e ativar cooldown
+      const errorMessage = String((error as any)?.message ?? '');
+      const isTimeout = errorMessage.includes('Timeout') || errorMessage.includes('excedeu');
+      
+      if (isTimeout) {
+        lastTimeoutAt.current = Date.now();
+        console.warn('[useAuth] ⏱️ Timeout detectado. Cooldown de 20s ativado.');
+      }
+      
+      // CRÍTICO: Detectar recursão infinita em RLS e parar o loop
+      const errorCode = (error as any)?.code;
+      const isInfiniteRecursion = errorCode === '42P17' || errorMessage.includes('infinite recursion detected in policy');
+      
+      if (isInfiniteRecursion) {
+        console.error('[useAuth] ⚠️ Recursão infinita detectada em RLS policy. Sistema aguardando correção...');
+        setProfileError({
+          code: 'RLS_RECURSION',
+          message: 'Erro de configuração detectado. Aguarde alguns instantes e recarregue a página.'
+        });
+        setProfile(null);
+        setProfiles([]);
+        setLoading(false);
+        return; // Parar o loop aqui
+      }
+      
+      setProfile(null);
+      setProfiles([]);
+
+      // Handle auth errors without logging sensitive data
+      const status = (error as any)?.status ?? errorCode ?? (error as any)?.context?.response?.status ?? null;
+      if (status === 401 || status === 403 || errorMessage.includes('sub claim')) {
+        try {
+          localStorage.removeItem('current_profile_id');
+          await supabase.auth.signOut({ scope: 'local' });
+        } catch {}
+        try { clearSupabaseAuthStorage(); } catch {}
+        setUser(null);
+        setSession(null);
+      }
+    } finally {
+      // CRÍTICO: Sempre resetar fetchingRef, mesmo em caso de erro
+      fetchingRef.current = false;
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -442,7 +383,6 @@ export const useAuth = () => {
             return;
           }
           
-          setLoading(true);
           fetchProfile(session.user.id);
         } else {
           setProfile(null);
@@ -454,7 +394,7 @@ export const useAuth = () => {
       }
     );
 
-    // Check for existing session (apenas uma vez, sem duplicar fetchProfile)
+    // Check for existing session (apenas uma vez)
     if (!didInitialFetchRef.current) {
       didInitialFetchRef.current = true;
       
@@ -472,7 +412,7 @@ export const useAuth = () => {
           
           setSession(session);
           setUser(session.user);
-          // ✅ NÃO chamar fetchProfile aqui - onAuthStateChange já chamará com INITIAL_SESSION
+          fetchProfile(session.user.id);
         } else {
           setLoading(false);
           setInitialized(true);
