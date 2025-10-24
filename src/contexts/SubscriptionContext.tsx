@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { useLocation } from 'react-router-dom';
 
 export type SubscriptionTier = 'FREE' | 'ESSENTIAL' | 'PROFESSIONAL';
 
@@ -41,6 +42,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
   children 
 }) => {
   const { user } = useAuth();
+  const location = useLocation();
+  const mountedRef = useRef(true);
+  const inFlightRef = useRef(false);
+  
   const [state, setState] = useState<SubscriptionState>({
     subscribed: false,
     subscriptionTier: 'FREE',
@@ -50,8 +55,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
   });
   const [lastErrorTime, setLastErrorTime] = useState<number>(0);
 
-  const checkSubscription = async () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const checkSubscription = useCallback(async () => {
     if (!user) {
+      if (!mountedRef.current) return;
       setState(prev => ({ ...prev, loading: false, subscriptionTier: 'FREE' }));
       return;
     }
@@ -59,11 +72,25 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     // Evitar chamadas se a sessão está expirada
     const session = await supabase.auth.getSession();
     if (!session.data.session) {
+      if (!mountedRef.current) return;
       setState(prev => ({ ...prev, loading: false, subscriptionTier: 'FREE' }));
       return;
     }
 
+    // Gate: não executar na rota /auth
+    if (location.pathname === '/auth') {
+      return;
+    }
+
+    // Prevenir chamadas concorrentes
+    if (inFlightRef.current) {
+      return;
+    }
+
+    inFlightRef.current = true;
+
     try {
+      if (!mountedRef.current) return;
       setState(prev => ({ ...prev, loading: true }));
       
       const { data, error } = await supabase.functions.invoke('check-subscription', {
@@ -74,6 +101,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
       
       if (error) throw error;
 
+      if (!mountedRef.current) return;
       setState({
         subscribed: data.subscribed || false,
         subscriptionTier: data.subscription_tier || 'FREE',
@@ -83,6 +111,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
       });
     } catch (error) {
       console.error('Error checking subscription:', error);
+      
+      if (!mountedRef.current) return;
+      
       // Sempre permitir acesso com tier FREE em caso de erro
       setState(prev => ({ 
         ...prev, 
@@ -92,11 +123,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         userCategory: null
       }));
       
-      // Só notifica o usuário em erros críticos de autenticação
+      // Só notifica o usuário em erros críticos de autenticação E fora da rota /auth
       const status = (error as any)?.status ?? (error as any)?.context?.response?.status ?? null;
-      if (status === 401 || status === 403) {
+      if ((status === 401 || status === 403) && location.pathname !== '/auth') {
         const now = Date.now();
-        if (now - lastErrorTime > 30000) { // Reduzido de 10s para 30s
+        if (now - lastErrorTime > 30000) {
           setLastErrorTime(now);
           toast.error('Sua sessão expirou. Faça login novamente.', {
             action: {
@@ -107,10 +138,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
       // Para outros erros (como 500), não notifica o usuário para não interromper o fluxo
+    } finally {
+      inFlightRef.current = false;
     }
-  };
+  }, [user, location.pathname, lastErrorTime]);
 
-  const createCheckout = async (category: string, planType: 'essential' | 'professional') => {
+  const createCheckout = useCallback(async (category: string, planType: 'essential' | 'professional') => {
     if (!user) {
       toast.error('Você precisa estar logado para assinar');
       return;
@@ -129,11 +162,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
       toast.success('Redirecionando para o checkout...');
     } catch (error) {
       console.error('Error creating checkout:', error);
-      toast.error('Erro ao criar sessão de checkout');
+      if (location.pathname !== '/auth') {
+        toast.error('Erro ao criar sessão de checkout');
+      }
     }
-  };
+  }, [user, location.pathname]);
 
-  const openCustomerPortal = async () => {
+  const openCustomerPortal = useCallback(async () => {
     if (!user) {
       toast.error('Você precisa estar logado');
       return;
@@ -150,9 +185,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
       toast.success('Abrindo portal do cliente...');
     } catch (error) {
       console.error('Error opening customer portal:', error);
-      toast.error('Erro ao abrir portal do cliente');
+      if (location.pathname !== '/auth') {
+        toast.error('Erro ao abrir portal do cliente');
+      }
     }
-  };
+  }, [user, location.pathname]);
 
   const getAvailablePlans = () => {
     const category = state.userCategory || 'prestador';
@@ -211,17 +248,17 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, [user]);
 
+  const value = useMemo(() => ({
+    ...state,
+    checkSubscription,
+    createCheckout,
+    openCustomerPortal,
+    canAccessFeature,
+    getAvailablePlans,
+  }), [state, checkSubscription, createCheckout, openCustomerPortal]);
+
   return (
-    <SubscriptionContext.Provider 
-      value={{
-        ...state,
-        checkSubscription,
-        createCheckout,
-        openCustomerPortal,
-        canAccessFeature,
-        getAvailablePlans,
-      }}
-    >
+    <SubscriptionContext.Provider value={value}>
       {children}
     </SubscriptionContext.Provider>
   );

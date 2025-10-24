@@ -447,15 +447,15 @@ const App = () => (
   <ErrorBoundary>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <QueryClientProvider client={queryClient}>
-        <SubscriptionProvider>
-          <RatingProvider>
-            <TooltipProvider>
-              <BrowserRouter
-                future={{
-                  v7_startTransition: true,
-                  v7_relativeSplatPath: true
-                }}
-              >
+        <RatingProvider>
+          <TooltipProvider>
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true
+              }}
+            >
+              <SubscriptionProvider>
             <ScrollToTop />
             <DeviceSetup />
             <SessionManager />
@@ -588,13 +588,13 @@ const App = () => (
           <PermissionPrompts />
           <Toaster />
           <Sonner />
-        </BrowserRouter>
-      </TooltipProvider>
-          </RatingProvider>
-      </SubscriptionProvider>
+        </SubscriptionProvider>
+      </BrowserRouter>
+    </TooltipProvider>
+      </RatingProvider>
     </QueryClientProvider>
-    </ThemeProvider>
-  </ErrorBoundary>
+  </ThemeProvider>
+</ErrorBoundary>
 );
 
 export default App;
