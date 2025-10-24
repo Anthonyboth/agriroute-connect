@@ -96,6 +96,7 @@ export const useAuth = () => {
         if (import.meta.env.DEV) {
           console.log('[useAuth] Cooldown ativo após timeout. Aguarde...');
         }
+        if (mountedRef.current) setLoading(false);
         return;
       }
       
@@ -103,6 +104,7 @@ export const useAuth = () => {
         if (import.meta.env.DEV) {
           console.log('[useAuth] Fetch throttled');
         }
+        if (mountedRef.current) setLoading(false);
         return;
       }
       lastFetchTimestamp.current = now;
@@ -436,6 +438,7 @@ export const useAuth = () => {
             return;
           }
           
+          setLoading(true);
           fetchProfile(session.user.id);
         } else {
           setProfile(null);
