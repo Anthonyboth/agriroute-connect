@@ -18,8 +18,22 @@ export const useAvailableDrivers = (companyId: string) => {
 
       const excludeIds = affiliatedIds?.map(d => d.driver_profile_id) || [];
 
-      // Buscar motoristas autônomos não afiliados
-      const query = supabase
+      // Buscar user_ids com role 'driver'
+      const { data: driverRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'driver');
+
+      if (rolesError) throw rolesError;
+
+      const driverUserIds = driverRoles?.map(dr => dr.user_id) || [];
+
+      if (driverUserIds.length === 0) {
+        return [];
+      }
+
+      // Buscar profiles dos motoristas
+      const { data: drivers, error: profilesError } = await supabase
         .from('profiles')
         .select(`
           id,
@@ -31,19 +45,19 @@ export const useAvailableDrivers = (companyId: string) => {
           rating,
           total_ratings
         `)
-        .eq('role', 'MOTORISTA')
+        .in('id', driverUserIds)
+        .eq('status', 'APPROVED')
         .order('rating', { ascending: false, nullsFirst: false })
         .order('total_ratings', { ascending: false });
 
-      // Excluir motoristas já afiliados
-      if (excludeIds.length > 0) {
-        query.not('id', 'in', `(${excludeIds.map(id => `'${id}'`).join(',')})`);
-      }
+      if (profilesError) throw profilesError;
 
-      const { data, error } = await query;
+      // Filtrar motoristas já afiliados
+      const filteredDrivers = excludeIds.length > 0
+        ? drivers?.filter(driver => !excludeIds.includes(driver.id)) || []
+        : drivers || [];
 
-      if (error) throw error;
-      return data || [];
+      return filteredDrivers;
     },
     enabled: !!companyId,
   });
