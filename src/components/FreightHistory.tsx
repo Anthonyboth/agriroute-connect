@@ -163,7 +163,7 @@ export const FreightHistory: React.FC = () => {
   const filteredFreights = freights.filter(freight => {
     if (activeTab === 'all') return true;
     if (activeTab === 'active') return ['OPEN', 'ACCEPTED', 'IN_TRANSIT'].includes(freight.status);
-    if (activeTab === 'completed') return ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION'].includes(freight.status);
+    if (activeTab === 'completed') return ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'COMPLETED'].includes(freight.status);
     if (activeTab === 'cancelled') return freight.status === 'CANCELLED';
     return true;
   });
@@ -217,7 +217,7 @@ export const FreightHistory: React.FC = () => {
                   value="completed"
                   className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
                 >
-                  Concluídos ({freights.filter(f => ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION'].includes(f.status)).length})
+                  Concluídos ({freights.filter(f => ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'COMPLETED'].includes(f.status)).length})
                 </TabsTrigger>
                 <TabsTrigger 
                   value="cancelled"
