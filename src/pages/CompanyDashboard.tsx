@@ -118,7 +118,6 @@ const CompanyDashboard = () => {
   const { profile, profiles, switchProfile, signOut } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const tabsScrollRef = React.useRef<HTMLDivElement>(null);
@@ -127,6 +126,20 @@ const CompanyDashboard = () => {
   const [driverFileModalOpen, setDriverFileModalOpen] = useState(false);
   const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
   const { company, isLoadingCompany, drivers, pendingDrivers } = useTransportCompany();
+  
+  // ✅ Inicializar activeTab com marketplace por padrão para empresas aprovadas
+  const getInitialTab = () => {
+    // Recuperar última aba do localStorage
+    const storedTab = localStorage.getItem('company_active_tab');
+    if (storedTab) return storedTab;
+    
+    // Se empresa aprovada, abrir marketplace por padrão
+    if (company?.status === 'APPROVED') return 'marketplace';
+    
+    return 'overview';
+  };
+  
+  const [activeTab, setActiveTab] = useState(getInitialTab());
   
   // ✅ Obter permissões do motorista para passar aos componentes filhos
   const { isAffiliated, companyId } = useCompanyDriver();
@@ -137,6 +150,16 @@ const CompanyDashboard = () => {
     profile?.id || '', 
     'TRANSPORTADORA'
   );
+  
+  // ✅ Persistir tab ativo no localStorage e ajustar para marketplace quando aprovado
+  useEffect(() => {
+    localStorage.setItem('company_active_tab', activeTab);
+    
+    // Se empresa foi recém-aprovada e está em overview sem fretes, sugerir marketplace
+    if (company?.status === 'APPROVED' && activeTab === 'overview') {
+      console.log('✅ [CompanyDashboard] Empresa aprovada - Marketplace disponível');
+    }
+  }, [activeTab, company?.status]);
   
   const refetchCompany = async () => {
     // Força re-fetch buscando company novamente
@@ -478,10 +501,6 @@ const CompanyDashboard = () => {
       <div className="container mx-auto px-4 pb-8">
         <SubscriptionExpiryNotification />
         <FreightLimitTracker hideForAffiliatedDriver={true} />
-        
-        <div className="mb-6">
-          <PendingRatingsPanel userRole="MOTORISTA" userProfileId={profile?.id || ''} />
-        </div>
 
         {/* Painel de aprovação de veículos pendentes */}
         {company && (
@@ -533,6 +552,28 @@ const CompanyDashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
           <TabsContent value="overview" className="mt-6">
+            {/* Banner CTA quando empresa aprovada sem fretes próprios */}
+            {company?.status === 'APPROVED' && (
+              <Alert className="mb-6 bg-primary/5 border-primary/20">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <AlertTitle className="text-primary">Marketplace Disponível!</AlertTitle>
+                <AlertDescription className="flex items-center justify-between gap-4">
+                  <span className="text-muted-foreground">
+                    Explore fretes disponíveis na plataforma e conecte-se com produtores
+                  </span>
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={() => setActiveTab('marketplace')}
+                    className="whitespace-nowrap"
+                  >
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Ver Marketplace
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <CompanyDashboardComponent onNavigateToReport={handleNavigateToReport} />
           </TabsContent>
 

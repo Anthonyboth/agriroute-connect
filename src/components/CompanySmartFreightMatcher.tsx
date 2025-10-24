@@ -58,12 +58,13 @@ export const CompanySmartFreightMatcher: React.FC = () => {
     try {
       console.log('🔍 [Marketplace] Buscando fretes para company:', company.id);
       
-      // Buscar fretes do MARKETPLACE (sem company_id atribuído, OPEN ou ACCEPTED)
+      // Buscar fretes do MARKETPLACE (sem company_id atribuído)
+      // Incluir: OPEN, ACCEPTED, PENDING, IN_NEGOTIATION
       const { data: freights, error } = await supabase
         .from('freights')
         .select('*')
         .is('company_id', null) // ✅ Fretes sem transportadora atribuída
-        .in('status', ['OPEN', 'ACCEPTED']) // ✅ Fretes abertos ou parcialmente aceitos
+        .in('status', ['OPEN', 'ACCEPTED', 'PENDING', 'IN_NEGOTIATION']) // ✅ Todos status disponíveis
         .order('created_at', { ascending: false })
         .limit(50);
 
