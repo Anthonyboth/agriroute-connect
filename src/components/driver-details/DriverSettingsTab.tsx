@@ -32,7 +32,7 @@ export const DriverSettingsTab = ({ driverData, companyId }: DriverSettingsTabPr
   const queryClient = useQueryClient();
   const { leaveCompany, updateDriverAutonomyPermission } = useTransportCompany();
 
-  const { data: permissions, isLoading } = useQuery({
+  const { data: permissions, isLoading, error: permissionsError } = useQuery({
     queryKey: ['driver-permissions', driverProfileId, companyId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -43,10 +43,20 @@ export const DriverSettingsTab = ({ driverData, companyId }: DriverSettingsTabPr
         .eq('status', 'ACTIVE')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[DriverSettings] Erro ao buscar permissões:', error);
+        throw error;
+      }
+      console.log('[DriverSettings] Permissões carregadas:', data);
       return data;
     },
   });
+
+  // Usar driverData como fallback se permissions query falhar
+  const effectivePermissions = permissions || {
+    can_accept_freights: driverData?.can_accept_freights ?? false,
+    can_manage_vehicles: driverData?.can_manage_vehicles ?? false,
+  };
 
   // Buscar permissão de autonomia do tracking
   const { data: autonomyPermission } = useQuery({
@@ -87,17 +97,6 @@ export const DriverSettingsTab = ({ driverData, companyId }: DriverSettingsTabPr
     return <Skeleton className="h-64 w-full" />;
   }
 
-  if (!permissions) {
-    return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <Settings2 className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium">Configurações não disponíveis</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Tabs defaultValue="permissions" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
@@ -130,7 +129,7 @@ export const DriverSettingsTab = ({ driverData, companyId }: DriverSettingsTabPr
             </div>
             <Switch
               id="accept-freights"
-              checked={permissions.can_accept_freights || false}
+              checked={effectivePermissions.can_accept_freights || false}
               onCheckedChange={(checked) =>
                 updatePermission.mutate({ field: 'can_accept_freights', value: checked })
               }
@@ -150,7 +149,7 @@ export const DriverSettingsTab = ({ driverData, companyId }: DriverSettingsTabPr
             </div>
             <Switch
               id="manage-vehicles"
-              checked={permissions.can_manage_vehicles || false}
+              checked={effectivePermissions.can_manage_vehicles || false}
               onCheckedChange={(checked) =>
                 updatePermission.mutate({ field: 'can_manage_vehicles', value: checked })
               }
