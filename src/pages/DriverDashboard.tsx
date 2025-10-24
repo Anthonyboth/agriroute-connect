@@ -726,8 +726,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       
       // Filtrar fretes que já foram concluídos ou cancelados
       const filteredOngoing = dedupedOngoing.filter((item: any) => {
-        // Sempre excluir DELIVERED e CANCELLED
-        if (['DELIVERED', 'CANCELLED', 'COMPLETED'].includes(item.status)) {
+        // Sempre excluir status finais
+        if (['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'CANCELLED', 'COMPLETED'].includes(item.status)) {
           console.log(`🔍 [DriverDashboard] Excluindo frete ${item.id} - Status: ${item.status}`);
           return false;
         }
