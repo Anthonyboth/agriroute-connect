@@ -1328,21 +1328,45 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     return () => clearTimeout(timeoutId);
   }, [profile?.id]);
 
+  // ✅ Status finais que devem ser excluídos de "Em Andamento"
+  const FINAL_STATUSES = ['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
+  
+  // ✅ Filtrar assignments ativos (baseado no status do FRETE, não do assignment)
+  const activeAssignments = useMemo(() => {
+    const activeStatuses = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'IN_PROGRESS'];
+    
+    return (myAssignments || []).filter(assignment => {
+      if (!assignment) return false;
+      
+      // 🔥 PRIORIDADE 1: Se freight.status existe, ele é a fonte da verdade
+      if (assignment.freight?.status) {
+        // Se está em status final, excluir
+        if (FINAL_STATUSES.includes(assignment.freight.status)) {
+          return false;
+        }
+        // Se não está em status ativo, excluir
+        if (!activeStatuses.includes(assignment.freight.status)) {
+          return false;
+        }
+        // Caso contrário, incluir
+        return true;
+      }
+      
+      // 🔥 FALLBACK: Se freight.status não existe, usar assignment.status
+      return assignment.status && activeStatuses.includes(assignment.status);
+    });
+  }, [myAssignments]);
+
   // Calcular estatísticas - memoizado para performance
   const statistics = useMemo(() => {
     const acceptedProposals = myProposals.filter(p => p.status === 'ACCEPTED');
     const pendingProposalsCount = myProposals.filter(p => p.status === 'PENDING').length;
-
-    // Status ativos (não incluir DELIVERED_PENDING_CONFIRMATION ou DELIVERED)
-    const activeStatuses = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'IN_PROGRESS'];
     
     // Contar fretes ativos diretos (sem assignments, para evitar dupla contagem)
     const activeFreightsCount = visibleOngoing.length;
     
-    // Contar assignments ativos (contratos multi-carreta)
-    const activeAssignmentsCount = (myAssignments || []).filter(assignment => 
-      assignment?.status && activeStatuses.includes(assignment.status)
-    ).length;
+    // Contar assignments ativos (usando a lista filtrada)
+    const activeAssignmentsCount = activeAssignments.length;
     
     // Total de viagens ativas = fretes diretos + assignments
     const activeTripsCount = activeFreightsCount + activeAssignmentsCount;
@@ -1359,7 +1383,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       totalCheckins: totalCheckins,
       pendingProposals: pendingProposalsCount,
     };
-  }, [myProposals, availableFreights, totalCheckins, visibleOngoing, myAssignments]);
+  }, [myProposals, availableFreights, totalCheckins, visibleOngoing, activeAssignments]);
 
   const handleLogout = async () => {
     try {
@@ -2059,21 +2083,21 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               <div className="flex justify-between items-center">
                 <h3 className="text-base font-semibold">Em Andamento</h3>
                 <Badge variant="secondary" className="text-xs">
-                  {(myAssignments?.length || 0) + visibleOngoing.length}
+                  {activeAssignments.length + visibleOngoing.length}
                 </Badge>
               </div>
             </div>
             
             {/* Assignments (Fretes com valores individualizados) */}
-            {myAssignments && myAssignments.length > 0 && (
+            {activeAssignments && activeAssignments.length > 0 && (
               <div className="space-y-4 mb-6">
                 <div className="flex items-center gap-2">
                   <Truck className="h-4 w-4 text-green-600" />
                   <h4 className="text-sm font-semibold text-green-600">Seus Contratos Ativos</h4>
-                  <Badge variant="outline" className="text-xs">{myAssignments.length}</Badge>
+                  <Badge variant="outline" className="text-xs">{activeAssignments.length}</Badge>
                 </div>
                 <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando lista...</div>}>
-                  {myAssignments && myAssignments.length > 0 && myAssignments.map((assignment) => (
+                  {activeAssignments.map((assignment) => (
                     assignment?.id ? (
                       <MyAssignmentCard
                         key={`assignment-${assignment.id}-${assignment.freight_id}`}
