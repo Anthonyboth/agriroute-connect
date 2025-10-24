@@ -20,7 +20,8 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Clock
+  Clock,
+  RefreshCw
 } from 'lucide-react';
 import { FreightChat } from './FreightChat';
 import { getFreightStatusLabel } from '@/lib/freight-status';
@@ -58,6 +59,30 @@ export const FreightHistory: React.FC = () => {
   const [selectedFreight, setSelectedFreight] = useState<Freight | null>(null);
   const [showChatDialog, setShowChatDialog] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [reopening, setReopening] = useState(false);
+
+  const handleReopenFreight = async (freightId: string) => {
+    if (reopening) return;
+    
+    setReopening(true);
+    try {
+      const { data, error } = await supabase.rpc('reopen_freight', { 
+        p_freight_id: freightId 
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Frete reaberto com sucesso!');
+      
+      // Atualizar lista
+      fetchFreights();
+    } catch (error: any) {
+      console.error('Erro ao reabrir frete:', error);
+      toast.error(error.message || 'Erro ao reabrir frete');
+    } finally {
+      setReopening(false);
+    }
+  };
 
   useEffect(() => {
     if (profile?.id) {
@@ -313,6 +338,20 @@ export const FreightHistory: React.FC = () => {
                             <MessageSquare className="h-4 w-4 mr-2" />
                             Chat
                           </Button>
+                          
+                          {/* Botão Reabrir Frete - apenas para produtores em fretes DELIVERED */}
+                          {profile?.role === 'PRODUTOR' && freight.status === 'DELIVERED' && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleReopenFreight(freight.id)}
+                              disabled={reopening}
+                              className="flex-1"
+                            >
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Reabrir Frete
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

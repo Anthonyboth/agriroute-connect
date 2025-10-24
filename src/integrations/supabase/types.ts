@@ -2413,6 +2413,7 @@ export type Database = {
           vehicle_type_required:
             | Database["public"]["Enums"]["vehicle_type"]
             | null
+          visibility_filter: string | null
           weight: number
         }
         Insert: {
@@ -2493,6 +2494,7 @@ export type Database = {
           vehicle_type_required?:
             | Database["public"]["Enums"]["vehicle_type"]
             | null
+          visibility_filter?: string | null
           weight: number
         }
         Update: {
@@ -2573,6 +2575,7 @@ export type Database = {
           vehicle_type_required?:
             | Database["public"]["Enums"]["vehicle_type"]
             | null
+          visibility_filter?: string | null
           weight?: number
         }
         Relationships: [
@@ -5985,18 +5988,16 @@ export type Database = {
           delivery_date: string
           destination_address: string
           destination_city: string
-          destination_city_id: string
           destination_state: string
+          distance_km: number
           id: string
           origin_address: string
           origin_city: string
-          origin_city_id: string
           origin_state: string
           pickup_date: string
           price: number
-          producer_id: string
           service_type: string
-          status: Database["public"]["Enums"]["freight_status"]
+          status: string
           urgency: string
           weight: number
         }[]
@@ -6526,6 +6527,7 @@ export type Database = {
         Returns: Json
       }
       process_telegram_queue: { Args: never; Returns: Json }
+      reopen_freight: { Args: { p_freight_id: string }; Returns: string }
       sanitize_document: { Args: { doc: string }; Returns: string }
       search_cities: {
         Args: { limit_count?: number; search_term: string }

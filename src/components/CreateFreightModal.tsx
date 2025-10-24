@@ -69,6 +69,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
     delivery_observations: '',
     payment_method: 'DIRETO',
     required_trucks: '1',
+    visibility_filter: 'ALL' as 'ALL' | 'TRANSPORTADORAS' | 'AUTONOMOS' | 'AVALIACAO_3' | 'AVALIACAO_4',
     guest_name: '',
     guest_email: '',
     guest_phone: '',
@@ -443,6 +444,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
         vehicle_type_required: (formData.vehicle_type_required || null) as any,
         vehicle_axles_required: formData.vehicle_axles_required ? parseInt(formData.vehicle_axles_required) : null,
         high_performance: formData.high_performance || false,
+        visibility_filter: formData.service_type === 'CARGA' ? formData.visibility_filter : 'ALL',
         status: 'OPEN' as const,
         // Adicionar metadata para tracking
         metadata: {
@@ -561,6 +563,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
         delivery_observations: '',
         payment_method: 'DIRETO',
         required_trucks: '1',
+        visibility_filter: 'ALL' as 'ALL' | 'TRANSPORTADORAS' | 'AUTONOMOS' | 'AVALIACAO_3' | 'AVALIACAO_4',
         guest_name: '',
         guest_email: '',
         guest_phone: '',
@@ -1024,6 +1027,99 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          )}
+
+          {/* Filtro de Visibilidade - apenas para CARGA */}
+          {formData.service_type === 'CARGA' && (
+            <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-semibold">
+                  Quem pode ver este frete?
+                </Label>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="visibility-all"
+                    name="visibility_filter"
+                    value="ALL"
+                    checked={formData.visibility_filter === 'ALL'}
+                    onChange={(e) => handleInputChange('visibility_filter', e.target.value)}
+                    className="h-4 w-4 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="visibility-all" className="cursor-pointer font-normal">
+                    ✅ <strong>Todos</strong> podem ver o frete (Recomendado)
+                  </Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="visibility-transportadoras"
+                    name="visibility_filter"
+                    value="TRANSPORTADORAS"
+                    checked={formData.visibility_filter === 'TRANSPORTADORAS'}
+                    onChange={(e) => handleInputChange('visibility_filter', e.target.value)}
+                    className="h-4 w-4 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="visibility-transportadoras" className="cursor-pointer font-normal">
+                    🏢 Somente transportadoras
+                  </Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="visibility-autonomos"
+                    name="visibility_filter"
+                    value="AUTONOMOS"
+                    checked={formData.visibility_filter === 'AUTONOMOS'}
+                    onChange={(e) => handleInputChange('visibility_filter', e.target.value)}
+                    className="h-4 w-4 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="visibility-autonomos" className="cursor-pointer font-normal">
+                    🚛 Somente motoristas autônomos
+                  </Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="visibility-avaliacao-3"
+                    name="visibility_filter"
+                    value="AVALIACAO_3"
+                    checked={formData.visibility_filter === 'AVALIACAO_3'}
+                    onChange={(e) => handleInputChange('visibility_filter', e.target.value)}
+                    className="h-4 w-4 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="visibility-avaliacao-3" className="cursor-pointer font-normal">
+                    ⭐⭐⭐ Transportadoras e autônomos com nota ≥ 3
+                  </Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="visibility-avaliacao-4"
+                    name="visibility_filter"
+                    value="AVALIACAO_4"
+                    checked={formData.visibility_filter === 'AVALIACAO_4'}
+                    onChange={(e) => handleInputChange('visibility_filter', e.target.value)}
+                    className="h-4 w-4 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="visibility-avaliacao-4" className="cursor-pointer font-normal">
+                    ⭐⭐⭐⭐ Transportadoras e autônomos com nota ≥ 4
+                  </Label>
+                </div>
+              </div>
+              
+              <p className="text-xs text-muted-foreground mt-2">
+                💡 Filtre por tipo de motorista ou avaliação para encontrar o transportador ideal.
+              </p>
             </div>
           )}
 
