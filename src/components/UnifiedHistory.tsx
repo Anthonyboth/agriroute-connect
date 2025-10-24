@@ -10,13 +10,17 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface UnifiedHistoryProps {
   userRole: 'MOTORISTA' | 'PRODUTOR';
+  initialTab?: 'freights' | 'services';
 }
 
-export const UnifiedHistory: React.FC<UnifiedHistoryProps> = ({ userRole }) => {
+export const UnifiedHistory: React.FC<UnifiedHistoryProps> = ({ 
+  userRole, 
+  initialTab = 'freights' 
+}) => {
   const { profile } = useAuth();
   const [freightCount, setFreightCount] = useState(0);
   const [serviceCount, setServiceCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<'freights' | 'services'>('freights');
+  const [activeTab, setActiveTab] = useState<'freights' | 'services'>(initialTab);
 
   useEffect(() => {
     if (!profile?.id) return;

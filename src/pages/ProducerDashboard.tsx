@@ -1034,15 +1034,7 @@ const ProducerDashboard = () => {
             iconColor="text-teal-500"
             label="Serviços"
             value={statistics.openServices || 0}
-            onClick={() => {
-              setActiveTab('history');
-              setTimeout(() => {
-                const servicesTab = document.querySelector('[data-value="services"]') as HTMLElement;
-                if (servicesTab) {
-                  servicesTab.click();
-                }
-              }, 100);
-            }}
+            onClick={() => setActiveTab('history')}
           />
         </div>
 
