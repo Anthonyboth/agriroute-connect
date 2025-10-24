@@ -101,6 +101,7 @@ const COMPANY_TABS = [
   { value: 'scheduled', label: 'Agendamentos', shortLabel: 'Agend', icon: Calendar },
   { value: 'active', label: 'Em Andamento', shortLabel: 'Ativo', icon: Navigation },
   { value: 'proposals', label: 'Propostas', shortLabel: 'Prop', icon: FileText },
+  { value: 'services', label: 'Serviços', shortLabel: 'Serv', icon: Wrench },
   { value: 'payments', label: 'Pagamentos', shortLabel: 'Pag', icon: DollarSign },
   { value: 'areas-ai', label: 'Áreas IA', shortLabel: 'Áreas', icon: Target },
   { value: 'cities', label: 'Cidades', shortLabel: 'Cid', icon: MapPin },
@@ -674,6 +675,25 @@ const CompanyDashboard = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="services" className="mt-6">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wrench className="h-5 w-5 text-primary" />
+                    Tipos de Frete que sua Transportadora Aceita
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Configure os tipos de frete que sua transportadora está preparada para realizar. Isso ajuda no matching automático com clientes.
+                  </p>
+                  <ServiceTypeManager />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="payments" className="mt-6">
