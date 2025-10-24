@@ -28,151 +28,157 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
     queryFn: async () => {
       const allConversations: ChatConversation[] = [];
 
-      // 1. FRETES COM CHAT - Query refatorada em 2 etapas para evitar 400
+      // 1. FRETES COM CHAT - Query refatorada em 3 etapas para evitar 400
       if (['MOTORISTA', 'MOTORISTA_AFILIADO', 'PRODUTOR'].includes(userRole)) {
-        // Etapa 1: Buscar IDs dos fretes do usuário
-        const { data: userFreights } = await supabase
+        // Etapa 1: Buscar fretes básicos do usuário
+        const { data: userFreights, error: freightsError } = await supabase
           .from('freights')
-          .select('id')
+          .select('id, producer_id, driver_id, product_type, origin_city, destination_city')
           .or(
             userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO'
               ? `driver_id.eq.${userProfileId}`
               : `producer_id.eq.${userProfileId}`
           );
 
-        const freightIds = (userFreights || []).map(f => f.id);
+        if (freightsError) {
+          console.error('[useUnifiedChats] Erro ao buscar fretes:', freightsError);
+        }
+
+        const freightIds = (userFreights || []).map((f: any) => f.id);
 
         if (freightIds.length > 0) {
-          // Etapa 2: Buscar mensagens desses fretes
-          const { data: freightChats } = await supabase
+          // Etapa 2: Buscar mensagens SEM JOINS
+          const { data: messages } = await supabase
             .from('freight_messages')
-            .select(`
-              freight_id,
-              message,
-              created_at,
-              sender_id,
-              read_at,
-              chat_closed_by,
-              freights!inner(
-                id,
-                product_type,
-                origin_city,
-                destination_city,
-                producer_id,
-                driver_id,
-                profiles!freights_producer_id_fkey(full_name),
-                driver:profiles!freights_driver_id_fkey(full_name)
-              )
-            `)
+            .select('freight_id, message, created_at, sender_id, read_at, chat_closed_by')
             .in('freight_id', freightIds)
             .order('created_at', { ascending: false });
 
-          // Agrupar por freight_id
-          const freightMap = new Map();
-          freightChats?.forEach((msg: any) => {
-            const freightId = msg.freight_id;
-            if (!freightMap.has(freightId)) {
-              const freight = msg.freights;
+          // Etapa 3: Buscar perfis necessários
+          const producerIds = [...new Set((userFreights || []).map((f: any) => f.producer_id).filter(Boolean))];
+          const driverIds = [...new Set((userFreights || []).map((f: any) => f.driver_id).filter(Boolean))];
+          
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', [...producerIds, ...driverIds]);
+
+          // Criar mapa de perfis para lookup rápido
+          const profileMap = new Map(profiles?.map((p: any) => [p.id, p]) || []);
+          const freightMap = new Map((userFreights || []).map((f: any) => [f.id, f]) || []);
+
+          // Agrupar mensagens por freight_id
+          const conversationMap = new Map();
+          messages?.forEach((msg: any) => {
+            const freight = freightMap.get(msg.freight_id);
+            if (!freight) return;
+
+            if (!conversationMap.has(msg.freight_id)) {
+              const producerProfile = profileMap.get(freight.producer_id);
+              const driverProfile = profileMap.get(freight.driver_id);
               const isClosed = msg.chat_closed_by?.[userProfileId] === true;
-              const isUnread = !msg.read_at && msg.sender_id !== userProfileId;
               
-              freightMap.set(freightId, {
-                id: `freight-${freightId}`,
+              conversationMap.set(msg.freight_id, {
+                id: `freight-${msg.freight_id}`,
                 type: 'FREIGHT' as const,
                 title: `Frete: ${freight.product_type} - ${freight.origin_city} → ${freight.destination_city}`,
                 lastMessage: msg.message,
                 lastMessageTime: msg.created_at,
                 unreadCount: 0,
                 otherParticipant: {
-                  name:
-                    userRole === 'PRODUTOR'
-                      ? freight.driver?.full_name || 'Motorista'
-                      : freight.profiles?.full_name || 'Produtor',
+                  name: userRole === 'PRODUTOR'
+                    ? driverProfile?.full_name || 'Motorista'
+                    : producerProfile?.full_name || 'Produtor',
                 },
                 metadata: { freightId: freight.id },
                 isClosed,
               });
             }
             
-            const conv = freightMap.get(freightId);
+            const conv = conversationMap.get(msg.freight_id);
             if (!msg.read_at && msg.sender_id !== userProfileId) {
               conv.unreadCount++;
             }
           });
           
-          allConversations.push(...Array.from(freightMap.values()));
+          allConversations.push(...Array.from(conversationMap.values()));
         }
       }
 
-      // 2. SERVIÇOS - Query refatorada em 2 etapas
+      // 2. SERVIÇOS - Query refatorada em 3 etapas
       if (['PRODUTOR', 'PRESTADOR_SERVICO'].includes(userRole)) {
-        // Etapa 1: Buscar IDs dos serviços do usuário
-        const { data: userServices } = await supabase
+        // Etapa 1: Buscar serviços básicos do usuário
+        const { data: userServices, error: servicesError } = await supabase
           .from('service_requests')
-          .select('id')
+          .select('id, service_type, client_id, provider_id')
           .or(
             userRole === 'PRESTADOR_SERVICO'
               ? `provider_id.eq.${userProfileId}`
               : `client_id.eq.${userProfileId}`
           );
 
-        const serviceIds = (userServices || []).map(s => s.id);
+        if (servicesError) {
+          console.error('[useUnifiedChats] Erro ao buscar serviços:', servicesError);
+        }
+
+        const serviceIds = (userServices || []).map((s: any) => s.id);
 
         if (serviceIds.length > 0) {
-          // Etapa 2: Buscar mensagens desses serviços
-          const { data: serviceChats } = await supabase
+          // Etapa 2: Buscar mensagens SEM JOINS
+          const { data: messages } = await supabase
             .from('service_messages')
-            .select(`
-              service_request_id,
-              message,
-              created_at,
-              sender_id,
-              read_at,
-              chat_closed_by,
-              service_requests!inner(
-                id,
-                service_type,
-                client_id,
-                provider_id,
-                client:profiles!service_requests_client_id_fkey(full_name),
-                provider:profiles!service_requests_provider_id_fkey(full_name)
-              )
-            `)
+            .select('service_request_id, message, created_at, sender_id, read_at, chat_closed_by')
             .in('service_request_id', serviceIds)
             .order('created_at', { ascending: false });
 
-          const serviceMap = new Map();
-          serviceChats?.forEach((msg: any) => {
-            const serviceId = msg.service_request_id;
-            if (!serviceMap.has(serviceId)) {
-              const service = msg.service_requests;
+          // Etapa 3: Buscar perfis necessários
+          const clientIds = [...new Set((userServices || []).map((s: any) => s.client_id).filter(Boolean))];
+          const providerIds = [...new Set((userServices || []).map((s: any) => s.provider_id).filter(Boolean))];
+          
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', [...clientIds, ...providerIds]);
+
+          // Criar mapa de perfis para lookup rápido
+          const profileMap = new Map(profiles?.map((p: any) => [p.id, p]) || []);
+          const serviceMap = new Map((userServices || []).map((s: any) => [s.id, s]) || []);
+
+          // Agrupar mensagens por service_request_id
+          const conversationMap = new Map();
+          messages?.forEach((msg: any) => {
+            const service = serviceMap.get(msg.service_request_id);
+            if (!service) return;
+
+            if (!conversationMap.has(msg.service_request_id)) {
+              const clientProfile = profileMap.get(service.client_id);
+              const providerProfile = profileMap.get(service.provider_id);
               const isClosed = msg.chat_closed_by?.[userProfileId] === true;
               
-              serviceMap.set(serviceId, {
-                id: `service-${serviceId}`,
+              conversationMap.set(msg.service_request_id, {
+                id: `service-${msg.service_request_id}`,
                 type: 'SERVICE' as const,
                 title: `Serviço: ${service.service_type}`,
                 lastMessage: msg.message,
                 lastMessageTime: msg.created_at,
                 unreadCount: 0,
                 otherParticipant: {
-                  name:
-                    userRole === 'PRESTADOR_SERVICO'
-                      ? service.client?.full_name || 'Cliente'
-                      : service.provider?.full_name || 'Prestador',
+                  name: userRole === 'PRESTADOR_SERVICO'
+                    ? clientProfile?.full_name || 'Cliente'
+                    : providerProfile?.full_name || 'Prestador',
                 },
                 metadata: { serviceRequestId: service.id },
                 isClosed,
               });
             }
             
-            const conv = serviceMap.get(serviceId);
+            const conv = conversationMap.get(msg.service_request_id);
             if (!msg.read_at && msg.sender_id !== userProfileId) {
               conv.unreadCount++;
             }
           });
           
-          allConversations.push(...Array.from(serviceMap.values()));
+          allConversations.push(...Array.from(conversationMap.values()));
         }
       }
 

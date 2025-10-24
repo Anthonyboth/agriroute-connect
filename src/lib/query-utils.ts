@@ -141,9 +141,11 @@ export function subscriptionWithRetry(
     maxRetries?: number;
     retryDelayMs?: number;
     onError?: (error: Error) => void;
+    onStatusChange?: (status: string) => void;
+    onReady?: (channel: any) => void;
   } = {}
-): { channel: any; cleanup: () => void } {
-  const { maxRetries = 3, retryDelayMs = 2000, onError } = options;
+): { getChannel: () => any; cleanup: () => void } {
+  const { maxRetries = 3, retryDelayMs = 2000, onError, onStatusChange, onReady } = options;
   let retries = 0;
   let channel: any;
   let isCleanedUp = false;
@@ -162,6 +164,17 @@ export function subscriptionWithRetry(
 
     channel.on('system', { event: '*' }, (payload: any) => {
       if (isCleanedUp) return;
+
+      // Notificar mudanças de status
+      onStatusChange?.(payload.status);
+
+      // Notificar quando conectado com sucesso
+      if (payload.status === 'SUBSCRIBED') {
+        if (import.meta.env.DEV) {
+          console.log(`[subscriptionWithRetry] ${channelName} conectado com sucesso`);
+        }
+        onReady?.(channel);
+      }
 
       if ((payload.status === 'CHANNEL_ERROR' || payload.status === 'SUBSCRIPTION_ERROR') && retries < maxRetries) {
         retries++;
@@ -191,7 +204,7 @@ export function subscriptionWithRetry(
   setTimeout(setup, 1000);
 
   return {
-    channel,
+    getChannel: () => channel,
     cleanup: () => {
       isCleanedUp = true;
       const supabase = (window as any).__supabaseClient;

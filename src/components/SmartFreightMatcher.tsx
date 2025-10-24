@@ -91,7 +91,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     
     if (!profile?.id || !user?.id || !isMountedRef.current) return;
 
-    const { channel, cleanup } = subscriptionWithRetry(
+    const { cleanup } = subscriptionWithRetry(
       'user-cities-changes',
       (ch) => ch.on(
         'postgres_changes',

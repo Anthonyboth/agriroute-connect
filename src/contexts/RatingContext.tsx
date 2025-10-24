@@ -51,7 +51,8 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     try {
       // Para produtor: buscar fretes DELIVERED sem avaliação
       if (profile.role === 'PRODUTOR') {
-        const { data: freights } = await supabase
+        // Buscar nos últimos 30 dias
+        let { data: freights } = await supabase
           .from('freights')
           .select(`
             *,
@@ -59,8 +60,24 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           `)
           .eq('producer_id', profile.id)
           .eq('status', 'DELIVERED')
-          .gte('updated_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Últimos 7 dias
+          .gte('updated_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
           .limit(1);
+
+        // Fallback: se não encontrou nada nos últimos 30 dias, buscar sem filtro de data
+        if (!freights || freights.length === 0) {
+          const { data: oldFreights } = await supabase
+            .from('freights')
+            .select(`
+              *,
+              driver:profiles!freights_driver_id_fkey(id, full_name, role)
+            `)
+            .eq('producer_id', profile.id)
+            .eq('status', 'DELIVERED')
+            .order('updated_at', { ascending: false })
+            .limit(1);
+          
+          freights = oldFreights;
+        }
 
         if (freights && freights.length > 0) {
           for (const freight of freights) {
@@ -82,7 +99,8 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       // Para motorista: buscar fretes DELIVERED_PENDING_CONFIRMATION sem avaliação
       if (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO') {
-        const { data: freights } = await supabase
+        // Buscar nos últimos 30 dias
+        let { data: freights } = await supabase
           .from('freights')
           .select(`
             *,
@@ -90,8 +108,24 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           `)
           .eq('driver_id', profile.id)
           .eq('status', 'DELIVERED_PENDING_CONFIRMATION')
-          .gte('updated_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+          .gte('updated_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
           .limit(1);
+
+        // Fallback: se não encontrou nada nos últimos 30 dias, buscar sem filtro de data
+        if (!freights || freights.length === 0) {
+          const { data: oldFreights } = await supabase
+            .from('freights')
+            .select(`
+              *,
+              producer:profiles!freights_producer_id_fkey(id, full_name, role)
+            `)
+            .eq('driver_id', profile.id)
+            .eq('status', 'DELIVERED_PENDING_CONFIRMATION')
+            .order('updated_at', { ascending: false })
+            .limit(1);
+          
+          freights = oldFreights;
+        }
 
         if (freights && freights.length > 0) {
           for (const freight of freights) {
@@ -238,6 +272,22 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       {
         maxRetries: 5,
         retryDelayMs: 3000,
+        onStatusChange: (status) => {
+          console.log(`[RatingContext] 📡 Status changed: ${status}`);
+          if (status === 'CLOSED' || status === 'TIMED_OUT') {
+            realtimeConnectedRef.current = false;
+          }
+        },
+        onReady: (channel) => {
+          console.log('[RatingContext] ✅ Realtime conectado com sucesso');
+          realtimeConnectedRef.current = true;
+          
+          // Limpar polling se estava ativo
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+        },
         onError: (error) => {
           console.error('[RatingContext] ❌ Erro no Realtime, ativando polling:', error);
           realtimeConnectedRef.current = false;
@@ -252,23 +302,9 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
     );
 
-    // Marcar Realtime como conectado se subscription funcionar
-    const checkConnection = setTimeout(() => {
-      if (freightRetryConfig.channel.state === 'joined') {
-        realtimeConnectedRef.current = true;
-        console.log('[RatingContext] ✅ Realtime conectado com sucesso');
-      } else {
-        console.warn('[RatingContext] ⚠️ Realtime não conectou em 5s, ativando polling');
-        realtimeConnectedRef.current = false;
-        if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = setInterval(pollForPendingRatings, 30000);
-      }
-    }, 5000);
-
     return () => {
       supabase.removeChannel(serviceChannel);
       freightRetryConfig.cleanup();
-      clearTimeout(checkConnection);
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
