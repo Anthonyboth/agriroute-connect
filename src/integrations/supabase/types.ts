@@ -5662,6 +5662,20 @@ export type Database = {
         Args: { _target_profile: string; _viewer: string }
         Returns: boolean
       }
+      cancel_accepted_service: {
+        Args: {
+          p_cancellation_reason?: string
+          p_provider_id: string
+          p_request_id: string
+        }
+        Returns: {
+          cancellation_reason: string
+          cancelled_at: string
+          id: string
+          provider_id: string
+          status: string
+        }[]
+      }
       check_admin_reset_rate_limit: {
         Args: { p_admin_profile_id: string }
         Returns: Json

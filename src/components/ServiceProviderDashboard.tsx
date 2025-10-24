@@ -8,6 +8,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { 
   MapPin, 
@@ -158,6 +168,11 @@ export const ServiceProviderDashboard: React.FC = () => {
   // Chat dialog state
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [selectedChatRequest, setSelectedChatRequest] = useState<ServiceRequest | null>(null);
+  
+  // Cancel dialog state
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [serviceToCancel, setServiceToCancel] = useState<ServiceRequest | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
   
   // Throttle control
   const lastFetchRef = React.useRef<number>(0);
@@ -830,6 +845,60 @@ export const ServiceProviderDashboard: React.FC = () => {
     }
   };
 
+  const handleCancelService = async (requestId: string) => {
+    setIsCancelling(true);
+    try {
+      const providerId = getProviderProfileId();
+      if (!providerId) {
+        toast({
+          title: "Erro",
+          description: "Perfil de prestador não encontrado.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('🚫 [ServiceProviderDashboard] Cancelling service:', {
+        serviceId: requestId,
+        providerId,
+        timestamp: new Date().toISOString()
+      });
+
+      const { data, error } = await supabase.rpc('cancel_accepted_service', {
+        p_provider_id: providerId,
+        p_request_id: requestId,
+        p_cancellation_reason: 'PROVIDER_CANCELLATION'
+      });
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        throw new Error('Não foi possível cancelar o serviço.');
+      }
+
+      toast({
+        title: "Serviço Cancelado",
+        description: "O serviço voltou a ficar disponível para outros prestadores.",
+      });
+
+      // Fechar dialog e atualizar listas
+      setCancelDialogOpen(false);
+      setServiceToCancel(null);
+      fetchServiceRequests({ scope: 'all', silent: true });
+      refreshCounts();
+
+    } catch (error: any) {
+      console.error('Error canceling service:', error);
+      toast({
+        title: "Erro",
+        description: error?.message || "Não foi possível cancelar o serviço",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   const simulatePayment = async (requestId: string, amount: number) => {
     try {
       // Em um sistema real, aqui seria integrado com Stripe ou outro gateway de pagamento
@@ -1338,27 +1407,41 @@ export const ServiceProviderDashboard: React.FC = () => {
                          )}
                        </div>
                       
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => {
-                            setSelectedChatRequest(request);
-                            setChatDialogOpen(true);
-                          }}
-                        >
-                          <MessageSquare className="h-4 w-4 mr-2" />
-                          {request.client_id ? 'Abrir Chat' : 'Chat Indisponível'}
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => handleCompleteRequest(request.id)}
-                        >
-                          Concluir Serviço
-                        </Button>
-                      </div>
+                       <div className="flex gap-2">
+                         <Button 
+                           size="sm" 
+                           variant="outline"
+                           className="flex-1"
+                           onClick={() => {
+                             setSelectedChatRequest(request);
+                             setChatDialogOpen(true);
+                           }}
+                         >
+                           <MessageSquare className="h-4 w-4 mr-2" />
+                           {request.client_id ? 'Abrir Chat' : 'Chat Indisponível'}
+                         </Button>
+                         
+                         <Button 
+                           size="sm" 
+                           variant="destructive"
+                           className="flex-1"
+                           onClick={() => {
+                             setServiceToCancel(request);
+                             setCancelDialogOpen(true);
+                           }}
+                         >
+                           <X className="h-4 w-4 mr-2" />
+                           Cancelar
+                         </Button>
+                         
+                         <Button 
+                           size="sm" 
+                           className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
+                           onClick={() => handleCompleteRequest(request.id)}
+                         >
+                           Concluir Serviço
+                         </Button>
+                       </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -1614,6 +1697,53 @@ export const ServiceProviderDashboard: React.FC = () => {
             currentUserProfile={profile}
           />
         )}
+
+        {/* Cancel Service AlertDialog */}
+        <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                Cancelar Serviço?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>
+                  Tem certeza que deseja cancelar este serviço?
+                </p>
+                {serviceToCancel && (
+                  <p className="font-medium">
+                    {normalizeServiceType(serviceToCancel.service_type)}
+                  </p>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  ⚠️ O serviço voltará a ficar disponível para que outros prestadores possam aceitá-lo.
+                </p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isCancelling}>
+                Não, manter serviço
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => serviceToCancel && handleCancelService(serviceToCancel.id)}
+                disabled={isCancelling}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {isCancelling ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Cancelando...
+                  </>
+                ) : (
+                  <>
+                    <X className="h-4 w-4 mr-2" />
+                    Sim, cancelar serviço
+                  </>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Modal de Solicitar Serviços */}
         <ServicesModal
