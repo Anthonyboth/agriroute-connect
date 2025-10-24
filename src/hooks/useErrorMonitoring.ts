@@ -13,30 +13,40 @@ export function useErrorMonitoring() {
     }
     (window as any).__fetchPatched = true;
     
-    console.log('🔍 [useErrorMonitoring] Hook inicializado');
+    if (import.meta.env.DEV) {
+      console.log('🔍 [useErrorMonitoring] Hook inicializado');
+    }
     const errorMonitoring = ErrorMonitoringService.getInstance();
     
     // Interceptar fetch para capturar erros de API
     const originalFetch = window.fetch;
     
     window.fetch = async (...args: Parameters<typeof fetch>) => {
-      console.log('🌐 [useErrorMonitoring] Fetch interceptado:', args[0]);
+      if (import.meta.env.DEV) {
+        console.log('🌐 [useErrorMonitoring] Fetch interceptado:', args[0]);
+      }
       
       try {
         const response = await originalFetch(...args);
         
         // Capturar erros HTTP 400-599 de APIs Supabase
         if (!response.ok && typeof args[0] === 'string' && args[0].includes('supabase')) {
-          console.log('❌ [useErrorMonitoring] Erro HTTP capturado:', response.status);
+          if (import.meta.env.DEV) {
+            console.log('❌ [useErrorMonitoring] Erro HTTP capturado:', response.status);
+          }
           
           const clonedResponse = response.clone();
           let errorData: any = {};
           
           try {
             errorData = await clonedResponse.json();
-            console.log('📋 [useErrorMonitoring] Dados do erro:', errorData);
+            if (import.meta.env.DEV) {
+              console.log('📋 [useErrorMonitoring] Dados do erro:', errorData);
+            }
           } catch {
-            console.warn('⚠️ [useErrorMonitoring] Não foi possível parsear JSON do erro');
+            if (import.meta.env.DEV) {
+              console.warn('⚠️ [useErrorMonitoring] Não foi possível parsear JSON do erro');
+            }
           }
           
           errorMonitoring.captureError(
@@ -65,7 +75,9 @@ export function useErrorMonitoring() {
     };
     
     return () => {
-      console.log('🔍 [useErrorMonitoring] Hook desmontado');
+      if (import.meta.env.DEV) {
+        console.log('🔍 [useErrorMonitoring] Hook desmontado');
+      }
       // ✅ Não restaurar fetch - manter patch ativo até reload
       // (evita reinstalações caso componente seja remontado)
     };

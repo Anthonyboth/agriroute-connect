@@ -112,6 +112,24 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
 
     setLoading(true);
     try {
+      // Preflight check: verify freight is not in final status
+      const { data: freightData } = await supabase
+        .from('freights')
+        .select('status')
+        .eq('id', freightId)
+        .maybeSingle();
+
+      const finalStatuses = ['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
+      if (freightData && finalStatuses.includes(freightData.status)) {
+        toast({
+          title: "Frete finalizado",
+          description: "Este frete já foi entregue ou está aguardando confirmação. Não é possível atualizar o status.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       // Verificar se já existe esse status no histórico recente (últimos 5 minutos)
       const { data: recentHistory } = await supabase
         .from('freight_status_history')
@@ -129,6 +147,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           description: "Este status já foi registrado recentemente.",
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 

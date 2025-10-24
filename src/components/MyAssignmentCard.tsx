@@ -37,6 +37,12 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
   const handleStatusChange = async (newStatus: string) => {
     if (!currentUserProfile || isUpdatingStatus) return;
     
+    // Check if freight is in final status
+    const finalStatuses = ['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
+    if (finalStatuses.includes(freight.status)) {
+      return; // Silently prevent action
+    }
+    
     setIsUpdatingStatus(true);
     const success = await driverUpdateFreightStatus({
       freightId: freight.id,
@@ -50,6 +56,9 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
       window.location.reload();
     }
   };
+
+  // Check if freight is in final status
+  const isFreightFinal = ['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED', 'CANCELLED'].includes(freight.status);
   
   return (
     <Card className="border-l-4 border-l-green-600">
@@ -111,7 +120,7 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
         )}
 
         {/* Ações Rápidas para FRETE_MOTO */}
-        {(freight.service_type || freight.cargo_type) === 'FRETE_MOTO' && (
+        {!isFreightFinal && (freight.service_type || freight.cargo_type) === 'FRETE_MOTO' && (
           <div className="flex flex-col gap-2 pt-2">
             {assignment.status === 'ACCEPTED' && (
               <Button 
@@ -143,6 +152,18 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
                 ✅ Encerrar Frete
               </Button>
             )}
+          </div>
+        )}
+
+        {/* Show final status message if applicable */}
+        {isFreightFinal && (
+          <div className="p-2 bg-muted rounded-lg">
+            <p className="text-xs text-muted-foreground text-center">
+              {freight.status === 'DELIVERED_PENDING_CONFIRMATION' && 'Aguardando confirmação de entrega'}
+              {freight.status === 'DELIVERED' && 'Frete entregue'}
+              {freight.status === 'COMPLETED' && 'Frete concluído'}
+              {freight.status === 'CANCELLED' && 'Frete cancelado'}
+            </p>
           </div>
         )}
 

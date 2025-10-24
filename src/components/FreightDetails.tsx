@@ -44,6 +44,10 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [advances, setAdvances] = useState<any[]>([]);
 
+  // Status order for calculating effective status
+  const statusOrder = ['OPEN','IN_NEGOTIATION','ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION','DELIVERED','COMPLETED','CANCELLED','REJECTED','PENDING'];
+  const statusRank = (s?: string) => Math.max(0, statusOrder.indexOf(s || 'OPEN'));
+
   const fetchFreightDetails = async () => {
     try {
       const { data, error } = await supabase
@@ -124,6 +128,17 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
     
     checkAssignment();
   }, [freightId, currentUserProfile?.id]);
+
+  // Calculate effective status (prioritize freight.status if final)
+  const effectiveStatus = React.useMemo(() => {
+    const finalStatuses = ['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
+    if (finalStatuses.includes(freight?.status)) {
+      return freight.status;
+    }
+    return statusRank(freight?.status) >= statusRank(driverAssignment?.status) 
+      ? freight?.status 
+      : driverAssignment?.status;
+  }, [freight?.status, driverAssignment?.status]);
   
   const isParticipant = 
     freight?.producer?.id === currentUserProfile?.id || 
@@ -152,6 +167,23 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
 
   useEffect(() => {
     fetchFreightDetails();
+
+    // Subscribe to real-time freight updates
+    const channel = supabase
+      .channel(`freight-row-${freightId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'freights',
+        filter: `id=eq.${freightId}`
+      }, (payload) => {
+        setFreight((prev: any) => prev ? { ...prev, status: payload.new.status } : prev);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [freightId]);
 
   // Listener para notificação de avaliação automática
@@ -678,10 +710,10 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="status" className="mt-4">
+          <TabsContent value="status" forceMount className="mt-4 data-[state=inactive]:hidden">
             <FreightStatusTracker
               freightId={freightId}
-              currentStatus={driverAssignment?.status || freight.status}
+              currentStatus={effectiveStatus || freight.status}
               currentUserProfile={currentUserProfile}
               isDriver={isDriver}
               freightServiceType={freight.service_type}
@@ -691,7 +723,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             />
           </TabsContent>
           
-          <TabsContent value="chat" className="mt-4">
+          <TabsContent value="chat" forceMount className="mt-4 data-[state=inactive]:hidden">
             <FreightChat
               freightId={freightId}
               currentUserProfile={currentUserProfile}
