@@ -20,11 +20,11 @@ export const DriverVehiclesTab = ({ driverProfileId, companyId }: DriverVehicles
           *,
           vehicle:vehicle_id(
             id,
-            plate,
-            model,
-            brand,
-            year,
-            vehicle_type
+            license_plate,
+            vehicle_type,
+            axle_count,
+            max_capacity_tons,
+            status
           )
         `)
         .eq('driver_profile_id', driverProfileId)
@@ -78,7 +78,7 @@ export const DriverVehiclesTab = ({ driverProfileId, companyId }: DriverVehicles
                 ) : (
                   <Car className="h-5 w-5" />
                 )}
-                {assignment.vehicle.brand} {assignment.vehicle.model}
+                {assignment.vehicle.license_plate}
               </CardTitle>
               {assignment.is_primary && (
                 <Badge variant="default">Principal</Badge>
@@ -89,15 +89,15 @@ export const DriverVehiclesTab = ({ driverProfileId, companyId }: DriverVehicles
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Placa</p>
-                <p className="font-medium">{assignment.vehicle.plate}</p>
+                <p className="font-medium">{assignment.vehicle.license_plate}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Ano</p>
-                <p className="font-medium">{assignment.vehicle.year || 'N/A'}</p>
+                <p className="text-muted-foreground">Capacidade</p>
+                <p className="font-medium">{assignment.vehicle.max_capacity_tons}t</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Tipo</p>
-                <p className="font-medium">{assignment.vehicle.vehicle_type}</p>
+                <p className="text-muted-foreground">Eixos</p>
+                <p className="font-medium">{assignment.vehicle.axle_count}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Atribuído em</p>

@@ -156,29 +156,58 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
 
       // 3. CHAT DIRETO TRANSPORTADORA-MOTORISTA
       if (['MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(userRole)) {
-        const { data: directChats } = await supabase
-          .from('company_driver_chats')
-          .select(`
-            id,
-            message,
-            created_at,
-            sender_type,
-            is_read,
-            chat_closed_by,
-            company_id,
-            driver_profile_id,
-            company:transport_companies!inner(company_name, profile_id),
-            driver:profiles!company_driver_chats_driver_profile_id_fkey(full_name)
-          `)
-          .or(
-            userRole === 'MOTORISTA_AFILIADO'
-              ? `driver_profile_id.eq.${userProfileId}`
-              : `company.profile_id.eq.${userProfileId}`
-          )
-          .order('created_at', { ascending: false });
+        let directChats: any[] = [];
+        
+        if (userRole === 'MOTORISTA_AFILIADO') {
+          // Motorista: buscar por driver_profile_id
+          const { data } = await supabase
+            .from('company_driver_chats')
+            .select(`
+              id,
+              message,
+              created_at,
+              sender_type,
+              is_read,
+              chat_closed_by,
+              company_id,
+              driver_profile_id,
+              company:transport_companies(company_name, profile_id),
+              driver:profiles!company_driver_chats_driver_profile_id_fkey(full_name)
+            `)
+            .eq('driver_profile_id', userProfileId)
+            .order('created_at', { ascending: false });
+          directChats = data || [];
+        } else if (userRole === 'TRANSPORTADORA') {
+          // Transportadora: buscar company_id primeiro
+          const { data: company } = await supabase
+            .from('transport_companies')
+            .select('id')
+            .eq('profile_id', userProfileId)
+            .maybeSingle();
+            
+          if (company) {
+            const { data } = await supabase
+              .from('company_driver_chats')
+              .select(`
+                id,
+                message,
+                created_at,
+                sender_type,
+                is_read,
+                chat_closed_by,
+                company_id,
+                driver_profile_id,
+                company:transport_companies(company_name, profile_id),
+                driver:profiles!company_driver_chats_driver_profile_id_fkey(full_name)
+              `)
+              .eq('company_id', company.id)
+              .order('created_at', { ascending: false });
+            directChats = data || [];
+          }
+        }
 
         const chatMap = new Map();
-        directChats?.forEach((msg: any) => {
+        directChats.forEach((msg: any) => {
           const chatKey = `${msg.company_id}-${msg.driver_profile_id}`;
           if (!chatMap.has(chatKey)) {
             const isClosed = msg.chat_closed_by?.[userProfileId] === true;
