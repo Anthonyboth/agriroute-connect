@@ -103,8 +103,8 @@ interface Proposal {
 const DriverDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
   const { unreadCount } = useNotifications();
-  const { isCompanyDriver, companyName, companyId, canAcceptFreights, canManageVehicles, isAffiliated } = useCompanyDriver();
-  const { mustUseChat } = useDriverPermissions();
+  const { isCompanyDriver, companyName, companyId, canManageVehicles, isAffiliated } = useCompanyDriver();
+  const { canAcceptFreights, mustUseChat } = useDriverPermissions();
   const navigate = useNavigate();
   const location = useLocation();
 
