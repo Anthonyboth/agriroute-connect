@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Package, Truck, CheckCircle, Clock, Navigation } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { driverUpdateFreightStatus } from '@/lib/freight-status-helpers';
+import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-helpers';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -112,15 +112,14 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
 
     setLoading(true);
     try {
-      // Preflight check: verify freight is not in final status
+      // ✅ Preflight check já é feito no helper, mas mantemos aqui para feedback imediato
       const { data: freightData } = await supabase
         .from('freights')
         .select('status')
         .eq('id', freightId)
         .maybeSingle();
 
-      const finalStatuses = ['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
-      if (freightData && finalStatuses.includes(freightData.status)) {
+      if (freightData && FINAL_STATUSES.includes(freightData.status as any)) {
         toast({
           title: "Frete finalizado",
           description: "Este frete já foi entregue ou está aguardando confirmação. Não é possível atualizar o status.",
@@ -160,7 +159,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         // Silent location failure
       }
 
-      // Usar RPC segura para atualizar status e registrar histórico (evita RLS)
+      // ✅ Usar RPC segura (helper já faz preflight check adicional)
       const ok = await driverUpdateFreightStatus({
         freightId,
         newStatus,
@@ -170,7 +169,8 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       });
 
       if (!ok) {
-        // Helper já mostrou toast específico da RPC - apenas encerrar
+        // Helper já mostrou toast e disparou eventos - apenas encerrar
+        setLoading(false);
         return;
       }
 
@@ -243,12 +243,27 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       )
       .subscribe();
 
+    // ✅ Listener para evento de status bloqueado
+    const handleStatusBlocked = () => {
+      fetchStatusHistory();
+    };
+    
+    window.addEventListener('freight-status-blocked', handleStatusBlocked);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('freight-status-blocked', handleStatusBlocked);
     };
   }, [freightId, serviceType]);
 
   const nextStatus = getNextStatus();
+  
+  // ✅ Bloquear botão de atualização se status já é final
+  const isCurrentStatusFinal = FINAL_STATUSES.includes(currentStatus as any);
+  
+  if (import.meta.env.DEV) {
+    console.log('[FreightStatusTracker] Current status:', currentStatus, 'Next:', nextStatus?.key, 'Is final:', isCurrentStatusFinal);
+  }
 
   return (
     <div className="space-y-6">
@@ -317,7 +332,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       </Card>
 
       {/* Driver Controls */}
-      {isDriver && nextStatus && (
+      {isDriver && nextStatus && !isCurrentStatusFinal && (
         <Card>
           <CardHeader>
             <CardTitle>Atualizar Status</CardTitle>

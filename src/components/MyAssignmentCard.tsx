@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, TrendingUp, Truck, DollarSign, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { ANTTValidation } from './ANTTValidation';
-import { driverUpdateFreightStatus } from '@/lib/freight-status-helpers';
+import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-helpers';
 import { useAuth } from '@/hooks/useAuth';
 
 interface MyAssignmentCardProps {
@@ -37,10 +37,9 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
   const handleStatusChange = async (newStatus: string) => {
     if (!currentUserProfile || isUpdatingStatus) return;
     
-    // Check if freight is in final status
-    const finalStatuses = ['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
-    if (finalStatuses.includes(freight.status)) {
-      return; // Silently prevent action
+    // ✅ Check if freight is in final status using central constant
+    if (FINAL_STATUSES.includes(freight.status as any)) {
+      return; // Silently prevent action (helper will show toast if somehow reached)
     }
     
     setIsUpdatingStatus(true);
@@ -57,8 +56,8 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
     }
   };
 
-  // Check if freight is in final status
-  const isFreightFinal = ['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED', 'CANCELLED'].includes(freight.status);
+  // ✅ Check if freight is in final status using central constant
+  const isFreightFinal = FINAL_STATUSES.includes(freight.status as any);
   
   return (
     <Card className="border-l-4 border-l-green-600">

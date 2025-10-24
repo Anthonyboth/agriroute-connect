@@ -16,9 +16,11 @@ import { toast } from "sonner";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
+import { FINAL_STATUSES } from '@/lib/freight-status-helpers';
 import { getUrgencyLabel } from '@/lib/urgency-labels';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { useAutoRating } from '@/hooks/useAutoRating';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface FreightDetailsProps {
   freightId: string;
@@ -131,8 +133,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
 
   // Calculate effective status (prioritize freight.status if final)
   const effectiveStatus = React.useMemo(() => {
-    const finalStatuses = ['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
-    if (finalStatuses.includes(freight?.status)) {
+    if (FINAL_STATUSES.includes(freight?.status as any)) {
       return freight.status;
     }
     return statusRank(freight?.status) >= statusRank(driverAssignment?.status) 
@@ -701,7 +702,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
 
       {/* Main Content Tabs - Only for participants */}
       {isParticipant && (
-        <Tabs defaultValue="status" className="w-full">
+        <Tabs defaultValue={initialTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="status" className="text-sm">Status da Viagem</TabsTrigger>
             <TabsTrigger value="chat" className="text-sm">
@@ -711,6 +712,29 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           </TabsList>
           
           <TabsContent value="status" forceMount className="mt-4 data-[state=inactive]:hidden">
+            {/* ✅ Banner informativo para DELIVERED_PENDING_CONFIRMATION */}
+            {effectiveStatus === 'DELIVERED_PENDING_CONFIRMATION' && (
+              <Alert className="mb-4 border-blue-500 bg-blue-50 dark:bg-blue-950">
+                <Clock className="h-4 w-4 text-blue-600" />
+                <AlertTitle className="text-blue-900 dark:text-blue-100">
+                  {isDriver ? 'Entrega Reportada' : 'Aguardando Confirmação de Entrega'}
+                </AlertTitle>
+                <AlertDescription className="text-blue-800 dark:text-blue-200">
+                  {isDriver ? (
+                    <>
+                      ✅ Você reportou a entrega com sucesso! O produtor tem até <strong>72 horas</strong> para confirmar o recebimento.
+                      Após a confirmação, o pagamento será liberado automaticamente.
+                    </>
+                  ) : (
+                    <>
+                      O motorista reportou que a carga foi entregue. Por favor, <strong>confirme o recebimento</strong> para finalizar o frete.
+                      Você tem até 72 horas para confirmar. Após esse prazo, a entrega será confirmada automaticamente.
+                    </>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <FreightStatusTracker
               freightId={freightId}
               currentStatus={effectiveStatus || freight.status}
