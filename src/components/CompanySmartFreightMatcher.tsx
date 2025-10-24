@@ -323,7 +323,12 @@ export const CompanySmartFreightMatcher: React.FC = () => {
                     required_trucks: freight.required_trucks,
                     accepted_trucks: freight.accepted_trucks,
                   }}
-                  onAction={() => {}}
+                  showActions
+                  canAcceptFreights={true}
+                  isAffiliatedDriver={false}
+                  onAction={() => {
+                    fetchCompatibleFreights();
+                  }}
                 />
                 <div className="mt-2">
                   <Badge className="w-full justify-center" variant="outline">

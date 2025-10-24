@@ -230,7 +230,12 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
                   <FreightCard
                     key={freight.id}
                     freight={freight}
-                    onAction={() => {}}
+                    showActions
+                    canAcceptFreights={true}
+                    isAffiliatedDriver={false}
+                    onAction={() => {
+                      fetchDashboardData();
+                    }}
                   />
                 ))}
               </SafeListWrapper>
