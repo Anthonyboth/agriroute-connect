@@ -31,6 +31,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
+import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 import { toast } from 'sonner';
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote, Star, MessageSquare, AlertTriangle, Users } from 'lucide-react';
 import { useGPSMonitoring } from '@/hooks/useGPSMonitoring';
@@ -55,6 +56,7 @@ import { useAutoRating } from '@/hooks/useAutoRating';
 import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { useDriverPermissions } from '@/hooks/useDriverPermissions';
 import { normalizeServiceType, type CanonicalServiceType } from '@/lib/service-type-normalization';
+import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 
 interface Freight {
   id: string;
@@ -104,6 +106,10 @@ interface Proposal {
 const DriverDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
   const { unreadCount } = useNotifications();
+  const { unreadCount: chatUnreadCount } = useUnreadChatsCount(
+    profile?.id || '', 
+    'MOTORISTA'
+  );
   const { isCompanyDriver, companyName, companyId, canManageVehicles, isAffiliated } = useCompanyDriver();
   const { canAcceptFreights, mustUseChat } = useDriverPermissions();
   const navigate = useNavigate();
@@ -1940,6 +1946,27 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 </>
               )}
               <TabsTrigger 
+                value="ratings" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Star className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Avaliações</span>
+                <span className="sm:hidden">Aval</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="chat" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <MessageSquare className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Chat</span>
+                <span className="sm:hidden">Chat</span>
+                {chatUnreadCount > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-4 px-1 text-xs">
+                    {chatUnreadCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger 
                 value="historico" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
@@ -2520,6 +2547,15 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               <PendingRatingsPanel
               userRole="MOTORISTA"
               userProfileId={profile?.id || ''}
+              />
+            </SafeListWrapper>
+          </TabsContent>
+
+          <TabsContent value="chat" className="mt-6">
+            <SafeListWrapper>
+              <UnifiedChatHub
+                userProfileId={profile?.id || ''}
+                userRole="MOTORISTA"
               />
             </SafeListWrapper>
           </TabsContent>
