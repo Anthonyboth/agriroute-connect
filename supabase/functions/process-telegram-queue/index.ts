@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
-const TELEGRAM_CHAT_ID = '-4964515694';
+const TELEGRAM_CHAT_ID = '-1003009756749'; // Supergroup (migrado)
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -58,7 +58,8 @@ serve(async (req) => {
 
     for (const msg of pendingMessages) {
       try {
-        const response = await fetch(
+        // Tentar enviar com parse_mode HTML primeiro
+        let response = await fetch(
           `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
           {
             method: 'POST',
@@ -71,6 +72,38 @@ serve(async (req) => {
             })
           }
         );
+
+        // Se falhou com HTML (400), logar erro e tentar sem parse_mode
+        if (!response.ok && response.status === 400) {
+          const errorBody = await response.text();
+          console.log(`[PROCESS-TELEGRAM-QUEUE] Falha com HTML para ${msg.id}. Resposta Telegram:`, errorBody);
+          
+          // Remover tags HTML para enviar como texto puro
+          const plainText = msg.message
+            .replace(/<b>/g, '*')
+            .replace(/<\/b>/g, '*')
+            .replace(/<pre>/g, '```')
+            .replace(/<\/pre>/g, '```')
+            .replace(/<[^>]+>/g, ''); // Remove outras tags HTML
+          
+          response = await fetch(
+            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: TELEGRAM_CHAT_ID,
+                text: plainText,
+                disable_web_page_preview: true
+              })
+            }
+          );
+
+          if (!response.ok) {
+            const plainErrorBody = await response.text();
+            console.log(`[PROCESS-TELEGRAM-QUEUE] Falha com texto puro para ${msg.id}. Resposta Telegram:`, plainErrorBody);
+          }
+        }
 
         if (response.ok) {
           // Marcar como enviada

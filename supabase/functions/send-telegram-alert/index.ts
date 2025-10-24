@@ -12,7 +12,7 @@ const logStep = (step: string, details?: any) => {
 };
 
 const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
-const TELEGRAM_CHAT_ID = '-4964515694';
+const TELEGRAM_CHAT_ID = '-1003009756749'; // Supergroup (migrado)
 
 async function saveToOfflineQueue(message: string, errorLogId?: string) {
   const supabaseAdmin = createClient(
