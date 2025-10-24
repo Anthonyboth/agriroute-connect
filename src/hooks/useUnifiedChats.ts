@@ -33,7 +33,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
         // Etapa 1: Buscar fretes básicos do usuário
         const { data: userFreights, error: freightsError } = await supabase
           .from('freights')
-          .select('id, producer_id, driver_id, product_type, origin_city, destination_city')
+          .select('id, producer_id, driver_id, cargo_type, origin_city, destination_city')
           .or(
             userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO'
               ? `driver_id.eq.${userProfileId}`
@@ -81,7 +81,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
               conversationMap.set(msg.freight_id, {
                 id: `freight-${msg.freight_id}`,
                 type: 'FREIGHT' as const,
-                title: `Frete: ${freight.product_type} - ${freight.origin_city} → ${freight.destination_city}`,
+                title: `Frete: ${freight.cargo_type || 'Carga'} - ${freight.origin_city} → ${freight.destination_city}`,
                 lastMessage: msg.message,
                 lastMessageTime: msg.created_at,
                 unreadCount: 0,
