@@ -104,6 +104,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   
   // Verificar se é participante (produtor, motorista direto, ou tem assignment ativo)
   const [hasActiveAssignment, setHasActiveAssignment] = useState(false);
+  const [driverAssignment, setDriverAssignment] = useState<any>(null);
   
   useEffect(() => {
     const checkAssignment = async () => {
@@ -111,13 +112,14 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       
       const { data } = await supabase
         .from('freight_assignments')
-        .select('id')
+        .select('*')
         .eq('freight_id', freightId)
         .eq('driver_id', currentUserProfile.id)
         .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED', 'DELIVERED_PENDING_CONFIRMATION'])
         .limit(1);
       
       setHasActiveAssignment(!!data && data.length > 0);
+      setDriverAssignment(data && data.length > 0 ? data[0] : null);
     };
     
     checkAssignment();
@@ -679,7 +681,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           <TabsContent value="status" className="mt-4">
             <FreightStatusTracker
               freightId={freightId}
-              currentStatus={freight.status}
+              currentStatus={driverAssignment?.status || freight.status}
               currentUserProfile={currentUserProfile}
               isDriver={isDriver}
               freightServiceType={freight.service_type}
