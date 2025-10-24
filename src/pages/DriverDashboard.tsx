@@ -54,6 +54,7 @@ import { DriverAutoLocationTracking } from '@/components/DriverAutoLocationTrack
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { useDriverPermissions } from '@/hooks/useDriverPermissions';
+import { normalizeServiceType, type CanonicalServiceType } from '@/lib/service-type-normalization';
 
 interface Freight {
   id: string;
@@ -68,7 +69,7 @@ interface Freight {
   status: string; // Allow all database status values
   distance_km: number;
   minimum_antt_price: number;
-  service_type?: string;
+  service_type?: CanonicalServiceType;
   // Flag para identificar serviços urbanos (GUINCHO/MUDANCA) convertidos
   is_service_request?: boolean;
   // Propriedades específicas de service_requests
@@ -341,7 +342,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           status: f.status,
           distance_km: f.distance_km,
           minimum_antt_price: f.minimum_antt_price,
-          service_type: f.service_type
+          service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined
         }));
 
         console.log('[fetchAvailableFreights] Fretes da transportadora:', companyFreights.length);
@@ -387,7 +388,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             status: f.status,
             distance_km: f.distance_km || 0,
             minimum_antt_price: f.minimum_antt_price || 0,
-            service_type: f.service_type,
+            service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined,
             accepted_trucks: f.accepted_trucks || 0,
             required_trucks: f.required_trucks || 1
           }));
@@ -420,7 +421,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             status: f.status,
             distance_km: f.distance_km,
             minimum_antt_price: f.minimum_antt_price,
-            service_type: f.service_type,
+            service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined,
             accepted_trucks: f.accepted_trucks || 0,
             required_trucks: f.required_trucks || 1
           }));
@@ -522,7 +523,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             status: f.status,
             distance_km: f.distance_km,
             minimum_antt_price: f.minimum_antt_price,
-            service_type: f.service_type,
+            service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined,
             accepted_trucks: f.accepted_trucks || 0,
             required_trucks: f.required_trucks || 1
           }));
@@ -560,7 +561,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             status: f.status,
             distance_km: f.distance_km,
             minimum_antt_price: f.minimum_antt_price,
-            service_type: f.service_type
+            service_type: f.service_type ? normalizeServiceType(f.service_type) : undefined
           }));
           console.log('[fetchAvailableFreights] Fretes da transportadora:', companyFreights.length);
         }
@@ -2220,11 +2221,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                            freight={{
                              ...proposal.freight,
                              status: proposal.freight.status as 'OPEN' | 'IN_TRANSIT' | 'DELIVERED',
-                             service_type: (proposal.freight.service_type === 'GUINCHO' || 
-                                          proposal.freight.service_type === 'MUDANCA' || 
-                                          proposal.freight.service_type === 'CARGA') 
-                                         ? proposal.freight.service_type as 'GUINCHO' | 'MUDANCA' | 'CARGA'
-                                         : undefined
+                             service_type: proposal.freight.service_type 
+                               ? normalizeServiceType(proposal.freight.service_type) 
+                               : undefined
                            }}
                           showActions={false}
                         />

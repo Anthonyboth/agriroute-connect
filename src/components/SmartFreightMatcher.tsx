@@ -15,6 +15,8 @@ import { useDriverPermissions } from '@/hooks/useDriverPermissions';
 import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
+import { normalizeServiceType, getAllowedServiceTypesFromProfile, type CanonicalServiceType } from '@/lib/service-type-normalization';
+import { subscriptionWithRetry } from '@/lib/query-utils';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -31,7 +33,7 @@ interface CompatibleFreight {
   price: number;
   urgency: string;
   status: string;
-  service_type: string;
+  service_type: CanonicalServiceType;
   distance_km: number;
   minimum_antt_price: number;
   required_trucks: number;
@@ -82,14 +84,16 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     });
   }, [JSON.stringify(profile?.service_types)]);
 
-  // Realtime: Ouvir mudanças em user_cities e recarregar fretes automaticamente
+  // Realtime: Ouvir mudanças em user_cities e recarregar fretes automaticamente (com retry e fallback)
   useEffect(() => {
     let isMountedLocal = true;
+    let pollInterval: NodeJS.Timeout | null = null;
+    
     if (!profile?.id || !user?.id || !isMountedRef.current) return;
 
-    const channel = supabase
-      .channel('user-cities-changes')
-      .on(
+    const { channel, cleanup } = subscriptionWithRetry(
+      'user-cities-changes',
+      (ch) => ch.on(
         'postgres_changes',
         {
           event: '*',
@@ -99,53 +103,42 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         },
         (payload) => {
           if (!isMountedLocal || !isMountedRef.current) return;
-          console.log('user_cities mudou:', payload);
+          console.log('[SmartFreightMatcher] user_cities mudou:', payload);
           toast.info('Suas cidades de atendimento foram atualizadas. Recarregando fretes...');
           fetchCompatibleFreights();
         }
-      )
-      .subscribe();
+      ),
+      {
+        maxRetries: 5,
+        retryDelayMs: 3000,
+        onError: (error) => {
+          console.error('[SmartFreightMatcher] Realtime error:', error);
+          // Fallback: polling manual se realtime falhar
+          if (!pollInterval) {
+            pollInterval = setInterval(() => {
+              if (isMountedLocal && isMountedRef.current) {
+                console.log('[SmartFreightMatcher] Polling fallback ativo');
+                fetchCompatibleFreights();
+              }
+            }, 30000); // Poll a cada 30 segundos
+          }
+        }
+      }
+    );
 
     return () => {
       isMountedLocal = false;
-      supabase.removeChannel(channel);
+      cleanup();
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
     };
   }, [profile?.id, user?.id]);
 
-  // Normalizar tipo de serviço
-  const normalizeServiceType = (type: string): string => {
-    if (type === 'CARGA_FREIGHT') return 'CARGA';
-    if (type === 'GUINCHO_FREIGHT') return 'GUINCHO';
-    if (type === 'FRETE_MOTO') return 'MOTO';
-    return type;
-  };
-
+  // ✅ Usar normalização consistente via utilitário
   const allowedTypesFromProfile = React.useMemo(() => {
-    // Para TRANSPORTADORA sem config, permitir todos os tipos
-    if (profile?.role === 'TRANSPORTADORA') {
-      if (!profile?.service_types || profile.service_types.length === 0) {
-        console.log('🔎 TRANSPORTADORA sem config → permitindo todos os tipos');
-        return ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO'];
-      }
-    }
-    
-    const types = Array.from(new Set(
-      (Array.isArray(profile?.service_types) ? (profile?.service_types as unknown as string[]) : [])
-        .map((t) => normalizeServiceType(String(t)))
-    )).filter((t) => ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO'].includes(t));
-    
-  // ✅ FALLBACK UNIVERSAL: Se array vazio, usar default baseado no role
-  if (types.length === 0) {
-    const defaultTypes = profile?.role === 'MOTORISTA' 
-      ? ['CARGA'] // Motorista sem config → apenas CARGA
-      : ['CARGA', 'GUINCHO', 'MUDANCA', 'MOTO']; // Outros → todos
-    
-    console.log(`🔎 allowedTypesFromProfile vazio → usando fallback (${profile?.role || 'sem role'}):`, defaultTypes);
-    return defaultTypes;
-  }
-    
-    console.log('🔎 allowedTypesFromProfile:', types);
-    return types;
+    return getAllowedServiceTypesFromProfile(profile);
   }, [profile?.role, profile?.service_types]);
   
   const fetchCompatibleFreights = async () => {
@@ -746,7 +739,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             Guincho
           </Badge>
         );
-      case 'MOTO':
+      case 'FRETE_MOTO':
         return (
           <Badge className="bg-teal-100 text-teal-800 border-teal-200 flex items-center gap-1">
             <Bike className="h-3 w-3" />

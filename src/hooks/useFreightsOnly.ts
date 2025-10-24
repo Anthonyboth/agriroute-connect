@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { normalizeServiceType, CANONICAL_SERVICE_TYPES } from '@/lib/service-type-normalization';
 
 /**
  * Hook exclusivo para MOTORISTAS e TRANSPORTADORAS
@@ -44,11 +45,16 @@ export const useFreightsOnly = (companyId?: string) => {
 
         if (error) throw error;
 
-        // Filtro de segurança: garantir que são apenas fretes
-        const validFreights = (data || []).filter((f: any) => 
-          f.service_type && 
-          ['FRETE', 'CARGA', 'MUDANCA_INDUSTRIAL', 'TRANSPORTE_ESPECIAL'].includes(f.service_type)
-        );
+        // Normalizar e filtrar apenas tipos de frete válidos (excluir serviços técnicos)
+        const validFreights = (data || [])
+          .map((f: any) => ({
+            ...f,
+            service_type: normalizeServiceType(f.service_type)
+          }))
+          .filter((f: any) => 
+            f.service_type && 
+            CANONICAL_SERVICE_TYPES.includes(f.service_type)
+          );
 
         setFreights(validFreights);
       }
