@@ -100,8 +100,8 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   const { isCompanyDriver, isLoading: isLoadingCompany } = useCompanyDriver();
   const location = useLocation();
 
-  // ✅ Não esperar isLoadingCompany no /complete-profile
-  const isGuardLoading = loading || (isLoadingCompany && location.pathname !== '/complete-profile');
+  // ✅ Não bloquear pelo isLoadingCompany; apenas o carregamento do perfil
+  const isGuardLoading = loading;
   
   if (isGuardLoading) {
     return <ComponentLoader />;
