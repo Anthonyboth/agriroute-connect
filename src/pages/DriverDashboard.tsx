@@ -44,6 +44,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
 import { DriverRegionManager } from '@/components/DriverRegionManager';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
+import { isFinalStatus } from '@/lib/freight-status';
 import heroLogistics from '@/assets/hero-logistics.jpg';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
@@ -302,12 +303,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     [myAssignments]
   );
 
-  // Excluir DELIVERED_PENDING_CONFIRMATION e DELIVERED dos ativos
-  const activeStatuses = ['ACCEPTED','IN_PROGRESS','LOADING','LOADED','IN_TRANSIT'];
-  
+  // ✅ Usar função canônica para determinar status final
   const visibleOngoing = useMemo(
     () => (ongoingFreights || []).filter(f => 
-      activeStatuses.includes(f.status) && !assignmentFreightIds.has(f.id)
+      !isFinalStatus(f.status) && !assignmentFreightIds.has(f.id)
     ),
     [ongoingFreights, assignmentFreightIds]
   );
@@ -1328,32 +1327,19 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     return () => clearTimeout(timeoutId);
   }, [profile?.id]);
 
-  // ✅ Status finais que devem ser excluídos de "Em Andamento"
-  const FINAL_STATUSES = ['DELIVERED_PENDING_CONFIRMATION', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
-  
-  // ✅ Filtrar assignments ativos (baseado no status do FRETE, não do assignment)
+  // ✅ Filtrar assignments ativos usando função canônica isFinalStatus
   const activeAssignments = useMemo(() => {
-    const activeStatuses = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'IN_PROGRESS'];
-    
     return (myAssignments || []).filter(assignment => {
       if (!assignment) return false;
       
       // 🔥 PRIORIDADE 1: Se freight.status existe, ele é a fonte da verdade
       if (assignment.freight?.status) {
-        // Se está em status final, excluir
-        if (FINAL_STATUSES.includes(assignment.freight.status)) {
-          return false;
-        }
-        // Se não está em status ativo, excluir
-        if (!activeStatuses.includes(assignment.freight.status)) {
-          return false;
-        }
-        // Caso contrário, incluir
-        return true;
+        // Se está em status final, excluir de "Em Andamento"
+        return !isFinalStatus(assignment.freight.status);
       }
       
       // 🔥 FALLBACK: Se freight.status não existe, usar assignment.status
-      return assignment.status && activeStatuses.includes(assignment.status);
+      return assignment.status ? !isFinalStatus(assignment.status) : false;
     });
   }, [myAssignments]);
 
