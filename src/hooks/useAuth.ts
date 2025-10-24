@@ -88,14 +88,6 @@ export const useAuth = () => {
     const result = await withLockOrJoin(lockKey, async () => {
       if (fetchingRef.current || !mountedRef.current) return;
       
-      // ✅ Bail-out: não chamar se estiver na rota /auth sem sessão
-      if (window.location.pathname === '/auth' && !force) {
-        if (import.meta.env.DEV) {
-          console.log('[useAuth] Skipping fetch - user on /auth');
-        }
-        return;
-      }
-      
       // Throttle: prevent too frequent calls
       const now = Date.now();
       
