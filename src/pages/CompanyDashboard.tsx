@@ -79,6 +79,7 @@ import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
+import { CompanyFreightHistory } from '@/components/CompanyFreightHistory';
 import { CompanyInviteModal } from '@/components/CompanyInviteModal';
 import { CompanyBalance } from '@/components/CompanyBalance';
 import { CompanyInternalChat } from '@/components/CompanyInternalChat';
@@ -741,7 +742,7 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="history" className="mt-6">
-            <UnifiedHistory userRole="MOTORISTA" />
+            {company?.id && <CompanyFreightHistory companyId={company.id} />}
           </TabsContent>
 
           <TabsContent value="chat" className="mt-6">

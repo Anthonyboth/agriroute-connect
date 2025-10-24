@@ -58,13 +58,12 @@ export const CompanySmartFreightMatcher: React.FC = () => {
     try {
       console.log('🔍 [Marketplace] Buscando fretes para company:', company.id);
       
-      // Buscar fretes do MARKETPLACE (sem company_id atribuído)
+      // Buscar fretes do MARKETPLACE (sem company_id atribuído, OPEN ou ACCEPTED)
       const { data: freights, error } = await supabase
         .from('freights')
         .select('*')
         .is('company_id', null) // ✅ Fretes sem transportadora atribuída
-        .is('driver_id', null)   // ✅ Fretes sem motorista atribuído
-        .eq('status', 'OPEN')    // ✅ Apenas fretes abertos
+        .in('status', ['OPEN', 'ACCEPTED']) // ✅ Fretes abertos ou parcialmente aceitos
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -74,10 +73,6 @@ export const CompanySmartFreightMatcher: React.FC = () => {
       
       if (!freights || freights.length === 0) {
         console.warn('⚠️ [Marketplace] Nenhum frete encontrado no banco');
-        console.log('💡 [Marketplace] Verifique:');
-        console.log('   - Se existem fretes com status=OPEN');
-        console.log('   - Se driver_id=null');
-        console.log('   - Se company_id=null');
         toast.info('Nenhum frete disponível no marketplace no momento');
         setCompatibleFreights([]);
         setMatchingStats({ total: 0, matched: 0, assigned: 0 });
@@ -85,26 +80,33 @@ export const CompanySmartFreightMatcher: React.FC = () => {
         return;
       }
 
-      // Normalizar status e filtrar
+      // Normalizar status e filtrar (considerar multi-carreta)
       const matchedFreights: CompatibleFreight[] = [];
-      let discardedByDriver = 0;
       let discardedByStatus = 0;
+      let discardedByNoSlots = 0;
       
       for (const freight of freights) {
         // Normalizar status
         const normalizedStatus = normalizeFreightStatus(freight.status);
         
-        // Verificar se já tem motorista (dupla checagem)
-        if (freight.driver_id) {
-          discardedByDriver++;
-          console.log(`❌ [Marketplace] Frete ${freight.id.slice(0,8)} descartado: já tem driver`);
-          continue;
-        }
+        // Calcular vagas disponíveis (para multi-carreta)
+        const requiredTrucks = freight.required_trucks || 1;
+        const acceptedTrucks = freight.accepted_trucks || 0;
+        const hasSlots = requiredTrucks > acceptedTrucks;
         
-        // Verificar se status é realmente "aberto"
-        if (!isOpenStatus(normalizedStatus)) {
-          discardedByStatus++;
-          console.log(`❌ [Marketplace] Frete ${freight.id.slice(0,8)} descartado: status ${freight.status} (normalizado: ${normalizedStatus})`);
+        // Verificar se está disponível:
+        // 1) Status OPEN (qualquer frete aberto)
+        // 2) Status ACCEPTED mas com vagas disponíveis (multi-carreta parcialmente preenchido)
+        const isAvailable = isOpenStatus(normalizedStatus) || (normalizedStatus === 'ACCEPTED' && hasSlots);
+        
+        if (!isAvailable) {
+          if (normalizedStatus === 'ACCEPTED' && !hasSlots) {
+            discardedByNoSlots++;
+            console.log(`❌ [Marketplace] Frete ${freight.id.slice(0,8)} descartado: sem vagas (${acceptedTrucks}/${requiredTrucks})`);
+          } else {
+            discardedByStatus++;
+            console.log(`❌ [Marketplace] Frete ${freight.id.slice(0,8)} descartado: status ${freight.status} (normalizado: ${normalizedStatus})`);
+          }
           continue;
         }
         
@@ -127,14 +129,14 @@ export const CompanySmartFreightMatcher: React.FC = () => {
             service_type: freight.service_type || 'CARGA',
             distance_km: freight.distance_km || 0,
             minimum_antt_price: freight.minimum_antt_price || 0,
-            required_trucks: freight.required_trucks || 1,
-            accepted_trucks: freight.accepted_trucks || 0,
+            required_trucks: requiredTrucks,
+            accepted_trucks: acceptedTrucks,
             created_at: freight.created_at
           });
       }
 
       console.log(`✅ [Marketplace] ${matchedFreights.length} fretes compatíveis após filtros`);
-      console.log(`📊 [Marketplace] Descartados: ${discardedByDriver} com driver, ${discardedByStatus} por status`);
+      console.log(`📊 [Marketplace] Descartados: ${discardedByStatus} por status, ${discardedByNoSlots} sem vagas`);
 
       setCompatibleFreights(matchedFreights);
       setMatchingStats({
@@ -146,7 +148,7 @@ export const CompanySmartFreightMatcher: React.FC = () => {
       if (matchedFreights.length > 0) {
         toast.success(`${matchedFreights.length} fretes disponíveis no marketplace!`);
       } else {
-        toast.info('Nenhum frete compatível encontrado. Verifique os filtros de status.');
+        toast.info('Nenhum frete compatível encontrado no momento.');
       }
     } catch (error: any) {
       console.error('Erro ao buscar fretes compatíveis:', error);
@@ -364,11 +366,16 @@ export const CompanySmartFreightMatcher: React.FC = () => {
                     fetchCompatibleFreights();
                   }}
                 />
-                <div className="mt-2">
-                  <Badge className="w-full justify-center" variant="outline">
+                <div className="mt-2 flex gap-2">
+                  <Badge className="flex-1 justify-center" variant="outline">
                     <Package className="h-3 w-3 mr-1" />
                     Atribuir a Motorista
                   </Badge>
+                  {freight.required_trucks > 1 && (
+                    <Badge className="bg-blue-50 text-blue-700 border-blue-200">
+                      {freight.accepted_trucks}/{freight.required_trucks} caminhões
+                    </Badge>
+                  )}
                 </div>
               </div>
             ))}
