@@ -174,6 +174,7 @@ export const AdminValidationPanel: React.FC = () => {
 
   const approveProfile = async (profileId: string) => {
     try {
+      // 1. Atualizar profiles
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -184,7 +185,27 @@ export const AdminValidationPanel: React.FC = () => {
 
       if (error) throw error;
 
-      // Enviar notificação
+      // 2. Verificar e atualizar transport_companies se existir
+      const { data: company } = await supabase
+        .from('transport_companies')
+        .select('id')
+        .eq('profile_id', profileId)
+        .maybeSingle();
+
+      if (company) {
+        const { error: companyError } = await supabase
+          .from('transport_companies')
+          .update({ status: 'APPROVED' })
+          .eq('profile_id', profileId);
+
+        if (companyError) {
+          console.error('Erro ao atualizar status da transportadora:', companyError);
+          toast.error('Perfil aprovado, mas houve erro ao atualizar status da transportadora');
+          return;
+        }
+      }
+
+      // 3. Enviar notificação
       await supabase.rpc('send_notification', {
         p_user_id: profileId,
         p_title: 'Cadastro Aprovado!',
