@@ -1192,10 +1192,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           if (freightData?.producer) {
             const { data: existingRating } = await supabase
-              .from('ratings')
+              .from('freight_ratings')
               .select('id')
               .eq('freight_id', freightData.id)
-              .eq('rater_user_id', profile.id)
+              .eq('rater_id', profile.id)
               .maybeSingle();
 
             if (!existingRating) {
@@ -1225,10 +1225,10 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           if (freightData?.producer) {
             const { data: existingRating } = await supabase
-              .from('ratings')
+              .from('freight_ratings')
               .select('id')
               .eq('freight_id', freightData.id)
-              .eq('rater_user_id', profile.id)
+              .eq('rater_id', profile.id)
               .maybeSingle();
 
             if (!existingRating) {

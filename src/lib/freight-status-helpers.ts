@@ -170,6 +170,33 @@ export async function driverUpdateFreightStatus({
     };
 
     toast.success(statusMessages[newStatus] || 'Status atualizado com sucesso!');
+    
+    // 🔔 Enviar notificação persistente quando motorista reporta entrega
+    if (newStatus === 'DELIVERED_PENDING_CONFIRMATION') {
+      try {
+        // Buscar dados do frete para obter producer_id
+        const { data: freightData } = await supabase
+          .from('freights')
+          .select('id, producer_id, driver_id, cargo_type, origin_city, destination_city')
+          .eq('id', freightId)
+          .single();
+
+        if (freightData?.producer_id) {
+          const { sendNotification } = await import('@/utils/notify');
+          await sendNotification({
+            user_id: freightData.producer_id,
+            title: 'Entrega reportada',
+            message: `O motorista reportou a entrega do frete ${freightData.cargo_type}. Você tem até 72h para confirmar.`,
+            type: 'freight_delivery_reported',
+            data: { freight_id: freightId }
+          });
+          console.log('[freight-status-helpers] 🔔 Notificação enviada ao produtor:', freightData.producer_id);
+        }
+      } catch (notifyError) {
+        console.error('[freight-status-helpers] ⚠️ Erro ao enviar notificação (não bloqueante):', notifyError);
+      }
+    }
+    
     return true;
 
   } catch (error: any) {

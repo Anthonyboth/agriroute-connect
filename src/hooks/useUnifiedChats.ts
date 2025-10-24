@@ -28,133 +28,155 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
     queryFn: async () => {
       const allConversations: ChatConversation[] = [];
 
-      // 1. FRETES COM CHAT
+      // 1. FRETES COM CHAT - Query refatorada em 2 etapas para evitar 400
       if (['MOTORISTA', 'MOTORISTA_AFILIADO', 'PRODUTOR'].includes(userRole)) {
-        const { data: freightChats } = await supabase
-          .from('freight_messages')
-          .select(`
-            freight_id,
-            message,
-            created_at,
-            sender_id,
-            read_at,
-            chat_closed_by,
-            freights!inner(
-              id,
-              product_type,
-              origin_city,
-              destination_city,
-              producer_id,
-              driver_id,
-              profiles!freights_producer_id_fkey(full_name),
-              driver:profiles!freights_driver_id_fkey(full_name)
-            )
-          `)
+        // Etapa 1: Buscar IDs dos fretes do usuário
+        const { data: userFreights } = await supabase
+          .from('freights')
+          .select('id')
           .or(
             userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO'
-              ? `freights.driver_id.eq.${userProfileId}`
-              : `freights.producer_id.eq.${userProfileId}`
-          )
-          .order('created_at', { ascending: false });
+              ? `driver_id.eq.${userProfileId}`
+              : `producer_id.eq.${userProfileId}`
+          );
 
-        // Agrupar por freight_id
-        const freightMap = new Map();
-        freightChats?.forEach((msg: any) => {
-          const freightId = msg.freight_id;
-          if (!freightMap.has(freightId)) {
-            const freight = msg.freights;
-            const isClosed = msg.chat_closed_by?.[userProfileId] === true;
-            const isUnread = !msg.read_at && msg.sender_id !== userProfileId;
+        const freightIds = (userFreights || []).map(f => f.id);
+
+        if (freightIds.length > 0) {
+          // Etapa 2: Buscar mensagens desses fretes
+          const { data: freightChats } = await supabase
+            .from('freight_messages')
+            .select(`
+              freight_id,
+              message,
+              created_at,
+              sender_id,
+              read_at,
+              chat_closed_by,
+              freights!inner(
+                id,
+                product_type,
+                origin_city,
+                destination_city,
+                producer_id,
+                driver_id,
+                profiles!freights_producer_id_fkey(full_name),
+                driver:profiles!freights_driver_id_fkey(full_name)
+              )
+            `)
+            .in('freight_id', freightIds)
+            .order('created_at', { ascending: false });
+
+          // Agrupar por freight_id
+          const freightMap = new Map();
+          freightChats?.forEach((msg: any) => {
+            const freightId = msg.freight_id;
+            if (!freightMap.has(freightId)) {
+              const freight = msg.freights;
+              const isClosed = msg.chat_closed_by?.[userProfileId] === true;
+              const isUnread = !msg.read_at && msg.sender_id !== userProfileId;
+              
+              freightMap.set(freightId, {
+                id: `freight-${freightId}`,
+                type: 'FREIGHT' as const,
+                title: `Frete: ${freight.product_type} - ${freight.origin_city} → ${freight.destination_city}`,
+                lastMessage: msg.message,
+                lastMessageTime: msg.created_at,
+                unreadCount: 0,
+                otherParticipant: {
+                  name:
+                    userRole === 'PRODUTOR'
+                      ? freight.driver?.full_name || 'Motorista'
+                      : freight.profiles?.full_name || 'Produtor',
+                },
+                metadata: { freightId: freight.id },
+                isClosed,
+              });
+            }
             
-            freightMap.set(freightId, {
-              id: `freight-${freightId}`,
-              type: 'FREIGHT' as const,
-              title: `Frete: ${freight.product_type} - ${freight.origin_city} → ${freight.destination_city}`,
-              lastMessage: msg.message,
-              lastMessageTime: msg.created_at,
-              unreadCount: 0,
-              otherParticipant: {
-                name:
-                  userRole === 'PRODUTOR'
-                    ? freight.driver?.full_name || 'Motorista'
-                    : freight.profiles?.full_name || 'Produtor',
-              },
-              metadata: { freightId: freight.id },
-              isClosed,
-            });
-          }
+            const conv = freightMap.get(freightId);
+            if (!msg.read_at && msg.sender_id !== userProfileId) {
+              conv.unreadCount++;
+            }
+          });
           
-          const conv = freightMap.get(freightId);
-          if (!msg.read_at && msg.sender_id !== userProfileId) {
-            conv.unreadCount++;
-          }
-        });
-        
-        allConversations.push(...Array.from(freightMap.values()));
+          allConversations.push(...Array.from(freightMap.values()));
+        }
       }
 
-      // 2. SERVIÇOS
+      // 2. SERVIÇOS - Query refatorada em 2 etapas
       if (['PRODUTOR', 'PRESTADOR_SERVICO'].includes(userRole)) {
-        const { data: serviceChats } = await supabase
-          .from('service_messages')
-          .select(`
-            service_request_id,
-            message,
-            created_at,
-            sender_id,
-            read_at,
-            chat_closed_by,
-            service_requests!inner(
-              id,
-              service_type,
-              client_id,
-              provider_id,
-              client:profiles!service_requests_client_id_fkey(full_name),
-              provider:profiles!service_requests_provider_id_fkey(full_name)
-            )
-          `)
+        // Etapa 1: Buscar IDs dos serviços do usuário
+        const { data: userServices } = await supabase
+          .from('service_requests')
+          .select('id')
           .or(
             userRole === 'PRESTADOR_SERVICO'
-              ? `service_requests.provider_id.eq.${userProfileId}`
-              : `service_requests.client_id.eq.${userProfileId}`
-          )
-          .order('created_at', { ascending: false });
+              ? `provider_id.eq.${userProfileId}`
+              : `client_id.eq.${userProfileId}`
+          );
 
-        const serviceMap = new Map();
-        serviceChats?.forEach((msg: any) => {
-          const serviceId = msg.service_request_id;
-          if (!serviceMap.has(serviceId)) {
-            const service = msg.service_requests;
-            const isClosed = msg.chat_closed_by?.[userProfileId] === true;
+        const serviceIds = (userServices || []).map(s => s.id);
+
+        if (serviceIds.length > 0) {
+          // Etapa 2: Buscar mensagens desses serviços
+          const { data: serviceChats } = await supabase
+            .from('service_messages')
+            .select(`
+              service_request_id,
+              message,
+              created_at,
+              sender_id,
+              read_at,
+              chat_closed_by,
+              service_requests!inner(
+                id,
+                service_type,
+                client_id,
+                provider_id,
+                client:profiles!service_requests_client_id_fkey(full_name),
+                provider:profiles!service_requests_provider_id_fkey(full_name)
+              )
+            `)
+            .in('service_request_id', serviceIds)
+            .order('created_at', { ascending: false });
+
+          const serviceMap = new Map();
+          serviceChats?.forEach((msg: any) => {
+            const serviceId = msg.service_request_id;
+            if (!serviceMap.has(serviceId)) {
+              const service = msg.service_requests;
+              const isClosed = msg.chat_closed_by?.[userProfileId] === true;
+              
+              serviceMap.set(serviceId, {
+                id: `service-${serviceId}`,
+                type: 'SERVICE' as const,
+                title: `Serviço: ${service.service_type}`,
+                lastMessage: msg.message,
+                lastMessageTime: msg.created_at,
+                unreadCount: 0,
+                otherParticipant: {
+                  name:
+                    userRole === 'PRESTADOR_SERVICO'
+                      ? service.client?.full_name || 'Cliente'
+                      : service.provider?.full_name || 'Prestador',
+                },
+                metadata: { serviceRequestId: service.id },
+                isClosed,
+              });
+            }
             
-            serviceMap.set(serviceId, {
-              id: `service-${serviceId}`,
-              type: 'SERVICE' as const,
-              title: `Serviço: ${service.service_type}`,
-              lastMessage: msg.message,
-              lastMessageTime: msg.created_at,
-              unreadCount: 0,
-              otherParticipant: {
-                name:
-                  userRole === 'PRESTADOR_SERVICO'
-                    ? service.client?.full_name || 'Cliente'
-                    : service.provider?.full_name || 'Prestador',
-              },
-              metadata: { serviceRequestId: service.id },
-              isClosed,
-            });
-          }
+            const conv = serviceMap.get(serviceId);
+            if (!msg.read_at && msg.sender_id !== userProfileId) {
+              conv.unreadCount++;
+            }
+          });
           
-          const conv = serviceMap.get(serviceId);
-          if (!msg.read_at && msg.sender_id !== userProfileId) {
-            conv.unreadCount++;
-          }
-        });
-        
-        allConversations.push(...Array.from(serviceMap.values()));
+          allConversations.push(...Array.from(serviceMap.values()));
+        }
       }
 
-      // 3. CHAT DIRETO TRANSPORTADORA-MOTORISTA
+      // ... keep existing code (3. CHAT DIRETO, 4. FRETES COMPARTILHADOS, 5. SOLICITAÇÕES DE DOCUMENTOS)
       if (['MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(userRole)) {
         let directChats: any[] = [];
         

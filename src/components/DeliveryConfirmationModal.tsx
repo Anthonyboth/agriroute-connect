@@ -83,6 +83,30 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
         description: "O frete foi marcado como entregue e movido para o histórico. Avalie o motorista!",
       });
       
+      // 🔔 Enviar notificação persistente ao motorista
+      // Buscar driver_id do frete já que a interface não o inclui
+      try {
+        const { data: freightData } = await supabase
+          .from('freights')
+          .select('driver_id')
+          .eq('id', freight.id)
+          .single();
+
+        if (freightData?.driver_id) {
+          const { sendNotification } = await import('@/utils/notify');
+          await sendNotification({
+            user_id: freightData.driver_id,
+            title: 'Entrega confirmada',
+            message: `O produtor confirmou a entrega do frete ${freight.cargo_type}.`,
+            type: 'freight_delivery_confirmed',
+            data: { freight_id: freight.id }
+          });
+          console.log('[DeliveryConfirmationModal] 🔔 Notificação enviada ao motorista:', freightData.driver_id);
+        }
+      } catch (notifyError) {
+        console.error('[DeliveryConfirmationModal] ⚠️ Erro ao enviar notificação (não bloqueante):', notifyError);
+      }
+      
       onConfirm();
       onClose();
       

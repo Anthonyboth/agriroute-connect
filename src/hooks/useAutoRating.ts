@@ -31,13 +31,13 @@ export const useAutoRating = ({ freightId, freightStatus, currentUserProfile, fr
 
     try {
       const { data: existingRating, error } = await supabase
-        .from('ratings')
+        .from('freight_ratings')
         .select('id')
         .eq('freight_id', freightId)
-        .eq('rater_user_id', currentUserProfile.id)
-        .single();
+        .eq('rater_id', currentUserProfile.id)
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (error) {
         console.error('Error checking existing rating:', error);
         return false;
       }
