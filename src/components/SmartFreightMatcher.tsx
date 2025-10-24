@@ -58,23 +58,34 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   const [selectedCargoType, setSelectedCargoType] = useState<string>('all');
   const [hasActiveCities, setHasActiveCities] = useState<boolean | null>(null);
 
+  // Guard isMounted para todos os effects
+  const isMountedRef = React.useRef(true);
   useEffect(() => {
-    if (profile?.id) {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (profile?.id && isMountedRef.current) {
       fetchCompatibleFreights();
     }
   }, [profile]);
 
   useEffect(() => {
     // Recarregar quando os tipos de serviço mudarem (sem limpar arrays antes)
-    if (!profile?.id) return;
+    if (!profile?.id || !isMountedRef.current) return;
     setLoading(true);
-    fetchCompatibleFreights().finally(() => setLoading(false));
+    fetchCompatibleFreights().finally(() => {
+      if (isMountedRef.current) setLoading(false);
+    });
   }, [JSON.stringify(profile?.service_types)]);
 
   // Realtime: Ouvir mudanças em user_cities e recarregar fretes automaticamente
   useEffect(() => {
-    let isMounted = true;
-    if (!profile?.id || !user?.id) return;
+    let isMountedLocal = true;
+    if (!profile?.id || !user?.id || !isMountedRef.current) return;
 
     const channel = supabase
       .channel('user-cities-changes')
@@ -87,7 +98,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          if (!isMounted) return;
+          if (!isMountedLocal || !isMountedRef.current) return;
           console.log('user_cities mudou:', payload);
           toast.info('Suas cidades de atendimento foram atualizadas. Recarregando fretes...');
           fetchCompatibleFreights();
@@ -96,7 +107,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       .subscribe();
 
     return () => {
-      isMounted = false;
+      isMountedLocal = false;
       supabase.removeChannel(channel);
     };
   }, [profile?.id, user?.id]);
@@ -199,12 +210,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             : mapped.filter(f => allowedTypesFromProfile.includes(f.service_type));
 
           console.log(`✅ ${filtered.length} fretes após filtro de tipo`);
-          setCompatibleFreights(filtered);
-          
-          const highUrgency = filtered.filter(f => f.urgency === 'HIGH').length;
-          onCountsChange?.({ total: filtered.length, highUrgency });
-          
-          setLoading(false);
+          if (isMountedRef.current) {
+            setCompatibleFreights(filtered);
+            
+            const highUrgency = filtered.filter(f => f.urgency === 'HIGH').length;
+            onCountsChange?.({ total: filtered.length, highUrgency });
+            
+            setLoading(false);
+          }
           return;
         }
       }
@@ -267,9 +280,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         console.log(`📦 Spatial matching retornou ${spatialFreights.length} fretes`);
         
         // Emitir contagem imediatamente
-        setCompatibleFreights(spatialFreights);
-        const highUrgency = spatialFreights.filter(f => f.urgency === 'HIGH').length;
-        onCountsChange?.({ total: spatialFreights.length, highUrgency });
+        if (isMountedRef.current) {
+          setCompatibleFreights(spatialFreights);
+          const highUrgency = spatialFreights.filter(f => f.urgency === 'HIGH').length;
+          onCountsChange?.({ total: spatialFreights.length, highUrgency });
+        }
       }
 
       // 2️⃣ TENTAR RPC: Se funcionar, combinar com espacial (deduplicar)
@@ -298,11 +313,13 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             })).filter((c: any) => c.city && c.state);
 
             if (cityIds.length === 0 && cityNames.length === 0) {
-              setHasActiveCities(false);
-              toast.info('Configure suas cidades de atendimento para ver fretes compatíveis.');
-              setCompatibleFreights(spatialFreights); // Manter fretes do spatial
-              setTowingRequests([]);
-              setLoading(false);
+              if (isMountedRef.current) {
+                setHasActiveCities(false);
+                toast.info('Configure suas cidades de atendimento para ver fretes compatíveis.');
+                setCompatibleFreights(spatialFreights); // Manter fretes do spatial
+                setTowingRequests([]);
+                setLoading(false);
+              }
               return;
             }
 
@@ -383,21 +400,25 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             });
             const final = Array.from(uniqueMap.values());
             
-            setCompatibleFreights(final);
-            
-            // Emit count
-            const highUrgency = final.filter(f => f.urgency === 'HIGH').length;
-            onCountsChange?.({ total: final.length, highUrgency });
-            
-            console.log(`✅ ${final.length} fretes após combinar spatial + fallback`);
-            toast.success(`${final.length} fretes compatíveis encontrados!`);
+            if (isMountedRef.current) {
+              setCompatibleFreights(final);
+              
+              // Emit count
+              const highUrgency = final.filter(f => f.urgency === 'HIGH').length;
+              onCountsChange?.({ total: final.length, highUrgency });
+              
+              console.log(`✅ ${final.length} fretes após combinar spatial + fallback`);
+              toast.success(`${final.length} fretes compatíveis encontrados!`);
+            }
           } catch (fbError: any) {
             console.error('Fallback por cidades falhou:', fbError);
             // Manter fretes do spatial mesmo com erro no fallback
-            setCompatibleFreights(spatialFreights);
+            if (isMountedRef.current) {
+              setCompatibleFreights(spatialFreights);
+            }
           }
         }
-        setLoading(false);
+        if (isMountedRef.current) setLoading(false);
         return;
       }
 

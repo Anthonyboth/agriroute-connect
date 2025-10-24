@@ -19,6 +19,7 @@ import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
 import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
 import { MyAssignmentCard } from '@/components/MyAssignmentCard';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
+import { PageDOMErrorBoundary } from '@/components/PageDOMErrorBoundary';
 
 import { DriverPayouts } from '@/components/DriverPayouts';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
@@ -1660,8 +1661,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <SystemAnnouncementModal />
+    <PageDOMErrorBoundary>
+      <div className="min-h-screen bg-background">
+        <SystemAnnouncementModal />
       <Header
         user={{ 
           name: profile?.full_name || (profile?.active_mode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista'), 
@@ -1982,26 +1984,29 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </Alert>
           )}
           
-          <TabsContent value="available" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Fretes Disponíveis com IA</h3>
-              <AdvancedFreightSearch
-                onSearch={(filters) => {
-                  console.log('Advanced search filters:', filters);
-                  // Apply advanced filters to freight search
-                  fetchAvailableFreights();
-                }}
-                userRole="MOTORISTA"
+          <TabsContent value="available" className="space-y-4" forceMount>
+            <SafeListWrapper>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Fretes Disponíveis com IA</h3>
+                <AdvancedFreightSearch
+                  onSearch={(filters) => {
+                    console.log('Advanced search filters:', filters);
+                    // Apply advanced filters to freight search
+                    fetchAvailableFreights();
+                  }}
+                  userRole="MOTORISTA"
+                />
+              </div>
+              <SmartFreightMatcher 
+                onFreightAction={handleFreightAction}
+                onCountsChange={({ total }) => setAvailableCountUI(total)}
               />
-            </div>
-            <SmartFreightMatcher 
-              onFreightAction={handleFreightAction}
-              onCountsChange={({ total }) => setAvailableCountUI(total)}
-            />
+            </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="ongoing" className="space-y-3">
-            <div className="flex flex-col space-y-2 mb-4">
+          <TabsContent value="ongoing" className="space-y-3" forceMount>
+            <SafeListWrapper>
+              <div className="flex flex-col space-y-2 mb-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-base font-semibold">Em Andamento</h3>
                 <Badge variant="secondary" className="text-xs">
@@ -2140,24 +2145,27 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 </div>
               ) : null
             )}
+            </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="scheduled">
+          <TabsContent value="scheduled" forceMount>
             <ScheduledFreightsManager />
           </TabsContent>
 
 
-          <TabsContent value="calendar" className="space-y-4">
-            <DriverAvailabilityAreasManager 
+          <TabsContent value="calendar" className="space-y-4" forceMount>
+            <SafeListWrapper>
+              <DriverAvailabilityAreasManager
               driverId={profile?.id}
               onFreightAction={handleFreightAction}
               canAcceptFreights={canAcceptFreights}
               isAffiliated={isAffiliated}
               companyId={companyId}
-            />
+              />
+            </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="cities" className="space-y-4">
+          <TabsContent value="cities" className="space-y-4" forceMount>
             <UserCityManager 
               userRole="MOTORISTA"
               onCitiesUpdate={() => {
@@ -2168,8 +2176,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             />
           </TabsContent>
 
-          <TabsContent value="services">
-            <div className="space-y-6">
+          <TabsContent value="services" forceMount>
+            <SafeListWrapper>
+              <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold mb-4">Tipos de Serviços</h3>
                 <ServiceTypeManager />
@@ -2177,12 +2186,13 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               
               
               <div className="border-t pt-6">
-                <MatchIntelligentDemo />
+              <MatchIntelligentDemo />
+                </div>
               </div>
-            </div>
+            </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="my-trips" className="space-y-6">
+          <TabsContent value="my-trips" className="space-y-6" forceMount>
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold">Minhas Propostas Enviadas</h3>
               <Badge variant="secondary" className="text-sm font-medium">
@@ -2317,8 +2327,9 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             )}
           </TabsContent>
 
-          <TabsContent value="counter-offers" className="space-y-4">
-            <h3 className="text-lg font-semibold">Contra-ofertas Recebidas</h3>
+          <TabsContent value="counter-offers" className="space-y-4" forceMount>
+            <SafeListWrapper>
+              <h3 className="text-lg font-semibold">Contra-ofertas Recebidas</h3>
             {counterOffers.length > 0 ? (
               <div className="space-y-4">
                 <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando ofertas...</div>}>
@@ -2371,14 +2382,16 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 Você não tem contra-ofertas pendentes
               </p>
             )}
+            </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="vehicles" className="space-y-4">
+          <TabsContent value="vehicles" className="space-y-4" forceMount>
             <VehicleManager driverProfile={profile} />
           </TabsContent>
 
-          <TabsContent value="payments" className="space-y-4">
-            <div className="flex justify-between items-center">
+          <TabsContent value="payments" className="space-y-4" forceMount>
+            <SafeListWrapper>
+              <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Pagamentos Pendentes</h3>
               <Badge variant="secondary" className="text-sm font-medium">
                 {pendingPayments.length} pendente{pendingPayments.length !== 1 ? 's' : ''}
@@ -2475,21 +2488,26 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 </SafeListWrapper>
               </div>
             )}
+            </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="advances" className="space-y-4">
+          <TabsContent value="advances" className="space-y-4" forceMount>
             <DriverPayouts driverId={profile?.id || ''} />
           </TabsContent>
 
-          <TabsContent value="ratings" className="mt-6">
-            <PendingRatingsPanel 
+          <TabsContent value="ratings" className="mt-6" forceMount>
+            <SafeListWrapper>
+              <PendingRatingsPanel
               userRole="MOTORISTA"
               userProfileId={profile?.id || ''}
-            />
+              />
+            </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="historico" className="mt-6">
-            <UnifiedHistory userRole="MOTORISTA" />
+          <TabsContent value="historico" className="mt-6" forceMount>
+            <SafeListWrapper>
+              <UnifiedHistory userRole="MOTORISTA" />
+            </SafeListWrapper>
           </TabsContent>
 
         </Tabs>
@@ -2595,7 +2613,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           currentUserProfile={profile}
         />
       )}
-    </div>
+      </div>
+    </PageDOMErrorBoundary>
   );
 };
 
