@@ -40,7 +40,7 @@ type PlatePhoto = {
 };
 
 const CompleteProfile = () => {
-  const { profile, loading: authLoading, isAuthenticated, profileError, clearProfileError, retryProfileCreation, signOut, user } = useAuth();
+  const { profile, loading: authLoading, isAuthenticated, profileError, clearProfileError, retryProfileCreation, signOut, user, isApproved } = useAuth();
   const { company, isTransportCompany } = useTransportCompany();
   const { isCompanyDriver, isLoading: isLoadingCompany } = useCompanyDriver();
   const navigate = useNavigate();
@@ -112,6 +112,18 @@ const CompleteProfile = () => {
 
     // Autenticado mas perfil ainda não carregado: apenas aguarde (useAuth cuidará da criação automaticamente)
     if (isAuthenticated && !profile) {
+      return;
+    }
+
+    // ✅ Se o perfil já está aprovado, redirecionar imediatamente para o painel correto
+    if (profile && (isApproved || profile.status === 'APPROVED')) {
+      const dashboardPath =
+        profile.active_mode === 'TRANSPORTADORA' ? '/dashboard/company' :
+        (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO') ? '/dashboard/driver' :
+        profile.role === 'PRODUTOR' ? '/dashboard/producer' :
+        profile.role === 'PRESTADOR_SERVICOS' ? '/dashboard/service-provider' :
+        profile.role === 'ADMIN' ? '/admin' : '/';
+      navigate(dashboardPath, { replace: true });
       return;
     }
 
