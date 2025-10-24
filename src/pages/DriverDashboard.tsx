@@ -1996,7 +1996,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </Alert>
           )}
           
-          <TabsContent value="available" className="space-y-4" forceMount>
+          <TabsContent value="available" className="space-y-4">
             <SafeListWrapper>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Fretes Disponíveis com IA</h3>
@@ -2016,7 +2016,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="ongoing" className="space-y-3" forceMount>
+          <TabsContent value="ongoing" className="space-y-3">
             <SafeListWrapper>
               <div className="flex flex-col space-y-2 mb-4">
               <div className="flex justify-between items-center">
@@ -2160,12 +2160,12 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="scheduled" forceMount>
+          <TabsContent value="scheduled">
             <ScheduledFreightsManager />
           </TabsContent>
 
 
-          <TabsContent value="calendar" className="space-y-4" forceMount>
+          <TabsContent value="calendar" className="space-y-4">
             <SafeListWrapper>
               <DriverAvailabilityAreasManager
               driverId={profile?.id}
@@ -2177,7 +2177,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="cities" className="space-y-4" forceMount>
+          <TabsContent value="cities" className="space-y-4">
             <UserCityManager 
               userRole="MOTORISTA"
               onCitiesUpdate={() => {
@@ -2188,7 +2188,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             />
           </TabsContent>
 
-          <TabsContent value="services" forceMount>
+          <TabsContent value="services">
             <SafeListWrapper>
               <div className="space-y-6">
               <div>
@@ -2204,7 +2204,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="my-trips" className="space-y-6" forceMount>
+          <TabsContent value="my-trips" className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold">Minhas Propostas Enviadas</h3>
               <Badge variant="secondary" className="text-sm font-medium">
@@ -2337,7 +2337,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             )}
           </TabsContent>
 
-          <TabsContent value="counter-offers" className="space-y-4" forceMount>
+          <TabsContent value="counter-offers" className="space-y-4">
             <SafeListWrapper>
               <h3 className="text-lg font-semibold">Contra-ofertas Recebidas</h3>
             {counterOffers.length > 0 ? (
@@ -2395,11 +2395,11 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="vehicles" className="space-y-4" forceMount>
+          <TabsContent value="vehicles" className="space-y-4">
             <VehicleManager driverProfile={profile} />
           </TabsContent>
 
-          <TabsContent value="payments" className="space-y-4" forceMount>
+          <TabsContent value="payments" className="space-y-4">
             <SafeListWrapper>
               <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Pagamentos Pendentes</h3>
@@ -2501,11 +2501,11 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="advances" className="space-y-4" forceMount>
+          <TabsContent value="advances" className="space-y-4">
             <DriverPayouts driverId={profile?.id || ''} />
           </TabsContent>
 
-          <TabsContent value="ratings" className="mt-6" forceMount>
+          <TabsContent value="ratings" className="mt-6">
             <SafeListWrapper>
               <PendingRatingsPanel
               userRole="MOTORISTA"
@@ -2514,7 +2514,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
             </SafeListWrapper>
           </TabsContent>
 
-          <TabsContent value="historico" className="mt-6" forceMount>
+          <TabsContent value="historico" className="mt-6">
             <SafeListWrapper>
               <UnifiedHistory userRole="MOTORISTA" />
             </SafeListWrapper>
