@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { queryWithTimeout } from '@/lib/query-utils';
 import { clearSupabaseAuthStorage } from '@/utils/authRecovery';
 import { toast } from 'sonner';
-import { withLock } from '@/utils/globalLocks';
+import { withLockOrJoin } from '@/utils/globalLocks';
 
 interface UserProfile {
   id: string;
@@ -84,8 +84,8 @@ export const useAuth = () => {
     const lockKey = `fetchProfile:${userId}`;
     const startTime = Date.now();
     
-    // ✅ GLOBAL LOCK: Prevenir múltiplas chamadas simultâneas (tempestade de requests)
-    const result = await withLock(lockKey, async () => {
+    // ✅ GLOBAL LOCK COM JOIN: Prevenir múltiplas chamadas simultâneas
+    const result = await withLockOrJoin(lockKey, async () => {
       if (fetchingRef.current || !mountedRef.current) return;
       
       // ✅ Bail-out: não chamar se estiver na rota /auth sem sessão
@@ -282,12 +282,9 @@ export const useAuth = () => {
           setLoading(false);
         }
       }
-    }, 25000); // Timeout do lock = timeout da query
-
-    // Se lock não foi adquirido, apenas logar
-    if (result === null) {
-      console.log('[useAuth] 🔒 Fetch bloqueado por operação em andamento');
-    }
+    }, 25000, 1500); // Timeout do lock, timeout do join
+    
+    // Resultado null = join timeout ou erro - não logar (silencioso)
   }, []);
 
   const tryAutoCreateProfile = async (userId: string) => {
@@ -458,7 +455,7 @@ export const useAuth = () => {
       }
     );
 
-    // Check for existing session (apenas uma vez)
+    // Check for existing session (apenas uma vez, sem duplicar fetchProfile)
     if (!didInitialFetchRef.current) {
       didInitialFetchRef.current = true;
       
@@ -476,7 +473,7 @@ export const useAuth = () => {
           
           setSession(session);
           setUser(session.user);
-          fetchProfile(session.user.id);
+          // ✅ NÃO chamar fetchProfile aqui - onAuthStateChange já chamará com INITIAL_SESSION
         } else {
           setLoading(false);
           setInitialized(true);
