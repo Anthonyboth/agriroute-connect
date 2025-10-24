@@ -109,6 +109,7 @@ const COMPANY_TABS = [
   { value: 'areas-ai', label: 'Áreas IA', shortLabel: 'Áreas', icon: Target },
   { value: 'cities', label: 'Cidades', shortLabel: 'Cid', icon: MapPin },
   { value: 'balance', label: 'Saldo', shortLabel: '$', icon: Banknote },
+  { value: 'ratings', label: 'Avaliações', shortLabel: 'Aval', icon: Star },
   { value: 'history', label: 'Histórico', shortLabel: 'Hist', icon: Clock },
   { value: 'chat', label: 'Chat Interno', shortLabel: 'Chat', icon: MessageSquare },
   { value: 'reports', label: 'Relatórios', shortLabel: 'Rel', icon: BarChart }
@@ -780,6 +781,13 @@ const CompanyDashboard = () => {
 
           <TabsContent value="balance" className="mt-6">
             <CompanyBalance />
+          </TabsContent>
+
+          <TabsContent value="ratings" className="mt-6">
+            <PendingRatingsPanel
+              userRole="PRODUTOR"
+              userProfileId={profile?.id || ''}
+            />
           </TabsContent>
 
           <TabsContent value="history" className="mt-6">

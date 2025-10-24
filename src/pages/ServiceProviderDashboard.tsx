@@ -51,7 +51,6 @@ const ServiceProviderDashboard = () => {
       <div className="provider-theme">
         <div className="container mx-auto p-4 space-y-4">
           <FreightLimitTracker hideForAffiliatedDriver={true} />
-          <PendingServiceRatingsPanel />
           <ServiceDashboard />
         </div>
       </div>
