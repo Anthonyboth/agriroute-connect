@@ -71,6 +71,7 @@ serve(async (req) => {
           service_type,
           required_trucks,
           accepted_trucks,
+          status,
           producer:profiles!freights_producer_id_fkey(
             id,
             full_name,
