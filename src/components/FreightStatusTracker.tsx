@@ -87,6 +87,20 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
     }
   };
 
+  // ✅ Calcular status efetivo baseado no histórico (fonte de verdade)
+  const effectiveCurrentStatus = useMemo(() => {
+    if (statusHistory.length > 0) {
+      const lastHistoryStatus = statusHistory[statusHistory.length - 1]?.status;
+      return lastHistoryStatus || currentStatus;
+    }
+    return currentStatus;
+  }, [statusHistory, currentStatus]);
+
+  // ✅ Verificar se é um status final (não pode ser alterado)
+  const isFinalStatus = useMemo(() => {
+    return FINAL_STATUSES.includes(effectiveCurrentStatus as any);
+  }, [effectiveCurrentStatus]);
+
   const getCurrentLocation = (): Promise<{lat: number, lng: number}> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
@@ -109,6 +123,16 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
 
   const updateStatus = async (newStatus: string) => {
     if (!currentUserProfile) return;
+
+    // ✅ VALIDAÇÃO LOCAL: Bloquear se status efetivo já é final
+    if (isFinalStatus) {
+      toast({
+        title: "Ação bloqueada",
+        description: "Este frete já foi entregue e está aguardando confirmação. Não é possível alterar o status.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -258,11 +282,11 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
 
   const nextStatus = getNextStatus();
   
-  // ✅ Bloquear botão de atualização se status já é final
-  const isCurrentStatusFinal = FINAL_STATUSES.includes(currentStatus as any);
+  // ✅ Bloquear botão de atualização se status efetivo já é final (usando effectiveCurrentStatus)
+  const isCurrentStatusFinal = isFinalStatus;
   
   if (import.meta.env.DEV) {
-    console.log('[FreightStatusTracker] Current status:', currentStatus, 'Next:', nextStatus?.key, 'Is final:', isCurrentStatusFinal);
+    console.log('[FreightStatusTracker] Current:', currentStatus, 'Effective:', effectiveCurrentStatus, 'Next:', nextStatus?.key, 'Is final:', isCurrentStatusFinal);
   }
 
   return (

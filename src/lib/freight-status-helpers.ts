@@ -25,7 +25,7 @@ export async function driverUpdateFreightStatus({
   location
 }: UpdateStatusParams): Promise<boolean> {
   try {
-    // ✅ PREFLIGHT CHECK: Verificar se frete já está em status final
+    // ✅ PREFLIGHT CHECK 1: Verificar se frete já está em status final via tabela principal
     const { data: freightData, error: checkError } = await supabase
       .from('freights')
       .select('status')
@@ -45,11 +45,44 @@ export async function driverUpdateFreightStatus({
         attemptedStatus: newStatus
       });
       
-      toast.error('Este frete já foi entregue ou está aguardando confirmação. Não é possível alterar o status.');
+      toast.error('Este frete já foi entregue e está aguardando confirmação. Não é possível alterar o status.');
       
       // Disparar evento para forçar refresh da UI
       window.dispatchEvent(new CustomEvent('freight-status-blocked', { 
         detail: { freightId, status: freightData.status } 
+      }));
+      
+      return false;
+    }
+
+    // ✅ PREFLIGHT CHECK 2: Verificar histórico de status (fonte de verdade definitiva)
+    const { data: lastBlocking, error: historyError } = await supabase
+      .from('freight_status_history')
+      .select('status, created_at')
+      .eq('freight_id', freightId)
+      .in('status', FINAL_STATUSES)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (historyError) {
+      console.error('[STATUS-UPDATE] History check error:', historyError);
+      // Não bloqueia por erro de histórico, apenas loga
+    }
+
+    if (lastBlocking) {
+      console.warn('[STATUS-UPDATE] Preflight blocked: found blocking status in history', {
+        freightId,
+        blockingStatus: lastBlocking.status,
+        blockingTime: lastBlocking.created_at,
+        attemptedStatus: newStatus
+      });
+      
+      toast.error('Este frete já foi entregue e está aguardando confirmação. Não é possível alterar o status.');
+      
+      // Disparar evento para forçar refresh da UI
+      window.dispatchEvent(new CustomEvent('freight-status-blocked', { 
+        detail: { freightId, status: lastBlocking.status } 
       }));
       
       return false;
@@ -85,13 +118,19 @@ export async function driverUpdateFreightStatus({
       });
       
       // ✅ Tratamento especial para erro P0001 (transição inválida após entrega)
-      if (error.code === 'P0001' && error.message?.includes('Transição de status inválida após entrega reportada')) {
+      if (error.code === 'P0001') {
+        // Mensagem amigável para o usuário - sem expor erro técnico
         toast.error('Este frete já foi entregue e está aguardando confirmação. Não é possível alterar o status.');
         
         // Disparar evento para forçar refresh da UI
         window.dispatchEvent(new CustomEvent('freight-status-blocked', { 
           detail: { freightId, status: 'DELIVERED_PENDING_CONFIRMATION' } 
         }));
+        
+        // Log para debug (não aparece para usuário final)
+        if (import.meta.env.DEV) {
+          console.error('[STATUS-UPDATE] P0001 error intercepted:', error.message);
+        }
         
         return false;
       }
