@@ -279,6 +279,10 @@ export const useAuth = () => {
     }, 25000, 1500); // Timeout do lock, timeout do join
     
     // Resultado null = join timeout ou erro - não logar (silencioso)
+    if (result === null) {
+      if (mountedRef.current) setLoading(false);
+      return;
+    }
   }, []);
 
   const tryAutoCreateProfile = async (userId: string) => {
