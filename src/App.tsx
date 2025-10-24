@@ -81,6 +81,18 @@ if (typeof window !== 'undefined') {
   });
 }
 
+// Componente para setup de monitoramento de erros
+const ErrorMonitoringSetup = () => {
+  // Importar dinamicamente para evitar problemas de SSR
+  React.useEffect(() => {
+    import('@/hooks/useErrorMonitoring').then(({ useErrorMonitoring }) => {
+      useErrorMonitoring();
+    });
+  }, []);
+  
+  return null;
+};
+
 const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = false, adminOnly = false, allowedRoles }: { 
   children: React.ReactNode; 
   requiresAuth?: boolean;
@@ -451,6 +463,7 @@ const App = () => (
             <ScrollToTop />
             <DeviceSetup />
             <SessionManager />
+            <ErrorMonitoringSetup />
             <Routes>
             <Route path="/" element={<AuthedLanding />} />
             <Route path="/landing" element={<Landing />} />
