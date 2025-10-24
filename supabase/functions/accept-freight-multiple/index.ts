@@ -646,7 +646,10 @@ serve(async (req) => {
         assignments,
         remaining_slots: remainingSlots
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { 
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
     );
 
   } catch (error: any) {

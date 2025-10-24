@@ -1485,7 +1485,18 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           const { data: acceptData, error: acceptError } = await (supabase as any).functions.invoke('accept-freight-multiple', {
             body: { freight_id: freightId, num_trucks: 1 },
           });
+
+          console.log('[handleFreightAction] Edge function response:', { acceptData, acceptError });
+
           if (acceptError) {
+            console.error('[handleFreightAction] Error details:', {
+              message: acceptError.message,
+              context: acceptError.context,
+              status: acceptError.context?.status,
+              statusText: acceptError.context?.statusText,
+              response: acceptError.context?.response
+            });
+            
             // Extract user-friendly message from edge function response
             const errorMsg = (acceptError as any)?.context?.response?.error 
               || (acceptError as any)?.message 

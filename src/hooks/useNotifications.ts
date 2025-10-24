@@ -65,10 +65,13 @@ export const useNotifications = () => {
           );
         },
         {
-          maxRetries: 3,
-          retryDelayMs: 2000,
+          maxRetries: 5,
+          retryDelayMs: 3000,
           onError: (error) => {
-            console.error('[useNotifications] Subscription error:', error);
+            console.error('[useNotifications] Realtime error:', error);
+            // Fallback: polling manual se realtime falhar
+            const pollInterval = setInterval(fetchUnreadCount, 30000);
+            return () => clearInterval(pollInterval);
           }
         }
       );
