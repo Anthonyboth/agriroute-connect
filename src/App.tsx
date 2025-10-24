@@ -82,14 +82,10 @@ if (typeof window !== 'undefined') {
 }
 
 // Componente para setup de monitoramento de erros
+import { useErrorMonitoring } from '@/hooks/useErrorMonitoring';
+
 const ErrorMonitoringSetup = () => {
-  // Importar dinamicamente para evitar problemas de SSR
-  React.useEffect(() => {
-    import('@/hooks/useErrorMonitoring').then(({ useErrorMonitoring }) => {
-      useErrorMonitoring();
-    });
-  }, []);
-  
+  useErrorMonitoring();
   return null;
 };
 

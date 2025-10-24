@@ -7,6 +7,12 @@ import { ErrorMonitoringService } from '@/services/errorMonitoringService';
  */
 export function useErrorMonitoring() {
   useEffect(() => {
+    // ✅ Guard: instalar patch apenas uma vez por sessão
+    if ((window as any).__fetchPatched) {
+      return;
+    }
+    (window as any).__fetchPatched = true;
+    
     console.log('🔍 [useErrorMonitoring] Hook inicializado');
     const errorMonitoring = ErrorMonitoringService.getInstance();
     
@@ -60,8 +66,8 @@ export function useErrorMonitoring() {
     
     return () => {
       console.log('🔍 [useErrorMonitoring] Hook desmontado');
-      // Restaurar fetch original ao desmontar
-      window.fetch = originalFetch;
+      // ✅ Não restaurar fetch - manter patch ativo até reload
+      // (evita reinstalações caso componente seja remontado)
     };
   }, []);
 }

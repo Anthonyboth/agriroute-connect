@@ -72,15 +72,35 @@ export const useAuth = () => {
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
   const lastFetchTimestamp = useRef<number>(0);
+  const lastTimeoutAt = useRef<number>(0);
+  const didInitialFetchRef = useRef(false);
   const FETCH_THROTTLE_MS = 2000;
+  const TIMEOUT_COOLDOWN_MS = 20000; // 20s cooldown após timeout
   const hasFixedActiveModeRef = useRef(false); // ✅ Flag para evitar loop infinito
 
   // Memoized fetch function to prevent recreation on every render
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
     if (fetchingRef.current || !mountedRef.current) return;
     
+    // ✅ Bail-out: não chamar se estiver na rota /auth sem sessão
+    if (window.location.pathname === '/auth' && !force) {
+      if (import.meta.env.DEV) {
+        console.log('[useAuth] Skipping fetch - user on /auth');
+      }
+      return;
+    }
+    
     // Throttle: prevent too frequent calls
     const now = Date.now();
+    
+    // ✅ Cooldown após timeout: aguardar 20s antes de nova tentativa
+    if (lastTimeoutAt.current > 0 && now - lastTimeoutAt.current < TIMEOUT_COOLDOWN_MS) {
+      if (import.meta.env.DEV) {
+        console.log('[useAuth] Cooldown ativo após timeout. Aguarde...');
+      }
+      return;
+    }
+    
     if (!force && now - lastFetchTimestamp.current < FETCH_THROTTLE_MS) {
       if (import.meta.env.DEV) {
         console.log('[useAuth] Fetch throttled');
@@ -105,9 +125,9 @@ export const useAuth = () => {
           return data;
         },
         { 
-          timeoutMs: 8000, 
+          timeoutMs: 12000, 
           operationName: 'fetchProfile',
-          retries: 1
+          retries: 0 // ✅ Sem retry interno - nosso throttle/cooldown cuida
         }
       );
       
@@ -158,9 +178,17 @@ export const useAuth = () => {
       
       if (!mountedRef.current) return;
       
+      // ✅ Detectar timeout e ativar cooldown
+      const errorMessage = String((error as any)?.message ?? '');
+      const isTimeout = errorMessage.includes('Timeout') || errorMessage.includes('excedeu');
+      
+      if (isTimeout) {
+        lastTimeoutAt.current = Date.now();
+        console.warn('[useAuth] ⏱️ Timeout detectado. Cooldown de 20s ativado.');
+      }
+      
       // CRÍTICO: Detectar recursão infinita em RLS e parar o loop
       const errorCode = (error as any)?.code;
-      const errorMessage = String((error as any)?.message ?? '');
       const isInfiniteRecursion = errorCode === '42P17' || errorMessage.includes('infinite recursion detected in policy');
       
       if (isInfiniteRecursion) {
@@ -366,27 +394,31 @@ export const useAuth = () => {
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mountedRef.current) return;
+    // Check for existing session (apenas uma vez)
+    if (!didInitialFetchRef.current) {
+      didInitialFetchRef.current = true;
       
-      if (session?.user) {
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(session.user.id)) {
-          setProfile(null);
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!mountedRef.current) return;
+        
+        if (session?.user) {
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          if (!uuidRegex.test(session.user.id)) {
+            setProfile(null);
+            setLoading(false);
+            setInitialized(true);
+            return;
+          }
+          
+          setSession(session);
+          setUser(session.user);
+          fetchProfile(session.user.id);
+        } else {
           setLoading(false);
           setInitialized(true);
-          return;
         }
-        
-        setSession(session);
-        setUser(session.user);
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-        setInitialized(true);
-      }
-    });
+      });
+    }
 
     return () => {
       mountedRef.current = false;
@@ -398,6 +430,8 @@ export const useAuth = () => {
   useEffect(() => {
     if (!session?.user?.id) return;
 
+    let debounceTimer: NodeJS.Timeout;
+    
     const channel = supabase
       .channel('profile_changes')
       .on('postgres_changes', {
@@ -406,14 +440,22 @@ export const useAuth = () => {
         table: 'profiles',
         filter: `user_id=eq.${session.user.id}`
       }, (payload) => {
-        if (!mountedRef.current) return;
-        const newProfile = payload.new as UserProfile;
-        fetchProfile(newProfile.user_id);
+        if (!mountedRef.current || fetchingRef.current) return;
+        
+        // ✅ Debounce: aguardar 500ms para evitar múltiplas chamadas
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          if (!mountedRef.current) return;
+          const newProfile = payload.new as UserProfile;
+          fetchProfile(newProfile.user_id, true);
+        }, 500);
       })
       .subscribe((status) => {
         // ✅ Tratamento resiliente de erros do WebSocket (não bloqueante)
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('[Realtime] Perfil: status=', status, '(conexão em tempo real indisponível)');
+          if (import.meta.env.DEV) {
+            console.warn('[Realtime] Perfil: status=', status, '(conexão em tempo real indisponível)');
+          }
           
           // Cooldown de 15 minutos para evitar spam de notificações
           const key = 'realtime_warn_shown_at';
@@ -437,11 +479,14 @@ export const useAuth = () => {
       });
 
     return () => {
+      clearTimeout(debounceTimer);
       // ✅ Garantir cleanup mesmo se WebSocket falhou
       try {
         supabase.removeChannel(channel);
       } catch (e) {
-        console.warn('[Realtime] Erro ao remover canal:', e);
+        if (import.meta.env.DEV) {
+          console.warn('[Realtime] Erro ao remover canal:', e);
+        }
       }
     };
   }, [session?.user?.id, fetchProfile]);
