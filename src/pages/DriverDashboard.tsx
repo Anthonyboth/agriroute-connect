@@ -1327,11 +1327,21 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     const acceptedProposals = myProposals.filter(p => p.status === 'ACCEPTED');
     const pendingProposalsCount = myProposals.filter(p => p.status === 'PENDING').length;
 
-    // Contar fretes ativos - EXCLUIR DELIVERED_PENDING_CONFIRMATION (já entregue, aguardando confirmação)
+    // Status ativos (não incluir DELIVERED_PENDING_CONFIRMATION ou DELIVERED)
     const activeStatuses = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'IN_PROGRESS'];
-    const activeTripsCount = ongoingFreights.filter(freight => 
-      activeStatuses.includes(freight.status)
+    
+    // Contar fretes ativos diretos (sem assignments, para evitar dupla contagem)
+    const activeFreightsCount = visibleOngoing.length;
+    
+    // Contar assignments ativos (contratos multi-carreta)
+    const activeAssignmentsCount = (myAssignments || []).filter(assignment => 
+      assignment?.status && activeStatuses.includes(assignment.status)
     ).length;
+    
+    // Total de viagens ativas = fretes diretos + assignments
+    const activeTripsCount = activeFreightsCount + activeAssignmentsCount;
+    
+    console.log('[stats] activeFreightsCount:', activeFreightsCount, 'activeAssignmentsCount:', activeAssignmentsCount, 'total:', activeTripsCount);
     
     return {
       activeTrips: activeTripsCount,
@@ -1343,7 +1353,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       totalCheckins: totalCheckins,
       pendingProposals: pendingProposalsCount,
     };
-  }, [myProposals, availableFreights, totalCheckins, ongoingFreights]);
+  }, [myProposals, availableFreights, totalCheckins, visibleOngoing, myAssignments]);
 
   const handleLogout = async () => {
     try {
