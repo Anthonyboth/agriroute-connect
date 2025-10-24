@@ -32,10 +32,10 @@ export const useServicesOnly = () => {
 
       if (error) throw error;
 
-      // Filtro de segurança: garantir que são apenas serviços
+      // Filtro de segurança: garantir que são apenas serviços (LAVAGEM foi removido - não é um tipo válido)
       const validServices = (data || []).filter((s: any) => 
         s.service_type && 
-        ['GUINCHO', 'MUDANCA', 'ELETRICISTA', 'MECANICO', 'BORRACHEIRO', 'LAVAGEM', 'INSTALACAO'].includes(s.service_type)
+        ['GUINCHO', 'MUDANCA', 'ELETRICISTA', 'MECANICO', 'BORRACHEIRO', 'INSTALACAO'].includes(s.service_type)
       );
 
       setServices(validServices);

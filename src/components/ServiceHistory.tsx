@@ -149,6 +149,34 @@ export const ServiceHistory: React.FC = () => {
     }
   };
 
+  const handleCancelService = async (serviceId: string) => {
+    const confirmed = window.confirm(
+      '⚠️ Tem certeza que deseja cancelar esta solicitação de serviço?\n\n' +
+      'Esta ação não pode ser desfeita.'
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from('service_requests')
+        .update({ 
+          status: 'CANCELLED',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', serviceId)
+        .eq('client_id', profile?.id);
+
+      if (error) throw error;
+
+      toast.success('Serviço cancelado com sucesso');
+      fetchServices();
+    } catch (error) {
+      console.error('Erro ao cancelar serviço:', error);
+      toast.error('Erro ao cancelar serviço');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: any }> = {
       'OPEN': { label: 'Aberto', variant: 'default', icon: AlertCircle },
@@ -285,7 +313,7 @@ export const ServiceHistory: React.FC = () => {
                   return (
                     <Card key={service.id} className="hover:shadow-md transition-shadow">
                       <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <CardTitle className="text-lg">
@@ -303,6 +331,19 @@ export const ServiceHistory: React.FC = () => {
                               {isClient ? 'Serviço Solicitado' : 'Serviço Prestado'}
                             </CardDescription>
                           </div>
+                          
+                          {/* Botão Cancelar - visível apenas para o cliente em serviços abertos/aceitos */}
+                          {isClient && ['OPEN', 'ACCEPTED'].includes(service.status) && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleCancelService(service.id)}
+                              className="shrink-0"
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              CANCELAR
+                            </Button>
+                          )}
                         </div>
                       </CardHeader>
 
