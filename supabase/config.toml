@@ -27,6 +27,9 @@ verify_jwt = false
 [functions.test-data-generator]
 verify_jwt = false
 
+[functions.generate-test-users]
+verify_jwt = false
+
 [functions.service-provider-spatial-matching]
 verify_jwt = false
 
