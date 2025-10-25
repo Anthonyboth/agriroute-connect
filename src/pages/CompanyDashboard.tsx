@@ -91,10 +91,11 @@ import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { DriverFileModal } from '@/components/DriverFileModal';
 
-// Definição centralizada de todas as tabs
+// ✅ Definição centralizada de TODAS as tabs (ÚNICA FONTE DA VERDADE)
+// ⚠️ ATENÇÃO: Esta é a ÚNICA lista de tabs. NÃO adicionar tabs manualmente em outros lugares!
 const COMPANY_TABS = [
   { value: 'overview', label: 'Visão Geral', shortLabel: 'Visão', icon: Building2 },
-  { value: 'marketplace', label: 'FRETES I.A', shortLabel: 'IA', icon: TrendingUp },
+  { value: 'marketplace', label: 'FRETES I.A', shortLabel: 'IA', icon: TrendingUp }, // ✅ ÚNICA aba de IA
   { value: 'drivers', label: 'Motoristas', shortLabel: 'Mot', icon: Users },
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck },
   { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínc', icon: Link2 },
@@ -112,6 +113,10 @@ const COMPANY_TABS = [
   { value: 'chat', label: 'Chat Interno', shortLabel: 'Chat', icon: MessageSquare },
   { value: 'reports', label: 'Relatórios', shortLabel: 'Rel', icon: BarChart }
 ] as const;
+
+// 🔍 DEBUG: Log tabs para diagnóstico (remover depois)
+console.log('📊 [CompanyDashboard] COMPANY_TABS carregadas:', COMPANY_TABS.length, 'tabs');
+console.log('🎯 [CompanyDashboard] Tabs de IA:', COMPANY_TABS.filter(t => t.label.includes('I.A')).map(t => t.value));
 
 const CompanyDashboard = () => {
   const { profile, profiles, switchProfile, signOut } = useAuth();
@@ -139,6 +144,11 @@ const CompanyDashboard = () => {
   };
   
   const [activeTab, setActiveTab] = useState(getInitialTab());
+  
+  // 🔍 DEBUG: Log mudanças de tab
+  useEffect(() => {
+    console.log('🎯 [CompanyDashboard] ActiveTab mudou para:', activeTab);
+  }, [activeTab]);
   
   // ✅ Obter permissões do motorista para passar aos componentes filhos
   const { isAffiliated, companyId } = useCompanyDriver();
@@ -567,6 +577,7 @@ const CompanyDashboard = () => {
             <CompanyDashboardComponent onNavigateToReport={handleNavigateToReport} />
           </TabsContent>
 
+          {/* ✅ ÚNICA aba de FRETES I.A (marketplace) - NÃO DUPLICAR! */}
           <TabsContent value="marketplace" className="mt-6">
             <CompanySmartFreightMatcher />
           </TabsContent>
