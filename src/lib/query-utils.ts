@@ -27,9 +27,14 @@ export async function queryWithTimeout<T>(
   } = options;
 
   const executeQuery = async (attemptNumber: number = 0): Promise<T> => {
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`Timeout: ${operationName} excedeu ${timeoutMs}ms`)), timeoutMs)
-    );
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        const timeoutError = new Error(`Timeout: ${operationName} excedeu ${timeoutMs}ms`);
+        (timeoutError as any).isTimeout = true;
+        (timeoutError as any).operationName = operationName;
+        reject(timeoutError);
+      }, timeoutMs);
+    });
 
     try {
       if (import.meta.env.DEV) {
@@ -41,7 +46,7 @@ export async function queryWithTimeout<T>(
       }
       return result;
     } catch (error: any) {
-      const isTimeout = error.message?.includes('Timeout');
+      const isTimeout = (error as any)?.isTimeout === true || error.message?.includes('Timeout');
       const isInfiniteRecursion = error.code === '42P17' || error.message?.includes('infinite recursion detected in policy');
       
       // Log detalhado do erro
@@ -67,11 +72,7 @@ export async function queryWithTimeout<T>(
         return executeQuery(attemptNumber + 1);
       }
 
-      // Mensagens de erro amigáveis
-      if (isTimeout) {
-        throw new Error('A operação demorou muito tempo. Verifique sua conexão e tente novamente.');
-      }
-      
+      // Manter mensagem original do timeout
       throw error;
     }
   };

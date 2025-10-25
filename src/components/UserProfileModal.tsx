@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [secondConfirmOpen, setSecondConfirmOpen] = useState(false);
+  const lastFetchedUserId = useRef<string | null>(null);
+  const lastFetchedAt = useRef<number>(0);
+  const lastErrorLogAt = useRef<number>(0);
   const [profileData, setProfileData] = useState({
     full_name: '',
     phone: '',
@@ -73,9 +76,22 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         address_zip: user.address_zip || '',
       });
       setCurrentPhotoUrl(user.profile_photo_url || '');
+    }
+  }, [user?.id]);
+
+  // Carregar rating distribution apenas quando modal estiver aberto e com throttle
+  useEffect(() => {
+    if (!isOpen || !user?.id) return;
+    
+    const now = Date.now();
+    const shouldFetch = lastFetchedUserId.current !== user.id || (now - lastFetchedAt.current > 60000);
+    
+    if (shouldFetch) {
+      lastFetchedUserId.current = user.id;
+      lastFetchedAt.current = now;
       fetchRatingDistribution();
     }
-  }, [user]);
+  }, [user?.id, isOpen]);
 
   const fetchRatingDistribution = async () => {
     if (!user?.id) return;
@@ -89,7 +105,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       
       setRatingDistribution(data || []);
     } catch (error) {
-      console.error('Erro ao buscar distribuição de avaliações:', error);
+      // Throttle error logs: apenas 1x por minuto
+      const now = Date.now();
+      if (now - lastErrorLogAt.current > 60000) {
+        console.warn('Erro ao buscar distribuição de avaliações:', error);
+        lastErrorLogAt.current = now;
+      }
+      // Silenciosamente definir array vazio
+      setRatingDistribution([]);
     }
   };
 

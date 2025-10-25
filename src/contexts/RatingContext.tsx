@@ -318,12 +318,14 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         retryDelayMs: 3000,
         onStatusChange: (status) => {
           const now = Date.now();
-          if (now - lastLogTimeRef.current > 60000) {
-            console.log(`[RatingContext] 📡 Status: ${status}`);
-            lastLogTimeRef.current = now;
-          }
           
-          if (status === 'CLOSED' || status === 'TIMED_OUT') {
+          // Apenas logar erros, não status normais
+          if (status === 'CLOSED' || status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
+            if (now - lastLogTimeRef.current > 60000) {
+              console.warn(`[RatingContext] ⚠️ Status: ${status}`);
+              lastLogTimeRef.current = now;
+            }
+            
             realtimeConnectedRef.current = false;
             realtimeFailCountRef.current++;
             

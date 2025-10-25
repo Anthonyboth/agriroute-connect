@@ -75,7 +75,7 @@ export const useAuth = () => {
   const lastTimeoutAt = useRef<number>(0);
   const didInitialFetchRef = useRef(false);
   const FETCH_THROTTLE_MS = 2000;
-  const TIMEOUT_COOLDOWN_MS = 20000; // 20s cooldown após timeout
+  const TIMEOUT_COOLDOWN_MS = 60000; // 60s cooldown após timeout
   const hasFixedActiveModeRef = useRef(false); // ✅ Flag para evitar loop infinito
 
   // Memoized fetch function to prevent recreation on every render
@@ -93,7 +93,7 @@ export const useAuth = () => {
     // Throttle: prevent too frequent calls
     const now = Date.now();
     
-    // ✅ Cooldown após timeout: aguardar 20s antes de nova tentativa
+    // ✅ Cooldown após timeout: aguardar 60s antes de nova tentativa
     if (lastTimeoutAt.current > 0 && now - lastTimeoutAt.current < TIMEOUT_COOLDOWN_MS) {
       if (import.meta.env.DEV) {
         console.log('[useAuth] Cooldown ativo após timeout. Aguarde...');
@@ -180,11 +180,11 @@ export const useAuth = () => {
       
       // ✅ Detectar timeout e ativar cooldown
       const errorMessage = String((error as any)?.message ?? '');
-      const isTimeout = errorMessage.includes('Timeout') || errorMessage.includes('excedeu');
+      const isTimeout = (error as any)?.isTimeout === true || errorMessage.includes('Timeout') || errorMessage.includes('excedeu') || errorMessage.includes('demorou');
       
       if (isTimeout) {
         lastTimeoutAt.current = Date.now();
-        console.warn('[useAuth] ⏱️ Timeout detectado. Cooldown de 20s ativado.');
+        console.warn('[useAuth] ⏱️ Timeout detectado. Cooldown de 60s ativado.');
       }
       
       // CRÍTICO: Detectar recursão infinita em RLS e parar o loop
