@@ -58,6 +58,7 @@ import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { useDriverPermissions } from '@/hooks/useDriverPermissions';
 import { normalizeServiceType, type CanonicalServiceType } from '@/lib/service-type-normalization';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
+import { debounce } from '@/lib/utils';
 
 interface Freight {
   id: string;
@@ -614,19 +615,31 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         setOngoingFreights(dedupedOngoing);
       }
 
+      // ✅ CORREÇÃO: Usar Promise.all para controlar assíncrono
       if (ongoing.length > 0) {
-        ongoing.forEach(async (freight: any) => {
+        const checkinPromises = ongoing.map(async (freight: any) => {
           try {
             const { count } = await (supabase as any)
               .from('freight_checkins')
               .select('*', { count: 'exact', head: true })
               .eq('freight_id', freight.id)
               .eq('user_id', profile.id);
-            if (isMountedRef.current) setFreightCheckins(prev => ({ ...prev, [freight.id]: count || 0 }));
+            return { freightId: freight.id, count: count || 0 };
           } catch (err) {
             console.error('Error checking freight checkins for freight:', freight.id, err);
+            return { freightId: freight.id, count: 0 };
           }
         });
+
+        const checkinResults = await Promise.all(checkinPromises);
+        
+        if (isMountedRef.current) {
+          const newCheckins = checkinResults.reduce((acc, result) => ({
+            ...acc,
+            [result.freightId]: result.count
+          }), {});
+          setFreightCheckins(prev => ({ ...prev, ...newCheckins }));
+        }
       }
     } catch (error) {
       console.error('Error fetching proposals:', error);
@@ -724,7 +737,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         return true;
       });
       
-      // Filtrar fretes que já foram concluídos ou cancelados
+      // ✅ CORREÇÃO: Remover update assíncrono do filter e criar função separada
       const filteredOngoing = dedupedOngoing.filter((item: any) => {
         // Sempre excluir status finais
         if (['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION', 'CANCELLED', 'COMPLETED'].includes(item.status)) {
@@ -738,7 +751,6 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         }
         
         // Para fretes tradicionais, verificar metadata de conclusão
-        // Verificar se há confirmação do produtor no metadata (vários formatos possíveis)
         const metadata = item.metadata || {};
         const isConfirmedByProducer = 
           metadata.delivery_confirmed_at || 
@@ -746,26 +758,13 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           metadata.confirmed_by_producer_at ||
           metadata.delivery_confirmed_by_producer === true;
         
+        // ✅ APENAS logar para diagnóstico - NÃO fazer update aqui
         if (isConfirmedByProducer) {
           console.warn('🚨 [DriverDashboard] Frete confirmado com status inconsistente:', {
             id: item.id,
             status: item.status,
             metadata_keys: Object.keys(metadata)
           });
-          
-          // ✅ Tentar atualizar status automaticamente
-          supabase
-            .from('freights')
-            .update({ status: 'COMPLETED', updated_at: new Date().toISOString() })
-            .eq('id', item.id)
-            .then(({ error }) => {
-              if (error) {
-                console.error('❌ Erro ao corrigir status do frete:', error);
-              } else {
-                console.log('✅ Status do frete corrigido automaticamente');
-              }
-            });
-          
           return false; // Não mostrar como ativo
         }
 
@@ -780,26 +779,64 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         return true;
       });
       
+      // ✅ Identificar fretes com status inconsistente para correção
+      const inconsistentFreights = dedupedOngoing.filter((item: any) => {
+        const metadata = item.metadata || {};
+        return metadata.delivery_confirmed_at || 
+               metadata.confirmed_by_producer === true ||
+               metadata.confirmed_by_producer_at ||
+               metadata.delivery_confirmed_by_producer === true;
+      });
+      
       console.log('📦 Fretes diretos encontrados:', freightData?.length || 0);
       console.log('🚚 Fretes via assignments encontrados:', assignmentFreights?.length || 0);
       console.log('📊 Total de itens ativos (deduplicado):', dedupedOngoing.length);
       console.log('✅ Total de itens após filtro de conclusão:', filteredOngoing.length);
       if (isMountedRef.current) setOngoingFreights(filteredOngoing);
 
-      // Verificar checkins para cada frete tradicional
+      // ✅ Corrigir status APÓS setState, sem bloquear o fluxo
+      if (inconsistentFreights.length > 0 && isMountedRef.current) {
+        Promise.all(
+          inconsistentFreights.map(item =>
+            supabase
+              .from('freights')
+              .update({ status: 'COMPLETED', updated_at: new Date().toISOString() })
+              .eq('id', item.id)
+          )
+        ).then(() => {
+          if (isMountedRef.current) {
+            console.log('✅ Status dos fretes corrigidos automaticamente');
+          }
+        }).catch(err => {
+          console.error('❌ Erro ao corrigir status dos fretes:', err);
+        });
+      }
+
+      // ✅ CORREÇÃO: Usar Promise.all para checkins
       if (freightData && freightData.length > 0) {
-        freightData.forEach(async (freight) => {
+        const checkinPromises = freightData.map(async (freight) => {
           try {
             const { count } = await (supabase as any)
               .from('freight_checkins')
               .select('*', { count: 'exact', head: true })
               .eq('freight_id', (freight as any).id)
               .eq('user_id', profile.id);
-            if (isMountedRef.current) setFreightCheckins(prev => ({ ...prev, [(freight as any).id]: count || 0 }));
+            return { freightId: (freight as any).id, count: count || 0 };
           } catch (error) {
             console.error('Error checking freight checkins for freight:', (freight as any).id, error);
+            return { freightId: (freight as any).id, count: 0 };
           }
         });
+
+        const checkinResults = await Promise.all(checkinPromises);
+        
+        if (isMountedRef.current) {
+          const newCheckins = checkinResults.reduce((acc, result) => ({
+            ...acc,
+            [result.freightId]: result.count
+          }), {});
+          setFreightCheckins(prev => ({ ...prev, ...newCheckins }));
+        }
       }
     } catch (error) {
       console.error('Error fetching ongoing freights:', error);
@@ -1163,6 +1200,42 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     loadData();
   }, [profile?.id, canSeeFreights, mustUseChat]);
 
+  // ✅ CORREÇÃO: Criar versões debounced das funções de fetch
+  const debouncedFetchOngoing = useCallback(
+    debounce(() => {
+      if (isMountedRef.current) fetchOngoingFreights();
+    }, 300),
+    [fetchOngoingFreights]
+  );
+
+  const debouncedFetchAssignments = useCallback(
+    debounce(() => {
+      if (isMountedRef.current) fetchMyAssignments();
+    }, 300),
+    [fetchMyAssignments]
+  );
+
+  const debouncedFetchAvailable = useCallback(
+    debounce(() => {
+      if (isMountedRef.current) fetchAvailableFreights();
+    }, 300),
+    [fetchAvailableFreights]
+  );
+
+  const debouncedFetchProposals = useCallback(
+    debounce(() => {
+      if (isMountedRef.current) fetchMyProposals();
+    }, 300),
+    [fetchMyProposals]
+  );
+
+  const debouncedFetchTransportRequests = useCallback(
+    debounce(() => {
+      if (isMountedRef.current) fetchTransportRequests();
+    }, 300),
+    [fetchTransportRequests]
+  );
+
   // Atualizar em tempo real contadores e listas ao mudar fretes/propostas
   useEffect(() => {
     if (!profile?.id) return;
@@ -1239,7 +1312,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       })
       .subscribe();
 
-    // Canal normal de updates - condicional baseado em permissões
+    // ✅ Canal normal de updates com debounce
     const channelBuilder = supabase.channel('realtime-freights-driver');
     
     // Sempre escutar mudanças nos fretes do motorista e assignments
@@ -1249,7 +1322,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       table: 'freights',
       filter: `driver_id=eq.${profile.id}`
     }, () => {
-      fetchOngoingFreights();
+      debouncedFetchOngoing(); // ✅ Debounced
     });
     
     channelBuilder.on('postgres_changes', { 
@@ -1258,7 +1331,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       table: 'freight_assignments',
       filter: `driver_id=eq.${profile.id}`
     }, () => {
-      fetchMyAssignments();
+      debouncedFetchAssignments(); // ✅ Debounced
     });
     
     channelBuilder.on('postgres_changes', { 
@@ -1278,7 +1351,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         schema: 'public', 
         table: 'freights' 
       }, () => {
-        fetchAvailableFreights();
+        debouncedFetchAvailable(); // ✅ Debounced
       });
       
       channelBuilder.on('postgres_changes', { 
@@ -1286,7 +1359,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         schema: 'public', 
         table: 'freight_matches' 
       }, () => {
-        fetchAvailableFreights();
+        debouncedFetchAvailable(); // ✅ Debounced
       });
       
       channelBuilder.on('postgres_changes', { 
@@ -1294,7 +1367,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         schema: 'public', 
         table: 'freight_proposals' 
       }, () => {
-        fetchMyProposals();
+        debouncedFetchProposals(); // ✅ Debounced
       });
       
       channelBuilder.on('postgres_changes', {
@@ -1303,18 +1376,25 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         table: 'service_requests', 
         filter: `provider_id=eq.${profile.id}` 
       }, () => {
-        fetchOngoingFreights();
-        fetchTransportRequests();
+        debouncedFetchOngoing(); // ✅ Debounced
+        debouncedFetchTransportRequests(); // ✅ Debounced
       });
     }
     
     const channel = channelBuilder.subscribe();
 
     return () => {
+      // ✅ Cancelar debounces pendentes
+      if (typeof (debouncedFetchOngoing as any).cancel === 'function') (debouncedFetchOngoing as any).cancel();
+      if (typeof (debouncedFetchAssignments as any).cancel === 'function') (debouncedFetchAssignments as any).cancel();
+      if (typeof (debouncedFetchAvailable as any).cancel === 'function') (debouncedFetchAvailable as any).cancel();
+      if (typeof (debouncedFetchProposals as any).cancel === 'function') (debouncedFetchProposals as any).cancel();
+      if (typeof (debouncedFetchTransportRequests as any).cancel === 'function') (debouncedFetchTransportRequests as any).cancel();
+      
       supabase.removeChannel(ratingChannel);
       supabase.removeChannel(channel);
     };
-  }, [profile?.id, canSeeFreights]);
+  }, [profile?.id, canSeeFreights, debouncedFetchOngoing, debouncedFetchAssignments, debouncedFetchAvailable, debouncedFetchProposals, debouncedFetchTransportRequests]);
 
   // Carregar contra-ofertas - debounced para evitar chamadas excessivas
   useEffect(() => {
@@ -2086,7 +2166,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                   {activeAssignments.map((assignment) => (
                     assignment?.id ? (
                       <MyAssignmentCard
-                        key={`assignment-${assignment.id}-${assignment.freight_id}`}
+                        key={assignment.id}
                         assignment={assignment}
                         onAction={() => {
                           setSelectedFreightId(assignment.freight_id);
@@ -2103,7 +2183,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               <SafeListWrapper>
                 <div className="space-y-4">
                   {visibleOngoing.map((freight) => (
-                    <Card key={`ongoing-${freight.id}`} className="shadow-sm border border-border/50 hover:shadow-md transition-shadow">
+                    <Card key={freight.id} className="shadow-sm border border-border/50 hover:shadow-md transition-shadow">
                       <CardContent className="p-4">
                         {/* Header com tipo de carga e status */}
                         <div className="flex items-center justify-between mb-3">
@@ -2263,7 +2343,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando propostas...</div>}>
                   {myProposals.filter(p => p.status === 'PENDING').map((proposal) => 
                     proposal.freight && proposal.id ? (
-                      <div key={`proposal-${proposal.id}`} className="relative">
+                      <div key={proposal.id} className="relative">
                          <FreightCard 
                            freight={{
                              ...proposal.freight,
@@ -2391,7 +2471,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               <div className="space-y-4">
                 <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando ofertas...</div>}>
                   {counterOffers.map((offer) => (
-                    <Card key={`offer-${offer.id}`} className="p-4">
+                    <Card key={offer.id} className="p-4">
                       <div className="space-y-3">
                         <div className="flex justify-between items-start">
                           <div>
@@ -2471,7 +2551,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               <div className="space-y-4">
                 <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando pagamentos...</div>}>
                   {pendingPayments && pendingPayments.length > 0 && pendingPayments.map((payment) => (
-                    <Card key={`payment-${payment.id}`} className="border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-900/10">
+                    <Card key={payment.id} className="border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-900/10">
                       <CardContent className="p-4">
                         <div className="space-y-3">
                           <div className="flex justify-between items-start">

@@ -49,21 +49,28 @@ export function formatTonsCompactFromKg(kg: number): string {
  * 
  * @param func - A função a ser debounced
  * @param wait - Os milissegundos a atrasar
- * @returns Uma versão debounced da função
+ * @returns Uma versão debounced da função com método cancel
  */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
+): ((...args: Parameters<T>) => void) & { cancel: () => void } {
+  let timeout: NodeJS.Timeout | null = null;
   
-  return function executedFunction(...args: Parameters<T>) {
-    const later = () => {
-      clearTimeout(timeout);
+  const debouncedFn = function executedFunction(...args: Parameters<T>) {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      timeout = null;
       func(...args);
-    };
-    
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
+    }, wait);
   };
+
+  debouncedFn.cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+  };
+  
+  return debouncedFn as ((...args: Parameters<T>) => void) & { cancel: () => void };
 }
