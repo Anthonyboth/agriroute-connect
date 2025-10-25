@@ -19,7 +19,6 @@ import { DriverAvailabilityCalendar } from '@/components/DriverAvailabilityCalen
 import { UserCityManager } from '@/components/UserCityManager';
 import { DriverAvailabilityAreasManager } from '@/components/DriverAvailabilityAreasManager';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
-import { SmartFreightMatcher } from '@/components/SmartFreightMatcher';
 import { CompanySmartFreightMatcher } from '@/components/CompanySmartFreightMatcher';
 import { ServiceTypeManager } from '@/components/ServiceTypeManager';
 import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
@@ -96,7 +95,6 @@ import { DriverFileModal } from '@/components/DriverFileModal';
 const COMPANY_TABS = [
   { value: 'overview', label: 'Visão Geral', shortLabel: 'Visão', icon: Building2 },
   { value: 'marketplace', label: 'FRETES I.A', shortLabel: 'IA', icon: TrendingUp },
-  { value: 'ai-freights', label: 'Fretes IA', shortLabel: 'IA', icon: Brain },
   { value: 'drivers', label: 'Motoristas', shortLabel: 'Mot', icon: Users },
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck },
   { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínc', icon: Link2 },
@@ -438,7 +436,7 @@ const CompanyDashboard = () => {
             
             <div className="flex flex-wrap justify-center gap-3">
               <Button 
-                onClick={() => setActiveTab('ai-freights')}
+                onClick={() => setActiveTab('marketplace')}
                 className="gradient-primary text-primary-foreground font-semibold rounded-full px-6 py-2.5 w-full sm:w-auto shadow-glow hover:scale-105 transition-bounce"
               >
                 <Brain className="mr-2 h-5 w-5" />
@@ -587,15 +585,6 @@ const CompanyDashboard = () => {
               <div className="mt-6">
                 {company?.id && <CompanyFleetVehicleList companyId={company.id} onRefresh={refetchCompany} />}
               </div>
-          </TabsContent>
-
-          <TabsContent value="ai-freights" className="mt-6">
-            <SmartFreightMatcher 
-              onFreightAction={(freightId) => {
-                setSelectedFreightId(freightId);
-                setShowDetails(true);
-              }}
-            />
           </TabsContent>
 
           <TabsContent value="active" className="mt-6">
