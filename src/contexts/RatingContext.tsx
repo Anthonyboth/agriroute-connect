@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useRe
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { subscriptionWithRetry } from '@/lib/query-utils';
+import { useLocation } from 'react-router-dom';
 
 // Tipos
 interface RatingContextType {
@@ -26,8 +27,11 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [serviceToRate, setServiceToRate] = useState<{ serviceRequestId: string; userId: string; userName: string; serviceType?: string } | null>(null);
   const [freightToRate, setFreightToRate] = useState<{ freightId: string; userId: string; userRole: string; userName: string } | null>(null);
   const { profile } = useAuth();
+  const location = useLocation();
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const realtimeConnectedRef = useRef(false);
+  const realtimeFailCountRef = useRef(0);
+  const lastLogTimeRef = useRef(0);
   
   // Service rating state
   const [serviceRatingOpen, setServiceRatingOpen] = useState(false);
@@ -44,9 +48,13 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // 🔄 Função de polling para fallback quando Realtime falhar
   const pollForPendingRatings = async () => {
-    if (!profile?.id) return;
+    if (!profile?.id || location.pathname === '/auth') return;
 
-    console.log('[RatingContext] 🔄 Polling para avaliações pendentes...');
+    const now = Date.now();
+    if (now - lastLogTimeRef.current > 60000) {
+      console.log('[RatingContext] 🔄 Polling para avaliações pendentes...');
+      lastLogTimeRef.current = now;
+    }
 
     try {
       // Para produtor: buscar fretes DELIVERED sem avaliação
@@ -151,7 +159,13 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Detectar conclusão de serviços em tempo real
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!profile?.id || location.pathname === '/auth') return;
+    
+    // Não iniciar se Realtime estiver muito instável
+    if (realtimeFailCountRef.current >= 3) {
+      console.warn('[RatingContext] 🔴 Realtime desabilitado após múltiplas falhas, usando apenas polling');
+      return;
+    }
 
     const serviceChannel = supabase
       .channel('service_completion_detection')
@@ -273,14 +287,29 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         maxRetries: 5,
         retryDelayMs: 3000,
         onStatusChange: (status) => {
-          console.log(`[RatingContext] 📡 Status changed: ${status}`);
+          const now = Date.now();
+          if (now - lastLogTimeRef.current > 60000) {
+            console.log(`[RatingContext] 📡 Status: ${status}`);
+            lastLogTimeRef.current = now;
+          }
+          
           if (status === 'CLOSED' || status === 'TIMED_OUT') {
             realtimeConnectedRef.current = false;
+            realtimeFailCountRef.current++;
+            
+            if (realtimeFailCountRef.current >= 3) {
+              console.warn('[RatingContext] 🔴 Realtime falhou 3x, desabilitando');
+            }
           }
         },
         onReady: (channel) => {
-          console.log('[RatingContext] ✅ Realtime conectado com sucesso');
+          const now = Date.now();
+          if (now - lastLogTimeRef.current > 60000) {
+            console.log('[RatingContext] ✅ Realtime conectado');
+            lastLogTimeRef.current = now;
+          }
           realtimeConnectedRef.current = true;
+          realtimeFailCountRef.current = 0; // Reset contador
           
           // Limpar polling se estava ativo
           if (pollingIntervalRef.current) {
@@ -289,15 +318,18 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           }
         },
         onError: (error) => {
-          console.error('[RatingContext] ❌ Erro no Realtime, ativando polling:', error);
+          const now = Date.now();
+          if (now - lastLogTimeRef.current > 60000) {
+            console.error('[RatingContext] ❌ Erro no Realtime, ativando polling');
+            lastLogTimeRef.current = now;
+          }
           realtimeConnectedRef.current = false;
           
-          // Ativar polling de fallback
+          // Ativar polling de fallback (intervalo maior)
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
           }
-          pollingIntervalRef.current = setInterval(pollForPendingRatings, 30000); // A cada 30s
-          console.log('[RatingContext] 🔄 Polling ativado como fallback');
+          pollingIntervalRef.current = setInterval(pollForPendingRatings, 60000); // A cada 60s
         }
       }
     );
@@ -310,21 +342,25 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         pollingIntervalRef.current = null;
       }
     };
-  }, [profile?.id]);
+  }, [profile?.id, location.pathname]);
 
   // 🔄 Polling inicial ao montar (caso Realtime nunca conecte)
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!profile?.id || location.pathname === '/auth') return;
 
     const initialCheck = setTimeout(() => {
       if (!realtimeConnectedRef.current) {
-        console.log('[RatingContext] 🔄 Executando verificação inicial de avaliações pendentes');
+        const now = Date.now();
+        if (now - lastLogTimeRef.current > 60000) {
+          console.log('[RatingContext] 🔄 Executando verificação inicial');
+          lastLogTimeRef.current = now;
+        }
         pollForPendingRatings();
       }
-    }, 3000); // 3s após montar
+    }, 3000);
 
     return () => clearTimeout(initialCheck);
-  }, [profile?.id]);
+  }, [profile?.id, location.pathname]);
 
   const openServiceRating = (
     requestId: string, 

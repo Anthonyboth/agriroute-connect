@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { RatingProvider } from "@/contexts/RatingContext";
+import { RatingProviderErrorBoundary } from "@/components/RatingProviderErrorBoundary";
 import { GlobalRatingModals } from "@/components/GlobalRatingModals";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -11,6 +12,7 @@ import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthErrorBoundary } from "@/components/AuthErrorBoundary";
+import { AppHealthOverlay } from "@/components/AppHealthOverlay";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -100,9 +102,42 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   const { isAuthenticated, isApproved, isAdmin, loading, profile, signOut } = useAuth();
   const { isCompanyDriver, isLoading: isLoadingCompany } = useCompanyDriver();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [loadingTimeout, setLoadingTimeout] = React.useState(false);
 
-  if (loading || isLoadingCompany) {
+  React.useEffect(() => {
+    if (loading || isLoadingCompany) {
+      const timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isLoadingCompany]);
+
+  if ((loading || isLoadingCompany) && !loadingTimeout) {
     return <ComponentLoader />;
+  }
+  
+  if (loadingTimeout) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-md">
+          <AlertCircle className="h-12 w-12 mx-auto text-warning" />
+          <h2 className="text-2xl font-bold">Tempo esgotado</h2>
+          <p className="text-muted-foreground">
+            A autenticação está demorando. Tente novamente.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => navigate('/auth')}>
+              Ir para Login
+            </Button>
+            <Button onClick={() => window.location.href = '/'} variant="outline">
+              Voltar à Página Inicial
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (requiresAuth && !isAuthenticated) {
@@ -249,6 +284,17 @@ const AuthedLanding = () => {
   const { isAuthenticated, profile, loading } = useAuth();
   const [isCheckingCompany, setIsCheckingCompany] = React.useState(false);
   const [isCompany, setIsCompany] = React.useState(false);
+  const [loadingTimeout, setLoadingTimeout] = React.useState(false);
+  
+  // Timeout para loading
+  React.useEffect(() => {
+    if (loading || isCheckingCompany) {
+      const timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isCheckingCompany]);
   
   // Verificar se é transportadora
   React.useEffect(() => {
@@ -272,8 +318,13 @@ const AuthedLanding = () => {
     }
   }, [profile]);
   
+  // Se demorou muito e não há usuário, mostrar Landing
+  if (loadingTimeout && !profile) {
+    return <Landing />;
+  }
+  
   // Aguardar resolução
-  if (loading || isCheckingCompany) {
+  if ((loading || isCheckingCompany) && !loadingTimeout) {
     return <ComponentLoader />;
   }
   
@@ -444,25 +495,36 @@ const SessionManager = () => {
   return null;
 };
 
-const App = () => (
-  <ErrorBoundary>
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <QueryClientProvider client={queryClient}>
-        <RatingProvider>
-          <TooltipProvider>
-            <BrowserRouter
-              future={{
-                v7_startTransition: true,
+const App = () => {
+  React.useEffect(() => {
+    // Notificar o overlay que a app pintou
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('app:painted'));
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+        <QueryClientProvider client={queryClient}>
+          <RatingProviderErrorBoundary>
+            <RatingProvider>
+              <TooltipProvider>
+                <BrowserRouter
+                  future={{
+                    v7_startTransition: true,
                 v7_relativeSplatPath: true
               }}
-            >
-              <SubscriptionProvider>
-            <ScrollToTop />
-            <DeviceSetup />
-            <SessionManager />
-            <ErrorMonitoringSetup />
-            <SilentCityBootstrap />
-            <Routes>
+                >
+                  <SubscriptionProvider>
+                    <AppHealthOverlay />
+                    <ScrollToTop />
+                    <DeviceSetup />
+                    <SessionManager />
+                    <ErrorMonitoringSetup />
+                    <SilentCityBootstrap />
+                    <Routes>
             <Route path="/" element={<AuthedLanding />} />
             <Route path="/landing" element={<Landing />} />
             <Route path="/auth" element={
@@ -585,18 +647,20 @@ const App = () => (
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<SmartFallback />} />
-          </Routes>
-          <GlobalRatingModals />
-          <PermissionPrompts />
-          <Toaster />
-          <Sonner />
-        </SubscriptionProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-      </RatingProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
-</ErrorBoundary>
-);
+            </Routes>
+            <GlobalRatingModals />
+            <PermissionPrompts />
+            <Toaster />
+            <Sonner />
+          </SubscriptionProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+            </RatingProvider>
+          </RatingProviderErrorBoundary>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
+  );
+};
 
 export default App;

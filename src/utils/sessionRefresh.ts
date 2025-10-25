@@ -2,6 +2,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 let refreshInterval: NodeJS.Timeout | null = null;
+const REDIRECT_COOLDOWN_KEY = 'last_auth_redirect';
+const COOLDOWN_MS = 60000; // 60 segundos
 
 export function startSessionRefresh() {
   // Verificar sessão a cada 5 minutos
@@ -10,17 +12,28 @@ export function startSessionRefresh() {
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error || !session) {
-        console.warn('[SessionRefresh] Sessão não encontrada');
+        console.error('[SessionRefresh] ❌ Sessão inválida ou erro ao obter sessão:', error);
         stopSessionRefresh();
         
-        toast.error('Sua sessão expirou', {
-          description: 'Redirecionando para login...'
+        // Verificar cooldown para evitar múltiplos redirects
+        const lastRedirect = sessionStorage.getItem(REDIRECT_COOLDOWN_KEY);
+        const now = Date.now();
+        
+        if (lastRedirect && now - parseInt(lastRedirect) < COOLDOWN_MS) {
+          console.log('[SessionRefresh] ⏸️ Redirect em cooldown, aguardando...');
+          return;
+        }
+        
+        sessionStorage.setItem(REDIRECT_COOLDOWN_KEY, now.toString());
+        
+        toast.error('Sessão perdida. Redirecionando para login...', {
+          duration: 3000,
         });
         
+        // Redirect para login após 3s
         setTimeout(() => {
-          localStorage.setItem('redirect_after_login', window.location.pathname);
           window.location.href = '/auth';
-        }, 2000);
+        }, 3000);
         
         return;
       }
