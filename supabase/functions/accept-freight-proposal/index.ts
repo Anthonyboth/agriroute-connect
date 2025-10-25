@@ -146,6 +146,8 @@ serve(async (req) => {
       console.log('[PICKUP-DATE-FIX] No pickup_date in freight, using safe future date:', safePickup.toISOString());
     }
 
+    console.log('[ASSIGNMENT-PICKUP]', { freight_pickup: freight.pickup_date, safe_pickup: safePickup.toISOString() });
+
     // 7. Validar ANTT (não-bloqueante, apenas informativo)
     const requiredTrucks = Math.max(1, Number(freight.required_trucks) || 1);
     const minAnttTotal = freight.minimum_antt_price ?? null;
@@ -176,7 +178,7 @@ serve(async (req) => {
       console.log('[ASSIGNMENT] Existing assignment found, updating:', existingAssignment.id);
       
       // Atualizar assignment existente
-      const { data: updatedAssignment, error: updateErr } = await supabase
+      let updatedAssignmentRes = await supabase
         .from("freight_assignments")
         .update({
           status: 'ACCEPTED',
@@ -190,32 +192,73 @@ serve(async (req) => {
         .select()
         .single();
 
+      let updatedAssignment = updatedAssignmentRes.data;
+      let updateErr = updatedAssignmentRes.error as any;
+
       if (updateErr) {
         console.error("Error updating assignment:", updateErr);
-        
-        // Se for erro de data no passado, retornar mensagem específica
+
+        // Tentar correção automática quando a data de coleta for inválida (passado)
         if (updateErr.code === 'P0001' && updateErr.message?.includes('Data de coleta')) {
+          console.warn('[P0001-FIX] Adjusting freight pickup_date and retrying assignment update', {
+            freight_original_pickup: freight.pickup_date,
+            safe_pickup: safePickup.toISOString(),
+            assignment_id: existingAssignment.id
+          });
+
+          const { error: freightPickupFixErr } = await supabase
+            .from('freights')
+            .update({ pickup_date: safePickup.toISOString() })
+            .eq('id', proposal.freight_id);
+
+          if (freightPickupFixErr) {
+            console.error('[P0001-FIX] Failed to update freight pickup_date:', freightPickupFixErr);
+          } else {
+            console.log('[P0001-FIX] Freight pickup_date updated successfully');
+          }
+
+          // Retry update do assignment
+          const retryRes = await supabase
+            .from('freight_assignments')
+            .update({
+              status: 'ACCEPTED',
+              proposal_id: proposal.id,
+              agreed_price: proposal.proposed_price,
+              pricing_type: 'FIXED',
+              minimum_antt_price: minAnttPerTruck,
+              pickup_date: safePickup.toISOString()
+            })
+            .eq('id', existingAssignment.id)
+            .select()
+            .single();
+
+          if (retryRes.error) {
+            console.error('[P0001-FIX] Retry failed:', retryRes.error);
+            return new Response(
+              JSON.stringify({
+                error: 'Data de coleta estava no passado. Ajustamos automaticamente — por favor, tente novamente.',
+                details: retryRes.error.message || updateErr.message
+              }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          console.log('[P0001-FIX] Retry succeeded');
+          updatedAssignment = retryRes.data;
+        } else {
           return new Response(
-            JSON.stringify({ 
-              error: "Data de coleta inválida. A data deve ser futura.",
-              details: updateErr.message
-            }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ error: 'Erro ao atualizar atribuição' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        
-        return new Response(
-          JSON.stringify({ error: "Erro ao atualizar atribuição" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
       }
-      
+
       assignment = updatedAssignment;
     } else {
       console.log('[ASSIGNMENT] No existing assignment, creating new one');
       
       // Criar novo assignment
-      const { data: newAssignment, error: assignmentErr } = await supabase
+      let newAssignmentRes = await supabase
         .from("freight_assignments")
         .insert({
           freight_id: proposal.freight_id,
@@ -230,24 +273,64 @@ serve(async (req) => {
         .select()
         .single();
 
+      let newAssignment = newAssignmentRes.data;
+      let assignmentErr = newAssignmentRes.error as any;
+
       if (assignmentErr) {
         console.error("Error creating assignment:", assignmentErr);
         
-        // Se for erro de data no passado, retornar mensagem específica
+        // Correção automática para data de coleta no passado
         if (assignmentErr.code === 'P0001' && assignmentErr.message?.includes('Data de coleta')) {
+          console.warn('[P0001-FIX] Adjusting freight pickup_date and retrying assignment insert', {
+            freight_original_pickup: freight.pickup_date,
+            safe_pickup: safePickup.toISOString()
+          });
+
+          const { error: freightPickupFixErr2 } = await supabase
+            .from('freights')
+            .update({ pickup_date: safePickup.toISOString() })
+            .eq('id', proposal.freight_id);
+
+          if (freightPickupFixErr2) {
+            console.error('[P0001-FIX] Failed to update freight pickup_date:', freightPickupFixErr2);
+          } else {
+            console.log('[P0001-FIX] Freight pickup_date updated successfully');
+          }
+
+          const retryInsert = await supabase
+            .from('freight_assignments')
+            .insert({
+              freight_id: proposal.freight_id,
+              driver_id: proposal.driver_id,
+              proposal_id: proposal.id,
+              agreed_price: proposal.proposed_price,
+              pricing_type: 'FIXED',
+              minimum_antt_price: minAnttPerTruck,
+              status: 'ACCEPTED',
+              pickup_date: safePickup.toISOString()
+            })
+            .select()
+            .single();
+
+          if (retryInsert.error) {
+            console.error('[P0001-FIX] Retry insert failed:', retryInsert.error);
+            return new Response(
+              JSON.stringify({
+                error: 'Data de coleta estava no passado. Ajustamos automaticamente — por favor, tente novamente.',
+                details: retryInsert.error.message || assignmentErr.message
+              }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          console.log('[P0001-FIX] Retry insert succeeded');
+          newAssignment = retryInsert.data;
+        } else {
           return new Response(
-            JSON.stringify({ 
-              error: "Data de coleta inválida. A data deve ser futura.",
-              details: assignmentErr.message
-            }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ error: 'Erro ao criar atribuição' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        
-        return new Response(
-          JSON.stringify({ error: "Erro ao criar atribuição" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
       }
 
       assignment = newAssignment;
