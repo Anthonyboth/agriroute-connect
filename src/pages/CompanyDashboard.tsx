@@ -435,15 +435,6 @@ const CompanyDashboard = () => {
               {company?.company_name || 'Transportadora'}
             </p>
 
-            {company?.status === 'APPROVED' && (
-              <Alert className="max-w-2xl mx-auto bg-green-50 border-green-200">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertTitle className="text-green-800">Cadastro Aprovado!</AlertTitle>
-                <AlertDescription className="text-green-700">
-                  Sua transportadora está ativa e pronta para gerenciar fretes e motoristas.
-                </AlertDescription>
-              </Alert>
-            )}
             
             <div className="flex flex-wrap justify-center gap-3">
               <Button 
