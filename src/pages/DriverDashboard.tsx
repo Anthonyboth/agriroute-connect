@@ -59,6 +59,7 @@ import { useDriverPermissions } from '@/hooks/useDriverPermissions';
 import { normalizeServiceType, type CanonicalServiceType } from '@/lib/service-type-normalization';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { debounce } from '@/lib/utils';
+import { FRETES_IA_LABEL, AREAS_IA_LABEL, AI_ABBR, SISTEMA_IA_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
 
 interface Freight {
   id: string;
@@ -1820,7 +1821,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               Olá, {profile?.full_name?.split(' ')[0] || (profile?.active_mode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista')}
             </h1>
             <p className="text-sm md:text-base mb-2 opacity-90">
-              Sistema IA encontra fretes para você
+              {SISTEMA_IA_LABEL} encontra fretes para você
             </p>
             {isCompanyDriver && companyName && (
               <Badge variant="secondary" className="mb-3 bg-background/20 text-primary-foreground border-primary-foreground/30">
@@ -1838,7 +1839,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                   className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
                 >
                   <Brain className="mr-1 h-4 w-4" />
-                  Ver FRETES I.A
+                  {VER_FRETES_IA_LABEL}
                 </Button>
               )}
               
@@ -1965,8 +1966,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                   className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 >
                   <Brain className="h-3 w-3 mr-1" />
-                  <span className="hidden sm:inline">FRETES I.A</span>
-                  <span className="sm:hidden">IA</span>
+                  <span className="hidden sm:inline">{FRETES_IA_LABEL}</span>
+                  <span className="sm:hidden">{AI_ABBR}</span>
                 </TabsTrigger>
               )}
               <TabsTrigger 
@@ -1990,7 +1991,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 <MapPin className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Áreas IA</span>
+                <span className="hidden sm:inline">{AREAS_IA_LABEL}</span>
                 <span className="sm:hidden">Áreas</span>
               </TabsTrigger>
               <TabsTrigger 
@@ -2464,7 +2465,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                     className="bg-primary hover:bg-primary/90"
                   >
                     <Brain className="mr-2 h-4 w-4" />
-                    Ver FRETES I.A
+                    {VER_FRETES_IA_LABEL}
                   </Button>
                   <Button 
                     variant="outline"

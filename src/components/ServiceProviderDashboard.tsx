@@ -110,6 +110,8 @@ interface ServiceRequest {
   } | null;
 }
 
+import { SISTEMA_IA_LABEL } from '@/lib/ui-labels';
+
 interface ServiceProviderStats {
   total_requests: number;
   pending_requests: number;
@@ -1014,7 +1016,7 @@ export const ServiceProviderDashboard: React.FC = () => {
               Olá, {profile?.full_name?.split(' ')[0] || 'Prestador'}
             </h1>
             <p className="text-base md:text-lg mb-6 opacity-95 font-medium">
-              Sistema IA conecta você com clientes
+              {SISTEMA_IA_LABEL} conecta você com clientes
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button 

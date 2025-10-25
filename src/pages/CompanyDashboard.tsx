@@ -91,11 +91,13 @@ import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { DriverFileModal } from '@/components/DriverFileModal';
 
+import { FRETES_IA_LABEL, AREAS_IA_LABEL, AI_ABBR, FRETES_IA_DISPONIVEL_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
+
 // ✅ Definição centralizada de TODAS as tabs (ÚNICA FONTE DA VERDADE)
 // ⚠️ ATENÇÃO: Esta é a ÚNICA lista de tabs. NÃO adicionar tabs manualmente em outros lugares!
 const COMPANY_TABS = [
   { value: 'overview', label: 'Visão Geral', shortLabel: 'Visão', icon: Building2 },
-  { value: 'marketplace', label: 'FRETES I.A', shortLabel: 'IA', icon: TrendingUp }, // ✅ ÚNICA aba de IA
+  { value: 'marketplace', label: FRETES_IA_LABEL, shortLabel: AI_ABBR, icon: TrendingUp }, // ✅ ÚNICA aba de IA
   { value: 'drivers', label: 'Motoristas', shortLabel: 'Mot', icon: Users },
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck },
   { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínc', icon: Link2 },
@@ -105,7 +107,7 @@ const COMPANY_TABS = [
   { value: 'proposals', label: 'Propostas', shortLabel: 'Prop', icon: FileText },
   { value: 'services', label: 'Serviços', shortLabel: 'Serv', icon: Wrench },
   { value: 'payments', label: 'Pagamentos', shortLabel: 'Pag', icon: DollarSign },
-  { value: 'areas-ai', label: 'Áreas IA', shortLabel: 'Áreas', icon: Target },
+  { value: 'areas-ai', label: AREAS_IA_LABEL, shortLabel: 'Áreas', icon: Target },
   { value: 'cities', label: 'Cidades', shortLabel: 'Cid', icon: MapPin },
   { value: 'balance', label: 'Saldo', shortLabel: '$', icon: Banknote },
   { value: 'ratings', label: 'Avaliações', shortLabel: 'Aval', icon: Star },
@@ -462,7 +464,7 @@ const CompanyDashboard = () => {
                 className="gradient-primary text-primary-foreground font-semibold rounded-full px-6 py-2.5 w-full sm:w-auto shadow-glow hover:scale-105 transition-bounce"
               >
                 <Brain className="mr-2 h-5 w-5" />
-                Fretes I.A
+                {FRETES_IA_LABEL}
               </Button>
               
               <Button 
@@ -568,19 +570,18 @@ const CompanyDashboard = () => {
             {company?.status === 'APPROVED' && (
               <Alert className="mb-6 bg-primary/5 border-primary/20">
                 <TrendingUp className="h-4 w-4 text-primary" />
-                <AlertTitle className="text-primary">FRETES I.A Disponível!</AlertTitle>
+                <AlertTitle className="text-primary">{FRETES_IA_DISPONIVEL_LABEL}</AlertTitle>
                 <AlertDescription className="flex items-center justify-between gap-4">
                   <span className="text-muted-foreground">
-                    Explore fretes disponíveis na plataforma e conecte-se com produtores
+                    Encontre fretes que correspondem às suas áreas configuradas
                   </span>
-                  <Button 
-                    variant="default" 
+                  <Button
+                    variant="default"
                     size="sm"
                     onClick={() => setActiveTab('marketplace')}
-                    className="whitespace-nowrap"
                   >
                     <TrendingUp className="mr-2 h-4 w-4" />
-                    Ver FRETES I.A
+                    {VER_FRETES_IA_LABEL}
                   </Button>
                 </AlertDescription>
               </Alert>
@@ -589,7 +590,7 @@ const CompanyDashboard = () => {
             <CompanyDashboardComponent onNavigateToReport={handleNavigateToReport} />
           </TabsContent>
 
-          {/* ✅ ÚNICA aba de FRETES I.A (marketplace) - NÃO DUPLICAR! */}
+          {/* ✅ ÚNICA aba de Fretes I.A (marketplace) - NÃO DUPLICAR! */}
           <TabsContent value="marketplace" className="mt-6">
             <CompanySmartFreightMatcher />
           </TabsContent>

@@ -23,6 +23,7 @@ import { UserCityManager } from '@/components/UserCityManager';
 import { ServicesModal } from '@/components/ServicesModal';
 import { useToast } from '@/hooks/use-toast';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
+import { SISTEMA_IA_LABEL } from '@/lib/ui-labels';
 
 interface ServiceProviderStats {
   total_requests: number;
@@ -152,7 +153,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
               Olá, {firstName}
             </h1>
             <p className="text-green-100 text-lg md:text-xl mb-8 max-w-2xl mx-auto">
-              Sistema IA encontra solicitações de serviços para você
+              {SISTEMA_IA_LABEL} encontra solicitações de serviços para você
             </p>
             
             {/* Action Buttons */}
