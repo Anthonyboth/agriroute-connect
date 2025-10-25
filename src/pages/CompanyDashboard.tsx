@@ -116,9 +116,7 @@ const COMPANY_TABS = [
   { value: 'reports', label: 'Relatórios', shortLabel: 'Rel', icon: BarChart }
 ] as const;
 
-// 🔍 DEBUG: Log tabs para diagnóstico (remover depois)
-console.log('📊 [CompanyDashboard] COMPANY_TABS carregadas:', COMPANY_TABS.length, 'tabs');
-console.log('🎯 [CompanyDashboard] Tabs de IA:', COMPANY_TABS.filter(t => t.label.includes('I.A')).map(t => t.value));
+// Tabs configuration loaded
 
 const CompanyDashboard = () => {
   const { profile, profiles, switchProfile, signOut } = useAuth();
@@ -133,24 +131,13 @@ const CompanyDashboard = () => {
   const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
   const { company, isLoadingCompany, drivers, pendingDrivers } = useTransportCompany();
   
-  // ✅ Inicializar activeTab com marketplace por padrão para empresas aprovadas
+  // Get initial tab from localStorage or default to overview
   const getInitialTab = () => {
-    // Recuperar última aba do localStorage
     const storedTab = localStorage.getItem('company_active_tab');
-    if (storedTab) return storedTab;
-    
-    // Se empresa aprovada, abrir marketplace por padrão
-    if (company?.status === 'APPROVED') return 'marketplace';
-    
-    return 'overview';
+    return storedTab || 'overview';
   };
   
   const [activeTab, setActiveTab] = useState(getInitialTab());
-  
-  // 🔍 DEBUG: Log mudanças de tab
-  useEffect(() => {
-    console.log('🎯 [CompanyDashboard] ActiveTab mudou para:', activeTab);
-  }, [activeTab]);
   
   // ✅ Obter permissões do motorista para passar aos componentes filhos
   const { isAffiliated, companyId } = useCompanyDriver();
@@ -162,15 +149,10 @@ const CompanyDashboard = () => {
     'TRANSPORTADORA'
   );
   
-  // ✅ Persistir tab ativo no localStorage e ajustar para marketplace quando aprovado
+  // Persist active tab to localStorage
   useEffect(() => {
     localStorage.setItem('company_active_tab', activeTab);
-    
-    // Se empresa foi recém-aprovada e está em overview sem fretes, sugerir marketplace
-    if (company?.status === 'APPROVED' && activeTab === 'overview') {
-      console.log('✅ [CompanyDashboard] Empresa aprovada - Marketplace disponível');
-    }
-  }, [activeTab, company?.status]);
+  }, [activeTab]);
 
   // Listener para redirecionar para histórico quando frete for movido
   useEffect(() => {
@@ -532,7 +514,6 @@ const CompanyDashboard = () => {
           />
         ) : (
           <div className="relative mb-6">
-            <ScrollIndicators targetRef={tabsScrollRef} />
             <div 
               ref={tabsScrollRef}
               className="flex gap-2 overflow-x-auto overflow-y-hidden scroll-smooth pb-2 px-1"
@@ -566,27 +547,6 @@ const CompanyDashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
           <TabsContent value="overview" className="mt-6">
-            {/* Banner CTA quando empresa aprovada sem fretes próprios */}
-            {company?.status === 'APPROVED' && (
-              <Alert className="mb-6 bg-primary/5 border-primary/20">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <AlertTitle className="text-primary">{FRETES_IA_DISPONIVEL_LABEL}</AlertTitle>
-                <AlertDescription className="flex items-center justify-between gap-4">
-                  <span className="text-muted-foreground">
-                    Encontre fretes que correspondem às suas áreas configuradas
-                  </span>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => setActiveTab('marketplace')}
-                  >
-                    <TrendingUp className="mr-2 h-4 w-4" />
-                    {VER_FRETES_IA_LABEL}
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-            
             <CompanyDashboardComponent onNavigateToReport={handleNavigateToReport} />
           </TabsContent>
 

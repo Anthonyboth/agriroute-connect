@@ -125,9 +125,9 @@ export const useAuth = () => {
           return data;
         },
         { 
-          timeoutMs: 12000, 
+          timeoutMs: 20000, 
           operationName: 'fetchProfile',
-          retries: 0 // ✅ Sem retry interno - nosso throttle/cooldown cuida
+          retries: 1
         }
       );
       
