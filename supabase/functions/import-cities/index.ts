@@ -11,13 +11,13 @@ const IBGE_API = 'https://servicodados.ibge.gov.br/api/v1/localidades';
 interface IBGECity {
   id: number;
   nome: string;
-  microrregiao: {
-    mesorregiao: {
-      UF: {
-        sigla: string;
+  microrregiao?: {
+    mesorregiao?: {
+      UF?: {
+        sigla?: string;
       };
     };
-  };
+  } | null;
 }
 
 const BRAZILIAN_STATES = [
@@ -38,13 +38,22 @@ async function importState(supabaseClient: any, state: string) {
   const cities: IBGECity[] = await response.json();
   console.log(`Encontradas ${cities.length} cidades do ${state}`);
   
-  const cityData = cities.map(city => ({
-    name: city.nome,
-    state: city.microrregiao.mesorregiao.UF.sigla,
-    ibge_code: city.id.toString(),
-    lat: null,
-    lng: null
-  }));
+  const cityData = cities
+    .filter(city => {
+      const stateCode = city.microrregiao?.mesorregiao?.UF?.sigla;
+      if (!stateCode) {
+        console.warn(`Cidade ${city.nome} (${city.id}) sem estado válido - ignorando`);
+        return false;
+      }
+      return true;
+    })
+    .map(city => ({
+      name: city.nome,
+      state: city.microrregiao!.mesorregiao!.UF!.sigla,
+      ibge_code: city.id.toString(),
+      lat: null,
+      lng: null
+    }));
   
   const batchSize = 50;
   let importedCount = 0;
@@ -56,7 +65,7 @@ async function importState(supabaseClient: any, state: string) {
     const { error } = await supabaseClient
       .from('cities')
       .upsert(batch, { 
-        onConflict: 'name,state',
+        onConflict: 'ibge_code',
         ignoreDuplicates: false 
       });
     

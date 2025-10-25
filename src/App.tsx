@@ -41,6 +41,7 @@ import { ScrollToTop } from './components/ScrollToTop';
 import { PermissionPrompts } from './components/PermissionPrompts';
 import { useDeviceRegistration } from './hooks/useDeviceRegistration';
 import { startSessionRefresh, stopSessionRefresh } from './utils/sessionRefresh';
+import { SilentCityBootstrap } from './components/SilentCityBootstrap';
 const PressPage = lazy(() => import("./pages/Press"));
 const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess"));
 const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
@@ -460,6 +461,7 @@ const App = () => (
             <DeviceSetup />
             <SessionManager />
             <ErrorMonitoringSetup />
+            <SilentCityBootstrap />
             <Routes>
             <Route path="/" element={<AuthedLanding />} />
             <Route path="/landing" element={<Landing />} />

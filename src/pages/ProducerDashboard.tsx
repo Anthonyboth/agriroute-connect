@@ -41,7 +41,6 @@ import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { FreightProposalsManager } from '@/components/FreightProposalsManager';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
-import { AutoCityImporter } from '@/components/AutoCityImporter';
 
 const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
@@ -1038,8 +1037,6 @@ const ProducerDashboard = () => {
       </section>
 
       <div className="container max-w-7xl mx-auto py-4 px-4 pb-8">
-        <AutoCityImporter />
-        
         {/* Stats Cards Compactos - Navegáveis */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
           <StatsCard
