@@ -45,6 +45,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [advanceModalOpen, setAdvanceModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [advances, setAdvances] = useState<any[]>([]);
+  const [movingToHistory, setMovingToHistory] = useState(false);
 
   // Status order for calculating effective status
   const statusOrder = ['OPEN','IN_NEGOTIATION','ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION','DELIVERED','COMPLETED','CANCELLED','REJECTED','PENDING'];
@@ -103,6 +104,54 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const handleOpenRating = (userToRate: any) => {
     setUserToRate(userToRate);
     setRatingModalOpen(true);
+  };
+
+  const handleMoveToHistory = async () => {
+    try {
+      setMovingToHistory(true);
+      
+      const { error } = await supabase
+        .from('freights')
+        .update({ 
+          status: 'COMPLETED', 
+          updated_at: new Date().toISOString(),
+          metadata: { 
+            ...(freight?.metadata || {}), 
+            moved_to_history_at: new Date().toISOString() 
+          }
+        })
+        .eq('id', freightId);
+      
+      if (error) throw error;
+
+      // Best effort: inserir histórico (ignorar erro se houver RLS)
+      try {
+        await supabase
+          .from('freight_status_history')
+          .insert({ 
+            freight_id: freightId, 
+            status: 'COMPLETED', 
+            changed_by: currentUserProfile.id 
+          });
+      } catch (historyError) {
+        console.log('Erro ao inserir histórico (ignorado):', historyError);
+      }
+
+      setFreight((prev: any) => prev ? { ...prev, status: 'COMPLETED' } : prev);
+      
+      // Disparar evento para redirecionar para histórico
+      window.dispatchEvent(new CustomEvent('freight:movedToHistory', { 
+        detail: { freightId } 
+      }));
+      
+      toast.success('Frete movido para o histórico');
+      onClose?.();
+    } catch (e: any) {
+      console.error('Erro ao mover para o histórico:', e);
+      toast.error(e?.message || 'Não foi possível mover para o histórico');
+    } finally {
+      setMovingToHistory(false);
+    }
   };
 
   const isProducer = currentUserProfile?.role === 'PRODUTOR';
@@ -242,6 +291,16 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </CardTitle>
             <div className="flex items-center gap-2">
               {getStatusBadge(freight.status)}
+              {freight.status === 'DELIVERED' && (isProducer || currentUserProfile?.role === 'ADMIN') && (
+                <Button 
+                  size="sm" 
+                  variant="secondary" 
+                  onClick={handleMoveToHistory} 
+                  disabled={movingToHistory}
+                >
+                  Mover para o histórico
+                </Button>
+              )}
               <Button variant="destructive" size="sm" onClick={onClose}>
                 Fechar
               </Button>

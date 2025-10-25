@@ -321,6 +321,19 @@ const ProducerDashboard = () => {
     }
   }, [profile?.id, profile?.role]);
 
+  // Listener para redirecionar para histórico quando frete for movido
+  useEffect(() => {
+    const handleMovedToHistory = () => {
+      setActiveTab('history');
+      setSelectedFreightDetails(null);
+      // Recarregar dados
+      fetchFreights();
+    };
+    
+    window.addEventListener('freight:movedToHistory', handleMovedToHistory);
+    return () => window.removeEventListener('freight:movedToHistory', handleMovedToHistory);
+  }, [fetchFreights]);
+
   // Carregar dados - otimizado
   useEffect(() => {
     console.log('useEffect loadData executado. Profile:', profile);

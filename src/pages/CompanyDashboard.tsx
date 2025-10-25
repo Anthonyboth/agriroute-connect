@@ -169,6 +169,18 @@ const CompanyDashboard = () => {
       console.log('✅ [CompanyDashboard] Empresa aprovada - Marketplace disponível');
     }
   }, [activeTab, company?.status]);
+
+  // Listener para redirecionar para histórico quando frete for movido
+  useEffect(() => {
+    const handleMovedToHistory = () => {
+      setActiveTab('history');
+      setShowDetails(false);
+      setSelectedFreightId(null);
+    };
+    
+    window.addEventListener('freight:movedToHistory', handleMovedToHistory);
+    return () => window.removeEventListener('freight:movedToHistory', handleMovedToHistory);
+  }, []);
   
   const refetchCompany = async () => {
     // Força re-fetch buscando company novamente

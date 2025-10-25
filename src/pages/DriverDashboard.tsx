@@ -1200,6 +1200,20 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     loadData();
   }, [profile?.id, canSeeFreights, mustUseChat]);
 
+  // Listener para redirecionar para histórico quando frete for movido
+  useEffect(() => {
+    const handleMovedToHistory = () => {
+      setActiveTab('history');
+      setShowDetails(false);
+      setSelectedFreightId(null);
+      // Recarregar dados
+      fetchOngoingFreights();
+    };
+    
+    window.addEventListener('freight:movedToHistory', handleMovedToHistory);
+    return () => window.removeEventListener('freight:movedToHistory', handleMovedToHistory);
+  }, [fetchOngoingFreights]);
+
   // ✅ CORREÇÃO: Criar versões debounced das funções de fetch
   const debouncedFetchOngoing = useCallback(
     debounce(() => {
