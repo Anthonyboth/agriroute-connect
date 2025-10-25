@@ -188,3 +188,13 @@ verify_jwt = false
 
 [functions.validate-guest-user]
 verify_jwt = false
+
+[functions.cancel-freight-safe]
+verify_jwt = true
+
+[functions.safe-update-freight]
+verify_jwt = true
+
+[functions.normalize-pickup-dates]
+verify_jwt = true
+

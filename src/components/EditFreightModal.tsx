@@ -139,29 +139,31 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
         }
       }
 
-      const { error } = await supabase
-        .from('freights')
-        .update({
-          cargo_type: formData.cargo_type,
-          weight: Number(formData.weight) * 1000, // Convert tonnes to kg for database
-          origin_address: formData.origin_address,
-          origin_lat: formData.origin_lat,
-          origin_lng: formData.origin_lng,
-          destination_address: formData.destination_address,
-          destination_lat: formData.destination_lat,
-          destination_lng: formData.destination_lng,
-          pickup_date: formData.pickup_date.toISOString().split('T')[0],
-          delivery_date: formData.delivery_date.toISOString().split('T')[0],
-          price: Number(formData.price),
-          description: formData.description,
-          urgency: formData.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
-          required_trucks: Number(formData.required_trucks),
-          minimum_antt_price: updatedMinimumAntt,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', freight.id);
+      const { data, error } = await supabase.functions.invoke('safe-update-freight', {
+        body: {
+          freight_id: freight.id,
+          updates: {
+            cargo_type: formData.cargo_type,
+            weight: Number(formData.weight) * 1000,
+            origin_address: formData.origin_address,
+            origin_lat: formData.origin_lat,
+            origin_lng: formData.origin_lng,
+            destination_address: formData.destination_address,
+            destination_lat: formData.destination_lat,
+            destination_lng: formData.destination_lng,
+            pickup_date: formData.pickup_date.toISOString().split('T')[0],
+            delivery_date: formData.delivery_date.toISOString().split('T')[0],
+            price: Number(formData.price),
+            description: formData.description,
+            urgency: formData.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
+            required_trucks: Number(formData.required_trucks),
+            minimum_antt_price: updatedMinimumAntt
+          }
+        }
+      });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Erro ao atualizar');
 
       toast.success('Frete atualizado com sucesso!');
       onSuccess();

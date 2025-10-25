@@ -615,17 +615,21 @@ const ProducerDashboard = () => {
     }
     
     try {
-      const { error } = await supabase
-        .from('freights')
-        .update({ 
-          status: 'CANCELLED',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', freightToCancel.id);
+      // Use safe edge function to handle pickup_date validation
+      const { data, error } = await supabase.functions.invoke('cancel-freight-safe', {
+        body: {
+          freight_id: freightToCancel.id,
+          reason: 'Cancelado pelo produtor'
+        }
+      });
 
       if (error) {
         console.error('Error cancelling freight:', error);
         throw error;
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Erro ao cancelar frete');
       }
 
       // Notificar motorista se houver um assignado

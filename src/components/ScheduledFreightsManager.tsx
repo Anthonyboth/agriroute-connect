@@ -272,12 +272,15 @@ export const ScheduledFreightsManager: React.FC = () => {
     if (!selectedFreight?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('freights')
-        .update({ status: 'CANCELLED' })
-        .eq('id', selectedFreight.id);
+      const { data, error } = await supabase.functions.invoke('cancel-freight-safe', {
+        body: {
+          freight_id: selectedFreight.id,
+          reason: 'Cancelado'
+        }
+      });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Erro ao cancelar');
 
       toast.success('Frete cancelado com sucesso');
       fetchScheduledFreights();
