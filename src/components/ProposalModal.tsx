@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { showErrorToast } from '@/lib/error-handler';
 import { DollarSign, MessageCircle, Calendar } from 'lucide-react';
+import { usePanelCapabilities } from '@/hooks/usePanelCapabilities';
 
 
 interface ProposalModalProps {
@@ -23,6 +24,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
   onProposalSent
 }) => {
   const { toast } = useToast();
+  const { can, reason } = usePanelCapabilities();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [proposalData, setProposalData] = useState({
@@ -36,6 +38,16 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ✅ Verificar permissão centralizada PRIMEIRO
+    if (!can('submit_freight_proposal')) {
+      toast({
+        title: "Não permitido",
+        description: reason('submit_freight_proposal') || 'Você não tem permissão para enviar propostas.',
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Validar valor antes de prosseguir
     if (finalProposedPrice <= 0) {
@@ -75,7 +87,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
       if (!driverData) {
         toast({
           title: "Perfil inválido",
-          description: "Apenas motorista autônomo pode enviar proposta. Se você é filiado/empregado, compartilhe com sua transportadora.",
+          description: reason('submit_freight_proposal') || "Erro ao verificar perfil.",
           variant: "destructive",
         });
         setLoading(false);

@@ -61,6 +61,7 @@ const DialogContent = React.forwardRef<
         zIndexClasses.dialog,
         className
       )}
+      aria-describedby={props['aria-describedby'] || undefined}
       {...props}
     >
       {children}

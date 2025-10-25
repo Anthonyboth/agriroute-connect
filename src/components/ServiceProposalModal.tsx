@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
+import { usePanelCapabilities } from '@/hooks/usePanelCapabilities';
 
 interface ServiceProposalModalProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   onSuccess
 }) => {
   const { profile } = useAuth();
+  const { can, reason } = usePanelCapabilities();
   const [loading, setLoading] = useState(false);
   const formId = 'service-proposal-form';
   
@@ -125,6 +127,14 @@ const [pricePerKm, setPricePerKm] = useState('');
 
     if (!profile) {
       toast.error('É necessário estar autenticado.');
+      return;
+    }
+
+    // ✅ Verificar permissão centralizada PRIMEIRO
+    if (!can('submit_service_proposal')) {
+      toast.error(reason('submit_service_proposal') || 'Você não tem permissão para enviar propostas.', {
+        duration: 6000
+      });
       return;
     }
 

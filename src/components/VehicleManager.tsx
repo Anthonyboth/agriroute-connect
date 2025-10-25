@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DocumentUpload } from '@/components/DocumentUpload';
 import { useNavigate } from 'react-router-dom';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { usePanelCapabilities } from '@/hooks/usePanelCapabilities';
 
 const VEHICLE_TYPES = [
   { value: 'VUC', label: 'Caminhão 3/4' },
@@ -45,6 +46,7 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isTransportCompany } = useTransportCompany();
+  const { can, reason } = usePanelCapabilities();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
@@ -183,21 +185,21 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
   };
 
   const handleAddVehicle = () => {
-    // Verificar se é afiliado
-    if (driverProfile.role === 'MOTORISTA_AFILIADO') {
+    // ✅ Verificar permissão centralizada
+    if (!can('manage_own_vehicles')) {
       toast({
         title: "Não permitido",
-        description: "Motoristas afiliados não podem cadastrar veículos próprios. Use os veículos da transportadora.",
+        description: reason('manage_own_vehicles') || "Você não tem permissão para gerenciar veículos.",
         variant: "destructive",
       });
       return;
     }
     
-    // Verificar se é autônomo com 1 veículo
+    // Verificar se é autônomo com 1 veículo (limite)
     if (vehicles.length >= 1 && driverProfile.role === 'MOTORISTA' && !isTransportCompany) {
       toast({
         title: "Limite atingido",
-        description: "Você já tem 1 veículo cadastrado. Para cadastrar mais veículos, transforme sua conta em transportadora.",
+        description: reason('manage_own_vehicles') || "Você já tem 1 veículo cadastrado. Para cadastrar mais veículos, transforme sua conta em transportadora.",
         variant: "destructive",
       });
       return;

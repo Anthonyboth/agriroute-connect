@@ -5,7 +5,7 @@ import { queryWithTimeout } from '@/lib/query-utils';
 import { clearSupabaseAuthStorage } from '@/utils/authRecovery';
 import { toast } from 'sonner';
 
-interface UserProfile {
+export interface UserProfile {
   id: string;
   user_id: string;
   email: string;
