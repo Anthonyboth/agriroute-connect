@@ -245,8 +245,24 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       // 1️⃣ PRIORIDADE: Usar fretes do matching espacial imediatamente
       let spatialFreights: CompatibleFreight[] = [];
       if (spatialData?.freights && Array.isArray(spatialData.freights)) {
+        // ✅ Log de exclusões por service_type
+        const beforeFilter = spatialData.freights.length;
+        const excluded: any[] = [];
+        
         spatialFreights = spatialData.freights
-          .filter((f: any) => allowedTypesFromProfile.includes(normalizeServiceType(f.service_type)))
+          .filter((f: any) => {
+            const normalized = normalizeServiceType(f.service_type);
+            const isAllowed = allowedTypesFromProfile.includes(normalized);
+            if (!isAllowed) {
+              excluded.push({
+                id: f.id?.slice(0, 8),
+                original: f.service_type,
+                normalized,
+                reason: 'Tipo não permitido para perfil'
+              });
+            }
+            return isAllowed;
+          })
           .map((f: any) => ({
             freight_id: f.id || f.freight_id,
             cargo_type: f.cargo_type,
@@ -271,6 +287,19 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           }));
         
         console.log(`📦 Spatial matching retornou ${spatialFreights.length} fretes`);
+        if (excluded.length > 0) {
+          console.log(`🔍 [SmartFreightMatcher] ${excluded.length} fretes excluídos por service_type:`, excluded);
+        }
+        
+        // ✅ Log de contagem por cidade (origem/destino)
+        const cityCounts: Record<string, number> = {};
+        spatialFreights.forEach((f: CompatibleFreight) => {
+          const originKey = `${f.origin_city}|${f.origin_state}`;
+          const destKey = `${f.destination_city}|${f.destination_state}`;
+          cityCounts[originKey] = (cityCounts[originKey] || 0) + 1;
+          cityCounts[destKey] = (cityCounts[destKey] || 0) + 1;
+        });
+        console.log(`📊 [SmartFreightMatcher] Fretes por cidade (origem/destino):`, cityCounts);
         
         // Emitir contagem imediatamente
         if (isMountedRef.current) {

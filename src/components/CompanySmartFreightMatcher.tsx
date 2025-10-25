@@ -56,7 +56,7 @@ export const CompanySmartFreightMatcher: React.FC = () => {
 
     setLoading(true);
     try {
-      console.log('🔍 [Marketplace] Buscando fretes para company:', company.id);
+      console.log('🔍 [FRETES I.A] Buscando fretes para company:', company.id);
       
       // Buscar fretes do MARKETPLACE (sem company_id atribuído)
       // Status válidos no enum: OPEN, ACCEPTED, IN_NEGOTIATION
@@ -70,11 +70,11 @@ export const CompanySmartFreightMatcher: React.FC = () => {
 
       if (error) throw error;
       
-      console.log(`📦 [Marketplace] ${freights?.length || 0} fretes retornados do banco`);
+      console.log(`📦 [FRETES I.A] ${freights?.length || 0} fretes retornados do banco`);
       
       if (!freights || freights.length === 0) {
-        console.warn('⚠️ [Marketplace] Nenhum frete encontrado no banco');
-        toast.info('Nenhum frete disponível no marketplace no momento');
+        console.warn('⚠️ [FRETES I.A] Nenhum frete encontrado no banco');
+        toast.info('Nenhum frete disponível no momento');
         setCompatibleFreights([]);
         setMatchingStats({ total: 0, matched: 0, assigned: 0 });
         setLoading(false);
@@ -103,10 +103,10 @@ export const CompanySmartFreightMatcher: React.FC = () => {
         if (!isAvailable) {
           if (normalizedStatus === 'ACCEPTED' && !hasSlots) {
             discardedByNoSlots++;
-            console.log(`❌ [Marketplace] Frete ${freight.id.slice(0,8)} descartado: sem vagas (${acceptedTrucks}/${requiredTrucks})`);
+            console.log(`❌ [FRETES I.A] Frete ${freight.id.slice(0,8)} descartado: sem vagas (${acceptedTrucks}/${requiredTrucks})`);
           } else {
             discardedByStatus++;
-            console.log(`❌ [Marketplace] Frete ${freight.id.slice(0,8)} descartado: status ${freight.status} (normalizado: ${normalizedStatus})`);
+            console.log(`❌ [FRETES I.A] Frete ${freight.id.slice(0,8)} descartado: status ${freight.status} (normalizado: ${normalizedStatus})`);
           }
           continue;
         }
@@ -136,8 +136,8 @@ export const CompanySmartFreightMatcher: React.FC = () => {
           });
       }
 
-      console.log(`✅ [Marketplace] ${matchedFreights.length} fretes compatíveis após filtros`);
-      console.log(`📊 [Marketplace] Descartados: ${discardedByStatus} por status, ${discardedByNoSlots} sem vagas`);
+      console.log(`✅ [FRETES I.A] ${matchedFreights.length} fretes compatíveis após filtros`);
+      console.log(`📊 [FRETES I.A] Descartados: ${discardedByStatus} por status, ${discardedByNoSlots} sem vagas`);
 
       setCompatibleFreights(matchedFreights);
       setMatchingStats({

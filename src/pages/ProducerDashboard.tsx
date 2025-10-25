@@ -93,7 +93,7 @@ const ProducerDashboard = () => {
     'PRODUTOR'
   );
 
-  // Buscar fretes - otimizado
+  // Buscar fretes - otimizado e resiliente
   const fetchFreights = useCallback(async () => {
     // Don't fetch if user is not a producer
     if (!profile?.id || profile.role !== 'PRODUTOR') {
@@ -104,12 +104,10 @@ const ProducerDashboard = () => {
     console.log('fetchFreights: Iniciando busca para produtor ID:', profile.id);
 
     try {
+      // ✅ Query simplificada sem joins para evitar falhas de RLS
       const { data, error } = await supabase
         .from('freights')
-        .select(`
-          *,
-          driver_profiles:profiles!freights_driver_id_fkey(*)
-        `)
+        .select('*')
         .eq('producer_id', profile.id)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -117,13 +115,42 @@ const ProducerDashboard = () => {
       console.log('fetchFreights: Resposta da query:', { data, error, count: data?.length });
       
       if (error) {
-        console.error('fetchFreights: Erro na query:', error);
-        throw error;
+        console.error('fetchFreights: ❌ Erro na query:', error);
+        toast.error('Erro ao carregar fretes');
+        showErrorToast(toast, 'Erro ao carregar fretes', error);
+        return;
+      }
+
+      // ✅ Se vazio, fazer HEAD count para debug
+      if (!data || data.length === 0) {
+        console.warn('fetchFreights: ⚠️ Nenhum frete retornado. Verificando count...');
+        
+        const { count, error: countError } = await supabase
+          .from('freights')
+          .select('id', { count: 'exact', head: true })
+          .eq('producer_id', profile.id);
+
+        console.log('fetchFreights: HEAD count result:', { count, countError });
+        
+        if (countError) {
+          console.error('fetchFreights: ❌ Erro ao buscar count:', countError);
+        } else if (count === 0) {
+          console.log('fetchFreights: ✅ Confirmado: produtor não tem fretes cadastrados');
+        } else {
+          console.error('fetchFreights: 🔥 CRÍTICO: count=' + count + ' mas SELECT retornou 0. Problema de RLS ou query!');
+        }
+        
+        setFreights([]);
+        return;
       }
       
       const freightData = data || [];
-      console.log('fetchFreights: Fretes encontrados por status:', {
-        OPEN: freightData.filter(f => f.status === 'OPEN').length,
+      
+      // ✅ Logs detalhados por status
+      const openFreights = freightData.filter(f => f.status === 'OPEN');
+      console.log('fetchFreights: ✅ Fretes encontrados por status:', {
+        OPEN: openFreights.length,
+        OPEN_IDs: openFreights.map(f => f.id),
         ACCEPTED: freightData.filter(f => f.status === 'ACCEPTED').length,
         IN_TRANSIT: freightData.filter(f => f.status === 'IN_TRANSIT').length,
         DELIVERED_PENDING_CONFIRMATION: freightData.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length,
@@ -134,8 +161,9 @@ const ProducerDashboard = () => {
       
       setFreights(freightData);
     } catch (error) {
-      console.error('fetchFreights: Error:', error);
+      console.error('fetchFreights: ❌ Erro fatal:', error);
       toast.error('Erro ao carregar fretes');
+      showErrorToast(toast, 'Erro ao carregar fretes', error);
     }
   }, [profile?.id, profile?.role]);
 

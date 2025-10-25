@@ -95,7 +95,7 @@ import { DriverFileModal } from '@/components/DriverFileModal';
 // Definição centralizada de todas as tabs
 const COMPANY_TABS = [
   { value: 'overview', label: 'Visão Geral', shortLabel: 'Visão', icon: Building2 },
-  { value: 'marketplace', label: 'Marketplace', shortLabel: 'Market', icon: TrendingUp },
+  { value: 'marketplace', label: 'FRETES I.A', shortLabel: 'IA', icon: TrendingUp },
   { value: 'ai-freights', label: 'Fretes IA', shortLabel: 'IA', icon: Brain },
   { value: 'drivers', label: 'Motoristas', shortLabel: 'Mot', icon: Users },
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck },
@@ -557,7 +557,7 @@ const CompanyDashboard = () => {
             {company?.status === 'APPROVED' && (
               <Alert className="mb-6 bg-primary/5 border-primary/20">
                 <TrendingUp className="h-4 w-4 text-primary" />
-                <AlertTitle className="text-primary">Marketplace Disponível!</AlertTitle>
+                <AlertTitle className="text-primary">FRETES I.A Disponível!</AlertTitle>
                 <AlertDescription className="flex items-center justify-between gap-4">
                   <span className="text-muted-foreground">
                     Explore fretes disponíveis na plataforma e conecte-se com produtores
@@ -569,7 +569,7 @@ const CompanyDashboard = () => {
                     className="whitespace-nowrap"
                   >
                     <TrendingUp className="mr-2 h-4 w-4" />
-                    Ver Marketplace
+                    Ver FRETES I.A
                   </Button>
                 </AlertDescription>
               </Alert>
