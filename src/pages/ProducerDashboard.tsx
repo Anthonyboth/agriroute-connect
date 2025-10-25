@@ -495,6 +495,17 @@ const ProducerDashboard = () => {
         return;
       }
 
+      // Avisar se valor abaixo do ANTT
+      if (data?.below_antt_minimum) {
+        toast.warning(
+          `⚠️ Valor aceito abaixo do mínimo ANTT por carreta`,
+          { 
+            description: `Aceito: R$ ${Number(data?.assignment?.agreed_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | Mínimo ANTT: R$ ${Number(data.minimum_antt_price_per_truck || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+            duration: 6000
+          }
+        );
+      }
+
       // Mostrar informações sobre vagas restantes
       if (data?.remaining_trucks > 0) {
         toast.success(

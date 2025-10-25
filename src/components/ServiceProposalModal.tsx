@@ -27,6 +27,8 @@ interface ServiceProposalModalProps {
     destination_address: string;
     pickup_date: string;
     delivery_date?: string;
+    minimum_antt_price?: number;
+    required_trucks?: number;
   };
   originalProposal?: {
     id: string;
@@ -421,6 +423,16 @@ const [pricePerKm, setPricePerKm] = useState('');
 
   const renderCargaForm = () => {
     const hasDistance = freight.distance_km && freight.distance_km > 0;
+    const requiredTrucks = freight.required_trucks || 1;
+    const minAnttTotal = freight.minimum_antt_price || 0;
+    const minAnttPerTruck = minAnttTotal > 0 ? minAnttTotal / requiredTrucks : 0;
+    
+    // Calcular valor proposto atual
+    const currentProposedPrice = pricingType === 'PER_KM' 
+      ? (parseFloat(pricePerKm) || 0) * (freight.distance_km || 0)
+      : parseFloat(proposedPrice) || 0;
+    
+    const isBelowAntt = minAnttPerTruck > 0 && currentProposedPrice > 0 && currentProposedPrice < minAnttPerTruck;
     
     return (
       <>
@@ -435,6 +447,32 @@ const [pricePerKm, setPricePerKm] = useState('');
               <span className="text-muted-foreground">Proposta do motorista:</span>
               <span className="font-medium">R$ {originalProposal.proposed_price.toLocaleString()}</span>
             </div>
+          </div>
+        )}
+
+        {minAnttPerTruck > 0 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
+            <p className="text-sm text-blue-900 dark:text-blue-100 font-medium mb-1">
+              ℹ️ Mínimo ANTT por carreta: R$ {minAnttPerTruck.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              Valor informativo conforme legislação. Você pode propor abaixo se desejar, mas será notificado.
+            </p>
+          </div>
+        )}
+
+        {isBelowAntt && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-3 rounded-lg mb-4">
+            <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium mb-1">
+              ⚠️ Você está propondo abaixo do mínimo ANTT
+            </p>
+            <p className="text-xs text-yellow-700 dark:text-yellow-300">
+              Proposta: R$ {currentProposedPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | 
+              Mínimo: R$ {minAnttPerTruck.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">
+              O produtor será notificado. É permitido aceitar, mas considere os custos operacionais.
+            </p>
           </div>
         )}
 

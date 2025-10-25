@@ -123,18 +123,21 @@ serve(async (req) => {
 
     console.log('[VALIDATION-PASSED] Driver has no active freights, can accept proposal');
 
-    // 6. Validar valor contra ANTT
-    if (proposal.proposed_price < (freight.minimum_antt_price || 0)) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Valor abaixo do mínimo ANTT",
-          minimum_antt_price: freight.minimum_antt_price
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // 6. Validar ANTT (não-bloqueante, apenas informativo)
+    const requiredTrucks = Math.max(1, Number(freight.required_trucks) || 1);
+    const minAnttTotal = freight.minimum_antt_price ?? null;
+    const minAnttPerTruck = minAnttTotal != null ? Number(minAnttTotal) / requiredTrucks : null;
+    const belowAntt = minAnttPerTruck != null && proposal.proposed_price < minAnttPerTruck;
+    
+    console.log('[ANTT-CHECK] Validation (non-blocking):', {
+      proposed_price: proposal.proposed_price,
+      minimum_antt_price_total: minAnttTotal,
+      required_trucks: requiredTrucks,
+      minimum_antt_price_per_truck: minAnttPerTruck,
+      below_antt_minimum: belowAntt
+    });
 
-    // 7. Criar assignment
+    // 7. Criar assignment (salvar ANTT por carreta)
     const { data: assignment, error: assignmentErr } = await supabase
       .from("freight_assignments")
       .insert({
@@ -143,7 +146,7 @@ serve(async (req) => {
         proposal_id: proposal.id,
         agreed_price: proposal.proposed_price,
         pricing_type: 'FIXED',
-        minimum_antt_price: freight.minimum_antt_price,
+        minimum_antt_price: minAnttPerTruck,
         status: 'ACCEPTED'
       })
       .select()
@@ -196,6 +199,24 @@ serve(async (req) => {
         }
       });
 
+    // 9.5. Notificar produtor se valor abaixo do ANTT (opcional)
+    if (belowAntt) {
+      await supabase
+        .from("notifications")
+        .insert({
+          user_id: freight.producer_id,
+          title: "⚠️ Proposta aceita abaixo do mínimo ANTT",
+          message: `Valor aceito: R$ ${proposal.proposed_price.toLocaleString('pt-BR')} (mínimo ANTT por carreta: R$ ${minAnttPerTruck?.toLocaleString('pt-BR')})`,
+          type: "proposal_accepted_below_antt",
+          data: {
+            freight_id: proposal.freight_id,
+            assignment_id: assignment.id,
+            agreed_price: proposal.proposed_price,
+            minimum_antt_price_per_truck: minAnttPerTruck
+          }
+        });
+    }
+
     const responseTime = Date.now() - requestStartTime;
     console.log('[ACCEPT-PROPOSAL] Success! Response time:', responseTime + 'ms');
     console.log('[ACCEPT-PROPOSAL] Assignment created:', {
@@ -222,6 +243,9 @@ serve(async (req) => {
           accepted_trucks: freight.accepted_trucks + 1,
           remaining_trucks: freight.required_trucks - (freight.accepted_trucks + 1)
         },
+        below_antt_minimum: belowAntt,
+        minimum_antt_price_per_truck: minAnttPerTruck,
+        minimum_antt_price_total: minAnttTotal,
         message: freight.required_trucks - (freight.accepted_trucks + 1) > 0
           ? `Proposta aceita! Ainda faltam ${freight.required_trucks - (freight.accepted_trucks + 1)} carretas.`
           : 'Proposta aceita! Todas as carretas foram contratadas.'
