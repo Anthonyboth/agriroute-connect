@@ -98,20 +98,30 @@ serve(async (req) => {
       );
     }
 
-    // 5. Validar se motorista já foi contratado
-    const { data: existingAssignment } = await supabase
+    // 5. Validar se motorista já tem algum frete EM ANDAMENTO
+    const { data: activeFreights, count } = await supabase
       .from("freight_assignments")
-      .select("id")
-      .eq("freight_id", proposal.freight_id)
+      .select("id, freight_id, status", { count: 'exact' })
       .eq("driver_id", proposal.driver_id)
-      .maybeSingle();
+      .in("status", ["ACCEPTED", "IN_PROGRESS", "LOADING", "LOADED", "IN_TRANSIT"]);
 
-    if (existingAssignment) {
+    if (count && count > 0) {
+      console.log('[VALIDATION-FAILED] Driver has active freight(s):', {
+        driver_id: proposal.driver_id,
+        active_count: count,
+        active_freights: activeFreights?.map(f => ({ id: f.freight_id, status: f.status }))
+      });
+      
       return new Response(
-        JSON.stringify({ error: "Este motorista já foi contratado para este frete" }),
+        JSON.stringify({ 
+          error: "Você já tem um frete em andamento. Conclua-o antes de aceitar outro.",
+          active_freight_count: count
+        }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log('[VALIDATION-PASSED] Driver has no active freights, can accept proposal');
 
     // 6. Validar valor contra ANTT
     if (proposal.proposed_price < (freight.minimum_antt_price || 0)) {
