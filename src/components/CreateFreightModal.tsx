@@ -143,41 +143,80 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
   };
 
   const calculateMinimumAnttPrice = async (cargoType: string, weight: number, distance: number, originState: string, destinationState: string): Promise<number> => {
-    try {
-      const axles = formData.vehicle_axles_required ? parseInt(formData.vehicle_axles_required) : 5;
-      
-      // Derivar table_type (A/B/C/D)
-      let table_type: 'A' | 'B' | 'C' | 'D';
-      if (formData.high_performance) {
-        table_type = formData.vehicle_ownership === 'PROPRIO' ? 'C' : 'D';
-      } else {
-        table_type = formData.vehicle_ownership === 'PROPRIO' ? 'A' : 'B';
-      }
+    let retries = 0;
+    const maxRetries = 2;
 
-      const invoke = supabase.functions.invoke('antt-calculator', {
-        body: {
+    while (retries <= maxRetries) {
+      try {
+        const axles = formData.vehicle_axles_required ? parseInt(formData.vehicle_axles_required) : 5;
+        
+        // Derivar table_type (A/B/C/D)
+        let table_type: 'A' | 'B' | 'C' | 'D';
+        if (formData.high_performance) {
+          table_type = formData.vehicle_ownership === 'PROPRIO' ? 'C' : 'D';
+        } else {
+          table_type = formData.vehicle_ownership === 'PROPRIO' ? 'A' : 'B';
+        }
+
+        console.log(`🔄 Tentativa ${retries + 1}/${maxRetries + 1} - Calculando ANTT...`, {
           cargo_type: cargoType,
           distance_km: distance,
           axles,
-          origin_state: originState || formData.origin_state,
-          destination_state: destinationState || formData.destination_state,
-          table_type,
-          required_trucks: parseInt(formData.required_trucks) || 1
+          table_type
+        });
+
+        const invoke = supabase.functions.invoke('antt-calculator', {
+          body: {
+            cargo_type: cargoType,
+            distance_km: distance,
+            axles,
+            origin_state: originState || formData.origin_state,
+            destination_state: destinationState || formData.destination_state,
+            table_type,
+            required_trucks: parseInt(formData.required_trucks) || 1
+          }
+        });
+        const { data, error } = await withTimeoutAny(invoke, 8000); // Aumentar timeout
+        
+        if (error) {
+          console.error(`❌ Erro na tentativa ${retries + 1}:`, error);
+          throw error;
         }
-      });
-      const { data, error } = await withTimeoutAny(invoke, 5000);
-      if (error) throw error;
 
-      // Persistir no estado - usar valores POR CARRETA
-      setCalculatedAnttPrice(data.minimum_freight_value);
-      setAnttDetails(data.calculation_details);
+        if (!data || !data.minimum_freight_value) {
+          console.error('❌ Resposta inválida do ANTT calculator:', data);
+          throw new Error('Resposta inválida do servidor');
+        }
 
-      return (data?.minimum_freight_value as number) ?? 0;
-    } catch (error) {
-      console.error('Erro ao calcular ANTT:', error);
-      toast.error("Não foi possível calcular o preço mínimo ANTT. Tente novamente.");
-      return 0;
+        console.log('✅ ANTT calculado com sucesso:', data);
+
+        // Persistir no estado - usar valores POR CARRETA
+        setCalculatedAnttPrice(data.minimum_freight_value);
+        setAnttDetails(data.calculation_details);
+
+        return (data?.minimum_freight_value as number) ?? 0;
+      } catch (error) {
+        retries++;
+        console.error(`❌ Tentativa ${retries} falhou:`, error);
+        
+        if (retries <= maxRetries) {
+          console.log(`⏳ Aguardando 1s antes da próxima tentativa...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+          console.error('❌ Todas as tentativas falharam');
+          toast.error(
+            "Erro ao calcular preço ANTT após 3 tentativas.\n" +
+            "Verifique:\n" +
+            "• Tipo de carga\n" +
+            "• Número de eixos\n" +
+            "• Conexão com internet"
+          );
+          return 0;
+        }
+      }
     }
+    
+    return 0;
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -375,6 +414,19 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
         originState,
         destState
       );
+
+      // ✅ VALIDAÇÃO OBRIGATÓRIA: Não permitir criar frete sem ANTT
+      if (showAxlesSelector && (!minimumAnttPrice || minimumAnttPrice === 0)) {
+        toast.error(
+          'Não foi possível calcular o preço mínimo ANTT. Verifique:\n' +
+          '• Tipo de carga selecionado\n' +
+          '• Número de eixos\n' +
+          '• Distância válida\n\n' +
+          'Tente novamente ou contate o suporte.'
+        );
+        setLoading(false);
+        return;
+      }
 
       // Buscar city_ids para origem e destino
       const originCityId = formData.origin_city_id || await getCityId(formData.origin_city, formData.origin_state);

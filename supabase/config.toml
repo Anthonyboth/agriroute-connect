@@ -198,3 +198,7 @@ verify_jwt = true
 [functions.normalize-pickup-dates]
 verify_jwt = true
 
+[functions.recalculate-all-antt-freights]
+verify_jwt = true
+
+

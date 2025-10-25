@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Users, Truck, Package, FileText, Eye, Search, LayoutDashboard, Building2, HelpCircle, UserPlus, Folder, TrendingUp, DollarSign, CreditCard, Menu, Building, Wrench } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Truck, Package, FileText, Eye, Search, LayoutDashboard, Building2, HelpCircle, UserPlus, Folder, TrendingUp, DollarSign, CreditCard, Menu, Building, Wrench, Calculator } from 'lucide-react';
 import { AdminValidationPanel } from '@/components/AdminValidationPanel';
 import { AdminReportsPanel } from '@/components/AdminReportsPanel';
 import { AdminServiceProviderValidation } from '@/components/AdminServiceProviderValidation';
+import { ANTTDebugPanel } from '@/components/ANTTDebugPanel';
 
 interface Profile {
   id: string;
@@ -54,6 +55,7 @@ const financialItems = [
 
 const maintenanceItems = [
   { title: "Manutenção de Dados", icon: Wrench, id: "data-maintenance" },
+  { title: "Debug ANTT", icon: Calculator, id: "antt-debug" },
 ];
 
 function AdminSidebar({ activeItem, setActiveItem }: { activeItem: string; setActiveItem: (item: string) => void }) {
@@ -459,6 +461,7 @@ const AdminPanel = () => {
             {activeItem === "service-providers" && <AdminServiceProviderValidation />}
             {activeItem === "passengers" && <AdminValidationPanel />}
             {activeItem === "reports" && <AdminReportsPanel />}
+            {activeItem === "antt-debug" && <ANTTDebugPanel />}
             
             {activeItem === "data-maintenance" && (
               <div className="space-y-6">

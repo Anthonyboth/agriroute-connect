@@ -73,33 +73,101 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // 1. Mapear cargo_type para categoria ANTT oficial
+    // Validação de inputs
+    if (!cargo_type || typeof cargo_type !== 'string') {
+      throw new Error('cargo_type é obrigatório e deve ser uma string');
+    }
+    if (!distance_km || distance_km <= 0) {
+      throw new Error('distance_km deve ser maior que zero');
+    }
+    if (!axles || axles < 2 || axles > 9 || ![2,3,4,5,6,7,9].includes(axles)) {
+      throw new Error('axles deve ser 2, 3, 4, 5, 6, 7 ou 9');
+    }
+
+    // 1. Mapear cargo_type para categoria ANTT oficial (COMPLETO)
     const cargoMapping: Record<string, string> = {
+      // Grãos
       'graos_soja': 'Granel sólido',
       'graos_milho': 'Granel sólido',
       'graos_trigo': 'Granel sólido',
       'graos_arroz': 'Granel sólido',
+      'SOJA': 'Granel sólido',
+      'MILHO': 'Granel sólido',
+      'TRIGO': 'Granel sólido',
+      'ARROZ': 'Granel sólido',
+      
+      // Insumos agrícolas
       'adubo_fertilizante': 'Granel sólido',
       'calcario': 'Granel sólido',
       'farelo_soja': 'Granel sólido',
       'sementes_bags': 'Neogranel',
       'defensivos_agricolas': 'Perigosa (carga geral)',
+      'FERTILIZANTE': 'Granel sólido',
+      'CALCARIO': 'Granel sólido',
+      
+      // Combustíveis
       'combustivel': 'Granel líquido',
       'combustivel_diesel': 'Granel líquido',
+      'DIESEL': 'Granel líquido',
+      'GASOLINA': 'Granel líquido',
+      'ETANOL': 'Granel líquido',
+      
+      // Produtos agrícolas
+      'acucar': 'Granel sólido',
+      'cafe': 'Granel sólido',
+      'algodao': 'Carga Geral',
+      'ACUCAR': 'Granel sólido',
+      'CAFE': 'Granel sólido',
+      'ALGODAO': 'Carga Geral',
+      
+      // Ração e alimentos
       'racao_animal': 'Carga Geral',
       'fardos_algodao': 'Carga Geral',
+      'RACAO': 'Carga Geral',
+      
+      // Madeira e celulose
+      'madeira': 'Carga Geral',
+      'celulose': 'Carga Geral',
+      'MADEIRA': 'Carga Geral',
+      'CELULOSE': 'Carga Geral',
+      
+      // Animais
       'gado_bovino': 'Carga Geral',
       'gado_leiteiro': 'Carga Geral',
       'suinos_porcos': 'Carga Geral',
+      'GADO_BOVINO': 'Carga Geral',
+      'SUINOS': 'Carga Geral',
+      
+      // Frutas e hortaliças
+      'frutas': 'Carga Geral',
+      'hortifruti': 'Carga Geral',
+      'FRUTAS': 'Carga Geral',
+      'HORTIFRUTI': 'Carga Geral',
+      
+      // Carnes e laticínios
+      'carnes': 'Carga Geral',
+      'laticinios': 'Carga Geral',
+      'CARNES': 'Carga Geral',
+      'LATICINIOS': 'Carga Geral',
+      
+      // Equipamentos
       'maquinas_agricolas': 'Carga Geral',
-      'equipamentos': 'Carga Geral'
+      'equipamentos': 'Carga Geral',
+      'MAQUINAS': 'Carga Geral',
+      'EQUIPAMENTOS': 'Carga Geral',
     };
     
-    const anttCategory = cargoMapping[cargo_type] || 'Carga Geral';
+    const anttCategory = cargoMapping[cargo_type] || cargoMapping[cargo_type.toUpperCase()] || 'Carga Geral';
+    
     // Se table_type vier explícito, usar; senão inferir de high_performance (compatibilidade)
     const tableType = table_type || (high_performance ? 'C' : 'A');
 
-    console.log('🔍 Mapped to ANTT:', { anttCategory, tableType, axles });
+    console.log('🔍 Mapped to ANTT:', { cargo_type, anttCategory, tableType, axles, distance_km });
+
+    // Log de fallback para análise
+    if (anttCategory === 'Carga Geral' && !cargoMapping[cargo_type]) {
+      console.warn(`⚠️ Cargo type "${cargo_type}" não mapeado, usando Carga Geral como fallback`);
+    }
 
     // 2. Buscar taxa ANTT oficial na tabela
     const { data: rateData, error: rateError } = await supabase

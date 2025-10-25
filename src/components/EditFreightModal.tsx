@@ -104,6 +104,7 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
     try {
       // Check if we need to recalculate ANTT minimum
       let updatedMinimumAntt = freight.minimum_antt_price;
+      let anttCalculationFailed = false;
       
       // Determine if ANTT-relevant fields changed
       const distanceChanged = freight.distance_km !== initialValues?.distance_km;
@@ -117,25 +118,47 @@ export const EditFreightModal: React.FC<EditFreightModalProps> = ({
         try {
           console.log('[EditFreight] Recalculating ANTT minimum...');
           
-          const tableType = freight.high_performance ? 'C' : 'A';
+          const tableType = freight.high_performance 
+            ? (freight.vehicle_ownership === 'PROPRIO' ? 'C' : 'D')
+            : (freight.vehicle_ownership === 'PROPRIO' ? 'A' : 'B');
           const axles = freight.vehicle_axles_required || 5;
+          const requiredTrucks = freight.required_trucks || 1;
           
           const { data: anttData, error: anttError } = await supabase.functions.invoke('antt-calculator', {
             body: {
               cargo_type: freight.cargo_type,
               distance_km: freight.distance_km,
               axles: axles,
-              table_type: tableType
+              table_type: tableType,
+              required_trucks: requiredTrucks
             }
           });
 
-          if (!anttError && anttData?.minimum_freight_value) {
-            updatedMinimumAntt = anttData.minimum_freight_value;
-            console.log('[EditFreight] ANTT recalculated:', updatedMinimumAntt);
+          if (anttError) {
+            console.error('[EditFreight] ANTT calculation error:', anttError);
+            anttCalculationFailed = true;
+          } else if (!anttData?.minimum_freight_value_total) {
+            console.error('[EditFreight] Invalid ANTT response:', anttData);
+            anttCalculationFailed = true;
+          } else {
+            updatedMinimumAntt = anttData.minimum_freight_value_total; // Usar valor TOTAL
+            console.log('[EditFreight] ANTT recalculated:', {
+              per_truck: anttData.minimum_freight_value,
+              total: updatedMinimumAntt,
+              trucks: requiredTrucks
+            });
+            toast.success(`ANTT recalculado: R$ ${updatedMinimumAntt.toFixed(2)}`);
           }
         } catch (anttError) {
           console.error('[EditFreight] Failed to recalculate ANTT:', anttError);
-          // Continue with update even if ANTT calc fails
+          anttCalculationFailed = true;
+        }
+        
+        // ✅ VALIDAÇÃO: Não permitir salvar se recálculo falhou
+        if (anttCalculationFailed && freight.service_type === 'CARGA') {
+          toast.error('Erro ao recalcular ANTT. Por favor, tente novamente.');
+          setLoading(false);
+          return;
         }
       }
 
