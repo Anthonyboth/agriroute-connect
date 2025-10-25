@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useRe
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { subscriptionWithRetry } from '@/lib/query-utils';
-import { useLocation } from 'react-router-dom';
 
 // Tipos
 interface RatingContextType {
@@ -27,7 +26,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [serviceToRate, setServiceToRate] = useState<{ serviceRequestId: string; userId: string; userName: string; serviceType?: string } | null>(null);
   const [freightToRate, setFreightToRate] = useState<{ freightId: string; userId: string; userRole: string; userName: string } | null>(null);
   const { profile } = useAuth();
-  const location = useLocation();
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const realtimeConnectedRef = useRef(false);
   const realtimeFailCountRef = useRef(0);
@@ -46,9 +45,40 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [freightRatedUserId, setFreightRatedUserId] = useState<string | null>(null);
   const [freightRatedUserName, setFreightRatedUserName] = useState<string | null>(null);
 
+  // Track path changes without React Router
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setCurrentPath(window.location.pathname);
+    };
+
+    // Patch history methods to dispatch custom event
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function(...args) {
+      originalPushState.apply(history, args);
+      window.dispatchEvent(new Event('locationchange'));
+    };
+
+    history.replaceState = function(...args) {
+      originalReplaceState.apply(history, args);
+      window.dispatchEvent(new Event('locationchange'));
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('locationchange', handleLocationChange);
+
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('locationchange', handleLocationChange);
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+    };
+  }, []);
+
   // 🔄 Função de polling para fallback quando Realtime falhar
   const pollForPendingRatings = async () => {
-    if (!profile?.id || location.pathname === '/auth') return;
+    if (!profile?.id || currentPath === '/auth') return;
 
     const now = Date.now();
     if (now - lastLogTimeRef.current > 60000) {
@@ -159,7 +189,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Detectar conclusão de serviços em tempo real
   useEffect(() => {
-    if (!profile?.id || location.pathname === '/auth') return;
+    if (!profile?.id || currentPath === '/auth') return;
     
     // Não iniciar se Realtime estiver muito instável
     if (realtimeFailCountRef.current >= 3) {
@@ -342,11 +372,11 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         pollingIntervalRef.current = null;
       }
     };
-  }, [profile?.id, location.pathname]);
+  }, [profile?.id, currentPath]);
 
   // 🔄 Polling inicial ao montar (caso Realtime nunca conecte)
   useEffect(() => {
-    if (!profile?.id || location.pathname === '/auth') return;
+    if (!profile?.id || currentPath === '/auth') return;
 
     const initialCheck = setTimeout(() => {
       if (!realtimeConnectedRef.current) {
@@ -360,7 +390,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }, 3000);
 
     return () => clearTimeout(initialCheck);
-  }, [profile?.id, location.pathname]);
+  }, [profile?.id, currentPath]);
 
   const openServiceRating = (
     requestId: string, 
