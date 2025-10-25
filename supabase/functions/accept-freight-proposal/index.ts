@@ -98,12 +98,12 @@ serve(async (req) => {
       );
     }
 
-    // 5. Validar se motorista já tem algum frete EM ANDAMENTO
+    // 5. Validar se motorista já tem algum frete EM ANDAMENTO (não bloqueia "ACCEPTED")
     const { data: activeFreights, count } = await supabase
       .from("freight_assignments")
       .select("id, freight_id, status", { count: 'exact' })
       .eq("driver_id", proposal.driver_id)
-      .in("status", ["ACCEPTED", "IN_PROGRESS", "LOADING", "LOADED", "IN_TRANSIT"]);
+      .in("status", ["IN_PROGRESS", "LOADING", "LOADED", "IN_TRANSIT"]);
 
     if (count && count > 0) {
       console.log('[VALIDATION-FAILED] Driver has active freight(s):', {
@@ -137,27 +137,82 @@ serve(async (req) => {
       below_antt_minimum: belowAntt
     });
 
-    // 7. Criar assignment (salvar ANTT por carreta)
-    const { data: assignment, error: assignmentErr } = await supabase
+    // 7. Criar ou atualizar assignment (idempotente)
+    // Primeiro, verificar se já existe assignment para este (freight_id, driver_id)
+    const { data: existingAssignment } = await supabase
       .from("freight_assignments")
-      .insert({
-        freight_id: proposal.freight_id,
-        driver_id: proposal.driver_id,
-        proposal_id: proposal.id,
-        agreed_price: proposal.proposed_price,
-        pricing_type: 'FIXED',
-        minimum_antt_price: minAnttPerTruck,
-        status: 'ACCEPTED'
-      })
-      .select()
+      .select("id, status, agreed_price, minimum_antt_price")
+      .eq("freight_id", proposal.freight_id)
+      .eq("driver_id", proposal.driver_id)
       .single();
 
-    if (assignmentErr) {
-      console.error("Error creating assignment:", assignmentErr);
-      return new Response(
-        JSON.stringify({ error: "Erro ao criar atribuição" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let assignment;
+    let isNewAssignment = false;
+
+    if (existingAssignment) {
+      console.log('[ASSIGNMENT] Existing assignment found, updating:', existingAssignment.id);
+      
+      // Atualizar assignment existente
+      const { data: updatedAssignment, error: updateErr } = await supabase
+        .from("freight_assignments")
+        .update({
+          status: 'ACCEPTED',
+          proposal_id: proposal.id,
+          agreed_price: proposal.proposed_price,
+          pricing_type: 'FIXED',
+          minimum_antt_price: minAnttPerTruck
+        })
+        .eq("id", existingAssignment.id)
+        .select()
+        .single();
+
+      if (updateErr) {
+        console.error("Error updating assignment:", updateErr);
+        return new Response(
+          JSON.stringify({ error: "Erro ao atualizar atribuição" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      assignment = updatedAssignment;
+    } else {
+      console.log('[ASSIGNMENT] No existing assignment, creating new one');
+      
+      // Criar novo assignment
+      const { data: newAssignment, error: assignmentErr } = await supabase
+        .from("freight_assignments")
+        .insert({
+          freight_id: proposal.freight_id,
+          driver_id: proposal.driver_id,
+          proposal_id: proposal.id,
+          agreed_price: proposal.proposed_price,
+          pricing_type: 'FIXED',
+          minimum_antt_price: minAnttPerTruck,
+          status: 'ACCEPTED'
+        })
+        .select()
+        .single();
+
+      if (assignmentErr) {
+        console.error("Error creating assignment:", assignmentErr);
+        return new Response(
+          JSON.stringify({ error: "Erro ao criar atribuição" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      assignment = newAssignment;
+      isNewAssignment = true;
+
+      // Incrementar accepted_trucks APENAS se for um novo assignment
+      const { error: updateFreightErr } = await supabase
+        .from("freights")
+        .update({ accepted_trucks: freight.accepted_trucks + 1 })
+        .eq("id", proposal.freight_id);
+
+      if (updateFreightErr) {
+        console.error("[FREIGHT-UPDATE] Error incrementing accepted_trucks:", updateFreightErr);
+      }
     }
 
     // 7.5. Vincular motorista ao frete (se carreta única)
@@ -199,32 +254,22 @@ serve(async (req) => {
         }
       });
 
-    // 9.5. Notificar produtor se valor abaixo do ANTT (opcional)
-    if (belowAntt) {
-      await supabase
-        .from("notifications")
-        .insert({
-          user_id: freight.producer_id,
-          title: "⚠️ Proposta aceita abaixo do mínimo ANTT",
-          message: `Valor aceito: R$ ${proposal.proposed_price.toLocaleString('pt-BR')} (mínimo ANTT por carreta: R$ ${minAnttPerTruck?.toLocaleString('pt-BR')})`,
-          type: "proposal_accepted_below_antt",
-          data: {
-            freight_id: proposal.freight_id,
-            assignment_id: assignment.id,
-            agreed_price: proposal.proposed_price,
-            minimum_antt_price_per_truck: minAnttPerTruck
-          }
-        });
-    }
 
     const responseTime = Date.now() - requestStartTime;
+    
+    // Calcular accepted_trucks correto (com ou sem incremento)
+    const nextAcceptedTrucks = isNewAssignment ? freight.accepted_trucks + 1 : freight.accepted_trucks;
+    const remainingTrucks = freight.required_trucks - nextAcceptedTrucks;
+    
     console.log('[ACCEPT-PROPOSAL] Success! Response time:', responseTime + 'ms');
-    console.log('[ACCEPT-PROPOSAL] Assignment created:', {
+    console.log('[ACCEPT-PROPOSAL] Assignment details:', {
       assignment_id: assignment.id,
       freight_id: proposal.freight_id,
       driver_id: proposal.driver_id,
       agreed_price: assignment.agreed_price,
-      remaining_trucks: proposal.freights.required_trucks - (proposal.freights.accepted_trucks + 1)
+      is_new_assignment: isNewAssignment,
+      accepted_trucks: nextAcceptedTrucks,
+      remaining_trucks: remainingTrucks
     });
 
     return new Response(
@@ -240,15 +285,17 @@ serve(async (req) => {
         freight: {
           id: proposal.freight_id,
           required_trucks: freight.required_trucks,
-          accepted_trucks: freight.accepted_trucks + 1,
-          remaining_trucks: freight.required_trucks - (freight.accepted_trucks + 1)
+          accepted_trucks: nextAcceptedTrucks,
+          remaining_trucks: remainingTrucks
         },
         below_antt_minimum: belowAntt,
         minimum_antt_price_per_truck: minAnttPerTruck,
         minimum_antt_price_total: minAnttTotal,
-        message: freight.required_trucks - (freight.accepted_trucks + 1) > 0
-          ? `Proposta aceita! Ainda faltam ${freight.required_trucks - (freight.accepted_trucks + 1)} carretas.`
-          : 'Proposta aceita! Todas as carretas foram contratadas.'
+        message: isNewAssignment 
+          ? (remainingTrucks > 0
+              ? `Proposta aceita! Ainda faltam ${remainingTrucks} carretas.`
+              : 'Proposta aceita! Todas as carretas foram contratadas.')
+          : 'Proposta já estava aceita. Sincronizado com sucesso.'
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
