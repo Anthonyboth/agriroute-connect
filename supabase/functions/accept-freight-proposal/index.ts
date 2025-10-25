@@ -47,7 +47,8 @@ serve(async (req) => {
           minimum_antt_price,
           cargo_type,
           vehicle_axles_required,
-          high_performance
+          high_performance,
+          pickup_date
         )
       `)
       .eq("id", proposal_id)
@@ -123,7 +124,29 @@ serve(async (req) => {
 
     console.log('[VALIDATION-PASSED] Driver has no active freights, can accept proposal');
 
-    // 6. Validar ANTT (não-bloqueante, apenas informativo)
+    // 6. Calcular pickup_date seguro (deve ser futuro)
+    const now = new Date();
+    let safePickup: Date;
+    
+    if (freight.pickup_date) {
+      const freightPickup = new Date(freight.pickup_date);
+      if (freightPickup.getTime() > now.getTime()) {
+        safePickup = freightPickup;
+      } else {
+        // Pickup passado, usar now + 1 hora
+        safePickup = new Date(now.getTime() + 60 * 60 * 1000);
+        console.log('[PICKUP-DATE-FIX] Freight pickup_date is in the past, using safe future date:', {
+          original: freight.pickup_date,
+          safe: safePickup.toISOString()
+        });
+      }
+    } else {
+      // Sem pickup_date, usar now + 1 hora
+      safePickup = new Date(now.getTime() + 60 * 60 * 1000);
+      console.log('[PICKUP-DATE-FIX] No pickup_date in freight, using safe future date:', safePickup.toISOString());
+    }
+
+    // 7. Validar ANTT (não-bloqueante, apenas informativo)
     const requiredTrucks = Math.max(1, Number(freight.required_trucks) || 1);
     const minAnttTotal = freight.minimum_antt_price ?? null;
     const minAnttPerTruck = minAnttTotal != null ? Number(minAnttTotal) / requiredTrucks : null;
@@ -137,7 +160,7 @@ serve(async (req) => {
       below_antt_minimum: belowAntt
     });
 
-    // 7. Criar ou atualizar assignment (idempotente)
+    // 8. Criar ou atualizar assignment (idempotente)
     // Primeiro, verificar se já existe assignment para este (freight_id, driver_id)
     const { data: existingAssignment } = await supabase
       .from("freight_assignments")
@@ -160,7 +183,8 @@ serve(async (req) => {
           proposal_id: proposal.id,
           agreed_price: proposal.proposed_price,
           pricing_type: 'FIXED',
-          minimum_antt_price: minAnttPerTruck
+          minimum_antt_price: minAnttPerTruck,
+          pickup_date: safePickup.toISOString()
         })
         .eq("id", existingAssignment.id)
         .select()
@@ -168,6 +192,18 @@ serve(async (req) => {
 
       if (updateErr) {
         console.error("Error updating assignment:", updateErr);
+        
+        // Se for erro de data no passado, retornar mensagem específica
+        if (updateErr.code === 'P0001' && updateErr.message?.includes('Data de coleta')) {
+          return new Response(
+            JSON.stringify({ 
+              error: "Data de coleta inválida. A data deve ser futura.",
+              details: updateErr.message
+            }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
         return new Response(
           JSON.stringify({ error: "Erro ao atualizar atribuição" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -188,13 +224,26 @@ serve(async (req) => {
           agreed_price: proposal.proposed_price,
           pricing_type: 'FIXED',
           minimum_antt_price: minAnttPerTruck,
-          status: 'ACCEPTED'
+          status: 'ACCEPTED',
+          pickup_date: safePickup.toISOString()
         })
         .select()
         .single();
 
       if (assignmentErr) {
         console.error("Error creating assignment:", assignmentErr);
+        
+        // Se for erro de data no passado, retornar mensagem específica
+        if (assignmentErr.code === 'P0001' && assignmentErr.message?.includes('Data de coleta')) {
+          return new Response(
+            JSON.stringify({ 
+              error: "Data de coleta inválida. A data deve ser futura.",
+              details: assignmentErr.message
+            }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
         return new Response(
           JSON.stringify({ error: "Erro ao criar atribuição" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -215,7 +264,7 @@ serve(async (req) => {
       }
     }
 
-    // 7.5. Vincular motorista ao frete (se carreta única)
+    // 9. Vincular motorista ao frete (se carreta única)
     if (freight.required_trucks === 1) {
       const { error: driverLinkError } = await supabase
         .from("freights")
@@ -233,13 +282,13 @@ serve(async (req) => {
       }
     }
 
-    // 8. Atualizar status da proposta
+    // 10. Atualizar status da proposta
     await supabase
       .from("freight_proposals")
       .update({ status: "ACCEPTED" })
       .eq("id", proposal_id);
 
-    // 9. Enviar notificação ao motorista
+    // 11. Enviar notificação ao motorista
     await supabase
       .from("notifications")
       .insert({
