@@ -150,9 +150,14 @@ serve(async (req) => {
         
         freightsToInsert.push({
           producer_id: producer.id,
+          service_type: 'CARGA', // Default service type for test data
           cargo_type: CARGO_TYPES[Math.floor(Math.random() * CARGO_TYPES.length)],
           weight: weight,
+          origin_city: originCity.name,
+          origin_state: originCity.state,
           origin_address: `${originCity.name}, ${originCity.state}`,
+          destination_city: destinationCity.name,
+          destination_state: destinationCity.state,
           destination_address: `${destinationCity.name}, ${destinationCity.state}`,
           origin_lat: originCity.lat,
           origin_lng: originCity.lng,
