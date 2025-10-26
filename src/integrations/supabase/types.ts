@@ -292,6 +292,56 @@ export type Database = {
         }
         Relationships: []
       }
+      antt_recalculation_history: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          error_messages: Json | null
+          executed_at: string | null
+          executed_by: string | null
+          execution_time_ms: number | null
+          freights_failed: number
+          freights_processed: number
+          freights_skipped: number
+          freights_updated: number
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          error_messages?: Json | null
+          executed_at?: string | null
+          executed_by?: string | null
+          execution_time_ms?: number | null
+          freights_failed?: number
+          freights_processed?: number
+          freights_skipped?: number
+          freights_updated?: number
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          error_messages?: Json | null
+          executed_at?: string | null
+          executed_by?: string | null
+          execution_time_ms?: number | null
+          freights_failed?: number
+          freights_processed?: number
+          freights_skipped?: number
+          freights_updated?: number
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "antt_recalculation_history_executed_by_fkey"
+            columns: ["executed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_rate_limits: {
         Row: {
           created_at: string

@@ -42,6 +42,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
     const authHeader = req.headers.get('Authorization') || '';
     
@@ -238,11 +240,43 @@ serve(async (req) => {
         timestamp: new Date().toISOString()
       });
 
+    // ✅ HISTÓRICO: Registrar execução na tabela de histórico
+    const endTime = Date.now();
+    const executionTimeMs = endTime - startTime;
+    
+    const { error: historyError } = await supabaseAdmin
+      .from('antt_recalculation_history')
+      .insert({
+        executed_by: profile?.id || null,
+        freights_processed: results.total,
+        freights_updated: results.updated,
+        freights_failed: results.failed,
+        freights_skipped: results.skipped,
+        execution_time_ms: executionTimeMs,
+        details: {
+          endpoint: 'recalculate-all-antt-freights',
+          batch_size: 500,
+          user_email: user.email
+        },
+        error_messages: results.details.filter((d: any) => d.status === 'failed')
+      });
+
+    if (historyError) {
+      console.error('❌ Error saving to history:', historyError);
+    } else {
+      console.log('✅ Execution saved to history');
+    }
+
     console.log('✅ Recálculo concluído:', results);
 
     return new Response(JSON.stringify({
       success: true,
       message: `Recálculo concluído: ${results.updated} atualizados, ${results.failed} falharam, ${results.skipped} ignorados`,
+      total: results.total,
+      updated: results.updated,
+      failed: results.failed,
+      skipped: results.skipped,
+      execution_time_ms: executionTimeMs,
       results
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

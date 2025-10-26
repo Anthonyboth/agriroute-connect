@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Users, Truck, Package, FileText, Eye, Search, LayoutDashboard, Building2, HelpCircle, UserPlus, Folder, TrendingUp, DollarSign, CreditCard, Menu, Building, Wrench, Calculator } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Truck, Package, FileText, Eye, Search, LayoutDashboard, Building2, HelpCircle, UserPlus, Folder, TrendingUp, DollarSign, CreditCard, Menu, Building, Wrench, Calculator, Loader2, Info } from 'lucide-react';
 import { AdminValidationPanel } from '@/components/AdminValidationPanel';
 import { AdminReportsPanel } from '@/components/AdminReportsPanel';
 import { AdminServiceProviderValidation } from '@/components/AdminServiceProviderValidation';
@@ -196,9 +197,16 @@ const AdminPanel = () => {
   const [emailFilter, setEmailFilter] = useState('');
   const [cpfFilter, setCpfFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  
+  // ANTT Maintenance State
+  const [freightsSemAntt, setFreightsSemAntt] = useState<number>(0);
+  const [isRecalculating, setIsRecalculating] = useState(false);
+  const [lastRecalculation, setLastRecalculation] = useState<any>(null);
 
   useEffect(() => {
     fetchPendingUsers();
+    fetchFreightStats();
+    fetchLastRecalculation();
   }, []);
 
   useEffect(() => {
@@ -226,6 +234,87 @@ const AdminPanel = () => {
       toast.error('Erro ao carregar usuários');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFreightStats = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('freights')
+        .select('*', { count: 'exact', head: true })
+        .eq('service_type', 'CARGA')
+        .or('minimum_antt_price.is.null,minimum_antt_price.eq.0');
+      
+      if (error) throw error;
+      setFreightsSemAntt(count || 0);
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas ANTT:', error);
+    }
+  };
+
+  const fetchLastRecalculation = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('antt_recalculation_history')
+        .select('*')
+        .order('executed_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      setLastRecalculation(data);
+    } catch (error) {
+      console.error('Erro ao buscar último recálculo:', error);
+    }
+  };
+
+  const handleRecalculateAntt = async () => {
+    try {
+      setIsRecalculating(true);
+      
+      console.log('🔄 Iniciando recálculo ANTT em lote...');
+      
+      const { data, error } = await supabase.functions.invoke(
+        'recalculate-all-antt-freights',
+        { method: 'POST' }
+      );
+      
+      if (error) {
+        console.error('❌ Erro ao recalcular ANTT:', error);
+        
+        if (error.message?.includes('rate limit')) {
+          toast.error('❌ Limite de taxa excedido', {
+            description: 'Você pode executar esta operação apenas 1x por hora. Aguarde e tente novamente.'
+          });
+        } else if (error.message?.includes('admin') || error.message?.includes('Unauthorized')) {
+          toast.error('❌ Acesso negado', {
+            description: 'Apenas administradores podem executar recálculos em lote.'
+          });
+        } else {
+          toast.error('❌ Erro ao recalcular ANTT', {
+            description: error.message || 'Erro desconhecido'
+          });
+        }
+        return;
+      }
+      
+      console.log('✅ Recálculo concluído:', data);
+      
+      toast.success(`✅ ${data.updated || 0} fretes atualizados`, {
+        description: `Total processado: ${data.total || 0} | Erros: ${data.failed || 0} | Ignorados: ${data.skipped || 0}`
+      });
+      
+      // Refresh estatísticas
+      await fetchFreightStats();
+      await fetchLastRecalculation();
+      
+    } catch (error: any) {
+      console.error('❌ Erro inesperado:', error);
+      toast.error('❌ Erro ao recalcular ANTT', {
+        description: error?.message || 'Erro desconhecido'
+      });
+    } finally {
+      setIsRecalculating(false);
     }
   };
 
@@ -462,6 +551,128 @@ const AdminPanel = () => {
             {activeItem === "passengers" && <AdminValidationPanel />}
             {activeItem === "reports" && <AdminReportsPanel />}
             {activeItem === "antt-debug" && <ANTTDebugPanel />}
+            
+            {activeItem === "data-maintenance" && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <h2 className="text-2xl font-semibold text-gray-800">Manutenção de Dados</h2>
+                </div>
+
+                {/* ANTT Maintenance Card */}
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold flex items-center gap-2">
+                            <Calculator className="h-5 w-5 text-primary" />
+                            Recálculo de Preços ANTT
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Atualiza o preço mínimo ANTT para fretes antigos que não possuem este valor calculado
+                          </p>
+                        </div>
+                        <Badge 
+                          variant={freightsSemAntt > 0 ? "destructive" : "outline"}
+                          className="text-lg px-4 py-2"
+                        >
+                          {freightsSemAntt} fretes
+                        </Badge>
+                      </div>
+
+                      <Separator />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Fretes sem ANTT:</span>
+                            <span className="font-semibold">{freightsSemAntt}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Processamento por lote:</span>
+                            <span className="font-semibold">Até 500 fretes</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Rate limit:</span>
+                            <span className="font-semibold">1x por hora</span>
+                          </div>
+                        </div>
+
+                        {lastRecalculation && (
+                          <div className="space-y-2 bg-muted/50 p-4 rounded-lg">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">Última Execução</p>
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Data:</span>
+                                <span className="font-semibold">
+                                  {new Date(lastRecalculation.executed_at).toLocaleString('pt-BR')}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Atualizados:</span>
+                                <span className="font-semibold text-green-600">
+                                  {lastRecalculation.freights_updated}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Falhas:</span>
+                                <span className="font-semibold text-red-600">
+                                  {lastRecalculation.freights_failed}
+                                </span>
+                              </div>
+                              {lastRecalculation.execution_time_ms && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">Tempo:</span>
+                                  <span className="font-semibold">
+                                    {(lastRecalculation.execution_time_ms / 1000).toFixed(1)}s
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button 
+                        onClick={handleRecalculateAntt} 
+                        disabled={isRecalculating || freightsSemAntt === 0}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {isRecalculating ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Processando...
+                          </>
+                        ) : (
+                          <>
+                            <Calculator className="mr-2 h-5 w-5" />
+                            Recalcular Todos os Fretes
+                          </>
+                        )}
+                      </Button>
+
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex gap-3">
+                          <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="space-y-2 text-sm text-blue-900">
+                            <p className="font-semibold">ℹ️ Informações Importantes:</p>
+                            <ul className="list-disc list-inside space-y-1 ml-2">
+                              <li>Processa até <strong>500 fretes</strong> por execução</li>
+                              <li>Se houver mais de 500, execute novamente após <strong>1 hora</strong></li>
+                              <li>Apenas fretes do tipo <strong>CARGA</strong> são processados</li>
+                              <li>Fretes que já possuem ANTT calculado são ignorados</li>
+                              <li>O processo pode levar alguns minutos</li>
+                              <li>Todas as execuções são registradas no histórico</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
             
             {activeItem === "data-maintenance" && (
               <div className="space-y-6">
