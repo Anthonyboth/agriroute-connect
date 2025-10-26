@@ -473,11 +473,8 @@ const CompanyDashboard = () => {
   // Calcular total de fretes ativos para badges
   const totalActiveFreights = myAssignments.length + activeFreights.length;
   
-  // Gerar tabs com badges dinâmicos
-  const COMPANY_TABS = React.useMemo(
-    () => getCompanyTabs(totalActiveFreights, chatUnreadCount),
-    [totalActiveFreights, chatUnreadCount]
-  );
+  // Gerar tabs com badges dinâmicos (sem useMemo para evitar erro #310 de hooks)
+  const COMPANY_TABS = getCompanyTabs(totalActiveFreights, chatUnreadCount);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
