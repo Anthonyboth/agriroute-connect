@@ -6754,6 +6754,10 @@ export type Database = {
         }
         Returns: string
       }
+      sync_assignment_status_bulk: {
+        Args: { assignment_ids: string[]; freight_statuses: string[] }
+        Returns: Json
+      }
       update_payment_deadline_status: {
         Args: { p_freight_id: string }
         Returns: undefined
