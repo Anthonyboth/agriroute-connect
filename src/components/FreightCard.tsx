@@ -324,72 +324,84 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               companyId={driverCompanyId}
               driverProfile={profile}
             />
-          ) : canAcceptFreights ? (
-            // Motorista autônomo ou transportadora: botões normais
-            // Serviços urbanos: APENAS botão "Aceitar" (sem contraproposta)
-            freight.service_type === 'GUINCHO' ? (
-              <Button 
-                onClick={() => handleAcceptFreight(1)}
-                className="w-full gradient-primary hover:shadow-lg transition-all duration-300"
-                size="sm"
-              >
-                <Wrench className="mr-2 h-4 w-4" />
-                Aceitar Chamado
-              </Button>
-            ) : freight.service_type === 'MUDANCA' ? (
-              <Button 
-                onClick={() => handleAcceptFreight(1)}
-                className="w-full gradient-primary hover:shadow-lg transition-all duration-300"
-                size="sm"
-              >
-                <Home className="mr-2 h-4 w-4" />
-                Aceitar Mudança
-              </Button>
-            ) : freight.service_type === 'FRETE_MOTO' ? (
-              <Button 
-                onClick={() => handleAcceptFreight(1)}
-                className="w-full gradient-primary hover:shadow-lg transition-all duration-300"
-                size="sm"
-              >
-                <Truck className="mr-2 h-4 w-4" />
-                Aceitar Frete por Moto
-              </Button>
-            ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button 
-                  onClick={() => setBulkAcceptorOpen(true)}
-                  className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
-                >
-                  Aceitar ({availableSlots} vagas)
-                </Button>
-                <Button 
-                  onClick={() => setProposalModalOpen(true)}
-                  className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                  variant="outline"
-                >
-                  Contra proposta
-                </Button>
-              </div>
-            ) : (
-              <div className="flex gap-3">
-                <Button 
-                  onClick={() => handleAcceptFreight(1)}
-                  className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
-                  size="sm"
-                >
-                  Aceitar Frete
-                </Button>
-                <Button 
-                  onClick={() => setProposalModalOpen(true)}
-                  className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                  size="sm"
-                  variant="outline"
-                >
-                  Contra proposta
-                </Button>
-              </div>
-            )
-          ) : null}
+          ) : (
+            <div className="space-y-3">
+              {/* Botões de aceitar e contraproposta (para quem pode aceitar) */}
+              {canAcceptFreights && (
+                freight.service_type === 'GUINCHO' ? (
+                  <Button 
+                    onClick={() => handleAcceptFreight(1)}
+                    className="w-full gradient-primary hover:shadow-lg transition-all duration-300"
+                    size="sm"
+                  >
+                    <Wrench className="mr-2 h-4 w-4" />
+                    Aceitar Chamado
+                  </Button>
+                ) : freight.service_type === 'MUDANCA' ? (
+                  <Button 
+                    onClick={() => handleAcceptFreight(1)}
+                    className="w-full gradient-primary hover:shadow-lg transition-all duration-300"
+                    size="sm"
+                  >
+                    <Home className="mr-2 h-4 w-4" />
+                    Aceitar Mudança
+                  </Button>
+                ) : freight.service_type === 'FRETE_MOTO' ? (
+                  <Button 
+                    onClick={() => handleAcceptFreight(1)}
+                    className="w-full gradient-primary hover:shadow-lg transition-all duration-300"
+                    size="sm"
+                  >
+                    <Truck className="mr-2 h-4 w-4" />
+                    Aceitar Frete por Moto
+                  </Button>
+                ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button 
+                      onClick={() => setBulkAcceptorOpen(true)}
+                      className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
+                    >
+                      Aceitar ({availableSlots} vagas)
+                    </Button>
+                    <Button 
+                      onClick={() => setProposalModalOpen(true)}
+                      className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                      variant="outline"
+                    >
+                      Contra proposta
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={() => handleAcceptFreight(1)}
+                      className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
+                      size="sm"
+                    >
+                      Aceitar Frete
+                    </Button>
+                    <Button 
+                      onClick={() => setProposalModalOpen(true)}
+                      className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                      size="sm"
+                      variant="outline"
+                    >
+                      Contra proposta
+                    </Button>
+                  </div>
+                )
+              )}
+              
+              {/* Botão de compartilhar - SEMPRE aparece para motoristas afiliados */}
+              {isAffiliatedDriver && driverCompanyId && (
+                <ShareFreightToCompany 
+                  freight={freight}
+                  companyId={driverCompanyId}
+                  driverProfile={profile}
+                />
+              )}
+            </div>
+          )}
         </div>
       )}
 
