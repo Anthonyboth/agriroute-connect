@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { FreightCard } from '@/components/FreightCard';
+import { DocumentRequestCard } from '@/components/DocumentRequestCard';
 import { 
   MessageSquare, 
   Send, 
@@ -56,7 +57,7 @@ export function CompanyInternalChat() {
       
       let pollingInterval: NodeJS.Timeout | null = null;
 
-      // Subscribe to new messages from both tables
+      // Subscribe to new messages from three tables
       const channel = supabase
         .channel(`company-chat-${companyId}-${selectedDriver.id}`)
         .on(
@@ -83,6 +84,25 @@ export function CompanyInternalChat() {
           },
           (payload) => {
             if ((payload.new as any).sender_id === selectedDriver.id && (payload.new as any).message_type === 'SYSTEM') {
+              loadMessages();
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'document_request_messages',
+          },
+          async (payload) => {
+            const { data: docRequest } = await supabase
+              .from('document_requests')
+              .select('driver_profile_id')
+              .eq('id', (payload.new as any).document_request_id)
+              .single();
+            
+            if (docRequest?.driver_profile_id === selectedDriver.id) {
               loadMessages();
             }
           }
@@ -179,7 +199,27 @@ export function CompanyInternalChat() {
         .eq('message_type', 'SYSTEM')
         .order('created_at', { ascending: true });
 
-      // 3. Mesclar e ordenar por created_at
+      // 3. Buscar solicitações de documentos entre a empresa e o motorista
+      const { data: documentRequests } = await supabase
+        .from('document_requests')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('driver_profile_id', selectedDriver.id);
+
+      const docRequestIds = (documentRequests || []).map(dr => dr.id);
+
+      let docRequestMessages = [];
+      if (docRequestIds.length > 0) {
+        const { data: docMessages } = await supabase
+          .from('document_request_messages')
+          .select('*')
+          .in('document_request_id', docRequestIds)
+          .order('created_at', { ascending: true });
+        
+        docRequestMessages = docMessages || [];
+      }
+
+      // 4. Mapear mensagens
       const chatMapped = (chatMessages || []).map(msg => ({
         ...msg,
         message_type: 'TEXT' as const,
@@ -192,13 +232,20 @@ export function CompanyInternalChat() {
         sender_type: 'DRIVER' as const
       }));
 
-      const allMessages = [...chatMapped, ...freightMapped].sort(
+      const docMapped = docRequestMessages.map(msg => ({
+        ...msg,
+        message_type: msg.message_type,
+        sender_type: msg.sender_id === companyId ? 'COMPANY' : 'DRIVER'
+      }));
+
+      // 5. Mesclar TRÊS fontes e ordenar
+      const allMessages = [...chatMapped, ...freightMapped, ...docMapped].sort(
         (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
 
       setMessages(allMessages as any);
 
-      // 4. Marcar mensagens do driver como lidas
+      // 6. Marcar mensagens do driver como lidas
       if (chatMessages && chatMessages.length > 0) {
         await supabase
           .from('company_driver_chats')
@@ -340,6 +387,48 @@ export function CompanyInternalChat() {
                   </div>
                 ) : (
                   messages.map((message) => {
+                    // Verificar se é mensagem de solicitação de documentos
+                    if (message.message_type === 'DOCUMENT_REQUEST') {
+                      try {
+                        const requestData = JSON.parse(message.message);
+                        return (
+                          <div key={message.id} className="mb-4">
+                            <div className="mb-2 p-2 bg-warning/10 border border-warning/30 rounded-t-lg">
+                              <p className="text-sm text-warning-foreground font-medium">
+                                📄 Solicitação de Documentos
+                                {' • '}
+                                {new Date(message.created_at).toLocaleString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                            <DocumentRequestCard
+                              requestData={{
+                                requested_fields: requestData.requested_fields,
+                                notes: requestData.notes,
+                                company_name: requestData.company_name,
+                                status: requestData.status || 'PENDING',
+                                created_at: requestData.created_at
+                              }}
+                              onGoToProfile={() => {
+                                window.location.href = '/profile';
+                              }}
+                              onReplyInChat={() => {
+                                const input = document.querySelector('input[placeholder="Digite sua mensagem..."]') as HTMLInputElement;
+                                if (input) input.focus();
+                              }}
+                            />
+                          </div>
+                        );
+                      } catch (e) {
+                        console.error('Erro ao parsear documento:', e);
+                        return null;
+                      }
+                    }
+
                     // Verificar se é mensagem de compartilhamento de frete
                     let freightData = null;
                     try {

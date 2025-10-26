@@ -7,7 +7,6 @@ import {
 import { ChatConversation } from '@/hooks/useUnifiedChats';
 import { FreightChat } from './FreightChat';
 import { ServiceChat } from './ServiceChat';
-import { DocumentRequestChat } from './DocumentRequestChat';
 import { DriverChatTab } from './driver-details/DriverChatTab';
 import { FreightShareCard } from './FreightShareCard';
 import { useQuery } from '@tanstack/react-query';
@@ -66,20 +65,6 @@ export const ChatModal = ({
     enabled: conversation?.type === 'SERVICE' && isOpen,
   });
 
-  const { data: documentRequest } = useQuery({
-    queryKey: ['doc-request-data', conversation?.metadata?.documentRequestId],
-    queryFn: async () => {
-      if (conversation?.type !== 'DOCUMENT_REQUEST') return null;
-      const { data } = await supabase
-        .from('document_requests')
-        .select('*')
-        .eq('id', conversation.metadata.documentRequestId)
-        .single();
-      return data;
-    },
-    enabled: conversation?.type === 'DOCUMENT_REQUEST' && isOpen,
-  });
-
   if (!conversation) return null;
 
   const renderChatContent = () => {
@@ -107,15 +92,6 @@ export const ChatModal = ({
           <DriverChatTab
             companyId={conversation.metadata.companyId}
             driverProfileId={conversation.metadata.driverProfileId}
-          />
-        );
-
-      case 'DOCUMENT_REQUEST':
-        if (!documentRequest) return <div className="p-4">Carregando...</div>;
-        return (
-          <DocumentRequestChat
-            documentRequestId={conversation.metadata.documentRequestId}
-            currentUserProfile={{ id: userProfileId, role: userRole } as any}
           />
         );
 

@@ -324,38 +324,8 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
         }
       }
 
-      // 5. SOLICITAÇÕES DE DOCUMENTOS (apenas MOTORISTA)
-      if (['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(userRole)) {
-        const { data: docRequests } = await supabase
-          .from('document_requests')
-          .select(`
-            id,
-            requested_fields,
-            status,
-            notes,
-            created_at,
-            company:transport_companies!inner(company_name)
-          `)
-          .eq('driver_profile_id', userProfileId)
-          .eq('status', 'PENDING')
-          .order('created_at', { ascending: false });
-
-        docRequests?.forEach((req: any) => {
-          allConversations.push({
-            id: `doc-${req.id}`,
-            type: 'DOCUMENT_REQUEST' as const,
-            title: `Solicitação de Documentos - ${req.company?.company_name || 'Transportadora'}`,
-            lastMessage: `${req.requested_fields?.length || 0} campos solicitados`,
-            lastMessageTime: req.created_at,
-            unreadCount: 1,
-            otherParticipant: {
-              name: req.company?.company_name || 'Transportadora',
-            },
-            metadata: { documentRequestId: req.id },
-            isClosed: false,
-          });
-        });
-      }
+      // 5. SOLICITAÇÕES DE DOCUMENTOS agora aparecem dentro do DIRECT_CHAT
+      // Não precisamos criar conversas separadas para document_requests
 
       return allConversations;
     },
