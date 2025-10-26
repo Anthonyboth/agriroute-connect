@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { FreightShareCard } from '@/components/FreightShareCard';
+import { FreightCard } from '@/components/FreightCard';
 import { 
   MessageSquare, 
   Send, 
@@ -141,6 +141,39 @@ export function CompanyInternalChat() {
     }
   };
 
+  const handleAcceptSharedFreight = async (freightId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'accept-freight-multiple',
+        {
+          body: { 
+            freight_id: freightId,
+            num_trucks: 1
+          }
+        }
+      );
+
+      if (error) {
+        const errorMsg = (error as any)?.context?.response?.error 
+          || (error as any)?.message 
+          || 'Não foi possível aceitar o frete';
+        toast.error(errorMsg);
+        return;
+      }
+
+      toast.success('Frete aceito com sucesso!', {
+        description: 'O frete foi atribuído à transportadora.'
+      });
+
+      loadMessages();
+    } catch (error: any) {
+      const errorMessage = (error as any)?.context?.response?.error 
+        || error?.message 
+        || 'Erro ao aceitar frete';
+      toast.error(errorMessage);
+    }
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !companyId || !selectedDriver) return;
 
@@ -244,13 +277,56 @@ export function CompanyInternalChat() {
                     }
 
                     if (freightData) {
-                      // Renderizar card especial de frete compartilhado
+                      // Converter dados do compartilhamento para formato do FreightCard
+                      const freightForCard = {
+                        id: freightData.freight_id,
+                        cargo_type: freightData.cargo_type,
+                        weight: freightData.weight || 0,
+                        origin_address: freightData.origin_address,
+                        destination_address: freightData.destination_address,
+                        origin_city: freightData.origin_city,
+                        origin_state: freightData.origin_state,
+                        destination_city: freightData.destination_city,
+                        destination_state: freightData.destination_state,
+                        pickup_date: freightData.pickup_date,
+                        delivery_date: freightData.delivery_date,
+                        price: freightData.price,
+                        minimum_antt_price: freightData.minimum_antt_price || 0,
+                        distance_km: freightData.distance_km || 0,
+                        urgency: freightData.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
+                        status: 'OPEN' as const,
+                        service_type: freightData.service_type as 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO',
+                        required_trucks: freightData.required_trucks || 1,
+                        accepted_trucks: freightData.accepted_trucks || 0
+                      };
+
                       return (
                         <div key={message.id} className="mb-4">
-                          <FreightShareCard 
-                            freightData={freightData}
-                            messageId={message.id}
-                            onAccept={loadMessages}
+                          {/* Header do compartilhamento */}
+                          <div className="mb-2 p-2 bg-primary/5 border border-primary/20 rounded-t-lg">
+                            <p className="text-sm text-primary font-medium">
+                              🔗 Frete compartilhado por <strong>{freightData.shared_by}</strong>
+                              {' • '}
+                              {new Date(freightData.shared_at).toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                          
+                          {/* Card completo do frete */}
+                          <FreightCard
+                            freight={freightForCard}
+                            showActions={true}
+                            canAcceptFreights={true}
+                            onAction={async (action) => {
+                              if (action === 'accept') {
+                                await handleAcceptSharedFreight(freightData.freight_id);
+                              }
+                              loadMessages();
+                            }}
                           />
                         </div>
                       );

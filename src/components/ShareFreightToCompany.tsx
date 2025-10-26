@@ -22,13 +22,20 @@ interface ShareFreightToCompanyProps {
     weight?: number;
     origin_address: string;
     destination_address: string;
+    origin_city?: string;
+    origin_state?: string;
+    destination_city?: string;
+    destination_state?: string;
     pickup_date: string;
     delivery_date: string;
     price: number;
+    minimum_antt_price?: number;
     urgency: string;
     status: string;
     service_type?: string;
     distance_km?: number;
+    required_trucks?: number;
+    accepted_trucks?: number;
   };
   companyId?: string;
   driverProfile?: {
@@ -68,20 +75,30 @@ export const ShareFreightToCompany: React.FC<ShareFreightToCompanyProps> = ({
 
       if (companyError) throw companyError;
 
-      // Construir mensagem estruturada
+      // Construir mensagem estruturada com TODOS os dados do frete
       const freightShareMessage = {
         type: 'FREIGHT_SHARE',
+        // Dados completos do frete para renderização do FreightCard
         freight_id: freight.id,
         cargo_type: freight.cargo_type,
-        origin: freight.origin_address,
-        destination: freight.destination_address,
+        weight: freight.weight || 0,
+        origin_address: freight.origin_address,
+        destination_address: freight.destination_address,
+        origin_city: freight.origin_city,
+        origin_state: freight.origin_state,
+        destination_city: freight.destination_city,
+        destination_state: freight.destination_state,
         pickup_date: freight.pickup_date,
         delivery_date: freight.delivery_date,
         price: freight.price,
+        minimum_antt_price: freight.minimum_antt_price || 0,
         distance_km: freight.distance_km || 0,
-        weight: freight.weight || 0,
         urgency: freight.urgency,
         service_type: freight.service_type || 'CARGA',
+        status: 'OPEN', // Sempre OPEN quando compartilhado
+        required_trucks: freight.required_trucks || 1,
+        accepted_trucks: freight.accepted_trucks || 0,
+        // Metadados do compartilhamento
         shared_by: driverProfile.full_name || 'Motorista',
         shared_at: new Date().toISOString()
       };
