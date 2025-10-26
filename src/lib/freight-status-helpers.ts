@@ -196,8 +196,27 @@ export async function driverUpdateFreightStatus({
           });
           console.log('[freight-status-helpers] 🔔 Notificação enviada ao produtor:', freightData.producer_id);
         }
+
+        // ✅ SINCRONIZAR assignment.status para mover para histórico
+        await supabase
+          .from('freight_assignments')
+          .update({ 
+            status: 'DELIVERED_PENDING_CONFIRMATION', 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('freight_id', freightId)
+          .eq('driver_id', currentUserProfile?.id)
+          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT']);
+
+        // ✅ DISPARAR evento para mover frete para histórico na UI
+        window.dispatchEvent(new CustomEvent('freight:movedToHistory', { 
+          detail: { freightId } 
+        }));
+
+        console.log('[freight-status-helpers] ✅ Frete movido para histórico:', freightId);
+
       } catch (notifyError) {
-        console.error('[freight-status-helpers] ⚠️ Erro ao enviar notificação (não bloqueante):', notifyError);
+        console.warn('[freight-status-helpers] ⚠️ Erro não bloqueante:', notifyError);
       }
     }
     

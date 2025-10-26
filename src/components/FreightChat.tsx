@@ -304,10 +304,28 @@ export const FreightChat: React.FC<FreightChatProps> = ({
     // Marcar mensagens como lidas ao abrir o chat
     markFreightMessagesAsRead(freightId);
 
-    // Real-time subscription com error handling
+    // Real-time subscription com error handling e fallback de polling
+    const channelName = `freight-chat:${freightId}:${currentUserProfile?.id || 'anon'}`;
+    let pollingInterval: any = null;
+
+    const startPolling = () => {
+      if (!pollingInterval) {
+        pollingInterval = setInterval(fetchMessages, 8000);
+        console.log('[FreightChat] Polling ativado como fallback');
+      }
+    };
+
+    const stopPolling = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+        console.log('[FreightChat] Polling desativado');
+      }
+    };
+
     const channel = subscriptionWithErrorHandler(
       supabase
-        .channel('freight-chat')
+        .channel(channelName)
         .on('postgres_changes', 
           { 
             event: 'INSERT', 
@@ -318,20 +336,23 @@ export const FreightChat: React.FC<FreightChatProps> = ({
           () => {
             console.log('[FreightChat] Nova mensagem recebida');
             fetchMessages();
+            stopPolling(); // Parar polling se realtime funcionar
           }
         ),
       (error) => {
         console.error('[FreightChat] Erro na subscription:', error);
+        startPolling(); // Ativar polling se realtime falhar
         toast({
-          title: "Erro na conexão",
-          description: "O chat pode não atualizar automaticamente. Recarregue a página.",
-          variant: "destructive",
+          title: "Modo offline",
+          description: "Chat atualizado a cada 8s. Reconectando...",
+          variant: "default",
         });
       }
     ).subscribe();
 
     return () => {
       console.log('[FreightChat] Removendo subscription');
+      stopPolling();
       supabase.removeChannel(channel);
     };
   }, [freightId]);

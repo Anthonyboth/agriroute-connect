@@ -86,7 +86,7 @@ export const CompanyActiveFreights: React.FC = () => {
           vehicle:vehicles(license_plate, model)
         `)
         .eq('company_id', company.id)
-        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'])
+        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
         .order('accepted_at', { ascending: false });
 
       if (error) throw error;
