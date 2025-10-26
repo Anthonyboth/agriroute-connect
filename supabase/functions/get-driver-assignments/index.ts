@@ -49,7 +49,7 @@ serve(async (req) => {
       );
     }
 
-    // Buscar assignments do motorista
+    // Buscar assignments do motorista (apenas não-finais)
     const { data: assignments, error } = await supabase
       .from("freight_assignments")
       .select(`
@@ -80,6 +80,7 @@ serve(async (req) => {
         )
       `)
       .eq("driver_id", profile.id)
+      .in("status", ["ACCEPTED", "LOADING", "LOADED", "IN_TRANSIT"])
       .order("created_at", { ascending: false });
 
     if (error) throw error;

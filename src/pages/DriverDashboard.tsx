@@ -1427,14 +1427,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     return (myAssignments || []).filter(assignment => {
       if (!assignment) return false;
       
-      // 🔥 PRIORIDADE 1: Se freight.status existe, ele é a fonte da verdade
-      if (assignment.freight?.status) {
-        // Se está em status final, excluir de "Em Andamento"
-        return !isFinalStatus(assignment.freight.status);
-      }
-      
-      // 🔥 FALLBACK: Se freight.status não existe, usar assignment.status
-      return assignment.status ? !isFinalStatus(assignment.status) : false;
+      const freightStatus = assignment.freight?.status;
+      const assignmentStatus = assignment.status;
+
+      const freightFinal = freightStatus ? isFinalStatus(freightStatus) : false;
+      const assignmentFinal = assignmentStatus ? isFinalStatus(assignmentStatus) : false;
+
+      // Excluir de "Em Andamento" se qualquer um for final
+      return !(freightFinal || assignmentFinal);
     });
   }, [myAssignments]);
 
