@@ -324,22 +324,9 @@ const CompanyDashboard = () => {
       console.log(`📦 [CompanyDashboard/Active] ${assignments?.length || 0} assignments encontrados`);
       console.log(`📊 [CompanyDashboard/Active] Dados dos assignments:`, assignments);
 
-      setMyAssignments(assignments || []);
-      console.log(`✅ [CompanyDashboard/Active] myAssignments setado: ${assignments?.length || 0}`);
+      let mergedAssignments = assignments || [];
 
-      // ✅ FASE 3: Toast notification quando há assignments
-      if (assignments && assignments.length > 0) {
-        toast.success(`✅ ${assignments.length} frete(s) em andamento`, {
-          description: 'Clique em "Em Andamento" para ver detalhes',
-          duration: 5000,
-          action: {
-            label: 'Ver Fretes',
-            onClick: () => setActiveTab('active')
-          }
-        });
-      }
-
-      // Buscar também fretes diretos: por company_id OU por driver afiliado
+      // ✅ Buscar também fretes diretos: por company_id OU por driver afiliado
       const orFiltersFreights: string[] = [`company_id.eq.${company.id}`];
       if (affiliatedDriverIds.length > 0) {
         orFiltersFreights.push(`driver_id.in.(${affiliatedDriverIds.join(',')})`);
@@ -358,6 +345,32 @@ const CompanyDashboard = () => {
         .order('created_at', { ascending: false });
 
       console.log(`🚛 [CompanyDashboard/Active] ${directFreights?.length || 0} fretes diretos encontrados`);
+
+      // 🔗 Fallback: assignments cujo company_id está nulo, mas o frete já tem company_id
+      const freightIdsWithCompany = (directFreights || []).map((f: any) => f.id);
+      if (freightIdsWithCompany.length > 0) {
+        const { data: extraAssignments, error: extraErr } = await supabase
+          .from('freight_assignments')
+          .select(`
+            *,
+            freight:freights(*,
+              producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone)
+            ),
+            driver:profiles!freight_assignments_driver_id_fkey(id, full_name, contact_phone, rating)
+          `)
+          .in('freight_id', freightIdsWithCompany)
+          .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
+          .order('accepted_at', { ascending: false });
+        if (!extraErr && extraAssignments) {
+          const byId = new Map<string, any>();
+          [...mergedAssignments, ...extraAssignments].forEach((a: any) => byId.set(a.id, a));
+          mergedAssignments = Array.from(byId.values());
+        }
+      }
+
+      // Aplicar estados
+      setMyAssignments(mergedAssignments);
+      console.log(`✅ [CompanyDashboard/Active] myAssignments setado: ${mergedAssignments.length}`);
 
       setActiveFreights(directFreights || []);
       console.log(`✅ [CompanyDashboard/Active] activeFreights setado: ${directFreights?.length || 0}`);

@@ -112,7 +112,7 @@ export const CompanyActiveFreights: React.FC = () => {
 
       if (error) throw error;
 
-      const formatted: ActiveFreight[] = (assignments || []).map((a: any) => ({
+      const formattedFromAssignments: ActiveFreight[] = (assignments || []).map((a: any) => ({
         id: a.freight.id,
         assignment_id: a.id,
         cargo_type: a.freight.cargo_type,
@@ -123,10 +123,41 @@ export const CompanyActiveFreights: React.FC = () => {
         vehicle: a.vehicle,
         created_at: a.freight.created_at,
         accepted_at: a.accepted_at,
-        last_tracking: null // Será implementado com GPS tracking
+        last_tracking: null
       }));
 
-      setActiveFreights(formatted);
+      // 🔗 Fallback: também buscar fretes diretos da empresa
+      const { data: directFreights } = await supabase
+        .from('freights')
+        .select(`
+          *,
+          driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, rating)
+        `)
+        .eq('company_id', company.id)
+        .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
+        .order('created_at', { ascending: false });
+
+      const formattedFromFreights: ActiveFreight[] = (directFreights || []).map((f: any) => ({
+        id: f.id,
+        assignment_id: f.id, // sem assignment, usamos o id do frete como fallback
+        cargo_type: f.cargo_type,
+        origin_address: f.origin_address,
+        destination_address: f.destination_address,
+        status: f.status,
+        driver: f.driver ? { id: f.driver.id, full_name: f.driver.full_name } : { id: '', full_name: 'Motorista' },
+        vehicle: undefined,
+        created_at: f.created_at,
+        accepted_at: f.created_at,
+        last_tracking: null
+      }));
+
+      // Mesclar e deduplicar por id de frete
+      const byFreightId = new Map<string, ActiveFreight>();
+      [...formattedFromAssignments, ...formattedFromFreights].forEach((item) => {
+        byFreightId.set(item.id, item);
+      });
+
+      setActiveFreights(Array.from(byFreightId.values()));
     } catch (error) {
       console.error('Erro ao buscar fretes ativos:', error);
       toast.error('Erro ao carregar fretes em andamento');

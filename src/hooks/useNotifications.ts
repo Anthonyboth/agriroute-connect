@@ -27,9 +27,9 @@ export const useNotifications = () => {
           return count;
         },
         { 
-          timeoutMs: 5000, 
+          timeoutMs: 10000, 
           operationName: 'fetchUnreadCount',
-          retries: 1
+          retries: 0
         }
       );
       
