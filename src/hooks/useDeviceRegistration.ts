@@ -13,8 +13,10 @@ export const useDeviceRegistration = () => {
   const { user, profile } = useAuth();
   const { permissions } = useDevicePermissions();
   const hasRegistered = useRef(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     // ✅ CRITICAL: Só executar se user E profile existirem
     if (!user || !profile) {
       console.log('⏭️ useDeviceRegistration: Aguardando autenticação completa');
@@ -61,6 +63,13 @@ export const useDeviceRegistration = () => {
         // ✅ AGUARDAR propagação do JWT (500ms é suficiente)
         await new Promise(resolve => setTimeout(resolve, 500));
         
+        // ✅ Verificar se ainda está montado
+        if (!mountedRef.current) {
+          isRegistering = false;
+          registrationPromise = null;
+          return;
+        }
+        
         // ✅ Verificar sessão antes de registrar
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
@@ -71,7 +80,21 @@ export const useDeviceRegistration = () => {
           return;
         }
         
+        // ✅ Verificar novamente se está montado antes de continuar
+        if (!mountedRef.current) {
+          isRegistering = false;
+          registrationPromise = null;
+          return;
+        }
+        
         await registerDevice(user.id);
+        
+        // ✅ Verificar se está montado antes de atualizar localStorage
+        if (!mountedRef.current) {
+          isRegistering = false;
+          registrationPromise = null;
+          return;
+        }
         
         // Marcar como registrado com timestamp
         localStorage.setItem(registrationKey, Date.now().toString());
@@ -105,6 +128,7 @@ export const useDeviceRegistration = () => {
     }, 5 * 60 * 1000); // 5 minutos
 
     return () => {
+      mountedRef.current = false;
       clearInterval(interval);
     };
   }, [user?.id, profile?.id]);

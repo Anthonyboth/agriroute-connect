@@ -12,6 +12,7 @@ import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthErrorBoundary } from "@/components/AuthErrorBoundary";
+import { PageDOMErrorBoundary } from "@/components/PageDOMErrorBoundary";
 import { AppHealthOverlay } from "@/components/AppHealthOverlay";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -453,6 +454,15 @@ const SmartFallback = () => {
 
 // Component to handle device registration
 const DeviceSetup = () => {
+  const mountedRef = React.useRef(true);
+  
+  React.useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  
   useDeviceRegistration();
   return null;
 };
@@ -462,8 +472,11 @@ const SessionManager = () => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const timeoutRef = React.useRef<NodeJS.Timeout>();
+  const mountedRef = React.useRef(true);
   
   React.useEffect(() => {
+    mountedRef.current = true;
+    
     // ✅ Limpar timeout anterior
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -474,9 +487,11 @@ const SessionManager = () => {
       stopSessionRefresh();
       return;
     }
-
+    
     // ✅ DEBOUNCE: aguardar 300ms antes de iniciar/parar
     timeoutRef.current = setTimeout(() => {
+      if (!mountedRef.current) return;
+      
       if (isAuthenticated) {
         startSessionRefresh();
       } else {
@@ -485,6 +500,7 @@ const SessionManager = () => {
     }, 300);
     
     return () => {
+      mountedRef.current = false;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -505,9 +521,10 @@ const App = () => {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-        <QueryClientProvider client={queryClient}>
+    <PageDOMErrorBoundary>
+      <ErrorBoundary>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          <QueryClientProvider client={queryClient}>
           <BrowserRouter
             future={{
               v7_startTransition: true,
@@ -527,11 +544,7 @@ const App = () => {
                     <Routes>
                       <Route path="/" element={<AuthedLanding />} />
                       <Route path="/landing" element={<Landing />} />
-                      <Route path="/auth" element={
-                        <AuthErrorBoundary>
-                          <RedirectIfAuthed />
-                        </AuthErrorBoundary>
-                      } />
+                      <Route path="/auth" element={<RedirectIfAuthed />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/confirm-email" element={<ConfirmEmail />} />
                       <Route 
@@ -660,6 +673,7 @@ const App = () => {
         </QueryClientProvider>
       </ThemeProvider>
     </ErrorBoundary>
+    </PageDOMErrorBoundary>
   );
 };
 

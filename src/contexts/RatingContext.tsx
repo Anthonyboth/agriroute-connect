@@ -197,178 +197,190 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       return;
     }
 
-    const serviceChannel = supabase
-      .channel('service_completion_detection')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'service_requests',
-        filter: `status=eq.COMPLETED`
-      }, async (payload: any) => {
-        const service = payload.new;
-        
-        // Verificar se o usuário atual está envolvido
-        if (service.client_id === profile.id || service.provider_id === profile.id) {
-          // Aguardar 1 segundo para dar tempo do status ser atualizado
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Verificar se já avaliou
-          const { data: existingRating } = await supabase
-            .from('service_ratings')
-            .select('id')
-            .eq('service_request_id', service.id)
-            .eq('rater_id', profile.id)
-            .maybeSingle();
-          
-          if (!existingRating) {
-            // Determinar quem será avaliado
-            const ratedUserId = service.client_id === profile.id ? service.provider_id : service.client_id;
-            
-            // Buscar nome do avaliado
-            const { data: ratedProfile } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', ratedUserId)
-              .single();
-            
-            // Abrir modal automaticamente
-            openServiceRating(
-              service.id, 
-              ratedUserId, 
-              ratedProfile?.full_name,
-              service.service_type
-            );
-          }
-        }
-      })
-      .subscribe();
+    // Refs para armazenar os canais
+    let serviceChannel: any = null;
+    let freightRetryConfig: any = null;
 
-    // 🚀 Detectar DELIVERED e DELIVERED_PENDING_CONFIRMATION com subscriptionWithRetry
-    const freightRetryConfig = subscriptionWithRetry(
-      'freight_delivery_detection',
-      (channel) => {
-        // DELIVERED: produtor avalia motorista
-        channel.on('postgres_changes', {
+    // ✅ DELAY: Aguardar 2s para autenticação estabilizar antes de iniciar subscriptions
+    const delayTimer = setTimeout(() => {
+      serviceChannel = supabase
+        .channel('service_completion_detection')
+        .on('postgres_changes', {
           event: 'UPDATE',
           schema: 'public',
-          table: 'freights',
-          filter: `status=eq.DELIVERED`
+          table: 'service_requests',
+          filter: `status=eq.COMPLETED`
         }, async (payload: any) => {
-          const freight = payload.new;
+          const service = payload.new;
           
-          if (freight.producer_id === profile.id) {
-            console.log('[RatingContext] 🔔 DELIVERED detectado para produtor:', freight.id);
+          // Verificar se o usuário atual está envolvido
+          if (service.client_id === profile.id || service.provider_id === profile.id) {
+            // Aguardar 1 segundo para dar tempo do status ser atualizado
             await new Promise(resolve => setTimeout(resolve, 1000));
             
+            // Verificar se já avaliou
             const { data: existingRating } = await supabase
-              .from('freight_ratings')
+              .from('service_ratings')
               .select('id')
-              .eq('freight_id', freight.id)
+              .eq('service_request_id', service.id)
               .eq('rater_id', profile.id)
               .maybeSingle();
             
-            if (!existingRating && freight.driver_id) {
-              const { data: driverProfile } = await supabase
+            if (!existingRating) {
+              // Determinar quem será avaliado
+              const ratedUserId = service.client_id === profile.id ? service.provider_id : service.client_id;
+              
+              // Buscar nome do avaliado
+              const { data: ratedProfile } = await supabase
                 .from('profiles')
                 .select('full_name')
-                .eq('id', freight.driver_id)
+                .eq('id', ratedUserId)
                 .single();
               
-              openFreightRating(freight.id, freight.driver_id, driverProfile?.full_name);
+              // Abrir modal automaticamente
+              openServiceRating(
+                service.id, 
+                ratedUserId, 
+                ratedProfile?.full_name,
+                service.service_type
+              );
             }
           }
-        });
+        })
+        .subscribe();
 
-        // DELIVERED_PENDING_CONFIRMATION: motorista avalia produtor
-        channel.on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'freights',
-          filter: `status=eq.DELIVERED_PENDING_CONFIRMATION`
-        }, async (payload: any) => {
-          const freight = payload.new;
-          
-          if (freight.driver_id === profile.id) {
-            console.log('[RatingContext] 🔔 DELIVERED_PENDING_CONFIRMATION detectado para motorista:', freight.id);
-            await new Promise(resolve => setTimeout(resolve, 1000));
+      // 🚀 Detectar DELIVERED e DELIVERED_PENDING_CONFIRMATION com subscriptionWithRetry
+      freightRetryConfig = subscriptionWithRetry(
+        'freight_delivery_detection',
+        (channel) => {
+          // DELIVERED: produtor avalia motorista
+          channel.on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'freights',
+            filter: `status=eq.DELIVERED`
+          }, async (payload: any) => {
+            const freight = payload.new;
             
-            const { data: existingRating } = await supabase
-              .from('freight_ratings')
-              .select('id')
-              .eq('freight_id', freight.id)
-              .eq('rater_id', profile.id)
-              .maybeSingle();
-            
-            if (!existingRating && freight.producer_id) {
-              const { data: producerProfile } = await supabase
-                .from('profiles')
-                .select('full_name')
-                .eq('id', freight.producer_id)
-                .single();
+            if (freight.producer_id === profile.id) {
+              console.log('[RatingContext] 🔔 DELIVERED detectado para produtor:', freight.id);
+              await new Promise(resolve => setTimeout(resolve, 1000));
               
-              openFreightRating(freight.id, freight.producer_id, producerProfile?.full_name);
+              const { data: existingRating } = await supabase
+                .from('freight_ratings')
+                .select('id')
+                .eq('freight_id', freight.id)
+                .eq('rater_id', profile.id)
+                .maybeSingle();
+              
+              if (!existingRating && freight.driver_id) {
+                const { data: driverProfile } = await supabase
+                  .from('profiles')
+                  .select('full_name')
+                  .eq('id', freight.driver_id)
+                  .single();
+                
+                openFreightRating(freight.id, freight.driver_id, driverProfile?.full_name);
+              }
             }
-          }
-        });
+          });
 
-        return channel;
-      },
-      {
-        maxRetries: 5,
-        retryDelayMs: 3000,
-        onStatusChange: (status) => {
-          const now = Date.now();
-          
-          // Apenas logar erros, não status normais
-          if (status === 'CLOSED' || status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
+          // DELIVERED_PENDING_CONFIRMATION: motorista avalia produtor
+          channel.on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'freights',
+            filter: `status=eq.DELIVERED_PENDING_CONFIRMATION`
+          }, async (payload: any) => {
+            const freight = payload.new;
+            
+            if (freight.driver_id === profile.id) {
+              console.log('[RatingContext] 🔔 DELIVERED_PENDING_CONFIRMATION detectado para motorista:', freight.id);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              const { data: existingRating } = await supabase
+                .from('freight_ratings')
+                .select('id')
+                .eq('freight_id', freight.id)
+                .eq('rater_id', profile.id)
+                .maybeSingle();
+              
+              if (!existingRating && freight.producer_id) {
+                const { data: producerProfile } = await supabase
+                  .from('profiles')
+                  .select('full_name')
+                  .eq('id', freight.producer_id)
+                  .single();
+                
+                openFreightRating(freight.id, freight.producer_id, producerProfile?.full_name);
+              }
+            }
+          });
+
+          return channel;
+        },
+        {
+          maxRetries: 5,
+          retryDelayMs: 3000,
+          onStatusChange: (status) => {
+            const now = Date.now();
+            
+            // Apenas logar erros, não status normais
+            if (status === 'CLOSED' || status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
+              if (now - lastLogTimeRef.current > 60000) {
+                console.warn(`[RatingContext] ⚠️ Status: ${status}`);
+                lastLogTimeRef.current = now;
+              }
+              
+              realtimeConnectedRef.current = false;
+              realtimeFailCountRef.current++;
+              
+              if (realtimeFailCountRef.current >= 3) {
+                console.warn('[RatingContext] 🔴 Realtime falhou 3x, desabilitando');
+              }
+            }
+          },
+          onReady: (channel) => {
+            const now = Date.now();
             if (now - lastLogTimeRef.current > 60000) {
-              console.warn(`[RatingContext] ⚠️ Status: ${status}`);
+              console.log('[RatingContext] ✅ Realtime conectado');
               lastLogTimeRef.current = now;
             }
+            realtimeConnectedRef.current = true;
+            realtimeFailCountRef.current = 0; // Reset contador
             
-            realtimeConnectedRef.current = false;
-            realtimeFailCountRef.current++;
-            
-            if (realtimeFailCountRef.current >= 3) {
-              console.warn('[RatingContext] 🔴 Realtime falhou 3x, desabilitando');
+            // Limpar polling se estava ativo
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
             }
+          },
+          onError: (error) => {
+            const now = Date.now();
+            if (now - lastLogTimeRef.current > 60000) {
+              console.error('[RatingContext] ❌ Erro no Realtime, ativando polling');
+              lastLogTimeRef.current = now;
+            }
+            realtimeConnectedRef.current = false;
+            
+            // Ativar polling de fallback (intervalo maior)
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+            }
+            pollingIntervalRef.current = setInterval(pollForPendingRatings, 60000); // A cada 60s
           }
-        },
-        onReady: (channel) => {
-          const now = Date.now();
-          if (now - lastLogTimeRef.current > 60000) {
-            console.log('[RatingContext] ✅ Realtime conectado');
-            lastLogTimeRef.current = now;
-          }
-          realtimeConnectedRef.current = true;
-          realtimeFailCountRef.current = 0; // Reset contador
-          
-          // Limpar polling se estava ativo
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-          }
-        },
-        onError: (error) => {
-          const now = Date.now();
-          if (now - lastLogTimeRef.current > 60000) {
-            console.error('[RatingContext] ❌ Erro no Realtime, ativando polling');
-            lastLogTimeRef.current = now;
-          }
-          realtimeConnectedRef.current = false;
-          
-          // Ativar polling de fallback (intervalo maior)
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-          }
-          pollingIntervalRef.current = setInterval(pollForPendingRatings, 60000); // A cada 60s
         }
-      }
-    );
+      );
+    }, 2000); // Aguardar 2 segundos para estabilizar autenticação
 
     return () => {
-      supabase.removeChannel(serviceChannel);
-      freightRetryConfig.cleanup();
+      clearTimeout(delayTimer);
+      if (serviceChannel) {
+        supabase.removeChannel(serviceChannel);
+      }
+      if (freightRetryConfig) {
+        freightRetryConfig.cleanup();
+      }
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
