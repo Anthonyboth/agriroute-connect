@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { queryWithTimeout } from '@/lib/query-utils';
 import { clearSupabaseAuthStorage } from '@/utils/authRecovery';
 import { toast } from 'sonner';
+import { getCachedProfile, setCachedProfile } from '@/lib/profile-cache';
 
 export interface UserProfile {
   id: string;
@@ -74,12 +75,26 @@ export const useAuth = () => {
   const lastFetchTimestamp = useRef<number>(0);
   const lastTimeoutAt = useRef<number>(0);
   const didInitialFetchRef = useRef(false);
+  const lastErrorLogAt = useRef<number>(0); // ✅ Throttling de logs
   const FETCH_THROTTLE_MS = 2000;
   const TIMEOUT_COOLDOWN_MS = 60000; // 60s cooldown após timeout
+  const ERROR_LOG_THROTTLE_MS = 60000; // 60s entre logs detalhados
   const hasFixedActiveModeRef = useRef(false); // ✅ Flag para evitar loop infinito
 
   // Memoized fetch function to prevent recreation on every render
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
+    // ✅ 1. GATE: Verificar cooldown persistente no sessionStorage PRIMEIRO
+    const COOLDOWN_KEY = 'profile_fetch_cooldown_until';
+    const cooldownUntil = parseInt(sessionStorage.getItem(COOLDOWN_KEY) || '0', 10);
+    
+    if (!force && cooldownUntil > Date.now()) {
+      if (import.meta.env.DEV) {
+        const remainingSec = Math.ceil((cooldownUntil - Date.now()) / 1000);
+        console.log(`[useAuth] ⏸️ Cooldown ativo por mais ${remainingSec}s`);
+      }
+      return;
+    }
+    
     if (fetchingRef.current || !mountedRef.current) return;
     
     // ✅ Bail-out: não chamar se estiver na rota /auth sem sessão
@@ -93,14 +108,6 @@ export const useAuth = () => {
     // Throttle: prevent too frequent calls
     const now = Date.now();
     
-    // ✅ Cooldown após timeout: aguardar 60s antes de nova tentativa
-    if (lastTimeoutAt.current > 0 && now - lastTimeoutAt.current < TIMEOUT_COOLDOWN_MS) {
-      if (import.meta.env.DEV) {
-        console.log('[useAuth] Cooldown ativo após timeout. Aguarde...');
-      }
-      return;
-    }
-    
     if (!force && now - lastFetchTimestamp.current < FETCH_THROTTLE_MS) {
       if (import.meta.env.DEV) {
         console.log('[useAuth] Fetch throttled');
@@ -112,22 +119,52 @@ export const useAuth = () => {
     fetchingRef.current = true;
     
     try {
+      // ✅ Tentar carregar do cache primeiro (se não for forçado)
+      if (!force) {
+        const cachedProfile = getCachedProfile(userId);
+        if (cachedProfile) {
+          setProfiles([cachedProfile]);
+          setProfile(cachedProfile);
+          setLoading(false);
+          fetchingRef.current = false;
+          return;
+        }
+      }
+      
       // SECURITY: Removed sensitive logging - user data should not be logged to console
       
+      // ✅ Query otimizada: apenas campos necessários
       const profilesData = await queryWithTimeout(
         async () => {
           const { data, error } = await supabase
             .from('profiles')
-            .select('*')
+            .select(`
+              id, user_id, full_name, phone, document, email,
+              role, status, active_mode, service_types,
+              base_city_name, base_state, base_city_id,
+              created_at, updated_at, cpf_cnpj, rntrc,
+              antt_number, cooperative, rating,
+              cnh_expiry_date, cnh_category,
+              document_validation_status, cnh_validation_status,
+              rntrc_validation_status, validation_notes,
+              emergency_contact_name, emergency_contact_phone,
+              background_check_status, rating_locked,
+              last_gps_update, current_location_lat, current_location_lng,
+              base_lat, base_lng, current_city_name, current_state,
+              selfie_url, document_photo_url, cnh_photo_url,
+              truck_documents_url, truck_photo_url,
+              license_plate_photo_url, address_proof_url,
+              contact_phone, location_enabled, farm_name, farm_address
+            `)
             .eq('user_id', userId);
           
           if (error) throw error;
           return data;
         },
         { 
-          timeoutMs: 20000, 
+          timeoutMs: 8000,  // ✅ Reduzido de 20s para 8s
           operationName: 'fetchProfile',
-          retries: 1
+          retries: 0  // ✅ Sem retry - cooldown gerencia isso
         }
       );
       
@@ -136,18 +173,43 @@ export const useAuth = () => {
       if (profilesData && profilesData.length > 0) {
         // SECURITY: Removed sensitive logging
         
-        // Buscar roles de user_roles para cada perfil
+        // ✅ Buscar roles protegido com timeout e fallback
         const profilesWithRoles = await Promise.all(
           profilesData.map(async (p: any) => {
-            const { data: rolesData } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', p.user_id);
-            
-            return {
-              ...p,
-              roles: rolesData?.map(r => r.role) || []
-            };
+            try {
+              const rolesData = await queryWithTimeout(
+                async () => {
+                  const { data, error } = await supabase
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', p.user_id);
+                  
+                  if (error) throw error;
+                  return data;
+                },
+                {
+                  timeoutMs: 5000,  // ✅ 5 segundos
+                  operationName: 'fetchUserRoles',
+                  retries: 0
+                }
+              );
+              
+              return {
+                ...p,
+                roles: rolesData?.map(r => r.role) || []
+              };
+            } catch (error) {
+              // ✅ Se falhar, continua com roles vazio (fallback silencioso)
+              const now = Date.now();
+              if (now - lastErrorLogAt.current > ERROR_LOG_THROTTLE_MS) {
+                console.warn(`[useAuth] Erro ao buscar roles para ${p.user_id}:`, error);
+                lastErrorLogAt.current = now;
+              }
+              return {
+                ...p,
+                roles: []
+              };
+            }
           })
         );
         
@@ -165,6 +227,10 @@ export const useAuth = () => {
         }
         
         setProfile(activeProfile as UserProfile);
+        
+        // ✅ Salvar no cache após sucesso
+        setCachedProfile(userId, activeProfile);
+        
         // SECURITY: Removed sensitive profile data logging
       } else {
         setProfile(null);
@@ -174,17 +240,32 @@ export const useAuth = () => {
         await tryAutoCreateProfile(userId);
       }
     } catch (error) {
-      console.error('[useAuth] Erro ao buscar perfil:', error);
+      // ✅ Throttling de logs: apenas log completo 1x por minuto
+      const now = Date.now();
+      if (now - lastErrorLogAt.current > ERROR_LOG_THROTTLE_MS) {
+        console.error('[useAuth] Erro ao buscar perfil (completo):', error);
+        lastErrorLogAt.current = now;
+      } else {
+        if (import.meta.env.DEV) {
+          console.warn('[useAuth] Erro ao buscar perfil (throttled)');
+        }
+      }
       
       if (!mountedRef.current) return;
       
-      // ✅ Detectar timeout e ativar cooldown
+      // ✅ Detectar timeout e ativar cooldown PERSISTENTE
       const errorMessage = String((error as any)?.message ?? '');
       const isTimeout = (error as any)?.isTimeout === true || errorMessage.includes('Timeout') || errorMessage.includes('excedeu') || errorMessage.includes('demorou');
       
       if (isTimeout) {
         lastTimeoutAt.current = Date.now();
-        console.warn('[useAuth] ⏱️ Timeout detectado. Cooldown de 60s ativado.');
+        
+        // ✅ Ativar cooldown de 60s no sessionStorage (persistente)
+        const COOLDOWN_KEY = 'profile_fetch_cooldown_until';
+        const cooldownUntil = Date.now() + 60000;  // 60 segundos
+        sessionStorage.setItem(COOLDOWN_KEY, String(cooldownUntil));
+        
+        console.warn('[useAuth] ⏱️ Timeout detectado. Cooldown de 60s ativado (persistente).');
       }
       
       // CRÍTICO: Detectar recursão infinita em RLS e parar o loop
