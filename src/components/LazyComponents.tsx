@@ -22,6 +22,32 @@ export const ProfilePhotoUpload = lazy(() => import('@/components/ProfilePhotoUp
 
 // Complex Components
 export const GoogleMap = lazy(() => import('@/components/GoogleMap'));
+export const SmartFreightMatcher = lazy(() => import('@/components/SmartFreightMatcher').then(m => ({ default: m.SmartFreightMatcher })));
+export const AdvancedFreightSearch = lazy(() => import('@/components/AdvancedFreightSearch').then(m => ({ default: m.AdvancedFreightSearch })));
+export const VehicleManager = lazy(() => import('@/components/VehicleManager').then(m => ({ default: m.VehicleManager })));
+export const DriverAvailabilityCalendar = lazy(() => import('@/components/DriverAvailabilityCalendar').then(m => ({ default: m.DriverAvailabilityCalendar })));
+export const ScheduledFreightsManager = lazy(() => import('@/components/ScheduledFreightsManager').then(m => ({ default: m.ScheduledFreightsManager })));
+export const ServiceTypeManager = lazy(() => import('@/components/ServiceTypeManager').then(m => ({ default: m.ServiceTypeManager })));
+export const MatchIntelligentDemo = lazy(() => import('@/components/MatchIntelligentDemo').then(m => ({ default: m.MatchIntelligentDemo })));
+export const UserCityManager = lazy(() => import('@/components/UserCityManager').then(m => ({ default: m.UserCityManager })));
+export const DriverAvailabilityAreasManager = lazy(() => import('@/components/DriverAvailabilityAreasManager').then(m => ({ default: m.DriverAvailabilityAreasManager })));
+export const DriverRegionManager = lazy(() => import('@/components/DriverRegionManager').then(m => ({ default: m.DriverRegionManager })));
+export const UnifiedLocationManager = lazy(() => import('@/components/UnifiedLocationManager'));
+export const DriverPayouts = lazy(() => import('@/components/DriverPayouts').then(m => ({ default: m.DriverPayouts })));
+export const UnifiedHistory = lazy(() => import('@/components/UnifiedHistory').then(m => ({ default: m.UnifiedHistory })));
+export const PendingRatingsPanel = lazy(() => import('@/components/PendingRatingsPanel').then(m => ({ default: m.PendingRatingsPanel })));
+export const DriverAutoLocationTracking = lazy(() => import('@/components/DriverAutoLocationTracking').then(m => ({ default: m.DriverAutoLocationTracking })));
+
+// Modals - Heavy Components
+export const FreightCheckinModal = lazy(() => import('@/components/FreightCheckinModal'));
+export const FreightWithdrawalModal = lazy(() => import('@/components/FreightWithdrawalModal'));
+export const TrackingConsentModal = lazy(() => import('@/components/TrackingConsentModal').then(m => ({ default: m.TrackingConsentModal })));
+export const FreightCheckinsViewer = lazy(() => import('@/components/FreightCheckinsViewer'));
+export const AutoRatingModal = lazy(() => import('@/components/AutoRatingModal').then(m => ({ default: m.AutoRatingModal })));
+export const SystemAnnouncementModal = lazy(() => import('@/components/SystemAnnouncementModal').then(m => ({ default: m.SystemAnnouncementModal })));
+
+// Chat Components
+export const UnifiedChatHub = lazy(() => import('@/components/UnifiedChatHub').then(m => ({ default: m.UnifiedChatHub })));
 
 // Utility component for loading states
 export const ComponentLoader = () => (

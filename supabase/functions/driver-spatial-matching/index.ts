@@ -152,6 +152,10 @@ serve(async (req) => {
         'TRANSPORTE_ANIMAIS', 'TRANSPORTE_MAQUINARIO'
       ];
       
+      // Paginação e limites para reduzir carga
+      const limit = 100; // Reduzido de 500 para 100
+      const offset = 0; // Pode ser expandido futuramente para paginação
+      
       const { data: freights, error: freErr } = await supabase
         .from('freights')
         .select('*')
@@ -159,7 +163,7 @@ serve(async (req) => {
         .is('driver_id', null)
         .in('service_type', freightServiceTypes)
         .order('created_at', { ascending: false })
-        .limit(500);
+        .range(offset, offset + limit - 1);
 
       if (freErr) {
         logStep("Error fetching freights", freErr);
