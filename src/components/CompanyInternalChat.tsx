@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FreightCard } from '@/components/FreightCard';
 import { DocumentRequestCard } from '@/components/DocumentRequestCard';
+import { CompanyFreightAcceptModal } from '@/components/CompanyFreightAcceptModal';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { MessageDateSeparator } from '@/components/chat/MessageDateSeparator';
@@ -363,37 +364,33 @@ export function CompanyInternalChat() {
     }
   };
 
-  const handleAcceptSharedFreight = async (freightId: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke(
-        'accept-freight-multiple',
-        {
-          body: { 
-            freight_id: freightId,
-            num_trucks: 1
-          }
-        }
-      );
+  // Estado para modal de aceite
+  const [acceptModalOpen, setAcceptModalOpen] = useState(false);
+  const [selectedSharedFreight, setSelectedSharedFreight] = useState<any>(null);
 
-      if (error) {
-        const errorMsg = (error as any)?.context?.response?.error 
-          || (error as any)?.message 
-          || 'Não foi possível aceitar o frete';
-        toast.error(errorMsg);
-        return;
-      }
-
-      toast.success('Frete aceito com sucesso!', {
-        description: 'O frete foi atribuído à transportadora.'
+  const handleAcceptSharedFreight = (freightId: string, driverId: string) => {
+    // Buscar dados completos do frete
+    const freightMessage = messages.find(m => 
+      m.message_type === 'SYSTEM' && m.message.includes(freightId)
+    );
+    
+    if (freightMessage) {
+      setSelectedSharedFreight({
+        freight_id: freightId,
+        driver_id: driverId,
+        message: freightMessage.message
       });
-
-      loadMessages();
-    } catch (error: any) {
-      const errorMessage = (error as any)?.context?.response?.error 
-        || error?.message 
-        || 'Erro ao aceitar frete';
-      toast.error(errorMessage);
+      setAcceptModalOpen(true);
     }
+  };
+
+  const handleAcceptSuccess = () => {
+    setAcceptModalOpen(false);
+    setSelectedSharedFreight(null);
+    toast.success('Frete aceito com sucesso!', {
+      description: 'O frete foi atribuído à transportadora.'
+    });
+    loadMessages();
   };
 
   const sendMessage = async (message: string, imageUrl?: string, fileData?: any) => {
@@ -624,7 +621,7 @@ export function CompanyInternalChat() {
                               canAcceptFreights={true}
                               onAction={async (action) => {
                                 if (action === 'accept') {
-                                  await handleAcceptSharedFreight(freightData.freight_id);
+                                  await handleAcceptSharedFreight(freightData.freight_id, freightData.shared_by);
                                 }
                                 loadMessages();
                               }}
@@ -700,6 +697,30 @@ export function CompanyInternalChat() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Aceite para Transportadora */}
+      {companyId && selectedSharedFreight && (
+        <CompanyFreightAcceptModal
+          isOpen={acceptModalOpen}
+          onClose={() => {
+            setAcceptModalOpen(false);
+            handleAcceptSuccess();
+          }}
+          freight={{
+            id: selectedSharedFreight.freight_id,
+            cargo_type: 'Frete',
+            weight: 0,
+            origin_address: '',
+            destination_address: '',
+            pickup_date: new Date().toISOString(),
+            price: 0
+          }}
+          driverId={selectedSharedFreight.driver_id}
+          driverName="Motorista"
+          companyOwnerId={profile?.id || ''}
+          companyId={companyId}
+        />
+      )}
     </div>
   );
 }

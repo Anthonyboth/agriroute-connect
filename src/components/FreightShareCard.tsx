@@ -14,9 +14,9 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { ServiceProposalModal } from './ServiceProposalModal';
-import { supabase } from '@/integrations/supabase/client';
+import { CompanyFreightAcceptModal } from './CompanyFreightAcceptModal';
+import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { toast } from 'sonner';
-import { showErrorToast } from '@/lib/error-handler';
 
 interface FreightShareCardProps {
   freightData: {
@@ -46,43 +46,15 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
-  const [accepting, setAccepting] = useState(false);
+  const [acceptModalOpen, setAcceptModalOpen] = useState(false);
+  const { company } = useTransportCompany();
 
-  const handleAcceptFreight = async () => {
-    setAccepting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke(
-        'accept-freight-multiple',
-        {
-          body: { 
-            freight_id: freightData.freight_id,
-            num_trucks: 1
-          }
-        }
-      );
-
-      if (error) {
-        // Extract user-friendly message from edge function response
-        const errorMsg = (error as any)?.context?.response?.error 
-          || (error as any)?.message 
-          || 'Não foi possível aceitar o frete';
-        toast.error(errorMsg);
-        return;
-      }
-
-      toast.success('Frete aceito com sucesso!', {
-        description: 'O frete foi atribuído à sua transportadora.'
-      });
-
-      onAccept?.();
-    } catch (error: any) {
-      const errorMessage = (error as any)?.context?.response?.error 
-        || error?.message 
-        || 'Erro ao aceitar frete';
-      toast.error(errorMessage);
-    } finally {
-      setAccepting(false);
-    }
+  const handleAcceptSuccess = () => {
+    setAcceptModalOpen(false);
+    toast.success('Frete aceito com sucesso!', {
+      description: 'O frete foi atribuído à sua transportadora.'
+    });
+    onAccept?.();
   };
 
   return (
@@ -200,11 +172,10 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
             variant="default"
             size="sm"
             className="flex-1 gradient-primary"
-            onClick={handleAcceptFreight}
-            disabled={accepting}
+            onClick={() => setAcceptModalOpen(true)}
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
-            {accepting ? 'Aceitando...' : 'Aceitar Frete'}
+            Aceitar Frete
           </Button>
         </div>
 
@@ -240,6 +211,30 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
           toast.success('Contraproposta enviada ao produtor!');
         }}
       />
+
+      {/* Modal de Aceite para Transportadora */}
+      {company && (
+        <CompanyFreightAcceptModal
+          isOpen={acceptModalOpen}
+          onClose={() => {
+            setAcceptModalOpen(false);
+            handleAcceptSuccess();
+          }}
+          freight={{
+            id: freightData.freight_id,
+            cargo_type: freightData.cargo_type,
+            weight: freightData.weight,
+            origin_address: freightData.origin,
+            destination_address: freightData.destination,
+            pickup_date: freightData.pickup_date,
+            price: freightData.price
+          }}
+          driverId={freightData.shared_by}
+          driverName="Motorista"
+          companyOwnerId={company.profile_id}
+          companyId={company.id}
+        />
+      )}
     </Card>
   );
 };

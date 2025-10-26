@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ServiceProposalModal } from './ServiceProposalModal';
 import { CompanyBulkFreightAcceptor } from './CompanyBulkFreightAcceptor';
 import { ShareFreightToCompany } from './ShareFreightToCompany';
+import { CompanyDriverSelectModal } from './CompanyDriverSelectModal';
 import { Separator } from '@/components/ui/separator';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { 
@@ -27,6 +28,7 @@ import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { toast } from 'sonner';
 
 interface FreightCardProps {
@@ -72,7 +74,9 @@ export const FreightCard: React.FC<FreightCardProps> = ({
 }) => {
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [bulkAcceptorOpen, setBulkAcceptorOpen] = useState(false);
+  const [driverSelectModalOpen, setDriverSelectModalOpen] = useState(false);
   const { profile } = useAuth();
+  const { company, drivers } = useTransportCompany();
   
   // Verificar se o frete está com vagas completas
   const isFullyBooked = (freight.required_trucks || 1) <= (freight.accepted_trucks || 0);
@@ -84,6 +88,16 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   const isTransportCompany = profile?.role === 'TRANSPORTADORA';
 
   const handleAcceptFreight = async (numTrucks = 1) => {
+    // ✅ Se é transportadora E não tem driverId pré-definido, abrir modal de seleção
+    if (isTransportCompany && !driverCompanyId) {
+      if (!drivers || drivers.length === 0) {
+        toast.error('Cadastre um motorista para aceitar fretes como transportadora');
+        return;
+      }
+      setDriverSelectModalOpen(true);
+      return;
+    }
+
     try {
       // Primeiro: verificar se o solicitante tem cadastro
       const { data: checkData, error: checkError } = await supabase.functions.invoke(
@@ -142,6 +156,77 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         || error?.error 
         || "Erro ao aceitar frete";
       toast.error(errorMessage);
+    }
+  };
+
+  // ✅ Handler para aceite via transportadora (com driver selecionado)
+  const handleCompanyAcceptWithDriver = async (selectedDriverId: string) => {
+    if (!company?.id) {
+      toast.error('Informações da empresa não encontradas');
+      return;
+    }
+
+    try {
+      // Buscar dados do frete para garantir valores corretos
+      const { data: freightData, error: freightError } = await supabase
+        .from('freights')
+        .select('*')
+        .eq('id', freight.id)
+        .single();
+
+      if (freightError || !freightData) {
+        toast.error('Erro ao buscar dados do frete');
+        return;
+      }
+
+      // Verificar se frete ainda está disponível
+      if (freightData.status !== 'OPEN') {
+        toast.error('Este frete não está mais disponível');
+        return;
+      }
+
+      // ✅ CRÍTICO: Criar assignment COM company_id E driver_id
+      const { error: assignmentError } = await supabase
+        .from('freight_assignments')
+        .upsert({
+          freight_id: freight.id,
+          driver_id: selectedDriverId,
+          company_id: company.id, // ✅ ESSENCIAL
+          status: 'ACCEPTED',
+          accepted_at: new Date().toISOString(),
+          agreed_price: freightData.price,
+          pricing_type: 'FIXED',
+          minimum_antt_price: freightData.minimum_antt_price || 0
+        }, {
+          onConflict: 'freight_id,driver_id'
+        });
+
+      if (assignmentError) throw assignmentError;
+
+      // Atualizar status do frete
+      const { error: updateError } = await supabase
+        .from('freights')
+        .update({
+          status: 'ACCEPTED',
+          driver_id: selectedDriverId,
+          company_id: company.id, // ✅ ESSENCIAL
+          accepted_trucks: (freightData.accepted_trucks || 0) + 1
+        })
+        .eq('id', freight.id);
+
+      if (updateError) throw updateError;
+
+      toast.success('✅ Frete aceito com sucesso!', {
+        description: 'O frete aparecerá na aba "Em Andamento"'
+      });
+
+      // ✅ Disparar evento para navegação
+      window.dispatchEvent(new CustomEvent('navigate-to-tab', { detail: 'active' }));
+      
+      onAction?.('accept');
+    } catch (error: any) {
+      console.error('Error accepting freight:', error);
+      toast.error(error?.message || 'Erro ao aceitar frete');
     }
   };
 
@@ -496,6 +581,24 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         onOpenChange={setBulkAcceptorOpen}
         freight={freight}
         onAccept={handleAcceptFreight}
+      />
+
+      {/* Driver Selection Modal for Transport Companies */}
+      <CompanyDriverSelectModal
+        isOpen={driverSelectModalOpen}
+        onClose={() => setDriverSelectModalOpen(false)}
+        drivers={(drivers || []).filter(d => d.status === 'ACTIVE' || d.status === 'APPROVED').map(d => ({
+          id: d.driver.id,
+          full_name: d.driver.full_name,
+          status: d.status
+        }))}
+        onSelectDriver={handleCompanyAcceptWithDriver}
+        freight={{
+          cargo_type: getCargoTypeLabel(freight.cargo_type),
+          origin_address: freight.origin_address,
+          destination_address: freight.destination_address,
+          price: freight.price
+        }}
       />
     </Card>
   );
