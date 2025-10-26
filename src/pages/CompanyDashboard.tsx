@@ -291,7 +291,10 @@ const CompanyDashboard = () => {
       console.log(`🔍 [CompanyDashboard/Active] Buscando fretes ativos para company: ${company.id}`);
       console.log(`👤 [CompanyDashboard/Active] Profile ID: ${profile.id}`);
 
-      // Buscar assignments ativos da empresa
+      // Obter IDs dos motoristas afiliados
+      const affiliatedDriverIds = drivers?.map(d => d.driver.id) || [];
+
+      // Buscar assignments ativos: por company_id OU por driver afiliado
       const { data: assignments, error } = await supabase
         .from('freight_assignments')
         .select(`
@@ -301,7 +304,7 @@ const CompanyDashboard = () => {
           ),
           driver:profiles!freight_assignments_driver_id_fkey(id, full_name, contact_phone, rating)
         `)
-        .eq('company_id', company.id)
+        .or(`company_id.eq.${company.id},driver_id.in.(${affiliatedDriverIds.join(',')})`)
         .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
         .order('accepted_at', { ascending: false });
 
@@ -325,7 +328,7 @@ const CompanyDashboard = () => {
         });
       }
 
-      // Buscar também fretes diretos da empresa
+      // Buscar também fretes diretos: por company_id OU por driver afiliado
       const { data: directFreights } = await supabase
         .from('freights')
         .select(`
@@ -333,7 +336,7 @@ const CompanyDashboard = () => {
           producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone),
           driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, rating)
         `)
-        .eq('company_id', company.id)
+        .or(`company_id.eq.${company.id},driver_id.in.(${affiliatedDriverIds.join(',')})`)
         .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
         .order('created_at', { ascending: false });
 
@@ -357,6 +360,8 @@ const CompanyDashboard = () => {
   React.useEffect(() => {
     if (!company?.id) return;
 
+    const affiliatedDriverIds = drivers?.map(d => d.driver.id) || [];
+    
     const channel = supabase
       .channel('company-active-freights')
       .on(
@@ -381,10 +386,26 @@ const CompanyDashboard = () => {
       )
       .subscribe();
 
+    // Escutar também por driver afiliado (fallback caso company_id não esteja setado)
+    if (affiliatedDriverIds.length > 0) {
+      affiliatedDriverIds.forEach(driverId => {
+        channel.on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'freight_assignments',
+            filter: `driver_id=eq.${driverId}`
+          },
+          () => fetchActiveFreights()
+        );
+      });
+    }
+
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [company?.id, fetchActiveFreights]);
+  }, [company?.id, drivers, fetchActiveFreights]);
 
   // ✅ FASE 7: Listener para navegação via CustomEvent
   useEffect(() => {

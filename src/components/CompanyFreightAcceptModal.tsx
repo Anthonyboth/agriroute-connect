@@ -20,6 +20,7 @@ interface CompanyFreightAcceptModalProps {
   driverId: string;
   driverName: string;
   companyOwnerId: string;
+  companyId: string;
 }
 
 export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps> = ({
@@ -28,7 +29,8 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
   freight,
   driverId,
   driverName,
-  companyOwnerId
+  companyOwnerId,
+  companyId
 }) => {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'accept' | 'counter'>('accept');
@@ -41,7 +43,7 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
       // Verificar se o frete ainda está disponível
       const { data: currentFreight } = await supabase
         .from('freights')
-        .select('status')
+        .select('status, accepted_trucks')
         .eq('id', freight.id)
         .single();
 
@@ -51,7 +53,25 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
         return;
       }
 
-      // Criar proposta em nome do motorista
+      // 1. Criar/Atualizar freight_assignment
+      const { error: assignmentError } = await supabase
+        .from('freight_assignments')
+        .upsert({
+          freight_id: freight.id,
+          driver_id: driverId,
+          company_id: companyId,
+          status: 'ACCEPTED',
+          accepted_at: new Date().toISOString(),
+          agreed_price: freight.price,
+          pricing_type: 'FIXED',
+          minimum_antt_price: freight.minimum_antt_price || null
+        }, {
+          onConflict: 'freight_id,driver_id'
+        });
+
+      if (assignmentError) throw assignmentError;
+
+      // 2. Criar proposta em nome do motorista
       const { error: proposalError } = await supabase
         .from('freight_proposals')
         .insert({
@@ -64,18 +84,20 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
 
       if (proposalError) throw proposalError;
 
-      // Atualizar frete
+      // 3. Atualizar frete com company_id e driver_id
       const { error: freightError } = await supabase
         .from('freights')
         .update({
           status: 'ACCEPTED',
-          driver_id: driverId
+          driver_id: driverId,
+          company_id: companyId,
+          accepted_trucks: (currentFreight.accepted_trucks || 0) + 1
         })
         .eq('id', freight.id);
 
       if (freightError) throw freightError;
 
-      // Notificar motorista
+      // 4. Notificar motorista
       await supabase.from('notifications').insert({
         user_id: driverId,
         title: 'Frete Aceito!',
@@ -86,7 +108,13 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
         }
       });
 
-      toast.success('Frete aceito com sucesso!');
+      toast.success('✅ Frete em andamento! Visualize na aba "Em Andamento"', {
+        duration: 5000
+      });
+      
+      // 5. Disparar evento para trocar para aba "active"
+      window.dispatchEvent(new CustomEvent('navigate-to-tab', { detail: 'active' }));
+      
       onClose();
     } catch (error: any) {
       console.error('Erro ao aceitar frete:', error);

@@ -71,7 +71,10 @@ export const CompanyActiveFreights: React.FC = () => {
     if (!company?.id) return;
 
     try {
-      // Buscar assignments ativos dos motoristas da empresa
+      // Obter IDs dos motoristas afiliados
+      const affiliatedDriverIds = drivers?.map(d => d.driver.id) || [];
+      
+      // Buscar assignments ativos: por company_id OU por driver afiliado
       const { data: assignments, error } = await supabase
         .from('freight_assignments')
         .select(`
@@ -85,7 +88,7 @@ export const CompanyActiveFreights: React.FC = () => {
           ),
           vehicle:vehicles(license_plate, model)
         `)
-        .eq('company_id', company.id)
+        .or(`company_id.eq.${company.id},driver_id.in.(${affiliatedDriverIds.join(',')})`)
         .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
         .order('accepted_at', { ascending: false });
 

@@ -13,6 +13,7 @@ import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { useLocationPermission } from '@/hooks/useLocationPermission';
 import { queryWithTimeout, subscriptionWithErrorHandler } from '@/lib/query-utils';
 import { CompanyFreightAcceptModal } from './CompanyFreightAcceptModal';
+import { useTransportCompany } from '@/hooks/useTransportCompany';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,6 +73,7 @@ export const FreightChat: React.FC<FreightChatProps> = ({
   } = useUnreadMessages(currentUserProfile?.id);
   
   const { requestLocation, coords } = useLocationPermission(false);
+  const { company } = useTransportCompany();
   
   const unreadCount = unreadFreightMessages[freightId] || 0;
   const isProducer = freightInfo?.producer_id === currentUserProfile?.id;
@@ -671,6 +673,21 @@ export const FreightChat: React.FC<FreightChatProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {showAcceptModal && selectedSharedFreight && company && (
+        <CompanyFreightAcceptModal
+          isOpen={showAcceptModal}
+          onClose={() => {
+            setShowAcceptModal(false);
+            setSelectedSharedFreight(null);
+          }}
+          freight={selectedSharedFreight.freight}
+          driverId={selectedSharedFreight.driverId}
+          driverName={selectedSharedFreight.driverName}
+          companyOwnerId={currentUserProfile?.id || ''}
+          companyId={company.id}
+        />
+      )}
     </>
   );
 };
