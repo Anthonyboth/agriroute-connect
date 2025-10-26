@@ -54,9 +54,25 @@ export function CompanyInternalChat() {
     if (selectedDriver && companyId) {
       loadMessages();
       
-      // Subscribe to new messages
+      let pollingInterval: NodeJS.Timeout | null = null;
+
+      // Subscribe to new messages from both tables
       const channel = supabase
-        .channel('company_internal_messages')
+        .channel(`company-chat-${companyId}-${selectedDriver.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'company_driver_chats',
+            filter: `company_id=eq.${companyId}`
+          },
+          (payload) => {
+            if ((payload.new as any).driver_profile_id === selectedDriver.id) {
+              loadMessages();
+            }
+          }
+        )
         .on(
           'postgres_changes',
           {
@@ -66,13 +82,35 @@ export function CompanyInternalChat() {
             filter: `company_id=eq.${companyId}`
           },
           (payload) => {
-            loadMessages();
+            if ((payload.new as any).sender_id === selectedDriver.id && (payload.new as any).message_type === 'SYSTEM') {
+              loadMessages();
+            }
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('📡 Realtime status:', status);
+          
+          // Ativar polling se o canal falhar
+          if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+            if (!pollingInterval) {
+              pollingInterval = setInterval(() => {
+                console.log('🔄 Polling fallback ativo');
+                loadMessages();
+              }, 10000);
+            }
+          } else if (status === 'SUBSCRIBED') {
+            if (pollingInterval) {
+              clearInterval(pollingInterval);
+              pollingInterval = null;
+            }
+          }
+        });
 
       return () => {
         supabase.removeChannel(channel);
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+        }
       };
     }
   }, [selectedDriver, companyId]);
@@ -89,7 +127,7 @@ export function CompanyInternalChat() {
       if (companyData) {
         setCompanyId(companyData.id);
 
-        // Get drivers
+        // Get drivers (ACTIVE e APPROVED)
         const { data: driversData } = await supabase
           .from('company_drivers')
           .select(`
@@ -101,7 +139,8 @@ export function CompanyInternalChat() {
             )
           `)
           .eq('company_id', companyData.id)
-          .eq('status', 'ACTIVE');
+          .in('status', ['ACTIVE', 'APPROVED'])
+          .order('status', { ascending: false });
 
         if (driversData) {
           const formattedDrivers = driversData.map((d: any) => ({
@@ -121,23 +160,58 @@ export function CompanyInternalChat() {
     if (!companyId || !selectedDriver) return;
 
     try {
-      const { data } = await supabase
-        .from('company_internal_messages')
-        .select(`
-          *,
-          sender:sender_id (
-            full_name
-          )
-        `)
+      setLoading(true);
+      
+      // 1. Buscar mensagens de texto do chat driver-empresa
+      const { data: chatMessages } = await supabase
+        .from('company_driver_chats')
+        .select('*')
         .eq('company_id', companyId)
-        .or(`sender_id.eq.${selectedDriver.id},sender_id.eq.${profile?.id}`)
+        .eq('driver_profile_id', selectedDriver.id)
         .order('created_at', { ascending: true });
 
-      if (data) {
-        setMessages(data);
+      // 2. Buscar mensagens FREIGHT_SHARE enviadas pelo motorista
+      const { data: freightShares } = await supabase
+        .from('company_internal_messages')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('sender_id', selectedDriver.id)
+        .eq('message_type', 'SYSTEM')
+        .order('created_at', { ascending: true });
+
+      // 3. Mesclar e ordenar por created_at
+      const chatMapped = (chatMessages || []).map(msg => ({
+        ...msg,
+        message_type: 'TEXT' as const,
+        sender_type: msg.sender_type
+      }));
+
+      const freightMapped = (freightShares || []).map(msg => ({
+        ...msg,
+        message_type: 'SYSTEM' as const,
+        sender_type: 'DRIVER' as const
+      }));
+
+      const allMessages = [...chatMapped, ...freightMapped].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+
+      setMessages(allMessages as any);
+
+      // 4. Marcar mensagens do driver como lidas
+      if (chatMessages && chatMessages.length > 0) {
+        await supabase
+          .from('company_driver_chats')
+          .update({ is_read: true })
+          .eq('company_id', companyId)
+          .eq('driver_profile_id', selectedDriver.id)
+          .eq('sender_type', 'DRIVER')
+          .eq('is_read', false);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -180,12 +254,13 @@ export function CompanyInternalChat() {
     setLoading(true);
     try {
       const { error } = await supabase
-        .from('company_internal_messages')
+        .from('company_driver_chats')
         .insert({
           company_id: companyId,
-          sender_id: profile?.id,
+          driver_profile_id: selectedDriver.id,
           message: newMessage,
-          message_type: 'TEXT'
+          sender_type: 'COMPANY',
+          is_read: false
         });
 
       if (error) throw error;
@@ -332,20 +407,25 @@ export function CompanyInternalChat() {
                       );
                     }
 
-                    // Mensagem normal
-                    const isOwn = message.sender_id === profile?.id;
+                    // Mensagem normal (company_driver_chats)
+                    const isFromCompany = (message as any).sender_type === 'COMPANY';
                     return (
                       <div
                         key={message.id}
-                        className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${isFromCompany ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
                           className={`max-w-[70%] rounded-lg p-3 ${
-                            isOwn
+                            isFromCompany
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-muted'
                           }`}
                         >
+                          {!isFromCompany && (
+                            <p className="text-xs font-semibold mb-1">
+                              {selectedDriver?.full_name || 'Motorista'}
+                            </p>
+                          )}
                           <p className="text-sm">{message.message}</p>
                           <p className="text-xs opacity-70 mt-1">
                             {format(new Date(message.created_at), 'HH:mm', { locale: ptBR })}
