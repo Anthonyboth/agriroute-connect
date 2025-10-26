@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import { showErrorToast } from '@/lib/error-handler';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
 import { normalizeServiceType, getAllowedServiceTypesFromProfile, type CanonicalServiceType } from '@/lib/service-type-normalization';
 import { subscriptionWithRetry } from '@/lib/query-utils';
+import { debounce } from '@/lib/utils';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -59,6 +60,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCargoType, setSelectedCargoType] = useState<string>('all');
   const [hasActiveCities, setHasActiveCities] = useState<boolean | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Guard isMounted para todos os effects
   const isMountedRef = React.useRef(true);
@@ -69,83 +73,49 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     };
   }, []);
 
-  useEffect(() => {
-    if (profile?.id && isMountedRef.current) {
-      fetchCompatibleFreights();
-    }
-  }, [profile]);
-
-  useEffect(() => {
-    // Recarregar quando os tipos de serviço mudarem (sem limpar arrays antes)
-    if (!profile?.id || !isMountedRef.current) return;
-    setLoading(true);
-    fetchCompatibleFreights().finally(() => {
-      if (isMountedRef.current) setLoading(false);
-    });
-  }, [JSON.stringify(profile?.service_types)]);
-
-  // Realtime: Ouvir mudanças em user_cities e recarregar fretes automaticamente (com retry e fallback)
-  useEffect(() => {
-    let isMountedLocal = true;
-    let pollInterval: NodeJS.Timeout | null = null;
-    
-    if (!profile?.id || !user?.id || !isMountedRef.current) return;
-
-    const { cleanup } = subscriptionWithRetry(
-      'user-cities-changes',
-      (ch) => ch.on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_cities',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          if (!isMountedLocal || !isMountedRef.current) return;
-          console.log('[SmartFreightMatcher] user_cities mudou:', payload);
-          toast.info('Suas cidades de atendimento foram atualizadas. Recarregando fretes...');
-          fetchCompatibleFreights();
-        }
-      ),
-      {
-        maxRetries: 5,
-        retryDelayMs: 3000,
-        onError: (error) => {
-          console.error('[SmartFreightMatcher] Realtime error:', error);
-          // Fallback: polling manual se realtime falhar
-          if (!pollInterval) {
-            pollInterval = setInterval(() => {
-              if (isMountedLocal && isMountedRef.current) {
-                console.log('[SmartFreightMatcher] Polling fallback ativo');
-                fetchCompatibleFreights();
-              }
-            }, 30000); // Poll a cada 30 segundos
-          }
-        }
-      }
-    );
-
-    return () => {
-      isMountedLocal = false;
-      cleanup();
-      if (pollInterval) {
-        clearInterval(pollInterval);
-        pollInterval = null;
-      }
-    };
-  }, [profile?.id, user?.id]);
-
+  // ❌ REMOVIDO: fetch automático no mount - deixar apenas Realtime triggar
+  // useEffect(() => {
+  //   if (profile?.id && isMountedRef.current) {
+  //     fetchCompatibleFreights();
+  //   }
+  // }, [profile]);
+  
   // ✅ Usar normalização consistente via utilitário
   const allowedTypesFromProfile = React.useMemo(() => {
     return getAllowedServiceTypesFromProfile(profile);
   }, [profile?.role, profile?.service_types]);
   
-  const fetchCompatibleFreights = async () => {
+  // ✅ Debounced setState para evitar race conditions
+  const debouncedSetCompatibleFreights = useMemo(
+    () => debounce((freights: CompatibleFreight[], source: string) => {
+      if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+        console.log(`[SmartFreightMatcher] 🔄 setState de ${source} → ${freights.length} fretes`);
+        startTransition(() => {
+          setCompatibleFreights(freights);
+        });
+      }
+    }, 300),
+    []
+  );
+  
+  const fetchCompatibleFreights = useCallback(async () => {
     if (!profile?.id) return;
-
+    
+    // ✅ Bloquear atualizações concorrentes
+    if (isUpdating) {
+      console.log('[SmartFreightMatcher] ⚠️ Update já em progresso, aguardando...');
+      return;
+    }
+    
+    setIsUpdating(true);
     const isCompany = profile.role === 'TRANSPORTADORA';
     setLoading(true);
+    
+    // ✅ Cancelar fetch anterior se existir
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
     
     try {
       console.log(`🔍 Buscando fretes para ${isCompany ? 'TRANSPORTADORA' : 'MOTORISTA'}:`, profile.id);
@@ -203,13 +173,16 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             : mapped.filter(f => allowedTypesFromProfile.includes(f.service_type));
 
           console.log(`✅ ${filtered.length} fretes após filtro de tipo`);
-          if (isMountedRef.current) {
-            setCompatibleFreights(filtered);
+          if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+            startTransition(() => {
+              setCompatibleFreights(filtered);
+            });
             
             const highUrgency = filtered.filter(f => f.urgency === 'HIGH').length;
             onCountsChange?.({ total: filtered.length, highUrgency });
             
             setLoading(false);
+            setIsUpdating(false);
           }
           return;
         }
@@ -301,9 +274,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         });
         console.log(`📊 [SmartFreightMatcher] Fretes por cidade (origem/destino):`, cityCounts);
         
-        // Emitir contagem imediatamente
-        if (isMountedRef.current) {
-          setCompatibleFreights(spatialFreights);
+        // Emitir contagem imediatamente (com transition)
+        if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+          console.log('[SmartFreightMatcher] 🔄 setState de spatial → ' + spatialFreights.length + ' fretes');
+          startTransition(() => {
+            setCompatibleFreights(spatialFreights);
+          });
           const highUrgency = spatialFreights.filter(f => f.urgency === 'HIGH').length;
           onCountsChange?.({ total: spatialFreights.length, highUrgency });
         }
@@ -422,8 +398,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             });
             const final = Array.from(uniqueMap.values());
             
-            if (isMountedRef.current) {
-              setCompatibleFreights(final);
+            if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+              console.log('[SmartFreightMatcher] 🔄 setState de fallback → ' + final.length + ' fretes');
+              startTransition(() => {
+                setCompatibleFreights(final);
+              });
               
               // Emit count
               const highUrgency = final.filter(f => f.urgency === 'HIGH').length;
@@ -435,8 +414,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           } catch (fbError: any) {
             console.error('Fallback por cidades falhou:', fbError);
             // Manter fretes do spatial mesmo com erro no fallback
-            if (isMountedRef.current) {
-              setCompatibleFreights(spatialFreights);
+            if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+              startTransition(() => {
+                setCompatibleFreights(spatialFreights);
+              });
             }
           }
         }
@@ -602,7 +583,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         final: finalFreights.length
       });
       
-      setCompatibleFreights(finalFreights);
+      if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+        console.log('[SmartFreightMatcher] 🔄 setState de RPC+spatial → ' + finalFreights.length + ' fretes');
+        startTransition(() => {
+          setCompatibleFreights(finalFreights);
+        });
+      }
       
       // Emit count immediately after setting freights
       const highUrgency = finalFreights.filter((f: any) => f.urgency === 'HIGH').length;
@@ -647,9 +633,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       console.error('Erro ao buscar fretes compatíveis:', error);
       toast.error('Erro ao carregar fretes. Tente novamente.');
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+        setIsUpdating(false);
+      }
     }
-  };
+  }, [profile, allowedTypesFromProfile, user, onCountsChange]);
 
   const handleFreightAction = async (freightId: string, action: string) => {
     if (onFreightAction) {
@@ -715,25 +704,99 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     }
   };
 
-  // Filtrar fretes
-  const filteredFreights = compatibleFreights.filter(freight => {
-    const matchesSearch = !searchTerm || 
-      freight.cargo_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      freight.origin_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      freight.destination_address.toLowerCase().includes(searchTerm.toLowerCase());
+  // ✅ useEffect para recarregar quando tipos de serviço mudarem
+  useEffect(() => {
+    if (!profile?.id || !isMountedRef.current) return;
+    setLoading(true);
+    fetchCompatibleFreights().finally(() => {
+      if (isMountedRef.current) setLoading(false);
+    });
+  }, [JSON.stringify(profile?.service_types), fetchCompatibleFreights]);
+  
+  // ✅ Realtime subscription com debounce
+  useEffect(() => {
+    let isMountedLocal = true;
+    let pollInterval: NodeJS.Timeout | null = null;
+    
+    if (!profile?.id || !user?.id || !isMountedRef.current) return;
 
-    const matchesCargoType = selectedCargoType === 'all' || freight.cargo_type === selectedCargoType;
+    // Debounced fetch específico para este effect
+    const debouncedFetch = debounce(() => {
+      if (isMountedLocal && isMountedRef.current && !isUpdating) {
+        console.log('[SmartFreightMatcher] 🔄 Debounced fetch trigado');
+        fetchCompatibleFreights();
+      }
+    }, 500);
 
-    return matchesSearch && matchesCargoType;
-  });
+    const { cleanup } = subscriptionWithRetry(
+      'user-cities-changes',
+      (ch) => ch.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_cities',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          if (!isMountedLocal || !isMountedRef.current) return;
+          console.log('[SmartFreightMatcher] user_cities mudou:', payload);
+          toast.info('Suas cidades de atendimento foram atualizadas. Recarregando fretes...');
+          debouncedFetch();
+        }
+      ),
+      {
+        maxRetries: 5,
+        retryDelayMs: 3000,
+        onError: (error) => {
+          console.error('[SmartFreightMatcher] Realtime error:', error);
+          // Fallback: polling manual se realtime falhar
+          if (!pollInterval) {
+            pollInterval = setInterval(() => {
+              if (isMountedLocal && isMountedRef.current) {
+                console.log('[SmartFreightMatcher] Polling fallback ativo');
+                fetchCompatibleFreights();
+              }
+            }, 30000); // Poll a cada 30 segundos
+          }
+        }
+      }
+    );
 
-  // Filtrar chamados de serviço (GUINCHO/MUDANCA)
-  const filteredRequests = towingRequests.filter((r: any) => {
-    const matchesSearch = !searchTerm ||
-      (r.location_address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (r.problem_description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+    return () => {
+      isMountedLocal = false;
+      cleanup();
+      debouncedFetch.cancel();
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    };
+  }, [profile?.id, user?.id, fetchCompatibleFreights, isUpdating]);
+
+  // ✅ Memoizar lista filtrada para evitar re-renders desnecessários
+  const filteredFreights = useMemo(() => {
+    return compatibleFreights.filter(freight => {
+      const matchesSearch = !searchTerm || 
+        freight.cargo_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        freight.origin_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        freight.destination_address.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesCargoType = selectedCargoType === 'all' || freight.cargo_type === selectedCargoType;
+
+      return matchesSearch && matchesCargoType;
+    });
+  }, [compatibleFreights, searchTerm, selectedCargoType]);
+
+  // ✅ Memoizar chamados filtrados
+  const filteredRequests = useMemo(() => {
+    return towingRequests.filter((r: any) => {
+      const matchesSearch = !searchTerm ||
+        (r.location_address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (r.problem_description || '').toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch;
+    });
+  }, [towingRequests, searchTerm]);
 
   // Notificar contagens ao pai (DriverDashboard)
   useEffect(() => {

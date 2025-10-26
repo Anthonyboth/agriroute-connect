@@ -34,11 +34,11 @@ export class SafeListWrapper extends React.Component<SafeListWrapperProps, SafeL
   }
 
   componentDidUpdate() {
-    // Auto-recuperar após 100ms
+    // Auto-recuperar após 200ms (aumentado para dar mais tempo ao React)
     if (this.state.hasError) {
       setTimeout(() => {
         this.setState({ hasError: false });
-      }, 100);
+      }, 200);
     }
   }
 
