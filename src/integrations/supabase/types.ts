@@ -931,6 +931,57 @@ export type Database = {
           },
         ]
       }
+      document_request_messages: {
+        Row: {
+          created_at: string
+          document_request_id: string
+          id: string
+          image_url: string | null
+          message: string
+          message_type: string
+          metadata: Json | null
+          read_at: string | null
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_request_id: string
+          id?: string
+          image_url?: string | null
+          message: string
+          message_type?: string
+          metadata?: Json | null
+          read_at?: string | null
+          sender_id: string
+        }
+        Update: {
+          created_at?: string
+          document_request_id?: string
+          id?: string
+          image_url?: string | null
+          message?: string
+          message_type?: string
+          metadata?: Json | null
+          read_at?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_request_messages_document_request_id_fkey"
+            columns: ["document_request_id"]
+            isOneToOne: false
+            referencedRelation: "document_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_request_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_requests: {
         Row: {
           company_id: string

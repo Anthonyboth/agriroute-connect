@@ -84,6 +84,31 @@ export const useDocumentRequest = (companyId?: string, driverProfileId?: string)
 
         if (error) throw error;
         console.log('✅ Solicitação criada:', data);
+
+        // Criar mensagem inicial no chat
+        if (data) {
+          const { data: companyData } = await supabase
+            .from('transport_companies')
+            .select('company_name')
+            .eq('id', companyId!)
+            .single();
+
+          await supabase
+            .from('document_request_messages')
+            .insert({
+              document_request_id: data.id,
+              sender_id: profile.id,
+              message: JSON.stringify({
+                type: 'DOCUMENT_REQUEST',
+                requested_fields: fields,
+                notes: notes || null,
+                company_name: companyData?.company_name || 'Transportadora',
+                created_at: new Date().toISOString()
+              }),
+              message_type: 'DOCUMENT_REQUEST'
+            });
+        }
+
         return data;
       }
     },

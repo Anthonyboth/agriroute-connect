@@ -139,12 +139,86 @@ export const useUnreadMessages = (currentUserId?: string) => {
     };
   }, [currentUserId]);
 
+  const [unreadDocumentMessages, setUnreadDocumentMessages] = useState<UnreadCounts>({});
+
+  // Buscar mensagens não lidas de uma solicitação de documentos específica
+  const fetchUnreadDocumentMessages = async (documentRequestId: string) => {
+    if (!currentUserId) return 0;
+
+    try {
+      const { count, error } = await supabase
+        .from('document_request_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('document_request_id', documentRequestId)
+        .neq('sender_id', currentUserId)
+        .is('read_at', null);
+
+      if (error) throw error;
+      
+      setUnreadDocumentMessages(prev => ({ ...prev, [documentRequestId]: count || 0 }));
+      return count || 0;
+    } catch (error) {
+      console.error('Error fetching unread document messages:', error);
+      return 0;
+    }
+  };
+
+  // Marcar mensagens de solicitação de documentos como lidas
+  const markDocumentMessagesAsRead = async (documentRequestId: string) => {
+    if (!currentUserId) return;
+
+    try {
+      const { error } = await supabase
+        .from('document_request_messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('document_request_id', documentRequestId)
+        .neq('sender_id', currentUserId)
+        .is('read_at', null);
+
+      if (error) throw error;
+      
+      setUnreadDocumentMessages(prev => ({ ...prev, [documentRequestId]: 0 }));
+    } catch (error) {
+      console.error('Error marking document messages as read:', error);
+    }
+  };
+
+  // Subscription para atualizar contador em tempo real (documentos)
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const channel = supabase
+      .channel('unread-document-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'document_request_messages',
+        },
+        (payload) => {
+          const message = payload.new as any;
+          if (message && message.document_request_id && message.sender_id !== currentUserId) {
+            fetchUnreadDocumentMessages(message.document_request_id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserId]);
+
   return {
     unreadFreightMessages,
     unreadServiceMessages,
+    unreadDocumentMessages,
     fetchUnreadFreightMessages,
     fetchUnreadServiceMessages,
+    fetchUnreadDocumentMessages,
     markFreightMessagesAsRead,
     markServiceMessagesAsRead,
+    markDocumentMessagesAsRead,
   };
 };

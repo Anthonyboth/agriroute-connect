@@ -7,7 +7,7 @@ import {
 import { ChatConversation } from '@/hooks/useUnifiedChats';
 import { FreightChat } from './FreightChat';
 import { ServiceChat } from './ServiceChat';
-import { DocumentRequestModal } from './DocumentRequestModal';
+import { DocumentRequestChat } from './DocumentRequestChat';
 import { DriverChatTab } from './driver-details/DriverChatTab';
 import { FreightShareCard } from './FreightShareCard';
 import { useQuery } from '@tanstack/react-query';
@@ -113,10 +113,9 @@ export const ChatModal = ({
       case 'DOCUMENT_REQUEST':
         if (!documentRequest) return <div className="p-4">Carregando...</div>;
         return (
-          <DocumentRequestModal
-            request={documentRequest}
-            isOpen={true}
-            onClose={onClose}
+          <DocumentRequestChat
+            documentRequestId={conversation.metadata.documentRequestId}
+            currentUserProfile={{ id: userProfileId, role: userRole } as any}
           />
         );
 
@@ -138,10 +137,7 @@ export const ChatModal = ({
     }
   };
 
-  // Para DOCUMENT_REQUEST, não renderizar Dialog (DocumentRequestModal já é um Dialog)
-  if (conversation.type === 'DOCUMENT_REQUEST') {
-    return renderChatContent() as any;
-  }
+  // Document requests are now rendered as inline chat, no special handling needed
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
