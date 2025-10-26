@@ -323,57 +323,16 @@ serve(async (req) => {
         .single();
       company_id = company?.id;
 
-      // Buscar motoristas afiliados ativos
-      if (company_id) {
-        const { data: companyDrivers } = await supabase
-          .from("company_drivers")
-          .select("driver_profile_id")
-          .eq("company_id", company_id)
-          .eq("status", "ACTIVE")
-          .eq("can_accept_freights", true);
-
-        if (companyDrivers && companyDrivers.length > 0) {
-          const driverIds = companyDrivers.map(cd => cd.driver_profile_id);
-
-          // Filtrar motoristas que já têm assignments ativos neste frete
-          const { data: existingAssignments } = await supabase
-            .from("freight_assignments")
-            .select("driver_id")
-            .eq("freight_id", freight_id)
-            .in("driver_id", driverIds)
-            .in("status", ["ACCEPTED", "IN_TRANSIT", "LOADING", "LOADED"]);
-
-          const busyDriverIds = new Set(existingAssignments?.map(a => a.driver_id) || []);
-          availableDrivers = driverIds.filter(id => !busyDriverIds.has(id));
-
-          console.log(`[COMPANY-DRIVERS] Total: ${driverIds.length}, Available: ${availableDrivers.length}, Busy: ${busyDriverIds.size}`);
-        }
-      }
-
-      // Validar se há motoristas suficientes
-      if (num_trucks > 1 && availableDrivers.length < num_trucks) {
-        console.log(`[VALIDATION] Insufficient drivers - {${JSON.stringify({
-          company_id,
-          requested_trucks: num_trucks,
-          available_drivers: availableDrivers.length
-        })}}`);
-
-        return new Response(
-          JSON.stringify({ 
-            error: `You don't have enough approved drivers to accept ${num_trucks} truck(s). Available drivers: ${availableDrivers.length}. Go to "Drivers" to activate/invite more drivers.`,
-            details: "Transport companies need enough active and approved drivers to accept multiple trucks",
-            available_drivers: availableDrivers.length,
-            requested_trucks: num_trucks,
-            action_required: "Activate or invite more drivers in the Drivers section"
-          }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Fallback: Se aceitar 1 carreta e não tem motoristas, usar perfil da empresa
-      if (num_trucks === 1 && availableDrivers.length === 0) {
-        availableDrivers = [profile.id];
-        console.log(`[FALLBACK] Using company profile as driver for single truck acceptance`);
+      // ✅ CRÍTICO: Transportadoras NÃO criam assignments automaticamente
+      // Motoristas afiliados só veem fretes compartilhados via ShareFreightToDriver
+      availableDrivers = [];
+      
+      console.log(`[TRANSPORT-COMPANY] Company ${company_id} accepting freight. NO automatic driver assignment. Freights must be manually shared via ShareFreightToDriver.`);
+      
+      // ⚠️ Para transportadoras, múltiplos caminhões são permitidos MAS não há validação
+      // de motoristas/veículos aqui pois assignments serão criados manualmente depois
+      if (num_trucks > 1) {
+        console.log(`[TRANSPORT-COMPANY] Accepting ${num_trucks} trucks. Assignments will be created manually.`);
       }
     } else {
       // Motorista autônomo usa seu próprio perfil
@@ -430,64 +389,11 @@ serve(async (req) => {
     // ===== VALIDAÇÃO DE VEÍCULOS DISPONÍVEIS (TRANSPORTADORAS) =====
     let availableVehicleIds: string[] = [];
     
-    if (isTransportCompany && company_id) {
-      console.log(`[VEHICLES] Checking available vehicles for company ${company_id}`);
-      
-      const { data: companyVehicles, error: vehicleError } = await supabase
-        .from('vehicles')
-        .select('id, license_plate, vehicle_type, status')
-        .eq('company_id', company_id)
-        .eq('is_company_vehicle', true)
-        .eq('status', 'APPROVED');
-      
-      if (vehicleError) {
-        console.error('[VEHICLES] Error fetching vehicles:', vehicleError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Error fetching available vehicles',
-            details: vehicleError.message 
-          }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      console.log(`[VEHICLES] Found ${companyVehicles?.length || 0} approved vehicles`);
-
-      const { data: usedVehicles, error: usedError } = await supabase
-        .from('freight_assignments')
-        .select('vehicle_id')
-        .eq('freight_id', freight_id)
-        .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
-        .not('vehicle_id', 'is', null);
-
-      if (usedError) {
-        console.error('[VEHICLES] Error checking used vehicles:', usedError);
-      }
-
-      const usedVehicleIds = new Set(usedVehicles?.map(v => v.vehicle_id).filter(Boolean) || []);
-      const freeVehicles = companyVehicles?.filter(v => !usedVehicleIds.has(v.id)) || [];
-      
-      console.log(`[VEHICLES] Total: ${companyVehicles?.length || 0}, In use: ${usedVehicleIds.size}, Available: ${freeVehicles.length}`);
-
-      if (freeVehicles.length < num_trucks) {
-        const totalApproved = companyVehicles?.length || 0;
-
-        return new Response(
-          JSON.stringify({
-            error: `You don't have enough approved vehicles. Available: ${freeVehicles.length}, Required: ${num_trucks}.`,
-            details: "Register more vehicles in the Fleet tab and wait for administrator approval",
-            available_vehicles: freeVehicles.length,
-            total_approved: totalApproved,
-            vehicles_in_use: usedVehicleIds.size,
-            requested_trucks: num_trucks,
-            action_required: 'Register more vehicles in the "Fleet" section'
-          }),
-          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      availableVehicleIds = freeVehicles.map(v => v.id);
-      console.log(`[VEHICLES] Will use vehicle IDs:`, availableVehicleIds);
+    // ✅ SKIP: Transportadoras não validam veículos aqui pois não criam assignments automaticamente
+    if (!isTransportCompany) {
+      console.log(`[VEHICLES] Skipping vehicle validation for individual driver (uses own vehicle)`);
+    } else {
+      console.log(`[VEHICLES] Skipping vehicle validation for transport company (assignments created manually later)`);
     }
 
     // ================================================
@@ -496,98 +402,104 @@ serve(async (req) => {
     
     const assignments = [];
     
-    // Calcular agreed_price baseado no tipo de serviço
-    const originalPrice = freightFresh.price || 0;
-    let agreedPrice = originalPrice;
-    let pricingType = 'FIXED'; // Default sempre FIXED
-    
-    // FRETE_MOTO: Garantir mínimo R$10
-    if (freightFresh.service_type === 'FRETE_MOTO') {
-      agreedPrice = Math.max(originalPrice, 10);
-      pricingType = 'FIXED';
-      console.log(`[ASSIGNMENT] FRETE_MOTO agreed_price: R$${agreedPrice} (original: R$${originalPrice})`);
-    }
-    
-    // CARGA: Log warning se abaixo do ANTT
-    if (freightFresh.service_type === 'CARGA' && freight.minimum_antt_price && originalPrice < freight.minimum_antt_price) {
-      console.warn(`[ASSIGNMENT] CARGA price R$${originalPrice} below ANTT min R$${freight.minimum_antt_price}`);
-    }
-    
-    // Criar um assignment para cada motorista disponível (até num_trucks)
-    for (let i = 0; i < num_trucks; i++) {
-      const driver_id = availableDrivers[i];
-      const vehicle_id = availableVehicleIds[i] || null;
+    // ✅ CRÍTICO: Só criar assignments se houver motoristas selecionados
+    // Para transportadoras, availableDrivers estará vazio
+    if (availableDrivers.length > 0) {
+      // Calcular agreed_price baseado no tipo de serviço
+      const originalPrice = freightFresh.price || 0;
+      let agreedPrice = originalPrice;
+      let pricingType = 'FIXED'; // Default sempre FIXED
       
-      const { data: assignment, error } = await supabase
-        .from("freight_assignments")
-        .insert({
-          freight_id,
-          driver_id,
-          company_id,
-          vehicle_id,
-          agreed_price: agreedPrice,
-          pricing_type: pricingType,
-          status: 'ACCEPTED',
-          pickup_date: freight.pickup_date || null,
-          delivery_date: freight.delivery_date || null,
-          notes: freightFresh.service_type === 'FRETE_MOTO' && originalPrice < 10
-            ? `Preço ajustado de R$ ${originalPrice.toFixed(2)} para R$ 10,00 (mínimo ANTT)`
-            : null,
-          metadata: {
-            original_price: originalPrice,
-            adjusted_price: agreedPrice !== originalPrice,
-            service_type: freightFresh.service_type,
-            created_by: 'accept-freight-multiple',
-            is_company_assignment: isTransportCompany,
-            driver_index: i + 1,
-            vehicle_id: vehicle_id || undefined,
-            created_at: new Date().toISOString()
-          }
-        })
-        .select()
-        .single();
+      // FRETE_MOTO: Garantir mínimo R$10
+      if (freightFresh.service_type === 'FRETE_MOTO') {
+        agreedPrice = Math.max(originalPrice, 10);
+        pricingType = 'FIXED';
+        console.log(`[ASSIGNMENT] FRETE_MOTO agreed_price: R$${agreedPrice} (original: R$${originalPrice})`);
+      }
+      
+      // CARGA: Log warning se abaixo do ANTT
+      if (freightFresh.service_type === 'CARGA' && freight.minimum_antt_price && originalPrice < freight.minimum_antt_price) {
+        console.warn(`[ASSIGNMENT] CARGA price R$${originalPrice} below ANTT min R$${freight.minimum_antt_price}`);
+      }
+      
+      // Criar um assignment para cada motorista disponível (até num_trucks)
+      for (let i = 0; i < num_trucks; i++) {
+        const driver_id = availableDrivers[i];
+        const vehicle_id = availableVehicleIds[i] || null;
+        
+        const { data: assignment, error } = await supabase
+          .from("freight_assignments")
+          .insert({
+            freight_id,
+            driver_id,
+            company_id,
+            vehicle_id,
+            agreed_price: agreedPrice,
+            pricing_type: pricingType,
+            status: 'ACCEPTED',
+            pickup_date: freight.pickup_date || null,
+            delivery_date: freight.delivery_date || null,
+            notes: freightFresh.service_type === 'FRETE_MOTO' && originalPrice < 10
+              ? `Preço ajustado de R$ ${originalPrice.toFixed(2)} para R$ 10,00 (mínimo ANTT)`
+              : null,
+            metadata: {
+              original_price: originalPrice,
+              adjusted_price: agreedPrice !== originalPrice,
+              service_type: freightFresh.service_type,
+              created_by: 'accept-freight-multiple',
+              is_company_assignment: isTransportCompany,
+              driver_index: i + 1,
+              vehicle_id: vehicle_id || undefined,
+              created_at: new Date().toISOString()
+            }
+          })
+          .select()
+          .single();
 
-      if (error) {
-        console.error(`[ERROR] Creating assignment ${i + 1}/${num_trucks} for driver ${driver_id}:`, error);
-        
-        // Rollback: deletar assignments já criados
-        if (assignments.length > 0) {
-          console.log(`[ROLLBACK] Deleting ${assignments.length} created assignments`);
-          await supabase
-            .from("freight_assignments")
-            .delete()
-            .in("id", assignments.map(a => a.id));
-        }
-        
-        // Retornar erro amigável para duplicatas
-        if (error.code === '23505') {
+        if (error) {
+          console.error(`[ERROR] Creating assignment ${i + 1}/${num_trucks} for driver ${driver_id}:`, error);
+          
+          // Rollback: deletar assignments já criados
+          if (assignments.length > 0) {
+            console.log(`[ROLLBACK] Deleting ${assignments.length} created assignments`);
+            await supabase
+              .from("freight_assignments")
+              .delete()
+              .in("id", assignments.map(a => a.id));
+          }
+          
+          // Retornar erro amigável para duplicatas
+          if (error.code === '23505') {
+            return new Response(
+              JSON.stringify({ 
+                error: "This freight has already been accepted with this driver",
+                details: "You cannot accept the same freight multiple times with the same driver. Try using a different available driver.",
+                postgres_error: error.message
+              }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          
+          // Outros erros
           return new Response(
             JSON.stringify({ 
-              error: "This freight has already been accepted with this driver",
-              details: "You cannot accept the same freight multiple times with the same driver. Try using a different available driver.",
-              postgres_error: error.message
+              error: "Error creating freight assignment",
+              details: error.message,
+              assignment_index: i + 1,
+              total_requested: num_trucks
             }),
-            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
         
-        // Outros erros
-        return new Response(
-          JSON.stringify({ 
-            error: "Error creating freight assignment",
-            details: error.message,
-            assignment_index: i + 1,
-            total_requested: num_trucks
-          }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        assignments.push(assignment);
+        console.log(`[SUCCESS] Assignment ${i + 1}/${num_trucks} created for driver ${driver_id}`);
       }
-      
-      assignments.push(assignment);
-      console.log(`[SUCCESS] Assignment ${i + 1}/${num_trucks} created for driver ${driver_id}`);
-    }
 
-    console.log(`[ASSIGNMENTS] Successfully created ${assignments.length} assignments for freight ${freight_id}`);
+      console.log(`[ASSIGNMENTS] Successfully created ${assignments.length} assignments for freight ${freight_id}`);
+    } else {
+      console.log(`[NO-ASSIGNMENT] Freight accepted without automatic driver assignment (transport company mode). Assignments will be created via ShareFreightToDriver.`);
+    }
 
     // ================================================
     // 10.5. VINCULAR MOTORISTA AO FRETE (para fretes de carreta única)
