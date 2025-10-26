@@ -505,6 +505,55 @@ export type Database = {
           },
         ]
       }
+      chat_typing_indicators: {
+        Row: {
+          company_id: string
+          driver_profile_id: string
+          id: string
+          is_typing: boolean | null
+          updated_at: string
+          user_profile_id: string
+        }
+        Insert: {
+          company_id: string
+          driver_profile_id: string
+          id?: string
+          is_typing?: boolean | null
+          updated_at?: string
+          user_profile_id: string
+        }
+        Update: {
+          company_id?: string
+          driver_profile_id?: string
+          id?: string
+          is_typing?: boolean | null
+          updated_at?: string
+          user_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_typing_indicators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_typing_indicators_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_typing_indicators_user_profile_id_fkey"
+            columns: ["user_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cities: {
         Row: {
           created_at: string | null
@@ -543,30 +592,63 @@ export type Database = {
           chat_closed_by: Json | null
           company_id: string
           created_at: string | null
+          deleted_at: string | null
+          delivered_at: string | null
           driver_profile_id: string
+          edited_at: string | null
+          file_name: string | null
+          file_size: number | null
+          file_type: string | null
+          file_url: string | null
           id: string
+          image_url: string | null
           is_read: boolean | null
           message: string
+          reactions: Json | null
+          read_at: string | null
+          reply_to_message_id: string | null
           sender_type: string
         }
         Insert: {
           chat_closed_by?: Json | null
           company_id: string
           created_at?: string | null
+          deleted_at?: string | null
+          delivered_at?: string | null
           driver_profile_id: string
+          edited_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
+          image_url?: string | null
           is_read?: boolean | null
           message: string
+          reactions?: Json | null
+          read_at?: string | null
+          reply_to_message_id?: string | null
           sender_type: string
         }
         Update: {
           chat_closed_by?: Json | null
           company_id?: string
           created_at?: string | null
+          deleted_at?: string | null
+          delivered_at?: string | null
           driver_profile_id?: string
+          edited_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
+          image_url?: string | null
           is_read?: boolean | null
           message?: string
+          reactions?: Json | null
+          read_at?: string | null
+          reply_to_message_id?: string | null
           sender_type?: string
         }
         Relationships: [
@@ -582,6 +664,13 @@ export type Database = {
             columns: ["driver_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_driver_chats_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "company_driver_chats"
             referencedColumns: ["id"]
           },
         ]

@@ -1,22 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { FreightCard } from '@/components/FreightCard';
 import { DocumentRequestCard } from '@/components/DocumentRequestCard';
+import { ChatMessage } from '@/components/chat/ChatMessage';
+import { ChatInput } from '@/components/chat/ChatInput';
+import { MessageDateSeparator } from '@/components/chat/MessageDateSeparator';
+import { TypingIndicator } from '@/components/chat/TypingIndicator';
+import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { 
   MessageSquare, 
-  Send, 
   Users,
-  MapPin,
-  Image as ImageIcon
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface Driver {
@@ -31,6 +33,17 @@ interface Message {
   sender_id: string;
   created_at: string;
   message_type: string;
+  image_url?: string;
+  file_url?: string;
+  file_name?: string;
+  file_type?: string;
+  file_size?: number;
+  reply_to_message_id?: string;
+  read_at?: string;
+  delivered_at?: string;
+  edited_at?: string;
+  deleted_at?: string;
+  sender_type?: string;
   sender?: {
     full_name: string;
   };
@@ -41,15 +54,57 @@ export function CompanyInternalChat() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<any>(null);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  const typingIndicator = useTypingIndicator({
+    companyId: companyId || '',
+    driverProfileId: selectedDriver?.id || '',
+    userProfileId: profile?.id || '',
+  });
 
   useEffect(() => {
     if (profile?.id) {
       loadCompanyAndDrivers();
     }
   }, [profile?.id]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Subscribe to typing indicators
+  useEffect(() => {
+    if (!selectedDriver || !companyId) return;
+
+    const typingChannel = supabase
+      .channel(`typing-${companyId}-${selectedDriver.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_typing_indicators',
+          filter: `company_id=eq.${companyId}`
+        },
+        (payload) => {
+          const data = payload.new as any;
+          if (data.driver_profile_id === selectedDriver.id && data.user_profile_id !== profile?.id) {
+            setOtherUserTyping(data.is_typing);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(typingChannel);
+    };
+  }, [selectedDriver, companyId, profile?.id]);
 
   useEffect(() => {
     if (selectedDriver && companyId) {
@@ -295,8 +350,8 @@ export function CompanyInternalChat() {
     }
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !companyId || !selectedDriver) return;
+  const sendMessage = async (message: string, imageUrl?: string, fileData?: any) => {
+    if ((!message.trim() && !imageUrl && !fileData) || !companyId || !selectedDriver) return;
 
     setLoading(true);
     try {
@@ -305,15 +360,26 @@ export function CompanyInternalChat() {
         .insert({
           company_id: companyId,
           driver_profile_id: selectedDriver.id,
-          message: newMessage,
+          message: message,
+          image_url: imageUrl,
+          file_url: fileData?.url,
+          file_name: fileData?.name,
+          file_type: fileData?.type,
+          file_size: fileData?.size,
+          reply_to_message_id: replyingTo?.id,
           sender_type: 'COMPANY',
           is_read: false
         });
 
       if (error) throw error;
 
-      setNewMessage('');
+      setReplyingTo(null);
       loadMessages();
+      
+      // Scroll to bottom after sending
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Erro ao enviar mensagem');
@@ -378,50 +444,62 @@ export function CompanyInternalChat() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {/* Messages */}
-              <div className="h-96 overflow-y-auto space-y-4 border rounded-lg p-4">
+            <div className="flex flex-col h-full">
+              {/* Messages Area */}
+              <ScrollArea className="flex-1 h-[500px] border rounded-lg p-4" ref={scrollAreaRef}>
                 {messages.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">Nenhuma mensagem ainda</p>
                   </div>
                 ) : (
-                  messages.map((message) => {
+                  messages.map((message, index) => {
+                    // Show date separator
+                    const showDateSeparator = 
+                      index === 0 || 
+                      !isSameDay(
+                        new Date(messages[index - 1].created_at),
+                        new Date(message.created_at)
+                      );
+
                     // Verificar se é mensagem de solicitação de documentos
                     if (message.message_type === 'DOCUMENT_REQUEST') {
                       try {
                         const requestData = JSON.parse(message.message);
                         return (
-                          <div key={message.id} className="mb-4">
-                            <div className="mb-2 p-2 bg-warning/10 border border-warning/30 rounded-t-lg">
-                              <p className="text-sm text-warning-foreground font-medium">
-                                📄 Solicitação de Documentos
-                                {' • '}
-                                {new Date(message.created_at).toLocaleString('pt-BR', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </p>
+                          <React.Fragment key={message.id}>
+                            {showDateSeparator && (
+                              <MessageDateSeparator date={new Date(message.created_at)} />
+                            )}
+                            <div className="mb-4">
+                              <div className="mb-2 p-2 bg-warning/10 border border-warning/30 rounded-t-lg">
+                                <p className="text-sm text-warning-foreground font-medium">
+                                  📄 Solicitação de Documentos
+                                  {' • '}
+                                  {new Date(message.created_at).toLocaleString('pt-BR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                              </div>
+                              <DocumentRequestCard
+                                requestData={{
+                                  requested_fields: requestData.requested_fields,
+                                  notes: requestData.notes,
+                                  company_name: requestData.company_name,
+                                  status: requestData.status || 'PENDING',
+                                  created_at: requestData.created_at
+                                }}
+                                onGoToProfile={() => {
+                                  window.location.href = '/profile';
+                                }}
+                                onReplyInChat={() => {
+                                  // Focus on chat input
+                                }}
+                              />
                             </div>
-                            <DocumentRequestCard
-                              requestData={{
-                                requested_fields: requestData.requested_fields,
-                                notes: requestData.notes,
-                                company_name: requestData.company_name,
-                                status: requestData.status || 'PENDING',
-                                created_at: requestData.created_at
-                              }}
-                              onGoToProfile={() => {
-                                window.location.href = '/profile';
-                              }}
-                              onReplyInChat={() => {
-                                const input = document.querySelector('input[placeholder="Digite sua mensagem..."]') as HTMLInputElement;
-                                if (input) input.focus();
-                              }}
-                            />
-                          </div>
+                          </React.Fragment>
                         );
                       } catch (e) {
                         console.error('Erro ao parsear documento:', e);
@@ -465,83 +543,103 @@ export function CompanyInternalChat() {
                       };
 
                       return (
-                        <div key={message.id} className="mb-4">
-                          {/* Header do compartilhamento */}
-                          <div className="mb-2 p-2 bg-primary/5 border border-primary/20 rounded-t-lg">
-                            <p className="text-sm text-primary font-medium">
-                              🔗 Frete compartilhado por <strong>{freightData.shared_by}</strong>
-                              {' • '}
-                              {new Date(freightData.shared_at).toLocaleString('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
+                        <React.Fragment key={message.id}>
+                          {showDateSeparator && (
+                            <MessageDateSeparator date={new Date(message.created_at)} />
+                          )}
+                          <div className="mb-4">
+                            {/* Header do compartilhamento */}
+                            <div className="mb-2 p-2 bg-primary/5 border border-primary/20 rounded-t-lg">
+                              <p className="text-sm text-primary font-medium">
+                                🔗 Frete compartilhado por <strong>{freightData.shared_by}</strong>
+                                {' • '}
+                                {new Date(freightData.shared_at).toLocaleString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                            
+                            {/* Card completo do frete */}
+                            <FreightCard
+                              freight={freightForCard}
+                              showActions={true}
+                              canAcceptFreights={true}
+                              onAction={async (action) => {
+                                if (action === 'accept') {
+                                  await handleAcceptSharedFreight(freightData.freight_id);
+                                }
+                                loadMessages();
+                              }}
+                            />
                           </div>
-                          
-                          {/* Card completo do frete */}
-                          <FreightCard
-                            freight={freightForCard}
-                            showActions={true}
-                            canAcceptFreights={true}
-                            onAction={async (action) => {
-                              if (action === 'accept') {
-                                await handleAcceptSharedFreight(freightData.freight_id);
-                              }
-                              loadMessages();
-                            }}
-                          />
-                        </div>
+                        </React.Fragment>
                       );
                     }
 
                     // Mensagem normal (company_driver_chats)
                     const isFromCompany = (message as any).sender_type === 'COMPANY';
+                    const replyToMsg = message.reply_to_message_id 
+                      ? messages.find(m => m.id === message.reply_to_message_id)
+                      : undefined;
+
                     return (
-                      <div
-                        key={message.id}
-                        className={`flex ${isFromCompany ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-[70%] rounded-lg p-3 ${
-                            isFromCompany
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted'
-                          }`}
-                        >
-                          {!isFromCompany && (
-                            <p className="text-xs font-semibold mb-1">
-                              {selectedDriver?.full_name || 'Motorista'}
-                            </p>
-                          )}
-                          <p className="text-sm">{message.message}</p>
-                          <p className="text-xs opacity-70 mt-1">
-                            {format(new Date(message.created_at), 'HH:mm', { locale: ptBR })}
-                          </p>
-                        </div>
-                      </div>
+                      <React.Fragment key={message.id}>
+                        {showDateSeparator && (
+                          <MessageDateSeparator date={new Date(message.created_at)} />
+                        )}
+                        <ChatMessage
+                          message={message}
+                          isSender={isFromCompany}
+                          senderName={isFromCompany ? 'Você' : selectedDriver?.full_name || 'Motorista'}
+                          replyToMessage={replyToMsg ? {
+                            senderName: replyToMsg.sender_type === 'COMPANY' ? 'Você' : selectedDriver?.full_name || 'Motorista',
+                            message: replyToMsg.message
+                          } : undefined}
+                          onReply={() => {
+                            setReplyingTo({
+                              id: message.id,
+                              message: message.message,
+                              senderName: isFromCompany ? 'Você' : selectedDriver?.full_name || 'Motorista'
+                            });
+                          }}
+                          onDelete={async () => {
+                            if (!isFromCompany) return;
+                            try {
+                              await supabase
+                                .from('company_driver_chats')
+                                .update({ deleted_at: new Date().toISOString() })
+                                .eq('id', message.id);
+                              loadMessages();
+                              toast.success('Mensagem removida');
+                            } catch (error) {
+                              toast.error('Erro ao remover mensagem');
+                            }
+                          }}
+                        />
+                      </React.Fragment>
                     );
                   })
                 )}
-              </div>
+                
+                {/* Typing Indicator */}
+                {otherUserTyping && selectedDriver && (
+                  <TypingIndicator userName={selectedDriver.full_name} />
+                )}
+                
+                <div ref={messagesEndRef} />
+              </ScrollArea>
 
-              {/* Input */}
-              <div className="flex gap-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Digite sua mensagem..."
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
+              {/* Chat Input */}
+              <div className="mt-4">
+                <ChatInput
+                  onSendMessage={sendMessage}
+                  replyingTo={replyingTo}
+                  onCancelReply={() => setReplyingTo(null)}
+                  disabled={loading}
                 />
-                <Button onClick={sendMessage} disabled={loading}>
-                  <Send className="h-4 w-4" />
-                </Button>
               </div>
             </div>
           )}
