@@ -291,8 +291,19 @@ const CompanyDashboard = () => {
       console.log(`🔍 [CompanyDashboard/Active] Buscando fretes ativos para company: ${company.id}`);
       console.log(`👤 [CompanyDashboard/Active] Profile ID: ${profile.id}`);
 
-      // Obter IDs dos motoristas afiliados
-      const affiliatedDriverIds = drivers?.map(d => d.driver.id) || [];
+      // Obter IDs dos motoristas afiliados de forma segura
+      const affiliatedDriverIds = (drivers || [])
+        .map(d => d?.driver_profile_id)
+        .filter((id): id is string => Boolean(id));
+      
+      console.log('[CompanyDashboard/Active] affiliatedDriverIds:', affiliatedDriverIds);
+
+      // Construir filtro OR dinâmico
+      const orFilters: string[] = [`company_id.eq.${company.id}`];
+      if (affiliatedDriverIds.length > 0) {
+        orFilters.push(`driver_id.in.(${affiliatedDriverIds.join(',')})`);
+      }
+      const orFilterStr = orFilters.join(',');
 
       // Buscar assignments ativos: por company_id OU por driver afiliado
       const { data: assignments, error } = await supabase
@@ -304,7 +315,7 @@ const CompanyDashboard = () => {
           ),
           driver:profiles!freight_assignments_driver_id_fkey(id, full_name, contact_phone, rating)
         `)
-        .or(`company_id.eq.${company.id},driver_id.in.(${affiliatedDriverIds.join(',')})`)
+        .or(orFilterStr)
         .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
         .order('accepted_at', { ascending: false });
 
@@ -329,6 +340,12 @@ const CompanyDashboard = () => {
       }
 
       // Buscar também fretes diretos: por company_id OU por driver afiliado
+      const orFiltersFreights: string[] = [`company_id.eq.${company.id}`];
+      if (affiliatedDriverIds.length > 0) {
+        orFiltersFreights.push(`driver_id.in.(${affiliatedDriverIds.join(',')})`);
+      }
+      const orFilterStrFreights = orFiltersFreights.join(',');
+
       const { data: directFreights } = await supabase
         .from('freights')
         .select(`
@@ -336,7 +353,7 @@ const CompanyDashboard = () => {
           producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone),
           driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, rating)
         `)
-        .or(`company_id.eq.${company.id},driver_id.in.(${affiliatedDriverIds.join(',')})`)
+        .or(orFilterStrFreights)
         .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
         .order('created_at', { ascending: false });
 
@@ -360,7 +377,10 @@ const CompanyDashboard = () => {
   React.useEffect(() => {
     if (!company?.id) return;
 
-    const affiliatedDriverIds = drivers?.map(d => d.driver.id) || [];
+    // Obter IDs dos motoristas afiliados de forma segura
+    const affiliatedDriverIds = (drivers || [])
+      .map(d => d?.driver_profile_id)
+      .filter((id): id is string => Boolean(id));
     
     const channel = supabase
       .channel('company-active-freights')

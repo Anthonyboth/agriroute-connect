@@ -71,8 +71,19 @@ export const CompanyActiveFreights: React.FC = () => {
     if (!company?.id) return;
 
     try {
-      // Obter IDs dos motoristas afiliados
-      const affiliatedDriverIds = drivers?.map(d => d.driver.id) || [];
+      // Obter IDs dos motoristas afiliados de forma segura
+      const affiliatedDriverIds = (drivers || [])
+        .map(d => d?.driver_profile_id)
+        .filter((id): id is string => Boolean(id));
+      
+      console.log('[CompanyActiveFreights] affiliatedDriverIds:', affiliatedDriverIds);
+
+      // Construir filtro OR dinâmico
+      const orFilters: string[] = [`company_id.eq.${company.id}`];
+      if (affiliatedDriverIds.length > 0) {
+        orFilters.push(`driver_id.in.(${affiliatedDriverIds.join(',')})`);
+      }
+      const orFilterStr = orFilters.join(',');
       
       // Buscar assignments ativos: por company_id OU por driver afiliado
       const { data: assignments, error } = await supabase
@@ -88,7 +99,7 @@ export const CompanyActiveFreights: React.FC = () => {
           ),
           vehicle:vehicles(license_plate, model)
         `)
-        .or(`company_id.eq.${company.id},driver_id.in.(${affiliatedDriverIds.join(',')})`)
+        .or(orFilterStr)
         .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
         .order('accepted_at', { ascending: false });
 
@@ -180,11 +191,11 @@ export const CompanyActiveFreights: React.FC = () => {
                       </div>
 
                       {/* Motorista e Veículo */}
-                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{freight.driver.full_name}</span>
-                          {freight.driver.rating && (
+                          <span className="font-medium">{freight.driver?.full_name || 'Motorista'}</span>
+                          {freight.driver?.rating && (
                             <Badge variant="outline" className="text-xs">
                               {freight.driver.rating.toFixed(1)}★
                             </Badge>
@@ -220,7 +231,7 @@ export const CompanyActiveFreights: React.FC = () => {
 
                       {/* Ações */}
                       <div className="flex gap-2 pt-2">
-                        {freight.driver.contact_phone && (
+                        {freight.driver?.contact_phone && (
                           <Button 
                             variant="outline" 
                             size="sm" 
