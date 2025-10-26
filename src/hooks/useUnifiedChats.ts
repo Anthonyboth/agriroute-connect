@@ -297,14 +297,33 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
             try {
               const messageData = JSON.parse(msg.message);
               if (messageData.type === 'FREIGHT_SHARE') {
-                const freightData = messageData.freightData;
+                // Normalizar freightData: aceitar payload.freightData OU payload direto
+                const raw = messageData.freightData || messageData;
+                const freightData = {
+                  freight_id: raw.freight_id,
+                  cargo_type: raw.cargo_type || 'Carga',
+                  origin: raw.origin || raw.origin_address || '',
+                  destination: raw.destination || raw.destination_address || '',
+                  origin_city: raw.origin_city || raw.origin?.split('|')[0] || raw.origin_address?.split('|')[0] || '',
+                  destination_city: raw.destination_city || raw.destination?.split('|')[0] || raw.destination_address?.split('|')[0] || '',
+                  pickup_date: raw.pickup_date,
+                  delivery_date: raw.delivery_date,
+                  price: Number(raw.price || 0),
+                  distance_km: Number(raw.distance_km || 0),
+                  weight: Number(raw.weight || 0),
+                  urgency: raw.urgency,
+                  service_type: raw.service_type,
+                  shared_by: raw.shared_by,
+                  shared_at: raw.shared_at,
+                };
+                
                 const closedBy = (msg.chat_closed_by as any) || {};
 
                 allConversations.push({
                   id: `freight-share-${msg.id}`,
                   type: 'FREIGHT_SHARE' as const,
-                  title: `Frete Compartilhado: ${freightData.cargo_type || 'Carga'} - ${freightData.origin_city} → ${freightData.destination_city}`,
-                  lastMessage: `Compartilhado por ${msg.sender?.full_name || 'Motorista'} - R$ ${Number(freightData.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+                  title: `Frete Compartilhado: ${freightData.cargo_type} - ${freightData.origin_city} → ${freightData.destination_city}`,
+                  lastMessage: `Compartilhado por ${msg.sender?.full_name || 'Motorista'} - R$ ${freightData.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
                   lastMessageTime: msg.created_at,
                   unreadCount: msg.read_at ? 0 : 1,
                   otherParticipant: {

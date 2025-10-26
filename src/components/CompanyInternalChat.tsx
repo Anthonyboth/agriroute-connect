@@ -236,14 +236,41 @@ export function CompanyInternalChat() {
           .in('status', ['ACTIVE', 'APPROVED'])
           .order('status', { ascending: false });
 
-        if (driversData) {
-          const formattedDrivers = driversData.map((d: any) => ({
+        // Buscar também motoristas que compartilharam fretes (últimos 30 dias)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const { data: sharedFreightDrivers } = await supabase
+          .from('company_internal_messages')
+          .select('sender_id, sender:profiles!company_internal_messages_sender_id_fkey(id, full_name)')
+          .eq('company_id', companyData.id)
+          .eq('message_type', 'SYSTEM')
+          .gte('created_at', thirtyDaysAgo.toISOString())
+          .order('created_at', { ascending: false });
+
+        const driverMap = new Map();
+        
+        // Adicionar drivers ACTIVE/APPROVED primeiro
+        driversData?.forEach((d: any) => {
+          driverMap.set(d.driver.id, {
             id: d.driver.id,
             full_name: d.driver.full_name,
             status: d.status
-          }));
-          setDrivers(formattedDrivers);
-        }
+          });
+        });
+
+        // Adicionar drivers que compartilharam fretes (se não existirem)
+        sharedFreightDrivers?.forEach((m: any) => {
+          if (m.sender && !driverMap.has(m.sender.id)) {
+            driverMap.set(m.sender.id, {
+              id: m.sender.id,
+              full_name: m.sender.full_name,
+              status: 'SHARED' // Status especial para identificar na UI
+            });
+          }
+        });
+
+        setDrivers(Array.from(driverMap.values()));
       }
     } catch (error) {
       console.error('Error loading drivers:', error);
