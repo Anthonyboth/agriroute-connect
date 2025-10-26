@@ -343,10 +343,16 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
               <p className="text-base text-blue-600 dark:text-blue-400 mt-2 font-semibold">
                 Mínimo: R$ 10,00
               </p>
-            ) : shouldShowAntt(freight.service_type, freight.cargo_type) && (
-              <p className="text-base text-muted-foreground mt-2 font-medium">
-                Min. ANTT: R$ {formattedMinPrice}
-              </p>
+            ) : freight.service_type === 'CARGA' && (
+              freight.minimum_antt_price && freight.minimum_antt_price > 0 ? (
+                <Badge variant="outline" className="text-sm">
+                  Mín. ANTT: R$ {formattedMinPrice}
+                </Badge>
+              ) : (
+                <Badge variant="destructive" className="text-sm">
+                  ⚠️ ANTT não calculado
+                </Badge>
+              )
             )}
           </div>
           <div className="text-right">

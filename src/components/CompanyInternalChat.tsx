@@ -60,6 +60,7 @@ export function CompanyInternalChat() {
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const chatChannelRef = useRef<any>(null);
   
   const typingIndicator = useTypingIndicator({
     companyId: companyId || '',
@@ -73,10 +74,22 @@ export function CompanyInternalChat() {
     }
   }, [profile?.id]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive or driver changes
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollAreaRef.current) {
+      const isNearBottom = scrollAreaRef.current.scrollHeight - scrollAreaRef.current.scrollTop - scrollAreaRef.current.clientHeight < 200;
+      if (isNearBottom || messages.length === 0) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
   }, [messages]);
+
+  useEffect(() => {
+    // Force scroll on driver change
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }, [selectedDriver?.id]);
 
   // Subscribe to typing indicators
   useEffect(() => {
@@ -181,10 +194,16 @@ export function CompanyInternalChat() {
           }
         });
 
+      // Cleanup realtime and typing on unmount
+      typingIndicator.setTyping(false);
+      
       return () => {
         supabase.removeChannel(channel);
         if (pollingInterval) {
           clearInterval(pollingInterval);
+        }
+        if (chatChannelRef.current) {
+          supabase.removeChannel(chatChannelRef.current);
         }
       };
     }
@@ -368,10 +387,17 @@ export function CompanyInternalChat() {
           file_size: fileData?.size,
           reply_to_message_id: replyingTo?.id,
           sender_type: 'COMPANY',
-          is_read: false
+          is_read: false,
+          delivered_at: new Date().toISOString()
         });
 
-      if (error) throw error;
+      if (error) {
+        // Handle storage permission errors
+        if (error.message?.includes('storage') || error.message?.includes('permission')) {
+          throw new Error('Erro de permissão ao enviar arquivo. Contate o administrador.');
+        }
+        throw error;
+      }
 
       setReplyingTo(null);
       loadMessages();
@@ -380,9 +406,11 @@ export function CompanyInternalChat() {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
-    } catch (error) {
+      
+      toast.success('Mensagem enviada!');
+    } catch (error: any) {
       console.error('Error sending message:', error);
-      toast.error('Erro ao enviar mensagem');
+      toast.error(error.message || 'Erro ao enviar mensagem');
     } finally {
       setLoading(false);
     }

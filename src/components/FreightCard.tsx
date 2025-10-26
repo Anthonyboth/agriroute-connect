@@ -302,10 +302,16 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                   Mínimo: R$ 10,00
                 </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Min. ANTT: R$ {(freight.minimum_antt_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </p>
+              ) : freight.service_type === 'CARGA' && (
+                freight.minimum_antt_price && freight.minimum_antt_price > 0 ? (
+                  <Badge variant="outline" className="text-xs">
+                    Mín. ANTT: R$ {freight.minimum_antt_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </Badge>
+                ) : (
+                  <Badge variant="destructive" className="text-xs">
+                    ⚠️ ANTT não calculado
+                  </Badge>
+                )
               )}
             </div>
             <div className="text-right">

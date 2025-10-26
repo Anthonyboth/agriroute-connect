@@ -246,7 +246,77 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
     }
   }, [formData.cargo_type]);
 
-  // Calcular preço ANTT automaticamente
+  // Calcular preço ANTT automaticamente com retry
+  const calculateAnttWithRetry = async (retries = 3): Promise<boolean> => {
+    if (!formData.cargo_type || !calculatedDistance || !formData.vehicle_axles_required) {
+      console.warn('⚠️ Dados insuficientes para cálculo ANTT');
+      return false;
+    }
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const axles = parseInt(formData.vehicle_axles_required);
+        
+        // Derivar table_type (A/B/C/D)
+        let table_type: 'A' | 'B' | 'C' | 'D';
+        if (formData.high_performance) {
+          table_type = formData.vehicle_ownership === 'PROPRIO' ? 'C' : 'D';
+        } else {
+          table_type = formData.vehicle_ownership === 'PROPRIO' ? 'A' : 'B';
+        }
+
+        console.log(`🔢 Tentativa ${attempt}/${retries} - Calculando ANTT...`, {
+          cargo_type: formData.cargo_type,
+          distance_km: calculatedDistance,
+          axles,
+          table_type
+        });
+
+        const { data, error } = await supabase.functions.invoke('antt-calculator', {
+          body: {
+            cargo_type: formData.cargo_type,
+            distance_km: calculatedDistance,
+            axles,
+            origin_state: formData.origin_state,
+            destination_state: formData.destination_state,
+            table_type,
+            num_trucks: parseInt(formData.required_trucks) || 1
+          }
+        });
+
+        if (error) {
+          console.error(`❌ Tentativa ${attempt} falhou:`, error);
+          if (attempt === retries) {
+            throw new Error(`Falha ao calcular ANTT após ${retries} tentativas: ${error.message}`);
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          continue;
+        }
+
+        if (data && data.minimum_total && data.minimum_total > 0) {
+          console.log('✅ ANTT calculado com sucesso:', data);
+          setCalculatedAnttPrice(data.minimum_total);
+          setAnttDetails(data);
+          return true;
+        } else {
+          console.error(`❌ Tentativa ${attempt}: ANTT retornou valor inválido`, data);
+          if (attempt === retries) {
+            throw new Error('ANTT calculado está zerado ou inválido');
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+      } catch (error: any) {
+        console.error(`❌ Erro na tentativa ${attempt}:`, error);
+        if (attempt === retries) {
+          throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
+    return false;
+  };
+
+  // Calcular preço ANTT automaticamente (sem retry, para UI)
   const calculateAnttPrice = async () => {
     if (!formData.cargo_type || !calculatedDistance || !formData.vehicle_axles_required) {
       return;
@@ -387,6 +457,13 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
       
       if (!formData.destination_city || !formData.destination_state) {
         toast.error('Por favor, selecione a cidade de destino');
+        return;
+      }
+
+      // VALIDAÇÃO OBRIGATÓRIA: Eixos para CARGA
+      if (formData.service_type === 'CARGA' && (!formData.vehicle_axles_required || parseInt(formData.vehicle_axles_required) < 2)) {
+        toast.error('Para fretes de CARGA, é obrigatório informar o número de eixos do veículo (mínimo 2 eixos).');
+        setLoading(false);
         return;
       }
 

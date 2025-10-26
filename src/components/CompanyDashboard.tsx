@@ -254,12 +254,21 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
                       </div>
 
                       {/* Validação ANTT */}
-                      {freight.minimum_antt_price && (
-                        <ANTTValidation
-                          proposedPrice={freight.price}
-                          minimumAnttPrice={freight.minimum_antt_price}
-                          distance={freight.distance_km}
-                        />
+                      {freight.service_type === 'CARGA' && (
+                        freight.minimum_antt_price && freight.minimum_antt_price > 0 ? (
+                          <ANTTValidation
+                            proposedPrice={freight.price}
+                            minimumAnttPrice={freight.minimum_antt_price}
+                            distance={freight.distance_km}
+                          />
+                        ) : (
+                          <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200">
+                            <p className="text-sm font-semibold text-red-600">⚠️ ANTT não calculado</p>
+                            <p className="text-xs text-red-500 mt-1">
+                              Este frete precisa ter o valor ANTT recalculado
+                            </p>
+                          </div>
+                        )
                       )}
 
                       {/* Rota */}
