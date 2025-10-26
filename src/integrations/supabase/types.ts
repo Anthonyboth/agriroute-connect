@@ -5928,16 +5928,29 @@ export type Database = {
         }
         Returns: undefined
       }
-      driver_update_freight_status: {
-        Args: {
-          p_freight_id: string
-          p_lat?: number
-          p_lng?: number
-          p_new_status: Database["public"]["Enums"]["freight_status"]
-          p_notes?: string
-        }
-        Returns: Json
-      }
+      driver_update_freight_status:
+        | {
+            Args: {
+              p_freight_id: string
+              p_lat?: number
+              p_lng?: number
+              p_new_status: Database["public"]["Enums"]["freight_status"]
+              p_notes?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_assignment_id?: string
+              p_freight_id: string
+              p_lat?: number
+              p_lng?: number
+              p_new_status: string
+              p_notes?: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
       encrypt_document: { Args: { doc: string }; Returns: string }
       encrypt_sensitive_data: {
         Args: { data: string; key?: string }
