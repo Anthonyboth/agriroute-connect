@@ -95,26 +95,45 @@ import { FRETES_IA_LABEL, AREAS_IA_LABEL, AI_ABBR, FRETES_IA_DISPONIVEL_LABEL, V
 
 // ✅ Definição centralizada de TODAS as tabs (ÚNICA FONTE DA VERDADE)
 // ⚠️ ATENÇÃO: Esta é a ÚNICA lista de tabs. NÃO adicionar tabs manualmente em outros lugares!
-const COMPANY_TABS = [
-  { value: 'overview', label: 'Visão Geral', shortLabel: 'Visão', icon: Building2 },
-  { value: 'marketplace', label: FRETES_IA_LABEL, shortLabel: AI_ABBR, icon: TrendingUp }, // ✅ ÚNICA aba de IA
-  { value: 'drivers', label: 'Motoristas', shortLabel: 'Mot', icon: Users },
-  { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck },
-  { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínc', icon: Link2 },
-  { value: 'freights', label: 'Fretes', shortLabel: 'Fretes', icon: Package },
-  { value: 'scheduled', label: 'Agendamentos', shortLabel: 'Agend', icon: Calendar },
-  { value: 'active', label: 'Em Andamento', shortLabel: 'Ativo', icon: Navigation },
-  { value: 'proposals', label: 'Propostas', shortLabel: 'Prop', icon: FileText },
-  { value: 'services', label: 'Serviços', shortLabel: 'Serv', icon: Wrench },
-  { value: 'payments', label: 'Pagamentos', shortLabel: 'Pag', icon: DollarSign },
-  { value: 'areas-ai', label: AREAS_IA_LABEL, shortLabel: 'Áreas', icon: Target },
-  { value: 'cities', label: 'Cidades', shortLabel: 'Cid', icon: MapPin },
-  { value: 'balance', label: 'Saldo', shortLabel: '$', icon: Banknote },
-  { value: 'ratings', label: 'Avaliações', shortLabel: 'Aval', icon: Star },
-  { value: 'history', label: 'Histórico', shortLabel: 'Hist', icon: Clock },
-  { value: 'chat', label: 'Chat Interno', shortLabel: 'Chat', icon: MessageSquare },
-  { value: 'reports', label: 'Relatórios', shortLabel: 'Rel', icon: BarChart }
-] as const;
+// Função para retornar tabs com badge dinâmico
+const getCompanyTabs = (activeCount: number, chatCount: number) => [
+  { 
+    value: 'overview', 
+    label: 'Visão Geral', 
+    shortLabel: 'Visão', 
+    icon: Building2,
+    badge: activeCount > 0 ? activeCount : undefined
+  },
+  { value: 'marketplace', label: FRETES_IA_LABEL, shortLabel: AI_ABBR, icon: TrendingUp, badge: undefined }, // ✅ ÚNICA aba de IA
+  { value: 'drivers', label: 'Motoristas', shortLabel: 'Mot', icon: Users, badge: undefined },
+  { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck, badge: undefined },
+  { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínc', icon: Link2, badge: undefined },
+  { value: 'freights', label: 'Fretes', shortLabel: 'Fretes', icon: Package, badge: undefined },
+  { value: 'scheduled', label: 'Agendamentos', shortLabel: 'Agend', icon: Calendar, badge: undefined },
+  { 
+    value: 'active', 
+    label: 'Em Andamento', 
+    shortLabel: 'Ativo', 
+    icon: Navigation,
+    badge: activeCount > 0 ? activeCount : undefined
+  },
+  { value: 'proposals', label: 'Propostas', shortLabel: 'Prop', icon: FileText, badge: undefined },
+  { value: 'services', label: 'Serviços', shortLabel: 'Serv', icon: Wrench, badge: undefined },
+  { value: 'payments', label: 'Pagamentos', shortLabel: 'Pag', icon: DollarSign, badge: undefined },
+  { value: 'areas-ai', label: AREAS_IA_LABEL, shortLabel: 'Áreas', icon: Target, badge: undefined },
+  { value: 'cities', label: 'Cidades', shortLabel: 'Cid', icon: MapPin, badge: undefined },
+  { value: 'balance', label: 'Saldo', shortLabel: '$', icon: Banknote, badge: undefined },
+  { value: 'ratings', label: 'Avaliações', shortLabel: 'Aval', icon: Star, badge: undefined },
+  { value: 'history', label: 'Histórico', shortLabel: 'Hist', icon: Clock, badge: undefined },
+  { 
+    value: 'chat', 
+    label: 'Chat Interno', 
+    shortLabel: 'Chat', 
+    icon: MessageSquare,
+    badge: chatCount > 0 ? chatCount : undefined
+  },
+  { value: 'reports', label: 'Relatórios', shortLabel: 'Rel', icon: BarChart, badge: undefined }
+];
 
 // Tabs configuration loaded
 
@@ -255,10 +274,22 @@ const CompanyDashboard = () => {
 
   // Fetch fretes ativos da empresa
   const fetchActiveFreights = React.useCallback(async () => {
-    if (!company?.id || !profile?.id) return;
+    // ✅ FASE 4: Verificar condições antes de buscar
+    if (!company?.id) {
+      console.warn('⚠️ [CompanyDashboard/Active] Company não carregado, fetchActiveFreights abortado');
+      return;
+    }
+    if (!profile?.id) {
+      console.warn('⚠️ [CompanyDashboard/Active] Profile não carregado, fetchActiveFreights abortado');
+      return;
+    }
 
     try {
       setIsLoadingActive(true);
+
+      // ✅ FASE 1: Logging detalhado
+      console.log(`🔍 [CompanyDashboard/Active] Buscando fretes ativos para company: ${company.id}`);
+      console.log(`👤 [CompanyDashboard/Active] Profile ID: ${profile.id}`);
 
       // Buscar assignments ativos da empresa
       const { data: assignments, error } = await supabase
@@ -276,7 +307,23 @@ const CompanyDashboard = () => {
 
       if (error) throw error;
 
+      console.log(`📦 [CompanyDashboard/Active] ${assignments?.length || 0} assignments encontrados`);
+      console.log(`📊 [CompanyDashboard/Active] Dados dos assignments:`, assignments);
+
       setMyAssignments(assignments || []);
+      console.log(`✅ [CompanyDashboard/Active] myAssignments setado: ${assignments?.length || 0}`);
+
+      // ✅ FASE 3: Toast notification quando há assignments
+      if (assignments && assignments.length > 0) {
+        toast.success(`✅ ${assignments.length} frete(s) em andamento`, {
+          description: 'Clique em "Em Andamento" para ver detalhes',
+          duration: 5000,
+          action: {
+            label: 'Ver Fretes',
+            onClick: () => setActiveTab('active')
+          }
+        });
+      }
 
       // Buscar também fretes diretos da empresa
       const { data: directFreights } = await supabase
@@ -290,9 +337,12 @@ const CompanyDashboard = () => {
         .in('status', ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'])
         .order('created_at', { ascending: false });
 
+      console.log(`🚛 [CompanyDashboard/Active] ${directFreights?.length || 0} fretes diretos encontrados`);
+
       setActiveFreights(directFreights || []);
+      console.log(`✅ [CompanyDashboard/Active] activeFreights setado: ${directFreights?.length || 0}`);
     } catch (error) {
-      console.error('Erro ao buscar fretes ativos:', error);
+      console.error(`❌ [CompanyDashboard/Active] Erro ao buscar fretes:`, error);
       toast.error('Erro ao carregar fretes ativos');
     } finally {
       setIsLoadingActive(false);
@@ -335,6 +385,17 @@ const CompanyDashboard = () => {
       supabase.removeChannel(channel);
     };
   }, [company?.id, fetchActiveFreights]);
+
+  // ✅ FASE 7: Listener para navegação via CustomEvent
+  useEffect(() => {
+    const handleNavigate = (e: CustomEvent) => {
+      console.log(`🔄 [CompanyDashboard] Navegando para tab: ${e.detail}`);
+      setActiveTab(e.detail);
+    };
+    
+    window.addEventListener('navigate-to-tab', handleNavigate as EventListener);
+    return () => window.removeEventListener('navigate-to-tab', handleNavigate as EventListener);
+  }, []);
 
   // Auto-switch para perfil TRANSPORTADORA se necessário
   useEffect(() => {
@@ -408,6 +469,15 @@ const CompanyDashboard = () => {
       </div>
     );
   }
+
+  // Calcular total de fretes ativos para badges
+  const totalActiveFreights = myAssignments.length + activeFreights.length;
+  
+  // Gerar tabs com badges dinâmicos
+  const COMPANY_TABS = React.useMemo(
+    () => getCompanyTabs(totalActiveFreights, chatUnreadCount),
+    [totalActiveFreights, chatUnreadCount]
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -505,6 +575,34 @@ const CompanyDashboard = () => {
           </div>
         )}
 
+        {/* ✅ FASE 5: Debug Card (DEV only) */}
+        {import.meta.env.DEV && (
+          <Card className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800 mb-6">
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                🐛 Debug Info (Dev Only)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs space-y-1 font-mono">
+              <div>Company ID: {company?.id || 'N/A'}</div>
+              <div>Profile ID: {profile?.id || 'N/A'}</div>
+              <div>Active Tab: {activeTab}</div>
+              <div className="font-bold text-primary">myAssignments: {myAssignments.length}</div>
+              <div className="font-bold text-primary">activeFreights: {activeFreights.length}</div>
+              <div className="font-bold text-primary">Total Active: {totalActiveFreights}</div>
+              <div>isLoadingActive: {isLoadingActive ? 'true' : 'false'}</div>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={fetchActiveFreights}
+                className="mt-2 w-full"
+              >
+                🔄 Force Refresh Active Freights
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Navegação Responsiva por Tabs */}
         {isMobile || isTablet ? (
           <ResponsiveTabNavigation
@@ -537,6 +635,15 @@ const CompanyDashboard = () => {
                   >
                     <Icon className="h-4 w-4" />
                     <span>{tab.label}</span>
+                    {/* ✅ FASE 2: Badge visual nas tabs */}
+                    {tab.badge && tab.badge > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                      >
+                        {tab.badge}
+                      </Badge>
+                    )}
                   </Button>
                 );
               })}
@@ -600,9 +707,33 @@ const CompanyDashboard = () => {
                       <p>Carregando fretes ativos...</p>
                     </div>
                   ) : myAssignments.length === 0 && activeFreights.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-8">
+                    <div className="text-center py-8">
                       <Navigation className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Nenhum frete em andamento</p>
+                      <p className="font-semibold mb-2">Nenhum frete em andamento</p>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Seus fretes aceitos aparecerão aqui automaticamente.
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        💡 Vá para "Fretes I.A" para ver fretes disponíveis no marketplace
+                      </p>
+                      {import.meta.env.DEV && (
+                        <div className="text-xs bg-muted p-3 rounded-lg inline-block max-w-md">
+                          <p className="font-semibold mb-2">🐛 Debug Info:</p>
+                          <p>Company ID: {company?.id || 'N/A'}</p>
+                          <p>Profile ID: {profile?.id || 'N/A'}</p>
+                          <p>Query executada: {isLoadingActive ? 'Loading...' : 'Sim'}</p>
+                          <p>myAssignments: {myAssignments.length}</p>
+                          <p>activeFreights: {activeFreights.length}</p>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={fetchActiveFreights} 
+                            className="mt-2 w-full"
+                          >
+                            🔄 Force Reload
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-4">

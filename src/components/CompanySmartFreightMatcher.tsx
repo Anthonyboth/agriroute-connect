@@ -178,7 +178,18 @@ export const CompanySmartFreightMatcher: React.FC = () => {
 
       if (error) throw error;
 
-      toast.success('Frete atribuído ao motorista com sucesso!');
+      toast.success('Frete atribuído ao motorista com sucesso!', {
+        description: 'Veja seus fretes em andamento',
+        duration: 5000,
+        action: {
+          label: 'Ver Agora',
+          onClick: () => {
+            // ✅ FASE 7: Trigger navigation para tab "active"
+            console.log('🔄 [SmartFreightMatcher] Disparando navegação para tab active');
+            window.dispatchEvent(new CustomEvent('navigate-to-tab', { detail: 'active' }));
+          }
+        }
+      });
       fetchCompatibleFreights();
     } catch (error: any) {
       console.error('Erro ao atribuir frete:', error);
