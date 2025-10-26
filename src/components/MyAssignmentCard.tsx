@@ -4,8 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, TrendingUp, Truck, DollarSign, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { ANTTValidation } from './ANTTValidation';
+import { ShareFreightToDriver } from './ShareFreightToDriver';
 import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-helpers';
 import { useAuth } from '@/hooks/useAuth';
+import { useTransportCompany } from '@/hooks/useTransportCompany';
 
 interface MyAssignmentCardProps {
   assignment: any;
@@ -15,7 +17,11 @@ interface MyAssignmentCardProps {
 export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, onAction }) => {
   const freight = assignment.freight;
   const { profile: currentUserProfile } = useAuth();
+  const { company } = useTransportCompany();
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  
+  // Check if current user is a transport company
+  const isTransportCompany = currentUserProfile?.role === 'TRANSPORTADORA';
   
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -168,6 +174,15 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
 
         {/* Ações */}
         <div className="flex gap-2 pt-2">
+          {/* Botão de compartilhamento para transportadoras */}
+          {isTransportCompany && company?.id && assignment.status === 'ACCEPTED' && (
+            <ShareFreightToDriver
+              freight={freight}
+              companyId={company.id}
+              onSuccess={onAction}
+            />
+          )}
+          
           <Button className="flex-1" onClick={onAction}>
             Ver Detalhes
           </Button>

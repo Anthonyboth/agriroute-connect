@@ -5,10 +5,12 @@ import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { CompanyFreightStats } from './CompanyFreightStats';
 import { FreightCard } from './FreightCard';
 import { MyAssignmentCard } from './MyAssignmentCard';
+import { ShareFreightToDriver } from './ShareFreightToDriver';
+import { ANTTValidation } from './ANTTValidation';
 import { SafeListWrapper } from './SafeListWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Truck, MapPin, RefreshCw, BarChart } from 'lucide-react';
+import { Truck, MapPin, RefreshCw, BarChart, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
@@ -229,19 +231,65 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
               Nenhum frete disponível no momento
             </p>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-4">
               <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando fretes...</div>}>
                 {availableFreights.map((freight) => (
-                  <FreightCard
-                    key={freight.id}
-                    freight={freight}
-                    showActions
-                    canAcceptFreights={true}
-                    isAffiliatedDriver={false}
-                    onAction={() => {
-                      fetchDashboardData();
-                    }}
-                  />
+                  <Card key={freight.id} className="border-l-4 border-l-green-600">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          {freight.cargo_type}
+                        </h3>
+                        <Badge variant="outline">Aberto</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {/* Valor do frete */}
+                      <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200">
+                        <p className="text-sm text-muted-foreground">Valor do frete:</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          R$ {freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+
+                      {/* Validação ANTT */}
+                      {freight.minimum_antt_price && (
+                        <ANTTValidation
+                          proposedPrice={freight.price}
+                          minimumAnttPrice={freight.minimum_antt_price}
+                          distance={freight.distance_km}
+                        />
+                      )}
+
+                      {/* Rota */}
+                      <div className="space-y-1 text-sm">
+                        <p className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-green-600" />
+                          <span className="font-medium">Origem:</span> {freight.origin_city}, {freight.origin_state}
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-red-600" />
+                          <span className="font-medium">Destino:</span> {freight.destination_city}, {freight.destination_state}
+                        </p>
+                        {freight.distance_km && (
+                          <p className="flex items-center gap-2">
+                            <Truck className="h-4 w-4" />
+                            <span>{freight.distance_km} km</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Ações */}
+                      <div className="flex gap-2 pt-2">
+                        <ShareFreightToDriver
+                          freight={freight}
+                          companyId={company.id}
+                          onSuccess={fetchDashboardData}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </SafeListWrapper>
             </div>

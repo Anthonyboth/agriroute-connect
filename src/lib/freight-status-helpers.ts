@@ -15,6 +15,8 @@ interface UpdateStatusParams {
   currentUserProfile: any;
   notes?: string;
   location?: { lat: number; lng: number };
+  companyId?: string; // Allow companies to update status
+  assignmentId?: string; // Track which assignment is being updated
 }
 
 export async function driverUpdateFreightStatus({
@@ -22,7 +24,9 @@ export async function driverUpdateFreightStatus({
   newStatus,
   currentUserProfile,
   notes,
-  location
+  location,
+  companyId,
+  assignmentId
 }: UpdateStatusParams): Promise<boolean> {
   try {
     // ✅ PREFLIGHT CHECK 1: Verificar se frete já está em status final via tabela principal

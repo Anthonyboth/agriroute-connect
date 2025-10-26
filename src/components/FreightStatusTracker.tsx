@@ -45,6 +45,8 @@ interface FreightStatusTrackerProps {
   isDriver: boolean;
   freightServiceType?: string;
   onStatusUpdated?: (newStatus: string) => void;
+  companyId?: string; // Allow company to update status
+  assignmentId?: string; // Track which assignment is being updated
 }
 
 export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
@@ -53,7 +55,9 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
   currentUserProfile,
   isDriver,
   freightServiceType,
-  onStatusUpdated
+  onStatusUpdated,
+  companyId,
+  assignmentId
 }) => {
   const { toast } = useToast();
   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
