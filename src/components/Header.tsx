@@ -102,14 +102,14 @@ const Header: React.FC<HeaderProps> = ({
       if (error) throw error;
       return data || [];
     },
-    enabled: !!userProfile?.id && (user?.role === 'MOTORISTA' || user?.role === 'MOTORISTA_AFILIADO'),
+    enabled: !!userProfile?.id && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(user?.role || ''),
     refetchInterval: 30000, // Atualizar a cada 30 segundos
   });
 
   // Verificar se é transportadora
   React.useEffect(() => {
     const checkCompany = async () => {
-      if (user?.role === 'MOTORISTA' && userProfile) {
+      if (['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(user?.role || '') && userProfile) {
         const { data } = await supabase
           .from('transport_companies')
           .select('id')
@@ -213,7 +213,7 @@ const Header: React.FC<HeaderProps> = ({
                       {item.label}
                     </DropdownMenuItem>
                   ))}
-                  {user?.role === 'MOTORISTA' && (
+                  {['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(user?.role || '') && (
                     <>
                       <DropdownMenuSeparator />
                       <div className="px-2 py-1.5">

@@ -155,7 +155,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   };
 
   const isProducer = currentUserProfile?.role === 'PRODUTOR';
-  const isDriver = currentUserProfile?.role === 'MOTORISTA';
+  const isDriver = ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(currentUserProfile?.role);
   
   // Verificar se é participante (produtor, motorista direto, ou tem assignment ativo)
   const [hasActiveAssignment, setHasActiveAssignment] = useState(false);

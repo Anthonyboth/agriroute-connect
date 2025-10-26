@@ -411,7 +411,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium">{status?.label}</span>
                       <Badge variant="outline" className="text-xs">
-                        {item.changer?.role === 'MOTORISTA' ? 'Motorista' : 'Sistema'}
+                        {['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(item.changer?.role) ? 'Motorista' : 'Sistema'}
                       </Badge>
                     </div>
                     
