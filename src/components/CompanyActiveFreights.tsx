@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Truck, MapPin, Clock, User, Phone, MessageSquare, Navigation, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { CompanyInternalChat } from './CompanyInternalChat';
+import { useDriverChat } from '@/hooks/useDriverChat';
 
 interface ActiveFreight {
   id: string;
@@ -39,6 +42,10 @@ export const CompanyActiveFreights: React.FC = () => {
   const { company, drivers } = useTransportCompany();
   const [activeFreights, setActiveFreights] = useState<ActiveFreight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDriverChat, setSelectedDriverChat] = useState<{
+    driverId: string;
+    driverName: string;
+  } | null>(null);
 
   useEffect(() => {
     if (company?.id) {
@@ -191,7 +198,7 @@ export const CompanyActiveFreights: React.FC = () => {
                       </div>
 
                       {/* Motorista e Veículo */}
-                        <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium">{freight.driver?.full_name || 'Motorista'}</span>
@@ -242,15 +249,15 @@ export const CompanyActiveFreights: React.FC = () => {
                             Ligar
                           </Button>
                         )}
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={() => toast.info('Chat em desenvolvimento')}
-                        >
-                          <MessageSquare className="h-3 w-3 mr-1" />
-                          Chat
-                        </Button>
+                        <ChatButton
+                          companyId={company?.id || ''}
+                          driverId={freight.driver?.id || ''}
+                          driverName={freight.driver?.full_name || 'Motorista'}
+                          onOpenChat={() => setSelectedDriverChat({
+                            driverId: freight.driver?.id || '',
+                            driverName: freight.driver?.full_name || 'Motorista'
+                          })}
+                        />
                         <Button 
                           variant="outline" 
                           size="sm" 
@@ -284,6 +291,50 @@ export const CompanyActiveFreights: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de Chat */}
+      {selectedDriverChat && (
+        <Dialog open={!!selectedDriverChat} onOpenChange={() => setSelectedDriverChat(null)}>
+          <DialogContent className="max-w-4xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Chat com {selectedDriverChat.driverName}</DialogTitle>
+            </DialogHeader>
+            <div className="h-[60vh]">
+              <CompanyInternalChat />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
+  );
+};
+
+// Componente auxiliar para o botão de chat com badge de não lidas
+const ChatButton: React.FC<{
+  companyId: string;
+  driverId: string;
+  driverName: string;
+  onOpenChat: () => void;
+}> = ({ companyId, driverId, driverName, onOpenChat }) => {
+  const { unreadCount } = useDriverChat(companyId, driverId);
+
+  return (
+    <Button 
+      variant="outline" 
+      size="sm" 
+      className="flex-1 relative"
+      onClick={onOpenChat}
+    >
+      <MessageSquare className="h-3 w-3 mr-1" />
+      Chat
+      {unreadCount > 0 && (
+        <Badge 
+          variant="destructive" 
+          className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+        >
+          {unreadCount}
+        </Badge>
+      )}
+    </Button>
   );
 };

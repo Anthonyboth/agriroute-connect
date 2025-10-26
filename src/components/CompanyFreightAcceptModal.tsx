@@ -97,7 +97,16 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
 
       if (freightError) throw freightError;
 
-      // 4. Notificar motorista
+      // 4. Criar chat automaticamente
+      await supabase.from('company_driver_chats').insert({
+        company_id: companyId,
+        driver_profile_id: driverId,
+        sender_type: 'COMPANY',
+        message: `🚚 Frete aceito! Olá ${driverName}, este chat foi criado automaticamente para acompanharmos a entrega de: ${freight.cargo_type}. Qualquer dúvida estou à disposição.`,
+        created_at: new Date().toISOString()
+      });
+
+      // 5. Notificar motorista
       await supabase.from('notifications').insert({
         user_id: driverId,
         title: 'Frete Aceito!',
@@ -112,7 +121,7 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
         duration: 5000
       });
       
-      // 5. Disparar evento para trocar para aba "active"
+      // 6. Disparar evento para trocar para aba "active"
       window.dispatchEvent(new CustomEvent('navigate-to-tab', { detail: 'active' }));
       
       onClose();

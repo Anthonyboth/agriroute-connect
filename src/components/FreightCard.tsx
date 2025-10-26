@@ -216,6 +216,15 @@ export const FreightCard: React.FC<FreightCardProps> = ({
 
       if (updateError) throw updateError;
 
+      // Criar chat automaticamente
+      await supabase.from('company_driver_chats').insert({
+        company_id: company.id,
+        driver_profile_id: selectedDriverId,
+        sender_type: 'COMPANY',
+        message: `🚚 Frete aceito! Olá, este chat foi criado automaticamente para acompanharmos a entrega de: ${freight.cargo_type}. Qualquer dúvida estou à disposição.`,
+        created_at: new Date().toISOString()
+      });
+
       toast.success('✅ Frete aceito com sucesso!', {
         description: 'O frete aparecerá na aba "Em Andamento"'
       });
