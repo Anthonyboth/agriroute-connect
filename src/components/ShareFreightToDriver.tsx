@@ -62,6 +62,7 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
   const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM'>('FIXED');
   const [loading, setLoading] = useState(false);
   const [fetchingDrivers, setFetchingDrivers] = useState(false);
+  const [assignedDriverIds, setAssignedDriverIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (showDialog) {
@@ -72,6 +73,7 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
   const fetchDrivers = async () => {
     setFetchingDrivers(true);
     try {
+      // Fetch active drivers
       const { data, error } = await supabase
         .from('company_drivers')
         .select(`
@@ -88,6 +90,16 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
 
       if (error) throw error;
       setDrivers(data || []);
+
+      // Fetch existing assignments for this freight
+      const { data: assignments } = await supabase
+        .from('freight_assignments')
+        .select('driver_id')
+        .eq('freight_id', freight.id);
+
+      if (assignments) {
+        setAssignedDriverIds(new Set(assignments.map(a => a.driver_id)));
+      }
     } catch (error: any) {
       console.error('Erro ao buscar motoristas:', error);
       showErrorToast(toast, 'Erro ao carregar motoristas', error);
@@ -116,10 +128,24 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
     setLoading(true);
     
     try {
-      // Criar assignment
+      // Check if assignment already exists
+      const { data: existing } = await supabase
+        .from('freight_assignments')
+        .select('id')
+        .eq('freight_id', freight.id)
+        .eq('driver_id', selectedDriverId)
+        .maybeSingle();
+
+      if (existing) {
+        toast.info('Este motorista já está atribuído a este frete.');
+        setShowDialog(false);
+        return;
+      }
+
+      // Criar assignment usando upsert para segurança
       const { error: assignmentError } = await supabase
         .from('freight_assignments')
-        .insert({
+        .upsert({
           freight_id: freight.id,
           driver_id: selectedDriverId,
           company_id: companyId,
@@ -128,9 +154,20 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
           pricing_type: pricingType,
           price_per_km: pricingType === 'PER_KM' ? parseFloat(pricePerKm) : null,
           minimum_antt_price: freight.minimum_antt_price || null,
+        }, {
+          onConflict: 'freight_id,driver_id',
+          ignoreDuplicates: true
         });
 
-      if (assignmentError) throw assignmentError;
+      if (assignmentError) {
+        // Handle duplicate key constraint specifically
+        if (assignmentError.code === '23505') {
+          toast.info('Este motorista já está atribuído a este frete.');
+          setShowDialog(false);
+          return;
+        }
+        throw assignmentError;
+      }
 
       const selectedDriver = drivers.find(d => d.driver_profile_id === selectedDriverId);
       
@@ -190,12 +227,20 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
                   <SelectValue placeholder={fetchingDrivers ? "Carregando..." : "Selecione o motorista"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {drivers.map((driver) => (
-                    <SelectItem key={driver.driver_profile_id} value={driver.driver_profile_id}>
-                      {driver.driver.full_name}
-                      {driver.driver.contact_phone && ` - ${driver.driver.contact_phone}`}
-                    </SelectItem>
-                  ))}
+                  {drivers.map((driver) => {
+                    const isAssigned = assignedDriverIds.has(driver.driver_profile_id);
+                    return (
+                      <SelectItem 
+                        key={driver.driver_profile_id} 
+                        value={driver.driver_profile_id}
+                        disabled={isAssigned}
+                      >
+                        {driver.driver.full_name}
+                        {driver.driver.contact_phone && ` - ${driver.driver.contact_phone}`}
+                        {isAssigned && ' (Já atribuído)'}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

@@ -33,6 +33,9 @@ export function getErrorMessage(error: any): string {
     if (message.includes('freight_ratings')) {
       return 'Este frete já foi avaliado por você. Não é possível enviar outra avaliação.';
     }
+    if (message.includes('freight_assignments_freight_id_driver_id_key')) {
+      return 'Este motorista já está atribuído a este frete.';
+    }
     return 'Este registro já existe no sistema';
   }
   
