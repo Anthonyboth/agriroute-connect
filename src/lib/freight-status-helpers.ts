@@ -102,10 +102,12 @@ export async function driverUpdateFreightStatus({
     // Usar RPC segura para atualizar status (evita problemas de RLS)
     const { data, error } = await supabase.rpc('driver_update_freight_status', {
       p_freight_id: freightId,
-      p_new_status: newStatus as any,
-      p_notes: notes || null,
-      p_lat: location?.lat || null,
-      p_lng: location?.lng || null
+      p_new_status: newStatus,
+      p_user_id: currentUserProfile.id,
+      p_notes: notes ?? null,
+      p_lat: location?.lat ?? null,
+      p_lng: location?.lng ?? null,
+      p_assignment_id: assignmentId ?? null
     });
 
     if (error) {
@@ -145,7 +147,7 @@ export async function driverUpdateFreightStatus({
     
     // Verificar resposta da função (data é Json, precisa de cast)
     const result = data as any;
-    if (!result || !result.ok) {
+    if (!result || !(result.ok || result.success)) {
       console.error('[STATUS-UPDATE] Function returned error:', result?.error);
       
       // Mensagens de erro específicas
