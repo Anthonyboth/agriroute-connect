@@ -20,34 +20,24 @@ export const useOptimizedStats = () => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['system-stats'],
     queryFn: async () => {
-      // Buscar contagens em paralelo
-      const [usersRes, freightsRes, weightRes, ratingsRes, driversRes, producersRes, completedRes] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('freights').select('id', { count: 'exact', head: true }),
-        supabase.from('freights').select('weight').eq('status', 'COMPLETED'),
-        supabase.from('ratings').select('rating'),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'MOTORISTA'),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'PRODUTOR'),
-        supabase.from('freights').select('id', { count: 'exact', head: true }).eq('status', 'COMPLETED')
-      ]);
+      // Usar RPC SECURITY DEFINER para funcionar sem autenticação
+      const { data, error } = await supabase.rpc('get_platform_stats');
+      
+      if (error) {
+        console.error('[useOptimizedStats] Erro ao buscar stats:', error);
+        throw error;
+      }
 
-      // Calcular média de avaliações
-      const ratings = ratingsRes.data || [];
-      const avgRating = ratings.length > 0
-        ? ratings.reduce((sum, r) => sum + (r.rating || 0), 0) / ratings.length
-        : 0;
-
-      // Calcular peso total (em kg)
-      const totalWeight = (weightRes.data || []).reduce((sum, f) => sum + (f.weight || 0), 0);
+      const row = Array.isArray(data) ? data[0] : data;
 
       return {
-        totalUsers: usersRes.count || 0,
-        totalFreights: freightsRes.count || 0,
-        totalWeight,
-        averageRating: avgRating,
-        activeDrivers: driversRes.count || 0,
-        activeProducers: producersRes.count || 0,
-        completedFreights: completedRes.count || 0
+        totalUsers: Number(row?.total_usuarios ?? 0),
+        totalFreights: Number(row?.total_fretes ?? 0),
+        totalWeight: Number(row?.peso_total ?? 0),
+        averageRating: Number(row?.avaliacao_media ?? 0),
+        activeDrivers: Number(row?.motoristas ?? 0),
+        activeProducers: Number(row?.produtores ?? 0),
+        completedFreights: Number(row?.fretes_entregues ?? 0)
       };
     },
     staleTime: 15 * 60 * 1000, // 15 minutos (stats globais mudam lentamente)
