@@ -48,6 +48,7 @@ const Header: React.FC<HeaderProps> = ({
   userProfile
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const getUserInitials = (name?: string) => {
     if (!name) return 'U';
@@ -235,7 +236,7 @@ const Header: React.FC<HeaderProps> = ({
 
             {/* Mobile Menu */}
             <div className="md:hidden">
-              <Sheet>
+              <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <Menu className="h-6 w-6" />
@@ -263,7 +264,10 @@ const Header: React.FC<HeaderProps> = ({
                       variant="ghost" 
                       className="justify-start" 
                       size="sm"
-                      onClick={() => setShowNotifications(true)}
+                      onClick={() => {
+                        setShowNotifications(true);
+                        setIsSheetOpen(false);
+                      }}
                     >
                       <Bell className="mr-3 h-5 w-5" />
                       Notificações
@@ -281,7 +285,10 @@ const Header: React.FC<HeaderProps> = ({
                         variant="ghost"
                         className="justify-start"
                         size="sm"
-                        onClick={item.action}
+                        onClick={() => {
+                          item.action();
+                          setIsSheetOpen(false);
+                        }}
                       >
                         <item.icon className="mr-3 h-5 w-5" />
                         {item.label}
@@ -293,7 +300,10 @@ const Header: React.FC<HeaderProps> = ({
                       variant="ghost"
                       className="justify-start text-destructive hover:text-destructive"
                       size="sm"
-                      onClick={onLogout}
+                      onClick={() => {
+                        onLogout();
+                        setIsSheetOpen(false);
+                      }}
                     >
                       <LogOut className="mr-3 h-5 w-5" />
                       Sair
