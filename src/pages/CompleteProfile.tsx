@@ -82,6 +82,7 @@ const CompleteProfile = () => {
     antt_number: '',
     cooperative: '',
     fixed_address: '',
+    cnh_category: '',
     cnh_expiry_date: '' as string,
   });
   const [vehicles, setVehicles] = useState<any[]>([]);
@@ -155,6 +156,7 @@ const CompleteProfile = () => {
         antt_number: (profile as any).antt_number || '',
         cooperative: (profile as any).cooperative || '',
         fixed_address: (profile as any).fixed_address || '',
+        cnh_category: (profile as any).cnh_category || '',
         cnh_expiry_date: (profile as any).cnh_expiry_date || null,
       });
 
@@ -1010,6 +1012,47 @@ const CompleteProfile = () => {
                       onUploadComplete={(url) => setDocumentUrls(prev => ({ ...prev, cnh: url }))}
                       required
                     />
+
+                    {/* Categoria e Vencimento da CNH */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="cnh_category">Categoria da CNH *</Label>
+                        <Select
+                          value={(profileData as any).cnh_category || ''}
+                          onValueChange={(value) => setProfileData(prev => ({ ...prev, cnh_category: value } as any))}
+                        >
+                          <SelectTrigger id="cnh_category">
+                            <SelectValue placeholder="Selecione a categoria" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="A">A - Motos</SelectItem>
+                            <SelectItem value="B">B - Carros</SelectItem>
+                            <SelectItem value="C">C - Caminhões leves</SelectItem>
+                            <SelectItem value="D">D - Ônibus</SelectItem>
+                            <SelectItem value="E">E - Caminhões pesados</SelectItem>
+                            <SelectItem value="AB">AB - A + B</SelectItem>
+                            <SelectItem value="AC">AC - A + C</SelectItem>
+                            <SelectItem value="AD">AD - A + D</SelectItem>
+                            <SelectItem value="AE">AE - A + E</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="cnh_expiry_date">Data de Vencimento da CNH *</Label>
+                        <Input
+                          id="cnh_expiry_date"
+                          type="date"
+                          value={profileData.cnh_expiry_date || ''}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, cnh_expiry_date: e.target.value }))}
+                          min={new Date().toISOString().split('T')[0]}
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          ⚠️ A CNH deve estar dentro da validade
+                        </p>
+                      </div>
+                    </div>
 
                     {/* Sistema de múltiplas fotos de placas */}
                     <div className="space-y-3">
