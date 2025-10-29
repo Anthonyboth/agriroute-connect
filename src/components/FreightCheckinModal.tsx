@@ -31,7 +31,7 @@ const FreightCheckinModal: React.FC<FreightCheckinModalProps> = ({
   const [observations, setObservations] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
-const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
 
   useEffect(() => {
     if (isOpen && initialType) {
@@ -57,13 +57,13 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
       async (position) => {
         const { latitude, longitude } = position.coords;
         
-        const result = await safeBigDataCloudReverseGeocode(latitude, longitude);
+        const safeLocation = await safeBigDataCloudReverseGeocode(latitude, longitude, 'pt');
         
-        if (result) {
+        if (safeLocation) {
           setLocation({
-            lat: result.latitude,
-            lng: result.longitude,
-            address: result.address
+            lat: safeLocation.latitude,
+            lng: safeLocation.longitude,
+            address: safeLocation.address
           });
           toast.success('Localização capturada com sucesso');
         } else {
@@ -197,7 +197,7 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto">  
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-primary" />
