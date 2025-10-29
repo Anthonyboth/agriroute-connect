@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { supabaseWithErrorMonitoring } from '@/lib/supabaseErrorWrapper';
 import { toast } from 'sonner';
 import { Camera, Upload, MapPin, CheckCircle } from 'lucide-react';
+import { safeBigDataCloudReverseGeocode } from '@/utils/safeGeocoding';
 
 interface FreightCheckinModalProps {
   isOpen: boolean;
@@ -32,7 +33,6 @@ const FreightCheckinModal: React.FC<FreightCheckinModalProps> = ({
   const [loading, setLoading] = useState(false);
 const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
 
-  // Preseleciona o tipo de check-in quando aberto por atalho
   useEffect(() => {
     if (isOpen && initialType) {
       setCheckinType(initialType);
@@ -57,25 +57,20 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
       async (position) => {
         const { latitude, longitude } = position.coords;
         
-        try {
-          // Usando um serviço de geocodificação reversa simples
-          const response = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=pt`
-          );
-          const data = await response.json();
-          
+        const result = await safeBigDataCloudReverseGeocode(latitude, longitude);
+        
+        if (result) {
           setLocation({
-            lat: latitude,
-            lng: longitude,
-            address: data.locality || data.city || `${latitude}, ${longitude}`
+            lat: result.latitude,
+            lng: result.longitude,
+            address: result.address
           });
-          
           toast.success('Localização capturada com sucesso');
-        } catch (error) {
+        } else {
           setLocation({
             lat: latitude,
             lng: longitude,
-            address: `${latitude}, ${longitude}`
+            address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
           });
           toast.success('Localização capturada');
         }
@@ -95,7 +90,7 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
       toast.error('Apenas arquivos de imagem são permitidos');
     }
     
-    setPhotos(prev => [...prev, ...validFiles].slice(0, 5)); // Máximo 5 fotos
+    setPhotos(prev => [...prev, ...validFiles].slice(0, 5));
   };
 
   const removePhoto = (index: number) => {
@@ -134,7 +129,6 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
     try {
       const selectedType = checkinTypes.find(t => t.value === checkinType);
       
-      // Criar o check-in
       const checkinData = {
         freight_id: freightId,
         user_id: currentUserProfile.id,
@@ -167,12 +161,10 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
 
       if (checkinError) throw checkinError;
 
-      // Upload das fotos se houver
       let photoUrls: string[] = [];
       if (photos.length > 0 && checkin?.id) {
         photoUrls = await uploadPhotos(checkin.id);
         
-        // Atualizar check-in com URLs das fotos
         const { error: updateError } = await supabase
           .from('freight_checkins' as any)
           .update({ photos: photoUrls })
@@ -190,7 +182,6 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
       onCheckinCreated?.();
       onClose();
       
-      // Reset form
       setCheckinType('');
       setObservations('');
       setPhotos([]);
