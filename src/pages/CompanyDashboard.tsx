@@ -380,11 +380,13 @@ const CompanyDashboard = () => {
     } finally {
       setIsLoadingActive(false);
     }
-  }, [company?.id, profile?.id]);
+  }, []);
 
   React.useEffect(() => {
-    fetchActiveFreights();
-  }, [fetchActiveFreights]);
+    if (company?.id && profile?.id) {
+      fetchActiveFreights();
+    }
+  }, [company?.id, profile?.id, fetchActiveFreights]);
 
   // Realtime updates
   React.useEffect(() => {
