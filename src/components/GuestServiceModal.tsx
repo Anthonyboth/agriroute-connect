@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { User, MessageCircle, Mail, Truck, Home, Package, Info, AlertCircle } from 'lucide-react';
+import { User, MessageCircle, Mail, Truck, Home, Package, Info, AlertCircle, ArrowLeft } from 'lucide-react';
 import { showErrorToast } from '@/lib/error-handler';
 import { LocationFillButton } from './LocationFillButton';
 import { UserLocationSelector } from './UserLocationSelector';
@@ -128,7 +128,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
       icon: '',
       subServices: [
         { id: 'FRETE_MOTO', name: 'Frete de Moto', description: 'Entregas até 0.02t', price: 'A partir de R$ 15' },
-        { id: 'FRETE_VAN', name: 'Frete de Van', description: 'Cargas até 1 tonelada', price: 'A partir de R$ 45' }
+        { id: 'FRETE_VAN', name: 'Frete de Van/Picape', description: 'Cargas até 1.5 toneladas', price: 'A partir de R$ 45' }
       ],
       features: ['Entrega rápida', 'Rastreamento', 'Carga protegida']
     }
@@ -137,9 +137,14 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
   const info = serviceInfo[serviceType];
 
   const validateGuestUser = async () => {
-    if (!formData.document) {
-      toast.error('CPF/CNPJ é obrigatório');
+    if (!formData.name || !formData.phone) {
+      toast.error('Por favor, preencha seu nome e telefone');
       return false;
+    }
+
+    if (!formData.document) {
+      toast.info('Continue sem CPF/CNPJ (recomendamos preenchê-lo para melhor atendimento)');
+      return 'guest_user'; // Permitir continuar
     }
 
     try {
@@ -152,28 +157,47 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro na validação:', error);
+        return 'guest_user'; // Permitir continuar mesmo com erro
+      }
 
       if (data.user_exists) {
+        // Aviso suave - permitir continuar mas sugerir login
         setValidationResult(data);
         setShowUserExistsWarning(true);
-        toast.error(data.message);
-        return false;
+        toast.info('Identificamos que você já tem cadastro. Você pode fazer login para ter mais recursos!', { 
+          duration: 4000
+        });
+        return data.prospect_id || 'guest_user'; // Permitir continuar
       }
 
       setValidationResult(data);
       return data.prospect_id;
     } catch (error) {
-      console.error('Erro na validação:', error);
-      toast.error('Erro ao validar informações');
-      return false;
+      console.error('Erro ao validar usuário:', error);
+      return 'guest_user'; // Permitir continuar em caso de erro
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // VALIDAR GUEST
+    // Validações básicas
+    if (!formData.name?.trim()) {
+      toast.error('Por favor, preencha seu nome');
+      return;
+    }
+    if (!formData.phone?.trim()) {
+      toast.error('Por favor, preencha seu telefone');
+      return;
+    }
+    if (!formData.origin?.trim()) {
+      toast.error('Por favor, preencha o endereço de origem');
+      return;
+    }
+    
+    // VALIDAR GUEST (agora permite continuar)
     const prospectId = await validateGuestUser();
     if (!prospectId) return;
     
@@ -424,6 +448,9 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                           }
                         }}
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Se a localização automática não funcionar, digite o endereço manualmente
+                      </p>
                     </div>
                     {serviceType !== 'GUINCHO' && (
                       <div className="space-y-2">

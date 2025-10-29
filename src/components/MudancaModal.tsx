@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Home, Package, Truck, Calendar } from 'lucide-react';
+import { Home, Package, Truck, Calendar, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LocationFillButton } from './LocationFillButton';
@@ -210,6 +210,15 @@ export const MudancaModal: React.FC<MudancaModalProps> = ({ isOpen, onClose }) =
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="absolute left-4 top-4 flex items-center gap-1"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
           <DialogTitle className="flex items-center gap-2">
             <Home className="h-5 w-5 text-accent" />
             Solicitar Frete Urbano ou Mudança

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { User, Clock, AlertCircle } from 'lucide-react';
+import { User, Clock, AlertCircle, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { CitySelector } from './CitySelector';
@@ -229,6 +229,15 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="absolute left-4 top-4 flex items-center gap-1"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <span className="text-2xl">{info?.icon}</span>
             Solicitar {serviceLabel}

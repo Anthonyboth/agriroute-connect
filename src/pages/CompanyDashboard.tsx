@@ -1,97 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatsCard } from '@/components/ui/stats-card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CompanyDashboard as CompanyDashboardComponent } from '@/components/CompanyDashboard';
-import { PendingVehiclesApproval } from '@/components/PendingVehiclesApproval';
-import { CompanyDriverManager } from '@/components/CompanyDriverManager';
-import { AdvancedVehicleManager } from '@/components/AdvancedVehicleManager';
-import { CompanyFleetVehicleList } from '@/components/CompanyFleetVehicleList';
-import { CompanyVehicleAssignments } from '@/components/CompanyVehicleAssignments';
-import { FreightCard } from '@/components/FreightCard';
-import { VehicleManager } from '@/components/VehicleManager';
-import { FreightDetails } from '@/components/FreightDetails';
-import { DriverAvailabilityCalendar } from '@/components/DriverAvailabilityCalendar';
-import { UserCityManager } from '@/components/UserCityManager';
-import { DriverAvailabilityAreasManager } from '@/components/DriverAvailabilityAreasManager';
-import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
-import { CompanySmartFreightMatcher } from '@/components/CompanySmartFreightMatcher';
-import { ServiceTypeManager } from '@/components/ServiceTypeManager';
-import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
-import { MyAssignmentCard } from '@/components/MyAssignmentCard';
-import { DriverPayouts } from '@/components/DriverPayouts';
-import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
-import FreightLimitTracker from '@/components/FreightLimitTracker';
-import FreightCheckinModal from '@/components/FreightCheckinModal';
-import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
-import FreightWithdrawalModal from '@/components/FreightWithdrawalModal';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useNotifications } from '@/hooks/useNotifications';
+import { Button } from '@/components/ui/button';
+import { 
+  LayoutDashboard, 
+  Users, 
+  Truck, 
+  FileText, 
+  MessageSquare, 
+  Settings, 
+  TrendingUp, 
+  Package, 
+  Navigation,
+  Wallet,
+  MapPin,
+  DollarSign,
+  Search,
+  Briefcase,
+  Loader2
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { CompanySmartFreightMatcher } from '@/components/CompanySmartFreightMatcher';
+import { CompanyDriverManager } from '@/components/CompanyDriverManager';
+import CompanyDashboardComponent from '@/components/CompanyDashboard';
+import CompanySettings from '@/components/CompanySettings';
+import CompanyReportManager from '@/components/CompanyReportManager';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import ServiceRequestModal from '@/components/ServiceRequestModal';
+import MudancaModal from '@/components/MudancaModal';
+import { SendInviteModal } from '@/components/SendInviteModal';
+import FreightDetailModal from '@/components/FreightDetailModal';
+import { CheckInModal } from '@/components/CheckInModal';
+import { WithdrawModal } from '@/components/WithdrawModal';
+import { CompanyActiveFreightsTable } from '@/components/CompanyActiveFreightsTable';
+import CompanyFinancialDashboard from '@/components/CompanyFinancialDashboard';
+import CompanyFreightBoard from '@/components/CompanyFreightBoard';
+import { ProviderServiceCatalog } from '@/components/ProviderServiceCatalog';
+import { useAuth } from '@/hooks/useAuth';
+import { AdvancedVehicleManager } from '@/components/AdvancedVehicleManager';
+import { CompanyAffiliateOnboarding } from '@/components/CompanyAffiliateOnboarding';
+import { CompanyChatInterface } from '@/components/CompanyChatInterface';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { useDriverPermissions } from '@/hooks/useDriverPermissions';
-import { toast } from 'sonner';
-import { 
-  MapPin, 
-  TrendingUp, 
-  Truck, 
-  Clock, 
-  CheckCircle, 
-  Settings, 
-  DollarSign, 
-  Package, 
-  Calendar, 
-  Eye, 
-  EyeOff, 
-  Banknote, 
-  Star, 
-  MessageSquare, 
-  AlertTriangle, 
-  Users, 
-  Building2, 
-  BarChart, 
-  Link2, 
-  UserPlus, 
-  Wrench,
-  Brain,
-  Navigation,
-  FileText,
-  Target
-} from 'lucide-react';
-import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 import { useGPSMonitoring } from '@/hooks/useGPSMonitoring';
-import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
-import { TrackingConsentModal } from '@/components/TrackingConsentModal';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
-import { DriverRegionManager } from '@/components/DriverRegionManager';
-import { getCargoTypeLabel } from '@/lib/cargo-types';
-import heroLogistics from '@/assets/hero-logistics.jpg';
-import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
-import UnifiedLocationManager from '@/components/UnifiedLocationManager';
-import { ServicesModal } from '@/components/ServicesModal';
-import { UnifiedHistory } from '@/components/UnifiedHistory';
-import { CompanyFreightHistory } from '@/components/CompanyFreightHistory';
-import { CompanyInviteModal } from '@/components/CompanyInviteModal';
-import { CompanyBalance } from '@/components/CompanyBalance';
-import { CompanyInternalChat } from '@/components/CompanyInternalChat';
-import { UnifiedChatHub } from '@/components/UnifiedChatHub';
-import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
-import { CompanyReports } from '@/components/CompanyReports';
-import { ResponsiveTabNavigation } from '@/components/ui/responsive-tab-navigation';
-import { ScrollIndicators } from '@/components/ui/scroll-indicators';
-import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
-import { DriverFileModal } from '@/components/DriverFileModal';
-
-import { FRETES_IA_LABEL, AREAS_IA_LABEL, AI_ABBR, FRETES_IA_DISPONIVEL_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
 
 // ✅ Definição centralizada de TODAS as tabs (ÚNICA FONTE DA VERDADE)
 // ⚠️ ATENÇÃO: Esta é a ÚNICA lista de tabs. NÃO adicionar tabs manualmente em outros lugares!

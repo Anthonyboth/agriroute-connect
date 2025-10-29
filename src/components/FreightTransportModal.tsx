@@ -5,7 +5,7 @@ import CreateFreightModal from './CreateFreightModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Truck, Package, Home, Wheat } from 'lucide-react';
+import { Truck, Package, Home, Wheat, ArrowLeft } from 'lucide-react';
 
 interface FreightTransportModalProps {
   isOpen: boolean;
@@ -76,6 +76,15 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="absolute left-4 top-4 flex items-center gap-1"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Button>
             <DialogTitle className="text-2xl font-bold text-center">
               🚛 Fretes e Transporte
             </DialogTitle>
