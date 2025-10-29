@@ -96,9 +96,13 @@ export const useDeviceRegistration = () => {
           return;
         }
         
+        // ✅ Persist device_id to localStorage after successful registration
+        const currentDeviceId = getDeviceId();
+        localStorage.setItem('device_id', currentDeviceId);
+        
         // Marcar como registrado com timestamp
         localStorage.setItem(registrationKey, Date.now().toString());
-        console.log('✅ Dispositivo registrado com sucesso');
+        console.log('✅ Dispositivo registrado com sucesso. Device ID:', currentDeviceId);
 
         // Sincronizar permissões realmente verificadas
         const deviceId = getDeviceId();
@@ -112,7 +116,16 @@ export const useDeviceRegistration = () => {
           message: error?.message,
           code: error?.code,
         });
-        hasRegistered.current = false;
+        
+        // ✅ Handle MAX_RETRIES_EXCEEDED gracefully
+        if (error?.code === 'MAX_RETRIES_EXCEEDED') {
+          console.error('🚫 Device registration failed after maximum retries. User action may be required.');
+          // Don't set hasRegistered to false - we don't want to retry indefinitely
+          // The user will need to clear localStorage or contact support
+        } else {
+          // For other errors, allow retry on next mount
+          hasRegistered.current = false;
+        }
       } finally {
         isRegistering = false;
         registrationPromise = null;

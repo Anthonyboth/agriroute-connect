@@ -3,6 +3,9 @@ import { getDeviceInfo, getDeviceId, resetDeviceId } from '@/utils/deviceDetecti
 import { toast } from 'sonner';
 import { ErrorMonitoringService } from './errorMonitoringService';
 
+// ✅ Maximum device registration retries to prevent infinite loops
+const MAX_DEVICE_REG_RETRIES = 3;
+
 export interface UserDevice {
   id: string;
   user_id: string;
@@ -115,32 +118,67 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
           return retryData!;
         }
         
-        // If device_id conflict with another user, retry with new ID
+        // If device_id conflict with another user, retry with new ID (with limit)
         if (insertError.code === '23505') {
-          console.warn('⚠️ Device already registered to another user. Generating new ID and retrying...');
+          console.warn('⚠️ Device already registered to another user. Will retry with exponential backoff...');
           
-          const newDeviceId = resetDeviceId();
-          const retryInfo = { ...deviceInfo, deviceId: newDeviceId };
+          // ✅ Implement retry logic with exponential backoff
+          let retryAttempt = 0;
+          let lastError = insertError;
           
-          const { data: retryData, error: retryError } = await supabase
-            .from('user_devices')
-            .insert({
-              user_id: authUser.id,
-              device_id: newDeviceId,
-              device_name: retryInfo.deviceName,
-              device_type: retryInfo.deviceType,
-              os: retryInfo.os,
-              browser: retryInfo.browser,
-              user_agent: retryInfo.userAgent,
-              last_active_at: now,
-              is_active: true,
-            })
-            .select()
-            .maybeSingle();
+          while (retryAttempt < MAX_DEVICE_REG_RETRIES) {
+            retryAttempt++;
+            
+            // Exponential backoff: 1s, 2s, 4s
+            const backoffMs = Math.pow(2, retryAttempt - 1) * 1000;
+            console.log(`⏳ Retry attempt ${retryAttempt}/${MAX_DEVICE_REG_RETRIES} after ${backoffMs}ms...`);
+            await new Promise(resolve => setTimeout(resolve, backoffMs));
+            
+            // Generate new device ID
+            const newDeviceId = resetDeviceId();
+            console.log(`🆔 Generated new device ID: ${newDeviceId}`);
+            
+            const retryInfo = { ...deviceInfo, deviceId: newDeviceId };
+            
+            const { data: retryData, error: retryError } = await supabase
+              .from('user_devices')
+              .insert({
+                user_id: authUser.id,
+                device_id: newDeviceId,
+                device_name: retryInfo.deviceName,
+                device_type: retryInfo.deviceType,
+                os: retryInfo.os,
+                browser: retryInfo.browser,
+                user_agent: retryInfo.userAgent,
+                last_active_at: now,
+                is_active: true,
+              })
+              .select()
+              .maybeSingle();
+            
+            if (!retryError && retryData) {
+              console.log(`✅ Device registered with new ID on attempt ${retryAttempt}:`, retryData);
+              // ✅ Persist new device_id to localStorage after success
+              localStorage.setItem('device_id', newDeviceId);
+              return retryData;
+            }
+            
+            lastError = retryError;
+            
+            // If still getting 23505, continue retrying
+            if (retryError?.code !== '23505') {
+              // Different error, stop retrying
+              throw retryError;
+            }
+          }
           
-          if (retryError) throw retryError;
-          console.log('✅ Device registered with new ID:', retryData);
-          return retryData!;
+          // ✅ Max retries exceeded - throw specific error
+          const maxRetriesError = new Error(
+            `Device registration failed after ${MAX_DEVICE_REG_RETRIES} attempts: Device ID conflicts persist`
+          );
+          (maxRetriesError as any).code = 'MAX_RETRIES_EXCEEDED';
+          (maxRetriesError as any).originalError = lastError;
+          throw maxRetriesError;
         }
         throw insertError;
       }
@@ -158,6 +196,8 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
   } catch (error: any) {
     // Não reportar erro 23505 (conflito de device - esperado em multi-user)
     const is23505Error = error?.code === '23505' || /already registered/i.test(error?.message);
+    // Também não reportar MAX_RETRIES_EXCEEDED como erro crítico
+    const isMaxRetriesError = error?.code === 'MAX_RETRIES_EXCEEDED';
     
     // ✅ LOG DETALHADO
     console.error('❌ Erro ao registrar dispositivo:', {
@@ -168,11 +208,11 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
       userId: userId,
       deviceId: getDeviceId(),
       fullError: error,
-      willReport: !is23505Error
+      willReport: !is23505Error && !isMaxRetriesError
     });
     
-    // ✅ ENVIAR PARA TELEGRAM (exceto erro 23505)
-    if (!is23505Error) {
+    // ✅ ENVIAR PARA TELEGRAM (exceto erro 23505 e MAX_RETRIES_EXCEEDED)
+    if (!is23505Error && !isMaxRetriesError) {
       await ErrorMonitoringService.getInstance().captureError(
         new Error(`Device Registration Failed: ${error?.message || 'Unknown error'}`),
         {

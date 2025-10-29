@@ -218,24 +218,42 @@ const CompanyDashboard = () => {
   const [activeFreights, setActiveFreights] = useState<any[]>([]);
   const [myAssignments, setMyAssignments] = useState<any[]>([]);
   const [isLoadingActive, setIsLoadingActive] = useState(true);
+  
+  // ✅ Flag to prevent repeated warnings
+  const hasLoggedWarningRef = React.useRef(false);
 
   // GPS Monitoring para fretes em andamento
-  const activeFreight = activeFreights.find(f =>
-    f.status === 'IN_TRANSIT' || f.status === 'ACCEPTED'
+  // ✅ Add null-safety check: only derive activeFreight if data is loaded
+  const activeFreight = (company?.id && profile?.id && !isLoadingActive && activeFreights.length > 0)
+    ? activeFreights.find(f => f?.status === 'IN_TRANSIT' || f?.status === 'ACCEPTED')
+    : null;
+  
+  // ✅ Only invoke GPS monitoring if company and profile are loaded
+  useGPSMonitoring(
+    activeFreight?.id || null, 
+    !!(activeFreight && company?.id && profile?.id)
   );
-  useGPSMonitoring(activeFreight?.id || null, !!activeFreight);
 
   // Fetch fretes ativos da empresa
   const fetchActiveFreights = React.useCallback(async () => {
     // ✅ FASE 4: Verificar condições antes de buscar
     if (!company?.id) {
-      console.warn('⚠️ [CompanyDashboard/Active] Company não carregado, fetchActiveFreights abortado');
+      if (!hasLoggedWarningRef.current) {
+        console.warn('⚠️ [CompanyDashboard/Active] Company não carregado, fetchActiveFreights abortado');
+        hasLoggedWarningRef.current = true;
+      }
       return;
     }
     if (!profile?.id) {
-      console.warn('⚠️ [CompanyDashboard/Active] Profile não carregado, fetchActiveFreights abortado');
+      if (!hasLoggedWarningRef.current) {
+        console.warn('⚠️ [CompanyDashboard/Active] Profile não carregado, fetchActiveFreights abortado');
+        hasLoggedWarningRef.current = true;
+      }
       return;
     }
+    
+    // ✅ Reset warning flag once we have valid data
+    hasLoggedWarningRef.current = false;
 
     try {
       setIsLoadingActive(true);
