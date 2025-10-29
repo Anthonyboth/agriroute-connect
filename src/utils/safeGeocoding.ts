@@ -73,7 +73,11 @@ export function validateCoordinates(lat: number, lng: number): boolean {
 }
 
 function formatSafeAddress(parts: (string | undefined)[]): string {
-  return parts.filter(Boolean).map(part => sanitizeText(part || '')).filter(part => part.length > 0).join(', ');
+  return parts
+    .filter(Boolean)
+    .map(part => sanitizeText(part || ''))
+    .filter(part => part.length > 0)
+    .join(', ');
 }
 
 export async function safeNominatimGeocode(cityName: string, state?: string, country: string = 'Brasil'): Promise<SafeLocation | null> {
@@ -87,16 +91,33 @@ export async function safeNominatimGeocode(cityName: string, state?: string, cou
     const response = await fetchWithTimeout(url);
     const data = await response.json();
     if (!data || !Array.isArray(data) || data.length === 0) return null;
+
     const validationResult = NominatimResponseSchema.safeParse(data[0]);
     if (!validationResult.success) return null;
+
     const result = validationResult.data;
     const latitude = parseFloat(result.lat);
     const longitude = parseFloat(result.lon);
     if (!validateCoordinates(latitude, longitude)) return null;
+
     const coordsValidation = CoordinatesSchema.safeParse({ latitude, longitude });
     if (!coordsValidation.success) return null;
-    const address = formatSafeAddress([result.address?.city || result.address?.town || result.address?.village, result.address?.state, result.address?.country]) || sanitizeText(result.display_name);
-    return { latitude, longitude, address, city: sanitizeText(result.address?.city || result.address?.town || result.address?.village || ''), state: sanitizeText(result.address?.state || ''), country: sanitizeText(result.address?.country || '') };
+
+    const address =
+      formatSafeAddress([
+        result.address?.city || result.address?.town || result.address?.village,
+        result.address?.state,
+        result.address?.country
+      ]) || sanitizeText(result.display_name);
+
+    return {
+      latitude,
+      longitude,
+      address,
+      city: sanitizeText(result.address?.city || result.address?.town || result.address?.village || ''),
+      state: sanitizeText(result.address?.state || ''),
+      country: sanitizeText(result.address?.country || '')
+    };
   } catch (error) {
     console.error('Erro ao fazer geocodificação com Nominatim:', error);
     return null;
@@ -109,16 +130,29 @@ export async function safeBigDataCloudReverseGeocode(latitude: number, longitude
     const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=${language}`;
     const response = await fetchWithTimeout(url);
     const data = await response.json();
+
     const validationResult = BigDataCloudResponseSchema.safeParse(data);
     if (!validationResult.success) {
       return { latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` };
     }
+
     const result = validationResult.data;
     if (!validateCoordinates(result.latitude, result.longitude)) {
       return { latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` };
     }
-    const address = formatSafeAddress([result.locality || result.city, result.principalSubdivision, result.countryName]) || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-    return { latitude: result.latitude, longitude: result.longitude, address, city: sanitizeText(result.locality || result.city || ''), state: sanitizeText(result.principalSubdivision || ''), country: sanitizeText(result.countryName || '') };
+
+    const address =
+      formatSafeAddress([result.locality || result.city, result.principalSubdivision, result.countryName]) ||
+      `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+
+    return {
+      latitude: result.latitude,
+      longitude: result.longitude,
+      address,
+      city: sanitizeText(result.locality || result.city || ''),
+      state: sanitizeText(result.principalSubdivision || ''),
+      country: sanitizeText(result.countryName || '')
+    };
   } catch (error) {
     console.error('Erro ao fazer reverse geocoding com BigDataCloud:', error);
     return { latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` };
