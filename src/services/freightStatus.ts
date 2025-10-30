@@ -36,6 +36,9 @@ export interface UpdateFreightStatusResult {
 
 /**
  * Update freight status using safe RPC with enum validation
+ * 
+ * Uses update_freight_status (typed enum RPC) with fallback to update_freight_status_text
+ * This prevents enum/text type mismatch errors in production
  */
 export async function updateFreightStatus(
   params: UpdateFreightStatusParams
@@ -63,7 +66,7 @@ export async function updateFreightStatus(
     // 2. Normalize the enum
     enumStatus = normalizeFreightStatus(enumStatus);
 
-    // 3. Fetch current freight status for validation
+    // 3. Fetch current freight status for validation (client-side pre-check)
     if (!skipValidation) {
       const { data: freight, error: fetchError } = await supabase
         .from('freights')
@@ -106,16 +109,30 @@ export async function updateFreightStatus(
       }
     }
 
-    // 4. Call RPC to update status
-    const { data, error } = await supabase.rpc('driver_update_freight_status', {
-      p_freight_id: freightId,
-      p_new_status: enumStatus,
-      p_user_id: userId,
-      p_notes: notes ?? null,
-      p_lat: location?.lat ?? null,
-      p_lng: location?.lng ?? null,
-      p_assignment_id: assignmentId ?? null,
+    // 4. Call new typed RPC to update status (prefers enum type)
+    // This RPC uses SECURITY DEFINER and checks driver_id/producer_id permissions
+    let { data, error } = await supabase.rpc('update_freight_status', {
+      p_id: freightId,
+      p_status: enumStatus, // Typed as freight_status enum
     });
+
+    // Fallback: If typed RPC fails, try text-based RPC
+    // This handles cases where the enum cast isn't available yet
+    if (error) {
+      console.warn('[FreightStatus] Typed RPC failed, falling back to text RPC:', error);
+      
+      const fallbackResult = await supabase.rpc('update_freight_status_text', {
+        p_id: freightId,
+        p_status_text: enumStatus, // Server-side text-to-enum conversion
+      });
+      
+      data = fallbackResult.data;
+      error = fallbackResult.error;
+      
+      if (error) {
+        console.error('[FreightStatus] Both RPCs failed:', error);
+      }
+    }
 
     if (error) {
       console.error('[FreightStatus] RPC error:', error);
