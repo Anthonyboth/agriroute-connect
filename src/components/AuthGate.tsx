@@ -4,9 +4,10 @@
  * Prevents indefinite loading on auth/revalidation screens
  * Shows timeout with CTAs after hard timeout (~12s)
  * Includes minimum delay to prevent flashing
+ * Avoids infinite loops by using proper state management
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -69,29 +70,42 @@ export function AuthGate({
   const navigate = useNavigate();
   const [minDelayElapsed, setMinDelayElapsed] = useState(false);
   const [hardTimeoutElapsed, setHardTimeoutElapsed] = useState(false);
+  const minDelayTimerRef = useRef<NodeJS.Timeout>();
+  const hardTimeoutTimerRef = useRef<NodeJS.Timeout>();
 
   // Minimum delay timer
   useEffect(() => {
-    const timer = setTimeout(() => {
+    minDelayTimerRef.current = setTimeout(() => {
       setMinDelayElapsed(true);
     }, minDelay);
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (minDelayTimerRef.current) {
+        clearTimeout(minDelayTimerRef.current);
+      }
+    };
   }, [minDelay]);
 
-  // Hard timeout timer
+  // Hard timeout timer - only active when loading
   useEffect(() => {
-    if (loading) {
-      const timer = setTimeout(() => {
+    if (loading && !hardTimeoutElapsed) {
+      hardTimeoutTimerRef.current = setTimeout(() => {
         setHardTimeoutElapsed(true);
       }, hardTimeout);
 
-      return () => clearTimeout(timer);
-    } else {
+      return () => {
+        if (hardTimeoutTimerRef.current) {
+          clearTimeout(hardTimeoutTimerRef.current);
+        }
+      };
+    } else if (!loading) {
       // Reset hard timeout when loading completes
       setHardTimeoutElapsed(false);
+      if (hardTimeoutTimerRef.current) {
+        clearTimeout(hardTimeoutTimerRef.current);
+      }
     }
-  }, [loading, hardTimeout]);
+  }, [loading, hardTimeout, hardTimeoutElapsed]);
 
   // Show loading until minimum delay passes
   if (!minDelayElapsed) {
