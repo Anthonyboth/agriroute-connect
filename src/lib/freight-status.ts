@@ -156,3 +156,70 @@ export const getValidationStatusLabel = (status: string): string => {
       return status;
   }
 };
+
+// PT-BR label to enum mapping
+export const labelToFreightStatus: Record<string, string> = {
+  'Aberto': 'OPEN',
+  'Em Negociação': 'IN_NEGOTIATION',
+  'Aceito': 'ACCEPTED',
+  'Carregando': 'LOADING',
+  'Coletando': 'LOADING',
+  'Carregado': 'LOADED',
+  'Em Transporte': 'IN_TRANSIT',
+  'Em Trânsito': 'IN_TRANSIT',
+  'Aguardando Confirmação': 'DELIVERED_PENDING_CONFIRMATION',
+  'Entregue': 'DELIVERED',
+  'Finalizado': 'COMPLETED',
+  'Concluído': 'COMPLETED',
+  'Cancelado': 'CANCELLED',
+  'Rejeitado': 'REJECTED',
+  'Pendente': 'PENDING',
+};
+
+// Valid status transitions (from -> to[])
+export const validFreightTransitions: Record<string, string[]> = {
+  'OPEN': ['IN_NEGOTIATION', 'ACCEPTED', 'REJECTED', 'CANCELLED'],
+  'IN_NEGOTIATION': ['ACCEPTED', 'REJECTED', 'CANCELLED'],
+  'ACCEPTED': ['LOADING', 'CANCELLED'],
+  'LOADING': ['LOADED', 'CANCELLED'],
+  'LOADED': ['IN_TRANSIT', 'CANCELLED'],
+  'IN_TRANSIT': ['DELIVERED_PENDING_CONFIRMATION', 'CANCELLED'],
+  'DELIVERED_PENDING_CONFIRMATION': ['DELIVERED', 'COMPLETED'],
+  'DELIVERED': ['COMPLETED'],
+  'PENDING': ['OPEN', 'IN_NEGOTIATION', 'CANCELLED'],
+  'REJECTED': [], // Final state
+  'CANCELLED': [], // Final state
+  'COMPLETED': [], // Final state
+};
+
+/**
+ * Check if a status transition is valid
+ */
+export function isValidTransition(currentStatus: string, newStatus: string): boolean {
+  const normalizedCurrent = normalizeFreightStatus(currentStatus);
+  const normalizedNew = normalizeFreightStatus(newStatus);
+  
+  const allowedTransitions = validFreightTransitions[normalizedCurrent] || [];
+  return allowedTransitions.includes(normalizedNew);
+}
+
+/**
+ * Convert PT-BR label to enum value
+ */
+export function labelToEnum(label: string): string | null {
+  return labelToFreightStatus[label] || null;
+}
+
+/**
+ * Get user-friendly error message for invalid transition
+ */
+export function getTransitionErrorMessage(currentStatus: string, attemptedStatus: string): string {
+  const currentLabel = getFreightStatusLabel(currentStatus);
+  const attemptedLabel = getFreightStatusLabel(attemptedStatus);
+  
+  if (isFinalStatus(currentStatus)) {
+    return `Este frete está em status final (${currentLabel}) e não pode mais ser alterado.`;
+  }
+  
+  return `Não é possível alterar de "${currentLabel}" para "${attemptedLabel}". Transição inválida.`;
+}
