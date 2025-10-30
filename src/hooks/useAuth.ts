@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { queryWithTimeout } from '@/lib/query-utils';
 import { clearSupabaseAuthStorage } from '@/utils/authRecovery';
 import { toast } from 'sonner';
-import { getProfileReliable, clearProfileCache } from '@/services/profileService';
+import { getCachedProfile, setCachedProfile } from '@/lib/profile-cache';
 
 export interface UserProfile {
   id: string;
@@ -80,8 +81,20 @@ export const useAuth = () => {
   const ERROR_LOG_THROTTLE_MS = 60000; // 60s entre logs detalhados
   const hasFixedActiveModeRef = useRef(false); // ✅ Flag para evitar loop infinito
 
-  // Memoized fetch function using the new profile service
+  // Memoized fetch function to prevent recreation on every render
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
+    // ✅ 1. GATE: Verificar cooldown persistente no sessionStorage PRIMEIRO
+    const COOLDOWN_KEY = 'profile_fetch_cooldown_until';
+    const cooldownUntil = parseInt(sessionStorage.getItem(COOLDOWN_KEY) || '0', 10);
+    
+    if (!force && cooldownUntil > Date.now()) {
+      if (import.meta.env.DEV) {
+        const remainingSec = Math.ceil((cooldownUntil - Date.now()) / 1000);
+        console.log(`[useAuth] ⏸️ Cooldown ativo por mais ${remainingSec}s`);
+      }
+      return;
+    }
+    
     if (fetchingRef.current || !mountedRef.current) return;
     
     // ✅ Bail-out: não chamar se estiver na rota /auth sem sessão
@@ -106,29 +119,119 @@ export const useAuth = () => {
     fetchingRef.current = true;
     
     try {
-      // Use the new profile service with single-flight, cache, and cooldown
-      const profilesData = await getProfileReliable(userId, { 
-        preferCache: !force,
-        force 
-      });
+      // ✅ Tentar carregar do cache primeiro (se não for forçado)
+      if (!force) {
+        const cachedProfile = getCachedProfile(userId);
+        if (cachedProfile) {
+          setProfiles([cachedProfile]);
+          setProfile(cachedProfile);
+          setLoading(false);
+          fetchingRef.current = false;
+          return;
+        }
+      }
+      
+      // SECURITY: Removed sensitive logging - user data should not be logged to console
+      
+      // ✅ Query otimizada: apenas campos necessários
+      const profilesData = await queryWithTimeout(
+        async () => {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select(`
+              id, user_id, full_name, phone, document, email,
+              role, status, active_mode, service_types,
+              base_city_name, base_state, base_city_id,
+              created_at, updated_at, cpf_cnpj, rntrc,
+              antt_number, cooperative, rating,
+              cnh_expiry_date, cnh_category,
+              document_validation_status, cnh_validation_status,
+              rntrc_validation_status, validation_notes,
+              emergency_contact_name, emergency_contact_phone,
+              background_check_status, rating_locked,
+              last_gps_update, current_location_lat, current_location_lng,
+              base_lat, base_lng, current_city_name, current_state,
+              selfie_url, document_photo_url, cnh_photo_url,
+              truck_documents_url, truck_photo_url,
+              license_plate_photo_url, address_proof_url,
+              contact_phone, location_enabled, farm_name, farm_address
+            `)
+            .eq('user_id', userId);
+          
+          if (error) throw error;
+          return data;
+        },
+        { 
+          timeoutMs: 8000,  // ✅ Reduzido de 20s para 8s
+          operationName: 'fetchProfile',
+          retries: 0  // ✅ Sem retry - cooldown gerencia isso
+        }
+      );
       
       if (!mountedRef.current) return;
       
       if (profilesData && profilesData.length > 0) {
-        setProfiles(profilesData as UserProfile[]);
+        // SECURITY: Removed sensitive logging
+        
+        // ✅ Buscar roles protegido com timeout e fallback
+        const profilesWithRoles = await Promise.all(
+          profilesData.map(async (p: any) => {
+            try {
+              const rolesData = await queryWithTimeout(
+                async () => {
+                  const { data, error } = await supabase
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', p.user_id);
+                  
+                  if (error) throw error;
+                  return data;
+                },
+                {
+                  timeoutMs: 5000,  // ✅ 5 segundos
+                  operationName: 'fetchUserRoles',
+                  retries: 0
+                }
+              );
+              
+              return {
+                ...p,
+                roles: rolesData?.map(r => r.role) || []
+              };
+            } catch (error) {
+              // ✅ Se falhar, continua com roles vazio (fallback silencioso)
+              const now = Date.now();
+              if (now - lastErrorLogAt.current > ERROR_LOG_THROTTLE_MS) {
+                console.warn(`[useAuth] Erro ao buscar roles para ${p.user_id}:`, error);
+                lastErrorLogAt.current = now;
+              }
+              return {
+                ...p,
+                roles: []
+              };
+            }
+          })
+        );
+        
+        setProfiles(profilesWithRoles as UserProfile[]);
         
         // Verificar se há um perfil específico salvo no localStorage
         const savedProfileId = localStorage.getItem('current_profile_id');
-        let activeProfile = profilesData[0]; // Default para o primeiro perfil
+        let activeProfile = profilesWithRoles[0]; // Default para o primeiro perfil
         
         if (savedProfileId) {
-          const savedProfile = profilesData.find(p => p.id === savedProfileId);
+          const savedProfile = profilesWithRoles.find(p => p.id === savedProfileId);
           if (savedProfile) {
             activeProfile = savedProfile;
           }
         }
         
         setProfile(activeProfile as UserProfile);
+        
+        // ✅ Salvar no cache após sucesso
+        setCachedProfile(userId, activeProfile);
+        
+        // SECURITY: Removed sensitive profile data logging
       } else {
         setProfile(null);
         setProfiles([]);
@@ -140,7 +243,7 @@ export const useAuth = () => {
       // ✅ Throttling de logs: apenas log completo 1x por minuto
       const now = Date.now();
       if (now - lastErrorLogAt.current > ERROR_LOG_THROTTLE_MS) {
-        console.error('[useAuth] Erro ao buscar perfil:', error);
+        console.error('[useAuth] Erro ao buscar perfil (completo):', error);
         lastErrorLogAt.current = now;
       } else {
         if (import.meta.env.DEV) {
@@ -150,8 +253,22 @@ export const useAuth = () => {
       
       if (!mountedRef.current) return;
       
-      // CRÍTICO: Detectar recursão infinita em RLS e parar o loop
+      // ✅ Detectar timeout e ativar cooldown PERSISTENTE
       const errorMessage = String((error as any)?.message ?? '');
+      const isTimeout = (error as any)?.isTimeout === true || errorMessage.includes('Timeout') || errorMessage.includes('excedeu') || errorMessage.includes('demorou');
+      
+      if (isTimeout) {
+        lastTimeoutAt.current = Date.now();
+        
+        // ✅ Ativar cooldown de 60s no sessionStorage (persistente)
+        const COOLDOWN_KEY = 'profile_fetch_cooldown_until';
+        const cooldownUntil = Date.now() + 60000;  // 60 segundos
+        sessionStorage.setItem(COOLDOWN_KEY, String(cooldownUntil));
+        
+        console.warn('[useAuth] ⏱️ Timeout detectado. Cooldown de 60s ativado (persistente).');
+      }
+      
+      // CRÍTICO: Detectar recursão infinita em RLS e parar o loop
       const errorCode = (error as any)?.code;
       const isInfiniteRecursion = errorCode === '42P17' || errorMessage.includes('infinite recursion detected in policy');
       
@@ -316,7 +433,6 @@ export const useAuth = () => {
         if (!session) {
           // Evitar chamadas Supabase aqui (deadlock prevention)
           clearSupabaseAuthStorage();
-          clearProfileCache(); // Clear profile cache on logout
           setProfile(null);
           setProfiles([]);
           setInitialized(true);
@@ -339,25 +455,23 @@ export const useAuth = () => {
           return;
         }
         
-        // ✅ SESSION-FIRST: Set initialized as soon as we have a session
-        // This allows the UI to proceed while profile loads in background
-        setInitialized(true);
-        setLoading(false);
-        
         if (session?.user) {
           // Validate UUID format
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
           if (!uuidRegex.test(session.user.id)) {
             setProfile(null);
+            setLoading(false);
             return;
           }
           
-          // Fetch profile in background (non-blocking)
           fetchProfile(session.user.id);
         } else {
           setProfile(null);
           setProfiles([]);
+          setLoading(false);
         }
+        
+        setInitialized(true);
       }
     );
 
@@ -379,10 +493,6 @@ export const useAuth = () => {
           
           setSession(session);
           setUser(session.user);
-          // ✅ SESSION-FIRST: Set initialized immediately
-          setInitialized(true);
-          setLoading(false);
-          // Fetch profile in background
           fetchProfile(session.user.id);
         } else {
           setLoading(false);
@@ -475,7 +585,6 @@ export const useAuth = () => {
     try {
       // Limpar perfil salvo no logout
       localStorage.removeItem('current_profile_id');
-      clearProfileCache(); // Clear profile cache
 
       // Verificar sessão atual antes de deslogar
       const { data } = await supabase.auth.getSession();
@@ -504,7 +613,6 @@ export const useAuth = () => {
       setSession(null);
       setProfile(null);
       setProfiles([]);
-      clearProfileCache();
       // Não relança erro para evitar bloquear o fluxo do usuário
     }
   };
@@ -573,7 +681,6 @@ export const useAuth = () => {
     profile,
     profiles,
     loading,
-    initialized,
     isAuthenticated,
     isApproved,
     isAdmin,

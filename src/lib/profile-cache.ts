@@ -4,7 +4,7 @@ export interface CachedProfile {
 }
 
 const CACHE_KEY = 'cached_user_profile';
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutos
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 export function getCachedProfile(userId: string): any | null {
   try {

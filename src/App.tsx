@@ -58,26 +58,7 @@ const ServiceProviderDashboard = lazy(() => import("./pages/ServiceProviderDashb
 import DriverInviteSignup from "./pages/DriverInviteSignup";
 import { AlertCircle } from 'lucide-react';
 
-// Configure React Query with performance-optimized defaults
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 2 * 60 * 1000, // 2 minutes - data is considered fresh
-      gcTime: 10 * 60 * 1000, // 10 minutes - cache duration (formerly cacheTime)
-      retry: (failureCount, error: any) => {
-        // Only retry on 5xx errors, max 1 retry
-        const is5xxError = error?.status >= 500 && error?.status < 600;
-        return failureCount < 1 && is5xxError;
-      },
-      refetchOnWindowFocus: true, // Refetch when window regains focus
-      refetchOnMount: false, // Don't refetch if data is still fresh
-      refetchOnReconnect: true, // Refetch when reconnecting
-    },
-    mutations: {
-      retry: false, // Don't retry mutations by default
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 // Inicializar Error Monitoring
 if (typeof window !== 'undefined') {

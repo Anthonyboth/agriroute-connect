@@ -1,26 +1,21 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
-import { withAuth, json, errorResponse } from "../_shared/middleware.ts";
-import { validateInput, textSchema } from "../_shared/validation.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[REPORT-ERROR] ${step}${detailsStr}`);
 };
 
-// Input validation schema
-const errorReportSchema = z.object({
-  errorMessage: textSchema(1000),
-  errorType: z.string().max(100).optional(),
-  errorCategory: z.enum(['CRITICAL', 'WARNING', 'INFO']).optional(),
-  route: textSchema(500).optional(),
-  stackTrace: textSchema(5000).optional(),
-  userId: z.string().uuid().optional(),
-  metadata: z.record(z.unknown()).optional(),
-});
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
-serve(withAuth(async (req, user, supabase) => {
   try {
     logStep('Função iniciada');
 
@@ -29,9 +24,8 @@ serve(withAuth(async (req, user, supabase) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Parse and validate error report
-    const body = await req.json();
-    const errorReport = validateInput(errorReportSchema, body);
+    // Parse error report
+    const errorReport = await req.json();
     logStep('Relatório recebido', { 
       type: errorReport.errorType, 
       category: errorReport.errorCategory 
@@ -155,23 +149,22 @@ serve(withAuth(async (req, user, supabase) => {
       }
     }
 
-    return json({ 
+    return new Response(JSON.stringify({ 
       success: true,
       errorLogId: errorLog.id,
       notified: shouldNotify
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
     });
 
   } catch (error) {
     logStep('ERRO', error);
-    return errorResponse(
-      error instanceof Error ? error.message : 'Erro desconhecido',
-      500
-    );
+    return new Response(JSON.stringify({ 
+      error: error instanceof Error ? error.message : 'Erro desconhecido' 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500
+    });
   }
-}, {
-  // Rate limit: max 50 requests per 15 minutes per IP/user
-  rateLimitMaxRequests: 50,
-  rateLimitWindowMinutes: 15,
-  // Max 100KB body size
-  maxBodySize: 100 * 1024,
-}));
+});
