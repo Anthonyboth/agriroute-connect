@@ -31,6 +31,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const realtimeConnectedRef = useRef(false);
   const realtimeFailCountRef = useRef(0);
   const lastLogTimeRef = useRef(0);
+  const [portalContainerReady, setPortalContainerReady] = useState(false);
   
   // Service rating state
   const [serviceRatingOpen, setServiceRatingOpen] = useState(false);
@@ -44,6 +45,35 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [freightId, setFreightId] = useState<string | null>(null);
   const [freightRatedUserId, setFreightRatedUserId] = useState<string | null>(null);
   const [freightRatedUserName, setFreightRatedUserName] = useState<string | null>(null);
+
+  // Ensure portal container is ready before initializing
+  useEffect(() => {
+    // Check if document.body exists and is ready
+    const checkPortalContainer = () => {
+      if (document.body && document.querySelector('body')) {
+        setPortalContainerReady(true);
+        return true;
+      }
+      return false;
+    };
+
+    // Try immediately
+    if (checkPortalContainer()) {
+      return;
+    }
+
+    // Fallback: wait for DOMContentLoaded
+    if (document.readyState === 'loading') {
+      const handler = () => {
+        checkPortalContainer();
+      };
+      document.addEventListener('DOMContentLoaded', handler);
+      return () => document.removeEventListener('DOMContentLoaded', handler);
+    } else {
+      // DOM already loaded
+      setPortalContainerReady(true);
+    }
+  }, []);
 
   // Track path changes without React Router
   useEffect(() => {
@@ -189,6 +219,11 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Detectar conclusão de serviços em tempo real
   useEffect(() => {
+    // Don't initialize subscriptions until portal container is ready
+    if (!portalContainerReady) {
+      return;
+    }
+
     if (!profile?.id || currentPath === '/auth') return;
     
     // Não iniciar se Realtime estiver muito instável
@@ -386,10 +421,15 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         pollingIntervalRef.current = null;
       }
     };
-  }, [profile?.id, currentPath]);
+  }, [profile?.id, currentPath, portalContainerReady]);
 
   // 🔄 Polling inicial ao montar (caso Realtime nunca conecte)
   useEffect(() => {
+    // Don't poll until portal container is ready
+    if (!portalContainerReady) {
+      return;
+    }
+
     if (!profile?.id || currentPath === '/auth') return;
 
     const initialCheck = setTimeout(() => {
@@ -404,7 +444,7 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }, 3000);
 
     return () => clearTimeout(initialCheck);
-  }, [profile?.id, currentPath]);
+  }, [profile?.id, currentPath, portalContainerReady]);
 
   const openServiceRating = (
     requestId: string, 
