@@ -15,16 +15,38 @@ interface MyAssignmentCardProps {
 }
 
 export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, onAction }) => {
-  const freight = assignment.freight;
   const { profile: currentUserProfile } = useAuth();
   const { company } = useTransportCompany();
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  
-  // Check if current user is a transport company
+
+  // 🛡️ Proteção contra null/undefined
+  const freight = assignment?.freight ?? null;
+  const status = assignment?.status ?? 'N/A';
+  const agreedPrice = typeof assignment?.agreed_price === 'number' ? assignment.agreed_price : null;
+  const pricePerKm = typeof assignment?.price_per_km === 'number' ? assignment.price_per_km : null;
+  const minimumAnttPrice = typeof assignment?.minimum_antt_price === 'number' ? assignment.minimum_antt_price : null;
+
+  // 🛡️ Se faltar assignment ou freight, renderiza fallback seguro
+  if (!assignment || !freight) {
+    return (
+      <Card className="border-l-4 border-l-muted">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">Frete não disponível</h3>
+            <Badge variant="outline">N/A</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          Este item não possui dados completos no momento.
+        </CardContent>
+      </Card>
+    );
+  }
+
   const isTransportCompany = currentUserProfile?.role === 'TRANSPORTADORA';
-  
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+
+  const getStatusBadge = (s?: string) => {
+    switch (s) {
       case 'ACCEPTED':
         return <Badge variant="outline">Aceito</Badge>;
       case 'LOADING':
@@ -36,15 +58,15 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
       case 'DELIVERED':
         return <Badge variant="default">Entregue</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{s || 'N/A'}</Badge>;
     }
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!currentUserProfile || isUpdatingStatus) return;
+    if (!currentUserProfile || isUpdatingStatus || !freight?.id) return;
     
     // ✅ Check if freight is in final status using central constant
-    if (FINAL_STATUSES.includes(freight.status as any)) {
+    if (freight?.status && FINAL_STATUSES.includes(freight.status as any)) {
       return; // Silently prevent action (helper will show toast if somehow reached)
     }
     
@@ -63,14 +85,24 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
   };
 
   // ✅ Check if freight is in final status using central constant
-  const isFreightFinal = FINAL_STATUSES.includes(freight.status as any);
+  const isFreightFinal = freight?.status ? FINAL_STATUSES.includes(freight.status as any) : false;
+
+  // 🛡️ Proteção de dados para renderização
+  const originCity = freight?.origin_city || '—';
+  const originState = freight?.origin_state || '—';
+  const destinationCity = freight?.destination_city || '—';
+  const destinationState = freight?.destination_state || '—';
+  const distanceKm = typeof freight?.distance_km === 'number' ? freight.distance_km : null;
+  const requiredTrucks = typeof freight?.required_trucks === 'number' ? freight.required_trucks : 0;
+  const acceptedTrucks = typeof freight?.accepted_trucks === 'number' ? freight.accepted_trucks : 0;
+  const cargoType = freight?.cargo_type || freight?.service_type || '—';
   
   return (
     <Card className="border-l-4 border-l-green-600">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">{freight.cargo_type}</h3>
-          {getStatusBadge(assignment.status)}
+          <h3 className="font-semibold">{cargoType}</h3>
+          {getStatusBadge(status)}
         </div>
       </CardHeader>
       
@@ -79,21 +111,23 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
         <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200">
           <p className="text-sm text-muted-foreground">Seu valor acordado:</p>
           <p className="text-2xl font-bold text-green-600">
-            R$ {assignment.agreed_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            {agreedPrice !== null
+              ? `R$ ${agreedPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+              : '—'}
           </p>
-          {assignment.pricing_type === 'PER_KM' && assignment.price_per_km && (
+          {assignment?.pricing_type === 'PER_KM' && pricePerKm !== null && (
             <p className="text-xs text-muted-foreground">
-              R$ {assignment.price_per_km?.toFixed(2)}/km
+              R$ {pricePerKm.toFixed(2)}/km
             </p>
           )}
         </div>
 
         {/* Validação ANTT */}
-        {assignment.minimum_antt_price && (
+        {minimumAnttPrice !== null && typeof distanceKm === 'number' && (
           <ANTTValidation
-            proposedPrice={assignment.agreed_price}
-            minimumAnttPrice={assignment.minimum_antt_price}
-            distance={freight.distance_km}
+            proposedPrice={agreedPrice ?? 0}
+            minimumAnttPrice={minimumAnttPrice}
+            distance={distanceKm}
           />
         )}
 
@@ -101,33 +135,33 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
         <div className="space-y-1 text-sm">
           <p className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-green-600" />
-            <span className="font-medium">Origem:</span> {freight.origin_city}, {freight.origin_state}
+            <span className="font-medium">Origem:</span> {originCity}, {originState}
           </p>
           <p className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-red-600" />
-            <span className="font-medium">Destino:</span> {freight.destination_city}, {freight.destination_state}
+            <span className="font-medium">Destino:</span> {destinationCity}, {destinationState}
           </p>
           <p className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
-            <span>{freight.distance_km} km</span>
+            <span>{typeof distanceKm === 'number' ? `${distanceKm} km` : '—'}</span>
           </p>
         </div>
 
         {/* Informação de múltiplas carretas */}
-        {freight.required_trucks > 1 && (
+        {requiredTrucks > 1 && (
           <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200">
             <p className="text-xs text-blue-800 dark:text-blue-300 flex items-center gap-2">
               <Truck className="h-3 w-3" />
-              Este frete tem {freight.required_trucks} carretas. 
-              Você é uma delas ({freight.accepted_trucks}/{freight.required_trucks} contratadas).
+              Este frete tem {requiredTrucks} carretas. 
+              Você é uma delas ({acceptedTrucks}/{requiredTrucks} contratadas).
             </p>
           </div>
         )}
 
         {/* Ações Rápidas para FRETE_MOTO */}
-        {!isFreightFinal && (freight.service_type || freight.cargo_type) === 'FRETE_MOTO' && (
+        {!isFreightFinal && (freight?.service_type || freight?.cargo_type) === 'FRETE_MOTO' && (
           <div className="flex flex-col gap-2 pt-2">
-            {assignment.status === 'ACCEPTED' && (
+            {status === 'ACCEPTED' && (
               <Button 
                 variant="default" 
                 size="sm"
@@ -137,7 +171,7 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
                 🚚 Marcar "A caminho"
               </Button>
             )}
-            {assignment.status === 'LOADING' && (
+            {status === 'LOADING' && (
               <Button 
                 variant="default" 
                 size="sm"
@@ -147,7 +181,7 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
                 🛣️ Iniciar Trânsito
               </Button>
             )}
-            {assignment.status === 'IN_TRANSIT' && (
+            {status === 'IN_TRANSIT' && (
               <Button 
                 variant="default" 
                 size="sm"
@@ -164,10 +198,10 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
         {isFreightFinal && (
           <div className="p-2 bg-muted rounded-lg">
             <p className="text-xs text-muted-foreground text-center">
-              {freight.status === 'DELIVERED_PENDING_CONFIRMATION' && 'Aguardando confirmação de entrega'}
-              {freight.status === 'DELIVERED' && 'Frete entregue'}
-              {freight.status === 'COMPLETED' && 'Frete concluído'}
-              {freight.status === 'CANCELLED' && 'Frete cancelado'}
+              {freight?.status === 'DELIVERED_PENDING_CONFIRMATION' && 'Aguardando confirmação de entrega'}
+              {freight?.status === 'DELIVERED' && 'Frete entregue'}
+              {freight?.status === 'COMPLETED' && 'Frete concluído'}
+              {freight?.status === 'CANCELLED' && 'Frete cancelado'}
             </p>
           </div>
         )}
@@ -175,7 +209,7 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
         {/* Ações */}
         <div className="flex gap-2 pt-2">
           {/* Botão de compartilhamento para transportadoras */}
-          {isTransportCompany && company?.id && assignment.status === 'ACCEPTED' && (
+          {isTransportCompany && company?.id && status === 'ACCEPTED' && (
             <ShareFreightToDriver
               freight={freight}
               companyId={company.id}
