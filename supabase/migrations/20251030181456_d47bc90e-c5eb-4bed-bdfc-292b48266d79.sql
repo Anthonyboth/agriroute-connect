@@ -59,10 +59,12 @@ BEGIN
   SET LOCAL lock_timeout = '2s';
   SET LOCAL statement_timeout = '10s';
 
-  -- Try to lock the specific row upfront with NOWAIT
+  -- Try to lock the specific row and get data in one query
   -- This fails immediately (SQLSTATE 55P03) if another transaction holds the lock
   BEGIN
-    SELECT 1 FROM public.freights 
+    SELECT driver_id, producer_id, status
+    INTO v_driver_id, v_producer_id, v_current_status
+    FROM public.freights 
     WHERE id = p_id 
     FOR UPDATE NOWAIT;
   EXCEPTION
@@ -74,12 +76,6 @@ BEGIN
         'message', 'Este frete está sendo atualizado por outra operação. Tente novamente em alguns segundos.'
       );
   END;
-
-  -- Get current freight data for permission check and status validation
-  SELECT driver_id, producer_id, status
-  INTO v_driver_id, v_producer_id, v_current_status
-  FROM public.freights
-  WHERE id = p_id;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object(
@@ -127,16 +123,6 @@ BEGIN
     'new_status', p_status,
     'message', 'Status atualizado com sucesso.'
   );
-
-EXCEPTION
-  WHEN others THEN
-    -- Catch any unexpected errors
-    RETURN jsonb_build_object(
-      'success', false,
-      'error', 'UNEXPECTED_ERROR',
-      'message', 'Erro inesperado: ' || SQLERRM,
-      'sqlstate', SQLSTATE
-    );
 END;
 $$;
 
