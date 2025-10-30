@@ -201,7 +201,7 @@ const CompanyDashboard = () => {
 
   const fetchActiveFreights = React.useCallback(async () => {
     if (!company?.id || !profile?.id) {
-      console.warn('Company or profile not loaded');
+      // ✅ Silent guard - sem console.warn para evitar spam
       return;
     }
 

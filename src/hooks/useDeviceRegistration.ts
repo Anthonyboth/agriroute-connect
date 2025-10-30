@@ -60,8 +60,8 @@ export const useDeviceRegistration = () => {
       isRegistering = true;
       
       try {
-        // ✅ AGUARDAR propagação do JWT (500ms é suficiente)
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // ✅ AGUARDAR propagação do JWT (800ms para maior estabilidade)
+        await new Promise(resolve => setTimeout(resolve, 800));
         
         // ✅ Verificar se ainda está montado
         if (!mountedRef.current) {
@@ -124,7 +124,11 @@ export const useDeviceRegistration = () => {
     // Atualizar atividade a cada 5 minutos
     const deviceId = getDeviceId();
     const interval = setInterval(() => {
-      updateLastActivity(deviceId);
+      try {
+        updateLastActivity(deviceId);
+      } catch (error) {
+        console.warn('⚠️ Erro ao atualizar lastActivity:', error);
+      }
     }, 5 * 60 * 1000); // 5 minutos
 
     return () => {

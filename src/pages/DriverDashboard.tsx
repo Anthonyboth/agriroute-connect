@@ -34,7 +34,7 @@ import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 import { toast } from 'sonner';
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote, Star, MessageSquare, AlertTriangle, Users } from 'lucide-react';
-import { useGPSMonitoring } from '@/hooks/useGPSMonitoring';
+import { useFreightGPSMonitoring } from '@/hooks/useFreightGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { TrackingConsentModal } from '@/components/TrackingConsentModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -251,7 +251,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   const activeFreight = ongoingFreights.find(f =>
     f.status === 'IN_TRANSIT' || f.status === 'ACCEPTED'
   );
-  useGPSMonitoring(activeFreight?.id || null, !!activeFreight);
+  const isFreightActive = !!activeFreight;
+  
+  // ✅ Hook novo com guardas fortes - só roda se tiver freightId, driverProfileId e frete ativo
+  useFreightGPSMonitoring(
+    activeFreight?.id || null, 
+    profile?.id || null, 
+    isFreightActive
+  );
 
   // Utility functions for WhatsApp integration
   const formatPhone = (phoneNumber: string) => {
