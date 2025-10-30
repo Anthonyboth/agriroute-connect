@@ -1256,7 +1256,7 @@ const ProducerDashboard = () => {
             ) : (
               <>
                 {/* Desktop: responsive grid with auto-fit */}
-                <div className="hidden md:grid md:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4">
+                <div className="hidden md:grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
                   {freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
                     <ProducerFreightCard
                       key={freight.id}

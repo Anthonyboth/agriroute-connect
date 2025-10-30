@@ -76,12 +76,18 @@ export const ProducerFreightCard: React.FC<ProducerFreightCardProps> = ({
         {/* Route information */}
         <div className="space-y-2">
           <div className="flex items-start gap-2">
-            <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-muted-foreground line-clamp-2">{freight.origin_address}</p>
+            <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <div className="flex-1">
+              <span className="sr-only">Origem: </span>
+              <p className="text-xs text-muted-foreground line-clamp-2">{freight.origin_address}</p>
+            </div>
           </div>
           <div className="flex items-start gap-2">
-            <MapPin className="h-3.5 w-3.5 text-accent mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-muted-foreground line-clamp-2">{freight.destination_address}</p>
+            <MapPin className="h-3.5 w-3.5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <div className="flex-1">
+              <span className="sr-only">Destino: </span>
+              <p className="text-xs text-muted-foreground line-clamp-2">{freight.destination_address}</p>
+            </div>
           </div>
         </div>
 
