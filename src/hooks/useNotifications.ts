@@ -6,10 +6,24 @@ import { queryWithTimeout, subscriptionWithRetry } from '@/lib/query-utils';
 export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const { profile } = useAuth();
+  const { profile, initialized } = useAuth();
+  const [isAppVisible, setIsAppVisible] = useState(true);
+
+  // Track app visibility to pause background polling
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsAppVisible(!document.hidden);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   const fetchUnreadCount = useCallback(async () => {
-    if (!profile) return;
+    // Only fetch when session is initialized and app is visible
+    if (!profile || !initialized || !isAppVisible) return;
 
     setLoading(true);
     try {
@@ -43,10 +57,11 @@ export const useNotifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [profile]);
+  }, [profile, initialized, isAppVisible]);
 
   useEffect(() => {
-    if (profile) {
+    // Only enable notifications when session is initialized and app is visible
+    if (profile && initialized && isAppVisible) {
       fetchUnreadCount();
       
       // Configurar real-time subscription com retry
@@ -61,7 +76,12 @@ export const useNotifications = () => {
               table: 'notifications',
               filter: `user_id=eq.${profile.id}`
             },
-            () => fetchUnreadCount()
+            () => {
+              // Only refresh if app is visible
+              if (!document.hidden) {
+                fetchUnreadCount();
+              }
+            }
           );
         },
         {
@@ -69,8 +89,12 @@ export const useNotifications = () => {
           retryDelayMs: 3000,
           onError: (error) => {
             console.error('[useNotifications] Realtime error:', error);
-            // Fallback: polling manual se realtime falhar
-            const pollInterval = setInterval(fetchUnreadCount, 30000);
+            // Fallback: polling manual se realtime falhar (only when visible)
+            const pollInterval = setInterval(() => {
+              if (!document.hidden) {
+                fetchUnreadCount();
+              }
+            }, 30000);
             return () => clearInterval(pollInterval);
           }
         }
@@ -78,7 +102,7 @@ export const useNotifications = () => {
 
       return cleanup;
     }
-  }, [profile, fetchUnreadCount]);
+  }, [profile, initialized, isAppVisible, fetchUnreadCount]);
 
   return {
     unreadCount,
