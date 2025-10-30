@@ -226,7 +226,6 @@ If issues occur after deployment:
 - PostgreSQL CAST Documentation: https://www.postgresql.org/docs/current/sql-createcast.html
 - PostgreSQL SECURITY DEFINER: https://www.postgresql.org/docs/current/sql-createfunction.html
 
-## Authors
+## Changelog
 
-- Implementation: GitHub Copilot
-- Review: AgriRoute Connect Team
+- 2025-10-30: Initial implementation of enum/text cast fix
