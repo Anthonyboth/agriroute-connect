@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FreightCard } from '@/components/FreightCard';
+import { ProducerFreightCard } from '@/components/producer/ProducerFreightCard';
+import { FreightCardSkeleton } from '@/components/skeletons/FreightCardSkeleton';
 import CreateFreightModal from '@/components/CreateFreightModal';
 import { EditFreightModal } from '@/components/EditFreightModal';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
@@ -1252,116 +1254,68 @@ const ProducerDashboard = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="max-h-[600px] overflow-y-auto pr-2 scroll-area">
-                <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">{freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
-                  <Card key={freight.id} className="border-l-4 border-l-primary hover:shadow-lg transition-all duration-300">
-                    <CardHeader className="pb-4">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <h3 className="font-semibold text-lg">{freight.cargo_type}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {freight.origin_address} → {freight.destination_address}
-                          </p>
-                          <div className="flex items-center gap-4 mt-3">
-                            <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
-                              <Truck className="h-4 w-4 text-primary" />
-                              <span className="text-sm font-medium">{(freight.weight / 1000).toFixed(1)}t</span>
-                            </div>
-                            <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
-                              <MapPin className="h-4 w-4 text-accent" />
-                              <span className="text-sm font-medium">{freight.distance_km}km</span>
-                            </div>
-                            <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
-                              <Clock className="h-4 w-4 text-warning" />
-                              <span className="text-sm font-medium">
-                                {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right space-y-2">
-                          <Badge variant={freight.status === 'IN_TRANSIT' ? 'default' : 'secondary'} className="font-medium">
-                            {getFreightStatusLabel(freight.status)}
-                          </Badge>
-                          <p className="font-bold text-xl text-primary">R$ {freight.price.toLocaleString()}</p>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="space-y-6">
-                      {/* Informações básicas */}
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="font-medium">Motorista:</p>
-                          <p className="text-muted-foreground">
-                            {freight.driver_profiles?.full_name || 'Aguardando aceite'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Telefone:</p>
-                          <p className="text-muted-foreground">
-                            {freight.driver_profiles?.contact_phone || '-'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Data de Coleta:</p>
-                          <p className="text-muted-foreground">
-                            {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Data de Entrega:</p>
-                          <p className="text-muted-foreground">
-                            {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Botões de Ação */}
-                      <div className="flex gap-3 pt-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                          onClick={() => {
-                            setSelectedFreightDetails(freight);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Detalhes
-                        </Button>
-                        
-                        {/* Cancelamento direto para ACCEPTED e LOADING */}
-                        {['ACCEPTED', 'LOADING'].includes(freight.status) && (
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            className="flex-1 hover:shadow-lg transition-all duration-300"
-                            onClick={() => handleFreightAction('cancel', freight)}
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Cancelar Frete
-                          </Button>
-                        )}
-                        
-                        {/* Solicitar cancelamento via chat para LOADED e IN_TRANSIT */}
-                        {['LOADED', 'IN_TRANSIT'].includes(freight.status) && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="flex-1 border-destructive text-destructive hover:bg-destructive/10"
-                            onClick={() => handleFreightAction('request-cancel', freight)}
-                          >
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            Solicitar Cancelamento
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+              <>
+                {/* Desktop: responsive grid with auto-fit */}
+                <div className="hidden md:grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+                  {freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
+                    <ProducerFreightCard
+                      key={freight.id}
+                      freight={{
+                        id: freight.id,
+                        cargo_type: freight.cargo_type,
+                        weight: freight.weight,
+                        distance_km: freight.distance_km,
+                        origin_address: freight.origin_address,
+                        destination_address: freight.destination_address,
+                        pickup_date: freight.pickup_date,
+                        delivery_date: freight.delivery_date,
+                        price: freight.price,
+                        status: freight.status,
+                        driver_profiles: freight.driver_profiles
+                      }}
+                      onViewDetails={() => setSelectedFreightDetails(freight)}
+                      onCancel={['ACCEPTED', 'LOADING'].includes(freight.status) 
+                        ? () => handleFreightAction('cancel', freight) 
+                        : undefined}
+                      onRequestCancel={['LOADED', 'IN_TRANSIT'].includes(freight.status)
+                        ? () => handleFreightAction('request-cancel', freight)
+                        : undefined}
+                    />
+                  ))}
                 </div>
-              </div>
+
+                {/* Mobile: horizontal scroll with snap */}
+                <div className="md:hidden overflow-x-auto snap-x snap-mandatory -mx-4 px-4">
+                  <div className="flex gap-4 pb-4" style={{ scrollSnapType: 'x mandatory' }}>
+                    {freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
+                      <div key={freight.id} className="flex-none w-[85vw] snap-center">
+                        <ProducerFreightCard
+                          freight={{
+                            id: freight.id,
+                            cargo_type: freight.cargo_type,
+                            weight: freight.weight,
+                            distance_km: freight.distance_km,
+                            origin_address: freight.origin_address,
+                            destination_address: freight.destination_address,
+                            pickup_date: freight.pickup_date,
+                            delivery_date: freight.delivery_date,
+                            price: freight.price,
+                            status: freight.status,
+                            driver_profiles: freight.driver_profiles
+                          }}
+                          onViewDetails={() => setSelectedFreightDetails(freight)}
+                          onCancel={['ACCEPTED', 'LOADING'].includes(freight.status) 
+                            ? () => handleFreightAction('cancel', freight) 
+                            : undefined}
+                          onRequestCancel={['LOADED', 'IN_TRANSIT'].includes(freight.status)
+                            ? () => handleFreightAction('request-cancel', freight)
+                            : undefined}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
             )}
           </TabsContent>
 
