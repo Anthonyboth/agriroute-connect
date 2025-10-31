@@ -63,47 +63,24 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    console.log('[MyAssignmentCard] 🎯 handleStatusChange iniciado:', {
-      newStatus,
-      hasProfile: !!currentUserProfile,
-      isUpdating: isUpdatingStatus,
-      freightId: freight?.id,
-      currentStatus: freight?.status
-    });
-
-    if (!currentUserProfile || isUpdatingStatus || !freight?.id) {
-      console.warn('[MyAssignmentCard] ⚠️ Pré-condições falharam:', {
-        hasProfile: !!currentUserProfile,
-        isUpdating: isUpdatingStatus,
-        hasFreightId: !!freight?.id
-      });
-      return;
-    }
+    if (!currentUserProfile || isUpdatingStatus || !freight?.id) return;
     
     // ✅ Check if freight is in final status using central constant
     if (freight?.status && FINAL_STATUSES.includes(freight.status as any)) {
-      console.warn('[MyAssignmentCard] ⚠️ Frete em status final, bloqueando:', freight.status);
       return; // Silently prevent action (helper will show toast if somehow reached)
     }
     
-    console.log('[MyAssignmentCard] ✅ Pré-condições OK, chamando driverUpdateFreightStatus...');
     setIsUpdatingStatus(true);
-    
     const success = await driverUpdateFreightStatus({
       freightId: freight.id,
       newStatus,
       currentUserProfile
     });
-    
-    console.log('[MyAssignmentCard] 📊 Resultado:', { success });
     setIsUpdatingStatus(false);
     
     if (success) {
-      console.log('[MyAssignmentCard] ✅ Sucesso! Recarregando página...');
       // Recarregar página para atualizar dados
       window.location.reload();
-    } else {
-      console.error('[MyAssignmentCard] ❌ Falha ao atualizar status');
     }
   };
 

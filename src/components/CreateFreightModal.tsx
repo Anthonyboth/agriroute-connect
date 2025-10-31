@@ -427,55 +427,41 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('[CreateFreightModal] 🚀 handleSubmit iniciado');
-    console.log('[CreateFreightModal] guestMode:', guestMode);
-    console.log('[CreateFreightModal] userProfile:', userProfile);
-    
     // VALIDAÇÃO GUEST
     if (guestMode) {
-      console.log('[CreateFreightModal] Validando usuário guest...');
       const isValid = await validateGuestUser();
       if (!isValid) {
-        console.warn('[CreateFreightModal] ❌ Validação guest falhou');
         setLoading(false);
         return;
       }
-      console.log('[CreateFreightModal] ✅ Validação guest OK');
     } else {
       // Verificar autenticação antes de criar frete
       if (!userProfile?.id) {
-        console.error('[CreateFreightModal] ❌ Usuário não autenticado');
         toast.error('Faça login como produtor para criar um frete.');
         setLoading(false);
         return;
       }
-      console.log('[CreateFreightModal] ✅ Usuário autenticado:', userProfile.id);
     }
     
     setLoading(true);
 
     try {
-      console.log('[CreateFreightModal] === INICIANDO CRIAÇÃO DE FRETE ===');
-      console.log('[CreateFreightModal] Dados do formulário:', formData);
+      console.log('=== INICIANDO CRIAÇÃO DE FRETE ===');
+      console.log('Dados do formulário:', formData);
       
       // Validação básica dos campos obrigatórios de localização
       if (!formData.origin_city || !formData.origin_state) {
-        console.error('[CreateFreightModal] ❌ Origem inválida');
         toast.error('Por favor, selecione a cidade de origem');
-        setLoading(false);
         return;
       }
       
       if (!formData.destination_city || !formData.destination_state) {
-        console.error('[CreateFreightModal] ❌ Destino inválido');
         toast.error('Por favor, selecione a cidade de destino');
-        setLoading(false);
         return;
       }
 
       // VALIDAÇÃO OBRIGATÓRIA: Eixos para CARGA
       if (formData.service_type === 'CARGA' && (!formData.vehicle_axles_required || parseInt(formData.vehicle_axles_required) < 2)) {
-        console.error('[CreateFreightModal] ❌ Eixos não informados para CARGA');
         toast.error('Para fretes de CARGA, é obrigatório informar o número de eixos do veículo (mínimo 2 eixos).');
         setLoading(false);
         return;
@@ -484,25 +470,20 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
       // Validação do peso
       const weight = parseFloat(formData.weight);
       if (isNaN(weight) || weight <= 0) {
-        console.error('[CreateFreightModal] ❌ Peso inválido:', formData.weight);
         toast.error('Peso deve ser maior que zero');
-        setLoading(false);
         return;
       }
 
-      console.log('[CreateFreightModal] ✅ Peso validado:', weight, 'toneladas');
+      console.log('Peso validado:', weight, 'toneladas');
 
       // Calculate distance (mock for now)
-      console.log('[CreateFreightModal] Calculando distância...');
       const distance = await calculateDistance(formData.origin_address, formData.destination_address);
-      console.log('[CreateFreightModal] ✅ Distância calculada:', distance, 'km');
       setCalculatedDistance(distance); // Salvar para cálculo ANTT
       
       // Usar UF selecionada no formulário; se ausente, tentar extrair do endereço
       const originState = formData.origin_state || extractStateFromAddress(formData.origin_address) || 'SP';
       const destState = formData.destination_state || extractStateFromAddress(formData.destination_address) || 'RJ';
       
-      console.log('[CreateFreightModal] Calculando preço mínimo ANTT...');
       const minimumAnttPrice = await calculateMinimumAnttPrice(
         formData.cargo_type,
         weight,
@@ -510,11 +491,9 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
         originState,
         destState
       );
-      console.log('[CreateFreightModal] ✅ Preço mínimo ANTT:', minimumAnttPrice);
 
       // ✅ VALIDAÇÃO OBRIGATÓRIA: Não permitir criar frete sem ANTT
       if (showAxlesSelector && (!minimumAnttPrice || minimumAnttPrice === 0)) {
-        console.error('[CreateFreightModal] ❌ Preço ANTT inválido');
         toast.error(
           'Não foi possível calcular o preço mínimo ANTT. Verifique:\n' +
           '• Tipo de carga selecionado\n' +
@@ -527,19 +506,17 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
       }
 
       // Buscar city_ids para origem e destino
-      console.log('[CreateFreightModal] Buscando city_ids...');
       const originCityId = formData.origin_city_id || await getCityId(formData.origin_city, formData.origin_state);
       const destinationCityId = formData.destination_city_id || await getCityId(formData.destination_city, formData.destination_state);
 
       if (!originCityId || !destinationCityId) {
-        console.warn('[CreateFreightModal] ⚠️ city_id não encontrado:', {
+        console.warn('city_id não encontrado:', {
           origin: { city: formData.origin_city, state: formData.origin_state, id: originCityId },
           destination: { city: formData.destination_city, state: formData.destination_state, id: destinationCityId }
         });
       }
 
       // Calcular preços usando utilitário
-      console.log('[CreateFreightModal] Calculando preços...');
       const calculation = calculateFreightPrice({
         pricePerKm: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : undefined,
         fixedPrice: formData.pricing_type === 'FIXED' ? parseFloat(formData.price) : undefined,
@@ -548,11 +525,9 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
         pricingType: formData.pricing_type,
         anttMinimumPrice: minimumAnttPrice
       });
-      console.log('[CreateFreightModal] ✅ Cálculo completo:', calculation);
 
       // Validar ANTT se aplicável
       if (minimumAnttPrice && !calculation.isAboveAnttMinimum) {
-        console.error('[CreateFreightModal] ❌ Valor abaixo do mínimo ANTT');
         toast.error(`Valor total (R$ ${calculation.totalPrice.toFixed(2)}) está abaixo do mínimo ANTT (R$ ${calculation.anttMinimumTotal?.toFixed(2)})`);
         setLoading(false);
         return;
@@ -608,25 +583,18 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
         }
       };
 
-      console.log('[CreateFreightModal] 💾 Inserindo frete no banco...', freightData);
-      
       const { data: insertedFreight, error } = await supabase
         .from('freights')
         .insert([freightData])
         .select('id')
         .single();
 
-      if (error) {
-        console.error('[CreateFreightModal] ❌ Erro ao inserir frete:', error);
-        throw error;
-      }
-      
-      console.log('[CreateFreightModal] ✅ Frete inserido com sucesso:', insertedFreight);
+      if (error) throw error;
 
       // Trigger automatic spatial matching for drivers
       if (insertedFreight?.id) {
         try {
-          console.log('[CreateFreightModal] Triggering spatial matching for freight', insertedFreight.id);
+          console.log(`Triggering spatial matching for freight ${insertedFreight.id}...`);
           const matchingResponse = await supabase.functions.invoke('spatial-freight-matching', {
             body: { 
               freight_id: insertedFreight.id,
