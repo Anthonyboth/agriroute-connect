@@ -246,6 +246,15 @@ export async function driverUpdateFreightStatus({
       code: error.code,
       details: error
     });
+    
+    // Tratamento específico para lock timeout
+    if (error.code === '55P03') {
+      toast.error('Frete sendo atualizado por outra operação', {
+        description: 'Tente novamente em alguns segundos.'
+      });
+      return false;
+    }
+    
     console.error('[STATUS-UPDATE] Unexpected error:', error);
     toast.error('Erro inesperado ao atualizar status');
     return false;
