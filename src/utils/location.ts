@@ -54,24 +54,24 @@ export const requestPermissionSafe = async (): Promise<boolean> => {
 
 export const getCurrentPositionSafe = async (): Promise<SafePosition> => {
   if (isNative()) {
-    const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
+    const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
     return toWebLike(pos);
   }
   
-  // Web: Tentar primeiro com baixa precisão (mais rápido)
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) return reject(new Error('Geolocalização não suportada'));
     
+    // Primeira tentativa: baixa precisão, mais rápida (25s timeout)
     navigator.geolocation.getCurrentPosition(
       (p) => resolve({ coords: p.coords }),
       (err) => {
-        // Se timeout (code 3), tentar novamente com alta precisão
+        // Se deu timeout (code 3), retry com alta precisão
         if (err.code === 3) {
-          console.warn('[GPS] Timeout com baixa precisão, tentando alta precisão...');
+          console.log('[GPS] Timeout na primeira tentativa, retrying com alta precisão...');
           navigator.geolocation.getCurrentPosition(
             (p) => resolve({ coords: p.coords }),
-            (err2) => reject(err2),
-            { enableHighAccuracy: true, timeout: 30000, maximumAge: 60000 }
+            (retryErr) => reject(retryErr),
+            { enableHighAccuracy: true, timeout: 30000, maximumAge: 120000 }
           );
         } else {
           reject(err);

@@ -113,10 +113,9 @@ export const useFreightGPSMonitoring = (
       }
     };
 
-    // NÃO atualizar imediatamente - aguardar primeiro intervalo
-    // Isso evita o erro "Only request geolocation in response to user gesture"
-    console.log('[GPS Monitoring] Iniciando rastreamento em background...');
-
+    // ✅ NÃO atualizar imediatamente no mount - aguardar gesture/permissão do usuário
+    // A primeira atualização virá do intervalo após 30s
+    
     // Configurar intervalo de atualizações
     const intervalId = setInterval(updateLocation, updateInterval);
 

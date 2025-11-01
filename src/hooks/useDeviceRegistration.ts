@@ -108,7 +108,7 @@ export const useDeviceRegistration = () => {
           storage: permissions.storage === 'granted'
         });
       } catch (error: any) {
-        // Logar como warning ao invés de error (é esperado em alguns casos)
+        // ✅ Log menos alarmante - aviso ao invés de erro
         console.warn('⚠️ Aviso ao registrar dispositivo:', {
           message: error?.message,
           code: error?.code,

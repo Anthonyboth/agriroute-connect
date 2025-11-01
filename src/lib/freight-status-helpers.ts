@@ -131,6 +131,22 @@ export async function driverUpdateFreightStatus({
         location
       });
       
+      // ✅ Tratamento especial para statement timeout
+      if (error.code === '57014') {
+        toast.error('Operação demorou muito', {
+          description: 'Tente novamente. Se o erro persistir, atualize a página.'
+        });
+        return false;
+      }
+      
+      // ✅ Tratamento especial para lock timeout
+      if (error.code === '55P03') {
+        toast.error('Aguarde um momento...', {
+          description: 'Outra operação está atualizando este frete. Tente novamente em alguns segundos.'
+        });
+        return false;
+      }
+      
       // ✅ Tratamento especial para erro P0001 (transição inválida após entrega)
       if (error.code === 'P0001') {
         // Mensagem amigável para o usuário - sem expor erro técnico
