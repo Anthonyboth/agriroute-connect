@@ -158,8 +158,8 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
           </div>
         )}
 
-        {/* Ações Rápidas para FRETE_MOTO */}
-        {!isFreightFinal && (freight?.service_type || freight?.cargo_type) === 'FRETE_MOTO' && (
+        {/* Ações Rápidas de Atualização de Status */}
+        {!isFreightFinal && (
           <div className="flex flex-col gap-2 pt-2">
             {status === 'ACCEPTED' && (
               <Button 

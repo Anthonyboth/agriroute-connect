@@ -28,6 +28,14 @@ export async function driverUpdateFreightStatus({
   companyId,
   assignmentId
 }: UpdateStatusParams): Promise<boolean> {
+  console.log('[STATUS UPDATE] 🔄 Iniciando atualização:', {
+    freightId,
+    newStatus,
+    profileId: currentUserProfile.id,
+    notes,
+    location
+  });
+  
   try {
     // ✅ PREFLIGHT CHECK 1: Verificar se frete já está em status final via tabela principal
     const { data: freightData, error: checkError } = await supabase
@@ -222,9 +230,22 @@ export async function driverUpdateFreightStatus({
       }
     }
     
+    console.log('[STATUS UPDATE] ✅ Status atualizado com sucesso:', {
+      freightId,
+      newStatus,
+      assignmentId
+    });
+    
     return true;
 
   } catch (error: any) {
+    console.error('[STATUS UPDATE] ❌ Falha na atualização:', {
+      freightId,
+      newStatus,
+      error: error.message,
+      code: error.code,
+      details: error
+    });
     console.error('[STATUS-UPDATE] Unexpected error:', error);
     toast.error('Erro inesperado ao atualizar status');
     return false;

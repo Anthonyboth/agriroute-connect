@@ -13,7 +13,6 @@ import { supabase } from "@/integrations/supabase/client";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthErrorBoundary } from "@/components/AuthErrorBoundary";
 import { PageDOMErrorBoundary } from "@/components/PageDOMErrorBoundary";
-import { AppHealthOverlay } from "@/components/AppHealthOverlay";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -535,7 +534,6 @@ const App = () => {
               <RatingProvider>
                 <TooltipProvider>
                   <SubscriptionProvider>
-                    <AppHealthOverlay />
                     <ScrollToTop />
                     <DeviceSetup />
                     <SessionManager />
