@@ -20,6 +20,7 @@ import { StructuredAddressInput } from './StructuredAddressInput';
 import { freightSchema, validateInput } from '@/lib/validations';
 import { getCityId } from '@/lib/city-utils';
 import { calculateFreightPrice, convertWeightToKg } from '@/lib/freight-calculations';
+import { WeightInput } from '@/components/WeightInput';
 
 interface CreateFreightModalProps {
   onFreightCreated: () => void;
@@ -863,19 +864,11 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
             
             <div className="space-y-2">
               <Label htmlFor="weight">Peso TOTAL (Toneladas) *</Label>
-              <Input
-                id="weight"
-                type="number"
-                step="0.01"
-                min="0.01"
+              <WeightInput
                 value={formData.weight}
-                onChange={(e) => handleInputChange('weight', e.target.value)}
-                placeholder="300"
+                onChange={(value) => handleInputChange('weight', value)}
                 required
               />
-              <p className="text-xs text-muted-foreground">
-                Peso total em toneladas. Ex: 300 = 300 toneladas = 300.000 kg
-              </p>
             </div>
 
             <div className="space-y-2">

@@ -7,6 +7,19 @@ export type SafePosition = {
   coords: GeolocationCoordinates;
 };
 
+export interface GPSQuality {
+  accuracy: number;
+  quality: 'EXCELLENT' | 'GOOD' | 'ACCEPTABLE' | 'POOR';
+  isAcceptable: boolean;
+}
+
+export const getGPSQuality = (accuracy: number): GPSQuality => {
+  if (accuracy <= 20) return { accuracy, quality: 'EXCELLENT', isAcceptable: true };
+  if (accuracy <= 50) return { accuracy, quality: 'GOOD', isAcceptable: true };
+  if (accuracy <= 100) return { accuracy, quality: 'ACCEPTABLE', isAcceptable: true };
+  return { accuracy, quality: 'POOR', isAcceptable: false };
+};
+
 const toWebLike = (pos: Position): SafePosition => ({
   // Web GeolocationCoordinates compatible object
   coords: {
@@ -52,34 +65,53 @@ export const requestPermissionSafe = async (): Promise<boolean> => {
   });
 };
 
-export const getCurrentPositionSafe = async (): Promise<SafePosition> => {
+export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<SafePosition> => {
   if (isNative()) {
     const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
     return toWebLike(pos);
   }
   
-  return new Promise((resolve, reject) => {
-    if (!('geolocation' in navigator)) return reject(new Error('Geolocalização não suportada'));
-    
-    // Primeira tentativa: baixa precisão, mais rápida (25s timeout)
-    navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ coords: p.coords }),
-      (err) => {
-        // Se deu timeout (code 3), retry com alta precisão
-        if (err.code === 3) {
-          console.log('[GPS] Timeout na primeira tentativa, retrying com alta precisão...');
-          navigator.geolocation.getCurrentPosition(
-            (p) => resolve({ coords: p.coords }),
-            (retryErr) => reject(retryErr),
-            { enableHighAccuracy: true, timeout: 30000, maximumAge: 120000 }
-          );
-        } else {
-          reject(err);
-        }
-      },
-      { enableHighAccuracy: false, timeout: 25000, maximumAge: 120000 }
-    );
-  });
+  // Tentativas com retry para obter GPS de qualidade
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        if (!('geolocation' in navigator)) return reject(new Error('Geolocalização não suportada'));
+        
+        navigator.geolocation.getCurrentPosition(
+          (p) => {
+            const quality = getGPSQuality(p.coords.accuracy);
+            console.log(`[GPS] Tentativa ${attempt}: ${quality.quality} (${quality.accuracy}m)`);
+            
+            // Aceitar se qualidade boa ou se última tentativa
+            if (quality.accuracy <= 200 || attempt === maxRetries) {
+              resolve(p);
+            } else {
+              reject(new Error(`GPS de baixa qualidade: ${quality.accuracy}m`));
+            }
+          },
+          (err) => reject(err),
+          { 
+            enableHighAccuracy: attempt > 1, // Primeira tentativa mais rápida
+            timeout: 25000 + (5000 * attempt), // Timeout progressivo
+            maximumAge: 120000 
+          }
+        );
+      });
+      
+      return { coords: position.coords };
+    } catch (err: any) {
+      console.warn(`[GPS] Erro tentativa ${attempt}/${maxRetries}:`, err.message);
+      
+      if (attempt === maxRetries) {
+        throw err;
+      }
+      
+      // Backoff exponencial entre tentativas
+      await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+    }
+  }
+  
+  throw new Error('Não foi possível obter localização de qualidade');
 };
 
 export const watchPositionSafe = (

@@ -268,7 +268,7 @@ export const FreightHistory: React.FC = () => {
                               </Badge>
                             </div>
                             <CardDescription>
-                              {freight.weight} kg • {freight.distance_km} km
+                              {formatWeight(freight.weight)} • {freight.distance_km} km
                               {isProducer && freight.driver && ` • Motorista: ${freight.driver.full_name}`}
                               {!isProducer && freight.producer && ` • Produtor: ${freight.producer.full_name}`}
                             </CardDescription>

@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatWeight } from '@/lib/freight-calculations';
 
 interface CompanyFreightAcceptModalProps {
   isOpen: boolean;
@@ -221,7 +222,7 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
               <div>
                 <p className="text-sm font-medium">Tipo de Carga</p>
                 <p className="text-sm text-muted-foreground">{freight.cargo_type}</p>
-                <p className="text-xs text-muted-foreground mt-1">Peso: {freight.weight} kg</p>
+                <p className="text-xs text-muted-foreground mt-1">Peso: {formatWeight(freight.weight)}</p>
               </div>
             </div>
 
