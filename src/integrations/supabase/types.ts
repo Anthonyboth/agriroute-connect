@@ -2827,6 +2827,30 @@ export type Database = {
           },
         ]
       }
+      freights_weight_backup: {
+        Row: {
+          corrected_at: string | null
+          correction_type: string | null
+          id: string | null
+          new_weight: number | null
+          old_weight: number | null
+        }
+        Insert: {
+          corrected_at?: string | null
+          correction_type?: string | null
+          id?: string | null
+          new_weight?: number | null
+          old_weight?: number | null
+        }
+        Update: {
+          corrected_at?: string | null
+          correction_type?: string | null
+          id?: string | null
+          new_weight?: number | null
+          old_weight?: number | null
+        }
+        Relationships: []
+      }
       guest_requests: {
         Row: {
           city_name: string | null
