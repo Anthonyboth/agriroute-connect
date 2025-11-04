@@ -43,11 +43,11 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 47% 11%;
 
-    /* Primary: Professional agricultural green */
-    --primary: 142 71% 45%;
+    /* Primary: Professional agricultural green - WCAG AA compliant */
+    --primary: 142 71% 38%;
     --primary-foreground: 0 0% 98%;
-    --primary-light: 142 71% 55%;
-    --primary-dark: 142 71% 35%;
+    --primary-light: 142 71% 48%;
+    --primary-dark: 142 71% 30%;
 
     /* Secondary: Warm earth tones */
     --secondary: 210 40% 96.1%;
@@ -56,8 +56,8 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 20% 40%;
 
-    /* Accent: Complementary orange for CTAs */
-    --accent: 25 95% 53%;
+    /* Accent: Complementary orange for CTAs - WCAG AA compliant */
+    --accent: 25 95% 43%;
     --accent-foreground: 0 0% 98%;
 
     /* Status colors for freight tracking */
@@ -72,7 +72,7 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 142 71% 45%;
+    --ring: 142 71% 38%;
 
     /* Design system tokens */
     --radius: 0.75rem;
@@ -81,7 +81,7 @@
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
-    --gradient-hero: linear-gradient(135deg, hsl(142 71% 35%) 0%, hsl(25 95% 43%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(142 71% 30%) 0%, hsl(25 95% 38%) 100%);
     --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(210 40% 99%) 100%);
 
     /* Shadows */
