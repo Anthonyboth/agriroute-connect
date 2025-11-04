@@ -23,6 +23,10 @@
     <!-- Windows Tiles -->
     <meta name="msapplication-TileColor" content="#10b981">
     <meta name="msapplication-config" content="/browserconfig.xml">
+    
+    <!-- Preload critical resources for LCP -->
+    <link rel="preload" as="image" href="/src/assets/hero-logistics.jpg" fetchpriority="high">
+    
     <title>AgriRoute - Logística Agrícola Inteligente</title>
     <meta name="description" content="Plataforma completa para conectar produtores rurais e motoristas de caminhão. Gerencie fretes agrícolas com eficiência e segurança." />
     <meta name="author" content="AgriRoute" />

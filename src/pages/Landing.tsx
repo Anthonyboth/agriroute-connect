@@ -244,14 +244,15 @@ const Landing: React.FC = () => {
 
       {/* Hero Section */}
       <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: `url(${heroImage})`,
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/50 to-transparent" />
-        </div>
+        <img 
+          src={heroImage} 
+          alt="Logística agrícola moderna"
+          className="absolute inset-0 w-full h-full object-cover"
+          fetchPriority="high"
+          width="1920"
+          height="1080"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/50 to-transparent" />
         
         <div className="relative z-10 container mx-auto px-6 md:px-8 text-center max-w-5xl">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight px-4">
@@ -392,6 +393,8 @@ const Landing: React.FC = () => {
                           <img 
                             src={partner.logo as string} 
                             alt={partner.name}
+                            width="158"
+                            height="158"
                             className="max-w-full max-h-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
                           />
                         </CardContent>
