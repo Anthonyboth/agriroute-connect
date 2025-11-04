@@ -420,7 +420,7 @@ const Landing: React.FC = () => {
             </div>
             
             <div>
-              <h4 className="font-semibold text-foreground mb-4">Plataforma</h4>
+              <h3 className="font-semibold text-foreground mb-4">Plataforma</h3>
               <ul className="space-y-2 text-muted-foreground">
                 <li><Link to="/sobre" className="hover:text-foreground transition-smooth">Sobre nós</Link></li>
                 <li><button onClick={() => setHowItWorksModal({ isOpen: true })} className="hover:text-foreground transition-smooth text-left">Como funciona</button></li>
@@ -430,7 +430,7 @@ const Landing: React.FC = () => {
             </div>
             
             <div>
-              <h4 className="font-semibold text-foreground mb-4">Suporte</h4>
+              <h3 className="font-semibold text-foreground mb-4">Suporte</h3>
               <ul className="space-y-2 text-muted-foreground">
                 <li><Link to="/cadastro-prestador" className="hover:text-foreground transition-smooth">Ser Prestador</Link></li>
                 <li><Link to="/ajuda" className="hover:text-foreground transition-smooth">Central de Ajuda</Link></li>
@@ -441,7 +441,7 @@ const Landing: React.FC = () => {
             </div>
             
             <div>
-              <h4 className="font-semibold text-foreground mb-4">Legal</h4>
+              <h3 className="font-semibold text-foreground mb-4">Legal</h3>
               <ul className="space-y-2 text-muted-foreground">
                 <li><Link to="/privacidade" className="hover:text-foreground transition-smooth">Privacidade</Link></li>
                 <li><Link to="/termos" className="hover:text-foreground transition-smooth">Termos</Link></li>
