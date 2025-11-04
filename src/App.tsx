@@ -539,126 +539,128 @@ const App = () => {
                     <SessionManager />
                     <ErrorMonitoringSetup />
                     <SilentCityBootstrap />
-                    <Routes>
-                      <Route path="/" element={<AuthedLanding />} />
-                      <Route path="/landing" element={<Landing />} />
-                      <Route path="/auth" element={<RedirectIfAuthed />} />
-                      <Route path="/reset-password" element={<ResetPassword />} />
-                      <Route path="/confirm-email" element={<ConfirmEmail />} />
-                      <Route 
-                        path="/complete-profile" 
-                        element={
+                    <main>
+                      <Routes>
+                        <Route path="/" element={<AuthedLanding />} />
+                        <Route path="/landing" element={<Landing />} />
+                        <Route path="/auth" element={<RedirectIfAuthed />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
+                        <Route path="/confirm-email" element={<ConfirmEmail />} />
+                        <Route 
+                          path="/complete-profile" 
+                          element={
+                            <ProtectedRoute requiresAuth>
+                              <CompleteProfile />
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/admin" 
+                          element={
+                            <ProtectedRoute requiresAuth adminOnly allowedRoles={["ADMIN"]}>
+                              <Suspense fallback={<ComponentLoader />}>
+                                <AdminPanel />
+                              </Suspense>
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/dashboard/producer" 
+                          element={
+                            <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRODUTOR"]}>
+                              <Suspense fallback={<ComponentLoader />}>
+                                <ProducerDashboard />
+                              </Suspense>
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/dashboard/driver" 
+                          element={
+                            <ProtectedRoute requiresAuth requiresApproval allowedRoles={["MOTORISTA", "MOTORISTA_AFILIADO"]}>
+                              <Suspense fallback={<ComponentLoader />}>
+                                <DriverDashboard />
+                              </Suspense>
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/dashboard/service-provider" 
+                          element={
+                            <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRESTADOR_SERVICOS"]}>
+                              <Suspense fallback={<ComponentLoader />}>
+                                <ServiceProviderDashboard />
+                              </Suspense>
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/dashboard/company" 
+                          element={
+                            <ProtectedRoute requiresAuth requiresApproval allowedRoles={["TRANSPORTADORA"]}>
+                              <Suspense fallback={<ComponentLoader />}>
+                                <CompanyDashboard />
+                              </Suspense>
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route path="/services" element={<Services />} />
+                        <Route path="/subscription" element={<Subscription />} />
+                        <Route path="/plans" element={
                           <ProtectedRoute requiresAuth>
-                            <CompleteProfile />
+                            <Plans />
                           </ProtectedRoute>
-                        } 
-                      />
-                      <Route 
-                        path="/admin" 
-                        element={
-                          <ProtectedRoute requiresAuth adminOnly allowedRoles={["ADMIN"]}>
-                            <Suspense fallback={<ComponentLoader />}>
-                              <AdminPanel />
-                            </Suspense>
-                          </ProtectedRoute>
-                        } 
-                      />
-                      <Route 
-                        path="/dashboard/producer" 
-                        element={
-                          <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRODUTOR"]}>
-                            <Suspense fallback={<ComponentLoader />}>
-                              <ProducerDashboard />
-                            </Suspense>
-                          </ProtectedRoute>
-                        } 
-                      />
-                      <Route 
-                        path="/dashboard/driver" 
-                        element={
-                          <ProtectedRoute requiresAuth requiresApproval allowedRoles={["MOTORISTA", "MOTORISTA_AFILIADO"]}>
-                            <Suspense fallback={<ComponentLoader />}>
-                              <DriverDashboard />
-                            </Suspense>
-                          </ProtectedRoute>
-                        } 
-                      />
-                      <Route 
-                        path="/dashboard/service-provider" 
-                        element={
-                          <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRESTADOR_SERVICOS"]}>
-                            <Suspense fallback={<ComponentLoader />}>
-                              <ServiceProviderDashboard />
-                            </Suspense>
-                          </ProtectedRoute>
-                        } 
-                      />
-                      <Route 
-                        path="/dashboard/company" 
-                        element={
-                          <ProtectedRoute requiresAuth requiresApproval allowedRoles={["TRANSPORTADORA"]}>
-                            <Suspense fallback={<ComponentLoader />}>
-                              <CompanyDashboard />
-                            </Suspense>
-                          </ProtectedRoute>
-                        } 
-                      />
-                      <Route path="/services" element={<Services />} />
-                      <Route path="/subscription" element={<Subscription />} />
-                      <Route path="/plans" element={
-                        <ProtectedRoute requiresAuth>
-                          <Plans />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/cadastro-prestador" element={<ServiceProviderRegistration />} />
-                      <Route 
-                        path="/cadastro-transportadora" 
-                        element={
-                          <ProtectedRoute requiresAuth>
-                            <TransportCompanyRegistration />
-                          </ProtectedRoute>
-                        } 
-                      />
-                      <Route path="/sobre" element={<About />} />
-                      <Route path="/privacidade" element={<Privacy />} />
-                      <Route path="/termos" element={<Terms />} />
-                      <Route path="/cookies" element={<Cookies />} />
-                      <Route path="/status" element={<Status />} />
-                      <Route path="/imprensa" element={<Suspense fallback={<ComponentLoader />}><PressPage /></Suspense>} />
-                      <Route path="/carreiras" element={<Careers />} />
-                      <Route path="/ajuda" element={<Help />} />
-                      <Route path="/system-test" element={<SystemTest />} />
-                      <Route path="/payment/success" element={<PaymentSuccess />} />
-                      <Route path="/payment/cancel" element={<PaymentCancel />} />
-                      <Route path="/service-payment/success" element={
-                        <Suspense fallback={<ComponentLoader />}> 
-                          <ServicePaymentSuccess />
-                        </Suspense>
-                      } />
-                      <Route path="/service-payment/cancel" element={
-                        <Suspense fallback={<ComponentLoader />}> 
-                          <ServicePaymentCancel />
-                        </Suspense>
-                      } />
-                      <Route path="/company-invite/:inviteCode" element={
-                        <Suspense fallback={<ComponentLoader />}> 
-                          <CompanyInviteAccept />
-                        </Suspense>
-                      } />
-                      <Route path="/cadastro-afiliado/:companyId" element={
-                        <Suspense fallback={<ComponentLoader />}> 
-                          <AffiliateSignup />
-                        </Suspense>
-                      } />
-                      <Route path="/cadastro-motorista" element={<DriverInviteSignup />} />
-                      <Route path="/cadastro-motorista-afiliado" element={
-                        <Suspense fallback={<ComponentLoader />}> 
-                          {React.createElement(lazy(() => import('./pages/AffiliatedDriverSignup')))}
-                        </Suspense>
-                      } />
-                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                      <Route path="*" element={<SmartFallback />} />
-                    </Routes>
+                        } />
+                        <Route path="/cadastro-prestador" element={<ServiceProviderRegistration />} />
+                        <Route 
+                          path="/cadastro-transportadora" 
+                          element={
+                            <ProtectedRoute requiresAuth>
+                              <TransportCompanyRegistration />
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route path="/sobre" element={<About />} />
+                        <Route path="/privacidade" element={<Privacy />} />
+                        <Route path="/termos" element={<Terms />} />
+                        <Route path="/cookies" element={<Cookies />} />
+                        <Route path="/status" element={<Status />} />
+                        <Route path="/imprensa" element={<Suspense fallback={<ComponentLoader />}><PressPage /></Suspense>} />
+                        <Route path="/carreiras" element={<Careers />} />
+                        <Route path="/ajuda" element={<Help />} />
+                        <Route path="/system-test" element={<SystemTest />} />
+                        <Route path="/payment/success" element={<PaymentSuccess />} />
+                        <Route path="/payment/cancel" element={<PaymentCancel />} />
+                        <Route path="/service-payment/success" element={
+                          <Suspense fallback={<ComponentLoader />}> 
+                            <ServicePaymentSuccess />
+                          </Suspense>
+                        } />
+                        <Route path="/service-payment/cancel" element={
+                          <Suspense fallback={<ComponentLoader />}> 
+                            <ServicePaymentCancel />
+                          </Suspense>
+                        } />
+                        <Route path="/company-invite/:inviteCode" element={
+                          <Suspense fallback={<ComponentLoader />}> 
+                            <CompanyInviteAccept />
+                          </Suspense>
+                        } />
+                        <Route path="/cadastro-afiliado/:companyId" element={
+                          <Suspense fallback={<ComponentLoader />}> 
+                            <AffiliateSignup />
+                          </Suspense>
+                        } />
+                        <Route path="/cadastro-motorista" element={<DriverInviteSignup />} />
+                        <Route path="/cadastro-motorista-afiliado" element={
+                          <Suspense fallback={<ComponentLoader />}> 
+                            {React.createElement(lazy(() => import('./pages/AffiliatedDriverSignup')))}
+                          </Suspense>
+                        } />
+                        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                        <Route path="*" element={<SmartFallback />} />
+                      </Routes>
+                    </main>
             <GlobalRatingModals />
             <PermissionPrompts />
             <Toaster />
