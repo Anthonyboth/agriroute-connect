@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { StatusUpdateQueue } from './status-update-queue';
 
 // Status finais que não podem mais ser alterados
 export const FINAL_STATUSES = [
@@ -107,8 +108,8 @@ export async function driverUpdateFreightStatus({
       });
     }
 
-    // Usar RPC segura para atualizar status (evita problemas de RLS)
-    const { data, error } = await supabase.rpc('driver_update_freight_status', {
+    // Tentar RPC com timeout de 5s
+    const rpcPromise = supabase.rpc('driver_update_freight_status', {
       p_freight_id: freightId,
       p_new_status: newStatus,
       p_user_id: currentUserProfile.id,
@@ -117,6 +118,52 @@ export async function driverUpdateFreightStatus({
       p_lng: location?.lng ?? null,
       p_assignment_id: assignmentId ?? null
     });
+    
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('RPC_TIMEOUT')), 5000)
+    );
+    
+    let data, error;
+    try {
+      const result = await Promise.race([rpcPromise, timeoutPromise]) as any;
+      data = result.data;
+      error = result.error;
+    } catch (timeoutError: any) {
+      if (timeoutError.message === 'RPC_TIMEOUT') {
+        console.warn('[STATUS-UPDATE] RPC timeout, tentando fallback direto...');
+        
+        // Fallback: atualização direta
+        const fallbackSuccess = await updateStatusDirect(
+          freightId,
+          newStatus,
+          currentUserProfile.id,
+          notes,
+          location,
+          assignmentId
+        );
+        
+        if (fallbackSuccess) {
+          toast.success('Status atualizado com sucesso!');
+          return true;
+        } else {
+          // Adicionar à fila para retry posterior
+          StatusUpdateQueue.add({
+            freightId,
+            newStatus,
+            userId: currentUserProfile.id,
+            notes,
+            location,
+            assignmentId
+          });
+          
+          toast.info('Atualização armazenada localmente', {
+            description: 'Será sincronizada quando a conexão melhorar'
+          });
+          return false;
+        }
+      }
+      throw timeoutError;
+    }
 
     if (error) {
       console.error('[STATUS-UPDATE] RPC error:', {
@@ -273,6 +320,81 @@ export async function driverUpdateFreightStatus({
     
     console.error('[STATUS-UPDATE] Unexpected error:', error);
     toast.error('Erro inesperado ao atualizar status');
+    return false;
+  }
+}
+
+// Função auxiliar para atualização direta (fallback)
+async function updateStatusDirect(
+  freightId: string,
+  newStatus: string,
+  userId: string,
+  notes?: string,
+  location?: { lat: number; lng: number },
+  assignmentId?: string
+): Promise<boolean> {
+  try {
+    console.log('[STATUS-UPDATE] Executando fallback direto...');
+    
+    // 1. Atualizar frete
+    const { error: freightError } = await supabase
+      .from('freights')
+      .update({ 
+        status: newStatus as any,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', freightId);
+    
+    if (freightError) {
+      console.error('[STATUS-UPDATE] Erro ao atualizar frete:', freightError);
+      return false;
+    }
+    
+    // 2. Inserir histórico
+    const { error: historyError } = await supabase
+      .from('freight_status_history')
+      .insert({
+        freight_id: freightId,
+        status: newStatus as any,
+        changed_by: userId,
+        notes: notes || `Status: ${newStatus}`
+      } as any);
+    
+    if (historyError) {
+      console.warn('[STATUS-UPDATE] Erro ao inserir histórico:', historyError);
+      // Não bloqueia pois frete já foi atualizado
+    }
+    
+    // 3. Inserir checkin se houver localização
+    if (location?.lat && location?.lng) {
+      await supabase
+        .from('freight_checkins')
+        .insert({
+          freight_id: freightId,
+          user_id: userId,
+          location_lat: location.lat,
+          location_lng: location.lng,
+          checkin_type: newStatus,
+          notes: notes
+        } as any);
+    }
+    
+    // 4. Atualizar assignment se fornecido
+    if (assignmentId) {
+      await supabase
+        .from('freight_assignments')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', assignmentId);
+    }
+    
+    console.log('[STATUS-UPDATE] ✅ Fallback direto bem-sucedido');
+    return true;
+    
+  } catch (err) {
+    console.error('[STATUS-UPDATE] Erro no fallback direto:', err);
     return false;
   }
 }

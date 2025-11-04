@@ -465,7 +465,16 @@ export const useTransportCompany = () => {
   // Desligar motorista da transportadora
   const leaveCompany = useMutation({
     mutationFn: async (driverProfileId: string) => {
-      if (!company?.id) throw new Error('Transportadora não encontrada');
+      if (!company?.id) {
+        console.warn('[leaveCompany] Tentativa de desligar motorista sem company carregado');
+        throw new Error('Transportadora não está carregada. Atualize a página e tente novamente.');
+      }
+      
+      if (!driverProfileId) {
+        throw new Error('ID do motorista não fornecido');
+      }
+      
+      console.log('[leaveCompany] Desligando motorista:', driverProfileId, 'da empresa:', company.id);
       
       const { error } = await supabase
         .from('company_drivers')
@@ -485,7 +494,7 @@ export const useTransportCompany = () => {
     },
     onError: (error: any) => {
       console.error('Erro ao desligar motorista:', error);
-      toast.error('Erro ao desligar motorista');
+      toast.error(error.message || 'Erro ao desligar motorista. Tente novamente.');
     },
   });
 
@@ -532,7 +541,10 @@ export const useTransportCompany = () => {
       driverProfileId: string; 
       canAcceptAutonomous: boolean; 
     }) => {
-      if (!company?.id) throw new Error('Transportadora não encontrada');
+      if (!company?.id) {
+        console.warn('[updateDriverAutonomyPermission] Tentativa sem company carregado');
+        throw new Error('Transportadora não está carregada. Atualize a página e tente novamente.');
+      }
       
       const { error } = await supabase
         .from('affiliated_drivers_tracking')
