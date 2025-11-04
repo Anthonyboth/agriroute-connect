@@ -21,6 +21,6 @@ export default defineConfig(({ mode }) => ({
     dedupe: ['react', 'react-dom'],
   },
   build: {
-    sourcemap: mode !== 'production' || process.env.ENABLE_SOURCEMAPS === 'true',
+    sourcemap: true,
   },
 }));
