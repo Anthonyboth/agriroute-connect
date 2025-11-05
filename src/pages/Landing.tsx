@@ -14,7 +14,6 @@ import { ContactModal } from '@/components/ContactModal';
 import ReportModal from '@/components/ReportModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import heroImage from '@/assets/hero-logistics-optimized.webp';
 import agriRouteLogo from '@/assets/agriroute-logo-optimized.webp';
 import { supabase } from '@/integrations/supabase/client';
 import Autoplay from "embla-carousel-autoplay";
@@ -245,7 +244,7 @@ const Landing: React.FC = () => {
       {/* Hero Section */}
       <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
         <img 
-          src={heroImage} 
+          src="/hero-logistics-optimized.webp" 
           alt="Logística agrícola moderna"
           className="absolute inset-0 w-full h-full object-cover"
           loading="eager"
