@@ -81,8 +81,14 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
     const initializeMap = async () => {
       try {
+        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+        
+        if (!apiKey) {
+          throw new Error('Google Maps API key not configured');
+        }
+        
         const loader = new Loader({
-          apiKey: "YOUR_GOOGLE_MAPS_API_KEY", // Substituir por sua chave
+          apiKey,
           version: "weekly",
           libraries: ["places"]
         });
