@@ -71,10 +71,12 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
     }
     
     setIsUpdatingStatus(true);
+    console.log('[MyAssignmentCard] Atualizando status:', newStatus, 'assignment:', assignment.id);
     const success = await driverUpdateFreightStatus({
       freightId: freight.id,
       newStatus,
-      currentUserProfile
+      currentUserProfile,
+      assignmentId: assignment.id // ✅ Passa assignmentId para sincronizar status
     });
     setIsUpdatingStatus(false);
     

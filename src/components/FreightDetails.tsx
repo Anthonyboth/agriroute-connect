@@ -800,6 +800,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               currentUserProfile={currentUserProfile}
               isDriver={isDriver}
               freightServiceType={freight.service_type}
+              assignmentId={driverAssignment?.id} // ✅ Passa assignmentId do motorista ativo
               onStatusUpdated={() => {
                 fetchFreightDetails();
               }}

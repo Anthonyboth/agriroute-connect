@@ -194,6 +194,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         currentUserProfile,
         notes: notes.trim() || undefined,
         location: location || undefined,
+        assignmentId // ✅ Passa assignmentId para sincronizar status
       });
 
       if (!ok) {
