@@ -33,7 +33,7 @@ import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
-import heroLogistics from '@/assets/hero-logistics.jpg';
+import heroLogistics from '@/assets/hero-logistics-optimized.webp';
 import { showErrorToast } from '@/lib/error-handler';
 import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 import { useAutoRating } from '@/hooks/useAutoRating';

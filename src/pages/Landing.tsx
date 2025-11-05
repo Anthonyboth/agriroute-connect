@@ -14,8 +14,8 @@ import { ContactModal } from '@/components/ContactModal';
 import ReportModal from '@/components/ReportModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import heroImage from '@/assets/hero-logistics.jpg';
-import agriRouteLogo from '@/assets/agriroute-full-logo.png';
+import heroImage from '@/assets/hero-logistics-optimized.webp';
+import agriRouteLogo from '@/assets/agriroute-logo-optimized.webp';
 import { supabase } from '@/integrations/supabase/client';
 import Autoplay from "embla-carousel-autoplay";
 import { 
@@ -248,6 +248,7 @@ const Landing: React.FC = () => {
           src={heroImage} 
           alt="Logística agrícola moderna"
           className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
           fetchPriority="high"
           width="1920"
           height="1080"
