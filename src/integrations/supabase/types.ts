@@ -5907,6 +5907,10 @@ export type Database = {
         Returns: Json
       }
       check_expired_documents: { Args: never; Returns: undefined }
+      check_guest_validation_rate_limit: {
+        Args: { p_ip_address: string }
+        Returns: Json
+      }
       check_low_ratings: { Args: never; Returns: undefined }
       check_mutual_ratings_complete: {
         Args: { freight_id_param: string }
