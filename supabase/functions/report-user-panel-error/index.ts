@@ -45,6 +45,30 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Get client IP for rate limiting
+    const clientIP = getClientIP(req);
+
+    // Check rate limit BEFORE accepting the error report
+    const { data: rateLimitCheck } = await supabase
+      .rpc('check_error_report_rate_limit', { p_ip_address: clientIP });
+
+    if (rateLimitCheck && !rateLimitCheck.allowed) {
+      logStep('Rate limit exceeded', { 
+        ip: clientIP, 
+        current: rateLimitCheck.current_count,
+        max: rateLimitCheck.max_allowed 
+      });
+      
+      return new Response(JSON.stringify({ 
+        error: 'Rate limit exceeded',
+        message: `Too many error reports from your IP. Maximum ${rateLimitCheck.max_allowed} errors per hour.`,
+        retry_after: rateLimitCheck.reset_at
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 429
+      });
+    }
+
     // Parse request body
     const report: ErrorReport = await req.json();
     logStep('Report received', { 

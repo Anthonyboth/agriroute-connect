@@ -5902,6 +5902,10 @@ export type Database = {
         Args: { p_admin_profile_id: string }
         Returns: Json
       }
+      check_error_report_rate_limit: {
+        Args: { p_endpoint?: string; p_ip_address: string }
+        Returns: Json
+      }
       check_expired_documents: { Args: never; Returns: undefined }
       check_low_ratings: { Args: never; Returns: undefined }
       check_mutual_ratings_complete: {
@@ -5925,6 +5929,7 @@ export type Database = {
         }[]
       }
       cleanup_expired_requests: { Args: never; Returns: undefined }
+      cleanup_old_error_logs: { Args: never; Returns: undefined }
       confirm_checkin_as_counterpart: {
         Args: { p_checkin_id: string; p_observations?: string }
         Returns: boolean
