@@ -4,24 +4,58 @@ workflows:
     max_build_duration: 120
     environment:
       groups:
-        - app_store_connect   # Certifique-se de que você configurou o App Store Connect API Key neste grupo
+        - app_store_connect
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
+      ios_signing:
+        distribution_type: app_store
       xcode: latest
       node: 20.5.1
+    triggering:
+      branch_patterns:
+        - pattern: 'copilot/add-fleet-section-vehicle-cards'
+          include: true
+          source: true
+        - pattern: 'main'
+          include: true
+          source: true
     scripts:
       - name: Install dependencies
         script: |
           npm install
+      
       - name: Build web app
         script: |
           npm run build
+      
       - name: Sync Capacitor
         script: |
           npx cap sync ios
+      
+      - name: Verify project structure
+        script: |
+          echo "=== Verifying iOS project structure ==="
+          ls -la ios/ || echo "No ios folder"
+          ls -la ios/App/ || echo "No ios/App folder"
+          find . -name "*.xcworkspace" -o -name "*.xcodeproj" | head -10
+          echo "=== Capacitor config ==="
+          find . -name "capacitor.config.*" | head -5
+      
+      - name: Install CocoaPods
+        script: |
+          cd ios/App && pod install
+      
       - name: Build iOS
         script: |
-          xcode-project build-ipa --workspace $XCODE_WORKSPACE --scheme $XCODE_SCHEME --automatic-code-signing
+          set -e
+          cd ios/App
+          xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
+    
     artifacts:
       - build/ios/ipa/*.ipa
+    
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
