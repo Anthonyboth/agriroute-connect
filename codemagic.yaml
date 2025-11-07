@@ -11,6 +11,19 @@ workflows:
       xcode: latest
       node: 20.5.1
     scripts:
+      - name: Discover project structure
+        script: |
+          echo "=== PROJECT STRUCTURE ==="
+          find . -name "*.xcworkspace" -o -name "*.xcodeproj" -o -name "capacitor.config.*" | head -20
+          echo "=== IOS FOLDER ==="
+          ls -la ios/ 2>/dev/null || echo "No ios folder at root"
+          echo "=== APP FOLDER ==="
+          ls -la ios/App/ 2>/dev/null || echo "No ios/App folder"
+          echo "=== CAPACITOR CONFIG ==="
+          cat capacitor.config.ts 2>/dev/null || cat capacitor.config.json 2>/dev/null || echo "No capacitor config found"
+          echo "=== PACKAGE.JSON ==="
+          cat package.json | grep -A 5 "capacitor"
+      
       - name: Install dependencies
         script: |
           npm install
