@@ -6,7 +6,7 @@ workflows:
       groups:
         - app_store_connect
       vars:
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_WORKSPACE: "ios/App/App/App.xcworkspace"
         XCODE_SCHEME: "App"
       xcode: latest
       node: 20.5.1
@@ -42,8 +42,8 @@ workflows:
       
       - name: Build iOS
         script: |
-          cd ios/App
-          xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
+          cd ios/App/App
+          xcode-project build-ipa --workspace "App.xcworkspace" --scheme "App"
     
     artifacts:
       - build/ios/ipa/*.ipa
