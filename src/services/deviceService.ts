@@ -23,7 +23,7 @@ export interface UserDevice {
 }
 
 // Registrar dispositivo no banco
-export const registerDevice = async (userId: string): Promise<UserDevice> => {
+export const registerDevice = async (profileId: string): Promise<UserDevice> => {
   try {
     // ✅ GARANTIR que temos sessão E token válidos
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -35,8 +35,8 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
     // Verificar se o JWT está realmente válido
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
     
-    if (authError || !authUser || authUser.id !== userId) {
-      throw new Error('Authentication mismatch');
+    if (authError || !authUser) {
+      throw new Error('Authentication failed');
     }
     
     const deviceInfo = await getDeviceInfo();
@@ -55,7 +55,7 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
         is_active: true,
       })
       .eq('device_id', deviceInfo.deviceId)
-      .eq('user_id', authUser.id)
+      .eq('user_id', profileId)
       .select()
       .maybeSingle();
     
@@ -68,7 +68,7 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
       const { data: insertData, error: insertError } = await supabase
         .from('user_devices')
         .insert({
-          user_id: authUser.id,
+          user_id: profileId,
           device_id: deviceInfo.deviceId,
           device_name: deviceInfo.deviceName,
           device_type: deviceInfo.deviceType,
@@ -97,7 +97,7 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
           const { data: retryData, error: retryError } = await supabase
             .from('user_devices')
             .insert({
-              user_id: authUser.id,
+              user_id: profileId,
               device_id: deviceInfo.deviceId,
               device_name: deviceInfo.deviceName,
               device_type: deviceInfo.deviceType,
@@ -125,7 +125,7 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
           const { data: retryData, error: retryError } = await supabase
             .from('user_devices')
             .insert({
-              user_id: authUser.id,
+              user_id: profileId,
               device_id: newDeviceId,
               device_name: retryInfo.deviceName,
               device_type: retryInfo.deviceType,
@@ -165,7 +165,7 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
       code: error?.code,
       details: error?.details,
       hint: error?.hint,
-      userId: userId,
+      profileId: profileId,
       deviceId: getDeviceId(),
       fullError: error,
       willReport: !is23505Error
@@ -178,7 +178,7 @@ export const registerDevice = async (userId: string): Promise<UserDevice> => {
         {
           module: 'deviceService',
           functionName: 'registerDevice',
-          userId,
+          profileId,
           deviceId: getDeviceId(),
           errorCode: error?.code,
           errorDetails: error?.details,

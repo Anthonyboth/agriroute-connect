@@ -87,7 +87,7 @@ export const useDeviceRegistration = () => {
           return;
         }
         
-        await registerDevice(user.id);
+        await registerDevice(profile.id);
         
         // ✅ Verificar se está montado antes de atualizar localStorage
         if (!mountedRef.current) {

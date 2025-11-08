@@ -49,8 +49,19 @@ export function useErrorMonitoring() {
             }
           }
           
+          // Melhorar mensagem de erro para rotas de auth
+          let errorMessage = `Supabase API Error: ${response.status} ${response.statusText}`;
+          const isAuthRoute = args[0].includes('/auth/v1/');
+          
+          if (isAuthRoute && errorData) {
+            const detailedMessage = errorData.error_description || errorData.msg || errorData.message;
+            if (detailedMessage) {
+              errorMessage = `Auth Error: ${detailedMessage}`;
+            }
+          }
+          
           errorMonitoring.captureError(
-            new Error(`Supabase API Error: ${response.status} ${response.statusText}`),
+            new Error(errorMessage),
             {
               source: 'supabase_api',
               statusCode: response.status,
