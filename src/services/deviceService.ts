@@ -39,6 +39,9 @@ export const registerDevice = async (profileId: string): Promise<UserDevice> => 
       throw new Error('Authentication failed');
     }
     
+    // ✅ CRITICAL: Wait for JWT propagation to database context (50ms)
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
     const deviceInfo = await getDeviceInfo();
     const now = new Date().toISOString();
     
@@ -84,8 +87,8 @@ export const registerDevice = async (profileId: string): Promise<UserDevice> => 
       if (insertError) {
         // ✅ RETRY se for erro de RLS (JWT não propagado ainda)
         if (insertError.code === '42501') {
-          console.warn('⚠️ RLS error - JWT may not be ready. Retrying in 1s...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          console.warn('⚠️ RLS error - JWT not propagated yet. Retrying in 200ms...');
+          await new Promise(resolve => setTimeout(resolve, 200));
           
           // Verificar sessão novamente
           const { data: { session: retrySession } } = await supabase.auth.getSession();
@@ -156,8 +159,9 @@ export const registerDevice = async (profileId: string): Promise<UserDevice> => 
     console.log('✅ Dispositivo registrado (UPDATE):', updateData);
     return updateData;
   } catch (error: any) {
-    // Não reportar erro 23505 (conflito de device - esperado em multi-user)
+    // Não reportar erros esperados (23505 = conflito de device, 42501 = RLS após retries)
     const is23505Error = error?.code === '23505' || /already registered/i.test(error?.message);
+    const is42501Error = error?.code === '42501';
     
     // ✅ LOG DETALHADO
     console.error('❌ Erro ao registrar dispositivo:', {
@@ -168,11 +172,11 @@ export const registerDevice = async (profileId: string): Promise<UserDevice> => 
       profileId: profileId,
       deviceId: getDeviceId(),
       fullError: error,
-      willReport: !is23505Error
+      willReport: !is23505Error && !is42501Error
     });
     
-    // ✅ ENVIAR PARA TELEGRAM (exceto erro 23505)
-    if (!is23505Error) {
+    // ✅ ENVIAR PARA TELEGRAM (exceto erros esperados)
+    if (!is23505Error && !is42501Error) {
       await ErrorMonitoringService.getInstance().captureError(
         new Error(`Device Registration Failed: ${error?.message || 'Unknown error'}`),
         {
