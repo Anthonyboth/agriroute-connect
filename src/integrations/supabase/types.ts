@@ -3374,7 +3374,7 @@ export type Database = {
           rating_sum: number | null
           rntrc: string | null
           rntrc_validation_status: string | null
-          role: Database["public"]["Enums"]["user_role"]
+          role: Database["public"]["Enums"]["user_role"] | null
           selfie_url: string | null
           service_cities: string[] | null
           service_radius_km: number | null
@@ -3454,7 +3454,7 @@ export type Database = {
           rating_sum?: number | null
           rntrc?: string | null
           rntrc_validation_status?: string | null
-          role: Database["public"]["Enums"]["user_role"]
+          role?: Database["public"]["Enums"]["user_role"] | null
           selfie_url?: string | null
           service_cities?: string[] | null
           service_radius_km?: number | null
@@ -3534,7 +3534,7 @@ export type Database = {
           rating_sum?: number | null
           rntrc?: string | null
           rntrc_validation_status?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
+          role?: Database["public"]["Enums"]["user_role"] | null
           selfie_url?: string | null
           service_cities?: string[] | null
           service_radius_km?: number | null
@@ -5939,16 +5939,6 @@ export type Database = {
         Returns: boolean
       }
       confirm_delivery: { Args: { freight_id_param: string }; Returns: Json }
-      create_additional_profile: {
-        Args: {
-          p_document?: string
-          p_full_name?: string
-          p_phone?: string
-          p_role: Database["public"]["Enums"]["user_role"]
-          p_user_id: string
-        }
-        Returns: string
-      }
       decrypt_document: {
         Args: { encrypted_doc: string; original_doc: string }
         Returns: string
@@ -6473,17 +6463,6 @@ export type Database = {
           location_lng: number
         }[]
       }
-      get_secure_user_profile: {
-        Args: never
-        Returns: {
-          created_at: string
-          email: string
-          id: string
-          is_active: boolean
-          name: string
-          role: Database["public"]["Enums"]["user_role"]
-        }[]
-      }
       get_service_requests_by_city: {
         Args: {
           provider_current_city?: string
@@ -6617,43 +6596,27 @@ export type Database = {
           two_star: number
         }[]
       }
-      get_user_role: {
-        Args: never
-        Returns: Database["public"]["Enums"]["user_role"]
-      }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: {
           role: Database["public"]["Enums"]["app_role"]
         }[]
       }
-      get_users_in_city:
-        | {
-            Args: { p_city_id: string }
-            Returns: {
-              city_name: string
-              city_state: string
-              full_name: string
-              rating: number
-              role: Database["public"]["Enums"]["user_role"]
-              user_id: string
-            }[]
-          }
-        | {
-            Args: {
-              p_city_id: string
-              p_include_nearby?: boolean
-              p_type: Database["public"]["Enums"]["user_city_type"]
-            }
-            Returns: {
-              city_id: string
-              city_name: string
-              city_state: string
-              distance_m: number
-              radius_km: number
-              user_id: string
-            }[]
-          }
+      get_users_in_city: {
+        Args: {
+          p_city_id: string
+          p_include_nearby?: boolean
+          p_type: Database["public"]["Enums"]["user_city_type"]
+        }
+        Returns: {
+          city_id: string
+          city_name: string
+          city_state: string
+          distance_m: number
+          radius_km: number
+          user_id: string
+        }[]
+      }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
@@ -7058,7 +7021,6 @@ export type Database = {
       user_role:
         | "PRODUTOR"
         | "MOTORISTA"
-        | "ADMIN"
         | "PRESTADOR_SERVICOS"
         | "TRANSPORTADORA"
         | "MOTORISTA_AFILIADO"
@@ -7294,7 +7256,6 @@ export const Constants = {
       user_role: [
         "PRODUTOR",
         "MOTORISTA",
-        "ADMIN",
         "PRESTADOR_SERVICOS",
         "TRANSPORTADORA",
         "MOTORISTA_AFILIADO",
