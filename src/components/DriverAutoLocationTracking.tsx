@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
-import { getCurrentPositionSafe, watchPositionSafe } from '@/utils/location';
+import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe } from '@/utils/location';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { MapPin, Navigation } from 'lucide-react';
@@ -12,12 +12,30 @@ export const DriverAutoLocationTracking = () => {
   const { hasActiveFreight, activeFreightId, activeFreightType } = useActiveFreight();
   const [watchId, setWatchId] = useState<any>(null);
   const [isTracking, setIsTracking] = useState(false);
+  const [hasUserGesture, setHasUserGesture] = useState(false);
+
+  // Registrar user gesture
+  useEffect(() => {
+    const handleUserGesture = () => {
+      setHasUserGesture(true);
+      document.removeEventListener('click', handleUserGesture);
+      document.removeEventListener('touchstart', handleUserGesture);
+    };
+
+    document.addEventListener('click', handleUserGesture, { once: true });
+    document.addEventListener('touchstart', handleUserGesture, { once: true });
+
+    return () => {
+      document.removeEventListener('click', handleUserGesture);
+      document.removeEventListener('touchstart', handleUserGesture);
+    };
+  }, []);
 
   useEffect(() => {
     if (!profile?.id) return;
 
-    // Iniciar tracking quando houver frete ativo
-    if (hasActiveFreight && activeFreightId) {
+    // Iniciar tracking quando houver frete ativo E houver gesto do usuário
+    if (hasActiveFreight && activeFreightId && hasUserGesture) {
       startAutoTracking();
     } else {
       // Parar tracking quando não houver frete ativo
@@ -27,19 +45,57 @@ export const DriverAutoLocationTracking = () => {
     return () => {
       stopAutoTracking();
     };
-  }, [hasActiveFreight, activeFreightId, profile?.id]);
+  }, [hasActiveFreight, activeFreightId, profile?.id, hasUserGesture]);
+
+  const handleGeolocationError = (error: any) => {
+    console.error('Erro no rastreamento:', error);
+    
+    if (error && error.code) {
+      switch (error.code) {
+        case 1: // PERMISSION_DENIED
+          toast.error('Permissão de localização negada', {
+            description: 'Ative nas configurações do dispositivo.'
+          });
+          break;
+        case 2: // POSITION_UNAVAILABLE
+          toast.error('Localização indisponível', {
+            description: 'Verifique se o GPS está ativado.'
+          });
+          break;
+        case 3: // TIMEOUT
+          toast.error('Tempo esgotado ao obter localização', {
+            description: 'Tente novamente.'
+          });
+          break;
+        default:
+          toast.error('Erro ao rastrear localização');
+      }
+    } else {
+      toast.error('Erro ao rastrear localização');
+    }
+  };
 
   const startAutoTracking = async () => {
-    if (isTracking) return;
+    if (isTracking || !hasUserGesture) {
+      console.log('⏳ Aguardando gesto do usuário para GPS...');
+      return;
+    }
 
     try {
+      // Verificar permissão primeiro
+      const hasPermission = await checkPermissionSafe();
+      if (!hasPermission) {
+        const granted = await requestPermissionSafe();
+        if (!granted) {
+          toast.error('Permissão de localização negada');
+          return;
+        }
+      }
+
       setTimeout(() => {
         const handle = watchPositionSafe(
           (coords) => updateLocation(coords),
-          (error) => {
-            console.error('Erro no rastreamento:', error);
-            toast.error('Erro ao rastrear localização. Verifique suas permissões.');
-          }
+          (error) => handleGeolocationError(error)
         );
 
         setWatchId(handle);
@@ -52,9 +108,7 @@ export const DriverAutoLocationTracking = () => {
 
     } catch (error) {
       console.error('Erro ao iniciar tracking:', error);
-      toast.error('Não foi possível iniciar o rastreamento', {
-        description: 'Verifique se você concedeu permissão de localização.'
-      });
+      handleGeolocationError(error);
     }
   };
 

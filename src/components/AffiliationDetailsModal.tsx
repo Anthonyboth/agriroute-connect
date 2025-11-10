@@ -7,7 +7,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
 import { useAffiliationDetails } from '@/hooks/useAffiliationDetails';
-import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
   Building2, 
@@ -34,9 +36,11 @@ interface AffiliationDetailsModalProps {
 }
 
 export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = ({ isOpen, onClose }) => {
+  const { profile } = useAuth();
   const { affiliationDetails, isLoading, hasAffiliation } = useAffiliationDetails();
-  const { leaveCompany } = useTransportCompany();
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const queryClient = useQueryClient();
 
   const formatCnpj = (cnpj: string) => {
     if (!cnpj) return '';
@@ -56,17 +60,49 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
     }
   };
 
-  const handleLeaveCompany = () => {
-    leaveCompany.mutate(undefined, {
-      onSuccess: () => {
-        toast.success(`Você saiu da ${affiliationDetails?.companyName}`);
-        setShowLeaveConfirmation(false);
-        onClose();
-      },
-      onError: (error: any) => {
-        toast.error(error?.message || 'Erro ao sair da transportadora');
-      }
-    });
+  const handleLeaveCompany = async () => {
+    if (!profile?.id || !affiliationDetails?.companyId) {
+      toast.error('Dados incompletos. Atualize a página e tente novamente.');
+      return;
+    }
+
+    setIsLeaving(true);
+
+    try {
+      // Usar atualização direta para motorista sair da transportadora
+      const { error } = await supabase
+        .from('company_drivers')
+        .update({ 
+          status: 'LEFT',
+          left_at: new Date().toISOString()
+        })
+        .eq('driver_profile_id', profile.id)
+        .eq('company_id', affiliationDetails.companyId);
+
+      if (error) throw error;
+
+      // Atualizar role do perfil de volta para MOTORISTA
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ role: 'MOTORISTA' })
+        .eq('id', profile.id);
+
+      if (profileError) console.warn('Erro ao atualizar role:', profileError);
+
+      // Invalidar queries relevantes
+      queryClient.invalidateQueries({ queryKey: ['affiliation-details'] });
+      queryClient.invalidateQueries({ queryKey: ['company-driver'] });
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+
+      toast.success(`Você saiu da ${affiliationDetails.companyName}`);
+      setShowLeaveConfirmation(false);
+      onClose();
+    } catch (error: any) {
+      console.error('Erro ao sair da transportadora:', error);
+      toast.error(error?.message || 'Erro ao sair da transportadora');
+    } finally {
+      setIsLeaving(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -261,9 +297,9 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
                 variant="destructive"
                 className="w-full"
                 onClick={() => setShowLeaveConfirmation(true)}
-                disabled={leaveCompany.isPending}
+                disabled={isLeaving || isLoading || !affiliationDetails}
               >
-                {leaveCompany.isPending ? (
+                {isLeaving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Saindo...
@@ -294,12 +330,13 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isLeaving}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleLeaveCompany}
+              disabled={isLeaving}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Confirmar Saída
+              {isLeaving ? 'Saindo...' : 'Confirmar Saída'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

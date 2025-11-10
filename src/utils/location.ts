@@ -94,6 +94,12 @@ export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<Sa
             const quality = getGPSQuality(p.coords.accuracy);
             console.log(`[GPS] Tentativa ${attempt}: ${quality.quality} (${quality.accuracy}m)`);
             
+            // Rejeitar se accuracy > 1000m (exceto na última tentativa)
+            if (p.coords.accuracy > 1000 && attempt < maxRetries) {
+              reject(new Error(`GPS de baixa qualidade: ${p.coords.accuracy}m`));
+              return;
+            }
+            
             // Accept accuracy <= 500m OR always accept on last attempt
             if (quality.accuracy <= 500 || attempt === maxRetries) {
               resolve(p);

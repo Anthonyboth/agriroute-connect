@@ -18,6 +18,7 @@ import { SafeListWrapper } from '@/components/SafeListWrapper';
 import { normalizeServiceType, getAllowedServiceTypesFromProfile, type CanonicalServiceType } from '@/lib/service-type-normalization';
 import { subscriptionWithRetry } from '@/lib/query-utils';
 import { debounce } from '@/lib/utils';
+import { normalizeCity, normalizeCityState } from '@/utils/city-normalization';
 
 interface CompatibleFreight {
   freight_id: string;
@@ -458,35 +459,23 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
       const activeCities = (ucActive || []).length > 0;
       setHasActiveCities(activeCities);
 
-      // Helper para normalizar formato "Cidade, Estado" ou "Cidade" + estado separado
-      const normalizeCityState = (city: string, state: string) => {
-        // Remove ", MT" ou ", Estado" do final do nome da cidade
-        const cleanCity = String(city || '')
-          .replace(/,\s*(MT|GO|SP|RJ|MG|PR|SC|RS|BA|PE|CE|RN|PB|AL|SE|PI|MA|TO|PA|AP|RR|AM|AC|RO|MS|DF)\s*$/i, '')
-          .trim()
-          .toLowerCase();
-        
-        let cleanState = String(state || '').trim().toUpperCase();
-        
-        // Se não tem estado mas a cidade tem padrão "Cidade, Estado"
-        if (!cleanState && city?.includes(',')) {
-          const parts = String(city).split(',').map(p => p.trim());
-          cleanState = (parts[1] || '').toUpperCase();
-          return `${parts[0].toLowerCase()}|${cleanState}`;
-        }
-        
-        return `${cleanCity}|${cleanState}`;
-      };
-
       // Extrair cidade/estado de address como fallback
-      const extractCityStateFromAddress = (address: string): { city: string; state: string } | null => {
-        if (!address) return null;
-        // Pattern: "Cidade, Estado" ou "Cidade - Estado" ou últimos elementos separados por vírgula
-        const match = address.match(/([^,\-]+)[,\-]\s*([A-Z]{2})\s*$/);
+      const extractCityStateFromAddress = (address: string): { city: string; state: string } => {
+        if (!address) return { city: '', state: '' };
+        
+        // Tentar extrair cidade e estado do formato "Cidade - UF" ou "Cidade, UF"
+        const match = address.match(/([^,\-]+)[\,\-]?\s*([A-Z]{2})\s*$/i);
         if (match) {
-          return { city: match[1].trim(), state: match[2].trim() };
+          return {
+            city: normalizeCity(match[1].trim()),
+            state: match[2].trim().toUpperCase()
+          };
         }
-        return null;
+        
+        // Fallback: pegar última parte antes de vírgula
+        const parts = address.split(',').map(p => p.trim());
+        const cityPart = parts[parts.length - 1] || parts[0];
+        return { city: normalizeCity(cityPart), state: '' };
       };
 
       if (activeCities) {
@@ -502,30 +491,49 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         console.log(`🗺️ Cidades ativas do motorista:`, Array.from(allowedCities));
 
         filteredByType = filteredByType.filter((f: any) => {
-          let oKey = normalizeCityState(f.origin_city, f.origin_state);
-          let dKey = normalizeCityState(f.destination_city, f.destination_state);
+          let oKey = normalizeCityState(f.origin_city || '', f.origin_state || '');
+          let dKey = normalizeCityState(f.destination_city || '', f.destination_state || '');
           
           // Fallback: tentar extrair de addresses se city/state estão vazios
           if (!f.origin_city || !f.origin_state) {
             const extracted = extractCityStateFromAddress(f.origin_address);
-            if (extracted) {
+            if (extracted.city) {
               oKey = normalizeCityState(extracted.city, extracted.state);
-              console.log(`🔄 Origem extraída de address: ${oKey} (frete ${f.freight_id})`);
+              console.log(`🔄 Origem extraída: ${oKey} (frete ${f.freight_id})`);
             }
           }
           
           if (!f.destination_city || !f.destination_state) {
             const extracted = extractCityStateFromAddress(f.destination_address);
-            if (extracted) {
+            if (extracted.city) {
               dKey = normalizeCityState(extracted.city, extracted.state);
-              console.log(`🔄 Destino extraído de address: ${dKey} (frete ${f.freight_id})`);
+              console.log(`🔄 Destino extraído: ${dKey} (frete ${f.freight_id})`);
             }
           }
 
-          const included = allowedCities.has(oKey) || allowedCities.has(dKey);
+          // Tentar match exato primeiro
+          let included = allowedCities.has(oKey) || allowedCities.has(dKey);
+
+          // Fallback: tentar match apenas por cidade (sem estado)
+          if (!included) {
+            const allowedCityNames = new Set(
+              Array.from(allowedCities).map(key => key.split('|')[0])
+            );
+            
+            const originCityOnly = oKey.split('|')[0];
+            const destCityOnly = dKey.split('|')[0];
+            
+            const fallbackMatch = allowedCityNames.has(originCityOnly) || 
+                                  allowedCityNames.has(destCityOnly);
+            
+            if (fallbackMatch) {
+              console.log(`✅ Frete ${f.freight_id} incluído via fallback (cidade sem estado)`);
+              included = true;
+            }
+          }
           
           if (!included) {
-            console.log(`🚫 Frete ${f.freight_id} descartado por cidade: origem=${oKey}, destino=${dKey}`);
+            console.log(`🚫 Frete ${f.freight_id} descartado: origem=${oKey}, destino=${dKey}`);
           }
           
           return included;
