@@ -3888,6 +3888,50 @@ export type Database = {
         }
         Relationships: []
       }
+      role_correction_audit: {
+        Row: {
+          corrected_by: string
+          correction_reason: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          new_role: string
+          old_role: string
+          profile_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          corrected_by: string
+          correction_reason: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_role: string
+          old_role: string
+          profile_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          corrected_by?: string
+          correction_reason?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_role?: string
+          old_role?: string
+          profile_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_correction_audit_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_alerts: {
         Row: {
           admin_profile_id: string | null
@@ -6215,6 +6259,14 @@ export type Database = {
       }
       get_current_user_safe: { Args: never; Returns: string }
       get_email_by_document: { Args: { p_doc: string }; Returns: string }
+      get_failed_login_attempts: {
+        Args: { min_failures?: number; since_timestamp: string }
+        Returns: {
+          email: string
+          failed_count: number
+          ip_addresses: string[]
+        }[]
+      }
       get_freights_for_driver: {
         Args: { p_driver_id: string }
         Returns: {
@@ -6327,6 +6379,14 @@ export type Database = {
               weight: number
             }[]
           }
+      get_multiple_ip_logins: {
+        Args: { min_ip_count?: number; since_timestamp: string }
+        Returns: {
+          email: string
+          ip_addresses: string[]
+          ip_count: number
+        }[]
+      }
       get_nearby_freights_for_driver: {
         Args: { p_driver_id: string; p_radius_km?: number }
         Returns: {
@@ -6575,6 +6635,19 @@ export type Database = {
           service_id: string
           service_type: string
           status: string
+        }[]
+      }
+      get_unusual_hour_logins: {
+        Args: {
+          end_hour?: number
+          since_timestamp: string
+          start_hour?: number
+        }
+        Returns: {
+          created_at: string
+          email: string
+          hour_of_day: number
+          ip_address: string
         }[]
       }
       get_user_rating_distribution: {
@@ -6953,6 +7026,16 @@ export type Database = {
         Returns: undefined
       }
       validate_password_strength: { Args: { password: string }; Returns: Json }
+      validate_roles_post_migration: {
+        Args: never
+        Returns: {
+          admin_in_user_roles_count: number
+          invalid_profiles: Json
+          invalid_profiles_count: number
+          recommendations: string
+          validation_status: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "driver" | "producer" | "service_provider"

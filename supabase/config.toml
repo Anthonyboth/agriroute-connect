@@ -204,4 +204,13 @@ verify_jwt = true
 [functions.monitor-suspicious-roles]
 verify_jwt = false
 
+[functions.send-delivery-deadline-notifications]
+verify_jwt = false
+
+[functions.auto-correct-invalid-roles]
+verify_jwt = false
+
+[functions.monitor-suspicious-logins]
+verify_jwt = false
+
 
