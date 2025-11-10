@@ -78,7 +78,12 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
         }
       }
 
-      // Chamar a função do Supabase para criar perfil adicional
+      // TEMPORÁRIO: Funcionalidade desabilitada durante migração de segurança
+      toast.warning('Criação de perfil adicional temporariamente indisponível. Aguarde sincronização do banco.');
+      setLoading(false);
+      return;
+      
+      /* DESABILITADO ATÉ create_additional_profile SER RECRIADA PELO SUPABASE
       const { data, error } = await supabase.rpc('create_additional_profile', {
         p_user_id: user.id,
         p_role: targetRole
@@ -87,7 +92,6 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
       if (error) {
         console.error('Error creating additional profile:', error);
         
-        // Verificar se é erro de unicidade
         if (error.message?.includes('já possui um cadastro')) {
           toast.error(error.message);
         } else {
@@ -100,6 +104,7 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
       
       onProfileAdded();
       onClose();
+      */
       
     } catch (error: any) {
       console.error('Error creating profile:', error);

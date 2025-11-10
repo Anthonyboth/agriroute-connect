@@ -167,7 +167,12 @@ const Auth = () => {
                   }
                 }
               } else {
-                // Criar novo perfil adicional
+                // Criar novo perfil adicional - TEMPORÁRIO: Desabilitado durante migração
+                toast.warning('Criação de perfil adicional temporariamente indisponível. Aguarde sincronização do banco de dados.');
+                setLoading(false);
+                return;
+                
+                /* CÓDIGO DESABILITADO ATÉ create_additional_profile SER RECRIADO
                 const { data: newProfileId, error: rpcError } = await supabase.rpc('create_additional_profile', {
                   p_user_id: loginData.user.id,
                   p_role: targetRole,
@@ -223,6 +228,7 @@ const Auth = () => {
                 } else {
                   navigate('/complete-profile');
                 }
+                */
               }
             }
             

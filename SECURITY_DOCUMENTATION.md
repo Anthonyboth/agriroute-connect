@@ -183,6 +183,164 @@ O sistema coleta automaticamente:
 - **Efetividade da blacklist**
 - **Cobertura de auditoria**
 
+## ⚠️ LIMITAÇÕES CONHECIDAS E MITIGAÇÕES
+
+### 1. Criptografia de Documentos (Ofuscação)
+
+**Status Atual:** LIMITADO - Oferece ofuscação, não criptografia real
+
+A função `encrypt_document()` usa o próprio documento como material de chave via hash SHA256:
+```sql
+encryption_key := encode(digest('agriroute_key_2024_' || doc || '_salt', 'sha256'), 'hex');
+```
+
+**✅ O que PROTEGE:**
+- Visualização casual em logs do Supabase
+- Dumps de banco de dados não processados
+- Acesso superficial via queries não autorizadas
+- Listagem de documentos em interfaces públicas
+
+**❌ O que NÃO PROTEGE:**
+- Ataques determinados com acesso ao documento original
+- Rainbow tables (o "salt" é previsível)
+- Ataques de dicionário baseados em padrões de CPF/CNPJ
+- Usuários com acesso direto ao banco de dados
+
+**Por que não foi implementada criptografia real:**
+1. Requer chave secreta externa (Vault/KMS)
+2. Necessita re-encriptação de TODOS os documentos existentes
+3. Risco de perda de dados se a chave for perdida
+4. Complexidade de rotação de chaves
+
+**Plano de Migração Futura (quando aplicável):**
+```sql
+-- VERSÃO FUTURA com chave real
+CREATE OR REPLACE FUNCTION encrypt_document_v2(doc text)
+RETURNS text AS $$
+DECLARE
+  encryption_key text;
+BEGIN
+  -- Buscar chave do Vault ou variável de ambiente
+  encryption_key := current_setting('app.encryption_key', true);
+  
+  IF encryption_key IS NULL OR encryption_key = '' THEN
+    RAISE EXCEPTION 'Chave de criptografia não configurada';
+  END IF;
+  
+  RETURN encode(
+    pgp_sym_encrypt(doc, encryption_key),
+    'base64'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+**Mitigação Atual:**
+- RLS rigoroso em `profiles` limita acesso aos documentos
+- Apenas admins podem descriptografar via `decrypt_document()`
+- Logs de auditoria rastreiam todos os acessos
+- Masking automático para usuários não autorizados
+
+---
+
+### 2. Extensão pg_net no Schema Public
+
+**Status Atual:** LIMITAÇÃO TÉCNICA - Não pode ser movida
+
+A extensão `pg_net` não suporta `ALTER EXTENSION SET SCHEMA`, permanecendo no schema `public`. Isso é uma limitação do próprio `pg_net` e não representa risco de segurança significativo, mas não segue a best practice de isolamento de extensões.
+
+**Impacto:**
+- Baixo: `pg_net` é usado apenas por edge functions autenticadas
+- As funções da extensão ainda respeitam RLS e permissões
+- Não há risco de SQL injection via `pg_net`
+
+**Mitigação:**
+- Restringir uso de `pg_net` apenas a edge functions com `verify_jwt = true`
+- Validar todas as URLs antes de chamar `net.http_post()` ou similares
+- Implementar rate limiting nas edge functions que usam `pg_net`
+
+---
+
+### 3. Roles Administrativos - Segregação Completa
+
+**Status Atual:** ✅ CORRIGIDO na Fase 1
+
+O valor `ADMIN` foi **removido permanentemente** do enum `user_role`. Agora:
+
+- **`profiles.role`** (tipo `user_role`): Apenas perfis de NEGÓCIO
+  - PRODUTOR
+  - MOTORISTA
+  - PRESTADOR_SERVICOS
+  - TRANSPORTADORA
+  - MOTORISTA_AFILIADO
+
+- **`user_roles.role`** (tipo `app_role`): Apenas permissões ADMINISTRATIVAS
+  - admin
+  - moderator
+
+**Prevenção de Regressão:**
+```sql
+-- Comentários nos tipos previnem uso incorreto
+COMMENT ON TYPE user_role IS 
+  'Perfis de negócio. Para admin, usar app_role em user_roles.';
+
+COMMENT ON TYPE app_role IS 
+  'Roles administrativos em user_roles.';
+```
+
+**Validação Contínua:**
+```sql
+-- Query para verificar segregação (executar periodicamente)
+SELECT 
+  'profiles com roles suspeitas' as check_type,
+  COUNT(*) as count
+FROM profiles 
+WHERE role::text NOT IN ('PRODUTOR','MOTORISTA','PRESTADOR_SERVICOS','TRANSPORTADORA','MOTORISTA_AFILIADO')
+UNION ALL
+SELECT 
+  'user_roles com roles válidas' as check_type,
+  COUNT(*) as count  
+FROM user_roles
+WHERE role IN ('admin','moderator');
+```
+
+---
+
+### 4. Proteção de Senha Vazada
+
+**Status Atual:** ⚠️ REQUER ATIVAÇÃO MANUAL
+
+Leaked Password Protection está **desabilitada** por padrão no Supabase.
+
+**Como ativar (OBRIGATÓRIO para produção):**
+1. Acessar: [Supabase Dashboard → Authentication → Policies](https://supabase.com/dashboard/project/shnvtxejjecbnztdbbbl/auth/policies)
+2. Ativar "**Leaked Password Protection**"
+3. Selecionar ação:
+   - **Reject** (recomendado): Bloqueia senhas vazadas completamente
+   - **Warn**: Apenas alerta o usuário
+
+**Impacto:**
+- **Alta prioridade**: Senhas vazadas são vetores comuns de ataque
+- Protege contra credential stuffing e rainbow tables
+- Integra com database do HaveIBeenPwned
+
+---
+
+## 📋 CHECKLIST DE SEGURANÇA PRODUÇÃO
+
+Antes de ir para produção, validar:
+
+- [x] **Fase 1**: ADMIN removido de `user_role` ✅
+- [x] **Fase 2**: Limitações documentadas ✅
+- [ ] **Proteção de Senha Vazada**: Ativada manualmente no Dashboard ⚠️
+- [ ] **RLS Policies**: Todas recriadas após migração (aguardar sync) ⏳
+- [ ] **Extensões**: pg_net permanece em public (limitação técnica) ℹ️
+- [ ] **Criptografia**: Documentos usam ofuscação (upgrade futuro planejado) ℹ️
+- [ ] **Auditoria**: Logs de acesso a dados sensíveis ativos ✅
+- [ ] **Rate Limiting**: Configurado em todas as edge functions críticas ✅
+
+---
+
 ## 🔧 Manutenção e Monitoring
 
 ### Tarefas Automáticas:
