@@ -2529,6 +2529,8 @@ export type Database = {
           accepted_by_company: boolean | null
           accepted_trucks: number
           allow_counter_proposals: boolean | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
           cargo_category_antt: string | null
           cargo_type: string
           commission_amount: number | null
@@ -2610,6 +2612,8 @@ export type Database = {
           accepted_by_company?: boolean | null
           accepted_trucks?: number
           allow_counter_proposals?: boolean | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
           cargo_category_antt?: string | null
           cargo_type: string
           commission_amount?: number | null
@@ -2691,6 +2695,8 @@ export type Database = {
           accepted_by_company?: boolean | null
           accepted_trucks?: number
           allow_counter_proposals?: boolean | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
           cargo_category_antt?: string | null
           cargo_type?: string
           commission_amount?: number | null
@@ -5914,6 +5920,7 @@ export type Database = {
           status: string
         }[]
       }
+      auto_cancel_overdue_freights: { Args: never; Returns: Json }
       auto_confirm_deliveries: { Args: never; Returns: Json }
       auto_insert_city: {
         Args: {
@@ -6897,6 +6904,8 @@ export type Database = {
           accepted_by_company: boolean | null
           accepted_trucks: number
           allow_counter_proposals: boolean | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
           cargo_category_antt: string | null
           cargo_type: string
           commission_amount: number | null
@@ -6987,6 +6996,8 @@ export type Database = {
           accepted_by_company: boolean | null
           accepted_trucks: number
           allow_counter_proposals: boolean | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
           cargo_category_antt: string | null
           cargo_type: string
           commission_amount: number | null
