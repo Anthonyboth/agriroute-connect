@@ -264,6 +264,27 @@ const ProducerDashboard = () => {
     }
   }, [profile?.id, profile?.role]);
 
+  // 🔍 DEBUG: Log detalhado quando freights mudam
+  useEffect(() => {
+    if (freights.length > 0) {
+      console.log('🟢 DASHBOARD: Fretes carregados:', {
+        total: freights.length,
+        profileId: profile?.id,
+        freightsByStatus: {
+          OPEN: freights.filter(f => f.status === 'OPEN').length,
+          ACCEPTED: freights.filter(f => f.status === 'ACCEPTED').length,
+          LOADED: freights.filter(f => f.status === 'LOADED').length,
+          IN_TRANSIT: freights.filter(f => f.status === 'IN_TRANSIT').length,
+          DELIVERED_PENDING_CONFIRMATION: freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length,
+          CANCELLED: freights.filter(f => f.status === 'CANCELLED').length
+        },
+        freightIds: freights.map(f => f.id)
+      });
+    } else {
+      console.warn('🔴 DASHBOARD: Nenhum frete carregado para profile:', profile?.id);
+    }
+  }, [freights, profile?.id]);
+
   // Buscar propostas - otimizado
   const fetchProposals = useCallback(async () => {
     // Don't fetch if user is not a producer
@@ -1142,6 +1163,20 @@ const ProducerDashboard = () => {
                 <Wrench className="mr-1 h-4 w-4" />
                 Solicitar Serviços
               </Button>
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  console.log('🔄 Forçando recarga manual de dados...');
+                  fetchFreights();
+                  fetchProposals();
+                  toast.info('Recarregando dados...');
+                }}
+                className="bg-background/10 text-white border-white/30 hover:bg-white/20 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+              >
+                <TrendingUp className="mr-1 h-4 w-4" />
+                Recarregar
+              </Button>
             </div>
           </div>
         </div>
@@ -1352,11 +1387,28 @@ const ProducerDashboard = () => {
               <h3 className="text-lg font-semibold">Fretes em Andamento</h3>
             </div>
             
-            {freights.filter(f => 
-              // Incluir fretes com status em andamento OU com data de coleta de hoje/passada
-              ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status) || 
-              isInProgressFreight(f.pickup_date, f.status)
-            ).length === 0 ? (
+            {(() => {
+              // 🔍 DEBUG: Calcular e logar fretes em andamento
+              const ongoingFreights = freights.filter(f => 
+                ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status) || 
+                isInProgressFreight(f.pickup_date, f.status)
+              );
+              
+              console.log('📊 FRETES EM ANDAMENTO:', {
+                total: ongoingFreights.length,
+                freights: ongoingFreights.map(f => ({
+                  id: f.id,
+                  status: f.status,
+                  pickup_date: f.pickup_date,
+                  classification: f.pickup_date ? {
+                    isInProgress: isInProgressFreight(f.pickup_date, f.status),
+                    formattedDate: formatPickupDate(f.pickup_date)
+                  } : null
+                }))
+              });
+              
+              return ongoingFreights.length === 0;
+            })() ? (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Play className="h-12 w-12 text-muted-foreground mb-4" />
