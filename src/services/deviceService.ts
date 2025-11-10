@@ -24,55 +24,33 @@ export interface UserDevice {
 
 // Registrar dispositivo no banco
 export const registerDevice = async (profileId: string): Promise<UserDevice> => {
-  try {
-    // ✅ GARANTIR que temos sessão E token válidos
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session || !session.access_token) {
-      throw new Error('No valid session found');
-    }
-    
-    // Verificar se o JWT está realmente válido
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !authUser) {
-      throw new Error('Authentication failed');
-    }
-    
-    // ✅ CRITICAL: Wait for JWT propagation to database context (50ms)
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
-    const deviceInfo = await getDeviceInfo();
-    const now = new Date().toISOString();
-    
-    // Try UPDATE first (for existing device owned by this user)
-    const { data: updateData, error: updateError } = await supabase
-      .from('user_devices')
-      .update({
-        device_name: deviceInfo.deviceName,
-        device_type: deviceInfo.deviceType,
-        os: deviceInfo.os,
-        browser: deviceInfo.browser,
-        user_agent: deviceInfo.userAgent,
-        last_active_at: now,
-        is_active: true,
-      })
-      .eq('device_id', deviceInfo.deviceId)
-      .eq('user_id', profileId)
-      .select()
-      .maybeSingle();
-    
-    if (updateError) {
-      throw updateError;
-    }
-    
-    // If update didn't affect any rows, try INSERT
-    if (!updateData) {
-      const { data: insertData, error: insertError } = await supabase
+  const MAX_RETRIES = 3;
+  const RETRY_DELAYS = [100, 500, 1000];
+  
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session || !session.access_token) {
+        throw new Error('No valid session found');
+      }
+      
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !authUser) {
+        throw new Error('Authentication failed');
+      }
+      
+      // Progressive JWT propagation delay
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+      
+      const deviceInfo = await getDeviceInfo();
+      const now = new Date().toISOString();
+      
+      // Try UPDATE first
+      const { data: updateData, error: updateError } = await supabase
         .from('user_devices')
-        .insert({
-          user_id: profileId,
-          device_id: deviceInfo.deviceId,
+        .update({
           device_name: deviceInfo.deviceName,
           device_type: deviceInfo.deviceType,
           os: deviceInfo.os,
@@ -81,118 +59,115 @@ export const registerDevice = async (profileId: string): Promise<UserDevice> => 
           last_active_at: now,
           is_active: true,
         })
+        .eq('device_id', deviceInfo.deviceId)
+        .eq('user_id', profileId)
         .select()
         .maybeSingle();
       
-      if (insertError) {
-        // ✅ RETRY se for erro de RLS (JWT não propagado ainda)
-        if (insertError.code === '42501') {
-          console.warn('⚠️ RLS error - JWT not propagated yet. Retrying in 200ms...');
-          await new Promise(resolve => setTimeout(resolve, 200));
-          
-          // Verificar sessão novamente
-          const { data: { session: retrySession } } = await supabase.auth.getSession();
-          if (!retrySession) {
-            throw new Error('Session expired during registration');
+      if (updateError) throw updateError;
+      
+      if (!updateData) {
+        const { data: insertData, error: insertError } = await supabase
+          .from('user_devices')
+          .insert({
+            user_id: profileId,
+            device_id: deviceInfo.deviceId,
+            device_name: deviceInfo.deviceName,
+            device_type: deviceInfo.deviceType,
+            os: deviceInfo.os,
+            browser: deviceInfo.browser,
+            user_agent: deviceInfo.userAgent,
+            last_active_at: now,
+            is_active: true,
+          })
+          .select()
+          .maybeSingle();
+        
+        if (insertError) {
+          // Retry on RLS errors
+          if (insertError.code === '42501' && attempt < MAX_RETRIES - 1) {
+            console.warn(`⚠️ RLS error, retry ${attempt + 1}/${MAX_RETRIES}`);
+            continue;
           }
           
-          // Tentar inserir novamente
-          const { data: retryData, error: retryError } = await supabase
-            .from('user_devices')
-            .insert({
-              user_id: profileId,
-              device_id: deviceInfo.deviceId,
-              device_name: deviceInfo.deviceName,
-              device_type: deviceInfo.deviceType,
-              os: deviceInfo.os,
-              browser: deviceInfo.browser,
-              user_agent: deviceInfo.userAgent,
-              last_active_at: now,
-              is_active: true,
-            })
-            .select()
-            .maybeSingle();
-          
-          if (retryError) throw retryError;
-          console.log('✅ Device registered on retry:', retryData);
-          return retryData!;
+          // Handle device ID conflict
+          if (insertError.code === '23505') {
+            console.warn('⚠️ Device already registered to another user. Generating new ID...');
+            const newDeviceId = resetDeviceId();
+            const retryInfo = { ...deviceInfo, deviceId: newDeviceId };
+            
+            const { data: retryData, error: retryError } = await supabase
+              .from('user_devices')
+              .insert({
+                user_id: profileId,
+                device_id: newDeviceId,
+                device_name: retryInfo.deviceName,
+                device_type: retryInfo.deviceType,
+                os: retryInfo.os,
+                browser: retryInfo.browser,
+                user_agent: retryInfo.userAgent,
+                last_active_at: now,
+                is_active: true,
+              })
+              .select()
+              .maybeSingle();
+            
+            if (retryError) throw retryError;
+            console.log('✅ Device registered with new ID:', retryData);
+            return retryData!;
+          }
+          throw insertError;
         }
         
-        // If device_id conflict with another user, retry with new ID
-        if (insertError.code === '23505') {
-          console.warn('⚠️ Device already registered to another user. Generating new ID and retrying...');
-          
-          const newDeviceId = resetDeviceId();
-          const retryInfo = { ...deviceInfo, deviceId: newDeviceId };
-          
-          const { data: retryData, error: retryError } = await supabase
-            .from('user_devices')
-            .insert({
-              user_id: profileId,
-              device_id: newDeviceId,
-              device_name: retryInfo.deviceName,
-              device_type: retryInfo.deviceType,
-              os: retryInfo.os,
-              browser: retryInfo.browser,
-              user_agent: retryInfo.userAgent,
-              last_active_at: now,
-              is_active: true,
-            })
-            .select()
-            .maybeSingle();
-          
-          if (retryError) throw retryError;
-          console.log('✅ Device registered with new ID:', retryData);
-          return retryData!;
+        if (!insertData) {
+          throw new Error('No data returned from device registration');
         }
-        throw insertError;
+        
+        console.log('✅ Dispositivo registrado (INSERT):', insertData);
+        return insertData;
       }
       
-      if (!insertData) {
-        throw new Error('No data returned from device registration');
-      }
+      console.log('✅ Dispositivo registrado (UPDATE):', updateData);
+      return updateData;
+    } catch (error: any) {
+      const isLastAttempt = attempt === MAX_RETRIES - 1;
       
-      console.log('✅ Dispositivo registrado (INSERT):', insertData);
-      return insertData;
-    }
-    
-    console.log('✅ Dispositivo registrado (UPDATE):', updateData);
-    return updateData;
-  } catch (error: any) {
-    // Não reportar erros esperados (23505 = conflito de device, 42501 = RLS após retries)
-    const is23505Error = error?.code === '23505' || /already registered/i.test(error?.message);
-    const is42501Error = error?.code === '42501';
-    
-    // ✅ LOG DETALHADO
-    console.error('❌ Erro ao registrar dispositivo:', {
-      message: error?.message,
-      code: error?.code,
-      details: error?.details,
-      hint: error?.hint,
-      profileId: profileId,
-      deviceId: getDeviceId(),
-      fullError: error,
-      willReport: !is23505Error && !is42501Error
-    });
-    
-    // ✅ ENVIAR PARA TELEGRAM (exceto erros esperados)
-    if (!is23505Error && !is42501Error) {
-      await ErrorMonitoringService.getInstance().captureError(
-        new Error(`Device Registration Failed: ${error?.message || 'Unknown error'}`),
-        {
-          module: 'deviceService',
-          functionName: 'registerDevice',
-          profileId,
+      if (isLastAttempt) {
+        const is23505Error = error?.code === '23505' || /already registered/i.test(error?.message);
+        const is42501Error = error?.code === '42501';
+        
+        console.error('❌ Erro ao registrar dispositivo:', {
+          message: error?.message,
+          code: error?.code,
+          details: error?.details,
+          hint: error?.hint,
+          profileId: profileId,
           deviceId: getDeviceId(),
-          errorCode: error?.code,
-          errorDetails: error?.details,
-          errorHint: error?.hint
+          fullError: error,
+          willReport: !is23505Error && !is42501Error
+        });
+        
+        if (!is23505Error && !is42501Error) {
+          await ErrorMonitoringService.getInstance().captureError(
+            new Error(`Device Registration Failed: ${error?.message || 'Unknown error'}`),
+            {
+              module: 'deviceService',
+              functionName: 'registerDevice',
+              profileId,
+              deviceId: getDeviceId(),
+              errorCode: error?.code,
+              errorDetails: error?.details,
+              errorHint: error?.hint
+            }
+          );
         }
-      );
+        
+        throw error;
+      }
     }
-    
-    throw error;
   }
+  
+  throw new Error('Max retries exceeded');
 };
 
 // Atualizar informações do dispositivo

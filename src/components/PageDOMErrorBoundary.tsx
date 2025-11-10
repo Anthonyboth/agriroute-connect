@@ -51,7 +51,6 @@ export class PageDOMErrorBoundary extends React.Component<
     prevProps: PageDOMErrorBoundaryProps,
     prevState: PageDOMErrorBoundaryState
   ) {
-    // Auto-recuperar com soft-retry (sem fallback) após delay curto
     if (this.state.hasError && !prevState.hasError) {
       if (this.state.retryCount < MAX_RETRIES) {
         setTimeout(() => {
@@ -59,19 +58,27 @@ export class PageDOMErrorBoundary extends React.Component<
             hasError: false,
             retryCount: prev.retryCount + 1
           }));
-        }, 100); // Delay aumentado para 100ms para estabilidade
+        }, 300);
+      } else {
+        console.error('[PageDOMErrorBoundary] Max retries, reloading page...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       }
     }
   }
 
   render() {
     if (this.state.hasError) {
-      // Se excedeu máximo de retries, renderizar um fallback mínimo
       if (this.state.retryCount >= MAX_RETRIES) {
-        return <div className="min-h-[100px]" />;
+        return (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
+            <p className="text-yellow-800">
+              Detectamos instabilidade. Recarregando...
+            </p>
+          </div>
+        );
       }
-      // Durante o soft-retry, renderizar vazio (sem fallback visual)
-      // para permitir que o React reconcilie o DOM limpo
       return null;
     }
 

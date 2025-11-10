@@ -18,7 +18,7 @@ export const useFreightGPSMonitoring = (
   freightId: string | null,
   driverProfileId: string | null,
   isFreightActive: boolean,
-  updateInterval: number = 30000
+  updateInterval: number = 60000
 ) => {
   useEffect(() => {
     if (!isFreightActive || !freightId || !driverProfileId) {
@@ -29,11 +29,11 @@ export const useFreightGPSMonitoring = (
     console.log('🚨 RASTREAMENTO GPS ATIVO - Frete:', freightId);
     
     let consecutiveFailures = 0;
-    const MAX_FAILURES = 2; // Reportar após 2 falhas consecutivas
+    const MAX_FAILURES = 3;
 
     const updateLocation = async () => {
       try {
-        const position = await getCurrentPositionSafe();
+        const position = await getCurrentPositionSafe(2);
         
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
@@ -113,10 +113,6 @@ export const useFreightGPSMonitoring = (
       }
     };
 
-    // ✅ NÃO atualizar imediatamente no mount - aguardar gesture/permissão do usuário
-    // A primeira atualização virá do intervalo após 30s
-    
-    // Configurar intervalo de atualizações
     const intervalId = setInterval(updateLocation, updateInterval);
 
     // Cleanup ao desmontar ou quando frete não estiver mais ativo

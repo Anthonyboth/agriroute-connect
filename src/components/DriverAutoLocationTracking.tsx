@@ -33,25 +33,22 @@ export const DriverAutoLocationTracking = () => {
     if (isTracking) return;
 
     try {
-      // Obter posição inicial
-      const position = await getCurrentPositionSafe();
-      await updateLocation(position.coords);
+      setTimeout(() => {
+        const handle = watchPositionSafe(
+          (coords) => updateLocation(coords),
+          (error) => {
+            console.error('Erro no rastreamento:', error);
+            toast.error('Erro ao rastrear localização. Verifique suas permissões.');
+          }
+        );
 
-      // Iniciar rastreamento contínuo
-      const handle = watchPositionSafe(
-        (coords) => updateLocation(coords),
-        (error) => {
-          console.error('Erro no rastreamento:', error);
-          toast.error('Erro ao rastrear localização. Verifique suas permissões.');
-        }
-      );
+        setWatchId(handle);
+        setIsTracking(true);
 
-      setWatchId(handle);
-      setIsTracking(true);
-
-      toast.success('Rastreamento automático iniciado', {
-        description: 'Sua localização está sendo monitorada para segurança do frete.'
-      });
+        toast.success('Rastreamento automático iniciado', {
+          description: 'Sua localização está sendo monitorada para segurança do frete.'
+        });
+      }, 3000);
 
     } catch (error) {
       console.error('Erro ao iniciar tracking:', error);

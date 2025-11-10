@@ -114,9 +114,7 @@ export async function driverUpdateFreightStatus({
       p_new_status: newStatus,
       p_user_id: currentUserProfile.id,
       p_notes: notes ?? null,
-      p_lat: location?.lat ?? null,
-      p_lng: location?.lng ?? null,
-      p_assignment_id: assignmentId ?? null
+      p_location: location ?? null
     });
     
     const timeoutPromise = new Promise((_, reject) =>

@@ -64,28 +64,20 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   const [isPending, startTransition] = useTransition();
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Guard isMounted para todos os effects
   const isMountedRef = React.useRef(true);
+  const updateLockRef = useRef<Promise<void> | null>(null);
+  
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
   }, []);
-
-  // ❌ REMOVIDO: fetch automático no mount - deixar apenas Realtime triggar
-  // useEffect(() => {
-  //   if (profile?.id && isMountedRef.current) {
-  //     fetchCompatibleFreights();
-  //   }
-  // }, [profile]);
   
-  // ✅ Usar normalização consistente via utilitário
   const allowedTypesFromProfile = React.useMemo(() => {
     return getAllowedServiceTypesFromProfile(profile);
   }, [profile?.role, profile?.service_types]);
   
-  // ✅ Debounced setState para evitar race conditions
   const debouncedSetCompatibleFreights = useMemo(
     () => debounce((freights: CompatibleFreight[], source: string) => {
       if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
@@ -101,13 +93,16 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   const fetchCompatibleFreights = useCallback(async () => {
     if (!profile?.id) return;
     
-    // ✅ Bloquear atualizações concorrentes
-    if (isUpdating) {
-      console.log('[SmartFreightMatcher] ⚠️ Update já em progresso, aguardando...');
-      return;
+    if (updateLockRef.current) {
+      console.log('[SmartFreightMatcher] Aguardando update anterior...');
+      await updateLockRef.current;
     }
     
-    setIsUpdating(true);
+    let resolveLock: () => void;
+    updateLockRef.current = new Promise(resolve => {
+      resolveLock = resolve;
+    });
+    
     const isCompany = profile.role === 'TRANSPORTADORA';
     setLoading(true);
     
@@ -637,6 +632,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         setLoading(false);
         setIsUpdating(false);
       }
+      resolveLock!();
+      updateLockRef.current = null;
     }
   }, [profile, allowedTypesFromProfile, user, onCountsChange]);
 

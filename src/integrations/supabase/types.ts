@@ -5971,10 +5971,8 @@ export type Database = {
       }
       driver_update_freight_status: {
         Args: {
-          p_assignment_id?: string
           p_freight_id: string
-          p_lat?: number
-          p_lng?: number
+          p_location?: Json
           p_new_status: string
           p_notes?: string
           p_user_id: string

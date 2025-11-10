@@ -14,9 +14,9 @@ export interface GPSQuality {
 }
 
 export const getGPSQuality = (accuracy: number): GPSQuality => {
-  if (accuracy <= 20) return { accuracy, quality: 'EXCELLENT', isAcceptable: true };
-  if (accuracy <= 50) return { accuracy, quality: 'GOOD', isAcceptable: true };
-  if (accuracy <= 100) return { accuracy, quality: 'ACCEPTABLE', isAcceptable: true };
+  if (accuracy <= 50) return { accuracy, quality: 'EXCELLENT', isAcceptable: true };
+  if (accuracy <= 100) return { accuracy, quality: 'GOOD', isAcceptable: true };
+  if (accuracy <= 500) return { accuracy, quality: 'ACCEPTABLE', isAcceptable: true };
   return { accuracy, quality: 'POOR', isAcceptable: false };
 };
 
@@ -65,13 +65,25 @@ export const requestPermissionSafe = async (): Promise<boolean> => {
   });
 };
 
+// Global rate limiting
+let lastGPSRequestTime = 0;
+const GPS_COOLDOWN_MS = 5000;
+
 export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<SafePosition> => {
+  // Rate limiting
+  const now = Date.now();
+  if (now - lastGPSRequestTime < GPS_COOLDOWN_MS) {
+    const waitTime = GPS_COOLDOWN_MS - (now - lastGPSRequestTime);
+    console.log(`[GPS] Rate limit: aguardando ${waitTime}ms`);
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+  lastGPSRequestTime = Date.now();
+
   if (isNative()) {
-    const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+    const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
     return toWebLike(pos);
   }
   
-  // Tentativas com retry para obter GPS de qualidade
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -82,8 +94,8 @@ export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<Sa
             const quality = getGPSQuality(p.coords.accuracy);
             console.log(`[GPS] Tentativa ${attempt}: ${quality.quality} (${quality.accuracy}m)`);
             
-            // Aceitar se qualidade boa ou se última tentativa
-            if (quality.accuracy <= 200 || attempt === maxRetries) {
+            // Accept accuracy <= 500m OR always accept on last attempt
+            if (quality.accuracy <= 500 || attempt === maxRetries) {
               resolve(p);
             } else {
               reject(new Error(`GPS de baixa qualidade: ${quality.accuracy}m`));
@@ -91,9 +103,9 @@ export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<Sa
           },
           (err) => reject(err),
           { 
-            enableHighAccuracy: attempt > 1, // Primeira tentativa mais rápida
-            timeout: 25000 + (5000 * attempt), // Timeout progressivo
-            maximumAge: 120000 
+            enableHighAccuracy: attempt > 1,
+            timeout: 15000 + (5000 * attempt),
+            maximumAge: 30000
           }
         );
       });
@@ -106,12 +118,14 @@ export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<Sa
         throw err;
       }
       
-      // Backoff exponencial entre tentativas
-      await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+      // Exponential backoff: 3s, 6s, 9s
+      const backoffTime = 3000 * attempt;
+      console.log(`[GPS] Retry em ${backoffTime}ms...`);
+      await new Promise(resolve => setTimeout(resolve, backoffTime));
     }
   }
   
-  throw new Error('Não foi possível obter localização de qualidade');
+  throw new Error('Não foi possível obter localização');
 };
 
 export const watchPositionSafe = (
