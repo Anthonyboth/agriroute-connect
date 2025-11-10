@@ -72,45 +72,37 @@ export const ScheduledFreightsManager: React.FC = () => {
 
     setLoading(true);
     try {
-      // Adicionar timeout para evitar travamentos
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout na busca de fretes')), 8000)
-      );
-
-      const fetchPromise = (async () => {
-        let query = supabase
+      try {
+        // Data de hoje (início do dia)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = today.toISOString().split('T')[0];
+        
+        console.log('🔍 [AGENDADOS] Buscando fretes com pickup_date >= ', todayStr);
+        
+        // Fazer query diretamente sem encadeamento complexo
+        const result = await supabase
           .from('freights')
-          .select(`
-            *,
-            producer:profiles!freights_producer_id_fkey(full_name)
-          `)
-          .eq('is_scheduled', true)
-          .eq('status', 'OPEN')
-          .order('scheduled_date', { ascending: true });
+          .select('*')
+          .gte('pickup_date', todayStr)
+          .not('status', 'in', '(CANCELLED,DELIVERED,COMPLETED,DELIVERED_PENDING_CONFIRMATION)')
+          .eq(profile.role === 'PRODUTOR' ? 'producer_id' : profile.role === 'TRANSPORTADORA' ? 'transport_company_id' : 'driver_id', profile.id)
+          .order('pickup_date', { ascending: true })
+          .limit(100);
+        
+        if (result.error) throw result.error;
+        
+        console.log('✅ [AGENDADOS] Fretes carregados:', {
+          total: result.data?.length || 0,
+          ids: result.data?.map(f => f.id) || [],
+          dates: result.data?.map(f => ({ id: f.id, pickup_date: f.pickup_date, status: f.status })) || []
+        });
 
-        if (profile.role === 'PRODUTOR') {
-          query = query.eq('producer_id', profile.id);
-        } else if (profile.role === 'MOTORISTA') {
-          // Para motoristas, buscar fretes onde ele foi aceito pelo produtor
-          query = query.eq('driver_id', profile.id);
-        } else {
-          // Para outros papéis, mostrar apenas fretes abertos
-          query = query.eq('status', 'OPEN');
-        }
-
-        return await query;
-      })();
-
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
-
-      if (error) throw error;
-
-      const formattedData = data?.map(freight => ({
-        ...freight,
-        producer_name: freight.producer?.full_name
-      })) || [];
-
-      setScheduledFreights(formattedData);
+        setScheduledFreights(result.data || []);
+      } catch (queryError) {
+        console.error('Erro na query de agendados:', queryError);
+        throw queryError;
+      }
     } catch (error) {
       console.error('Erro ao buscar fretes agendados:', error);
       toast.error('Erro ao carregar fretes');
