@@ -201,4 +201,7 @@ verify_jwt = true
 [functions.recalculate-all-antt-freights]
 verify_jwt = true
 
+[functions.monitor-suspicious-roles]
+verify_jwt = false
+
 
