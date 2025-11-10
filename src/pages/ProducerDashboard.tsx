@@ -117,11 +117,11 @@ const ProducerDashboard = () => {
 
     try {
       // ✅ Query com JOIN para carregar dados do motorista
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('freights')
         .select(`
           *,
-          driver_profiles:profiles!freights_driver_id_fkey(
+          driver_profiles:profiles!left(freights_driver_id_fkey)(
             id,
             full_name,
             contact_phone,
@@ -130,8 +130,8 @@ const ProducerDashboard = () => {
           )
         `)
         .eq('producer_id', profile.id)
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .order('updated_at', { ascending: false })
+        .limit(500);
 
       console.log('fetchFreights: Resposta da query:', { data, error, count: data?.length });
       
@@ -166,21 +166,51 @@ const ProducerDashboard = () => {
       }
       
       const freightData = data || [];
+      let finalData = freightData;
+
+      // Fallback: garantir que fretes aguardando confirmação apareçam
+      if (freightData.every(f => f.status !== 'DELIVERED_PENDING_CONFIRMATION')) {
+        console.log('fetchFreights: Nenhum DPC na busca principal, executando fallback direcionado...');
+        const { data: dpcData, error: dpcError } = await (supabase as any)
+          .from('freights')
+          .select(`
+            *,
+            driver_profiles:profiles!left(freights_driver_id_fkey)(
+              id,
+              full_name,
+              contact_phone,
+              email,
+              role
+            )
+          `)
+          .eq('producer_id', profile.id)
+          .eq('status', 'DELIVERED_PENDING_CONFIRMATION')
+          .order('updated_at', { ascending: false })
+          .limit(50);
+
+        if (dpcError) {
+          console.warn('fetchFreights: Fallback DPC query erro:', dpcError);
+        } else if (dpcData && dpcData.length > 0) {
+          const existingIds = new Set(finalData.map((f: any) => f.id));
+          finalData = [...finalData, ...dpcData.filter((f: any) => !existingIds.has(f.id))];
+          console.log('fetchFreights: Fallback adicionou fretes DPC:', dpcData.map(f => f.id));
+        }
+      }
       
-      // ✅ Logs detalhados por status
-      const openFreights = freightData.filter(f => f.status === 'OPEN');
+      // ✅ Logs detalhados por status (dados finais)
+      const openFreights = finalData.filter(f => f.status === 'OPEN');
       console.log('fetchFreights: ✅ Fretes encontrados por status:', {
         OPEN: openFreights.length,
         OPEN_IDs: openFreights.map(f => f.id),
-        ACCEPTED: freightData.filter(f => f.status === 'ACCEPTED').length,
-        IN_TRANSIT: freightData.filter(f => f.status === 'IN_TRANSIT').length,
-        DELIVERED_PENDING_CONFIRMATION: freightData.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length,
-        DELIVERED: freightData.filter(f => f.status === 'DELIVERED').length,
-        total: freightData.length,
-        allStatuses: freightData.map(f => f.status)
+        ACCEPTED: finalData.filter(f => f.status === 'ACCEPTED').length,
+        IN_TRANSIT: finalData.filter(f => f.status === 'IN_TRANSIT').length,
+        DELIVERED_PENDING_CONFIRMATION: finalData.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length,
+        DELIVERED: finalData.filter(f => f.status === 'DELIVERED').length,
+        total: finalData.length,
+        allStatuses: finalData.map(f => f.status)
       });
       
-      setFreights(freightData);
+      setFreights(finalData);
     } catch (error) {
       console.error('fetchFreights: ❌ Erro fatal:', error);
       toast.error('Erro ao carregar fretes');
