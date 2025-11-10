@@ -48,6 +48,10 @@ const ProducerDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Funções utilitárias para formatação
+  const formatKm = (v: any) => Number.isFinite(Number(v)) ? `${Math.round(Number(v))} km` : '-';
+  const formatBRL = (v: any) => typeof v === 'number' ? v.toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '-';
+
   // Redirect non-producers to their correct dashboard
   React.useEffect(() => {
     if (profile?.role === 'MOTORISTA') {
@@ -1208,7 +1212,7 @@ const ProducerDashboard = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+              <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-fr">
                 {freights.filter(f => f.status === 'OPEN').map((freight) => (
                   <FreightCard
                     key={freight.id}
@@ -1252,114 +1256,115 @@ const ProducerDashboard = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="max-h-[600px] overflow-y-auto pr-2 scroll-area">
-                <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">{freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
-                  <Card key={freight.id} className="border-l-4 border-l-primary hover:shadow-lg transition-all duration-300">
-                    <CardHeader className="pb-4">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <h3 className="font-semibold text-lg">{freight.cargo_type}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {freight.origin_address} → {freight.destination_address}
-                          </p>
-                          <div className="flex items-center gap-4 mt-3">
-                            <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
-                              <Truck className="h-4 w-4 text-primary" />
-                              <span className="text-sm font-medium">{(freight.weight / 1000).toFixed(1)}t</span>
-                            </div>
-                            <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
-                              <MapPin className="h-4 w-4 text-accent" />
-                              <span className="text-sm font-medium">{freight.distance_km}km</span>
-                            </div>
-                            <div className="flex items-center gap-2 p-2 bg-muted/40 rounded">
-                              <Clock className="h-4 w-4 text-warning" />
-                              <span className="text-sm font-medium">
-                                {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
-                              </span>
+              <div className="max-h-[70vh] overflow-y-auto pr-2">
+                <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-fr">
+                  {freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
+                    <Card key={freight.id} className="h-full flex flex-col border-l-4 border-l-primary hover:shadow-lg transition-all">
+                      <CardHeader className="pb-4 min-h-[120px]">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="space-y-2 flex-1 min-w-0">
+                            <h3 className="font-semibold text-lg line-clamp-1">{freight.cargo_type}</h3>
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {freight.origin_address} → {freight.destination_address}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 mt-3">
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap">
+                                <Truck className="h-3.5 w-3.5 text-primary" />
+                                <span>{(freight.weight / 1000).toFixed(1)} t</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap">
+                                <MapPin className="h-3.5 w-3.5 text-accent" />
+                                <span>{formatKm(freight.distance_km)}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap">
+                                <Clock className="h-3.5 w-3.5 text-warning" />
+                                <span>{new Date(freight.pickup_date).toLocaleDateString('pt-BR')}</span>
+                              </div>
                             </div>
                           </div>
+                          <div className="text-right space-y-2 flex-shrink-0">
+                            <Badge variant={freight.status === 'IN_TRANSIT' ? 'default' : 'secondary'} className="font-medium whitespace-nowrap">
+                              {getFreightStatusLabel(freight.status)}
+                            </Badge>
+                            <p className="font-bold text-lg text-primary whitespace-nowrap">
+                              R$ {formatBRL(freight.price)}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right space-y-2">
-                          <Badge variant={freight.status === 'IN_TRANSIT' ? 'default' : 'secondary'} className="font-medium">
-                            {getFreightStatusLabel(freight.status)}
-                          </Badge>
-                          <p className="font-bold text-xl text-primary">R$ {freight.price.toLocaleString()}</p>
+                      </CardHeader>
+                      
+                      <CardContent className="flex flex-col gap-4 h-full pt-0">
+                        {/* Informações básicas */}
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="min-w-0">
+                            <p className="font-medium text-xs text-muted-foreground">Motorista:</p>
+                            <p className="text-foreground truncate">
+                              {freight.driver_profiles?.full_name || 'Aguardando aceite'}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-xs text-muted-foreground">Telefone:</p>
+                            <p className="text-foreground truncate">
+                              {freight.driver_profiles?.contact_phone || '-'}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-xs text-muted-foreground">Data de Coleta:</p>
+                            <p className="text-foreground">
+                              {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-xs text-muted-foreground">Data de Entrega:</p>
+                            <p className="text-foreground">
+                              {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="space-y-6">
-                      {/* Informações básicas */}
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="font-medium">Motorista:</p>
-                          <p className="text-muted-foreground">
-                            {freight.driver_profiles?.full_name || 'Aguardando aceite'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Telefone:</p>
-                          <p className="text-muted-foreground">
-                            {freight.driver_profiles?.contact_phone || '-'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Data de Coleta:</p>
-                          <p className="text-muted-foreground">
-                            {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Data de Entrega:</p>
-                          <p className="text-muted-foreground">
-                            {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
-                      </div>
 
-                      {/* Botões de Ação */}
-                      <div className="flex gap-3 pt-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                          onClick={() => {
-                            setSelectedFreightDetails(freight);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Detalhes
-                        </Button>
-                        
-                        {/* Cancelamento direto para ACCEPTED e LOADING */}
-                        {['ACCEPTED', 'LOADING'].includes(freight.status) && (
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            className="flex-1 hover:shadow-lg transition-all duration-300"
-                            onClick={() => handleFreightAction('cancel', freight)}
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Cancelar Frete
-                          </Button>
-                        )}
-                        
-                        {/* Solicitar cancelamento via chat para LOADED e IN_TRANSIT */}
-                        {['LOADED', 'IN_TRANSIT'].includes(freight.status) && (
+                        {/* Botões de Ação - sempre no rodapé */}
+                        <div className="mt-auto grid grid-cols-2 gap-3">
                           <Button 
                             size="sm" 
                             variant="outline"
-                            className="flex-1 border-destructive text-destructive hover:bg-destructive/10"
-                            onClick={() => handleFreightAction('request-cancel', freight)}
+                            className="w-full"
+                            onClick={() => {
+                              setSelectedFreightDetails(freight);
+                            }}
                           >
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            Solicitar Cancelamento
+                            <Eye className="h-4 w-4 mr-1.5" />
+                            Ver Detalhes
                           </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                          
+                          {/* Cancelamento direto para ACCEPTED e LOADING */}
+                          {['ACCEPTED', 'LOADING'].includes(freight.status) && (
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              className="w-full"
+                              onClick={() => handleFreightAction('cancel', freight)}
+                            >
+                              <X className="h-4 w-4 mr-1.5" />
+                              Cancelar Frete
+                            </Button>
+                          )}
+                          
+                          {/* Solicitar cancelamento via chat para LOADED e IN_TRANSIT */}
+                          {['LOADED', 'IN_TRANSIT'].includes(freight.status) && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="w-full border-destructive text-destructive hover:bg-destructive/10"
+                              onClick={() => handleFreightAction('request-cancel', freight)}
+                            >
+                              <MessageCircle className="h-4 w-4 mr-1.5" />
+                              Solicitar Cancelamento
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </div>
             )}
@@ -1381,86 +1386,90 @@ const ProducerDashboard = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').map((freight) => (
-                  <Card key={freight.id} className="p-4 border-amber-200 bg-amber-50/50">
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold text-lg">
-                            {freight.cargo_type}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {freight.origin_address} → {freight.destination_address}
-                          </p>
-                          <p className="text-sm font-medium text-amber-700 mt-2">
-                            ⏰ Entrega reportada pelo motorista - Aguardando sua confirmação
-                          </p>
+              <div className="max-h-[70vh] overflow-y-auto pr-2">
+                <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-fr">
+                  {freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').map((freight) => (
+                    <Card key={freight.id} className="h-full flex flex-col border-amber-200 bg-amber-50/50 border-l-4 border-l-amber-500">
+                      <CardHeader className="pb-4">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="space-y-2 flex-1 min-w-0">
+                            <h4 className="font-semibold text-lg line-clamp-1">
+                              {freight.cargo_type}
+                            </h4>
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {freight.origin_address} → {freight.destination_address}
+                            </p>
+                            <p className="text-xs font-medium text-amber-700 mt-2">
+                              ⏰ Entrega reportada - Aguardando confirmação
+                            </p>
+                          </div>
+                          <div className="text-right flex-shrink-0 space-y-2">
+                            <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300 whitespace-nowrap">
+                              Aguardando Confirmação
+                            </Badge>
+                            <p className="text-lg font-bold text-green-600 whitespace-nowrap">
+                              R$ {formatBRL(freight.price)}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300">
-                            Aguardando Confirmação
-                          </Badge>
-                          <p className="text-lg font-bold text-green-600 mt-1">
-                            R$ {freight.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </p>
-                        </div>
-                      </div>
+                      </CardHeader>
 
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="font-medium">Motorista:</p>
-                          <p className="text-muted-foreground">
-                            {freight.driver_profiles?.full_name || 'N/A'}
-                          </p>
+                      <CardContent className="flex flex-col gap-4 h-full pt-0">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="min-w-0">
+                            <p className="font-medium text-xs text-muted-foreground">Motorista:</p>
+                            <p className="text-foreground truncate">
+                              {freight.driver_profiles?.full_name || 'N/A'}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-xs text-muted-foreground">Telefone:</p>
+                            <p className="text-foreground truncate">
+                              {freight.driver_profiles?.contact_phone || '-'}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-xs text-muted-foreground">Reportado em:</p>
+                            <p className="text-foreground text-xs">
+                              {new Date(freight.updated_at).toLocaleString('pt-BR')}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-xs text-muted-foreground">Prazo confirmação:</p>
+                            <p className="text-foreground text-xs">
+                              {freight.metadata?.confirmation_deadline 
+                                ? new Date(freight.metadata.confirmation_deadline).toLocaleString('pt-BR')
+                                : '72h após reportado'
+                              }
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">Telefone:</p>
-                          <p className="text-muted-foreground">
-                            {freight.driver_profiles?.contact_phone || '-'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Reportado em:</p>
-                          <p className="text-muted-foreground">
-                            {new Date(freight.updated_at).toLocaleString('pt-BR')}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Prazo para confirmação:</p>
-                          <p className="text-muted-foreground">
-                            {freight.metadata?.confirmation_deadline 
-                              ? new Date(freight.metadata.confirmation_deadline).toLocaleString('pt-BR')
-                              : '72h após reportado'
-                            }
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex gap-3 pt-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => {
-                            setSelectedFreightDetails(freight);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Detalhes
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="flex-1 bg-green-600 hover:bg-green-700"
-                          onClick={() => openDeliveryConfirmationModal(freight)}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Confirmar Entrega
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                        <div className="mt-auto grid grid-cols-2 gap-3">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              setSelectedFreightDetails(freight);
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-1.5" />
+                            Ver Detalhes
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="w-full bg-green-600 hover:bg-green-700"
+                            onClick={() => openDeliveryConfirmationModal(freight)}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1.5" />
+                            Confirmar Entrega
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
             )}
           </TabsContent>
