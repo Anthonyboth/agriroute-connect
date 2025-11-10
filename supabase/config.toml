@@ -181,7 +181,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.send-telegram-alert]
-verify_jwt = false
+verify_jwt = true
 
 [functions.process-telegram-queue]
 verify_jwt = false

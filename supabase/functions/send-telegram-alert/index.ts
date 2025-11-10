@@ -149,6 +149,51 @@ serve(async (req) => {
   try {
     logStep('Função iniciada');
 
+    // Authenticate user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Não autenticado' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
+    }
+
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Não autenticado' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
+    }
+
+    // Check if user has admin or system role
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profileError || !profile || !['ADMIN', 'SYSTEM'].includes(profile.role)) {
+      logStep('Acesso negado', { userId: user.id, role: profile?.role });
+      return new Response(JSON.stringify({ error: 'Acesso negado' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403
+      });
+    }
+
+    logStep('Usuário autenticado', { role: profile.role });
+
     if (!TELEGRAM_BOT_TOKEN) {
       throw new Error('TELEGRAM_BOT_TOKEN não configurado');
     }
@@ -174,11 +219,6 @@ serve(async (req) => {
 
     // Atualizar error_logs com telegram_notified
     if (errorLogId) {
-      const supabaseAdmin = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-
       await supabaseAdmin
         .from('error_logs')
         .update({
