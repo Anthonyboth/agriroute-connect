@@ -1,24 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { ErrorReportSchema, validateInput, sanitizeErrorReport, type ErrorReport } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ErrorReport {
-  errorType: 'FRONTEND' | 'BACKEND' | 'DATABASE' | 'NETWORK' | 'PAYMENT';
-  errorCategory: 'SIMPLE' | 'CRITICAL';
-  errorMessage: string;
-  errorStack?: string;
-  errorCode?: string;
-  module?: string;
-  functionName?: string;
-  route?: string;
-  userId?: string;
-  userEmail?: string;
-  metadata?: Record<string, any>;
-}
+// ErrorReport type imported from validation.ts
 
 function logStep(step: string, data?: any) {
   console.log(`[REPORT-USER-PANEL-ERROR] ${step}`, data ? JSON.stringify(data) : '');
@@ -69,11 +58,14 @@ serve(async (req) => {
       });
     }
 
-    // Parse request body
-    const report: ErrorReport = await req.json();
-    logStep('Report received', { 
+    // Parse and validate error report with comprehensive zod validation
+    const rawReport = await req.json();
+    const validatedReport = validateInput(ErrorReportSchema, rawReport);
+    const report = sanitizeErrorReport(validatedReport);
+    
+    logStep('Report received and validated', { 
       errorType: report.errorType,
-      errorMessage: report.errorMessage,
+      errorMessage: report.errorMessage.substring(0, 100),
       route: report.route
     });
 

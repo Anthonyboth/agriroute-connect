@@ -6809,6 +6809,16 @@ export type Database = {
       process_telegram_queue: { Args: never; Returns: Json }
       reopen_freight: { Args: { p_freight_id: string }; Returns: string }
       sanitize_document: { Args: { doc: string }; Returns: string }
+      scan_policies_for_role_references: {
+        Args: never
+        Returns: {
+          object_name: string
+          object_type: string
+          recommendation: string
+          violation_details: string
+          violation_type: string
+        }[]
+      }
       search_cities: {
         Args: { limit_count?: number; search_term: string }
         Returns: {

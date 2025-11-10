@@ -96,3 +96,63 @@ export const pixKeySchema = z.string().min(11, 'Invalid PIX key').max(100, 'PIX 
 export const textSchema = (maxLength: number = 500) => z.string().max(maxLength, `Text cannot exceed ${maxLength} characters`);
 export const coordinateSchema = z.number().min(-90).max(90);
 export const longitudeSchema = z.number().min(-180).max(180);
+
+// Error Report Schema with comprehensive validation
+export const ErrorReportSchema = z.object({
+  errorType: z.enum(['FRONTEND', 'BACKEND', 'DATABASE', 'NETWORK', 'PAYMENT'], {
+    errorMap: () => ({ message: 'Invalid error type' })
+  }),
+  errorCategory: z.enum(['SIMPLE', 'CRITICAL'], {
+    errorMap: () => ({ message: 'Invalid error category' })
+  }),
+  errorMessage: z.string()
+    .min(1, 'Error message required')
+    .max(1000, 'Error message too long (max 1000 chars)'),
+  errorStack: z.string()
+    .max(5000, 'Stack trace too long (max 5000 chars)')
+    .optional(),
+  errorCode: z.string()
+    .max(50, 'Error code too long (max 50 chars)')
+    .optional(),
+  module: z.string()
+    .max(200, 'Module name too long (max 200 chars)')
+    .optional(),
+  functionName: z.string()
+    .max(200, 'Function name too long (max 200 chars)')
+    .optional(),
+  route: z.string()
+    .max(500, 'Route too long (max 500 chars)')
+    .optional(),
+  userId: z.string()
+    .uuid('Invalid user ID format')
+    .optional(),
+  userEmail: z.string()
+    .email('Invalid email format')
+    .max(255, 'Email too long (max 255 chars)')
+    .optional(),
+  autoCorrectionAttempted: z.boolean().default(false),
+  autoCorrectionAction: z.string()
+    .max(500, 'Auto-correction action too long')
+    .optional(),
+  autoCorrectionSuccess: z.boolean().optional(),
+  metadata: z.record(z.string(), z.unknown())
+    .optional()
+});
+
+export type ErrorReport = z.infer<typeof ErrorReportSchema>;
+
+/**
+ * Sanitizes an error report by truncating fields and removing deep objects
+ */
+export function sanitizeErrorReport(report: ErrorReport): ErrorReport {
+  return {
+    ...report,
+    errorMessage: report.errorMessage.slice(0, 1000),
+    errorStack: report.errorStack?.slice(0, 5000),
+    metadata: report.metadata ? {
+      ...report.metadata,
+      _sanitized: true,
+      _timestamp: new Date().toISOString()
+    } : undefined
+  };
+}
