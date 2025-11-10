@@ -10,6 +10,8 @@ import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-st
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatBRL, formatDate, formatTons } from '@/lib/formatters';
+import { LABELS } from '@/lib/labels';
 
 interface CompanyFreightHistoryProps {
   companyId: string;
@@ -186,14 +188,14 @@ export const CompanyFreightHistory: React.FC<CompanyFreightHistoryProps> = ({ co
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <span className="text-muted-foreground">
-              Coleta: {format(new Date(freight.pickup_date), 'dd/MM/yyyy', { locale: ptBR })}
+              {LABELS.COLETA}: {formatDate(freight.pickup_date)}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <DollarSign className="h-4 w-4 text-green-600" />
             <span className="font-semibold text-green-600">
-              R$ {freight.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {formatBRL(freight.price)}
             </span>
           </div>
 

@@ -26,7 +26,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
-import { AGUARDANDO_MOTORISTA_LABEL } from '@/lib/ui-labels';
+import { LABELS } from '@/lib/labels';
+import { formatKm, formatBRL, formatDate } from '@/lib/formatters';
+import { FreightInProgressCard } from '@/components/FreightInProgressCard';
 import { toast } from 'sonner';
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star, MessageCircle } from 'lucide-react';
 import { Wrench } from 'lucide-react';
@@ -48,10 +50,6 @@ const ProducerDashboard = () => {
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Funções utilitárias para formatação
-  const formatKm = (v: any) => Number.isFinite(Number(v)) ? `${Math.round(Number(v))} km` : '-';
-  const formatBRL = (v: any) => typeof v === 'number' ? v.toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '-';
 
   // Redirect non-producers to their correct dashboard
   React.useEffect(() => {
@@ -1260,111 +1258,15 @@ const ProducerDashboard = () => {
               <div className="max-h-[70vh] overflow-y-auto pr-2">
                 <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
                   {freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
-                    <Card key={freight.id} className="h-full flex flex-col border-l-4 border-l-primary hover:shadow-lg transition-all">
-                      <CardHeader className="pb-4 min-h-[120px]">
-                        <div className="flex justify-between items-start gap-4">
-                          <div className="space-y-2 flex-1 min-w-0">
-                            <h3 className="font-semibold text-lg line-clamp-1">{freight.cargo_type}</h3>
-                            <p className="text-sm text-muted-foreground line-clamp-1">
-                              {freight.origin_address} → {freight.destination_address}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2 mt-3">
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap">
-                                <Truck className="h-3.5 w-3.5 text-primary" />
-                                <span>{(freight.weight / 1000).toFixed(1)} t</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap">
-                                <MapPin className="h-3.5 w-3.5 text-accent" />
-                                <span>{formatKm(freight.distance_km)}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap">
-                                <Clock className="h-3.5 w-3.5 text-warning" />
-                                <span>{new Date(freight.pickup_date).toLocaleDateString('pt-BR')}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right space-y-2 flex-shrink-0">
-                            <Badge variant={freight.status === 'IN_TRANSIT' ? 'default' : 'secondary'} className="font-medium whitespace-nowrap">
-                              {getFreightStatusLabel(freight.status)}
-                            </Badge>
-                            <p className="font-bold text-lg text-primary whitespace-nowrap">
-                              R$ {formatBRL(freight.price)}
-                            </p>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      
-                      <CardContent className="flex flex-col gap-4 h-full pt-0 overflow-hidden">
-                        {/* Informações básicas */}
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="min-w-0">
-                            <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">Motorista:</p>
-                            <p className="text-foreground truncate whitespace-nowrap">
-                              {freight.driver_profiles?.full_name || AGUARDANDO_MOTORISTA_LABEL}
-                            </p>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-xs text-muted-foreground">Telefone:</p>
-                            <p className="text-foreground truncate">
-                              {freight.driver_profiles?.contact_phone || '-'}
-                            </p>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-xs text-muted-foreground">Data de Coleta:</p>
-                            <p className="text-foreground">
-                              {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
-                            </p>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-xs text-muted-foreground">Data de Entrega:</p>
-                            <p className="text-foreground">
-                              {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Botões de Ação - sempre no rodapé */}
-                        <div className="mt-auto grid grid-cols-2 gap-3">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => {
-                              setSelectedFreightDetails(freight);
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-1.5" />
-                            Ver Detalhes
-                          </Button>
-                          
-                          {/* Cancelamento direto para ACCEPTED e LOADING */}
-                          {['ACCEPTED', 'LOADING'].includes(freight.status) && (
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              className="w-full"
-                              onClick={() => handleFreightAction('cancel', freight)}
-                            >
-                              <X className="h-4 w-4 mr-1.5" />
-                              Cancelar Frete
-                            </Button>
-                          )}
-                          
-                          {/* Solicitar cancelamento via chat para LOADED e IN_TRANSIT */}
-                          {['LOADED', 'IN_TRANSIT'].includes(freight.status) && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="w-full border-destructive text-destructive hover:bg-destructive/10"
-                              onClick={() => handleFreightAction('request-cancel', freight)}
-                            >
-                              <MessageCircle className="h-4 w-4 mr-1.5" />
-                              Solicitar Cancelamento
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <FreightInProgressCard
+                      key={freight.id}
+                      freight={freight}
+                      onViewDetails={() => setSelectedFreightDetails(freight)}
+                      onRequestCancel={() => {
+                        setFreightToCancel(freight);
+                        setConfirmDialogOpen(true);
+                      }}
+                    />
                   ))}
                 </div>
               </div>

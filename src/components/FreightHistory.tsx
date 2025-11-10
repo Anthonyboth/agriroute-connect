@@ -28,6 +28,8 @@ import { getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { formatWeight } from '@/lib/freight-calculations';
+import { formatKm, formatBRL, formatDate } from '@/lib/formatters';
+import { LABELS } from '@/lib/labels';
 
 interface Freight {
   id: string;

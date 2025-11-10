@@ -22,6 +22,8 @@ import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { getFreightTypeLabel, shouldShowAntt } from '@/lib/freight-type-labels';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { formatTons, formatKm, formatBRL, formatDate } from '@/lib/formatters';
+import { LABELS } from '@/lib/labels';
 
 interface FreightCardProps {
   freight: {
@@ -267,13 +269,13 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
             ) : (
               <>
                 <Package className="h-5 w-5" />
-                <span className="text-base font-semibold">{((freight.weight || 0) / 1000).toFixed(1)}t</span>
+                <span className="text-base font-semibold">{formatTons(freight.weight)}</span>
               </>
             )}
           </div>
           <div className="flex items-center space-x-3 text-muted-foreground">
             <MapPin className="h-5 w-5" />
-            <span className="text-base font-semibold">{freight.distance_km} km</span>
+            <span className="text-base font-semibold">{formatKm(freight.distance_km)}</span>
           </div>
         </div>
 

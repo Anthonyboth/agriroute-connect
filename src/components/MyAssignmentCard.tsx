@@ -8,6 +8,8 @@ import { ShareFreightToDriver } from './ShareFreightToDriver';
 import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-helpers';
 import { useAuth } from '@/hooks/useAuth';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { formatKm, formatBRL, formatTons } from '@/lib/formatters';
+import { LABELS } from '@/lib/labels';
 
 interface MyAssignmentCardProps {
   assignment: any;
@@ -145,7 +147,7 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
           </p>
           <p className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
-            <span>{typeof distanceKm === 'number' ? `${distanceKm} km` : '—'}</span>
+            <span>{formatKm(distanceKm)}</span>
           </p>
         </div>
 
