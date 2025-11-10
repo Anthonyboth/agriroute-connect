@@ -9,11 +9,57 @@ import React from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Truck, Clock, ArrowRight } from 'lucide-react';
+import { MapPin, Truck, Clock, ArrowRight, Calendar, AlertTriangle } from 'lucide-react';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { formatKm, formatBRL, formatTons, formatDate } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
+
+// Helper para calcular dias até a coleta
+const getDaysUntilPickup = (pickupDate: string | null): number | null => {
+  if (!pickupDate) return null;
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const pickup = new Date(pickupDate);
+  pickup.setHours(0, 0, 0, 0);
+  
+  const diffTime = pickup.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays;
+};
+
+// Helper para gerar badge de dias até coleta
+const getDaysUntilPickupBadge = (days: number | null) => {
+  if (days === null) return null;
+  
+  let variant: 'destructive' | 'default' | 'secondary' = 'default';
+  let IconComponent = Calendar;
+  let text = '';
+  
+  if (days < 0) {
+    variant = 'destructive';
+    IconComponent = AlertTriangle;
+    text = `${Math.abs(days)} dia(s) atrasado`;
+  } else if (days === 0) {
+    variant = 'default';
+    IconComponent = Clock;
+    text = 'Coleta hoje';
+  } else if (days === 1) {
+    variant = 'secondary';
+    text = 'Coleta amanhã';
+  } else if (days <= 3) {
+    variant = 'secondary';
+    text = `${days} dias para coleta`;
+  } else {
+    variant = 'default';
+    text = `${days} dias para coleta`;
+  }
+  
+  return { variant, icon: IconComponent, text };
+};
 
 interface FreightInProgressCardProps {
   freight: {
@@ -128,7 +174,7 @@ export const FreightInProgressCard: React.FC<FreightInProgressCardProps> = ({
             )}
           </div>
 
-          {/* Status e Preço */}
+          {/* Status, Badge de Dias até Coleta e Preço */}
           <div className="text-right space-y-2 flex-shrink-0">
             <Badge 
               variant={getFreightStatusVariant(freight.status)} 
@@ -136,6 +182,24 @@ export const FreightInProgressCard: React.FC<FreightInProgressCardProps> = ({
             >
               {getFreightStatusLabel(freight.status)}
             </Badge>
+            
+            {/* 📅 Badge de dias até coleta */}
+            {(() => {
+              const days = getDaysUntilPickup(freight.pickup_date);
+              const badge = getDaysUntilPickupBadge(days);
+              
+              if (!badge) return null;
+              
+              const IconComponent = badge.icon;
+              
+              return (
+                <Badge variant={badge.variant} className="text-xs whitespace-nowrap flex items-center gap-1 justify-end">
+                  <IconComponent className="h-3 w-3" />
+                  {badge.text}
+                </Badge>
+              );
+            })()}
+            
             <p className="font-bold text-lg text-primary whitespace-nowrap">
               R$ {formatBRL(freight.price)}
             </p>
