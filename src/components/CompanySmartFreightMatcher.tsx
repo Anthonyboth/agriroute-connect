@@ -348,49 +348,57 @@ export const CompanySmartFreightMatcher: React.FC = () => {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredFreights.map((freight) => (
-              <div key={freight.freight_id} className="relative">
-                <FreightCard
-                  freight={{
-                    id: freight.freight_id,
-                    cargo_type: freight.cargo_type,
-                    weight: freight.weight / 1000,
-                    origin_address: freight.origin_address,
-                    destination_address: freight.destination_address,
-                    origin_city: freight.origin_city,
-                    origin_state: freight.origin_state,
-                    destination_city: freight.destination_city,
-                    destination_state: freight.destination_state,
-                    pickup_date: freight.pickup_date,
-                    delivery_date: freight.delivery_date,
-                    price: freight.price,
-                    urgency: freight.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
-                    status: 'OPEN' as const,
-                    distance_km: freight.distance_km,
-                    minimum_antt_price: freight.minimum_antt_price,
-                    required_trucks: freight.required_trucks,
-                    accepted_trucks: freight.accepted_trucks,
-                  }}
-                  showActions
-                  canAcceptFreights={true}
-                  isAffiliatedDriver={false}
-                  onAction={() => {
-                    fetchCompatibleFreights();
-                  }}
-                />
-                <div className="mt-2 flex gap-2">
-                  <Badge className="flex-1 justify-center" variant="outline">
-                    <Package className="h-3 w-3 mr-1" />
-                    Atribuir a Motorista
-                  </Badge>
-                  {freight.required_trucks > 1 && (
-                    <Badge className="bg-blue-50 text-blue-700 border-blue-200">
-                      {freight.accepted_trucks}/{freight.required_trucks} caminhões
+            {filteredFreights.map((freight) => {
+              // ✅ Validação de segurança
+              if (!freight?.freight_id || !freight?.cargo_type) {
+                console.warn('[CompanySmartFreightMatcher] Frete inválido ignorado:', freight);
+                return null;
+              }
+              
+              return (
+                <div key={freight.freight_id} className="relative overflow-hidden">
+                  <FreightCard
+                    freight={{
+                      id: freight.freight_id,
+                      cargo_type: freight.cargo_type,
+                      weight: freight.weight / 1000,
+                      origin_address: freight.origin_address,
+                      destination_address: freight.destination_address,
+                      origin_city: freight.origin_city,
+                      origin_state: freight.origin_state,
+                      destination_city: freight.destination_city,
+                      destination_state: freight.destination_state,
+                      pickup_date: freight.pickup_date,
+                      delivery_date: freight.delivery_date,
+                      price: freight.price,
+                      urgency: freight.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
+                      status: 'OPEN' as const,
+                      distance_km: freight.distance_km,
+                      minimum_antt_price: freight.minimum_antt_price,
+                      required_trucks: freight.required_trucks,
+                      accepted_trucks: freight.accepted_trucks,
+                    }}
+                    showActions
+                    canAcceptFreights={true}
+                    isAffiliatedDriver={false}
+                    onAction={() => {
+                      fetchCompatibleFreights();
+                    }}
+                  />
+                  <div className="mt-2 flex gap-2 flex-wrap">
+                    <Badge className="flex-1 justify-center whitespace-nowrap" variant="outline">
+                      <Package className="h-3 w-3 mr-1 flex-shrink-0" />
+                      Atribuir a Motorista
                     </Badge>
-                  )}
+                    {freight.required_trucks > 1 && (
+                      <Badge className="bg-blue-50 text-blue-700 border-blue-200 whitespace-nowrap">
+                        {freight.accepted_trucks}/{freight.required_trucks} caminhões
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

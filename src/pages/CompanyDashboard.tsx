@@ -433,27 +433,27 @@ const CompanyDashboard = () => {
         userProfile={profile ? { ...profile, active_mode: 'TRANSPORTADORA' } : undefined}
       />
       
-      <section className="relative py-12 overflow-hidden">
+      <section className="relative py-6 overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-10"
           style={{ backgroundImage: `url(${heroLogistics})` }}
         />
         <div className="container relative z-10 mx-auto px-4">
-          <div className="max-w-5xl mx-auto text-center space-y-6">
-            <Badge variant="default" className="mb-2">
+          <div className="max-w-5xl mx-auto text-center space-y-4">
+            <Badge variant="default" className="mb-1">
               <Building2 className="h-3 w-3 mr-1" />
               Transportadora
             </Badge>
             
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
               Painel de Gerenciamento
             </h1>
             
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-base text-muted-foreground max-w-2xl mx-auto">
               {company?.company_name || 'Transportadora'}
             </p>
             
-            <div className="flex flex-wrap justify-center gap-3">
+            <div className="flex flex-wrap justify-center gap-2">
               <Button 
                 onClick={() => setActiveTab('marketplace')}
                 className="gradient-primary text-primary-foreground font-semibold rounded-full px-6 py-2.5 w-full sm:w-auto shadow-glow hover:scale-105 transition-bounce"

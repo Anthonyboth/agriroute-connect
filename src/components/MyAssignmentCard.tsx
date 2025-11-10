@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, TrendingUp, Truck, DollarSign, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, DollarSign, AlertCircle, CheckCircle2, Navigation } from 'lucide-react';
 import { ANTTValidation } from './ANTTValidation';
 import { ShareFreightToDriver } from './ShareFreightToDriver';
 import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-helpers';
@@ -102,15 +102,15 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
   const cargoType = freight?.cargo_type || freight?.service_type || '—';
   
   return (
-    <Card className="border-l-4 border-l-green-600">
+    <Card className="border-l-4 border-l-green-600 overflow-hidden">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">{cargoType}</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-semibold truncate flex-1">{cargoType}</h3>
           {getStatusBadge(status)}
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 overflow-hidden">
         {/* Valor APENAS deste motorista */}
         <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200">
           <p className="text-sm text-muted-foreground">Seu valor acordado:</p>
@@ -169,8 +169,10 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
                 size="sm"
                 onClick={() => handleStatusChange('LOADING')}
                 disabled={isUpdatingStatus}
+                className="w-full whitespace-nowrap overflow-hidden text-ellipsis"
               >
-                🚚 Marcar "A caminho"
+                <Truck className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="truncate">Marcar como "A caminho"</span>
               </Button>
             )}
             {status === 'LOADING' && (
@@ -179,8 +181,10 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
                 size="sm"
                 onClick={() => handleStatusChange('IN_TRANSIT')}
                 disabled={isUpdatingStatus}
+                className="w-full whitespace-nowrap overflow-hidden text-ellipsis"
               >
-                🛣️ Iniciar Trânsito
+                <Navigation className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="truncate">Iniciar Trânsito</span>
               </Button>
             )}
             {status === 'IN_TRANSIT' && (
@@ -189,8 +193,10 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
                 size="sm"
                 onClick={() => handleStatusChange('DELIVERED_PENDING_CONFIRMATION')}
                 disabled={isUpdatingStatus}
+                className="w-full whitespace-nowrap overflow-hidden text-ellipsis"
               >
-                ✅ Encerrar Frete
+                <CheckCircle2 className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="truncate">Encerrar Frete</span>
               </Button>
             )}
           </div>
