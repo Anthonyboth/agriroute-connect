@@ -260,9 +260,9 @@ export async function driverUpdateFreightStatus({
           const { sendNotification } = await import('@/utils/notify');
           await sendNotification({
             user_id: freightData.producer_id,
-            title: 'Entrega reportada',
-            message: `O motorista reportou a entrega do frete ${freightData.cargo_type}. Você tem até 72h para confirmar.`,
-            type: 'freight_delivery_reported',
+            title: 'Entrega Reportada pelo Motorista',
+            message: `O motorista relatou que sua carga foi entregue. Você tem 72h para confirmar a entrega. Se não confirmar, o sistema confirmará automaticamente.`,
+            type: 'delivery_confirmation_required',
             data: { freight_id: freightId }
           });
           console.log('[freight-status-helpers] 🔔 Notificação enviada ao produtor:', freightData.producer_id);

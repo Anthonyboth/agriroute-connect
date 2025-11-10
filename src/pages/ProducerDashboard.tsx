@@ -51,6 +51,15 @@ const ProducerDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Abrir aba específica quando vindo de notificação
+  useEffect(() => {
+    if (location.state?.openTab) {
+      setActiveTab(location.state.openTab);
+      // Limpar state após uso
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
+
   // Redirect non-producers to their correct dashboard
   React.useEffect(() => {
     if (profile?.role === 'MOTORISTA') {
@@ -107,10 +116,19 @@ const ProducerDashboard = () => {
     console.log('fetchFreights: Iniciando busca para produtor ID:', profile.id);
 
     try {
-      // ✅ Query simplificada sem joins para evitar falhas de RLS
+      // ✅ Query com JOIN para carregar dados do motorista
       const { data, error } = await supabase
         .from('freights')
-        .select('*')
+        .select(`
+          *,
+          driver_profiles:profiles!freights_driver_id_fkey(
+            id,
+            full_name,
+            contact_phone,
+            email,
+            role
+          )
+        `)
         .eq('producer_id', profile.id)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -712,6 +730,20 @@ const ProducerDashboard = () => {
             freightToConfirm.price
           );
         }, 1000);
+      }
+
+      // Abrir modal de avaliação do motorista após confirmação
+      if (freightToConfirm.driver_profiles?.id) {
+        setTimeout(() => {
+          // Disparar evento para abrir modal de avaliação
+          window.dispatchEvent(new CustomEvent('show-freight-rating', {
+            detail: {
+              freightId: freightToConfirm.id,
+              ratedUserId: freightToConfirm.driver_profiles.id,
+              ratedUserName: freightToConfirm.driver_profiles.full_name
+            }
+          }));
+        }, 500);
       }
     }
     

@@ -159,12 +159,25 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         }
         break;
         
+      case 'delivery_confirmation_required':
+      case 'freight_delivery_reported':
+        if (data?.freight_id) {
+          onClose();
+          const dashboardRoute = getDashboardRoute(profile?.role);
+          navigate(dashboardRoute, { 
+            state: { 
+              openTab: 'confirm-delivery',
+              highlightFreightId: data.freight_id
+            } 
+          });
+        }
+        break;
+
       case 'freight_accepted':
       case 'proposal_received':
       case 'advance_request':
       case 'advance_approved':
       case 'advance_rejected':
-      case 'delivery_confirmation_required':
       case 'checkin_confirmation_required':
       case 'freight_in_transit':
       case 'freight_created':
@@ -261,6 +274,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       'advance_approved',
       'advance_rejected',
       'delivery_confirmation_required',
+      'freight_delivery_reported',
       'checkin_confirmation_required',
       'freight_in_transit',
       'freight_created',
