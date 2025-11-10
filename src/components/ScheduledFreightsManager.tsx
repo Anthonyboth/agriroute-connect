@@ -17,6 +17,22 @@ import { ProposalCounterModal } from './ProposalCounterModal';
 import { EditFreightModal } from './EditFreightModal';
 import { ConfirmDialog } from './ConfirmDialog';
 
+// Helper para calcular dias até a coleta
+const getDaysUntilPickup = (pickupDate: string | null): number | null => {
+  if (!pickupDate) return null;
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const pickup = new Date(pickupDate);
+  pickup.setHours(0, 0, 0, 0);
+  
+  const diffTime = pickup.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays;
+};
+
 interface ScheduledFreight {
   id: string;
   origin_address: string;
@@ -52,6 +68,7 @@ export const ScheduledFreightsManager: React.FC = () => {
   const [flexibleProposals, setFlexibleProposals] = useState<FlexibleProposal[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [urgencyFilter, setUrgencyFilter] = useState<'all' | 'today' | 'tomorrow' | 'near'>('all');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [counterProposalModalOpen, setCounterProposalModalOpen] = useState(false);
@@ -383,21 +400,63 @@ export const ScheduledFreightsManager: React.FC = () => {
             </TabsList>
 
             <TabsContent value="freights" className="space-y-4">
-              {/* Busca */}
-              <div className="flex gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por origem, destino ou tipo de carga..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+              {/* Busca e Filtros de Urgência */}
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por origem, destino ou tipo de carga..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
-                <Button variant="outline">
-                  <Filter className="mr-2 h-4 w-4" />
-                  Filtros
-                </Button>
+
+                {/* Filtros de Urgência */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground mr-2">Urgência:</span>
+                  <Button
+                    variant={urgencyFilter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setUrgencyFilter('all')}
+                  >
+                    Todos ({filteredFreights.length})
+                  </Button>
+                  <Button
+                    variant={urgencyFilter === 'today' ? 'destructive' : 'outline'}
+                    size="sm"
+                    onClick={() => setUrgencyFilter('today')}
+                  >
+                    🔴 Hoje ({filteredFreights.filter(f => {
+                      const days = getDaysUntilPickup(f.scheduled_date);
+                      return days === 0;
+                    }).length})
+                  </Button>
+                  <Button
+                    variant={urgencyFilter === 'tomorrow' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setUrgencyFilter('tomorrow')}
+                    className={urgencyFilter === 'tomorrow' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                  >
+                    ⚠️ Amanhã ({filteredFreights.filter(f => {
+                      const days = getDaysUntilPickup(f.scheduled_date);
+                      return days === 1;
+                    }).length})
+                  </Button>
+                  <Button
+                    variant={urgencyFilter === 'near' ? 'secondary' : 'outline'}
+                    size="sm"
+                    onClick={() => setUrgencyFilter('near')}
+                  >
+                    📅 2-3 dias ({filteredFreights.filter(f => {
+                      const days = getDaysUntilPickup(f.scheduled_date);
+                      return days !== null && days >= 2 && days <= 3;
+                    }).length})
+                  </Button>
+                </div>
               </div>
 
               {/* Lista de Fretes */}
@@ -406,12 +465,37 @@ export const ScheduledFreightsManager: React.FC = () => {
                   <div className="text-center py-8 text-muted-foreground">
                     Carregando fretes...
                   </div>
-                ) : filteredFreights.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    {searchTerm ? 'Nenhum frete encontrado com os filtros aplicados' : 'Nenhum frete agendado encontrado'}
-                  </div>
-                ) : (
-                  filteredFreights.map((freight) => (
+                ) : (() => {
+                  // Aplicar filtros de urgência
+                  const urgencyFiltered = filteredFreights.filter(freight => {
+                    if (urgencyFilter === 'all') return true;
+                    const days = getDaysUntilPickup(freight.scheduled_date);
+                    if (days === null) return false;
+                    if (urgencyFilter === 'today') return days === 0;
+                    if (urgencyFilter === 'tomorrow') return days === 1;
+                    if (urgencyFilter === 'near') return days >= 2 && days <= 3;
+                    return true;
+                  });
+
+                  // Ordenar por urgência (mais urgente primeiro)
+                  const sortedFreights = [...urgencyFiltered].sort((a, b) => {
+                    const daysA = getDaysUntilPickup(a.scheduled_date) ?? 999;
+                    const daysB = getDaysUntilPickup(b.scheduled_date) ?? 999;
+                    return daysA - daysB;
+                  });
+
+                  return sortedFreights.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      {urgencyFilter === 'all' 
+                        ? (searchTerm ? 'Nenhum frete encontrado com os filtros aplicados' : 'Nenhum frete agendado encontrado')
+                        : urgencyFilter === 'today'
+                        ? 'Não há fretes com coleta agendada para hoje.'
+                        : urgencyFilter === 'tomorrow'
+                        ? 'Não há fretes com coleta agendada para amanhã.'
+                        : 'Não há fretes com coleta agendada para 2-3 dias.'}
+                    </div>
+                  ) : (
+                    sortedFreights.map((freight) => (
                     <Card key={freight.id} className="p-4">
                       <div className="space-y-3">
                         <div className="flex justify-between items-start">
@@ -493,7 +577,8 @@ export const ScheduledFreightsManager: React.FC = () => {
                       </div>
                     </Card>
                   ))
-                )}
+                );
+                })()}
               </div>
             </TabsContent>
 
