@@ -5155,6 +5155,42 @@ export type Database = {
           },
         ]
       }
+      trusted_entities: {
+        Row: {
+          added_at: string | null
+          added_by: string
+          entity_type: string
+          entity_value: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          reason: string
+        }
+        Insert: {
+          added_at?: string | null
+          added_by: string
+          entity_type: string
+          entity_value: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          reason: string
+        }
+        Update: {
+          added_at?: string | null
+          added_by?: string
+          entity_type?: string
+          entity_value?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          reason?: string
+        }
+        Relationships: []
+      }
       urban_service_providers: {
         Row: {
           base_price: number | null
@@ -6732,6 +6768,10 @@ export type Database = {
         Returns: boolean
       }
       is_transport_company: { Args: { p_user_id: string }; Returns: boolean }
+      is_trusted_entity: {
+        Args: { p_entity_type: string; p_entity_value: string }
+        Returns: boolean
+      }
       log_security_event: {
         Args: {
           details?: Json
