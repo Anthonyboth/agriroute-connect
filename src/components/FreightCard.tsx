@@ -30,6 +30,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { toast } from 'sonner';
+import { formatTons, formatKm, formatBRL, formatDate } from '@/lib/formatters';
+import { LABELS } from '@/lib/labels';
 
 interface FreightCardProps {
   freight: {
@@ -297,9 +299,9 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               ) : freight.service_type === 'MUDANCA' ? (
                 <span className="text-muted-foreground">Residencial</span>
               ) : (
-                <span className="text-muted-foreground">{((freight.weight || 0) / 1000).toFixed(1)}t</span>
+                <span className="text-muted-foreground">{formatTons(freight.weight)}</span>
               )}
-              <span className="text-muted-foreground">{freight.distance_km} km</span>
+              <span className="text-muted-foreground">{formatKm(freight.distance_km)}</span>
             </div>
           </div>
         </div>
@@ -372,7 +374,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               <span className="text-xs font-medium">Coleta</span>
             </div>
             <p className="font-semibold text-foreground text-xs">
-              {new Date(freight.pickup_date).toLocaleDateString('pt-BR')}
+              {formatDate(freight.pickup_date)}
             </p>
           </div>
           <div className="space-y-1 p-2 bg-gradient-to-br from-accent/20 to-accent/5 rounded-lg border border-border/40">
@@ -381,7 +383,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               <span className="text-xs font-medium">Entrega</span>
             </div>
             <p className="font-semibold text-foreground text-xs">
-              {new Date(freight.delivery_date).toLocaleDateString('pt-BR')}
+              {formatDate(freight.delivery_date)}
             </p>
           </div>
         </div>
@@ -391,7 +393,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         <CardFooter className="pt-3 pb-3 flex-shrink-0 mt-auto">
           <div className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border border-border/50">
             <div className="text-left">
-              <p className="font-bold text-xl text-primary">R$ {(freight.price || 0).toLocaleString('pt-BR')}</p>
+              <p className="font-bold text-xl text-primary">{formatBRL(freight.price, true)}</p>
               {freight.service_type === 'FRETE_MOTO' ? (
                 <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                   Mínimo: R$ 10,00
@@ -399,7 +401,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               ) : freight.service_type === 'CARGA' && (
                 freight.minimum_antt_price && freight.minimum_antt_price > 0 ? (
                   <Badge variant="outline" className="text-xs">
-                    Mín. ANTT: R$ {freight.minimum_antt_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    Mín. ANTT: {formatBRL(freight.minimum_antt_price, true)}
                   </Badge>
                 ) : (
                   <Badge variant="destructive" className="text-xs">
