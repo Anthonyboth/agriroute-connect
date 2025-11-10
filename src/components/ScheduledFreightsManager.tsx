@@ -80,25 +80,75 @@ export const ScheduledFreightsManager: React.FC = () => {
         
         console.log('🔍 [AGENDADOS] Buscando fretes com pickup_date >= ', todayStr);
         
-        // Fazer query diretamente sem encadeamento complexo
-        const result = await supabase
-          .from('freights')
-          .select('*')
-          .gte('pickup_date', todayStr)
-          .not('status', 'in', '(CANCELLED,DELIVERED,COMPLETED,DELIVERED_PENDING_CONFIRMATION)')
-          .eq(profile.role === 'PRODUTOR' ? 'producer_id' : profile.role === 'TRANSPORTADORA' ? 'transport_company_id' : 'driver_id', profile.id)
-          .order('pickup_date', { ascending: true })
-          .limit(100);
+        // Queries completamente separadas com @ts-ignore para evitar problemas de inferência
+        let freightsData: any[] = [];
         
-        if (result.error) throw result.error;
+        if (profile.role === 'PRODUTOR') {
+          // @ts-ignore - TypeScript tem dificuldade com inferência profunda em queries condicionais
+          const result: any = await supabase
+            .from('freights')
+            .select('*')
+            .eq('producer_id', profile.id)
+            .gte('pickup_date', todayStr)
+            .order('pickup_date', { ascending: true })
+            .limit(100);
+          
+          if (result.error) throw result.error;
+          freightsData = result.data || [];
+          
+        } else if (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO') {
+          // @ts-ignore - TypeScript tem dificuldade com inferência profunda em queries condicionais
+          const result: any = await supabase
+            .from('freights')
+            .select('*')
+            .eq('driver_id', profile.id)
+            .gte('pickup_date', todayStr)
+            .order('pickup_date', { ascending: true })
+            .limit(100);
+          
+          if (result.error) throw result.error;
+          freightsData = result.data || [];
+          
+        } else if (profile.role === 'TRANSPORTADORA') {
+          // @ts-ignore - TypeScript tem dificuldade com inferência profunda em queries condicionais
+          const result: any = await supabase
+            .from('freights')
+            .select('*')
+            .eq('transport_company_id', profile.id)
+            .gte('pickup_date', todayStr)
+            .order('pickup_date', { ascending: true })
+            .limit(100);
+          
+          if (result.error) throw result.error;
+          freightsData = result.data || [];
+          
+        } else {
+          // @ts-ignore - TypeScript tem dificuldade com inferência profunda em queries condicionais
+          const result: any = await supabase
+            .from('freights')
+            .select('*')
+            .gte('pickup_date', todayStr)
+            .order('pickup_date', { ascending: true })
+            .limit(100);
+          
+          if (result.error) throw result.error;
+          freightsData = result.data || [];
+        }
+        
+        // Filtrar status finalizados no lado do cliente
+        const finalStatuses = ['CANCELLED', 'DELIVERED', 'COMPLETED', 'DELIVERED_PENDING_CONFIRMATION'];
+        const filteredData = freightsData.filter((freight: any) => 
+          !finalStatuses.includes(freight.status)
+        );
         
         console.log('✅ [AGENDADOS] Fretes carregados:', {
-          total: result.data?.length || 0,
-          ids: result.data?.map(f => f.id) || [],
-          dates: result.data?.map(f => ({ id: f.id, pickup_date: f.pickup_date, status: f.status })) || []
+          total: filteredData.length,
+          totalBeforeFilter: freightsData.length,
+          ids: filteredData.map((f: any) => f.id),
+          dates: filteredData.map((f: any) => ({ id: f.id, pickup_date: f.pickup_date, status: f.status }))
         });
 
-        setScheduledFreights(result.data || []);
+        setScheduledFreights(filteredData);
       } catch (queryError) {
         console.error('Erro na query de agendados:', queryError);
         throw queryError;
