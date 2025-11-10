@@ -11,3 +11,4 @@ export const AREAS_IA_LABEL = `Áreas ${AI_ABBR}` as const;
 export const SISTEMA_IA_LABEL = `Sistema ${AI_ABBR}` as const;
 export const VER_FRETES_IA_LABEL = `Ver ${FRETES_IA_LABEL}` as const;
 export const FRETES_IA_DISPONIVEL_LABEL = `${FRETES_IA_LABEL} disponível!` as const;
+export const AGUARDANDO_MOTORISTA_LABEL = "Aguardando motorista" as const;

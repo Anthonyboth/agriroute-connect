@@ -26,6 +26,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
+import { AGUARDANDO_MOTORISTA_LABEL } from '@/lib/ui-labels';
 import { toast } from 'sonner';
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star, MessageCircle } from 'lucide-react';
 import { Wrench } from 'lucide-react';
@@ -1212,7 +1213,7 @@ const ProducerDashboard = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-fr">
+              <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
                 {freights.filter(f => f.status === 'OPEN').map((freight) => (
                   <FreightCard
                     key={freight.id}
@@ -1257,7 +1258,7 @@ const ProducerDashboard = () => {
               </Card>
             ) : (
               <div className="max-h-[70vh] overflow-y-auto pr-2">
-                <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-fr">
+                <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
                   {freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
                     <Card key={freight.id} className="h-full flex flex-col border-l-4 border-l-primary hover:shadow-lg transition-all">
                       <CardHeader className="pb-4 min-h-[120px]">
@@ -1293,13 +1294,13 @@ const ProducerDashboard = () => {
                         </div>
                       </CardHeader>
                       
-                      <CardContent className="flex flex-col gap-4 h-full pt-0">
+                      <CardContent className="flex flex-col gap-4 h-full pt-0 overflow-hidden">
                         {/* Informações básicas */}
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <div className="min-w-0">
-                            <p className="font-medium text-xs text-muted-foreground">Motorista:</p>
-                            <p className="text-foreground truncate">
-                              {freight.driver_profiles?.full_name || 'Aguardando aceite'}
+                            <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">Motorista:</p>
+                            <p className="text-foreground truncate whitespace-nowrap">
+                              {freight.driver_profiles?.full_name || AGUARDANDO_MOTORISTA_LABEL}
                             </p>
                           </div>
                           <div className="min-w-0">
@@ -1387,7 +1388,7 @@ const ProducerDashboard = () => {
               </Card>
             ) : (
               <div className="max-h-[70vh] overflow-y-auto pr-2">
-                <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-fr">
+                <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
                   {freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').map((freight) => (
                     <Card key={freight.id} className="h-full flex flex-col border-amber-200 bg-amber-50/50 border-l-4 border-l-amber-500">
                       <CardHeader className="pb-4">
