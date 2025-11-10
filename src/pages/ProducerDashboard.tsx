@@ -28,6 +28,7 @@ import { getProposalStatusLabel, getFreightStatusLabel } from '@/lib/freight-sta
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
 import { LABELS } from '@/lib/labels';
 import { formatKm, formatBRL, formatDate } from '@/lib/formatters';
+import { isInProgressFreight, isScheduledFreight, formatPickupDate } from '@/utils/freightDateHelpers';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
 import { toast } from 'sonner';
 import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star, MessageCircle } from 'lucide-react';
@@ -1351,7 +1352,11 @@ const ProducerDashboard = () => {
               <h3 className="text-lg font-semibold">Fretes em Andamento</h3>
             </div>
             
-            {freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).length === 0 ? (
+            {freights.filter(f => 
+              // Incluir fretes com status em andamento OU com data de coleta de hoje/passada
+              ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status) || 
+              isInProgressFreight(f.pickup_date, f.status)
+            ).length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Play className="h-12 w-12 text-muted-foreground mb-4" />
@@ -1364,7 +1369,10 @@ const ProducerDashboard = () => {
             ) : (
               <div className="max-h-[70vh] overflow-y-auto pr-2">
                 <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
-                  {freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).map((freight) => (
+                  {freights.filter(f => 
+                    ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status) || 
+                    isInProgressFreight(f.pickup_date, f.status)
+                  ).map((freight) => (
                     <FreightInProgressCard
                       key={freight.id}
                       freight={freight}
