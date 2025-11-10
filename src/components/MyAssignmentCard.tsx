@@ -115,13 +115,11 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
         <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200">
           <p className="text-sm text-muted-foreground">Seu valor acordado:</p>
           <p className="text-2xl font-bold text-green-600">
-            {agreedPrice !== null
-              ? `R$ ${agreedPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-              : '—'}
+            {formatBRL(agreedPrice, true)}
           </p>
           {assignment?.pricing_type === 'PER_KM' && pricePerKm !== null && (
             <p className="text-xs text-muted-foreground">
-              R$ {pricePerKm.toFixed(2)}/km
+              {formatBRL(pricePerKm)}/km
             </p>
           )}
         </div>

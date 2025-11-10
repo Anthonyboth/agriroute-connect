@@ -13,6 +13,7 @@ import { MapPin, Truck, Clock, ArrowRight } from 'lucide-react';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { formatKm, formatBRL, formatTons, formatDate } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
+import { cn } from '@/lib/utils';
 
 interface FreightInProgressCardProps {
   freight: {
@@ -21,6 +22,10 @@ interface FreightInProgressCardProps {
     origin_state?: string;
     destination_city?: string;
     destination_state?: string;
+    origin_lat?: number;
+    origin_lng?: number;
+    destination_lat?: number;
+    destination_lng?: number;
     weight: number;
     distance_km: number;
     pickup_date: string;
@@ -29,10 +34,17 @@ interface FreightInProgressCardProps {
     driver_profiles?: {
       full_name: string;
     } | null;
+    deliveryDeadline?: {
+      hoursRemaining: number;
+      isUrgent: boolean;
+      isCritical: boolean;
+      displayText: string;
+    };
   };
   onViewDetails?: () => void;
   onRequestCancel?: () => void;
   showActions?: boolean;
+  highlightFreightId?: string;
 }
 
 export const FreightInProgressCard: React.FC<FreightInProgressCardProps> = ({
@@ -40,9 +52,37 @@ export const FreightInProgressCard: React.FC<FreightInProgressCardProps> = ({
   onViewDetails,
   onRequestCancel,
   showActions = true,
+  highlightFreightId,
 }) => {
+  // GPS precision indicator
+  const precisionInfo = React.useMemo(() => {
+    const originReal = freight.origin_lat !== null && freight.origin_lat !== undefined && 
+                       freight.origin_lng !== null && freight.origin_lng !== undefined;
+    const destReal = freight.destination_lat !== null && freight.destination_lat !== undefined && 
+                     freight.destination_lng !== null && freight.destination_lng !== undefined;
+    
+    if (originReal && destReal) {
+      return {
+        isAccurate: true,
+        icon: '📍',
+        tooltip: 'Distância calculada com GPS preciso'
+      };
+    }
+    
+    return {
+      isAccurate: false,
+      icon: '📌',
+      tooltip: 'Distância estimada por endereço'
+    };
+  }, [freight.origin_lat, freight.origin_lng, freight.destination_lat, freight.destination_lng]);
+
+  const isHighlighted = highlightFreightId === freight.id;
+
   return (
-    <Card className="h-full flex flex-col border-l-4 border-l-primary hover:shadow-lg transition-all">
+    <Card className={cn(
+      "h-full flex flex-col border-l-4 hover:shadow-lg transition-all",
+      isHighlighted ? "border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 shadow-xl animate-pulse" : "border-l-primary"
+    )}>
       <CardHeader className="pb-4 min-h-[120px]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -57,21 +97,35 @@ export const FreightInProgressCard: React.FC<FreightInProgressCardProps> = ({
               </p>
             </div>
 
-            {/* Pílulas: peso, distância, data */}
+            {/* Pílulas: peso, distância (com precisão GPS), data */}
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap">
                 <Truck className="h-3.5 w-3.5 text-primary" />
                 <span>{formatTons(freight.weight)}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap" title={precisionInfo.tooltip}>
                 <MapPin className="h-3.5 w-3.5 text-accent" />
                 <span>{formatKm(freight.distance_km)}</span>
+                <span className="text-[10px]">{precisionInfo.icon}</span>
               </div>
               <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap">
                 <Clock className="h-3.5 w-3.5 text-warning" />
                 <span>{formatDate(freight.pickup_date)}</span>
               </div>
             </div>
+
+            {/* 🔥 Deadline indicator */}
+            {freight.deliveryDeadline && (
+              <div className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded text-xs font-bold mt-2",
+                freight.deliveryDeadline.isCritical && "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+                freight.deliveryDeadline.isUrgent && !freight.deliveryDeadline.isCritical && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+                !freight.deliveryDeadline.isUrgent && "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+              )}>
+                <Clock className="h-3 w-3" />
+                {freight.deliveryDeadline.displayText}
+              </div>
+            )}
           </div>
 
           {/* Status e Preço */}

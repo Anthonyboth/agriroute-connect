@@ -55,6 +55,20 @@ const ProducerDashboard = () => {
   useEffect(() => {
     if (location.state?.openTab) {
       setActiveTab(location.state.openTab);
+      
+      // 🔥 Se vier com dados do frete, forçar atualização
+      if (location.state.freightData) {
+        setFreights(prev => {
+          const existingIndex = prev.findIndex(f => f.id === location.state.freightData.id);
+          if (existingIndex >= 0) {
+            const updated = [...prev];
+            updated[existingIndex] = location.state.freightData;
+            return updated;
+          }
+          return [location.state.freightData, ...prev];
+        });
+      }
+      
       // Limpar state após uso
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -168,8 +182,38 @@ const ProducerDashboard = () => {
       const freightData = data || [];
       let finalData = freightData;
 
+      // 🔥 Enriquecer fretes com informação de deadline
+      finalData = finalData.map(freight => {
+        if (freight.status === 'DELIVERED_PENDING_CONFIRMATION') {
+          const deliveredDate = freight.updated_at || freight.created_at;
+          const deadline = new Date(new Date(deliveredDate).getTime() + (72 * 60 * 60 * 1000));
+          const now = new Date();
+          const hoursRemaining = Math.max(0, Math.floor((deadline.getTime() - now.getTime()) / (1000 * 60 * 60)));
+          
+          const isUrgent = hoursRemaining < 24;
+          const isCritical = hoursRemaining < 6;
+          
+          let displayText = '';
+          if (hoursRemaining === 0) {
+            displayText = 'PRAZO EXPIRADO';
+          } else if (hoursRemaining < 24) {
+            displayText = `${hoursRemaining}h restantes`;
+          } else {
+            const days = Math.floor(hoursRemaining / 24);
+            const hours = hoursRemaining % 24;
+            displayText = `${days}d ${hours}h restantes`;
+          }
+          
+          return {
+            ...freight,
+            deliveryDeadline: { hoursRemaining, isUrgent, isCritical, displayText }
+          };
+        }
+        return freight;
+      });
+
       // Fallback: garantir que fretes aguardando confirmação apareçam
-      if (freightData.every(f => f.status !== 'DELIVERED_PENDING_CONFIRMATION')) {
+      if (finalData.every(f => f.status !== 'DELIVERED_PENDING_CONFIRMATION')) {
         console.log('fetchFreights: Nenhum DPC na busca principal, executando fallback direcionado...');
         const { data: dpcData, error: dpcError } = await (supabase as any)
           .from('freights')
@@ -1353,8 +1397,19 @@ const ProducerDashboard = () => {
             ) : (
               <div className="max-h-[70vh] overflow-y-auto pr-2">
                 <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
-                  {freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').map((freight) => (
-                    <Card key={freight.id} className="h-full flex flex-col border-amber-200 bg-amber-50/50 border-l-4 border-l-amber-500">
+                  {freights
+                    .filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION')
+                    .sort((a, b) => {
+                      const deadlineA = a.deliveryDeadline?.hoursRemaining ?? 72;
+                      const deadlineB = b.deliveryDeadline?.hoursRemaining ?? 72;
+                      return deadlineA - deadlineB; // Mais urgente primeiro
+                    })
+                    .map((freight) => (
+                    <Card key={freight.id} className={`h-full flex flex-col border-amber-200 ${
+                      location.state?.highlightFreightId === freight.id 
+                        ? 'bg-yellow-50 dark:bg-yellow-900/20 shadow-xl animate-pulse border-l-yellow-500' 
+                        : 'bg-amber-50/50'
+                    } border-l-4 border-l-amber-500`}>
                       <CardHeader className="pb-4">
                         <div className="flex justify-between items-start gap-4">
                           <div className="space-y-2 flex-1 min-w-0">
@@ -1364,6 +1419,21 @@ const ProducerDashboard = () => {
                             <p className="text-sm text-muted-foreground line-clamp-1">
                               {freight.origin_address} → {freight.destination_address}
                             </p>
+                            
+                            {/* 🔥 Indicador de deadline */}
+                            {freight.deliveryDeadline && (
+                              <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${
+                                freight.deliveryDeadline.isCritical 
+                                  ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' 
+                                  : freight.deliveryDeadline.isUrgent 
+                                  ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' 
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                              }`}>
+                                <Clock className="h-3 w-3" />
+                                {freight.deliveryDeadline.displayText}
+                              </div>
+                            )}
+                            
                             <p className="text-xs font-medium text-amber-700 mt-2">
                               ⏰ Entrega reportada - Aguardando confirmação
                             </p>

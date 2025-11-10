@@ -165,27 +165,30 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
     onAction?.('propose');
   }, [onAction]);
 
-  // Memoized formatted dates
-  const formattedPickupDate = React.useMemo(() => 
-    new Date(freight.pickup_date).toLocaleDateString('pt-BR'),
-    [freight.pickup_date]
-  );
-
-  const formattedDeliveryDate = React.useMemo(() => 
-    new Date(freight.delivery_date).toLocaleDateString('pt-BR'),
-    [freight.delivery_date]
-  );
-
-  // Memoized formatted price
-  const formattedPrice = React.useMemo(() => 
-    (freight.price || 0).toLocaleString('pt-BR'),
-    [freight.price]
-  );
-
-  const formattedMinPrice = React.useMemo(() => 
-    (freight.minimum_antt_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-    [freight.minimum_antt_price]
-  );
+  // GPS precision indicator
+  const precisionInfo = React.useMemo(() => {
+    const originLat = (freight as any).origin_lat;
+    const originLng = (freight as any).origin_lng;
+    const destLat = (freight as any).destination_lat;
+    const destLng = (freight as any).destination_lng;
+    
+    const originReal = originLat !== null && originLat !== undefined && originLng !== null && originLng !== undefined;
+    const destReal = destLat !== null && destLat !== undefined && destLng !== null && destLng !== undefined;
+    
+    if (originReal && destReal) {
+      return {
+        isAccurate: true,
+        icon: '📍',
+        tooltip: 'Distância calculada com GPS preciso'
+      };
+    }
+    
+    return {
+      isAccurate: false,
+      icon: '📌',
+      tooltip: 'Distância estimada por endereço'
+    };
+  }, [freight]);
 
   const urgencyVariant = getUrgencyVariant(freight.urgency);
   const urgencyLabel = getUrgencyLabel(freight.urgency);
@@ -276,6 +279,9 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
           <div className="flex items-center space-x-3 text-muted-foreground">
             <MapPin className="h-5 w-5" />
             <span className="text-base font-semibold">{formatKm(freight.distance_km)}</span>
+            <span className="text-xs" title={precisionInfo.tooltip}>
+              {precisionInfo.icon}
+            </span>
           </div>
         </div>
 
@@ -322,7 +328,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
               <span className="text-sm font-semibold">Coleta</span>
             </div>
             <p className="font-bold text-foreground text-lg">
-              {formattedPickupDate}
+              {formatDate(freight.pickup_date)}
             </p>
           </div>
           <div className="space-y-3 p-4 bg-gradient-to-br from-accent/30 to-accent/10 rounded-xl border-2 border-border/50">
@@ -331,7 +337,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
               <span className="text-sm font-semibold">Entrega</span>
             </div>
             <p className="font-bold text-foreground text-lg">
-              {formattedDeliveryDate}
+              {formatDate(freight.delivery_date)}
             </p>
           </div>
         </div>
@@ -340,7 +346,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
       <CardFooter className="pt-6 pb-6 flex-shrink-0 mt-auto">
         <div className="flex items-center justify-between w-full p-5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border-2 border-border/60">
           <div className="text-left">
-            <p className="font-bold text-3xl text-primary">R$ {formattedPrice}</p>
+            <p className="font-bold text-3xl text-primary">{formatBRL(freight.price, true)}</p>
             {freight.service_type === 'FRETE_MOTO' ? (
               <p className="text-base text-blue-600 dark:text-blue-400 mt-2 font-semibold">
                 Mínimo: R$ 10,00
@@ -348,7 +354,7 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
             ) : freight.service_type === 'CARGA' && (
               freight.minimum_antt_price && freight.minimum_antt_price > 0 ? (
                 <Badge variant="outline" className="text-sm">
-                  Mín. ANTT: R$ {formattedMinPrice}
+                  Mín. ANTT: {formatBRL(freight.minimum_antt_price, true)}
                 </Badge>
               ) : (
                 <Badge variant="destructive" className="text-sm">

@@ -163,11 +163,25 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       case 'freight_delivery_reported':
         if (data?.freight_id) {
           onClose();
+          
+          // 🔥 REFETCH DIRECIONADO do frete específico
+          const { data: freightData } = await supabase
+            .from('freights')
+            .select(`
+              *,
+              driver_profiles:profiles!left(freights_driver_id_fkey)(
+                id, full_name, contact_phone, email, role
+              )
+            `)
+            .eq('id', data.freight_id)
+            .single();
+          
           const dashboardRoute = getDashboardRoute(profile?.role);
           navigate(dashboardRoute, { 
             state: { 
               openTab: 'confirm-delivery',
-              highlightFreightId: data.freight_id
+              highlightFreightId: data.freight_id,
+              freightData: freightData // 🔥 Passa dados atualizados
             } 
           });
         }

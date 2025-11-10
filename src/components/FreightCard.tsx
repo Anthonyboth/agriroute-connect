@@ -301,7 +301,19 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               ) : (
                 <span className="text-muted-foreground">{formatTons(freight.weight)}</span>
               )}
-              <span className="text-muted-foreground">{formatKm(freight.distance_km)}</span>
+              <span className="text-muted-foreground" title={
+                ((freight as any).origin_lat && (freight as any).origin_lng && 
+                 (freight as any).destination_lat && (freight as any).destination_lng) 
+                  ? 'Distância calculada com GPS preciso' 
+                  : 'Distância estimada por endereço'
+              }>
+                {formatKm(freight.distance_km)}
+                <span className="text-[10px] ml-1">
+                  {((freight as any).origin_lat && (freight as any).origin_lng && 
+                    (freight as any).destination_lat && (freight as any).destination_lng) 
+                      ? '📍' : '📌'}
+                </span>
+              </span>
             </div>
           </div>
         </div>

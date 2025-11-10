@@ -201,3 +201,77 @@ export const pluralize = (
   if (count === 1) return singular;
   return plural || `${singular}s`;
 };
+
+// ============= PRECISÃO GPS =============
+
+/**
+ * Verifica se as coordenadas são reais (GPS) ou estimadas
+ */
+export const isGPSCoordinateReal = (lat: number | null | undefined, lng: number | null | undefined): boolean => {
+  return lat !== null && lat !== undefined && lng !== null && lng !== undefined;
+};
+
+/**
+ * Retorna indicador visual de precisão da distância
+ */
+export const getDistancePrecisionIndicator = (
+  originLat: number | null | undefined,
+  originLng: number | null | undefined,
+  destLat: number | null | undefined,
+  destLng: number | null | undefined
+): { isAccurate: boolean; icon: string; tooltip: string } => {
+  const originReal = isGPSCoordinateReal(originLat, originLng);
+  const destReal = isGPSCoordinateReal(destLat, destLng);
+  
+  if (originReal && destReal) {
+    return {
+      isAccurate: true,
+      icon: '📍',
+      tooltip: 'Distância calculada com GPS preciso'
+    };
+  }
+  
+  return {
+    isAccurate: false,
+    icon: '📌',
+    tooltip: 'Distância estimada por endereço'
+  };
+};
+
+// ============= DEADLINE ENTREGAS =============
+
+/**
+ * Calcula tempo restante em horas para deadline de 72h
+ */
+export const calculateDeliveryDeadline = (deliveredAt: string | null | undefined): {
+  hoursRemaining: number;
+  isUrgent: boolean; // < 24h
+  isCritical: boolean; // < 6h
+  displayText: string;
+} => {
+  if (!deliveredAt) {
+    return { hoursRemaining: 72, isUrgent: false, isCritical: false, displayText: '72h restantes' };
+  }
+  
+  const deliveredDate = new Date(deliveredAt);
+  const deadline = new Date(deliveredDate.getTime() + (72 * 60 * 60 * 1000)); // +72h
+  const now = new Date();
+  const msRemaining = deadline.getTime() - now.getTime();
+  const hoursRemaining = Math.max(0, Math.floor(msRemaining / (1000 * 60 * 60)));
+  
+  const isUrgent = hoursRemaining < 24;
+  const isCritical = hoursRemaining < 6;
+  
+  let displayText = '';
+  if (hoursRemaining === 0) {
+    displayText = 'PRAZO EXPIRADO';
+  } else if (hoursRemaining < 24) {
+    displayText = `${hoursRemaining}h restantes`;
+  } else {
+    const days = Math.floor(hoursRemaining / 24);
+    const hours = hoursRemaining % 24;
+    displayText = `${days}d ${hours}h restantes`;
+  }
+  
+  return { hoursRemaining, isUrgent, isCritical, displayText };
+};
