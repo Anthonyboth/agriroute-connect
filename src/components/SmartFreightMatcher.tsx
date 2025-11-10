@@ -60,6 +60,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCargoType, setSelectedCargoType] = useState<string>('all');
+  const [matchingStats, setMatchingStats] = useState({ exactMatches: 0, fallbackMatches: 0, totalChecked: 0 });
   const [hasActiveCities, setHasActiveCities] = useState<boolean | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -478,6 +479,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         return { city: normalizeCity(cityPart), state: '' };
       };
 
+      // Reset stats
+      setMatchingStats({ exactMatches: 0, fallbackMatches: 0, totalChecked: 0 });
+
       if (activeCities) {
         const allowedCities = new Set(
           (ucActive || [])
@@ -513,6 +517,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
 
           // Tentar match exato primeiro
           let included = allowedCities.has(oKey) || allowedCities.has(dKey);
+          let matchType: 'exact' | 'fallback' | 'none' = included ? 'exact' : 'none';
 
           // Fallback: tentar match apenas por cidade (sem estado)
           if (!included) {
@@ -529,8 +534,17 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             if (fallbackMatch) {
               console.log(`✅ Frete ${f.freight_id} incluído via fallback (cidade sem estado)`);
               included = true;
+              matchType = 'fallback';
             }
           }
+          
+          // Atualizar estatísticas
+          if (matchType === 'exact') {
+            setMatchingStats(prev => ({ ...prev, exactMatches: prev.exactMatches + 1 }));
+          } else if (matchType === 'fallback') {
+            setMatchingStats(prev => ({ ...prev, fallbackMatches: prev.fallbackMatches + 1 }));
+          }
+          setMatchingStats(prev => ({ ...prev, totalChecked: prev.totalChecked + 1 }));
           
           if (!included) {
             console.log(`🚫 Frete ${f.freight_id} descartado: origem=${oKey}, destino=${dKey}`);
@@ -887,6 +901,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               <Zap className="mr-1 h-3 w-3" />
               IA
             </Badge>
+            {matchingStats.totalChecked > 0 && (
+              <Badge variant="outline" className="ml-auto">
+                {matchingStats.exactMatches} exato{matchingStats.exactMatches !== 1 ? 's' : ''} + {matchingStats.fallbackMatches} fallback
+              </Badge>
+            )}
           </CardTitle>
           <CardDescription>
             Fretes selecionados automaticamente com base nas suas áreas de atendimento e tipos de serviço configurados. O sistema analisa geograficamente os fretes disponíveis dentro do seu raio de atuação.

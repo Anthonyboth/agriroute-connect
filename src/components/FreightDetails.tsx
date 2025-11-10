@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw } from 'lucide-react';
 import { FreightChat } from './FreightChat';
 import { FreightStatusTracker } from './FreightStatusTracker';
+import { FreightStatusHistory } from './FreightStatusHistory';
 import { FreightRatingModal } from './FreightRatingModal';
 import { AutoRatingModal } from './AutoRatingModal';
 import { FreightAdvanceModal } from './FreightAdvanceModal';
@@ -805,6 +806,11 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                 fetchFreightDetails();
               }}
             />
+
+            {/* Histórico de mudanças de status */}
+            <div className="mt-6">
+              <FreightStatusHistory freightId={freightId} />
+            </div>
           </TabsContent>
           
           <TabsContent value="chat" forceMount className="mt-4 data-[state=inactive]:hidden">

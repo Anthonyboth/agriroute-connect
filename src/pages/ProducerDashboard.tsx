@@ -109,6 +109,7 @@ const ProducerDashboard = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [serviceRequests, setServiceRequests] = useState<any[]>([]);
+  const [urgencyFilter, setUrgencyFilter] = useState<'all' | 'critical' | 'urgent'>('all');
   
   // Estado para controlar avaliações automáticas
   const [activeFreightForRating, setActiveFreightForRating] = useState<any>(null);
@@ -1380,17 +1381,52 @@ const ProducerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="confirm-delivery" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Confirmar Entregas</h3>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={urgencyFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setUrgencyFilter('all')}
+                >
+                  Todos ({freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length})
+                </Button>
+                <Button
+                  variant={urgencyFilter === 'critical' ? 'destructive' : 'outline'}
+                  size="sm"
+                  onClick={() => setUrgencyFilter('critical')}
+                >
+                  🚨 Críticos ({freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION' && (f.deliveryDeadline?.hoursRemaining ?? 72) < 6).length})
+                </Button>
+                <Button
+                  variant={urgencyFilter === 'urgent' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setUrgencyFilter('urgent')}
+                  className={urgencyFilter === 'urgent' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                >
+                  ⚠️ Urgentes ({freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION' && (f.deliveryDeadline?.hoursRemaining ?? 72) < 24 && (f.deliveryDeadline?.hoursRemaining ?? 72) >= 6).length})
+                </Button>
+              </div>
             </div>
             
-            {freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length === 0 ? (
+            {freights.filter(f => {
+              if (f.status !== 'DELIVERED_PENDING_CONFIRMATION') return false;
+              if (urgencyFilter === 'all') return true;
+              const hours = f.deliveryDeadline?.hoursRemaining ?? 72;
+              if (urgencyFilter === 'critical') return hours < 6;
+              if (urgencyFilter === 'urgent') return hours < 24 && hours >= 6;
+              return true;
+            }).length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Clock className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="font-semibold text-lg mb-2">Nenhuma entrega aguardando confirmação</h3>
                   <p className="text-muted-foreground mb-6 max-w-sm">
-                    Não há entregas reportadas pelos motoristas aguardando sua confirmação.
+                    {urgencyFilter === 'all' 
+                      ? 'Não há entregas reportadas pelos motoristas aguardando sua confirmação.'
+                      : urgencyFilter === 'critical'
+                      ? 'Não há entregas críticas (< 6h) aguardando confirmação.'
+                      : 'Não há entregas urgentes (< 24h) aguardando confirmação.'}
                   </p>
                 </CardContent>
               </Card>
@@ -1398,7 +1434,14 @@ const ProducerDashboard = () => {
               <div className="max-h-[70vh] overflow-y-auto pr-2">
                 <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
                   {freights
-                    .filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION')
+                    .filter(f => {
+                      if (f.status !== 'DELIVERED_PENDING_CONFIRMATION') return false;
+                      if (urgencyFilter === 'all') return true;
+                      const hours = f.deliveryDeadline?.hoursRemaining ?? 72;
+                      if (urgencyFilter === 'critical') return hours < 6;
+                      if (urgencyFilter === 'urgent') return hours < 24 && hours >= 6;
+                      return true;
+                    })
                     .sort((a, b) => {
                       const deadlineA = a.deliveryDeadline?.hoursRemaining ?? 72;
                       const deadlineB = b.deliveryDeadline?.hoursRemaining ?? 72;

@@ -53,6 +53,7 @@ import { UnifiedHistory } from '@/components/UnifiedHistory';
 import { CompanyDriverBadge } from '@/components/CompanyDriverBadge';
 import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 import { DriverAutoLocationTracking } from '@/components/DriverAutoLocationTracking';
+import { ManualLocationTracking } from '@/components/ManualLocationTracking';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { useDriverPermissions } from '@/hooks/useDriverPermissions';
@@ -2103,6 +2104,11 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
           {/* Auto-tracking para motoristas */}
           <DriverAutoLocationTracking />
+          
+          {/* Controle manual de rastreamento */}
+          <div className="mb-4">
+            <ManualLocationTracking />
+          </div>
           
           {/* ✅ Banner informativo para afiliados sem permissão de aceitar fretes */}
           {isAffiliated && !canAcceptFreights && (
