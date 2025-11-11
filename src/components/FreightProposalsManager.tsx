@@ -198,7 +198,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
     });
 
     return (
-      <Card key={proposal.id} className="mb-4">
+      <Card key={proposal.id} className="mb-4" data-testid="proposal-card">
         <CardContent className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start gap-4">
@@ -287,11 +287,12 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
           )}
 
           {proposal.status === 'PENDING' && freight.status !== 'CANCELLED' && (
-            <div className="flex gap-2 justify-end">
+            <div className="mt-4 flex gap-2 justify-end flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleRejectProposal(proposal.id)}
+                data-testid="reject-proposal-button"
               >
                 <XCircle className="h-4 w-4 mr-2" />
                 Rejeitar
@@ -300,6 +301,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                 size="sm"
                 onClick={() => setConfirmDialog({ open: true, proposal })}
                 disabled={availableSlots <= 0}
+                data-testid="accept-proposal-button"
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 {availableSlots <= 0 ? 'Sem vagas' : 'Aceitar'}
