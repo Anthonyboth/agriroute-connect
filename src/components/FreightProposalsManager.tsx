@@ -286,7 +286,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
             </div>
           )}
 
-          {proposal.status === 'PENDING' && freight.status === 'OPEN' && (
+          {proposal.status === 'PENDING' && freight.status !== 'CANCELLED' && (
             <div className="flex gap-2 justify-end">
               <Button
                 variant="outline"
@@ -302,7 +302,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                 disabled={availableSlots <= 0}
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
-                Aceitar
+                {availableSlots <= 0 ? 'Sem vagas' : 'Aceitar'}
               </Button>
             </div>
           )}
