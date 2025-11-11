@@ -61,6 +61,7 @@ import { normalizeServiceType, type CanonicalServiceType } from '@/lib/service-t
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { debounce } from '@/lib/utils';
 import { FRETES_IA_LABEL, AREAS_IA_LABEL, AI_ABBR, SISTEMA_IA_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
+import { DriverProposalDetailsModal } from '@/components/DriverProposalDetailsModal';
 
 interface Freight {
   id: string;
@@ -208,6 +209,12 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   
   // Estado para controlar avaliações automáticas
   const [activeFreightForRating, setActiveFreightForRating] = useState<Freight | null>(null);
+  
+  // Estado para modal de detalhes de proposta
+  const [proposalDetailsModal, setProposalDetailsModal] = useState<{
+    open: boolean;
+    proposal: any | null;
+  }>({ open: false, proposal: null });
 
   
   const [filters, setFilters] = useState({
@@ -1030,6 +1037,27 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     } catch (error) {
       console.error('Error rejecting proposal:', error);
       toast.error('Erro ao rejeitar proposta');
+    }
+  };
+
+  const handleCancelProposal = async (proposalId: string) => {
+    if (!confirm('Tem certeza que deseja cancelar esta proposta?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('freight_proposals')
+        .update({ status: 'CANCELLED' })
+        .eq('id', proposalId)
+        .eq('driver_id', profile?.id);
+      
+      if (error) throw error;
+      
+      toast.success('Proposta cancelada com sucesso');
+      fetchMyProposals();
+      setProposalDetailsModal({ open: false, proposal: null });
+    } catch (error) {
+      console.error('Erro ao cancelar proposta:', error);
+      toast.error('Erro ao cancelar proposta');
     }
   };
 
@@ -2371,7 +2399,18 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando propostas...</div>}>
                   {myProposals.filter(p => p.status === 'PENDING').map((proposal) => 
                     proposal.freight && proposal.id ? (
-                      <div key={proposal.id} className="relative">
+                      <div 
+                        key={proposal.id} 
+                        className="relative cursor-pointer"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setProposalDetailsModal({ open: true, proposal })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            setProposalDetailsModal({ open: true, proposal });
+                          }
+                        }}
+                      >
                          <FreightCard 
                            freight={{
                              ...proposal.freight,
@@ -2787,6 +2826,22 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           currentUserProfile={profile}
         />
       )}
+
+      {/* Modal de Detalhes da Proposta */}
+      <DriverProposalDetailsModal
+        isOpen={proposalDetailsModal.open}
+        onClose={() => setProposalDetailsModal({ open: false, proposal: null })}
+        proposal={proposalDetailsModal.proposal}
+        counterOffers={counterOffers}
+        onCancelProposal={handleCancelProposal}
+        onAcceptCounterOffer={async (counterOfferId) => {
+          const counterOffer = counterOffers.find(co => co.id === counterOfferId);
+          if (counterOffer) {
+            await handleAcceptCounterOffer(counterOfferId, counterOffer.freight_id);
+          }
+        }}
+        onRejectCounterOffer={handleRejectCounterOffer}
+      />
       </div>
     </PageDOMErrorBoundary>
   );

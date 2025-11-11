@@ -113,7 +113,14 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
         .select(`
           *,
           freight:freights(*),
-          driver:profiles!freight_proposals_driver_id_fkey(*)
+          driver:profiles!freight_proposals_driver_id_fkey(
+            id,
+            full_name,
+            rating,
+            total_ratings,
+            profile_photo_url,
+            contact_phone
+          )
         `)
         .in('freight_id', freightIds)
         .order('created_at', { ascending: false });

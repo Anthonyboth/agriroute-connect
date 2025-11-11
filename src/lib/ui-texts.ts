@@ -111,6 +111,25 @@ export const UI_TEXTS = {
   MINHAS_PROPOSTAS: "Minhas propostas",
   FRETES_AGENDADOS: "Fretes agendados",
   
+  // Propostas
+  DETALHES_PROPOSTA: "Detalhes da Proposta",
+  CANCELAR_PROPOSTA: "Cancelar Proposta",
+  CONTRAPROPOSTA_RECEBIDA: "Contraproposta Recebida",
+  CONTRAPROPOSTAS_RECEBIDAS: "Contrapropostas Recebidas",
+  CONTATAR_PRODUTOR: "Contatar Produtor",
+  SEM_AVALIACOES: "Sem avaliações ainda",
+  MOTORISTA_DA_EMPRESA: "Motorista da",
+  ACEITAR_CONTRAPROPOSTA: "Aceitar Contraproposta",
+  REJEITAR_CONTRAPROPOSTA: "Rejeitar",
+  VALOR_ORIGINAL_FRETE: "Valor Original do Frete",
+  VALOR_PROPOSTO: "Valor Proposto",
+  DIFERENCA: "Diferença",
+  MENSAGEM_MOTORISTA: "Mensagem do Motorista",
+  MENSAGEM_PRODUTOR: "Mensagem do Produtor",
+  INFORMACOES_FRETE: "Informações do Frete",
+  INFORMACOES_PRODUTOR: "Informações do Produtor",
+  INFORMACOES_MOTORISTA: "Informações do Motorista",
+  
 } as const;
 
 /**

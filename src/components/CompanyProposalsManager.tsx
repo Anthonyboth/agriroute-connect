@@ -3,12 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, CheckCircle, XCircle, Clock, DollarSign, User, Package, MapPin } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { FileText, CheckCircle, XCircle, Clock, DollarSign, User, Package, MapPin, MessageSquare, Phone, TrendingUp, TrendingDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatBRL, formatKm } from '@/lib/formatters';
+import { UI_TEXTS } from '@/lib/ui-texts';
 
 interface Proposal {
   id: string;
@@ -19,18 +24,22 @@ interface Proposal {
   status: string;
   created_at: string;
   freight: {
+    id: string;
     cargo_type: string;
     origin_address: string;
     destination_address: string;
     pickup_date: string;
     price: number;
     distance_km: number;
+    weight: number;
     producer_id: string;
   };
   driver: {
     full_name: string;
     rating?: number;
+    total_ratings?: number;
     contact_phone?: string;
+    profile_photo_url?: string;
   };
 }
 
@@ -39,6 +48,10 @@ export const CompanyProposalsManager: React.FC = () => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
+  const [detailsDialog, setDetailsDialog] = useState<{
+    open: boolean;
+    proposal: Proposal | null;
+  }>({ open: false, proposal: null });
 
   useEffect(() => {
     if (company?.id && drivers) {
@@ -50,7 +63,6 @@ export const CompanyProposalsManager: React.FC = () => {
     if (!company?.id || !drivers) return;
 
     try {
-      // Buscar propostas dos motoristas afiliados
       const driverIds = drivers.filter(d => d.status === 'ACTIVE').map(d => d.driver_profile_id);
       
       if (driverIds.length === 0) {
@@ -64,18 +76,22 @@ export const CompanyProposalsManager: React.FC = () => {
         .select(`
           *,
           freight:freights(
+            id,
             cargo_type,
             origin_address,
             destination_address,
             pickup_date,
             price,
             distance_km,
+            weight,
             producer_id
           ),
           driver:profiles!driver_id(
             full_name,
             rating,
-            contact_phone
+            total_ratings,
+            contact_phone,
+            profile_photo_url
           )
         `)
         .in('driver_id', driverIds)
@@ -103,6 +119,7 @@ export const CompanyProposalsManager: React.FC = () => {
 
       toast.success('Proposta aceita com sucesso!');
       fetchProposals();
+      setDetailsDialog({ open: false, proposal: null });
     } catch (error) {
       console.error('Erro ao aceitar proposta:', error);
       toast.error('Erro ao aceitar proposta');
@@ -122,6 +139,7 @@ export const CompanyProposalsManager: React.FC = () => {
 
       toast.success('Proposta rejeitada');
       fetchProposals();
+      setDetailsDialog({ open: false, proposal: null });
     } catch (error) {
       console.error('Erro ao rejeitar proposta:', error);
       toast.error('Erro ao rejeitar proposta');
@@ -149,13 +167,24 @@ export const CompanyProposalsManager: React.FC = () => {
 
   const renderProposalCard = (proposal: Proposal) => {
     const priceDiff = proposal.proposed_price - proposal.freight.price;
-    const isCounter = priceDiff !== 0;
 
     return (
-      <Card key={proposal.id} className="border-l-4 border-l-blue-500">
+      <Card 
+        key={proposal.id} 
+        className="border-l-4 border-l-blue-500 cursor-pointer hover:bg-muted/50 transition-colors"
+        role="button"
+        tabIndex={0}
+        onClick={() => setDetailsDialog({ open: true, proposal })}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setDetailsDialog({ open: true, proposal });
+          }
+        }}
+        data-testid="company-proposal-card"
+      >
         <CardContent className="p-4">
           <div className="space-y-4">
-            {/* Header */}
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -177,7 +206,6 @@ export const CompanyProposalsManager: React.FC = () => {
               {getStatusBadge(proposal.status)}
             </div>
 
-            {/* Frete Info */}
             <div className="bg-muted/30 p-3 rounded-lg space-y-2">
               <div className="flex items-center gap-2">
                 <Package className="h-4 w-4 text-muted-foreground" />
@@ -185,71 +213,30 @@ export const CompanyProposalsManager: React.FC = () => {
               </div>
               <div className="text-sm space-y-1">
                 <div className="flex items-start gap-2">
-                  <MapPin className="h-3 w-3 text-green-600 mt-0.5" />
-                  <span className="text-muted-foreground flex-1">{proposal.freight.origin_address}</span>
+                  <MapPin className="h-3 w-3 text-green-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-muted-foreground flex-1 truncate">{proposal.freight.origin_address}</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <MapPin className="h-3 w-3 text-red-600 mt-0.5" />
-                  <span className="text-muted-foreground flex-1">{proposal.freight.destination_address}</span>
+                  <MapPin className="h-3 w-3 text-red-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-muted-foreground flex-1 truncate">{proposal.freight.destination_address}</span>
                 </div>
               </div>
             </div>
 
-            {/* Valores */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">Valor Original</p>
                 <p className="text-lg font-semibold">
-                  R$ {proposal.freight.price.toLocaleString('pt-BR', {
-                    minimumFractionDigits: 2
-                  })}
+                  R$ {formatBRL(proposal.freight.price)}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Valor Proposto</p>
-                <p className={`text-lg font-semibold ${isCounter ? (priceDiff > 0 ? 'text-red-600' : 'text-green-600') : ''}`}>
-                  R$ {proposal.proposed_price.toLocaleString('pt-BR', {
-                    minimumFractionDigits: 2
-                  })}
-                  {isCounter && (
-                    <span className="text-sm ml-2">
-                      ({priceDiff > 0 ? '+' : ''}R$ {Math.abs(priceDiff).toFixed(2)})
-                    </span>
-                  )}
+                <p className={`text-lg font-semibold ${priceDiff > 0 ? 'text-red-600' : priceDiff < 0 ? 'text-green-600' : ''}`}>
+                  R$ {formatBRL(proposal.proposed_price)}
                 </p>
               </div>
             </div>
-
-            {/* Mensagem */}
-            {proposal.message && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-900">{proposal.message}</p>
-              </div>
-            )}
-
-            {/* Ações */}
-            {proposal.status === 'PENDING' && (
-              <div className="flex gap-2 pt-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => handleAcceptProposal(proposal.id)}
-                >
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  Aceitar
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => handleRejectProposal(proposal.id)}
-                >
-                  <XCircle className="h-4 w-4 mr-1" />
-                  Rejeitar
-                </Button>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -360,6 +347,185 @@ export const CompanyProposalsManager: React.FC = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Modal de Detalhes */}
+      <Dialog 
+        open={detailsDialog.open}
+        onOpenChange={(open) => setDetailsDialog({ open, proposal: null })}
+      >
+        <DialogContent 
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          data-testid="company-proposal-details-dialog"
+        >
+          <DialogHeader>
+            <DialogTitle>{UI_TEXTS.DETALHES_PROPOSTA}</DialogTitle>
+            <DialogDescription>
+              Proposta enviada por motorista afiliado à sua transportadora
+            </DialogDescription>
+          </DialogHeader>
+          
+          {detailsDialog.proposal && (
+            <div className="space-y-6 py-4">
+              {/* Informações do Motorista Afiliado */}
+              <div className="flex items-start gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={detailsDialog.proposal.driver.profile_photo_url} />
+                  <AvatarFallback>
+                    <User className="h-8 w-8" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-xl">
+                    {detailsDialog.proposal.driver.full_name}
+                  </h3>
+                  {detailsDialog.proposal.driver.rating ? (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                      <span className="text-lg">{detailsDialog.proposal.driver.rating.toFixed(1)}★</span>
+                      {detailsDialog.proposal.driver.total_ratings && (
+                        <span>({detailsDialog.proposal.driver.total_ratings} avaliações)</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground mt-1">
+                      {UI_TEXTS.SEM_AVALIACOES}
+                    </div>
+                  )}
+                  <Badge variant="secondary" className="mt-2">
+                    {UI_TEXTS.MOTORISTA_DA_EMPRESA} {company?.company_name}
+                  </Badge>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Informações do Frete */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Package className="h-4 w-4" />
+                    {UI_TEXTS.TIPO_CARGA}
+                  </div>
+                  <p className="text-base font-semibold pl-6">
+                    {detailsDialog.proposal.freight.cargo_type}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    {UI_TEXTS.DISTANCIA}
+                  </div>
+                  <p className="text-base font-semibold pl-6">
+                    {formatKm(detailsDialog.proposal.freight.distance_km)}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-sm font-medium text-muted-foreground">
+                    {UI_TEXTS.ORIGEM}
+                  </div>
+                  <p className="text-sm">{detailsDialog.proposal.freight.origin_address}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-sm font-medium text-muted-foreground">
+                    {UI_TEXTS.DESTINO}
+                  </div>
+                  <p className="text-sm">{detailsDialog.proposal.freight.destination_address}</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Valores */}
+              <div className="bg-muted/50 p-4 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{UI_TEXTS.VALOR_ORIGINAL_FRETE}:</span>
+                  <span className="text-lg font-semibold">
+                    R$ {formatBRL(detailsDialog.proposal.freight.price)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{UI_TEXTS.VALOR_PROPOSTO}:</span>
+                  <Badge variant="default" className="text-xl px-4 py-1">
+                    R$ {formatBRL(detailsDialog.proposal.proposed_price)}
+                  </Badge>
+                </div>
+                {detailsDialog.proposal.proposed_price !== detailsDialog.proposal.freight.price && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{UI_TEXTS.DIFERENCA}:</span>
+                    <span className={
+                      detailsDialog.proposal.proposed_price > detailsDialog.proposal.freight.price
+                        ? 'text-red-600 font-semibold flex items-center gap-1'
+                        : 'text-green-600 font-semibold flex items-center gap-1'
+                    }>
+                      {detailsDialog.proposal.proposed_price > detailsDialog.proposal.freight.price ? (
+                        <>
+                          <TrendingUp className="h-3 w-3" />
+                          +R$ {formatBRL(Math.abs(detailsDialog.proposal.proposed_price - detailsDialog.proposal.freight.price))}
+                        </>
+                      ) : (
+                        <>
+                          <TrendingDown className="h-3 w-3" />
+                          -R$ {formatBRL(Math.abs(detailsDialog.proposal.proposed_price - detailsDialog.proposal.freight.price))}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Mensagem */}
+              {detailsDialog.proposal.message && (
+                <>
+                  <Separator />
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                      <MessageSquare className="h-4 w-4" />
+                      {UI_TEXTS.MENSAGEM_MOTORISTA}
+                    </div>
+                    <p className="text-sm text-muted-foreground italic bg-muted/30 p-3 rounded-md">
+                      "{detailsDialog.proposal.message}"
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDetailsDialog({ open: false, proposal: null })}
+            >
+              Fechar
+            </Button>
+            {detailsDialog.proposal?.status === 'PENDING' && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRejectProposal(detailsDialog.proposal!.id);
+                  }}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Rejeitar
+                </Button>
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAcceptProposal(detailsDialog.proposal!.id);
+                  }}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Aceitar
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
