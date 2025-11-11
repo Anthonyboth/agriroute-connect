@@ -72,7 +72,7 @@ function formatSuspiciousRolesAlert(suspiciousProfiles: any[]): string {
 function formatAdminConflictAlert(conflicts: any[]): string {
   let message = `🚨 <b>ALERTA CRÍTICO - PRIVILÉGIOS ADMINISTRATIVOS ELEVADOS DETECTADOS</b>\n\n`;
   message += `⚠️ <b>Total de administradores:</b> ${conflicts.length}\n\n`;
-  message += `⚠️ <b>Descrição:</b> Usuários com privilégios administrativos REAIS (admin/moderator) detectados na tabela user_roles\n\n`;
+  message += `⚠️ <b>Descrição:</b> Usuários com privilégios administrativos REAIS (admin) detectados na tabela user_roles\n\n`;
   
   conflicts.forEach((conflict, index) => {
     message += `<b>${index + 1}. Administrador Detectado</b>\n`;
@@ -87,7 +87,7 @@ function formatAdminConflictAlert(conflicts: any[]): string {
   message += `   • Revisar se estes privilégios são legítimos\n`;
   message += `   • Verificar necessidade de acesso elevado\n`;
   message += `   • Revogar privilégios se não autorizados\n\n`;
-  message += `ℹ️ <b>Nota:</b> Roles de negócio (driver, producer, service_provider, transport_company) NÃO são reportadas.\n\n`;
+  message += `ℹ️ <b>Nota:</b> Apenas privilégios de 'admin' são monitorados. Roles de negócio não são reportadas.\n\n`;
   message += `⏰ Verificação realizada em: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Cuiaba' })}`;
   
   return message;
@@ -100,7 +100,7 @@ function formatMonitoringSummary(stats: any): string {
   message += `📊 <b>Estatísticas da Verificação:</b>\n`;
   message += `   • Perfis verificados: ${stats.totalProfiles}\n`;
   message += `   • Perfis com roles inválidas: ${stats.suspiciousCount}\n`;
-  message += `   • Administradores reais (admin/moderator): ${stats.realAdminCount}\n\n`;
+  message += `   • Administradores reais (admin): ${stats.realAdminCount}\n\n`;
   
   if (allClear) {
     message += `✅ <b>Status:</b> Sistema OK - Nenhuma anomalia detectada\n\n`;
@@ -148,7 +148,7 @@ serve(async (req) => {
 
     logStep('Profiles suspeitos encontrados', { count: suspiciousProfiles.length });
 
-    // 2. Verificar usuários com PRIVILÉGIOS ADMINISTRATIVOS REAIS (admin, moderator)
+    // 2. Verificar usuários com PRIVILÉGIOS ADMINISTRATIVOS REAIS (admin)
     logStep('Verificando privilégios administrativos elevados');
     const { data: adminUsers, error: adminError } = await supabaseAdmin
       .from('user_roles')
@@ -156,7 +156,7 @@ serve(async (req) => {
         user_id,
         role
       `)
-      .in('role', ['admin', 'moderator']); // APENAS roles administrativas reais
+      .in('role', ['admin']); // APENAS role administrativa real (admin)
 
     if (adminError) {
       throw new Error(`Erro ao buscar admin roles: ${adminError.message}`);
@@ -190,7 +190,7 @@ serve(async (req) => {
     const stats = {
       totalProfiles: allProfiles.length,
       suspiciousCount: suspiciousProfiles.length,
-      realAdminCount: adminUsers.length // Apenas admin/moderator reais
+      realAdminCount: adminUsers.length // Apenas admin real
     };
 
     // 4. Enviar alertas ao Telegram
@@ -203,7 +203,7 @@ serve(async (req) => {
       if (sent) alertsSent++;
     }
 
-    // Enviar alerta de privilégios administrativos reais (CRÍTICO - apenas admin/moderator)
+    // Enviar alerta de privilégios administrativos reais (CRÍTICO - apenas admin)
     if (conflicts.length > 0) {
       const message = formatAdminConflictAlert(conflicts);
       const sent = await sendTelegramAlert(message);
