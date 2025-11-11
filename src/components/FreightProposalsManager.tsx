@@ -76,6 +76,10 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
     open: boolean;
     proposal: Proposal | null;
   }>({ open: false, proposal: null });
+  const [detailsDialog, setDetailsDialog] = useState<{
+    open: boolean;
+    proposal: Proposal | null;
+  }>({ open: false, proposal: null });
   const [proposalFilters, setProposalFilters] = useState<{
     priceRange?: { min: number; max: number };
     driverId?: string;
@@ -247,6 +251,13 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
     return result;
   }, [proposals, proposalFilters]);
 
+  const canAcceptProposal = (proposal: Proposal) => {
+    const freight = proposal.freight;
+    if (!freight) return false;
+    const available = freight.required_trucks - freight.accepted_trucks;
+    return available > 0 && freight.status !== 'CANCELLED';
+  };
+
   const filterProposalsByStatus = (status: string) => {
     const filtered = filteredProposals;
     if (status === 'pending') return filtered.filter(p => p.status === 'PENDING');
@@ -268,7 +279,20 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
     const canAccept = availableSlots > 0 && freight.status !== 'CANCELLED';
 
     return (
-      <Card key={proposal.id} className="mb-4" data-testid="proposal-card">
+      <Card 
+        key={proposal.id} 
+        role="button"
+        tabIndex={0}
+        onClick={() => setDetailsDialog({ open: true, proposal })}
+        onKeyDown={(e) => { 
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setDetailsDialog({ open: true, proposal });
+          }
+        }}
+        className="mb-4 transition-colors cursor-pointer hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary"
+        data-testid="proposal-card"
+      >
         <CardContent className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start gap-4">
@@ -396,12 +420,15 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
           )}
 
           {/* Botões de Ação */}
-          {proposal.status === 'PENDING' && freight.status !== 'CANCELLED' && (
+          {proposal.status === 'PENDING' && (
             <div className="mt-4 flex gap-2 justify-end flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleRejectProposal(proposal.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRejectProposal(proposal.id);
+                }}
                 disabled={loadingAction.proposalId === proposal.id}
                 data-testid="reject-proposal-button"
               >
@@ -421,7 +448,10 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCounterProposalOpen({ open: true, proposal })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCounterProposalOpen({ open: true, proposal });
+                }}
                 className="border-primary text-primary hover:bg-primary/10"
                 data-testid="counter-proposal-button"
               >
@@ -431,7 +461,10 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
               
               <Button
                 size="sm"
-                onClick={() => setConfirmDialog({ open: true, proposal })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConfirmDialog({ open: true, proposal });
+                }}
                 disabled={!canAccept || loadingAction.proposalId === proposal.id}
                 data-testid="accept-proposal-button"
               >
@@ -706,6 +739,238 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
             >
               {accepting ? 'Aceitando...' : 'Confirmar Aceitação'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Proposal Details Dialog */}
+      <Dialog 
+        open={detailsDialog.open} 
+        onOpenChange={(open) => setDetailsDialog({ open, proposal: null })}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="proposal-details-dialog">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Proposta</DialogTitle>
+            <DialogDescription>
+              Revise todas as informações antes de decidir
+            </DialogDescription>
+          </DialogHeader>
+
+          {detailsDialog.proposal && detailsDialog.proposal.freight && (
+            <div className="space-y-6 py-4">
+              {/* Driver Info */}
+              <div className="flex items-start gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={detailsDialog.proposal.driver?.profile_photo_url} />
+                  <AvatarFallback>
+                    <User className="h-8 w-8" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-xl">{detailsDialog.proposal.driver?.full_name || 'Motorista'}</h3>
+                  {detailsDialog.proposal.driver?.rating && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                      <span className="text-lg">{detailsDialog.proposal.driver.rating.toFixed(1)}★</span>
+                      {detailsDialog.proposal.driver.total_ratings && (
+                        <span>({detailsDialog.proposal.driver.total_ratings} avaliações)</span>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    <Clock className="inline h-3 w-3 mr-1" />
+                    Proposta enviada {formatDistanceToNow(new Date(detailsDialog.proposal.created_at), { 
+                      addSuffix: true, 
+                      locale: ptBR 
+                    })}
+                  </p>
+                </div>
+                <Badge variant={detailsDialog.proposal.status === 'PENDING' ? 'default' : detailsDialog.proposal.status === 'ACCEPTED' ? 'default' : 'destructive'}>
+                  {detailsDialog.proposal.status === 'PENDING' ? 'Pendente' : detailsDialog.proposal.status === 'ACCEPTED' ? 'Aceita' : 'Rejeitada'}
+                </Badge>
+              </div>
+
+              <Separator />
+
+              {/* Route and Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    Origem
+                  </div>
+                  <p className="text-base font-semibold pl-6">
+                    {detailsDialog.proposal.freight.origin_city}/{detailsDialog.proposal.freight.origin_state}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    Destino
+                  </div>
+                  <p className="text-base font-semibold pl-6">
+                    {detailsDialog.proposal.freight.destination_city}/{detailsDialog.proposal.freight.destination_state}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Truck className="h-4 w-4" />
+                    Vagas Disponíveis
+                  </div>
+                  <p className="text-base font-semibold pl-6">
+                    {detailsDialog.proposal.freight.required_trucks - detailsDialog.proposal.freight.accepted_trucks} de {detailsDialog.proposal.freight.required_trucks}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-sm font-medium text-muted-foreground">
+                    Tipo de Carga
+                  </div>
+                  <p className="text-base font-semibold">
+                    {detailsDialog.proposal.freight.cargo_type}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Price Details */}
+              <div className="bg-muted/50 p-4 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Valor Proposto:</span>
+                  <Badge 
+                    variant={
+                      detailsDialog.proposal.freight.minimum_antt_price && 
+                      detailsDialog.proposal.proposed_price < detailsDialog.proposal.freight.minimum_antt_price 
+                        ? 'destructive' 
+                        : 'default'
+                    } 
+                    className="text-xl px-4 py-1"
+                  >
+                    {formatBRL(detailsDialog.proposal.proposed_price)}
+                  </Badge>
+                </div>
+                
+                {detailsDialog.proposal.freight.minimum_antt_price && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Valor Mínimo ANTT:</span>
+                    <span className={
+                      detailsDialog.proposal.proposed_price < detailsDialog.proposal.freight.minimum_antt_price 
+                        ? 'text-destructive font-semibold' 
+                        : 'text-muted-foreground'
+                    }>
+                      {formatBRL(detailsDialog.proposal.freight.minimum_antt_price)}
+                    </span>
+                  </div>
+                )}
+
+                {detailsDialog.proposal.freight.minimum_antt_price && 
+                 detailsDialog.proposal.proposed_price < detailsDialog.proposal.freight.minimum_antt_price && (
+                  <div className="mt-3 p-3 bg-destructive/10 border border-destructive/30 rounded-md">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                      <div className="space-y-1 flex-1">
+                        <p className="text-sm font-semibold text-destructive">
+                          ⚠️ Valor Abaixo do Mínimo ANTT
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Esta proposta está <span className="font-bold">
+                            {formatBRL(detailsDialog.proposal.freight.minimum_antt_price - detailsDialog.proposal.proposed_price)}
+                          </span> abaixo do valor mínimo estabelecido pela ANTT.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Message */}
+              {detailsDialog.proposal.message && (
+                <>
+                  <Separator />
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Mensagem do Motorista
+                    </div>
+                    <p className="text-sm text-muted-foreground italic bg-muted/30 p-3 rounded-md">
+                      "{detailsDialog.proposal.message}"
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="flex gap-2 justify-end flex-wrap">
+            <Button 
+              variant="outline" 
+              onClick={() => setDetailsDialog({ open: false, proposal: null })}
+            >
+              Fechar
+            </Button>
+            
+            {detailsDialog.proposal && detailsDialog.proposal.status === 'PENDING' && (
+              <>
+                <Button 
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary/10"
+                  onClick={() => {
+                    setCounterProposalOpen({ open: true, proposal: detailsDialog.proposal });
+                    setDetailsDialog({ open: false, proposal: null });
+                  }}
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Fazer Contraproposta
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    if (detailsDialog.proposal) {
+                      handleRejectProposal(detailsDialog.proposal.id);
+                      setDetailsDialog({ open: false, proposal: null });
+                    }
+                  }}
+                  disabled={loadingAction.proposalId === detailsDialog.proposal?.id}
+                >
+                  {loadingAction.proposalId === detailsDialog.proposal?.id && loadingAction.action === 'reject' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Rejeitando...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Rejeitar
+                    </>
+                  )}
+                </Button>
+                
+                <Button 
+                  onClick={() => {
+                    if (detailsDialog.proposal) {
+                      setConfirmDialog({ open: true, proposal: detailsDialog.proposal });
+                      setDetailsDialog({ open: false, proposal: null });
+                    }
+                  }}
+                  disabled={!canAcceptProposal(detailsDialog.proposal) || loadingAction.proposalId === detailsDialog.proposal?.id}
+                >
+                  {loadingAction.proposalId === detailsDialog.proposal?.id && loadingAction.action === 'accept' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Aceitando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      {!canAcceptProposal(detailsDialog.proposal) ? 'Sem vagas' : 'Aceitar'}
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
