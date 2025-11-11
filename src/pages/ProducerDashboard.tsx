@@ -137,7 +137,7 @@ const ProducerDashboard = () => {
         .from('freights')
         .select(`
           *,
-          driver_profiles:profiles!left(freights_driver_id_fkey)(
+          profiles!driver_id(
             id,
             full_name,
             contact_phone,
@@ -221,7 +221,7 @@ const ProducerDashboard = () => {
           .from('freights')
           .select(`
             *,
-            driver_profiles:profiles!left(freights_driver_id_fkey)(
+            profiles!driver_id(
               id,
               full_name,
               contact_phone,
@@ -754,7 +754,7 @@ const ProducerDashboard = () => {
       if (freightToCancel.driver_id) {
         await supabase.functions.invoke('send-notification', {
           body: {
-            user_id: freightToCancel.driver_profiles?.user_id,
+            user_id: freightToCancel.profiles?.user_id,
             title: 'Frete Cancelado',
             message: `O frete de ${freightToCancel.cargo_type} foi cancelado pelo produtor.`,
             type: 'freight_cancelled',
@@ -814,7 +814,7 @@ const ProducerDashboard = () => {
     console.log('handleDeliveryConfirmed chamado - atualizando lista de fretes');
     
     // Após confirmar entrega, solicitar pagamento automático se ainda não foi feito
-    if (freightToConfirm && freightToConfirm.driver_profiles) {
+    if (freightToConfirm && freightToConfirm.profiles) {
       const existingPayment = externalPayments.find(p => 
         p.freight_id === freightToConfirm.id && p.amount === freightToConfirm.price
       );
@@ -823,21 +823,21 @@ const ProducerDashboard = () => {
         setTimeout(() => {
           requestFullPayment(
             freightToConfirm.id, 
-            freightToConfirm.driver_profiles.id, 
+            freightToConfirm.profiles.id, 
             freightToConfirm.price
           );
         }, 1000);
       }
 
       // Abrir modal de avaliação do motorista após confirmação
-      if (freightToConfirm.driver_profiles?.id) {
+      if (freightToConfirm.profiles?.id) {
         setTimeout(() => {
           // Disparar evento para abrir modal de avaliação
           window.dispatchEvent(new CustomEvent('show-freight-rating', {
             detail: {
               freightId: freightToConfirm.id,
-              ratedUserId: freightToConfirm.driver_profiles.id,
-              ratedUserName: freightToConfirm.driver_profiles.full_name
+              ratedUserId: freightToConfirm.profiles.id,
+              ratedUserName: freightToConfirm.profiles.full_name
             }
           }));
         }, 500);
@@ -1557,13 +1557,13 @@ const ProducerDashboard = () => {
                           <div className="min-w-0">
                             <p className="font-medium text-xs text-muted-foreground">Motorista:</p>
                             <p className="text-foreground truncate">
-                              {freight.driver_profiles?.full_name || 'N/A'}
+                              {freight.profiles?.full_name || 'Aguardando motorista'}
                             </p>
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium text-xs text-muted-foreground">Telefone:</p>
                             <p className="text-foreground truncate">
-                              {freight.driver_profiles?.contact_phone || '-'}
+                              {freight.profiles?.contact_phone || '-'}
                             </p>
                           </div>
                           <div className="min-w-0">
@@ -1781,7 +1781,7 @@ const ProducerDashboard = () => {
               {/* Fretes Entregues Precisando Pagamento Final */}
               {freights.filter(freight => 
                 freight.status === 'DELIVERED' && 
-                freight.driver_profiles &&
+                freight.profiles &&
                 !externalPayments.some(payment => 
                   payment.freight_id === freight.id && 
                   payment.status === 'completed' &&
@@ -1792,7 +1792,7 @@ const ProducerDashboard = () => {
                   <h4 className="text-md font-semibold text-purple-700">Fretes Entregues - Confirmar Pagamento Final</h4>
                   {freights.filter(freight => 
                     freight.status === 'DELIVERED' && 
-                    freight.driver_profiles &&
+                    freight.profiles &&
                     !externalPayments.some(payment => 
                       payment.freight_id === freight.id && 
                       payment.status === 'completed' &&
@@ -1822,7 +1822,7 @@ const ProducerDashboard = () => {
                                 Restante: R$ {remainingAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                Motorista: {freight.driver_profiles?.full_name}
+                                Motorista: {freight.profiles?.full_name}
                               </p>
                             </div>
                             <Button
@@ -1843,7 +1843,7 @@ const ProducerDashboard = () => {
               {/* Mensagem se não há pagamentos */}
               {freightPayments.length === 0 && 
                externalPayments.length === 0 && 
-               freights.filter(freight => freight.status === 'ACCEPTED_BY_DRIVER' && freight.driver_profiles).length === 0 && (
+               freights.filter(freight => freight.status === 'ACCEPTED_BY_DRIVER' && freight.profiles).length === 0 && (
                 <Card className="border-dashed">
                   <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                     <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
@@ -1927,9 +1927,9 @@ const ProducerDashboard = () => {
             status: freightToConfirm.status,
             updated_at: freightToConfirm.updated_at,
             metadata: freightToConfirm.metadata,
-            driver: freightToConfirm.driver_profiles ? {
-              full_name: freightToConfirm.driver_profiles.full_name,
-              contact_phone: freightToConfirm.driver_profiles.contact_phone || freightToConfirm.driver_profiles.phone
+            driver: freightToConfirm.profiles ? {
+              full_name: freightToConfirm.profiles.full_name,
+              contact_phone: freightToConfirm.profiles.contact_phone || freightToConfirm.profiles.phone
             } : undefined
           }}
           isOpen={deliveryConfirmationModal}
