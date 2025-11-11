@@ -2202,6 +2202,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 />
               </div>
               <SmartFreightMatcher 
+                key={`freight-matcher-${profile?.id || 'loading'}`}
                 onFreightAction={handleFreightAction}
                 onCountsChange={({ total }) => setAvailableCountUI(total)}
               />

@@ -67,7 +67,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const isMountedRef = React.useRef(true);
-  const updateLockRef = useRef<Promise<void> | null>(null);
+  const updateLockRef = useRef(false);
+  const fetchIdRef = useRef(0); // ✅ ID único para cada fetch
   
   useEffect(() => {
     isMountedRef.current = true;
@@ -80,30 +81,18 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     return getAllowedServiceTypesFromProfile(profile);
   }, [profile?.role, profile?.service_types]);
   
-  const debouncedSetCompatibleFreights = useMemo(
-    () => debounce((freights: CompatibleFreight[], source: string) => {
-      if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
-        console.log(`[SmartFreightMatcher] 🔄 setState de ${source} → ${freights.length} fretes`);
-        startTransition(() => {
-          setCompatibleFreights(freights);
-        });
-      }
-    }, 300),
-    []
-  );
-  
   const fetchCompatibleFreights = useCallback(async () => {
     if (!profile?.id) return;
     
+    // ✅ Verificar se já está rodando
     if (updateLockRef.current) {
-      console.log('[SmartFreightMatcher] Aguardando update anterior...');
-      await updateLockRef.current;
+      console.log('[SmartFreightMatcher] Fetch já em andamento, ignorando...');
+      return;
     }
     
-    let resolveLock: () => void;
-    updateLockRef.current = new Promise(resolve => {
-      resolveLock = resolve;
-    });
+    // ✅ Incrementar ID do fetch
+    const currentFetchId = ++fetchIdRef.current;
+    updateLockRef.current = true;
     
     const isCompany = profile.role === 'TRANSPORTADORA';
     setLoading(true);
@@ -170,17 +159,17 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             : mapped.filter(f => allowedTypesFromProfile.includes(f.service_type));
 
           console.log(`✅ ${filtered.length} fretes após filtro de tipo`);
-          if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
-            startTransition(() => {
-              setCompatibleFreights(filtered);
-            });
+          // ✅ Verificar se este fetch ainda é válido
+          if (currentFetchId === fetchIdRef.current && isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+            setCompatibleFreights(filtered);
             
             const highUrgency = filtered.filter(f => f.urgency === 'HIGH').length;
             onCountsChange?.({ total: filtered.length, highUrgency });
-            
-            setLoading(false);
-            setIsUpdating(false);
           }
+          
+          setLoading(false);
+          setIsUpdating(false);
+          updateLockRef.current = false;
           return;
         }
       }
@@ -271,12 +260,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         });
         console.log(`📊 [SmartFreightMatcher] Fretes por cidade (origem/destino):`, cityCounts);
         
-        // Emitir contagem imediatamente (com transition)
-        if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
-          console.log('[SmartFreightMatcher] 🔄 setState de spatial → ' + spatialFreights.length + ' fretes');
-          startTransition(() => {
-            setCompatibleFreights(spatialFreights);
-          });
+        // ✅ Verificar se este fetch ainda é válido
+        if (currentFetchId === fetchIdRef.current && isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+          setCompatibleFreights(spatialFreights);
           const highUrgency = spatialFreights.filter(f => f.urgency === 'HIGH').length;
           onCountsChange?.({ total: spatialFreights.length, highUrgency });
         }
@@ -395,11 +381,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             });
             const final = Array.from(uniqueMap.values());
             
-            if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
-              console.log('[SmartFreightMatcher] 🔄 setState de fallback → ' + final.length + ' fretes');
-              startTransition(() => {
-                setCompatibleFreights(final);
-              });
+            // ✅ Verificar se este fetch ainda é válido
+            if (currentFetchId === fetchIdRef.current && isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+              setCompatibleFreights(final);
               
               // Emit count
               const highUrgency = final.filter(f => f.urgency === 'HIGH').length;
@@ -641,16 +625,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         final: finalFreights.length
       });
       
-      if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
-        console.log('[SmartFreightMatcher] 🔄 setState de RPC+spatial → ' + finalFreights.length + ' fretes');
-        startTransition(() => {
-          setCompatibleFreights(finalFreights);
-        });
+      // ✅ Verificar se este fetch ainda é válido
+      if (currentFetchId === fetchIdRef.current && isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+        setCompatibleFreights(finalFreights);
+        
+        // Emit count immediately after setting freights
+        const highUrgency = finalFreights.filter((f: any) => f.urgency === 'HIGH').length;
+        onCountsChange?.({ total: finalFreights.length, highUrgency });
       }
-      
-      // Emit count immediately after setting freights
-      const highUrgency = finalFreights.filter((f: any) => f.urgency === 'HIGH').length;
-      onCountsChange?.({ total: finalFreights.length, highUrgency });
 
       // Buscar chamados de serviço (GUINCHO/MUDANCA) abertos e sem prestador atribuído
       if (allowedTypesFromProfile.some(t => t === 'GUINCHO' || t === 'MUDANCA')) {
@@ -695,8 +677,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         setLoading(false);
         setIsUpdating(false);
       }
-      resolveLock!();
-      updateLockRef.current = null;
+      updateLockRef.current = false;
     }
   }, [profile, allowedTypesFromProfile, user, onCountsChange]);
 

@@ -38,6 +38,7 @@ export const useDriverAffiliations = () => {
     },
     enabled: !!profile?.id && (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO'),
     staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnMount: false, // ✅ Evitar refetch desnecessário
   });
 
   // ✅ Separar por status
@@ -84,7 +85,6 @@ export const useDriverAffiliations = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['driver-affiliations'] });
-      queryClient.invalidateQueries({ queryKey: ['available-freights'] });
       queryClient.invalidateQueries({ queryKey: ['company-driver'] });
       toast.success('Você saiu da transportadora com sucesso');
     },
@@ -126,7 +126,6 @@ export const useDriverAffiliations = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['driver-affiliations'] });
-      queryClient.invalidateQueries({ queryKey: ['available-freights'] });
       queryClient.invalidateQueries({ queryKey: ['company-driver'] });
       toast.success('Afiliação reativada com sucesso');
     },
