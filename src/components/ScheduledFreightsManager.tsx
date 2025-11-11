@@ -116,7 +116,7 @@ export const ScheduledFreightsManager: React.FC = () => {
           const result: any = await supabase
             .from('freights')
             .select('*')
-            .eq('transport_company_id', profile.id)
+            .eq('company_id', profile.id)
             .gte('pickup_date', todayStr)
             .order('pickup_date', { ascending: true })
             .limit(100);

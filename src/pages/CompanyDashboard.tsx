@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   Users, 
@@ -54,6 +54,10 @@ import { PendingVehiclesApproval } from '@/components/PendingVehiclesApproval';
 import { CompanyFreightsManager } from '@/components/CompanyFreightsManager';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
 import heroTruckNight from '@/assets/hero-truck-night.jpg';
+import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
+import { CompanyProposalsManager } from '@/components/CompanyProposalsManager';
+import { UserCityManager } from '@/components/UserCityManager';
+import { CompanyHistory } from '@/components/CompanyHistory';
 
 const heroLogistics = heroTruckNight;
 
@@ -691,23 +695,105 @@ const CompanyDashboard = () => {
             <CompanyFreightsManager />
           </TabsContent>
 
-          {/* Placeholder tabs */}
-          {['scheduled', 'proposals', 'services', 'payments', 'areas-ai', 'cities', 'balance', 'ratings', 'history', 'chat'].map((tabValue) => (
-            <TabsContent key={tabValue} value={tabValue} className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>
-                    {COMPANY_TABS.find(t => t.value === tabValue)?.label || tabValue}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-center text-muted-foreground py-8">
-                    Funcionalidade em desenvolvimento
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          ))}
+          <TabsContent value="scheduled" className="mt-6">
+            <ScheduledFreightsManager />
+          </TabsContent>
+
+          <TabsContent value="proposals" className="mt-6">
+            <CompanyProposalsManager />
+          </TabsContent>
+
+          <TabsContent value="services" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Serviços</CardTitle>
+                <CardDescription>
+                  Gerencie os serviços oferecidos pela transportadora
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-center text-muted-foreground py-8">
+                  Em desenvolvimento - Lista e gestão de serviços da transportadora
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payments" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pagamentos</CardTitle>
+                <CardDescription>
+                  Histórico de pagamentos e transações
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-center text-muted-foreground py-8">
+                  Em desenvolvimento - Gestão financeira e histórico de pagamentos
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="areas-ai" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>{AREAS_IA_LABEL}</CardTitle>
+                <CardDescription>
+                  Configure as áreas de atuação inteligentes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-center text-muted-foreground py-8">
+                  Em desenvolvimento - Gestão de áreas I.A para matching de fretes
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="cities" className="mt-6">
+            <UserCityManager userRole="TRANSPORTADORA" onCitiesUpdate={() => {}} />
+          </TabsContent>
+
+          <TabsContent value="balance" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Saldo</CardTitle>
+                <CardDescription>
+                  Acompanhe o saldo e movimentações financeiras
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-center text-muted-foreground py-8">
+                  Em desenvolvimento - Dashboard financeiro com saldo e movimentações
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="ratings" className="mt-6">
+            <CompanyDriverPerformanceDashboard companyId={company.id} />
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-6">
+            <CompanyHistory />
+          </TabsContent>
+
+          <TabsContent value="chat" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Chat Interno</CardTitle>
+                <CardDescription>
+                  Comunique-se com motoristas e equipe
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-center text-muted-foreground py-8">
+                  Em desenvolvimento - Sistema de chat interno da transportadora
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
           
           {/* Aba de Relatórios Analytics */}
           <TabsContent value="reports" className="mt-6">
