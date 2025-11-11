@@ -30,6 +30,7 @@ interface ScheduledFreight {
   origin_address: string;
   destination_address: string;
   scheduled_date: string;
+  pickup_date?: string;
   weight: number;
   price: number;
   cargo_type: string;

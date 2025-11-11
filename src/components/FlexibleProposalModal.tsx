@@ -23,6 +23,7 @@ interface FreightData {
   origin_address: string;
   destination_address: string;
   scheduled_date: string;
+  pickup_date?: string;
   cargo_type: string;
   weight: number;
   price: number;
