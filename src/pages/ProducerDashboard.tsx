@@ -1267,7 +1267,7 @@ const ProducerDashboard = () => {
               >
                 <Clock className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Confirmar Entrega</span>
-                <span className="sm:hidden">Confirm</span>
+                <span className="sm:hidden" translate="no">Confirmar Entrega</span>
                 {statistics.pendingConfirmation > 0 && (
                   <Badge variant="destructive" className="ml-1 h-4 w-4 p-0 text-xs">
                     {statistics.pendingConfirmation}
@@ -1280,7 +1280,7 @@ const ProducerDashboard = () => {
               >
                 <Users className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Propostas</span>
-                <span className="sm:hidden">Propos</span>
+                <span className="sm:hidden" translate="no">Propostas</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="scheduled" 
@@ -1288,7 +1288,7 @@ const ProducerDashboard = () => {
               >
                 <Calendar className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Agendados</span>
-                <span className="sm:hidden">Agenda</span>
+                <span className="sm:hidden" translate="no">Agendados</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="history" 
@@ -1296,7 +1296,7 @@ const ProducerDashboard = () => {
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Histórico</span>
-                <span className="sm:hidden">Hist</span>
+                <span className="sm:hidden" translate="no">Histórico</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="payments" 
@@ -1304,7 +1304,7 @@ const ProducerDashboard = () => {
               >
                 <CreditCard className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Pagamentos</span>
-                <span className="sm:hidden">Pag</span>
+                <span className="sm:hidden" translate="no">Pagamentos</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="ratings" 
@@ -1312,15 +1312,15 @@ const ProducerDashboard = () => {
               >
                 <Star className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Avaliações</span>
-                <span className="sm:hidden">Aval</span>
+                <span className="sm:hidden" translate="no">Avaliações</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="chat" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 <MessageCircle className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Chat</span>
-                <span className="sm:hidden">Chat</span>
+                <span className="hidden sm:inline" translate="no">Chat</span>
+                <span className="sm:hidden" translate="no">Chat</span>
                 {chatUnreadCount > 0 && (
                   <Badge variant="destructive" className="ml-1 h-4 px-1 text-xs">
                     {chatUnreadCount}
@@ -1394,18 +1394,7 @@ const ProducerDashboard = () => {
                 isInProgressFreight(f.pickup_date, f.status)
               );
               
-              console.log('📊 FRETES EM ANDAMENTO:', {
-                total: ongoingFreights.length,
-                freights: ongoingFreights.map(f => ({
-                  id: f.id,
-                  status: f.status,
-                  pickup_date: f.pickup_date,
-                  classification: f.pickup_date ? {
-                    isInProgress: isInProgressFreight(f.pickup_date, f.status),
-                    formattedDate: formatPickupDate(f.pickup_date)
-                  } : null
-                }))
-              });
+              // debug log removido para evitar poluição de console
               
               return ongoingFreights.length === 0;
             })() ? (

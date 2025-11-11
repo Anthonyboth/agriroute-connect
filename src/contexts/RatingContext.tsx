@@ -406,6 +406,23 @@ export const RatingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return () => clearTimeout(initialCheck);
   }, [profile?.id, currentPath]);
 
+  // Listener para abrir avaliação de frete após confirmação pelo produtor
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const ce = event as CustomEvent;
+      const { freightId, ratedUserId, ratedUserName } = (ce.detail || {}) as any;
+      if (freightId && ratedUserId) {
+        // Abrir modal diretamente via state para evitar dependência de ordem de declaração
+        setFreightId(freightId);
+        setFreightRatedUserId(ratedUserId);
+        setFreightRatedUserName(ratedUserName || null);
+        setFreightRatingOpen(true);
+      }
+    };
+    window.addEventListener('show-freight-rating', handler as EventListener);
+    return () => window.removeEventListener('show-freight-rating', handler as EventListener);
+  }, []);
+
   const openServiceRating = (
     requestId: string, 
     ratedId: string, 
