@@ -32,6 +32,27 @@ export const DriverLocationTab = ({ driverProfileId, companyId }: DriverLocation
     return <Skeleton className="h-[500px] w-full" />;
   }
 
+  const handleRequestLocation = async () => {
+    if (!driverProfileId || !companyId) return;
+    
+    try {
+      const { error } = await supabase.from('notifications').insert({
+        user_id: driverProfileId,
+        title: '📍 Solicitação de Localização',
+        message: 'A transportadora solicitou que você ative o GPS e compartilhe sua localização. Por favor, abra o aplicativo e ative o rastreamento.',
+        type: 'request_location',
+        data: { companyId, requestedAt: new Date().toISOString() }
+      });
+      
+      if (error) throw error;
+      
+      alert('✅ Solicitação enviada! O motorista receberá uma notificação para ativar o GPS.');
+    } catch (error) {
+      console.error('Erro ao solicitar localização:', error);
+      alert('❌ Erro ao enviar solicitação. Tente novamente.');
+    }
+  };
+
   if (!currentLocation.lat || !currentLocation.lng) {
     return (
       <Card>
@@ -41,10 +62,16 @@ export const DriverLocationTab = ({ driverProfileId, companyId }: DriverLocation
           <p className="text-sm text-muted-foreground text-center max-w-md">
             O motorista precisa ativar o GPS e abrir o aplicativo para compartilhar sua localização.
           </p>
-          <Button onClick={refreshLocation} className="mt-4" variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Tentar Novamente
-          </Button>
+          <div className="flex gap-2 mt-4">
+            <Button onClick={refreshLocation} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Tentar Novamente
+            </Button>
+            <Button onClick={handleRequestLocation} variant="default" size="sm">
+              <MapPin className="h-4 w-4 mr-2" />
+              Solicitar Localização
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );

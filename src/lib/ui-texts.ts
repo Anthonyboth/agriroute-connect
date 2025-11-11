@@ -129,6 +129,9 @@ export const UI_TEXTS = {
   INFORMACOES_FRETE: "Informações do Frete",
   INFORMACOES_PRODUTOR: "Informações do Produtor",
   INFORMACOES_MOTORISTA: "Informações do Motorista",
+  SOLICITAR_LOCALIZACAO: "Solicitar Localização",
+  DIRECIONAR_MOTORISTA: "Direcionar Motorista",
+  CANCELAR_POR_VENCIMENTO: "Cancelar por Vencimento",
   
 } as const;
 

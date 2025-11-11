@@ -50,9 +50,11 @@ import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import FreightLimitTracker from '@/components/FreightLimitTracker';
 import { PendingVehiclesApproval } from '@/components/PendingVehiclesApproval';
+import { CompanyFreightsManager } from '@/components/CompanyFreightsManager';
+import { FreightInProgressCard } from '@/components/FreightInProgressCard';
+import heroTruckNight from '@/assets/hero-truck-night.jpg';
 
-// Placeholder for heroLogistics
-const heroLogistics = '';
+const heroLogistics = heroTruckNight;
 
 // Definição de tabs
 const getCompanyTabs = (activeCount: number, chatCount: number) => [
@@ -63,7 +65,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
     icon: Building2,
     badge: activeCount > 0 ? activeCount : undefined
   },
-  { value: 'marketplace', label: FRETES_IA_LABEL, shortLabel: AI_ABBR, icon: TrendingUp, badge: undefined },
+  { value: 'marketplace', label: FRETES_IA_LABEL, shortLabel: AI_ABBR, icon: Brain, badge: undefined },
   { value: 'drivers', label: 'Motoristas', shortLabel: 'Mot', icon: Users, badge: undefined },
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck, badge: undefined },
   { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínc', icon: Link2, badge: undefined },
@@ -439,7 +441,7 @@ const CompanyDashboard = () => {
       
       <section className="relative py-6 overflow-hidden">
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-10"
+          className="absolute inset-0 bg-cover bg-center opacity-20"
           style={{ backgroundImage: `url(${heroLogistics})` }}
         />
         <div className="container relative z-10 mx-auto px-4">
@@ -610,7 +612,7 @@ const CompanyDashboard = () => {
                       Seus fretes aceitos aparecerão aqui automaticamente.
                     </p>
                   </div>
-                ) : (
+                 ) : (
                   <div className="space-y-4">
                     {myAssignments.map((assignment) => (
                       <MyAssignmentCard
@@ -619,38 +621,72 @@ const CompanyDashboard = () => {
                         onAction={() => {}}
                       />
                     ))}
-                    {activeFreights.map((freight) => (
-                      <Card key={freight.id} className="border-l-4 border-l-blue-600">
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-semibold">{getCargoTypeLabel(freight.cargo_type)}</h3>
-                            <Badge variant="secondary">
-                              {freight.status === 'IN_TRANSIT' ? 'Em Trânsito' : 'Aceito'}
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <div className="space-y-1 text-sm">
-                            <p className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-green-600" />
-                              <span className="font-medium">Origem:</span> {freight.origin_city}, {freight.origin_state}
-                            </p>
-                            <p className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-red-600" />
-                              <span className="font-medium">Destino:</span> {freight.destination_city}, {freight.destination_state}
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                    {activeFreights.map((freight) => {
+                      // Verificar se vencido (48h após pickup_date)
+                      const pickupDate = new Date(freight.pickup_date);
+                      const now = new Date();
+                      const hoursSincePickup = (now.getTime() - pickupDate.getTime()) / (1000 * 60 * 60);
+                      const isExpired = hoursSincePickup > 48;
+
+                      return (
+                        <FreightInProgressCard
+                          key={freight.id}
+                          freight={freight}
+                          showActions={true}
+                          onViewDetails={() => {
+                            setSelectedFreightId(freight.id);
+                            setShowDetails(true);
+                          }}
+                          onRequestCancel={async () => {
+                            if (isExpired) {
+                              if (!confirm('Cancelar este frete por vencimento?')) return;
+                              
+                              try {
+                                const { error } = await supabase
+                                  .from('freights')
+                                  .update({
+                                    status: 'CANCELLED',
+                                    cancellation_reason: 'Cancelamento automático: frete não coletado em 48h após a data agendada',
+                                    cancelled_at: new Date().toISOString()
+                                  })
+                                  .eq('id', freight.id);
+
+                                if (error) throw error;
+
+                                await supabase.from('freight_status_history').insert({
+                                  freight_id: freight.id,
+                                  status: 'CANCELLED',
+                                  changed_by: profile?.id,
+                                  notes: 'Cancelado por vencimento (48h após data de coleta)'
+                                });
+
+                                toast.success('Frete cancelado por vencimento');
+                                fetchActiveFreights();
+                              } catch (error) {
+                                console.error('Erro ao cancelar:', error);
+                                toast.error('Erro ao cancelar frete');
+                              }
+                            }
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
+          <TabsContent value="assignments" className="mt-6">
+            <CompanyDriverManager />
+          </TabsContent>
+
+          <TabsContent value="freights" className="mt-6">
+            <CompanyFreightsManager />
+          </TabsContent>
+
           {/* Placeholder tabs */}
-          {['assignments', 'freights', 'scheduled', 'proposals', 'services', 'payments', 'areas-ai', 'cities', 'balance', 'ratings', 'history', 'chat'].map((tabValue) => (
+          {['scheduled', 'proposals', 'services', 'payments', 'areas-ai', 'cities', 'balance', 'ratings', 'history', 'chat'].map((tabValue) => (
             <TabsContent key={tabValue} value={tabValue} className="mt-6">
               <Card>
                 <CardHeader>
