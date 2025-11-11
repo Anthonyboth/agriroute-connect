@@ -45,7 +45,7 @@ import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
 import { DriverRegionManager } from '@/components/DriverRegionManager';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { isFinalStatus } from '@/lib/freight-status';
-import heroLogistics from '@/assets/hero-logistics-optimized.webp';
+import heroLogistics from '@/assets/hero-truck-night-moon.jpg';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
