@@ -25,7 +25,10 @@ export default defineConfig({
     // Headers para evitar tradução automática
     extraHTTPHeaders: {
       'Accept-Language': 'pt-BR,pt;q=0.9'
-    }
+    },
+    
+    // Atributo para identificação de elementos em testes
+    testIdAttribute: 'data-testid'
   },
   
   projects: [

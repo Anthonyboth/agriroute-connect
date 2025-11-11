@@ -31,6 +31,7 @@ import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { CompanySmartFreightMatcher } from '@/components/CompanySmartFreightMatcher';
 import { CompanyDriverManager } from '@/components/CompanyDriverManager';
 import { CompanyDashboard as CompanyDashboardComponent } from '@/components/CompanyDashboard';
+import { CompanyAnalyticsDashboard } from '@/components/CompanyAnalyticsDashboard';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -120,6 +121,9 @@ const CompanyDashboard = () => {
     profile?.id || '', 
     'TRANSPORTADORA'
   );
+  
+  // Estado para analytics
+  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
   
   useEffect(() => {
     localStorage.setItem('company_active_tab', activeTab);
@@ -646,7 +650,7 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           {/* Placeholder tabs */}
-          {['assignments', 'freights', 'scheduled', 'proposals', 'services', 'payments', 'areas-ai', 'cities', 'balance', 'ratings', 'history', 'chat', 'reports'].map((tabValue) => (
+          {['assignments', 'freights', 'scheduled', 'proposals', 'services', 'payments', 'areas-ai', 'cities', 'balance', 'ratings', 'history', 'chat'].map((tabValue) => (
             <TabsContent key={tabValue} value={tabValue} className="mt-6">
               <Card>
                 <CardHeader>
@@ -662,6 +666,16 @@ const CompanyDashboard = () => {
               </Card>
             </TabsContent>
           ))}
+          
+          {/* Aba de Relatórios Analytics */}
+          <TabsContent value="reports" className="mt-6">
+            <CompanyAnalyticsDashboard
+              assignments={myAssignments}
+              drivers={drivers || []}
+              timeRange={timeRange}
+              onTimeRangeChange={setTimeRange}
+            />
+          </TabsContent>
         </Tabs>
       </div>
     </div>

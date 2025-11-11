@@ -31,8 +31,12 @@ import { formatKm, formatBRL, formatDate } from '@/lib/formatters';
 import { isInProgressFreight, isScheduledFreight, formatPickupDate } from '@/utils/freightDateHelpers';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star, MessageCircle } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star, MessageCircle, BarChart } from 'lucide-react';
 import { Wrench } from 'lucide-react';
+import { AdvancedFreightFilters, FreightFilters } from '@/components/AdvancedFreightFilters';
+import { FreightAnalyticsDashboard } from '@/components/FreightAnalyticsDashboard';
+import { FreightReportExporter } from '@/components/FreightReportExporter';
+import { useFreightReportData } from '@/hooks/useFreightReportData';
 import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
@@ -114,12 +118,80 @@ const ProducerDashboard = () => {
   
   // Estado para controlar avaliações automáticas
   const [activeFreightForRating, setActiveFreightForRating] = useState<any>(null);
+  
+  // Estados para aba de relatórios
+  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
+  const [filters, setFilters] = useState<FreightFilters>({
+    sortBy: 'date',
+    sortOrder: 'desc'
+  });
 
   // Contador de mensagens não lidas
   const { unreadCount: chatUnreadCount } = useUnreadChatsCount(
     profile?.id || '', 
     'PRODUTOR'
   );
+  
+  // Lógica de filtragem para aba de relatórios
+  const filteredFreights = useMemo(() => {
+    let result = [...freights];
+    
+    // Aplicar filtros de status
+    if (filters.status?.length) {
+      result = result.filter(f => filters.status!.includes(f.status));
+    }
+    
+    // Aplicar filtro de data
+    if (filters.dateRange) {
+      result = result.filter(f => {
+        const date = new Date(f.pickup_date);
+        return date >= filters.dateRange!.start && date <= filters.dateRange!.end;
+      });
+    }
+    
+    // Aplicar filtro de preço
+    if (filters.priceRange) {
+      result = result.filter(f => 
+        f.price >= filters.priceRange!.min && 
+        f.price <= filters.priceRange!.max
+      );
+    }
+    
+    // Aplicar filtro de distância
+    if (filters.distanceRange) {
+      result = result.filter(f => 
+        f.distance_km >= filters.distanceRange!.min && 
+        f.distance_km <= filters.distanceRange!.max
+      );
+    }
+    
+    // Aplicar ordenação
+    result.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (filters.sortBy) {
+        case 'date':
+          comparison = new Date(a.pickup_date).getTime() - new Date(b.pickup_date).getTime();
+          break;
+        case 'price':
+          comparison = a.price - b.price;
+          break;
+        case 'distance':
+          comparison = a.distance_km - b.distance_km;
+          break;
+        case 'status':
+          comparison = a.status.localeCompare(b.status);
+          break;
+      }
+      
+      return filters.sortOrder === 'asc' ? comparison : -comparison;
+    });
+    
+    return result;
+  }, [freights, filters]);
+  
+  // Preparar dados para relatório
+  const reportData = useFreightReportData(filteredFreights);
 
   // Buscar fretes - otimizado e resiliente
   const fetchFreights = useCallback(async () => {
@@ -1327,6 +1399,14 @@ const ProducerDashboard = () => {
                   </Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger 
+                value="reports" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <BarChart className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Relatórios</span>
+                <span className="sm:hidden" translate="no">Rel</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -1630,6 +1710,31 @@ const ProducerDashboard = () => {
             <UnifiedChatHub 
               userProfileId={profile.id}
               userRole="PRODUTOR"
+            />
+          </TabsContent>
+          
+          <TabsContent value="reports" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Relatórios e Analytics de Fretes</CardTitle>
+                  <FreightReportExporter 
+                    data={reportData}
+                    reportTitle="Relatório de Fretes - Produtor"
+                  />
+                </div>
+              </CardHeader>
+            </Card>
+            
+            <AdvancedFreightFilters
+              onFilterChange={setFilters}
+              currentFilters={filters}
+            />
+            
+            <FreightAnalyticsDashboard
+              freights={filteredFreights}
+              timeRange={timeRange}
+              onTimeRangeChange={setTimeRange}
             />
           </TabsContent>
 
