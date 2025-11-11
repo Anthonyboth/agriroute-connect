@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useUnifiedChats } from '@/hooks/useUnifiedChats';
+import { useAdvancedChatFilters } from '@/hooks/useAdvancedChatFilters';
 import { ChatConversationCard } from './ChatConversationCard';
 import { ChatModal } from './ChatModal';
+import { AdvancedChatFilters } from './AdvancedChatFilters';
 import { Loader2, MessageSquareOff } from 'lucide-react';
 
 interface UnifiedChatHubProps {
@@ -21,13 +23,15 @@ export const UnifiedChatHub = ({ userProfileId, userRole }: UnifiedChatHubProps)
   } = useUnifiedChats(userProfileId, userRole);
 
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
-  const [filter, setFilter] = useState<'open' | 'all' | 'closed'>('open');
 
-  const filteredConversations = conversations.filter((c) => {
-    if (filter === 'open') return !c.isClosed;
-    if (filter === 'closed') return c.isClosed;
-    return true;
-  });
+  // Filtros avançados
+  const {
+    filters,
+    filteredConversations,
+    updateFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useAdvancedChatFilters(conversations);
 
   const handleCloseConversation = (conversation: any) => {
     closeConversation.mutate({
@@ -54,30 +58,41 @@ export const UnifiedChatHub = ({ userProfileId, userRole }: UnifiedChatHubProps)
   return (
     <>
       <div className="space-y-4">
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
+        {/* Filtros Avançados */}
+        <AdvancedChatFilters
+          filters={filters}
+          onFilterChange={updateFilter}
+          onClearFilters={clearFilters}
+          hasActiveFilters={hasActiveFilters}
+          resultsCount={filteredConversations.length}
+          totalCount={conversations.length}
+        />
+
+        <Tabs value={filters.status} onValueChange={(v) => updateFilter('status', v as any)}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="open">Abertas</TabsTrigger>
             <TabsTrigger value="all">Todas</TabsTrigger>
             <TabsTrigger value="closed">Fechadas</TabsTrigger>
           </TabsList>
 
-          <TabsContent value={filter} className="mt-4">
+          <TabsContent value={filters.status} className="mt-4">
             <ScrollArea className="h-[calc(100vh-280px)]">
               {filteredConversations.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
                   <MessageSquareOff className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    {filter === 'open' && 'Nenhuma conversa ativa'}
-                    {filter === 'closed' && 'Nenhuma conversa fechada'}
-                    {filter === 'all' && 'Nenhuma conversa'}
+                  <h3 className="text-lg font-semibold mb-2" translate="no">
+                    {filters.status === 'open' && 'Nenhuma conversa ativa'}
+                    {filters.status === 'closed' && 'Nenhuma conversa fechada'}
+                    {filters.status === 'all' && 'Nenhuma conversa'}
                   </h3>
-                  <p className="text-sm text-muted-foreground max-w-sm">
-                    {filter === 'open' &&
-                      'Suas conversas aparecerão aqui quando você aceitar fretes ou serviços.'}
-                    {filter === 'closed' &&
-                      'Conversas fechadas aparecerão aqui.'}
-                    {filter === 'all' &&
-                      'Comece aceitando fretes ou serviços para iniciar conversas.'}
+                  <p className="text-sm text-muted-foreground max-w-sm" translate="no">
+                    {hasActiveFilters
+                      ? 'Nenhuma conversa encontrada com os filtros aplicados. Tente ajustar os filtros.'
+                      : filters.status === 'open'
+                      ? 'Suas conversas aparecerão aqui quando você aceitar fretes ou serviços.'
+                      : filters.status === 'closed'
+                      ? 'Conversas fechadas aparecerão aqui.'
+                      : 'Comece aceitando fretes ou serviços para iniciar conversas.'}
                   </p>
                 </div>
               ) : (
