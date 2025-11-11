@@ -69,7 +69,7 @@ import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderS
 import { UserCityManager } from '@/components/UserCityManager';
 import { ServiceHistory } from '@/components/ServiceHistory';
 import { PendingServiceRatingsPanel } from '@/components/PendingServiceRatingsPanel';
-import heroLogistics from '@/assets/hero-dashboard.png';
+import heroLogistics from '@/assets/hero-logistics-optimized.webp';
 import { ServicesModal } from '@/components/ServicesModal';
 import { normalizeServiceType } from '@/lib/pt-br-validator';
 

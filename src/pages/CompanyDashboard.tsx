@@ -53,11 +53,13 @@ import FreightLimitTracker from '@/components/FreightLimitTracker';
 import { PendingVehiclesApproval } from '@/components/PendingVehiclesApproval';
 import { CompanyFreightsManager } from '@/components/CompanyFreightsManager';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
-import heroLogistics from '@/assets/hero-dashboard.png';
+import heroTruckNight from '@/assets/hero-truck-night.jpg';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { CompanyProposalsManager } from '@/components/CompanyProposalsManager';
 import { UserCityManager } from '@/components/UserCityManager';
 import { CompanyHistory } from '@/components/CompanyHistory';
+
+const heroLogistics = heroTruckNight;
 
 // Definição de tabs
 const getCompanyTabs = (activeCount: number, chatCount: number) => [
