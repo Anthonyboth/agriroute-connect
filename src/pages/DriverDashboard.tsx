@@ -1848,7 +1848,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       {/* Hero Section Compacto */}
       <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
           style={{ backgroundImage: `url(${heroLogistics})` }}
         />
         <div className="absolute inset-0 bg-primary/80" />

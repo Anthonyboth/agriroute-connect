@@ -8,17 +8,21 @@ import { useProposalChat } from "@/hooks/useProposalChat";
 import { Send, Image as ImageIcon, Paperclip, Loader2, Download } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useProposalTypingIndicator } from "@/hooks/useProposalTypingIndicator";
+import { TypingIndicator } from "@/components/chat/TypingIndicator";
 
 interface ProposalChatPanelProps {
   proposalId: string;
   currentUserId: string;
   currentUserName: string;
+  userRole: 'producer' | 'driver';
 }
 
 export const ProposalChatPanel = ({
   proposalId,
   currentUserId,
   currentUserName,
+  userRole,
 }: ProposalChatPanelProps) => {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -34,6 +38,14 @@ export const ProposalChatPanel = ({
     uploadImage,
     uploadFile,
   } = useProposalChat(proposalId, currentUserId);
+
+  // Sistema de digitação em tempo real
+  const { typingUsers, handleTyping } = useProposalTypingIndicator({
+    proposalId,
+    userId: currentUserId,
+    userName: currentUserName,
+    userRole,
+  });
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -104,6 +116,18 @@ export const ProposalChatPanel = ({
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
+          {/* Indicador de digitação */}
+          {typingUsers.length > 0 && (
+            <TypingIndicator
+              userName={
+                typingUsers[0].userRole === 'driver'
+                  ? 'Motorista está digitando...'
+                  : 'Produtor está digitando...'
+              }
+              userAvatar={undefined}
+            />
+          )}
+
           {messages.map((message) => {
             const isSender = message.sender_id === currentUserId;
             const senderName = isSender
@@ -224,7 +248,10 @@ export const ProposalChatPanel = ({
           <Input
             placeholder="Digite sua mensagem..."
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={(e) => {
+              setNewMessage(e.target.value);
+              handleTyping();
+            }}
             onKeyPress={handleKeyPress}
             disabled={isSending}
             className="flex-1"

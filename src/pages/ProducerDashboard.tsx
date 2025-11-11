@@ -1209,7 +1209,7 @@ const ProducerDashboard = () => {
       
       {/* Hero Section Compacta */}
       <section 
-        className="relative py-8 bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-white overflow-hidden"
+        className="relative py-8 bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-white overflow-hidden animate-fade-in"
         style={{
           backgroundImage: `linear-gradient(rgba(34, 197, 94, 0.9), rgba(34, 197, 94, 0.95)), url(${heroLogistics})`,
           backgroundSize: 'cover',

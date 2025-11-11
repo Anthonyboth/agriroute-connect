@@ -19,6 +19,7 @@ import { showErrorToast } from '@/lib/error-handler';
 import { ProposalCounterModal } from '@/components/ProposalCounterModal';
 import { formatBRL } from '@/lib/formatters';
 import { ProposalChatPanel } from '@/components/proposal/ProposalChatPanel';
+import { useProposalChatUnreadCount } from '@/hooks/useProposalChatUnreadCount';
 
 interface Proposal {
   id: string;
@@ -286,6 +287,12 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
     });
     const canAccept = availableSlots > 0 && freight.status !== 'CANCELLED';
 
+    // Hook para contador de mensagens não lidas
+    const { unreadCount: proposalUnreadCount } = useProposalChatUnreadCount(
+      proposal.id,
+      producerId
+    );
+
     return (
       <Card 
         key={proposal.id} 
@@ -304,12 +311,22 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
         <CardContent className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start gap-4">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={proposal.driver?.profile_photo_url} />
-                <AvatarFallback>
-                  <User className="h-6 w-6" />
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={proposal.driver?.profile_photo_url} />
+                  <AvatarFallback>
+                    <User className="h-6 w-6" />
+                  </AvatarFallback>
+                </Avatar>
+                {proposalUnreadCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {proposalUnreadCount}
+                  </Badge>
+                )}
+              </div>
               <div>
                 <h3 className="font-semibold text-lg">{proposal.driver?.full_name || 'Motorista'}</h3>
                 {proposal.driver?.rating && (
@@ -916,11 +933,12 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                   <MessageSquare className="h-4 w-4" />
                   Chat de Negociação
                 </div>
-                <ProposalChatPanel
-                  proposalId={detailsDialog.proposal.id}
-                  currentUserId={producerId}
-                  currentUserName="Você"
-                />
+            <ProposalChatPanel
+              proposalId={detailsDialog.proposal.id}
+              currentUserId={producerId}
+              currentUserName="Você"
+              userRole="producer"
+            />
               </div>
             </div>
           )}

@@ -335,6 +335,7 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
               proposalId={proposal.id}
               currentUserId={proposal.driver_id}
               currentUserName="Você"
+              userRole="driver"
             />
           </div>
         </div>
