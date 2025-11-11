@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bell, Check, CheckCheck, Info, AlertTriangle, TrendingUp, Truck, DollarSign, CreditCard, MessageSquare, Star, Package, ChevronRight, RefreshCw } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Bell, Check, CheckCheck, Info, AlertTriangle, TrendingUp, Truck, DollarSign, CreditCard, MessageSquare, Star, Package, ChevronRight, RefreshCw, Filter } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useGlobalRating } from '@/contexts/RatingContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { queryWithTimeout } from '@/lib/query-utils';
+import { NotificationSound } from './NotificationSound';
 
 interface Notification {
   id: string;
@@ -357,134 +359,268 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notificações
-              {unreadCount > 0 && (
-                <Badge variant="destructive" className="ml-2">
-                  {unreadCount}
-                </Badge>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={fetchNotifications}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-          </DialogTitle>
-          <DialogDescription>
-            Fique por dentro de tudo que acontece
-          </DialogDescription>
-        </DialogHeader>
+  // Agrupar notificações por tipo
+  const groupedNotifications = useMemo(() => {
+    return {
+      proposals: notifications.filter(n => 
+        n.type.includes('proposal') || n.type === 'advance_request'
+      ),
+      freights: notifications.filter(n => 
+        n.type.includes('freight') || n.type.includes('delivery') || n.type.includes('checkin')
+      ),
+      payments: notifications.filter(n => 
+        n.type.includes('payment') || n.type.includes('advance_approved')
+      ),
+      chat: notifications.filter(n => 
+        n.type.includes('chat') || n.type.includes('message')
+      ),
+      ratings: notifications.filter(n => 
+        n.type.includes('rating')
+      ),
+      other: notifications.filter(n => 
+        !n.type.includes('proposal') && 
+        !n.type.includes('freight') && 
+        !n.type.includes('payment') && 
+        !n.type.includes('chat') && 
+        !n.type.includes('rating') &&
+        !n.type.includes('advance') &&
+        !n.type.includes('delivery') &&
+        !n.type.includes('checkin') &&
+        !n.type.includes('message')
+      )
+    };
+  }, [notifications]);
 
-        <ScrollArea className="h-[500px] pr-4">
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Card key={`notification-skeleton-${i}`}>
-                  <CardContent className="pt-6">
-                    <div className="flex gap-3">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-3 w-full" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : error ? (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center text-muted-foreground">
-                  <AlertTriangle className="h-10 w-10 mx-auto mb-2 text-destructive" />
-                  <p>{error}</p>
+  return (
+    <>
+      {/* Componente de som - ativa quando unreadCount aumenta */}
+      <NotificationSound unreadCount={unreadCount} />
+      
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          ) : notifications.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center text-muted-foreground py-8">
-                  <Bell className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-lg font-medium">Nenhuma notificação</p>
-                  <p className="text-sm mt-1">Você está em dia! 🎉</p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {notifications.map((notification) => (
-                <Card 
-                  key={notification.id}
-                  className={`transition-colors cursor-pointer ${
-                    !notification.read 
-                      ? 'bg-primary/5 hover:bg-primary/10 border-primary/20' 
-                      : 'hover:bg-muted/50'
-                  } ${
-                    isActionableNotification(notification.type) 
-                      ? 'hover:shadow-md' 
-                      : ''
-                  }`}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-1">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h4 className={`text-sm font-semibold ${
-                            !notification.read ? 'text-foreground' : 'text-muted-foreground'
-                          }`}>
-                            {notification.title}
-                          </h4>
-                          
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {formatDate(notification.created_at)}
-                            </span>
-                            {!notification.read && (
-                              <div className="w-2 h-2 bg-primary rounded-full"></div>
-                            )}
+                Notificações
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchNotifications}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </DialogTitle>
+            <DialogDescription>
+              Fique por dentro de tudo que acontece
+            </DialogDescription>
+          </DialogHeader>
+
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid grid-cols-4 w-full">
+            <TabsTrigger value="all" className="text-xs">
+              Todas {unreadCount > 0 && `(${unreadCount})`}
+            </TabsTrigger>
+            <TabsTrigger value="proposals" className="text-xs">
+              <Package className="h-3 w-3 mr-1" />
+              Propostas
+            </TabsTrigger>
+            <TabsTrigger value="freights" className="text-xs">
+              <Truck className="h-3 w-3 mr-1" />
+              Fretes
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="text-xs">
+              <DollarSign className="h-3 w-3 mr-1" />
+              Pagamentos
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="mt-4">
+            <ScrollArea className="h-[450px] pr-4">
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={`notification-skeleton-${i}`}>
+                      <CardContent className="pt-6">
+                        <div className="flex gap-3">
+                          <Skeleton className="h-10 w-10 rounded-full" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-full" />
                           </div>
                         </div>
-                        
-                        <p className={`text-sm mt-1 ${
-                          !notification.read ? 'text-foreground' : 'text-muted-foreground'
-                        }`}>
-                          {notification.message}
-                        </p>
-                      </div>
-
-                      {isActionableNotification(notification.type) && (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
-                      )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : error ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center text-muted-foreground">
+                      <AlertTriangle className="h-10 w-10 mx-auto mb-2 text-destructive" />
+                      <p>{error}</p>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
+              ) : notifications.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center text-muted-foreground py-8">
+                      <Bell className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-lg font-medium">Nenhuma notificação</p>
+                      <p className="text-sm mt-1">Você está em dia! 🎉</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {notifications.map((notification) => (
+                    <Card 
+                      key={notification.id}
+                      className={`transition-colors cursor-pointer ${
+                        !notification.read 
+                          ? 'bg-primary/5 hover:bg-primary/10 border-primary/20' 
+                          : 'hover:bg-muted/50'
+                      } ${
+                        isActionableNotification(notification.type) 
+                          ? 'hover:shadow-md' 
+                          : ''
+                      }`}
+                      onClick={() => handleNotificationClick(notification)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-1">
+                            {getNotificationIcon(notification.type)}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <h4 className={`text-sm font-semibold ${
+                                !notification.read ? 'text-foreground' : 'text-muted-foreground'
+                              }`}>
+                                {notification.title}
+                              </h4>
+                              
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {formatDate(notification.created_at)}
+                                </span>
+                                {!notification.read && (
+                                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <p className={`text-sm mt-1 ${
+                              !notification.read ? 'text-foreground' : 'text-muted-foreground'
+                            }`}>
+                              {notification.message}
+                            </p>
+                          </div>
 
-        <div className="flex justify-end pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>
-            Fechar
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+                          {isActionableNotification(notification.type) && (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+
+          {/* Tabs filtradas por grupo */}
+          {['proposals', 'freights', 'payments'].map((group) => (
+            <TabsContent key={group} value={group} className="mt-4">
+              <ScrollArea className="h-[450px] pr-4">
+                {groupedNotifications[group as keyof typeof groupedNotifications].length === 0 ? (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-center text-muted-foreground py-8">
+                        <Filter className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                        <p className="text-sm">Nenhuma notificação deste tipo</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-2">
+                    {groupedNotifications[group as keyof typeof groupedNotifications].map((notification) => (
+                      <Card 
+                        key={notification.id}
+                        className={`transition-colors cursor-pointer ${
+                          !notification.read 
+                            ? 'bg-primary/5 hover:bg-primary/10 border-primary/20' 
+                            : 'hover:bg-muted/50'
+                        } ${
+                          isActionableNotification(notification.type) 
+                            ? 'hover:shadow-md' 
+                            : ''
+                        }`}
+                        onClick={() => handleNotificationClick(notification)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 mt-1">
+                              {getNotificationIcon(notification.type)}
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <h4 className={`text-sm font-semibold ${
+                                  !notification.read ? 'text-foreground' : 'text-muted-foreground'
+                                }`}>
+                                  {notification.title}
+                                </h4>
+                                
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                    {formatDate(notification.created_at)}
+                                  </span>
+                                  {!notification.read && (
+                                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <p className={`text-sm mt-1 ${
+                                !notification.read ? 'text-foreground' : 'text-muted-foreground'
+                              }`}>
+                                {notification.message}
+                              </p>
+                            </div>
+
+                            {isActionableNotification(notification.type) && (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+          ))}
+        </Tabs>
+
+          <div className="flex justify-end pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

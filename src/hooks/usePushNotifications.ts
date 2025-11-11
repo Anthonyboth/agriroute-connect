@@ -64,71 +64,114 @@ export const usePushNotifications = () => {
         return;
       }
 
-      // Verificar se service worker já está registrado
+      // Registrar service worker
       let registration = await navigator.serviceWorker.getRegistration();
       
       if (!registration) {
         try {
-          // Verificar se o arquivo existe antes de registrar
-          const swResponse = await fetch('/sw.js', { method: 'HEAD' });
-          if (!swResponse.ok) {
-            console.warn('Service worker file not found, creating basic registration');
-            // Criar um service worker inline básico se o arquivo não existir
-            const blob = new Blob([`
-              self.addEventListener('push', function(event) {
-                const options = {
-                  body: event.data ? event.data.text() : 'Nova notificação',
-                  icon: '/android-chrome-192x192.png',
-                  badge: '/favicon.png'
-                };
-                event.waitUntil(
-                  self.registration.showNotification('AgriRoute', options)
-                );
-              });
-            `], { type: 'application/javascript' });
-            const swUrl = URL.createObjectURL(blob);
-            registration = await navigator.serviceWorker.register(swUrl);
-          } else {
-            registration = await navigator.serviceWorker.register('/sw.js');
-          }
+          registration = await navigator.serviceWorker.register('/sw.js');
           await navigator.serviceWorker.ready;
-          console.log('Service worker registrado com sucesso');
+          console.log('[PushNotifications] Service worker registrado');
         } catch (error) {
-          console.error('Erro ao registrar service worker:', error);
+          console.error('[PushNotifications] Erro ao registrar SW:', error);
           toast.error('Erro ao configurar notificações');
           return;
         }
       }
 
-      // Salvar no banco como ativo (sem criar subscription real por enquanto)
-      // VAPID keys precisam ser configuradas para push notifications reais
+      // VAPID public key - deve estar configurada no Supabase
+      // Para gerar: https://vapidkeys.com/ ou web-push generate-vapid-keys
+      const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+      if (!VAPID_PUBLIC_KEY) {
+        console.warn('[PushNotifications] VAPID key não configurada, usando fallback');
+        // Fallback: salvar apenas flag de ativo sem subscription real
+        const { error } = await supabase
+          .from('push_subscriptions')
+          .upsert({
+            user_id: profile.id,
+            endpoint: 'browser-notification-enabled',
+            p256dh_key: 'pending-vapid-setup',
+            auth_key: 'pending-vapid-setup',
+            user_agent: navigator.userAgent,
+            is_active: true,
+            last_used_at: new Date().toISOString()
+          });
+
+        if (error) throw error;
+        
+        setIsSubscribed(true);
+        toast.success('Notificações ativadas! (Configure VAPID keys para push real)');
+        return;
+      }
+
+      // Criar subscription real com VAPID
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+
+      console.log('[PushNotifications] Subscription criada:', subscription.endpoint);
+
+      // Extrair keys da subscription
+      const p256dhKey = arrayBufferToBase64(subscription.getKey('p256dh'));
+      const authKey = arrayBufferToBase64(subscription.getKey('auth'));
+
+      // Salvar no banco
       const { error } = await supabase
         .from('push_subscriptions')
         .upsert({
           user_id: profile.id,
-          endpoint: 'browser-notification-enabled',
-          p256dh_key: 'pending-vapid-setup',
-          auth_key: 'pending-vapid-setup',
+          endpoint: subscription.endpoint,
+          p256dh_key: p256dhKey,
+          auth_key: authKey,
           user_agent: navigator.userAgent,
           is_active: true,
           last_used_at: new Date().toISOString()
         });
 
       if (error) {
-        console.error('Erro ao salvar configuração:', error);
+        console.error('[PushNotifications] Erro ao salvar:', error);
         throw error;
       }
 
       setIsSubscribed(true);
-      toast.success('Notificações ativadas com sucesso!');
+      toast.success('Notificações push ativadas com sucesso! 🔔');
       
-      console.log('Push notifications configuradas');
+      console.log('[PushNotifications] Configuração completa');
     } catch (error) {
-      console.error('Erro ao ativar notificações push:', error);
+      console.error('[PushNotifications] Erro:', error);
       toast.error('Erro ao ativar notificações push');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper: Converter VAPID key de base64 para Uint8Array
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+    
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  // Helper: Converter ArrayBuffer para base64
+  const arrayBufferToBase64 = (buffer: ArrayBuffer | null) => {
+    if (!buffer) return '';
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
   };
 
   const unsubscribe = async () => {

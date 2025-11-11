@@ -3652,6 +3652,35 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_reminders: {
+        Row: {
+          id: string
+          proposal_id: string
+          reminder_type: string
+          sent_at: string
+        }
+        Insert: {
+          id?: string
+          proposal_id: string
+          reminder_type: string
+          sent_at?: string
+        }
+        Update: {
+          id?: string
+          proposal_id?: string
+          reminder_type?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_reminders_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "freight_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prospect_users: {
         Row: {
           blacklist_reason: string | null
