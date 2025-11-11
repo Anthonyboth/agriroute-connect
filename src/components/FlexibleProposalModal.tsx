@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
+import { formatDate } from '@/lib/formatters';
 
 interface FreightData {
   id: string;
@@ -59,7 +60,9 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
 
   if (!freight) return null;
 
-  const originalDate = new Date(freight.scheduled_date);
+  // Usar scheduled_date ou pickup_date como fallback
+  const effectiveDate = freight.scheduled_date || freight.pickup_date || new Date().toISOString();
+  const originalDate = new Date(effectiveDate);
   const minDate = freight.date_range_start ? new Date(freight.date_range_start) : new Date();
   const maxDate = freight.date_range_end ? new Date(freight.date_range_end) : undefined;
 
@@ -245,8 +248,8 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
 
             {freight.flexible_dates && freight.date_range_start && freight.date_range_end && (
               <div className="text-xs text-muted-foreground">
-                Período flexível: {format(new Date(freight.date_range_start), 'dd/MM')} até{' '}
-                {format(new Date(freight.date_range_end), 'dd/MM')}
+                Período flexível: {formatDate(freight.date_range_start)} até{' '}
+                {formatDate(freight.date_range_end)}
               </div>
             )}
           </div>

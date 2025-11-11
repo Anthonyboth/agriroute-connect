@@ -5,15 +5,19 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, CalendarIcon, Clock, MapPin, Package, Plus, Search, Filter } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { getFreightStatusLabel, getFreightStatusVariant, getProposalStatusLabel } from '@/lib/freight-status';
+import { formatDateLong, formatDate } from '@/lib/formatters';
 import { ScheduledFreightModal } from './ScheduledFreightModal';
 import { EditFreightModal } from './EditFreightModal';
 import { ConfirmDialog } from './ConfirmDialog';
+
+// Helper para obter data efetiva (scheduled_date ou pickup_date como fallback)
+const getEffectiveDate = (freight: any): string | null => {
+  return freight.scheduled_date || freight.pickup_date || null;
+};
 
 // Helper para calcular dias até a coleta
 const getDaysUntilPickup = (pickupDate: string | null): number | null => {
@@ -260,13 +264,13 @@ export const ScheduledFreightsManager: React.FC = () => {
                   >
                     Todos ({filteredFreights.length})
                   </Button>
-                  <Button
+                    <Button
                     variant={urgencyFilter === 'today' ? 'destructive' : 'outline'}
                     size="sm"
                     onClick={() => setUrgencyFilter('today')}
                   >
                     🔴 Hoje ({filteredFreights.filter(f => {
-                      const days = getDaysUntilPickup(f.scheduled_date);
+                      const days = getDaysUntilPickup(getEffectiveDate(f));
                       return days === 0;
                     }).length})
                   </Button>
@@ -277,7 +281,7 @@ export const ScheduledFreightsManager: React.FC = () => {
                     className={urgencyFilter === 'tomorrow' ? 'bg-orange-600 hover:bg-orange-700' : ''}
                   >
                     ⚠️ Amanhã ({filteredFreights.filter(f => {
-                      const days = getDaysUntilPickup(f.scheduled_date);
+                      const days = getDaysUntilPickup(getEffectiveDate(f));
                       return days === 1;
                     }).length})
                   </Button>
@@ -287,7 +291,7 @@ export const ScheduledFreightsManager: React.FC = () => {
                     onClick={() => setUrgencyFilter('near')}
                   >
                     📅 2-3 dias ({filteredFreights.filter(f => {
-                      const days = getDaysUntilPickup(f.scheduled_date);
+                      const days = getDaysUntilPickup(getEffectiveDate(f));
                       return days !== null && days >= 2 && days <= 3;
                     }).length})
                   </Button>
@@ -304,7 +308,7 @@ export const ScheduledFreightsManager: React.FC = () => {
                   // Aplicar filtros de urgência
                   const urgencyFiltered = filteredFreights.filter(freight => {
                     if (urgencyFilter === 'all') return true;
-                    const days = getDaysUntilPickup(freight.scheduled_date);
+                    const days = getDaysUntilPickup(getEffectiveDate(freight));
                     if (days === null) return false;
                     if (urgencyFilter === 'today') return days === 0;
                     if (urgencyFilter === 'tomorrow') return days === 1;
@@ -314,8 +318,8 @@ export const ScheduledFreightsManager: React.FC = () => {
 
                   // Ordenar por urgência (mais urgente primeiro)
                   const sortedFreights = [...urgencyFiltered].sort((a, b) => {
-                    const daysA = getDaysUntilPickup(a.scheduled_date) ?? 999;
-                    const daysB = getDaysUntilPickup(b.scheduled_date) ?? 999;
+                    const daysA = getDaysUntilPickup(getEffectiveDate(a)) ?? 999;
+                    const daysB = getDaysUntilPickup(getEffectiveDate(b)) ?? 999;
                     return daysA - daysB;
                   });
 
@@ -353,7 +357,7 @@ export const ScheduledFreightsManager: React.FC = () => {
                           
                           <div className="flex items-center gap-2">
                             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                            <span>{format(new Date(freight.scheduled_date), 'PPP', { locale: ptBR })}</span>
+                            <span>{formatDateLong(getEffectiveDate(freight))}</span>
                             {freight.flexible_dates && (
                               <Badge variant="outline" className="text-xs">
                                 Aceita datas alternativas
@@ -363,8 +367,8 @@ export const ScheduledFreightsManager: React.FC = () => {
 
                           {freight.flexible_dates && freight.date_range_start && freight.date_range_end && (
                             <div className="text-xs text-muted-foreground pl-6">
-                              Período flexível: {format(new Date(freight.date_range_start), 'dd/MM')} a{' '}
-                              {format(new Date(freight.date_range_end), 'dd/MM')}
+                              Período flexível: {formatDate(freight.date_range_start)} a{' '}
+                              {formatDate(freight.date_range_end)}
                             </div>
                           )}
                         </div>

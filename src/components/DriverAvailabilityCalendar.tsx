@@ -13,6 +13,7 @@ import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { formatDateLong } from '@/lib/formatters';
 
 interface Availability {
   id: string;
@@ -315,7 +316,7 @@ export const DriverAvailabilityCalendar: React.FC = () => {
                               </div>
                               <div className="flex items-center gap-2">
                                 <CalendarIcon className="h-3 w-3" />
-                                <span>{format(new Date(freight.scheduled_date), 'PPP', { locale: ptBR })}</span>
+                                <span>{formatDateLong(freight.scheduled_date || freight.pickup_date)}</span>
                                 {freight.flexible_dates && <Badge variant="outline" className="text-xs">Datas flexíveis</Badge>}
                               </div>
                             </div>
