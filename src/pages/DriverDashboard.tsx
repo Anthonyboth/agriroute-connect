@@ -1983,16 +1983,16 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 <Play className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Em Andamento</span>
-                <span className="sm:hidden">Ativo</span>
+                <span className="hidden sm:inline" translate="no">Em Andamento</span>
+                <span className="sm:hidden" translate="no">Em Andamento</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="scheduled" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 <Clock className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Agendados</span>
-                <span className="sm:hidden">Agenda</span>
+                <span className="hidden sm:inline" translate="no">Agendados</span>
+                <span className="sm:hidden" translate="no">Agendados</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="calendar" 
@@ -2017,8 +2017,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                   className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 >
                   <CheckCircle className="h-3 w-3 mr-1" />
-                  <span className="hidden sm:inline">Propostas</span>
-                  <span className="sm:hidden">Propos</span>
+                  <span className="hidden sm:inline" translate="no">Propostas</span>
+                  <span className="sm:hidden" translate="no">Propostas</span>
                 </TabsTrigger>
               )}
               <TabsTrigger 
@@ -2026,16 +2026,16 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 <Settings className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Serviços</span>
-                <span className="sm:hidden">Serv</span>
+                <span className="hidden sm:inline" translate="no">Serviços</span>
+                <span className="sm:hidden" translate="no">Serviços</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="vehicles" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 <Truck className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Meus Veículos</span>
-                <span className="sm:hidden">Veíc</span>
+                <span className="hidden sm:inline" translate="no">Meus Veículos</span>
+                <span className="sm:hidden" translate="no">Veículos</span>
               </TabsTrigger>
               {/* Tabs de pagamentos e saldo - apenas para motoristas não afiliados */}
               {!isCompanyDriver && !isAffiliated && (
@@ -2045,16 +2045,16 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                     className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                   >
                     <DollarSign className="h-3 w-3 mr-1" />
-                    <span className="hidden sm:inline">Pagamentos</span>
-                    <span className="sm:hidden">Pag</span>
+                    <span className="hidden sm:inline" translate="no">Pagamentos</span>
+                    <span className="sm:hidden" translate="no">Pagamentos</span>
                   </TabsTrigger>
                   <TabsTrigger 
                     value="advances" 
                     className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                   >
                     <Banknote className="h-3 w-3 mr-1" />
-                    <span className="hidden sm:inline">Saldo</span>
-                    <span className="sm:hidden">Saldo</span>
+                    <span className="hidden sm:inline" translate="no">Saldo</span>
+                    <span className="sm:hidden" translate="no">Saldo</span>
                   </TabsTrigger>
                 </>
               )}
@@ -2063,16 +2063,16 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 <Star className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Avaliações</span>
-                <span className="sm:hidden">Aval</span>
+                <span className="hidden sm:inline" translate="no">Avaliações</span>
+                <span className="sm:hidden" translate="no">Avaliações</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="chat" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 <MessageSquare className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Chat</span>
-                <span className="sm:hidden">Chat</span>
+                <span className="hidden sm:inline" translate="no">Chat</span>
+                <span className="sm:hidden" translate="no">Chat</span>
                 {chatUnreadCount > 0 && (
                   <Badge variant="destructive" className="ml-1 h-4 px-1 text-xs">
                     {chatUnreadCount}
@@ -2084,8 +2084,8 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Histórico</span>
-                <span className="sm:hidden">Hist</span>
+                <span className="hidden sm:inline" translate="no">Histórico</span>
+                <span className="sm:hidden" translate="no">Histórico</span>
               </TabsTrigger>
             </TabsList>
           </div>
