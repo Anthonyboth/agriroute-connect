@@ -104,6 +104,10 @@ export const useProposalChat = (proposalId: string, currentUserId: string) => {
 
       if (error) throw error;
 
+      // Enviar push notification
+      const { sendProposalChatPush } = await import('@/utils/pushNotificationService');
+      await sendProposalChatPush(proposalId, currentUserId, content.trim(), 'text');
+
       toast({
         title: "Mensagem enviada",
         variant: "default",
@@ -166,6 +170,10 @@ export const useProposalChat = (proposalId: string, currentUserId: string) => {
 
       if (insertError) throw insertError;
 
+      // Enviar push notification
+      const { sendProposalChatPush } = await import('@/utils/pushNotificationService');
+      await sendProposalChatPush(proposalId, currentUserId, 'Imagem', 'image');
+
       toast({
         title: "Imagem enviada",
         variant: "default",
@@ -220,6 +228,10 @@ export const useProposalChat = (proposalId: string, currentUserId: string) => {
         });
 
       if (insertError) throw insertError;
+
+      // Enviar push notification
+      const { sendProposalChatPush } = await import('@/utils/pushNotificationService');
+      await sendProposalChatPush(proposalId, currentUserId, file.name, 'file');
 
       toast({
         title: "Arquivo enviado",

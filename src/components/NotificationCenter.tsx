@@ -221,6 +221,32 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           });
         }
         break;
+      
+      case 'proposal_chat_message':
+        if (data?.proposal_id) {
+          onClose();
+          const dashboardRoute = getDashboardRoute(profile?.role);
+          navigate(dashboardRoute, { 
+            state: { 
+              openProposal: data.proposal_id,
+              openProposalChat: true
+            } 
+          });
+        }
+        break;
+      
+      case 'company_new_proposal':
+      case 'company_freight_status_change':
+      case 'company_driver_assignment':
+      case 'company_delivery_confirmation':
+        onClose();
+        navigate('/dashboard/company', {
+          state: {
+            openFreightId: data?.freight_id,
+            notificationType: type
+          }
+        });
+        break;
         
       case 'service_rating_pending':
         if (data?.service_request_id && data?.rated_user_id) {
@@ -298,7 +324,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       'chat_message',
       'service_chat_message',
       'payment_completed',
-      'payment_confirmation'
+      'payment_confirmation',
+      'proposal_chat_message',
+      'company_new_proposal',
+      'company_freight_status_change',
+      'company_driver_assignment',
+      'company_delivery_confirmation'
     ];
     return actionableTypes.includes(type);
   };
@@ -311,11 +342,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       case 'freight_accepted':
       case 'freight_in_transit':
       case 'freight_created':
+      case 'company_freight_status_change':
         return <Truck className="h-5 w-5 text-blue-500" />;
       case 'proposal_received':
+      case 'company_new_proposal':
         return <Package className="h-5 w-5 text-purple-500" />;
       case 'chat_message':
       case 'service_chat_message':
+      case 'proposal_chat_message':
         return <MessageSquare className="h-5 w-5 text-green-500" />;
       case 'payment_completed':
       case 'payment_confirmation':
@@ -325,7 +359,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         return <CreditCard className="h-5 w-5 text-indigo-500" />;
       case 'delivery_confirmation_required':
       case 'checkin_confirmation_required':
+      case 'company_delivery_confirmation':
         return <CheckCheck className="h-5 w-5 text-orange-500" />;
+      case 'company_driver_assignment':
+        return <Truck className="h-5 w-5 text-indigo-500" />;
       case 'warning':
         return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
       case 'success':
