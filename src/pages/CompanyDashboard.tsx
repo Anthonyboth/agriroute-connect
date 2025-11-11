@@ -32,6 +32,7 @@ import { CompanySmartFreightMatcher } from '@/components/CompanySmartFreightMatc
 import { CompanyDriverManager } from '@/components/CompanyDriverManager';
 import { CompanyDashboard as CompanyDashboardComponent } from '@/components/CompanyDashboard';
 import { CompanyAnalyticsDashboard } from '@/components/CompanyAnalyticsDashboard';
+import { CompanyDriverPerformanceDashboard } from '@/components/dashboards/CompanyDriverPerformanceDashboard';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -67,6 +68,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
   },
   { value: 'marketplace', label: FRETES_IA_LABEL, shortLabel: AI_ABBR, icon: Brain, badge: undefined },
   { value: 'drivers', label: 'Motoristas', shortLabel: 'Mot', icon: Users, badge: undefined },
+  { value: 'performance', label: 'Performance', shortLabel: 'Perf', icon: TrendingUp, badge: undefined },
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck, badge: undefined },
   { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínc', icon: Link2, badge: undefined },
   { value: 'freights', label: 'Fretes', shortLabel: 'Fretes', icon: Package, badge: undefined },
@@ -584,6 +586,10 @@ const CompanyDashboard = () => {
 
           <TabsContent value="drivers" className="mt-6">
             <CompanyDriverManager />
+          </TabsContent>
+
+          <TabsContent value="performance" className="mt-6">
+            <CompanyDriverPerformanceDashboard companyId={company.id} />
           </TabsContent>
 
           <TabsContent value="fleet" className="mt-6">
