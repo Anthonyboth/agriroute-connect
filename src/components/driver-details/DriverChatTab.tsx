@@ -6,28 +6,39 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, Clock, MessageCircle } from 'lucide-react';
+import { Send, Clock, MessageCircle, Image as ImageIcon, Paperclip, Download, FileText } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useChatAttachments } from '@/hooks/useChatAttachments';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface DriverChatTabProps {
   companyId: string;
   driverProfileId: string;
   chatEnabledAt?: string | null;
+  currentUserId?: string;
 }
 
 export const DriverChatTab = ({ 
   companyId, 
   driverProfileId, 
-  chatEnabledAt 
+  chatEnabledAt,
+  currentUserId
 }: DriverChatTabProps) => {
   const [newMessage, setNewMessage] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { messages, isLoading, sendMessage, markAsRead } = useDriverChat(
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { messages, isLoading, sendMessage, markAsRead, unreadCount } = useDriverChat(
     companyId,
     driverProfileId
   );
+  
+  // Hook para upload de anexos
+  const { uploadImage: uploadImageAttachment, uploadFile: uploadFileAttachment, isUploading } = useChatAttachments(currentUserId || driverProfileId);
 
   // Auto-scroll para última mensagem
   useEffect(() => {
@@ -52,6 +63,71 @@ export const DriverChatTab = ({
     
     await sendMessage.mutateAsync(newMessage);
     setNewMessage('');
+  };
+  
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUserId) return;
+
+    const imageUrl = await uploadImageAttachment(file);
+    if (!imageUrl) return;
+
+    try {
+      const { error } = await supabase
+        .from('company_driver_chats')
+        .insert({
+          company_id: companyId,
+          driver_profile_id: driverProfileId,
+          sender_type: 'COMPANY',
+          message: 'Imagem enviada',
+          image_url: imageUrl,
+        });
+
+      if (error) throw error;
+      toast.success('Imagem enviada!');
+    } catch (error: any) {
+      console.error('Error sending image:', error);
+      toast.error('Erro ao enviar imagem');
+    }
+    
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUserId) return;
+
+    const fileData = await uploadFileAttachment(file);
+    if (!fileData) return;
+
+    try {
+      const { error } = await supabase
+        .from('company_driver_chats')
+        .insert({
+          company_id: companyId,
+          driver_profile_id: driverProfileId,
+          sender_type: 'COMPANY',
+          message: `Arquivo enviado: ${fileData.name}`,
+          file_url: fileData.url,
+          file_name: fileData.name,
+          file_size: fileData.size,
+        });
+
+      if (error) throw error;
+      toast.success('Arquivo enviado!');
+    } catch (error: any) {
+      console.error('Error sending file:', error);
+      toast.error('Erro ao enviar arquivo');
+    }
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+  
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(1)} KB`;
+    return `${(kb / 1024).toFixed(1)} MB`;
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -117,7 +193,36 @@ export const DriverChatTab = ({
                         : 'bg-muted'
                     )}
                   >
-                    <p className="text-sm whitespace-pre-wrap break-words">{msg.message}</p>
+                    {(msg as any).image_url && (
+                      <img 
+                        src={(msg as any).image_url} 
+                        alt="Imagem enviada" 
+                        className="rounded max-w-full h-auto mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                        style={{ maxHeight: '300px' }}
+                        onClick={() => window.open((msg as any).image_url, '_blank')}
+                      />
+                    )}
+                    
+                    {(msg as any).file_url && (
+                      <a
+                        href={(msg as any).file_url}
+                        download={(msg as any).file_name}
+                        className="flex items-center gap-2 p-2 bg-background/10 rounded hover:bg-background/20 transition-colors mb-2"
+                      >
+                        <FileText className="h-5 w-5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate" translate="no">
+                            {(msg as any).file_name}
+                          </p>
+                          <p className="text-xs opacity-70">
+                            {formatFileSize((msg as any).file_size)}
+                          </p>
+                        </div>
+                        <Download className="h-4 w-4 flex-shrink-0" />
+                      </a>
+                    )}
+                    
+                    <p className="text-sm whitespace-pre-wrap break-words" translate="no">{msg.message}</p>
                     <span className="text-xs opacity-70 mt-1 block">
                       {formatDistanceToNow(new Date(msg.created_at), {
                         addSuffix: true,
@@ -133,16 +238,54 @@ export const DriverChatTab = ({
 
         {/* Input de nova mensagem */}
         <div className="p-4 border-t flex gap-2">
+          <input
+            type="file"
+            ref={imageInputRef}
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => imageInputRef.current?.click()}
+            disabled={sendMessage.isPending || isUploading}
+            title="Enviar imagem"
+          >
+            <ImageIcon className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={sendMessage.isPending || isUploading}
+            title="Enviar arquivo"
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
+          
           <Input
             placeholder="Digite sua mensagem..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={sendMessage.isPending}
+            disabled={sendMessage.isPending || isUploading}
+            translate="no"
           />
           <Button
             onClick={handleSendMessage}
-            disabled={!newMessage.trim() || sendMessage.isPending}
+            disabled={!newMessage.trim() || sendMessage.isPending || isUploading}
             size="icon"
           >
             <Send className="h-4 w-4" />

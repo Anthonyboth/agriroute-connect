@@ -92,6 +92,7 @@ export const ChatModal = ({
           <DriverChatTab
             companyId={conversation.metadata.companyId}
             driverProfileId={conversation.metadata.driverProfileId}
+            currentUserId={userProfileId}
           />
         );
 

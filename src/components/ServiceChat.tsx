@@ -5,21 +5,25 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Image as ImageIcon, MessageSquare, User, Wrench } from 'lucide-react';
+import { Send, Image as ImageIcon, MessageSquare, User, Wrench, Paperclip, Download, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { queryWithTimeout, subscriptionWithErrorHandler } from '@/lib/query-utils';
+import { useChatAttachments } from '@/hooks/useChatAttachments';
 
 interface Message {
   id: string;
   service_request_id: string;
   sender_id: string;
   message: string;
-  message_type: 'TEXT' | 'IMAGE';
+  message_type: 'TEXT' | 'IMAGE' | 'FILE';
   image_url?: string;
+  file_url?: string;
+  file_name?: string;
+  file_size?: number;
   created_at: string;
   sender?: {
     id: string;
@@ -41,9 +45,12 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Hook para upload de anexos
+  const { uploadImage: uploadImageAttachment, uploadFile: uploadFileAttachment, isUploading } = useChatAttachments(currentUserProfile?.id);
   
   const { 
     unreadServiceMessages, 
@@ -110,52 +117,74 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
   };
 
   // Upload de imagem
-  const uploadImage = async (file: File) => {
-    if (!currentUserProfile?.id) return;
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUserProfile?.id) return;
 
-    setUploading(true);
+    const imageUrl = await uploadImageAttachment(file);
+    if (!imageUrl) return;
+
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${currentUserProfile.id}-${Date.now()}.${fileExt}`;
-      const filePath = `service-chat/${serviceRequestId}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('service-chat-images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('service-chat-images')
-        .getPublicUrl(filePath);
-
-      const { error: messageError } = await supabase
+      const { error } = await supabase
         .from('service_messages')
         .insert({
           service_request_id: serviceRequestId,
           sender_id: currentUserProfile.id,
           message: 'Imagem enviada',
           message_type: 'IMAGE',
-          image_url: publicUrl
+          image_url: imageUrl
         });
 
-      if (messageError) throw messageError;
+      if (error) throw error;
 
       await fetchMessages();
       toast.success('Imagem enviada com sucesso!');
     } catch (error) {
       console.error('Erro ao enviar imagem:', error);
       toast.error('Erro ao enviar imagem');
-    } finally {
-      setUploading(false);
     }
+    
+    if (imageInputRef.current) imageInputRef.current.value = '';
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload de arquivo
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      uploadImage(file);
+    if (!file || !currentUserProfile?.id) return;
+
+    const fileData = await uploadFileAttachment(file);
+    if (!fileData) return;
+
+    try {
+      const { error } = await supabase
+        .from('service_messages')
+        .insert({
+          service_request_id: serviceRequestId,
+          sender_id: currentUserProfile.id,
+          message: `Arquivo enviado: ${fileData.name}`,
+          message_type: 'FILE',
+          file_url: fileData.url,
+          file_name: fileData.name,
+          file_size: fileData.size,
+        });
+
+      if (error) throw error;
+
+      await fetchMessages();
+      toast.success('Arquivo enviado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao enviar arquivo:', error);
+      toast.error('Erro ao enviar arquivo');
     }
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+  
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(1)} KB`;
+    return `${(kb / 1024).toFixed(1)} MB`;
   };
 
   useEffect(() => {
@@ -277,12 +306,31 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
                           <img 
                             src={msg.image_url} 
                             alt="Imagem enviada" 
-                            className="rounded max-w-full h-auto"
+                            className="rounded max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                            style={{ maxHeight: '300px' }}
+                            onClick={() => window.open(msg.image_url, '_blank')}
                           />
                           <p className="text-sm">{msg.message}</p>
                         </div>
+                      ) : msg.message_type === 'FILE' && msg.file_url ? (
+                        <a
+                          href={msg.file_url}
+                          download={msg.file_name}
+                          className="flex items-center gap-2 p-2 bg-background/10 rounded hover:bg-background/20 transition-colors"
+                        >
+                          <FileText className="h-5 w-5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate" translate="no">
+                              {msg.file_name}
+                            </p>
+                            <p className="text-xs opacity-70">
+                              {formatFileSize(msg.file_size)}
+                            </p>
+                          </div>
+                          <Download className="h-4 w-4 flex-shrink-0" />
+                        </a>
                       ) : (
-                        <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                        <p className="text-sm whitespace-pre-wrap" translate="no">{msg.message}</p>
                       )}
                       
                       <p className={`text-xs mt-1 ${isCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
@@ -299,10 +347,17 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
         {/* Input de mensagem */}
         <div className="flex gap-2">
           <input
-            ref={fileInputRef}
             type="file"
+            ref={imageInputRef}
             accept="image/*"
-            onChange={handleFileChange}
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+            onChange={handleFileSelect}
             className="hidden"
           />
           
@@ -310,10 +365,22 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
             type="button"
             variant="outline"
             size="icon"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
+            onClick={() => imageInputRef.current?.click()}
+            disabled={loading || isUploading}
+            title="Enviar imagem"
           >
             <ImageIcon className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading || isUploading}
+            title="Enviar arquivo"
+          >
+            <Paperclip className="h-4 w-4" />
           </Button>
 
           <Input
@@ -321,12 +388,13 @@ export const ServiceChat: React.FC<ServiceChatProps> = ({
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
             placeholder="Digite sua mensagem..."
-            disabled={loading || uploading}
+            disabled={loading || isUploading}
+            translate="no"
           />
 
           <Button
             onClick={sendMessage}
-            disabled={loading || uploading || !newMessage.trim()}
+            disabled={loading || isUploading || !newMessage.trim()}
           >
             <Send className="h-4 w-4" />
           </Button>

@@ -2188,6 +2188,9 @@ export type Database = {
         Row: {
           chat_closed_by: Json | null
           created_at: string
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
           freight_id: string
           id: string
           image_url: string | null
@@ -2206,6 +2209,9 @@ export type Database = {
         Insert: {
           chat_closed_by?: Json | null
           created_at?: string
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
           freight_id: string
           id?: string
           image_url?: string | null
@@ -2224,6 +2230,9 @@ export type Database = {
         Update: {
           chat_closed_by?: Json | null
           created_at?: string
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
           freight_id?: string
           id?: string
           image_url?: string | null
@@ -4233,6 +4242,9 @@ export type Database = {
         Row: {
           chat_closed_by: Json | null
           created_at: string
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
           id: string
           image_url: string | null
           message: string
@@ -4244,6 +4256,9 @@ export type Database = {
         Insert: {
           chat_closed_by?: Json | null
           created_at?: string
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
           id?: string
           image_url?: string | null
           message: string
@@ -4255,6 +4270,9 @@ export type Database = {
         Update: {
           chat_closed_by?: Json | null
           created_at?: string
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
           id?: string
           image_url?: string | null
           message?: string

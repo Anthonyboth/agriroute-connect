@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Image, MessageCircle, User, Truck, MapPin, Navigation, Check, Package, DollarSign } from 'lucide-react';
+import { Send, Image, MessageCircle, User, Truck, MapPin, Navigation, Check, Package, DollarSign, Paperclip, Download, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -14,6 +14,7 @@ import { useLocationPermission } from '@/hooks/useLocationPermission';
 import { queryWithTimeout, subscriptionWithErrorHandler } from '@/lib/query-utils';
 import { CompanyFreightAcceptModal } from './CompanyFreightAcceptModal';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { useChatAttachments } from '@/hooks/useChatAttachments';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,9 @@ interface Message {
   sender_id: string;
   message_type: string;
   image_url?: string;
+  file_url?: string;
+  file_name?: string;
+  file_size?: number;
   location_lat?: number;
   location_lng?: number;
   location_address?: string;
@@ -64,7 +68,11 @@ export const FreightChat: React.FC<FreightChatProps> = ({
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [selectedSharedFreight, setSelectedSharedFreight] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Hook para upload de anexos
+  const { uploadImage: uploadImageAttachment, uploadFile: uploadFileAttachment, isUploading } = useChatAttachments(currentUserProfile?.id);
   
   const { 
     unreadFreightMessages, 
@@ -152,23 +160,14 @@ export const FreightChat: React.FC<FreightChatProps> = ({
     }
   };
 
-  const uploadImage = async (file: File) => {
-    if (!currentUserProfile) return;
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentUserProfile) return;
 
-    setUploading(true);
+    const imageUrl = await uploadImageAttachment(file);
+    if (!imageUrl) return;
+
     try {
-      const fileName = `${currentUserProfile.user_id}/${Date.now()}_${file.name}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('freight-attachments')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('freight-attachments')
-        .getPublicUrl(fileName);
-
       const { error } = await supabase
         .from('freight_messages')
         .insert({
@@ -176,7 +175,7 @@ export const FreightChat: React.FC<FreightChatProps> = ({
           sender_id: currentUserProfile.id,
           message: 'Imagem enviada',
           message_type: 'IMAGE',
-          image_url: publicUrl
+          image_url: imageUrl,
         });
 
       if (error) throw error;
@@ -187,30 +186,67 @@ export const FreightChat: React.FC<FreightChatProps> = ({
         description: "A imagem foi enviada com sucesso.",
       });
     } catch (error: any) {
-      console.error('Error sending image:', error);
+      console.error('Error sending image message:', error);
       toast({
         title: "Erro ao enviar imagem",
-        description: "Não foi possível enviar a imagem. Verifique o tamanho do arquivo e tente novamente.",
+        description: error.message || "Não foi possível enviar a imagem.",
         variant: "destructive",
       });
-    } finally {
-      setUploading(false);
+    }
+    
+    // Limpar input
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.type.startsWith('image/')) {
-        uploadImage(file);
-      } else {
-        toast({
-          title: "Arquivo não suportado",
-          description: "Por favor, selecione uma imagem.",
-          variant: "destructive",
+    if (!file || !currentUserProfile) return;
+
+    const fileData = await uploadFileAttachment(file);
+    if (!fileData) return;
+
+    try {
+      const { error } = await supabase
+        .from('freight_messages')
+        .insert({
+          freight_id: freightId,
+          sender_id: currentUserProfile.id,
+          message: `Arquivo enviado: ${fileData.name}`,
+          message_type: 'FILE',
+          file_url: fileData.url,
+          file_name: fileData.name,
+          file_size: fileData.size,
         });
-      }
+
+      if (error) throw error;
+
+      fetchMessages();
+      toast({
+        title: "Arquivo enviado",
+        description: "O arquivo foi enviado com sucesso.",
+      });
+    } catch (error: any) {
+      console.error('Error sending file message:', error);
+      toast({
+        title: "Erro ao enviar arquivo",
+        description: error.message || "Não foi possível enviar o arquivo.",
+        variant: "destructive",
+      });
     }
+    
+    // Limpar input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(1)} KB`;
+    return `${(kb / 1024).toFixed(1)} MB`;
   };
 
   const requestDriverLocation = async () => {
@@ -427,9 +463,29 @@ export const FreightChat: React.FC<FreightChatProps> = ({
                             <img 
                               src={message.image_url} 
                               alt="Imagem compartilhada"
-                              className="max-w-full h-auto rounded mb-2"
-                              style={{ maxHeight: '200px' }}
+                              className="max-w-full h-auto rounded mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                              style={{ maxHeight: '300px' }}
+                              onClick={() => window.open(message.image_url, '_blank')}
                             />
+                          )}
+                          
+                          {message.message_type === 'FILE' && message.file_url && (
+                            <a
+                              href={message.file_url}
+                              download={message.file_name}
+                              className="flex items-center gap-2 p-2 bg-background/10 rounded hover:bg-background/20 transition-colors"
+                            >
+                              <FileText className="h-5 w-5 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate" translate="no">
+                                  {message.file_name}
+                                </p>
+                                <p className="text-xs opacity-70">
+                                  {formatFileSize(message.file_size)}
+                                </p>
+                              </div>
+                              <Download className="h-4 w-4 flex-shrink-0" />
+                            </a>
                           )}
                           
                           {message.message_type === 'TEXT' && (
@@ -614,15 +670,27 @@ export const FreightChat: React.FC<FreightChatProps> = ({
 
           <div className="border-t p-4">
             <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                <Image className="h-4 w-4" />
-              </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={uploading || isUploading}
+              title="Enviar imagem"
+            >
+              <Image className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || isUploading}
+              title="Enviar arquivo"
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
               
               <Input
                 value={newMessage}
@@ -646,10 +714,17 @@ export const FreightChat: React.FC<FreightChatProps> = ({
             </div>
             
             <input
-              ref={fileInputRef}
               type="file"
+              ref={imageInputRef}
               accept="image/*"
-              onChange={handleFileChange}
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+              onChange={handleFileSelect}
               className="hidden"
             />
           </div>
