@@ -3652,6 +3652,56 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_chat_messages: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
+          id: string
+          image_url: string | null
+          message_type: string
+          proposal_id: string
+          read_at: string | null
+          sender_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          image_url?: string | null
+          message_type: string
+          proposal_id: string
+          read_at?: string | null
+          sender_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          image_url?: string | null
+          message_type?: string
+          proposal_id?: string
+          read_at?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_chat_messages_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "freight_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_reminders: {
         Row: {
           id: string

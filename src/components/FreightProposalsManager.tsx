@@ -18,6 +18,7 @@ import { ptBR } from 'date-fns/locale';
 import { showErrorToast } from '@/lib/error-handler';
 import { ProposalCounterModal } from '@/components/ProposalCounterModal';
 import { formatBRL } from '@/lib/formatters';
+import { ProposalChatPanel } from '@/components/proposal/ProposalChatPanel';
 
 interface Proposal {
   id: string;
@@ -907,6 +908,20 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
                   </div>
                 </>
               )}
+
+              {/* Chat de Negociação */}
+              <Separator />
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                  <MessageSquare className="h-4 w-4" />
+                  Chat de Negociação
+                </div>
+                <ProposalChatPanel
+                  proposalId={detailsDialog.proposal.id}
+                  currentUserId={producerId}
+                  currentUserName="Você"
+                />
+              </div>
             </div>
           )}
 

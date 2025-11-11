@@ -9,10 +9,12 @@ import { formatBRL, formatKm, formatDate } from '@/lib/formatters';
 import { UI_TEXTS } from '@/lib/ui-texts';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ProposalChatPanel } from '@/components/proposal/ProposalChatPanel';
 
 interface ProposalForModal {
   id: string;
   freight_id: string;
+  driver_id: string;
   proposed_price: number;
   status: string;
   created_at: string;
@@ -320,6 +322,20 @@ export const DriverProposalDetailsModal: React.FC<DriverProposalDetailsModalProp
                proposal.status === 'PENDING' ? '⏳ Pendente' :
                proposal.status === 'REJECTED' ? '❌ Rejeitada' : proposal.status}
             </Badge>
+          </div>
+
+          {/* CHAT DE NEGOCIAÇÃO */}
+          <Separator />
+          <div>
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+              <MessageSquare className="h-4 w-4" />
+              Chat de Negociação
+            </div>
+            <ProposalChatPanel
+              proposalId={proposal.id}
+              currentUserId={proposal.driver_id}
+              currentUserName="Você"
+            />
           </div>
         </div>
 
