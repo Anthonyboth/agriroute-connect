@@ -58,6 +58,8 @@ import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager'
 import { CompanyProposalsManager } from '@/components/CompanyProposalsManager';
 import { UserCityManager } from '@/components/UserCityManager';
 import { CompanyHistory } from '@/components/CompanyHistory';
+import { UnifiedChatHub } from '@/components/UnifiedChatHub';
+import { CompanyVehicleAssignments } from '@/components/CompanyVehicleAssignments';
 
 const heroLogistics = heroTruckNight;
 
@@ -87,9 +89,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
   { value: 'proposals', label: 'Propostas', shortLabel: 'Prop', icon: FileText, badge: undefined },
   { value: 'services', label: 'Serviços', shortLabel: 'Serv', icon: Wrench, badge: undefined },
   { value: 'payments', label: 'Pagamentos', shortLabel: 'Pag', icon: DollarSign, badge: undefined },
-  { value: 'areas-ai', label: AREAS_IA_LABEL, shortLabel: 'Áreas', icon: Target, badge: undefined },
   { value: 'cities', label: 'Cidades', shortLabel: 'Cid', icon: MapPin, badge: undefined },
-  { value: 'balance', label: 'Saldo', shortLabel: '$', icon: Banknote, badge: undefined },
   { value: 'ratings', label: 'Avaliações', shortLabel: 'Aval', icon: Star, badge: undefined },
   { value: 'history', label: 'Histórico', shortLabel: 'Hist', icon: Clock, badge: undefined },
   { 
@@ -688,7 +688,7 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="assignments" className="mt-6">
-            <CompanyDriverManager />
+            {company?.id && <CompanyVehicleAssignments companyId={company.id} />}
           </TabsContent>
 
           <TabsContent value="freights" className="mt-6">
@@ -735,40 +735,8 @@ const CompanyDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="areas-ai" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>{AREAS_IA_LABEL}</CardTitle>
-                <CardDescription>
-                  Configure as áreas de atuação inteligentes
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground py-8">
-                  Em desenvolvimento - Gestão de áreas I.A para matching de fretes
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="cities" className="mt-6">
             <UserCityManager userRole="TRANSPORTADORA" onCitiesUpdate={() => {}} />
-          </TabsContent>
-
-          <TabsContent value="balance" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Saldo</CardTitle>
-                <CardDescription>
-                  Acompanhe o saldo e movimentações financeiras
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground py-8">
-                  Em desenvolvimento - Dashboard financeiro com saldo e movimentações
-                </p>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="ratings" className="mt-6">
@@ -780,19 +748,7 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="chat" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Chat Interno</CardTitle>
-                <CardDescription>
-                  Comunique-se com motoristas e equipe
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground py-8">
-                  Em desenvolvimento - Sistema de chat interno da transportadora
-                </p>
-              </CardContent>
-            </Card>
+            <UnifiedChatHub userProfileId={profile.id} userRole="TRANSPORTADORA" />
           </TabsContent>
           
           {/* Aba de Relatórios Analytics */}
