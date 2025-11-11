@@ -492,8 +492,25 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             })
         );
 
+        // ✅ FILTRO MAIS PERMISSIVO: Matching em 3 níveis
+        // Nível 1: Match exato cidade|estado
+        // Nível 2: Match por ESTADO (origem OU destino no mesmo estado)
+        // Nível 3: Match por CIDADE (nome de cidade, ignorando estado)
+        
         console.log(`🗺️ Cidades ativas do motorista:`, Array.from(allowedCities));
+        
+        // Extrair estados das cidades ativas
+        const allowedStates = new Set(
+          Array.from(allowedCities)
+            .map(key => key.split('|')[1])
+            .filter(Boolean)
+        );
+        console.log(`🗺️ Estados ativos do motorista:`, Array.from(allowedStates));
 
+        let exactMatches = 0;
+        let stateMatches = 0;
+        let fallbackMatches = 0;
+        
         filteredByType = filteredByType.filter((f: any) => {
           let oKey = normalizeCityState(f.origin_city || '', f.origin_state || '');
           let dKey = normalizeCityState(f.destination_city || '', f.destination_state || '');
@@ -515,11 +532,25 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
             }
           }
 
-          // Tentar match exato primeiro
+          // ✅ NÍVEL 1: Match exato cidade|estado
           let included = allowedCities.has(oKey) || allowedCities.has(dKey);
-          let matchType: 'exact' | 'fallback' | 'none' = included ? 'exact' : 'none';
+          let matchType: 'exact' | 'state' | 'fallback' | 'none' = included ? 'exact' : 'none';
 
-          // Fallback: tentar match apenas por cidade (sem estado)
+          // ✅ NÍVEL 2: Match por ESTADO (muito mais permissivo)
+          if (!included) {
+            const originState = oKey.split('|')[1];
+            const destState = dKey.split('|')[1];
+            
+            const stateMatch = allowedStates.has(originState) || allowedStates.has(destState);
+            
+            if (stateMatch) {
+              console.log(`✅ Frete ${f.freight_id} incluído via ESTADO (origem=${originState}, destino=${destState})`);
+              included = true;
+              matchType = 'state';
+            }
+          }
+
+          // ✅ NÍVEL 3: Fallback por cidade (sem estado)
           if (!included) {
             const allowedCityNames = new Set(
               Array.from(allowedCities).map(key => key.split('|')[0])
@@ -532,7 +563,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                                   allowedCityNames.has(destCityOnly);
             
             if (fallbackMatch) {
-              console.log(`✅ Frete ${f.freight_id} incluído via fallback (cidade sem estado)`);
+              console.log(`✅ Frete ${f.freight_id} incluído via CIDADE (sem estado)`);
               included = true;
               matchType = 'fallback';
             }
@@ -540,11 +571,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           
           // Atualizar estatísticas
           if (matchType === 'exact') {
-            setMatchingStats(prev => ({ ...prev, exactMatches: prev.exactMatches + 1 }));
+            exactMatches++;
+          } else if (matchType === 'state') {
+            stateMatches++;
           } else if (matchType === 'fallback') {
-            setMatchingStats(prev => ({ ...prev, fallbackMatches: prev.fallbackMatches + 1 }));
+            fallbackMatches++;
           }
-          setMatchingStats(prev => ({ ...prev, totalChecked: prev.totalChecked + 1 }));
           
           if (!included) {
             console.log(`🚫 Frete ${f.freight_id} descartado: origem=${oKey}, destino=${dKey}`);
@@ -552,6 +584,15 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
           
           return included;
         });
+
+        // Atualizar estatísticas de uma vez
+        setMatchingStats({
+          exactMatches,
+          fallbackMatches: stateMatches + fallbackMatches,
+          totalChecked: filteredByType.length + exactMatches + stateMatches + fallbackMatches
+        });
+        
+        console.log(`📊 Matching: ${exactMatches} exato(s), ${stateMatches} estado(s), ${fallbackMatches} fallback(s)`);
       } else {
         console.warn('Sem cidades de atendimento ativas. Nada a exibir.');
         toast.info('Configure suas cidades de atendimento para ver fretes.');
@@ -902,8 +943,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               IA
             </Badge>
             {matchingStats.totalChecked > 0 && (
-              <Badge variant="outline" className="ml-auto">
-                {matchingStats.exactMatches} exato{matchingStats.exactMatches !== 1 ? 's' : ''} + {matchingStats.fallbackMatches} fallback
+              <Badge variant="outline" className="ml-auto text-xs">
+                🎯 {matchingStats.exactMatches} | 🗺️ {matchingStats.fallbackMatches}
               </Badge>
             )}
           </CardTitle>

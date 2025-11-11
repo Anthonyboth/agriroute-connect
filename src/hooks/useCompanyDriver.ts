@@ -2,6 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
+/**
+ * ⚠️ HOOK LEGACY - Mantido por compatibilidade
+ * 
+ * Este hook retorna apenas a PRIMEIRA afiliação ativa do motorista.
+ * Para gerenciar múltiplas afiliações, use o hook useDriverAffiliations().
+ * 
+ * @deprecated Prefira usar useDriverAffiliations para suporte completo a múltiplas afiliações
+ */
 export const useCompanyDriver = () => {
   const { profile } = useAuth();
   
@@ -10,6 +18,8 @@ export const useCompanyDriver = () => {
     queryFn: async () => {
       if (!profile?.id) return null;
       
+      // ⚠️ NOTA: Retorna apenas a PRIMEIRA afiliação ativa
+      // Para ver todas as afiliações, use useDriverAffiliations()
       const { data, error } = await supabase
         .from('company_drivers')
         .select(`
@@ -22,6 +32,7 @@ export const useCompanyDriver = () => {
         `)
         .eq('driver_profile_id', profile.id)
         .eq('status', 'ACTIVE')
+        .limit(1) // ✅ Explicitamente limitar a 1 registro
         .maybeSingle();
       
       if (error) throw error;

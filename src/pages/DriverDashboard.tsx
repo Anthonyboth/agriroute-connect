@@ -62,6 +62,7 @@ import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { debounce } from '@/lib/utils';
 import { FRETES_IA_LABEL, AREAS_IA_LABEL, AI_ABBR, SISTEMA_IA_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
 import { DriverProposalDetailsModal } from '@/components/DriverProposalDetailsModal';
+import { DriverAffiliationsManager } from '@/components/DriverAffiliationsManager';
 
 interface Freight {
   id: string;
@@ -2115,6 +2116,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                 <span className="hidden sm:inline" translate="no">Histórico</span>
                 <span className="sm:hidden" translate="no">Histórico</span>
               </TabsTrigger>
+              <TabsTrigger 
+                value="affiliations" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Users className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline" translate="no">Afiliações</span>
+                <span className="sm:hidden" translate="no">Afiliações</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -2720,6 +2729,12 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           <TabsContent value="historico" className="mt-6">
             <SafeListWrapper>
               <UnifiedHistory userRole="MOTORISTA" />
+            </SafeListWrapper>
+          </TabsContent>
+
+          <TabsContent value="affiliations" className="mt-6">
+            <SafeListWrapper>
+              <DriverAffiliationsManager />
             </SafeListWrapper>
           </TabsContent>
 
