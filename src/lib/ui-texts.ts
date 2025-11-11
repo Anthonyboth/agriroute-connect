@@ -65,6 +65,22 @@ export const UI_TEXTS = {
   MOTORISTA: "Motorista",
   PRODUTOR: "Produtor",
   TRANSPORTADORA: "Transportadora",
+  URGENCIA: "Urgência",
+  ROTA: "Rota",
+  
+  // Tipos de Carga
+  GRAOS: "Grãos",
+  FERTILIZANTES: "Fertilizantes",
+  ANIMAIS: "Animais",
+  MAQUINARIO: "Maquinário",
+  COMBUSTIVEL: "Combustível",
+  CARGA_GERAL: "Carga Geral",
+  
+  // Níveis de Urgência
+  URGENCIA_BAIXA: "Baixa",
+  URGENCIA_MEDIA: "Média",
+  URGENCIA_ALTA: "Alta",
+  URGENCIA_URGENTE: "Urgente",
   
   // Relatórios e Analytics
   RELATORIO_FRETES: "Relatório de fretes",

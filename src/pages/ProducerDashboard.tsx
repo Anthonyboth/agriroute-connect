@@ -37,6 +37,8 @@ import { AdvancedFreightFilters, FreightFilters } from '@/components/AdvancedFre
 import { FreightAnalyticsDashboard } from '@/components/FreightAnalyticsDashboard';
 import { FreightReportExporter } from '@/components/FreightReportExporter';
 import { useFreightReportData } from '@/hooks/useFreightReportData';
+import { PeriodComparisonDashboard } from '@/components/PeriodComparisonDashboard';
+import { RouteRentabilityReport } from '@/components/RouteRentabilityReport';
 import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
@@ -163,6 +165,16 @@ const ProducerDashboard = () => {
         f.distance_km >= filters.distanceRange!.min && 
         f.distance_km <= filters.distanceRange!.max
       );
+    }
+    
+    // Aplicar filtro de tipo de carga
+    if (filters.cargoType?.length) {
+      result = result.filter(f => filters.cargoType!.includes(f.cargo_type));
+    }
+    
+    // Aplicar filtro de urgência
+    if (filters.urgency?.length) {
+      result = result.filter(f => filters.urgency!.includes(f.urgency));
     }
     
     // Aplicar ordenação
@@ -1735,6 +1747,19 @@ const ProducerDashboard = () => {
               freights={filteredFreights}
               timeRange={timeRange}
               onTimeRangeChange={setTimeRange}
+            />
+            
+            <Separator className="my-8" />
+            
+            <PeriodComparisonDashboard
+              freights={filteredFreights}
+              comparisonType="month"
+            />
+            
+            <Separator className="my-8" />
+            
+            <RouteRentabilityReport
+              freights={filteredFreights}
             />
           </TabsContent>
 

@@ -98,6 +98,54 @@ export const AdvancedFreightFilters: React.FC<AdvancedFreightFiltersProps> = ({
           </div>
         </div>
 
+        {/* Tipo de Carga */}
+        <div className="space-y-2">
+          <Label>{UI_TEXTS.TIPO_CARGA}</Label>
+          <Select
+            value={currentFilters.cargoType?.[0] || 'all'}
+            onValueChange={(value) => onFilterChange({
+              ...currentFilters,
+              cargoType: value === 'all' ? undefined : [value]
+            })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Todos os tipos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="GRÃOS">{UI_TEXTS.GRAOS}</SelectItem>
+              <SelectItem value="FERTILIZANTES">{UI_TEXTS.FERTILIZANTES}</SelectItem>
+              <SelectItem value="ANIMAIS">{UI_TEXTS.ANIMAIS}</SelectItem>
+              <SelectItem value="MAQUINÁRIO">{UI_TEXTS.MAQUINARIO}</SelectItem>
+              <SelectItem value="COMBUSTÍVEL">{UI_TEXTS.COMBUSTIVEL}</SelectItem>
+              <SelectItem value="GERAL">{UI_TEXTS.CARGA_GERAL}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Urgência */}
+        <div className="space-y-2">
+          <Label>{UI_TEXTS.URGENCIA}</Label>
+          <Select
+            value={currentFilters.urgency?.[0] || 'all'}
+            onValueChange={(value) => onFilterChange({
+              ...currentFilters,
+              urgency: value === 'all' ? undefined : [value]
+            })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Todas as urgências" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as urgências</SelectItem>
+              <SelectItem value="LOW">{UI_TEXTS.URGENCIA_BAIXA}</SelectItem>
+              <SelectItem value="MEDIUM">{UI_TEXTS.URGENCIA_MEDIA}</SelectItem>
+              <SelectItem value="HIGH">{UI_TEXTS.URGENCIA_ALTA}</SelectItem>
+              <SelectItem value="URGENT">{UI_TEXTS.URGENCIA_URGENTE}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Período (Date Range) */}
         <div className="space-y-2">
           <Label>{UI_TEXTS.PERIODO}</Label>
