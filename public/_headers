@@ -2,9 +2,12 @@
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
 
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
 # Cache all static assets in /assets/ for 1 year (immutable files with hash in filename)
 /assets/*
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=31536000, s-maxage=31536000, immutable
 
 # Cache root-level images for 1 year
 /*.jpg
