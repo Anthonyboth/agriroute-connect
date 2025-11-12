@@ -14,8 +14,8 @@ import { ContactModal } from '@/components/ContactModal';
 import ReportModal from '@/components/ReportModal';
 import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import agriRouteLogo from '@/assets/agriroute-logo-optimized.webp';
-import heroTruckNight from '@/assets/hero-truck-night.jpg';
+import agriRouteLogo from '@/assets/agriroute-logo-158.webp';
+import heroTruckNight from '@/assets/hero-truck-night-optimized.webp';
 import { supabase } from '@/integrations/supabase/client';
 import Autoplay from "embla-carousel-autoplay";
 import { 
