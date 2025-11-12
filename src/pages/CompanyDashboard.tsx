@@ -53,15 +53,13 @@ import FreightLimitTracker from '@/components/FreightLimitTracker';
 import { PendingVehiclesApproval } from '@/components/PendingVehiclesApproval';
 import { CompanyFreightsManager } from '@/components/CompanyFreightsManager';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
-import heroTruckNight from '@/assets/hero-truck-night.jpg';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { CompanyProposalsManager } from '@/components/CompanyProposalsManager';
 import { UserCityManager } from '@/components/UserCityManager';
 import { CompanyHistory } from '@/components/CompanyHistory';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { CompanyVehicleAssignments } from '@/components/CompanyVehicleAssignments';
-
-const heroLogistics = heroTruckNight;
+import { CompanyFinancialDashboard } from '@/components/CompanyFinancialDashboard';
 
 // Definição de tabs
 const getCompanyTabs = (activeCount: number, chatCount: number) => [
@@ -448,7 +446,7 @@ const CompanyDashboard = () => {
       <section className="relative py-6 overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-20 animate-fade-in"
-          style={{ backgroundImage: `url(${heroLogistics})` }}
+          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
         />
         <div className="container relative z-10 mx-auto px-4">
           <div className="max-w-5xl mx-auto text-center space-y-4">
@@ -720,19 +718,7 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="payments" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pagamentos</CardTitle>
-                <CardDescription>
-                  Histórico de pagamentos e transações
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground py-8">
-                  Em desenvolvimento - Gestão financeira e histórico de pagamentos
-                </p>
-              </CardContent>
-            </Card>
+            <CompanyFinancialDashboard companyId={company.id} companyName={company.company_name} />
           </TabsContent>
 
           <TabsContent value="cities" className="mt-6">

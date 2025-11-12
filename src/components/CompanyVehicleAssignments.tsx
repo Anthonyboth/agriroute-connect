@@ -1,15 +1,25 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Truck, User, Link2, Unlink, Plus, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { VehicleAssignmentModal } from './VehicleAssignmentModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AdvancedAssignmentFilters, AssignmentFilters } from './AdvancedAssignmentFilters';
+import { AssignmentReportExporter } from './AssignmentReportExporter';
+
+const VEHICLE_TYPES = [
+  { value: 'CAMINHÃO', label: 'Caminhão' },
+  { value: 'CARRETA', label: 'Carreta' },
+  { value: 'TRUCK', label: 'Truck' },
+  { value: 'BITRUCK', label: 'Bitruck' },
+  { value: 'TOCO', label: 'Toco' },
+  { value: 'VUC', label: 'VUC' },
+  { value: 'OUTRO', label: 'Outro' },
+];
 
 interface CompanyVehicleAssignmentsProps {
   companyId: string;
@@ -18,23 +28,27 @@ interface CompanyVehicleAssignmentsProps {
 export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmentsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [assignmentToRemove, setAssignmentToRemove] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<AssignmentFilters>({
+    searchTerm: '',
+    status: 'active',
+    vehicleType: 'all'
+  });
 
   const { data: assignments, isLoading, refetch } = useQuery({
-    queryKey: ['company-vehicle-assignments', companyId],
+    queryKey: ['company-vehicle-assignments', companyId, filters.status],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('company_vehicle_assignments')
         .select(`
           *,
-          driver:driver_profile_id(
+          driver_profiles!inner(
             id,
             full_name,
             phone,
             rating,
             total_ratings
           ),
-          vehicle:vehicle_id(
+          vehicles!inner(
             id,
             license_plate,
             vehicle_type,
@@ -43,11 +57,17 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
           )
         `)
         .eq('company_id', companyId)
-        .is('removed_at', null)
         .order('created_at', { ascending: false });
+      
+      // Apply status filter
+      if (filters.status === 'active') {
+        return (data || []).filter(d => !d.removed_at);
+      } else if (filters.status === 'removed') {
+        return (data || []).filter(d => d.removed_at);
+      }
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!companyId,
   });
@@ -72,22 +92,43 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
     }
   };
 
-  const filteredAssignments = assignments?.filter((assignment: any) =>
-    assignment.driver?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    assignment.vehicle?.license_plate?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAssignments = useMemo(() => {
+    if (!assignments) return [];
+    
+    return assignments.filter((assignment: any) => {
+      const driver = assignment.driver_profiles;
+      const vehicle = assignment.vehicles;
+      
+      if (!driver || !vehicle) return false;
+      
+      // Search filter
+      const searchLower = filters.searchTerm.toLowerCase();
+      const matchesSearch = !filters.searchTerm || 
+        driver.full_name?.toLowerCase().includes(searchLower) ||
+        vehicle.license_plate?.toLowerCase().includes(searchLower);
+      
+      // Vehicle type filter
+      const matchesVehicleType = filters.vehicleType === 'all' || 
+        vehicle.vehicle_type === filters.vehicleType;
+      
+      return matchesSearch && matchesVehicleType;
+    });
+  }, [assignments, filters]);
 
   // Agrupar por motorista
   const groupedByDriver = filteredAssignments?.reduce((acc: any, assignment: any) => {
     const driverId = assignment.driver_profile_id;
+    const driver = assignment.driver_profiles || assignment.driver;
+    const vehicle = assignment.vehicles || assignment.vehicle;
+    
     if (!acc[driverId]) {
       acc[driverId] = {
-        driver: assignment.driver,
+        driver: driver,
         vehicles: [],
       };
     }
     acc[driverId].vehicles.push({
-      ...assignment.vehicle,
+      ...vehicle,
       assignmentId: assignment.id,
       isPrimary: assignment.is_primary,
       notes: assignment.notes,
@@ -118,22 +159,25 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
                 Gerencie quais veículos estão vinculados a cada motorista
               </CardDescription>
             </div>
-            <Button onClick={() => setIsModalOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Vínculo
-            </Button>
+            <div className="flex gap-2">
+              <AssignmentReportExporter 
+                assignments={assignments || []} 
+                companyName="Transportadora"
+              />
+              <Button onClick={() => setIsModalOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Vínculo
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <Label htmlFor="search">Buscar motorista ou veículo</Label>
-            <Input
-              id="search"
-              placeholder="Digite o nome do motorista ou placa do veículo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          <AdvancedAssignmentFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            resultCount={filteredAssignments?.length || 0}
+            vehicleTypes={VEHICLE_TYPES}
+          />
 
           {!driverGroups || driverGroups.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">

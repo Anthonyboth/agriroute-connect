@@ -44,7 +44,6 @@ import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
-import heroLogistics from '@/assets/hero-truck-night-moon.jpg';
 import { showErrorToast } from '@/lib/error-handler';
 import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
 import { useAutoRating } from '@/hooks/useAutoRating';
@@ -1211,7 +1210,7 @@ const ProducerDashboard = () => {
       <section 
         className="relative py-8 bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-white overflow-hidden animate-fade-in"
         style={{
-          backgroundImage: `linear-gradient(rgba(34, 197, 94, 0.9), rgba(34, 197, 94, 0.95)), url(${heroLogistics})`,
+          backgroundImage: `linear-gradient(rgba(34, 197, 94, 0.9), rgba(34, 197, 94, 0.95)), url(/hero-truck-night-moon.webp)`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}

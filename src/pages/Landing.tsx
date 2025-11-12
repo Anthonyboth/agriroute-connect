@@ -244,7 +244,7 @@ const Landing: React.FC = () => {
       {/* Hero Section */}
       <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
         <img 
-          src="/hero-truck-night.webp" 
+          src="/hero-truck-night-moon.webp" 
           alt="Logística agrícola moderna"
           className="absolute inset-0 w-full h-full object-cover"
           loading="eager"

@@ -69,7 +69,6 @@ import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderS
 import { UserCityManager } from '@/components/UserCityManager';
 import { ServiceHistory } from '@/components/ServiceHistory';
 import { PendingServiceRatingsPanel } from '@/components/PendingServiceRatingsPanel';
-import heroLogistics from '@/assets/hero-truck-night-moon.jpg';
 import { ServicesModal } from '@/components/ServicesModal';
 import { normalizeServiceType } from '@/lib/pt-br-validator';
 
@@ -1007,7 +1006,7 @@ export const ServiceProviderDashboard: React.FC = () => {
       <section className="relative min-h-[280px] flex items-center justify-center overflow-hidden animate-fade-in">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat blur-[2px]"
-          style={{ backgroundImage: `url(${heroLogistics})` }}
+          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-accent/85 to-warning/80 backdrop-blur-sm" />
         <div className="relative z-10 w-full">
