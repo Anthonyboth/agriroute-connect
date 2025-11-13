@@ -93,7 +93,7 @@ export const VehicleAssignmentModal = ({
       }
 
       // Criar vínculo
-      const { error } = await supabase
+      const { data: newAssignment, error } = await supabase
         .from('company_vehicle_assignments')
         .insert({
           company_id: companyId,
@@ -101,9 +101,27 @@ export const VehicleAssignmentModal = ({
           vehicle_id: selectedVehicle,
           is_primary: isPrimary,
           notes: notes || null,
-        });
+        })
+        .select('id, vehicle_id, driver_profile_id')
+        .single();
 
       if (error) throw error;
+
+      // Invocar Edge Function para enviar notificação
+      try {
+        await supabase.functions.invoke('send-vehicle-assignment-notification', {
+          body: {
+            assignment_id: newAssignment.id,
+            driver_id: newAssignment.driver_profile_id,
+            vehicle_id: newAssignment.vehicle_id,
+            action: 'created',
+            company_id: companyId
+          }
+        });
+      } catch (notifError) {
+        console.warn('Erro ao enviar notificação de vínculo:', notifError);
+        // Não bloqueia o fluxo se notificação falhar
+      }
 
       toast.success('Vínculo criado com sucesso');
       onSuccess();

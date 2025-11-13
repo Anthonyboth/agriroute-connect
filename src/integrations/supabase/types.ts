@@ -1752,6 +1752,60 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_transactions: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          description: string
+          freight_id: string | null
+          id: string
+          metadata: Json | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          description: string
+          freight_id?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          description?: string
+          freight_id?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flexible_freight_proposals: {
         Row: {
           created_at: string

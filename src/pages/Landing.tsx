@@ -22,7 +22,13 @@ import {
   CarouselContent, 
   CarouselItem 
 } from "@/components/ui/carousel";
-import { PlatformStatsSection } from '@/components/PlatformStatsSection';
+import { lazy, Suspense } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load PlatformStatsSection para economizar bundle inicial
+const PlatformStatsSection = lazy(() => 
+  import('@/components/PlatformStatsSection').then(module => ({ default: module.PlatformStatsSection }))
+);
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
@@ -302,8 +308,23 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <PlatformStatsSection />
+      {/* Stats Section - Lazy loaded */}
+      <Suspense fallback={
+        <section className="py-16 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="text-center">
+                  <Skeleton className="h-12 w-32 mx-auto mb-2" />
+                  <Skeleton className="h-6 w-24 mx-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      }>
+        <PlatformStatsSection />
+      </Suspense>
 
       {/* Features Section */}
       <section id="features" className="py-20">
@@ -395,6 +416,7 @@ const Landing: React.FC = () => {
                             alt={partner.name}
                             width="158"
                             height="158"
+                            loading="lazy"
                             className="max-w-full max-h-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
                           />
                         </CardContent>

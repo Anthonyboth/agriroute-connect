@@ -74,6 +74,13 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
 
   const handleRemoveAssignment = async (assignmentId: string) => {
     try {
+      // Buscar dados do assignment antes de remover
+      const { data: assignmentData } = await supabase
+        .from('company_vehicle_assignments')
+        .select('driver_profile_id, vehicle_id')
+        .eq('id', assignmentId)
+        .single();
+
       const { error } = await supabase
         .from('company_vehicle_assignments')
         .update({
@@ -82,6 +89,23 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
         .eq('id', assignmentId);
 
       if (error) throw error;
+
+      // Invocar Edge Function para enviar notificação
+      if (assignmentData) {
+        try {
+          await supabase.functions.invoke('send-vehicle-assignment-notification', {
+            body: {
+              assignment_id: assignmentId,
+              driver_id: assignmentData.driver_profile_id,
+              vehicle_id: assignmentData.vehicle_id,
+              action: 'removed',
+              company_id: companyId
+            }
+          });
+        } catch (notifError) {
+          console.warn('Erro ao enviar notificação de remoção:', notifError);
+        }
+      }
 
       toast.success('Vínculo removido com sucesso');
       refetch();

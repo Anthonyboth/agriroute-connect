@@ -247,6 +247,26 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           }
         });
         break;
+      
+      case 'vehicle_assignment_created':
+      case 'vehicle_assignment_removed':
+        onClose();
+        if (profile?.role === 'MOTORISTA' || profile?.role === 'MOTORISTA_AFILIADO') {
+          navigate('/dashboard/driver', { 
+            state: { 
+              openTab: 'vehicles',
+              highlightAssignmentId: data?.assignment_id
+            } 
+          });
+        } else {
+          navigate('/dashboard/company', {
+            state: {
+              openTab: 'vinculos',
+              highlightAssignmentId: data?.assignment_id
+            }
+          });
+        }
+        break;
         
       case 'service_rating_pending':
         if (data?.service_request_id && data?.rated_user_id) {
@@ -329,7 +349,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       'company_new_proposal',
       'company_freight_status_change',
       'company_driver_assignment',
-      'company_delivery_confirmation'
+      'company_delivery_confirmation',
+      'vehicle_assignment_created',
+      'vehicle_assignment_removed'
     ];
     return actionableTypes.includes(type);
   };
@@ -363,6 +385,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         return <CheckCheck className="h-5 w-5 text-orange-500" />;
       case 'company_driver_assignment':
         return <Truck className="h-5 w-5 text-indigo-500" />;
+      case 'vehicle_assignment_created':
+      case 'vehicle_assignment_removed':
+        return <Truck className="h-5 w-5 text-purple-500" />;
       case 'warning':
         return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
       case 'success':
