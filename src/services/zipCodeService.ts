@@ -176,13 +176,13 @@ export class ZipCodeService {
    */
   private static async getFromSupabaseCache(zipCode: string): Promise<ZipCodeResult | null> {
     try {
-      const { data, error } = await supabase.rpc('search_city_by_zip', {
+      const { data, error } = await (supabase.rpc as any)('search_city_by_zip', {
         p_zip_code: zipCode
       });
 
-      if (error || !data || data.length === 0) return null;
+      if (error || !data || !Array.isArray(data) || data.length === 0) return null;
 
-      const row = data[0];
+      const row = data[0] as any;
       return {
         zipCode,
         city: row.city_name,
@@ -201,7 +201,7 @@ export class ZipCodeService {
 
   private static async saveToSupabaseCache(result: ZipCodeResult): Promise<void> {
     try {
-      await supabase.rpc('save_zip_to_cache', {
+      await (supabase.rpc as any)('save_zip_to_cache', {
         p_zip_code: result.zipCode,
         p_city_name: result.city,
         p_state: result.state,

@@ -44,6 +44,7 @@ import { PermissionPrompts } from './components/PermissionPrompts';
 import { useDeviceRegistration } from './hooks/useDeviceRegistration';
 import { startSessionRefresh, stopSessionRefresh } from './utils/sessionRefresh';
 import { SilentCityBootstrap } from './components/SilentCityBootstrap';
+import { ZipCodeService } from './services/zipCodeService';
 const PressPage = lazy(() => import("./pages/Press"));
 const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess"));
 const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
@@ -92,7 +93,22 @@ const ErrorMonitoringSetup = () => {
   return null;
 };
 
-const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = false, adminOnly = false, allowedRoles }: { 
+// Componente para sincronização de CEPs ao reconectar
+const ZipCodeSyncOnReconnect = () => {
+  React.useEffect(() => {
+    const handleOnline = () => {
+      console.log('🌐 Reconectado à internet - sincronizando cache de CEPs...');
+      ZipCodeService.syncOnReconnect();
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
+  
+  return null;
+};
+
+const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = false, adminOnly = false, allowedRoles }: {
   children: React.ReactNode; 
   requiresAuth?: boolean;
   requiresApproval?: boolean;
@@ -538,6 +554,7 @@ const App = () => {
                     <DeviceSetup />
                     <SessionManager />
                     <ErrorMonitoringSetup />
+                    <ZipCodeSyncOnReconnect />
                     <SilentCityBootstrap />
                     <main>
                       <Routes>

@@ -388,6 +388,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
             {freight.origin_city && freight.origin_state && (
               <p className="text-sm font-bold text-primary pl-4">
                 {freight.origin_city.toUpperCase()} - {freight.origin_state.toUpperCase()}
+                {(freight as any).origin_zip_code && (
+                  <span className="text-xs text-muted-foreground font-normal ml-2">
+                    (CEP: {(freight as any).origin_zip_code.replace(/^(\d{5})(\d{3})$/, '$1-$2')})
+                  </span>
+                )}
               </p>
             )}
             <p className="text-xs text-muted-foreground pl-4 line-clamp-1">{freight.origin_address}</p>
@@ -401,6 +406,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
             {freight.destination_city && freight.destination_state && (
               <p className="text-sm font-bold text-primary pl-4">
                 {freight.destination_city.toUpperCase()} - {freight.destination_state.toUpperCase()}
+                {(freight as any).destination_zip_code && (
+                  <span className="text-xs text-muted-foreground font-normal ml-2">
+                    (CEP: {(freight as any).destination_zip_code.replace(/^(\d{5})(\d{3})$/, '$1-$2')})
+                  </span>
+                )}
               </p>
             )}
             <p className="text-xs text-muted-foreground pl-4 line-clamp-1">{freight.destination_address}</p>
