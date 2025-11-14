@@ -12,6 +12,7 @@ import { AutoRatingModal } from './AutoRatingModal';
 import { FreightAdvanceModal } from './FreightAdvanceModal';
 import { FreightPaymentModal } from './FreightPaymentModal';
 import { FreightAssignmentsList } from './FreightAssignmentsList';
+import { ManifestoModal } from './ManifestoModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { format } from 'date-fns';
@@ -47,6 +48,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [advances, setAdvances] = useState<any[]>([]);
   const [movingToHistory, setMovingToHistory] = useState(false);
+  const [manifestoModalOpen, setManifestoModalOpen] = useState(false);
 
   // Status order for calculating effective status
   const statusOrder = ['OPEN','IN_NEGOTIATION','ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION','DELIVERED','COMPLETED','CANCELLED','REJECTED','PENDING'];
@@ -743,6 +745,27 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               )}
             </div>
 
+            {/* Botão Manifesto - disponível para transportadoras e motoristas */}
+            {(isDriver || currentUserProfile?.role === 'TRANSPORTADORA') && (
+              freight?.status === 'ACCEPTED' || 
+              freight?.status === 'LOADING' || 
+              freight?.status === 'IN_TRANSIT' ||
+              freight?.status === 'DELIVERED_PENDING_CONFIRMATION' ||
+              freight?.status === 'DELIVERED'
+            ) && (
+              <div className="pt-2">
+                <Button 
+                  onClick={() => setManifestoModalOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <FileText className="h-3 w-3" />
+                  Manifesto
+                </Button>
+              </div>
+            )}
+
             {/* Botão de desistir do frete para motoristas */}
             {isDriver && (freight?.status === 'ACCEPTED' || freight?.status === 'LOADING') && onFreightWithdraw && (
               <div className="pt-2 border-t">
@@ -895,6 +918,13 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           currentUserProfile={currentUserProfile}
         />
       )}
+
+      {/* Modal de Manifesto */}
+      <ManifestoModal 
+        open={manifestoModalOpen}
+        onClose={() => setManifestoModalOpen(false)}
+        freightId={freightId}
+      />
     </div>
   );
 };
