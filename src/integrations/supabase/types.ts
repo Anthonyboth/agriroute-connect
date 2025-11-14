@@ -564,6 +564,8 @@ export type Database = {
           name: string
           state: string
           updated_at: string | null
+          zip_code: string | null
+          zip_code_ranges: Json | null
         }
         Insert: {
           created_at?: string | null
@@ -574,6 +576,8 @@ export type Database = {
           name: string
           state: string
           updated_at?: string | null
+          zip_code?: string | null
+          zip_code_ranges?: Json | null
         }
         Update: {
           created_at?: string | null
@@ -584,6 +588,8 @@ export type Database = {
           name?: string
           state?: string
           updated_at?: string | null
+          zip_code?: string | null
+          zip_code_ranges?: Json | null
         }
         Relationships: []
       }
@@ -1147,6 +1153,7 @@ export type Database = {
           notes: string | null
           state: string
           updated_at: string
+          zip_code: string | null
         }
         Insert: {
           available_date: string
@@ -1159,6 +1166,7 @@ export type Database = {
           notes?: string | null
           state: string
           updated_at?: string
+          zip_code?: string | null
         }
         Update: {
           available_date?: string
@@ -1171,6 +1179,7 @@ export type Database = {
           notes?: string | null
           state?: string
           updated_at?: string
+          zip_code?: string | null
         }
         Relationships: [
           {
@@ -1369,6 +1378,7 @@ export type Database = {
           service_area: unknown
           state: string | null
           updated_at: string | null
+          zip_code: string | null
         }
         Insert: {
           city_name: string
@@ -1384,6 +1394,7 @@ export type Database = {
           service_area?: unknown
           state?: string | null
           updated_at?: string | null
+          zip_code?: string | null
         }
         Update: {
           city_name?: string
@@ -1399,6 +1410,7 @@ export type Database = {
           service_area?: unknown
           state?: string | null
           updated_at?: string | null
+          zip_code?: string | null
         }
         Relationships: [
           {
@@ -2615,6 +2627,7 @@ export type Database = {
           destination_lat: number | null
           destination_lng: number | null
           destination_state: string | null
+          destination_zip_code: string | null
           distance_km: number | null
           driver_id: string | null
           drivers_assigned: string[] | null
@@ -2641,6 +2654,7 @@ export type Database = {
           origin_lat: number | null
           origin_lng: number | null
           origin_state: string | null
+          origin_zip_code: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           pickup_date: string
           pickup_observations: string | null
@@ -2698,6 +2712,7 @@ export type Database = {
           destination_lat?: number | null
           destination_lng?: number | null
           destination_state?: string | null
+          destination_zip_code?: string | null
           distance_km?: number | null
           driver_id?: string | null
           drivers_assigned?: string[] | null
@@ -2724,6 +2739,7 @@ export type Database = {
           origin_lat?: number | null
           origin_lng?: number | null
           origin_state?: string | null
+          origin_zip_code?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           pickup_date: string
           pickup_observations?: string | null
@@ -2781,6 +2797,7 @@ export type Database = {
           destination_lat?: number | null
           destination_lng?: number | null
           destination_state?: string | null
+          destination_zip_code?: string | null
           distance_km?: number | null
           driver_id?: string | null
           drivers_assigned?: string[] | null
@@ -2807,6 +2824,7 @@ export type Database = {
           origin_lat?: number | null
           origin_lng?: number | null
           origin_state?: string | null
+          origin_zip_code?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           pickup_date?: string
           pickup_observations?: string | null
@@ -6021,6 +6039,66 @@ export type Database = {
           },
         ]
       }
+      zip_code_cache: {
+        Row: {
+          city_id: string | null
+          city_name: string
+          created_at: string | null
+          expires_at: string | null
+          last_updated: string | null
+          lat: number | null
+          lng: number | null
+          neighborhood: string | null
+          source: string
+          state: string
+          street: string | null
+          zip_code: string
+        }
+        Insert: {
+          city_id?: string | null
+          city_name: string
+          created_at?: string | null
+          expires_at?: string | null
+          last_updated?: string | null
+          lat?: number | null
+          lng?: number | null
+          neighborhood?: string | null
+          source: string
+          state: string
+          street?: string | null
+          zip_code: string
+        }
+        Update: {
+          city_id?: string | null
+          city_name?: string
+          created_at?: string | null
+          expires_at?: string | null
+          last_updated?: string | null
+          lat?: number | null
+          lng?: number | null
+          neighborhood?: string | null
+          source?: string
+          state?: string
+          street?: string | null
+          zip_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zip_code_cache_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zip_code_cache_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
+          },
+        ]
+      }
     }
     Views: {
       city_hierarchy: {
@@ -6170,6 +6248,7 @@ export type Database = {
           state: string
         }[]
       }
+      clean_expired_zip_cache: { Args: never; Returns: undefined }
       cleanup_expired_requests: { Args: never; Returns: undefined }
       cleanup_old_error_logs: { Args: never; Returns: undefined }
       confirm_checkin_as_counterpart: {
@@ -7007,6 +7086,20 @@ export type Database = {
       process_telegram_queue: { Args: never; Returns: Json }
       reopen_freight: { Args: { p_freight_id: string }; Returns: string }
       sanitize_document: { Args: { doc: string }; Returns: string }
+      save_zip_to_cache: {
+        Args: {
+          p_city_id?: string
+          p_city_name: string
+          p_lat?: number
+          p_lng?: number
+          p_neighborhood?: string
+          p_source?: string
+          p_state: string
+          p_street?: string
+          p_zip_code: string
+        }
+        Returns: undefined
+      }
       scan_policies_for_role_references: {
         Args: never
         Returns: {
@@ -7026,6 +7119,20 @@ export type Database = {
           lng: number
           name: string
           state: string
+        }[]
+      }
+      search_city_by_zip: {
+        Args: { p_zip_code: string }
+        Returns: {
+          city_id: string
+          city_name: string
+          from_cache: boolean
+          lat: number
+          lng: number
+          neighborhood: string
+          source: string
+          state: string
+          street: string
         }[]
       }
       send_notification: {
@@ -7078,6 +7185,7 @@ export type Database = {
           destination_lat: number | null
           destination_lng: number | null
           destination_state: string | null
+          destination_zip_code: string | null
           distance_km: number | null
           driver_id: string | null
           drivers_assigned: string[] | null
@@ -7104,6 +7212,7 @@ export type Database = {
           origin_lat: number | null
           origin_lng: number | null
           origin_state: string | null
+          origin_zip_code: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           pickup_date: string
           pickup_observations: string | null
@@ -7170,6 +7279,7 @@ export type Database = {
           destination_lat: number | null
           destination_lng: number | null
           destination_state: string | null
+          destination_zip_code: string | null
           distance_km: number | null
           driver_id: string | null
           drivers_assigned: string[] | null
@@ -7196,6 +7306,7 @@ export type Database = {
           origin_lat: number | null
           origin_lng: number | null
           origin_state: string | null
+          origin_zip_code: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           pickup_date: string
           pickup_observations: string | null
