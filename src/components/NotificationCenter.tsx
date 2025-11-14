@@ -588,6 +588,16 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                             }`}>
                               {notification.message}
                             </p>
+                            
+                            {/* Atalho visual para fretes */}
+                            {notification.data?.freight_id && (
+                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
+                                <Package className="h-3 w-3 text-primary" />
+                                <span className="text-xs text-primary font-medium">
+                                  Clique para ver detalhes do frete
+                                </span>
+                              </div>
+                            )}
                           </div>
 
                           {isActionableNotification(notification.type) && (
@@ -660,6 +670,16 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                               }`}>
                                 {notification.message}
                               </p>
+                              
+                              {/* Atalho visual para fretes */}
+                              {notification.data?.freight_id && (
+                                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
+                                  <Package className="h-3 w-3 text-primary" />
+                                  <span className="text-xs text-primary font-medium">
+                                    Clique para ver detalhes do frete
+                                  </span>
+                                </div>
+                              )}
                             </div>
 
                             {isActionableNotification(notification.type) && (
