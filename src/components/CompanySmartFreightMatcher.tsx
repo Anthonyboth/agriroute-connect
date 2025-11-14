@@ -87,6 +87,9 @@ export const CompanySmartFreightMatcher: React.FC = () => {
       let discardedByNoSlots = 0;
       
       for (const freight of freights) {
+        // Skip invalid freights
+        if (!freight || !freight.id) continue;
+        
         // Normalizar status
         const normalizedStatus = normalizeFreightStatus(freight.status);
         

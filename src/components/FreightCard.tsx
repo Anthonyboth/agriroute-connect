@@ -137,11 +137,17 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       );
 
       if (error) {
-        // Extract user-friendly message from edge function response
-        const errorMsg = (error as any)?.context?.response?.error 
-          || (error as any)?.message 
-          || 'Não foi possível aceitar o frete';
-        toast.error(errorMsg);
+        // Extract detailed error information from edge function response
+        const errorResponse = (error as any)?.context?.response;
+        const errorMsg = errorResponse?.error || (error as any)?.message || 'Não foi possível aceitar o frete';
+        const errorDetails = errorResponse?.details;
+        
+        // Show detailed message if available
+        if (errorDetails) {
+          toast.error(errorMsg, { description: errorDetails });
+        } else {
+          toast.error(errorMsg);
+        }
         return;
       }
 
@@ -153,11 +159,21 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       onAction?.('accept');
     } catch (error: any) {
       console.error('Error accepting freight:', error);
-      const errorMessage = (error as any)?.context?.response?.error 
+      
+      // Extract detailed error information
+      const errorResponse = (error as any)?.context?.response;
+      const errorMessage = errorResponse?.error 
         || error?.message 
         || error?.error 
         || "Erro ao aceitar frete";
-      toast.error(errorMessage);
+      const errorDetails = errorResponse?.details;
+      
+      // Show detailed message if available
+      if (errorDetails) {
+        toast.error(errorMessage, { description: errorDetails });
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -237,7 +253,20 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       onAction?.('accept');
     } catch (error: any) {
       console.error('Error accepting freight:', error);
-      toast.error(error?.message || 'Erro ao aceitar frete');
+      
+      // Extract detailed error information
+      const errorResponse = (error as any)?.context?.response;
+      const errorMessage = errorResponse?.error 
+        || error?.message 
+        || 'Erro ao aceitar frete';
+      const errorDetails = errorResponse?.details;
+      
+      // Show detailed message if available
+      if (errorDetails) {
+        toast.error(errorMessage, { description: errorDetails });
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 

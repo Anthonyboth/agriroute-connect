@@ -28,21 +28,9 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
   const pricePerKm = typeof assignment?.price_per_km === 'number' ? assignment.price_per_km : null;
   const minimumAnttPrice = typeof assignment?.minimum_antt_price === 'number' ? assignment.minimum_antt_price : null;
 
-  // 🛡️ Se faltar assignment ou freight, renderiza fallback seguro
+  // 🛡️ Se faltar assignment ou freight, retornar null (não renderizar nada)
   if (!assignment || !freight) {
-    return (
-      <Card className="border-l-4 border-l-muted">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Frete não disponível</h3>
-            <Badge variant="outline">N/A</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Este item não possui dados completos no momento.
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   const isTransportCompany = currentUserProfile?.role === 'TRANSPORTADORA';
