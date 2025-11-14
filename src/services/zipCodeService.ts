@@ -176,9 +176,9 @@ export class ZipCodeService {
    */
   private static async getFromSupabaseCache(zipCode: string): Promise<ZipCodeResult | null> {
     try {
-      const { data, error } = await (supabase.rpc as any)('search_city_by_zip', {
+      const { data, error } = await supabase.rpc('search_city_by_zip' as any, {
         p_zip_code: zipCode
-      });
+      } as any) as any;
 
       if (error || !data || !Array.isArray(data) || data.length === 0) return null;
 
@@ -201,7 +201,7 @@ export class ZipCodeService {
 
   private static async saveToSupabaseCache(result: ZipCodeResult): Promise<void> {
     try {
-      await (supabase.rpc as any)('save_zip_to_cache', {
+      await supabase.rpc('save_zip_to_cache' as any, {
         p_zip_code: result.zipCode,
         p_city_name: result.city,
         p_state: result.state,
@@ -211,7 +211,7 @@ export class ZipCodeService {
         p_lat: result.lat,
         p_lng: result.lng,
         p_source: result.source
-      });
+      } as any);
     } catch (error) {
       console.warn('Falha ao salvar no cache Supabase:', error);
     }
