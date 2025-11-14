@@ -57,14 +57,14 @@
     --muted-foreground: 215.4 20% 40%;
 
     /* Accent: Complementary orange for CTAs - WCAG AA compliant */
-    --accent: 42 90% 58%;
+    --accent: 28 85% 48%;
     --accent-foreground: 0 0% 100%;
 
     /* Status colors for freight tracking */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 98%;
     
-    --warning: 45 88% 60%;
+    --warning: 32 85% 52%;
     --warning-foreground: 0 0% 98%;
     
     --destructive: 0 84.2% 60.2%;
@@ -81,7 +81,7 @@
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
-    --gradient-hero: linear-gradient(135deg, hsl(142 71% 30%) 0%, hsl(42 90% 58%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(142 71% 30%) 0%, hsl(28 85% 48%) 100%);
     --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(210 40% 99%) 100%);
 
     /* Shadows */
@@ -146,13 +146,13 @@
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 25% 70%;
 
-    --accent: 42 90% 65%;
+    --accent: 28 85% 55%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --success: 142 76% 46%;
     --success-foreground: 222.2 47.4% 11.2%;
     
-    --warning: 45 88% 62%;
+    --warning: 32 85% 58%;
     --warning-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 62.8% 30.6%;
