@@ -60,6 +60,8 @@ import { CompanyHistory } from '@/components/CompanyHistory';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { CompanyVehicleAssignments } from '@/components/CompanyVehicleAssignments';
 import { CompanyFinancialDashboard } from '@/components/CompanyFinancialDashboard';
+import { FreightDetails } from '@/components/FreightDetails';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 // Definição de tabs
 const getCompanyTabs = (activeCount: number, chatCount: number) => [
@@ -626,7 +628,12 @@ const CompanyDashboard = () => {
                       <MyAssignmentCard
                         key={assignment.id}
                         assignment={assignment}
-                        onAction={() => {}}
+                        onAction={() => {
+                          if (assignment?.freight?.id) {
+                            setSelectedFreightId(assignment.freight.id);
+                            setShowDetails(true);
+                          }
+                        }}
                       />
                     ))}
                     {activeFreights.map((freight) => {
@@ -706,13 +713,20 @@ const CompanyDashboard = () => {
               <CardHeader>
                 <CardTitle>Serviços</CardTitle>
                 <CardDescription>
-                  Gerencie os serviços oferecidos pela transportadora
+                  Solicitação de serviços complementares
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-center text-muted-foreground py-8">
-                  Em desenvolvimento - Lista e gestão de serviços da transportadora
-                </p>
+                <div className="text-center py-8">
+                  <Wrench className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="font-semibold mb-2">Solicitação de Serviços</p>
+                  <p className="text-sm text-muted-foreground">
+                    Aqui você poderá solicitar serviços complementares quando precisar.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    A execução dos serviços é feita por prestadores de serviços cadastrados.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -748,6 +762,20 @@ const CompanyDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modal de Detalhes do Frete */}
+      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {selectedFreightId && (
+            <FreightDetails
+              freightId={selectedFreightId}
+              currentUserProfile={profile}
+              onClose={() => setShowDetails(false)}
+              initialTab="status"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
