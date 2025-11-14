@@ -34,11 +34,40 @@ export function CompanyFinancialDashboard({ companyId, companyName = 'Empresa' }
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  // Mock data since financial_transactions table doesn't exist yet
-  const transactions: Transaction[] = useMemo(() => {
-    // Return empty array for now - this will be populated once the table is created
-    return [];
-  }, [companyId, period]);
+  // Query real data from financial_transactions table
+  const { data: transactions = [], isLoading, error } = useQuery({
+    queryKey: ['financial-transactions', companyId, period],
+    queryFn: async () => {
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (period) {
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'quarter':
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        case 'year':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+      }
+
+      const { data, error } = await supabase
+        .from('financial_transactions')
+        .select('*')
+        .eq('company_id', companyId)
+        .gte('created_at', startDate.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Transaction[];
+    },
+    enabled: !!companyId,
+  });
 
   // Calculate summary
   const summary = useMemo(() => {
@@ -85,7 +114,6 @@ export function CompanyFinancialDashboard({ companyId, companyName = 'Empresa' }
   }, [transactions, page]);
 
   const totalPages = Math.ceil(transactions.length / pageSize);
-  const isLoading = false;
 
   // Export functions
   const exportToPDF = () => {
