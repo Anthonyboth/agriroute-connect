@@ -23,7 +23,6 @@ import { PageDOMErrorBoundary } from '@/components/PageDOMErrorBoundary';
 
 import { DriverPayouts } from '@/components/DriverPayouts';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
-import FreightLimitTracker from '@/components/FreightLimitTracker';
 import FreightCheckinModal from '@/components/FreightCheckinModal';
 import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
 import FreightWithdrawalModal from '@/components/FreightWithdrawalModal';
@@ -1983,11 +1982,6 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               value="Gerenciados pela empresa"
             />
           )}
-        </div>
-
-        {/* FreightLimitTracker compacto */}
-        <div className="mb-4">
-          <FreightLimitTracker hideForAffiliatedDriver={true} />
         </div>
 
         {/* Seção Mural de Avisos */}
