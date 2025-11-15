@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Truck, User, Link2, Unlink, Plus, Star } from 'lucide-react';
+import { Truck, User, Link2, Unlink, Plus, Star, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { VehicleAssignmentModal } from './VehicleAssignmentModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -28,6 +28,7 @@ interface CompanyVehicleAssignmentsProps {
 export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmentsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [assignmentToRemove, setAssignmentToRemove] = useState<string | null>(null);
+  const [editingAssignment, setEditingAssignment] = useState<any>(null);
   const [filters, setFilters] = useState<AssignmentFilters>({
     searchTerm: '',
     status: 'active',
@@ -266,13 +267,30 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
                               )}
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setAssignmentToRemove(vehicle.assignmentId)}
-                          >
-                            <Unlink className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingAssignment({
+                                id: vehicle.assignmentId,
+                                driver_profile_id: group.driver.id,
+                                vehicle_id: vehicle.vehicle_id,
+                                is_primary: vehicle.isPrimary,
+                                notes: vehicle.notes
+                              })}
+                              title="Editar vínculo"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setAssignmentToRemove(vehicle.assignmentId)}
+                              title="Remover vínculo"
+                            >
+                              <Unlink className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -286,12 +304,17 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
 
       <VehicleAssignmentModal
         companyId={companyId}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isModalOpen || !!editingAssignment}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingAssignment(null);
+        }}
         onSuccess={() => {
           refetch();
           setIsModalOpen(false);
+          setEditingAssignment(null);
         }}
+        editingAssignment={editingAssignment}
       />
 
       <AlertDialog open={!!assignmentToRemove} onOpenChange={() => setAssignmentToRemove(null)}>
