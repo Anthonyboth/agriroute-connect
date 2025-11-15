@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useEffect } from 'react';
 
 /**
  * Hook otimizado para buscar assignments do motorista
@@ -30,27 +31,66 @@ export const useDriverAssignments = (driverId: string | undefined) => {
 /**
  * Hook para buscar fretes disponíveis (matched)
  */
-export const useAvailableFreights = (driverId: string | undefined, filters?: any) => {
-  return useQuery({
-    queryKey: ['available-freights', driverId, filters],
-    queryFn: async () => {
-      if (!driverId) return [];
+export const useAvailableFreights = (driverId: string) => {
+  const queryClient = useQueryClient();
 
-      // Buscar fretes matched via spatial matching
-      const { data, error } = await supabase.functions.invoke('driver-spatial-matching', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+  // Setup realtime invalidation
+  useEffect(() => {
+    if (!driverId) return;
+
+    const channel = supabase
+      .channel('driver-freights-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'freights'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['available-freights', driverId] });
         }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'freight_assignments'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['available-freights', driverId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [driverId, queryClient]);
+
+  return useQuery({
+    queryKey: ['available-freights', driverId],
+    queryFn: async () => {
+      console.log('[useAvailableFreights] Fetching available freights for driver:', driverId);
+      
+      const { data, error } = await supabase.functions.invoke('driver-spatial-matching', {
+        body: { driver_id: driverId }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useAvailableFreights] Error fetching freights:', error);
+        throw error;
+      }
+
+      console.log('[useAvailableFreights] Found available freights:', data?.freights?.length || 0);
       return data?.freights || [];
     },
     enabled: !!driverId,
-    staleTime: 2 * 60 * 1000, // 2 minutos (fretes disponíveis mudam mais rápido)
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false
+    staleTime: 5 * 1000, // 5 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchOnWindowFocus: true,
   });
 };
 
