@@ -70,16 +70,22 @@ export const AffiliationDetailsModal: React.FC<AffiliationDetailsModalProps> = (
 
     try {
       // Usar atualização direta para motorista sair da transportadora
-      const { error } = await supabase
+      const { data, error, count } = await supabase
         .from('company_drivers')
         .update({ 
-          status: 'LEFT',
+          status: 'INACTIVE',
           left_at: new Date().toISOString()
         })
         .eq('driver_profile_id', profile.id)
-        .eq('company_id', affiliationDetails.companyId);
+        .eq('company_id', affiliationDetails.companyId)
+        .select();
 
       if (error) throw error;
+      
+      // Verificar se alguma linha foi afetada
+      if (!data || data.length === 0) {
+        throw new Error('Não foi possível sair da transportadora. Verifique suas permissões.');
+      }
 
       // Atualizar role do perfil de volta para MOTORISTA
       const { error: profileError } = await supabase
