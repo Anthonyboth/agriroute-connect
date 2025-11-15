@@ -1843,10 +1843,6 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           notifications={unreadCount}
         />
 
-      <div className="container mx-auto px-4 pt-4">
-        <SystemAnnouncementBanner />
-      </div>
-
       {/* Hero Section Compacto */}
       <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
         <div 
@@ -1992,6 +1988,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
         {/* FreightLimitTracker compacto */}
         <div className="mb-4">
           <FreightLimitTracker hideForAffiliatedDriver={true} />
+        </div>
+
+        {/* Seção Mural */}
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <span>📢</span> Mural
+          </h2>
+          <SystemAnnouncementBanner />
         </div>
 
         {/* Tabs Compactas */}

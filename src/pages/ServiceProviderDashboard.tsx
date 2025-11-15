@@ -49,8 +49,16 @@ const ServiceProviderDashboard = () => {
       />
       <div className="provider-theme">
         <div className="container mx-auto p-4 space-y-4">
-          <SystemAnnouncementBanner />
           <FreightLimitTracker hideForAffiliatedDriver={true} />
+          
+          {/* Seção Mural */}
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <span>📢</span> Mural
+            </h2>
+            <SystemAnnouncementBanner />
+          </div>
+
           <ServiceDashboard />
         </div>
       </div>

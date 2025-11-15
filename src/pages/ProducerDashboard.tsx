@@ -1205,10 +1205,6 @@ const ProducerDashboard = () => {
         notifications={unreadCount}
       />
       
-      <div className="container mx-auto px-4 pt-4">
-        <SystemAnnouncementBanner />
-      </div>
-      
       {/* Hero Section Compacta */}
       <section 
         className="relative py-8 bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-white overflow-hidden animate-fade-in"
@@ -1327,6 +1323,13 @@ const ProducerDashboard = () => {
           />
         </div>
 
+        {/* Seção Mural */}
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <span>📢</span> Mural
+          </h2>
+          <SystemAnnouncementBanner />
+        </div>
 
         {/* Tabs Compactas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
