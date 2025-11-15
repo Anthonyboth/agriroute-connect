@@ -58,16 +58,6 @@ export interface ServiceType {
 
 export const ALL_SERVICE_TYPES: ServiceType[] = [
   {
-    id: 'ADUBACAO_CALCARIO',
-    label: 'Adubação e Calagem',
-    description: 'Aplicação de fertilizantes e correção do pH do solo',
-    icon: Leaf,
-    color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
     id: 'AGRONOMO',
     label: 'Agrônomo',
     description: 'Consultoria agronômica e acompanhamento técnico de lavoura',
@@ -99,7 +89,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
   {
     id: 'ASSISTENCIA_TECNICA',
-    label: 'Assistência Técnica Agrícola',
+    label: 'Técnico Agrícola',
     description: 'Suporte técnico especializado para produção agrícola',
     icon: Settings,
     color: 'bg-primary/10 text-primary border-primary/20',
@@ -178,40 +168,10 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     providerVisible: true
   },
   {
-    id: 'COMBUSTIVEL',
-    label: 'Combustível',
-    description: 'Entrega de combustível TRR (Transporte Rodoviário de Reabastecimento)',
-    icon: Fuel,
-    color: 'bg-green-100 text-green-800 border-green-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'COMPRA_ENTREGA_PECAS',
-    label: 'Compra e Entrega de Peças Agrícolas',
-    description: 'Serviço para lojas agrícolas - Busca e entrega de peças e componentes para máquinas agrícolas',
-    icon: Box,
-    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
     id: 'CONSULTORIA_TI',
     label: 'Consultoria em T.I',
     description: 'Passagem de cabos, instalação e configuração de equipamentos de internet e redes',
     icon: Wifi,
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    category: 'agricultural',
-    clientVisible: true,
-    providerVisible: true
-  },
-  {
-    id: 'CONSULTORIA_RURAL',
-    label: 'Consultoria Rural',
-    description: 'Consultoria especializada em gestão rural e produtividade',
-    icon: Users,
     color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'agricultural',
     clientVisible: true,
@@ -379,7 +339,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
   {
     id: 'CFTV_SEGURANCA',
-    label: 'Técnico em CFTV e Segurança Eletrônica',
+    label: 'CFTV e Segurança Eletrônica',
     description: 'Instalação de câmeras de segurança, sistemas de monitoramento e equipamentos de proteção eletrônica',
     icon: Camera,
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
@@ -463,7 +423,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   // ========== DUPLICATAS PARA SERVIÇOS TÉCNICOS ==========
   {
     id: 'ASSISTENCIA_TECNICA_TECH',
-    label: 'Assistência Técnica Agrícola',
+    label: 'Técnico Agrícola',
     description: 'Suporte técnico especializado para produção agrícola',
     icon: Settings,
     color: 'bg-primary/10 text-primary border-primary/20',
@@ -478,17 +438,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Sistemas elétricos para todos os tipos de autos, desde carros até máquinas agrícolas',
     icon: Car,
     color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    category: 'technical',
-    clientVisible: true,
-    providerVisible: true,
-    hideFromAllTab: true
-  },
-  {
-    id: 'CONSULTORIA_RURAL_TECH',
-    label: 'Consultoria Rural',
-    description: 'Consultoria especializada em gestão rural e produtividade',
-    icon: Users,
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'technical',
     clientVisible: true,
     providerVisible: true,
@@ -683,7 +632,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
   {
     id: 'CFTV_SEGURANCA_TECH',
-    label: 'Técnico em CFTV e Segurança Eletrônica',
+    label: 'CFTV e Segurança Eletrônica',
     description: 'Instalação de câmeras de segurança, sistemas de monitoramento e equipamentos de proteção eletrônica',
     icon: Camera,
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
@@ -754,17 +703,6 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
     description: 'Serviços de chaveiro e reparos de fechaduras',
     icon: Key,
     color: 'bg-gray-100 text-gray-800 border-gray-200',
-    category: 'urban',
-    clientVisible: true,
-    providerVisible: true,
-    hideFromAllTab: true
-  },
-  {
-    id: 'COMPRA_ENTREGA_PECAS_URB',
-    label: 'Compra e Entrega de Peças Agrícolas',
-    description: 'Compra e entrega de peças agrícolas e equipamentos',
-    icon: ShoppingCart,
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
     category: 'urban',
     clientVisible: true,
     providerVisible: true,
@@ -849,7 +787,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   },
   {
     id: 'CFTV_SEGURANCA_URB',
-    label: 'Técnico em CFTV e Segurança Eletrônica',
+    label: 'CFTV e Segurança Eletrônica',
     description: 'Instalação e manutenção de sistemas CFTV e segurança',
     icon: Camera,
     color: 'bg-red-100 text-red-800 border-red-200',
