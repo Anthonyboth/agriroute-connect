@@ -445,10 +445,6 @@ const CompanyDashboard = () => {
         userProfile={profile ? { ...profile, active_mode: 'TRANSPORTADORA' } : undefined}
       />
       
-      <div className="container mx-auto px-4 pt-4">
-        <SystemAnnouncementBanner />
-      </div>
-      
       <section className="relative py-6 overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-20 animate-fade-in"
@@ -592,6 +588,14 @@ const CompanyDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Seção Mural */}
+        <div className="container mx-auto px-4 mb-6">
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <span>📢</span> Mural
+          </h2>
+          <SystemAnnouncementBanner />
+        </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsContent value="overview" className="mt-6">

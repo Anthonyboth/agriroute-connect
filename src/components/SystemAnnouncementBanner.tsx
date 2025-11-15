@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Megaphone } from "lucide-react";
+import { X } from "lucide-react";
 
 export const SystemAnnouncementBanner = () => {
   const [announcement, setAnnouncement] = useState<{
@@ -91,44 +91,42 @@ export const SystemAnnouncementBanner = () => {
   const warningParagraph = warningIndex >= 0 ? paragraphs[warningIndex] : null;
 
   return (
-    <div className="w-full mb-4">
-      <Alert className="relative border-primary/30 bg-primary/5">
-        <Megaphone className="h-5 w-5 text-primary" />
-        <AlertTitle className="flex items-center justify-between pr-8 mb-2">
-          <span className="text-lg font-semibold">{announcement.title}</span>
+    <Card className="relative">
+      <CardContent className="pt-6">
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <h3 className="text-base font-semibold">{announcement.title}</h3>
           <Button
             variant="ghost"
             size="icon"
             onClick={handleDismiss}
-            className="absolute right-2 top-2 h-6 w-6 rounded-full hover:bg-muted"
+            className="h-7 w-7 rounded-full hover:bg-muted -mt-1"
           >
             <X className="h-4 w-4" />
           </Button>
-        </AlertTitle>
-        <AlertDescription className="space-y-3">
-          <div className="space-y-2">
-            {mainParagraphs.map((paragraph, index) => (
-              <p key={`announcement-${announcement.id}-para-${index}`} className="text-sm leading-relaxed">
-                {paragraph}
-              </p>
-            ))}
-          </div>
+        </div>
 
-          {warningParagraph && (
-            <div className="bg-amber-50 dark:bg-amber-950 border border-amber-600 dark:border-amber-800 rounded-lg p-3 mt-3">
-              <p className="text-sm text-amber-900 dark:text-amber-100 leading-relaxed font-medium whitespace-pre-line">
-                {warningParagraph}
-              </p>
-            </div>
-          )}
+        <div className="space-y-2 mb-4">
+          {mainParagraphs.map((paragraph, index) => (
+            <p key={`announcement-${announcement.id}-para-${index}`} className="text-sm leading-relaxed text-muted-foreground">
+              {paragraph}
+            </p>
+          ))}
+        </div>
 
-          <div className="flex justify-end pt-2">
-            <Button onClick={handleDismiss} size="sm">
-              Entendi
-            </Button>
+        {warningParagraph && (
+          <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md p-3 mb-4">
+            <p className="text-sm text-amber-900 dark:text-amber-100 leading-relaxed whitespace-pre-line">
+              {warningParagraph}
+            </p>
           </div>
-        </AlertDescription>
-      </Alert>
-    </div>
+        )}
+
+        <div className="flex justify-end">
+          <Button onClick={handleDismiss} size="sm" variant="secondary">
+            Entendi
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
