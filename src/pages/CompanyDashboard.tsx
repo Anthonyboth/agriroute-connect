@@ -47,7 +47,7 @@ import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { MyAssignmentCard } from '@/components/MyAssignmentCard';
 import { FRETES_IA_LABEL, AI_ABBR, AREAS_IA_LABEL } from '@/lib/ui-labels';
 import Header from '@/components/Header';
-import { SystemAnnouncementBanner } from '@/components/SystemAnnouncementBanner';
+import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import FreightLimitTracker from '@/components/FreightLimitTracker';
 import { PendingVehiclesApproval } from '@/components/PendingVehiclesApproval';
@@ -589,12 +589,12 @@ const CompanyDashboard = () => {
           </div>
         )}
 
-        {/* Seção Mural */}
+        {/* Seção Mural de Avisos */}
         <div className="container mx-auto px-4 mb-6">
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span>📢</span> Mural
+            <span>📢</span> Mural de Avisos
           </h2>
-          <SystemAnnouncementBanner />
+          <SystemAnnouncementsBoard />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
