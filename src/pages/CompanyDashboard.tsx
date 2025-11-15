@@ -121,7 +121,40 @@ const CompanyDashboard = () => {
   };
   
   const [activeTab, setActiveTab] = useState(getInitialTab());
-  const [isMuralOpen, setIsMuralOpen] = useState(true);
+  const [isMuralOpen, setIsMuralOpen] = useState(false);
+
+  useEffect(() => {
+    const dismissedAt = localStorage.getItem('mural_dismissed_at');
+    const now = new Date();
+    let timeoutId: number | undefined;
+
+    if (dismissedAt) {
+      const dismissed = new Date(dismissedAt);
+      const nextShow = new Date(dismissed);
+      nextShow.setDate(nextShow.getDate() + 1);
+      nextShow.setHours(7, 0, 0, 0);
+
+      if (now < nextShow) {
+        setIsMuralOpen(false);
+        // Programa reabertura automática às 07:00
+        timeoutId = window.setTimeout(() => {
+          localStorage.removeItem('mural_dismissed_at');
+          setIsMuralOpen(true);
+        }, nextShow.getTime() - now.getTime());
+      } else {
+        // Já passou das 07:00: limpa flag e abre
+        localStorage.removeItem('mural_dismissed_at');
+        setIsMuralOpen(true);
+      }
+    } else {
+      // Sem flag de dismiss: aberto por padrão
+      setIsMuralOpen(true);
+    }
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, []);
   
   const { isAffiliated, companyId } = useCompanyDriver();
   const { canAcceptFreights } = useDriverPermissions();
@@ -592,7 +625,7 @@ const CompanyDashboard = () => {
         <div className="container mx-auto px-4 mb-6">
           <Button
             variant="outline"
-            onClick={() => setIsMuralOpen(!isMuralOpen)}
+            onClick={() => setIsMuralOpen(true)}
             className="mb-3 flex items-center gap-2"
           >
             <span>📢</span> Mural de Avisos
