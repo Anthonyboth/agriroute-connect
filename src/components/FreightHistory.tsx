@@ -21,8 +21,11 @@ import {
   XCircle,
   AlertCircle,
   Clock,
-  RefreshCw
+  RefreshCw,
+  FileText
 } from 'lucide-react';
+import { FreightTemplatesTab } from './freight-templates/FreightTemplatesTab';
+import CreateFreightModal from './CreateFreightModal';
 import { FreightChat } from './FreightChat';
 import { getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
@@ -63,6 +66,8 @@ export const FreightHistory: React.FC = () => {
   const [showChatDialog, setShowChatDialog] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [reopening, setReopening] = useState(false);
+  const [showCreateFreightModal, setShowCreateFreightModal] = useState(false);
+  const [templateData, setTemplateData] = useState<any>(null);
 
   const handleReopenFreight = async (freightId: string) => {
     if (reopening) return;
@@ -176,6 +181,17 @@ export const FreightHistory: React.FC = () => {
     setShowChatDialog(true);
   };
 
+  const handleUseTemplate = (data: any) => {
+    setTemplateData(data);
+    setShowCreateFreightModal(true);
+  };
+
+  const handleFreightCreated = () => {
+    setShowCreateFreightModal(false);
+    setTemplateData(null);
+    fetchFreights();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -228,11 +244,28 @@ export const FreightHistory: React.FC = () => {
                 >
                   Cancelados ({freights.filter(f => f.status === 'CANCELLED').length})
                 </TabsTrigger>
+                {profile?.role === 'PRODUTOR' && (
+                  <TabsTrigger 
+                    value="templates"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
+                  >
+                    <FileText className="h-4 w-4 mr-1.5" />
+                    Modelos
+                  </TabsTrigger>
+                )}
               </TabsList>
             </div>
 
-            <TabsContent value={activeTab} className="space-y-4 mt-4">
-              {filteredFreights.length === 0 ? (
+            {activeTab === 'templates' && profile?.role === 'PRODUTOR' ? (
+              <TabsContent value="templates" className="mt-4">
+                <FreightTemplatesTab
+                  producerId={profile.id}
+                  onUseTemplate={handleUseTemplate}
+                />
+              </TabsContent>
+            ) : (
+              <TabsContent value={activeTab} className="space-y-4 mt-4">
+                {filteredFreights.length === 0 ? (
                 <div className="text-center py-12">
                   <History className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
                   <h3 className="text-lg font-semibold mb-2">Nenhum frete encontrado</h3>
@@ -361,10 +394,24 @@ export const FreightHistory: React.FC = () => {
                   );
                 })
               )}
-            </TabsContent>
+              </TabsContent>
+            )}
           </Tabs>
         </CardContent>
       </Card>
+      
+      {showCreateFreightModal && profile && (
+        <CreateFreightModal
+          onFreightCreated={handleFreightCreated}
+          userProfile={profile}
+          isOpen={showCreateFreightModal}
+          onClose={() => {
+            setShowCreateFreightModal(false);
+            setTemplateData(null);
+          }}
+          initialData={templateData}
+        />
+      )}
 
       {/* Dialog de Chat */}
       <Dialog open={showChatDialog} onOpenChange={setShowChatDialog}>

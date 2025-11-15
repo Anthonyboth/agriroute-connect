@@ -2599,6 +2599,41 @@ export type Database = {
           },
         ]
       }
+      freight_templates: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          producer_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload: Json
+          producer_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          producer_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_templates_producer_id_fkey"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freights: {
         Row: {
           accepted_by_company: boolean | null
