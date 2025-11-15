@@ -69,7 +69,7 @@ export const useDriverAffiliations = () => {
     mutationFn: async ({ companyId }: { companyId: string }) => {
       if (!profile?.id) throw new Error('Usuário não autenticado');
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('company_drivers')
         .update({
           status: 'INACTIVE',
@@ -78,9 +78,16 @@ export const useDriverAffiliations = () => {
         })
         .eq('driver_profile_id', profile.id)
         .eq('company_id', companyId)
-        .eq('status', 'ACTIVE');
+        .eq('status', 'ACTIVE')
+        .select();
       
       if (error) throw error;
+      
+      // Verificar se alguma linha foi afetada
+      if (!data || data.length === 0) {
+        throw new Error('Não foi possível sair da transportadora. Você pode já ter saído ou não tem permissão.');
+      }
+      
       return { success: true };
     },
     onSuccess: () => {
