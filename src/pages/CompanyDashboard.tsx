@@ -122,6 +122,7 @@ const CompanyDashboard = () => {
   
   const [activeTab, setActiveTab] = useState(getInitialTab());
   const [isMuralOpen, setIsMuralOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
 
   useEffect(() => {
     const dismissedAt = localStorage.getItem('mural_dismissed_at');
@@ -139,15 +140,18 @@ const CompanyDashboard = () => {
         // Programa reabertura automática às 07:00
         timeoutId = window.setTimeout(() => {
           localStorage.removeItem('mural_dismissed_at');
+          setManualOpen(false);
           setIsMuralOpen(true);
         }, nextShow.getTime() - now.getTime());
       } else {
         // Já passou das 07:00: limpa flag e abre
         localStorage.removeItem('mural_dismissed_at');
+        setManualOpen(false);
         setIsMuralOpen(true);
       }
     } else {
       // Sem flag de dismiss: aberto por padrão
+      setManualOpen(false);
       setIsMuralOpen(true);
     }
 
@@ -625,14 +629,21 @@ const CompanyDashboard = () => {
         <div className="container mx-auto px-4 mb-6">
           <Button
             variant="outline"
-            onClick={() => setIsMuralOpen(true)}
+            onClick={() => {
+              setManualOpen(true);
+              setIsMuralOpen(true);
+            }}
             className="mb-3 flex items-center gap-2"
           >
             <span>📢</span> Mural de Avisos
           </Button>
-          <SystemAnnouncementsBoard 
-            isOpen={isMuralOpen} 
-            onClose={() => setIsMuralOpen(false)} 
+          <SystemAnnouncementsBoard
+            isOpen={isMuralOpen}
+            onClose={() => {
+              setIsMuralOpen(false);
+              setManualOpen(false);
+            }}
+            ignoreDismissals={manualOpen}
           />
         </div>
 
