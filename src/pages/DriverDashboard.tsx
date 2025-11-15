@@ -50,7 +50,7 @@ import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
 import { CompanyDriverBadge } from '@/components/CompanyDriverBadge';
-import { SystemAnnouncementBanner } from '@/components/SystemAnnouncementBanner';
+import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { DriverAutoLocationTracking } from '@/components/DriverAutoLocationTracking';
 import { ManualLocationTracking } from '@/components/ManualLocationTracking';
 import { useAutoRating } from '@/hooks/useAutoRating';
@@ -1990,12 +1990,12 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           <FreightLimitTracker hideForAffiliatedDriver={true} />
         </div>
 
-        {/* Seção Mural */}
+        {/* Seção Mural de Avisos */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span>📢</span> Mural
+            <span>📢</span> Mural de Avisos
           </h2>
-          <SystemAnnouncementBanner />
+          <SystemAnnouncementsBoard />
         </div>
 
         {/* Tabs Compactas */}

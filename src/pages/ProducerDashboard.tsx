@@ -45,7 +45,7 @@ import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
 import { showErrorToast } from '@/lib/error-handler';
-import { SystemAnnouncementBanner } from '@/components/SystemAnnouncementBanner';
+import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { FreightProposalsManager } from '@/components/FreightProposalsManager';
@@ -1323,12 +1323,12 @@ const ProducerDashboard = () => {
           />
         </div>
 
-        {/* Seção Mural */}
+        {/* Seção Mural de Avisos */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span>📢</span> Mural
+            <span>📢</span> Mural de Avisos
           </h2>
-          <SystemAnnouncementBanner />
+          <SystemAnnouncementsBoard />
         </div>
 
         {/* Tabs Compactas */}

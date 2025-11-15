@@ -7,7 +7,7 @@ import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
-import { SystemAnnouncementBanner } from '@/components/SystemAnnouncementBanner';
+import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 
 const ServiceProviderDashboard = () => {
   const { profile, signOut } = useAuth();
@@ -51,12 +51,12 @@ const ServiceProviderDashboard = () => {
         <div className="container mx-auto p-4 space-y-4">
           <FreightLimitTracker hideForAffiliatedDriver={true} />
           
-          {/* Seção Mural */}
+          {/* Seção Mural de Avisos */}
           <div className="mb-6">
             <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <span>📢</span> Mural
+              <span>📢</span> Mural de Avisos
             </h2>
-            <SystemAnnouncementBanner />
+            <SystemAnnouncementsBoard />
           </div>
 
           <ServiceDashboard />
