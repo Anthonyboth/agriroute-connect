@@ -62,6 +62,7 @@ import { CompanyVehicleAssignments } from '@/components/CompanyVehicleAssignment
 import { CompanyFinancialDashboard } from '@/components/CompanyFinancialDashboard';
 import { FreightDetails } from '@/components/FreightDetails';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { ServicesModal } from '@/components/ServicesModal';
 
 // Definição de tabs
 const getCompanyTabs = (activeCount: number, chatCount: number) => [
@@ -493,6 +494,16 @@ const CompanyDashboard = () => {
                 <Truck className="mr-1 h-4 w-4" />
                 Frota
               </Button>
+              
+              <Button 
+                variant="default"
+                size="sm"
+                onClick={() => setServicesModalOpen(true)}
+                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+              >
+                <Wrench className="mr-1 h-4 w-4" />
+                Solicitar Serviços
+              </Button>
             </div>
           </div>
         </div>
@@ -776,6 +787,13 @@ const CompanyDashboard = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Solicitar Serviços */}
+      <ServicesModal
+        isOpen={servicesModalOpen}
+        onClose={() => setServicesModalOpen(false)}
+        mode="client"
+      />
     </div>
   );
 };
