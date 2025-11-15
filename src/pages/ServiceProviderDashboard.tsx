@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ServiceProviderDashboard as ServiceDashboard } from '@/components/ServiceProviderDashboard';
 import { PendingServiceRatingsPanel } from '@/components/PendingServiceRatingsPanel';
@@ -7,12 +7,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
 import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
+import { Button } from '@/components/ui/button';
 
 const ServiceProviderDashboard = () => {
   const { profile, signOut } = useAuth();
   const { unreadCount } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
+  const [isMuralOpen, setIsMuralOpen] = useState(true);
 
   const handleLogout = async () => {
     try {
@@ -48,13 +50,20 @@ const ServiceProviderDashboard = () => {
       />
       <div className="provider-theme">
         <div className="container mx-auto p-4 space-y-4">
-          {/* Seção Mural de Avisos */}
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <span>📢</span> Mural de Avisos
-            </h2>
-            <SystemAnnouncementsBoard />
-          </div>
+        {/* Botão Mural de Avisos */}
+        <div className="mb-6">
+          <Button
+            variant="outline"
+            onClick={() => setIsMuralOpen(!isMuralOpen)}
+            className="mb-3 flex items-center gap-2"
+          >
+            <span>📢</span> Mural de Avisos
+          </Button>
+          <SystemAnnouncementsBoard 
+            isOpen={isMuralOpen} 
+            onClose={() => setIsMuralOpen(false)} 
+          />
+        </div>
 
           <ServiceDashboard />
         </div>

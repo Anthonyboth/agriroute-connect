@@ -108,6 +108,7 @@ const ProducerDashboard = () => {
   const [freightToCancel, setFreightToCancel] = useState<any>(null);
   const [selectedTrackingFreight, setSelectedTrackingFreight] = useState<any>(null);
   const [selectedFreightDetails, setSelectedFreightDetails] = useState<any>(null);
+  const [isMuralOpen, setIsMuralOpen] = useState(true);
   const [deliveryConfirmationModal, setDeliveryConfirmationModal] = useState(false);
   const [freightToConfirm, setFreightToConfirm] = useState<any>(null);
   const [externalPayments, setExternalPayments] = useState<any[]>([]);
@@ -1322,12 +1323,19 @@ const ProducerDashboard = () => {
           />
         </div>
 
-        {/* Seção Mural de Avisos */}
+        {/* Botão Mural de Avisos */}
         <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsMuralOpen(!isMuralOpen)}
+            className="mb-3 flex items-center gap-2"
+          >
             <span>📢</span> Mural de Avisos
-          </h2>
-          <SystemAnnouncementsBoard />
+          </Button>
+          <SystemAnnouncementsBoard 
+            isOpen={isMuralOpen} 
+            onClose={() => setIsMuralOpen(false)} 
+          />
         </div>
 
         {/* Tabs Compactas */}
