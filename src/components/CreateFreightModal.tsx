@@ -9,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectGroup } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Loader2, Truck, Info } from 'lucide-react';
+import { Plus, Loader2, Truck, Info, Save } from 'lucide-react';
+import { SaveTemplateDialog } from './freight-templates/SaveTemplateDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ANTTValidation } from './ANTTValidation';
@@ -28,9 +29,48 @@ interface CreateFreightModalProps {
   guestMode?: boolean;
   isOpen?: boolean;
   onClose?: () => void;
+  initialData?: Partial<typeof formDataInitial>;
 }
 
-const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, isOpen: externalIsOpen, onClose: externalOnClose }: CreateFreightModalProps) => {
+const formDataInitial = {
+  cargo_type: '',
+  weight: '',
+  origin_address: '',
+  origin_city: '',
+  origin_state: '',
+  origin_city_id: undefined as string | undefined,
+  origin_lat: undefined as number | undefined,
+  origin_lng: undefined as number | undefined,
+  destination_address: '',
+  destination_city: '',
+  destination_state: '',
+  destination_city_id: undefined as string | undefined,
+  destination_lat: undefined as number | undefined,
+  destination_lng: undefined as number | undefined,
+  price: '',
+  price_per_km: '',
+  pricing_type: 'PER_KM' as 'FIXED' | 'PER_KM',
+  pickup_date: '',
+  delivery_date: '',
+  urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
+  description: '',
+  service_type: 'CARGA',
+  vehicle_type_required: '',
+  vehicle_axles_required: '',
+  high_performance: false,
+  vehicle_ownership: 'PROPRIO' as 'PROPRIO' | 'TERCEIROS',
+  pickup_observations: '',
+  delivery_observations: '',
+  payment_method: 'DIRETO',
+  required_trucks: '1',
+  visibility_filter: 'ALL' as 'ALL' | 'TRANSPORTADORAS' | 'AUTONOMOS' | 'AVALIACAO_3' | 'AVALIACAO_4',
+  guest_name: '',
+  guest_email: '',
+  guest_phone: '',
+  guest_document: ''
+};
+
+const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, isOpen: externalIsOpen, onClose: externalOnClose, initialData }: CreateFreightModalProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showAxlesSelector, setShowAxlesSelector] = useState(false);
@@ -39,43 +79,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
   const [calculatedDistance, setCalculatedDistance] = useState<number>(0);
   const [validationResult, setValidationResult] = useState<any>(null);
   const [showUserExistsWarning, setShowUserExistsWarning] = useState(false);
-  const [formData, setFormData] = useState({
-    cargo_type: '',
-    weight: '',
-    origin_address: '',
-    origin_city: '',
-    origin_state: '',
-    origin_city_id: undefined as string | undefined,
-    origin_lat: undefined as number | undefined,
-    origin_lng: undefined as number | undefined,
-    destination_address: '',
-    destination_city: '',
-    destination_state: '',
-    destination_city_id: undefined as string | undefined,
-    destination_lat: undefined as number | undefined,
-    destination_lng: undefined as number | undefined,
-    price: '',
-    price_per_km: '',
-    pricing_type: 'PER_KM' as 'FIXED' | 'PER_KM',
-    pickup_date: '',
-    delivery_date: '',
-    urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
-    description: '',
-    service_type: 'CARGA',
-    vehicle_type_required: '',
-    vehicle_axles_required: '',
-    high_performance: false,
-    vehicle_ownership: 'PROPRIO' as 'PROPRIO' | 'TERCEIROS',
-    pickup_observations: '',
-    delivery_observations: '',
-    payment_method: 'DIRETO',
-    required_trucks: '1',
-    visibility_filter: 'ALL' as 'ALL' | 'TRANSPORTADORAS' | 'AUTONOMOS' | 'AVALIACAO_3' | 'AVALIACAO_4',
-    guest_name: '',
-    guest_email: '',
-    guest_phone: '',
-    guest_document: ''
-  });
+  const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
+  const [formData, setFormData] = useState({ ...formDataInitial, ...initialData });
 
   const isModalOpen = externalIsOpen !== undefined ? externalIsOpen : open;
   const handleModalClose = () => {
@@ -83,6 +88,26 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
       externalOnClose();
     } else {
       setOpen(false);
+    }
+  };
+
+  const handleSaveAsTemplate = async (title: string) => {
+    try {
+      const { error } = await supabase
+        .from('freight_templates')
+        .insert({
+          producer_id: userProfile.id,
+          title: title,
+          payload: formData
+        });
+
+      if (error) throw error;
+
+      toast.success('Modelo salvo com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao salvar modelo:', error);
+      toast.error('Erro ao salvar modelo');
+      throw error;
     }
   };
 
@@ -662,43 +687,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
         setOpen(false);
       }
       
-      setFormData({
-        cargo_type: '',
-        weight: '',
-        origin_address: '',
-        origin_city: '',
-        origin_state: '',
-        origin_city_id: undefined,
-        origin_lat: undefined,
-        origin_lng: undefined,
-        destination_address: '',
-        destination_city: '',
-        destination_state: '',
-        destination_city_id: undefined,
-        destination_lat: undefined,
-        destination_lng: undefined,
-        price: '',
-        price_per_km: '',
-        pricing_type: 'PER_KM' as 'FIXED' | 'PER_KM',
-        pickup_date: '',
-        delivery_date: '',
-        urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
-        description: '',
-        service_type: 'CARGA',
-        vehicle_type_required: '',
-        vehicle_axles_required: '',
-        high_performance: false,
-        vehicle_ownership: 'PROPRIO' as 'PROPRIO' | 'TERCEIROS',
-        pickup_observations: '',
-        delivery_observations: '',
-        payment_method: 'DIRETO',
-        required_trucks: '1',
-        visibility_filter: 'ALL' as 'ALL' | 'TRANSPORTADORAS' | 'AUTONOMOS' | 'AVALIACAO_3' | 'AVALIACAO_4',
-        guest_name: '',
-        guest_email: '',
-        guest_phone: '',
-        guest_document: ''
-      });
+      setFormData({ ...formDataInitial });
       onFreightCreated();
     } catch (error) {
       console.error('=== ERRO NA CRIAÇÃO DO FRETE ===', error);
@@ -731,14 +720,36 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
       )}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>{guestMode ? 'Solicitar Frete Rural sem Cadastro' : 'Criar Novo Frete'}</DialogTitle>
-          <DialogDescription>
-            {guestMode 
-              ? 'Preencha os detalhes do frete. Motoristas da região serão notificados automaticamente.'
-              : 'Preencha os detalhes do frete. Motoristas qualificados na região serão notificados automaticamente.'
-            }
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <DialogTitle>{guestMode ? 'Solicitar Frete Rural sem Cadastro' : 'Criar Novo Frete'}</DialogTitle>
+              <DialogDescription>
+                {guestMode 
+                  ? 'Preencha os detalhes do frete. Motoristas da região serão notificados automaticamente.'
+                  : 'Preencha os detalhes do frete. Motoristas qualificados na região serão notificados automaticamente.'
+                }
+              </DialogDescription>
+            </div>
+            {!guestMode && userProfile?.role === 'PRODUTOR' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSaveTemplateDialog(true)}
+                className="ml-2"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Modelo
+              </Button>
+            )}
+          </div>
         </DialogHeader>
+        
+        <SaveTemplateDialog
+          open={showSaveTemplateDialog}
+          onOpenChange={setShowSaveTemplateDialog}
+          onSave={handleSaveAsTemplate}
+        />
         
         <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto max-h-[60vh] pr-2">
           {guestMode && (
