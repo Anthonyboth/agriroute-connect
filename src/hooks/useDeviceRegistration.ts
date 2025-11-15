@@ -21,7 +21,7 @@ export const useDeviceRegistration = () => {
     const checkAndRegister = async () => {
       // ✅ CRITICAL: Só executar se user E profile existirem
       if (!user || !profile) {
-        console.log('⏭️ useDeviceRegistration: Aguardando autenticação completa');
+        // Log removido para reduzir ruído
         return;
       }
       

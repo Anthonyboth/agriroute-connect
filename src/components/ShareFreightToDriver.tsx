@@ -181,8 +181,14 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
       setShowDialog(false);
       onSuccess?.();
     } catch (error: any) {
-      console.error('Erro ao compartilhar frete:', error);
-      showErrorToast(toast, 'Erro ao atribuir frete', error);
+      console.error('Erro ao compartilhar frete:', error?.message || error);
+      
+      // Tratamento específico para duplicata
+      if (error?.code === '23505' || error?.message?.includes('duplicate') || error?.message?.includes('already exists')) {
+        toast.error('Este motorista já está atribuído a este frete.');
+      } else {
+        showErrorToast(toast, 'Erro ao atribuir frete', error);
+      }
     } finally {
       setLoading(false);
     }

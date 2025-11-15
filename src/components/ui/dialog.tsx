@@ -50,35 +50,47 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     hideCloseButton?: boolean;
+    'aria-label'?: string;
   }
->(({ className, children, hideCloseButton = false, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed left-[50%] top-[50%] grid w-full max-w-lg max-h-[90vh] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
-        zIndexClasses.dialog,
-        className
-      )}
-      aria-describedby={props['aria-describedby'] || undefined}
-      {...props}
-    >
-      {children}
-      {!hideCloseButton && (
-        <DialogPrimitive.Close 
-          className={cn(
-            "absolute right-2 top-2 rounded-lg opacity-90 ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none bg-background border-2 border-red-500 hover:border-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center justify-center w-10 h-10 shadow-lg hover:scale-110",
-            zIndexClasses.dialogClose
-          )}
-        >
-          <X className="h-7 w-7 text-red-500 hover:text-red-600 font-bold stroke-[2.5]" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
-      )}
-    </DialogPrimitive.Content>
-  </DialogPortal>
-))
+>(({ className, children, hideCloseButton = false, ...props }, ref) => {
+  const hasTitle = React.Children.toArray(children).some(
+    (child) => React.isValidElement(child) && child.type === DialogTitle
+  );
+
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed left-[50%] top-[50%] grid w-full max-w-lg max-h-[90vh] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+          zIndexClasses.dialog,
+          className
+        )}
+        aria-describedby={props['aria-describedby'] || undefined}
+        {...props}
+      >
+        {!hasTitle && props['aria-label'] && (
+          <VisuallyHidden>
+            <DialogTitle>{props['aria-label']}</DialogTitle>
+          </VisuallyHidden>
+        )}
+        {children}
+        {!hideCloseButton && (
+          <DialogPrimitive.Close 
+            className={cn(
+              "absolute right-2 top-2 rounded-lg opacity-90 ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none bg-background border-2 border-red-500 hover:border-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center justify-center w-10 h-10 shadow-lg hover:scale-110",
+              zIndexClasses.dialogClose
+            )}
+          >
+            <X className="h-7 w-7 text-red-500 hover:text-red-600 font-bold stroke-[2.5]" />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        )}
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  );
+})
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({

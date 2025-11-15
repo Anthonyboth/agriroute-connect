@@ -4,8 +4,16 @@ import { toast } from 'sonner';
 let refreshInterval: NodeJS.Timeout | null = null;
 const REDIRECT_COOLDOWN_KEY = 'last_auth_redirect';
 const COOLDOWN_MS = 60000; // 60 segundos
+let isInitialized = false;
 
 export function startSessionRefresh() {
+  // Prevenir inicialização duplicada
+  if (isInitialized) {
+    return;
+  }
+  
+  isInitialized = true;
+  
   // Verificar sessão a cada 5 minutos
   refreshInterval = setInterval(async () => {
     try {
@@ -59,15 +67,13 @@ export function startSessionRefresh() {
       console.error('[SessionRefresh] Erro crítico:', err);
     }
   }, 5 * 60 * 1000); // A cada 5 minutos
-  
-  console.log('[SessionRefresh] Sistema de refresh iniciado');
 }
 
 export function stopSessionRefresh() {
   if (refreshInterval) {
     clearInterval(refreshInterval);
     refreshInterval = null;
-    console.log('[SessionRefresh] Sistema de refresh parado');
+    isInitialized = false;
   }
   
   // ✅ Limpar qualquer estado remanescente
