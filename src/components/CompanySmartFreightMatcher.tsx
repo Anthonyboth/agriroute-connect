@@ -90,72 +90,46 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
           continue;
         }
 
-        normalizedFreights.push(freight as CompatibleFreight);
-      }
-        
-        // Verificar se está disponível:
-        // 1) Status OPEN (qualquer frete aberto)
-        // 2) Status ACCEPTED mas com vagas disponíveis (multi-carreta parcialmente preenchido)
-        const isAvailable = isOpenStatus(normalizedStatus) || (normalizedStatus === 'ACCEPTED' && hasSlots);
-        
-        if (!isAvailable) {
-          if (normalizedStatus === 'ACCEPTED' && !hasSlots) {
-            discardedByNoSlots++;
-            console.log(`❌ [FRETES I.A] Frete ${freight.id.slice(0,8)} descartado: sem vagas (${acceptedTrucks}/${requiredTrucks})`);
-          } else {
-            discardedByStatus++;
-            console.log(`❌ [FRETES I.A] Frete ${freight.id.slice(0,8)} descartado: status ${freight.status} (normalizado: ${normalizedStatus})`);
-          }
-          continue;
-        }
-        
-        // ✅ Frete válido para marketplace
-        matchedFreights.push({
-            freight_id: freight.id,
-            cargo_type: freight.cargo_type,
-            weight: freight.weight,
-            origin_address: freight.origin_address,
-            destination_address: freight.destination_address,
-            origin_city: freight.origin_city,
-            origin_state: freight.origin_state,
-            destination_city: freight.destination_city,
-            destination_state: freight.destination_state,
-            pickup_date: freight.pickup_date,
-            delivery_date: freight.delivery_date,
-            price: freight.price,
-            urgency: freight.urgency,
-            status: freight.status,
-            service_type: freight.service_type || 'CARGA',
-            distance_km: freight.distance_km || 0,
-            minimum_antt_price: freight.minimum_antt_price || 0,
-            required_trucks: requiredTrucks,
-            accepted_trucks: acceptedTrucks,
-            created_at: freight.created_at
-          });
+        normalizedFreights.push({
+          freight_id: freight.id,
+          cargo_type: freight.cargo_type,
+          weight: freight.weight,
+          origin_address: freight.origin_address,
+          destination_address: freight.destination_address,
+          origin_city: freight.origin_city,
+          origin_state: freight.origin_state,
+          destination_city: freight.destination_city,
+          destination_state: freight.destination_state,
+          pickup_date: freight.pickup_date,
+          delivery_date: freight.delivery_date,
+          price: freight.price,
+          urgency: freight.urgency,
+          status: freight.status,
+          service_type: freight.service_type || 'CARGA',
+          distance_km: freight.distance_km || 0,
+          minimum_antt_price: freight.minimum_antt_price || 0,
+          required_trucks: requiredTrucks,
+          accepted_trucks: acceptedTrucks,
+          created_at: freight.created_at
+        });
       }
 
-      console.log(`✅ [FRETES I.A] ${matchedFreights.length} fretes compatíveis após filtros`);
-      console.log(`📊 [FRETES I.A] Descartados: ${discardedByStatus} por status, ${discardedByNoSlots} sem vagas`);
+      console.log(`✅ [FRETES I.A] ${normalizedFreights.length} fretes compatíveis após filtros`);
+      console.log(`📊 [FRETES I.A] Descartados: ${discardedByStatus} por status, ${discardedNoSlots} sem vagas`);
 
-      setCompatibleFreights(matchedFreights);
+      setCompatibleFreights(normalizedFreights);
       setMatchingStats({
-        total: freights.length,
-        matched: matchedFreights.length,
-        assigned: 0
+        total: freightsData?.length || 0,
+        matched: normalizedFreights.length,
+        assigned: drivers?.length || 0
       });
-
-      if (matchedFreights.length > 0) {
-        toast.success(`${matchedFreights.length} fretes disponíveis no marketplace!`);
-      } else {
-        toast.info('Nenhum frete compatível encontrado no momento.');
-      }
     } catch (error: any) {
       console.error('Erro ao buscar fretes compatíveis:', error);
       toast.error('Erro ao carregar fretes compatíveis');
     } finally {
       setLoading(false);
     }
-  };
+  }, [company?.id, drivers?.length]);
 
   const handleAssignFreight = async (freightId: string, driverId: string) => {
     try {
