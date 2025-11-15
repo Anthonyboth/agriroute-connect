@@ -242,6 +242,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
+                  data-testid="search-freights-input"
                   placeholder="Buscar por origem, destino ou carga..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -250,6 +251,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
               </div>
 
               <Button
+                data-testid="refresh-freights-button"
                 variant="outline"
                 onClick={fetchCompatibleFreights}
                 disabled={loading}
@@ -268,7 +270,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
             {/* Filtro de Tipo de Carga */}
             <div className="w-full md:w-80">
               <Select value={selectedCargoType} onValueChange={setSelectedCargoType}>
-                <SelectTrigger>
+                <SelectTrigger data-testid="cargo-type-filter">
                   <SelectValue placeholder="Selecione o tipo de carga" />
                 </SelectTrigger>
                 <SelectContent>
@@ -306,7 +308,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
           </div>
 
           {/* Estatísticas de Matching */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div data-testid="matching-stats" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="text-center p-4 bg-primary/5 rounded-lg">
               <div className="text-2xl font-bold text-primary">{matchingStats.total}</div>
               <div className="text-sm text-muted-foreground">Fretes Disponíveis</div>

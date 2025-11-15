@@ -303,7 +303,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   };
 
   return (
-    <Card className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60">
+    <Card data-testid="freight-card" className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60">
       <CardHeader className="pb-2 flex-shrink-0">
         <div className="flex flex-col space-y-2">
           <div className="flex items-center justify-between">
@@ -317,7 +317,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               <Badge variant={urgencyVariant} className="text-xs font-medium">
                 {urgencyLabel}
               </Badge>
-              <Badge variant={getFreightStatusVariant(freight.status)} className="text-xs font-medium">
+              <Badge data-testid="freight-status-badge" variant={getFreightStatusVariant(freight.status)} className="text-xs font-medium">
                 {getFreightStatusLabel(freight.status)}
               </Badge>
               {showAvailableSlots && freight.required_trucks && freight.required_trucks > 1 && (
