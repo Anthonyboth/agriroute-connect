@@ -60,15 +60,13 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     try {
       console.log('🔍 [FRETES I.A] Buscando fretes para company:', company.id);
       
-      // Query mais restrita: buscar apenas fretes realmente disponíveis
+      // Query simplificada: apenas colunas de freights, sem joins com profiles
       const { data: freightsData, error: freightsError } = await supabase
         .from('freights')
         .select(`
           id, cargo_type, weight, origin_address, destination_address, origin_city, origin_state,
           destination_city, destination_state, pickup_date, delivery_date, price, urgency, status,
-          distance_km, minimum_antt_price, service_type, required_trucks, accepted_trucks, created_at,
-          producer:profiles!freights_producer_id_fkey(nome_completo, phone, email),
-          driver:profiles!freights_driver_id_fkey(nome_completo, phone)
+          distance_km, minimum_antt_price, service_type, required_trucks, accepted_trucks, created_at
         `)
         .is('company_id', null)
         .in('status', ['OPEN', 'ACCEPTED', 'IN_NEGOTIATION'])
@@ -84,22 +82,26 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       let discardedNoSlots = 0;
 
       for (const freight of freightsData || []) {
+        // Garantir que ID existe antes de usar substring
+        const idSafe = typeof freight.id === 'string' ? freight.id : '';
+        
         // Verificar se o status é realmente aberto
         const normalizedStatus = normalizeFreightStatus(freight.status);
         const isOpen = isOpenStatus(normalizedStatus);
         
         if (!isOpen) {
-          console.log(`❌ [FRETES I.A] Frete ${freight.id.substring(0, 8)} descartado: status ${freight.status} não está aberto`);
+          console.log(`❌ [FRETES I.A] Frete ${idSafe.substring(0, 8)} descartado: status ${freight.status} não está aberto`);
           discardedByStatus++;
           continue;
         }
 
-        const requiredTrucks = freight.required_trucks || 1;
-        const acceptedTrucks = freight.accepted_trucks || 0;
+        // Verificar se tem vagas disponíveis com fallback seguro
+        const requiredTrucks = Number(freight.required_trucks ?? 1);
+        const acceptedTrucks = Number(freight.accepted_trucks ?? 0);
         const hasAvailableSlots = acceptedTrucks < requiredTrucks;
 
         if (!hasAvailableSlots) {
-          console.log(`❌ [FRETES I.A] Frete ${freight.id.substring(0, 8)} descartado: sem vagas (${acceptedTrucks}/${requiredTrucks})`);
+          console.log(`❌ [FRETES I.A] Frete ${idSafe.substring(0, 8)} descartado: sem vagas (${acceptedTrucks}/${requiredTrucks})`);
           discardedNoSlots++;
           continue;
         }
@@ -146,7 +148,9 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         code: error?.code,
         raw: error
       });
-      toast.error('Erro ao carregar fretes compatíveis');
+      toast.error(error?.message || 'Erro ao carregar fretes compatíveis');
+      setCompatibleFreights([]);
+      setMatchingStats({ total: 0, matched: 0, assigned: 0 });
     } finally {
       setLoading(false);
     }
@@ -192,13 +196,15 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
   // Filtrar fretes (disponibilidade já garantida na normalização)
   const filteredFreights = compatibleFreights.filter(freight => {
-    const matchesSearch = !searchTerm || 
-      freight.cargo_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      freight.origin_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      freight.destination_address.toLowerCase().includes(searchTerm.toLowerCase());
-
+    // Busca textual com fallback para strings vazias
+    const matchesSearch = !searchTerm ||
+      (freight.cargo_type || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (freight.origin_address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (freight.destination_address || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
     const matchesCargoType = selectedCargoType === 'all' || freight.cargo_type === selectedCargoType;
-
+    
+    // Disponibilidade (status + vagas) já garantida na normalização
     return matchesSearch && matchesCargoType;
   });
 
