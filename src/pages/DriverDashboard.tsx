@@ -50,7 +50,7 @@ import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
 import { CompanyDriverBadge } from '@/components/CompanyDriverBadge';
-import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
+import { SystemAnnouncementBanner } from '@/components/SystemAnnouncementBanner';
 import { DriverAutoLocationTracking } from '@/components/DriverAutoLocationTracking';
 import { ManualLocationTracking } from '@/components/ManualLocationTracking';
 import { useAutoRating } from '@/hooks/useAutoRating';
@@ -1832,17 +1832,20 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   return (
     <PageDOMErrorBoundary>
       <div className="min-h-screen bg-background">
-        <SystemAnnouncementModal />
-      <Header
-        user={{ 
-          name: profile?.full_name || (profile?.active_mode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista'), 
-          role: 'MOTORISTA' 
-        }}
-        onMenuClick={handleMenuClick}
-        onLogout={handleLogout}
-        userProfile={profile}
-        notifications={unreadCount}
-      />
+        <Header
+          user={{ 
+            name: profile?.full_name || (profile?.active_mode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista'), 
+            role: 'MOTORISTA' 
+          }}
+          onMenuClick={handleMenuClick}
+          onLogout={handleLogout}
+          userProfile={profile}
+          notifications={unreadCount}
+        />
+
+      <div className="container mx-auto px-4 pt-4">
+        <SystemAnnouncementBanner />
+      </div>
 
       {/* Hero Section Compacto */}
       <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">

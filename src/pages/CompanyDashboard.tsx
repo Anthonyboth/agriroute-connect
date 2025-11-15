@@ -47,7 +47,7 @@ import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { MyAssignmentCard } from '@/components/MyAssignmentCard';
 import { FRETES_IA_LABEL, AI_ABBR, AREAS_IA_LABEL } from '@/lib/ui-labels';
 import Header from '@/components/Header';
-import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
+import { SystemAnnouncementBanner } from '@/components/SystemAnnouncementBanner';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import FreightLimitTracker from '@/components/FreightLimitTracker';
 import { PendingVehiclesApproval } from '@/components/PendingVehiclesApproval';
@@ -439,12 +439,15 @@ const CompanyDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <SystemAnnouncementModal />
       <Header
         user={profile ? { ...profile, name: profile.full_name, role: profile.role as any } : undefined} 
         onLogout={signOut}
         userProfile={profile ? { ...profile, active_mode: 'TRANSPORTADORA' } : undefined}
       />
+      
+      <div className="container mx-auto px-4 pt-4">
+        <SystemAnnouncementBanner />
+      </div>
       
       <section className="relative py-6 overflow-hidden">
         <div 

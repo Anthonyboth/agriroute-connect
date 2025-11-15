@@ -7,7 +7,7 @@ import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
-import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
+import { SystemAnnouncementBanner } from '@/components/SystemAnnouncementBanner';
 
 const ServiceProviderDashboard = () => {
   const { profile, signOut } = useAuth();
@@ -40,7 +40,6 @@ const ServiceProviderDashboard = () => {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 dark:to-primary/5">
-      <SystemAnnouncementModal />
       <Header
         user={{ name: profile?.full_name || 'Prestador de Serviços', role: 'PRESTADOR_SERVICOS' }}
         onMenuClick={handleMenuClick}
@@ -50,6 +49,7 @@ const ServiceProviderDashboard = () => {
       />
       <div className="provider-theme">
         <div className="container mx-auto p-4 space-y-4">
+          <SystemAnnouncementBanner />
           <FreightLimitTracker hideForAffiliatedDriver={true} />
           <ServiceDashboard />
         </div>

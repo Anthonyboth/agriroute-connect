@@ -44,7 +44,6 @@ export const FreightWithdrawalModal = lazy(() => import('@/components/FreightWit
 export const TrackingConsentModal = lazy(() => import('@/components/TrackingConsentModal').then(m => ({ default: m.TrackingConsentModal })));
 export const FreightCheckinsViewer = lazy(() => import('@/components/FreightCheckinsViewer'));
 export const AutoRatingModal = lazy(() => import('@/components/AutoRatingModal').then(m => ({ default: m.AutoRatingModal })));
-export const SystemAnnouncementModal = lazy(() => import('@/components/SystemAnnouncementModal').then(m => ({ default: m.SystemAnnouncementModal })));
 
 // Chat Components
 export const UnifiedChatHub = lazy(() => import('@/components/UnifiedChatHub').then(m => ({ default: m.UnifiedChatHub })));

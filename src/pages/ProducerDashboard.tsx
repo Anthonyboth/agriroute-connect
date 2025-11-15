@@ -45,7 +45,7 @@ import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
 import { showErrorToast } from '@/lib/error-handler';
-import { SystemAnnouncementModal } from '@/components/SystemAnnouncementModal';
+import { SystemAnnouncementBanner } from '@/components/SystemAnnouncementBanner';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { FreightProposalsManager } from '@/components/FreightProposalsManager';
@@ -1197,7 +1197,6 @@ const ProducerDashboard = () => {
 
   return (
     <div className="h-screen bg-gradient-to-br from-background via-secondary/5 to-background overflow-x-hidden overflow-y-auto">
-      <SystemAnnouncementModal />
       <Header
         user={{ name: profile?.full_name || 'Usuário', role: (profile?.role as 'PRODUTOR' | 'MOTORISTA') || 'PRODUTOR' }}
         onLogout={handleLogout}
@@ -1205,6 +1204,10 @@ const ProducerDashboard = () => {
         userProfile={profile}
         notifications={unreadCount}
       />
+      
+      <div className="container mx-auto px-4 pt-4">
+        <SystemAnnouncementBanner />
+      </div>
       
       {/* Hero Section Compacta */}
       <section 
