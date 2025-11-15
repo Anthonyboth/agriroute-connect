@@ -3111,6 +3111,423 @@ export type Database = {
         }
         Relationships: []
       }
+      mdfe_condutores: {
+        Row: {
+          cpf: string
+          created_at: string
+          driver_id: string | null
+          id: string
+          mdfe_id: string
+          nome: string
+        }
+        Insert: {
+          cpf: string
+          created_at?: string
+          driver_id?: string | null
+          id?: string
+          mdfe_id: string
+          nome: string
+        }
+        Update: {
+          cpf?: string
+          created_at?: string
+          driver_id?: string | null
+          id?: string
+          mdfe_id?: string
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdfe_condutores_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdfe_condutores_mdfe_id_fkey"
+            columns: ["mdfe_id"]
+            isOneToOne: false
+            referencedRelation: "mdfe_manifestos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdfe_config: {
+        Row: {
+          auto_close_on_delivery: boolean
+          auto_emit_on_acceptance: boolean
+          bairro: string | null
+          cep: string | null
+          cnpj: string | null
+          company_id: string | null
+          created_at: string
+          id: string
+          inscricao_estadual: string | null
+          logradouro: string | null
+          municipio_codigo: string | null
+          municipio_nome: string | null
+          nome_fantasia: string | null
+          numero: string | null
+          razao_social: string | null
+          rntrc: string | null
+          serie_mdfe: string
+          telefone: string | null
+          uf: string | null
+          ultimo_numero_mdfe: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          auto_close_on_delivery?: boolean
+          auto_emit_on_acceptance?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cnpj?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          inscricao_estadual?: string | null
+          logradouro?: string | null
+          municipio_codigo?: string | null
+          municipio_nome?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          razao_social?: string | null
+          rntrc?: string | null
+          serie_mdfe?: string
+          telefone?: string | null
+          uf?: string | null
+          ultimo_numero_mdfe?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          auto_close_on_delivery?: boolean
+          auto_emit_on_acceptance?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cnpj?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          inscricao_estadual?: string | null
+          logradouro?: string | null
+          municipio_codigo?: string | null
+          municipio_nome?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          razao_social?: string | null
+          rntrc?: string | null
+          serie_mdfe?: string
+          telefone?: string | null
+          uf?: string | null
+          ultimo_numero_mdfe?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdfe_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdfe_config_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdfe_documentos: {
+        Row: {
+          chave_acesso: string
+          created_at: string
+          id: string
+          mdfe_id: string
+          numero_documento: string
+          peso_kg: number | null
+          serie_documento: string
+          tipo_documento: Database["public"]["Enums"]["mdfe_documento_tipo"]
+          tipo_unidade: string | null
+          unidade_medida: string | null
+          valor: number
+        }
+        Insert: {
+          chave_acesso: string
+          created_at?: string
+          id?: string
+          mdfe_id: string
+          numero_documento: string
+          peso_kg?: number | null
+          serie_documento: string
+          tipo_documento: Database["public"]["Enums"]["mdfe_documento_tipo"]
+          tipo_unidade?: string | null
+          unidade_medida?: string | null
+          valor: number
+        }
+        Update: {
+          chave_acesso?: string
+          created_at?: string
+          id?: string
+          mdfe_id?: string
+          numero_documento?: string
+          peso_kg?: number | null
+          serie_documento?: string
+          tipo_documento?: Database["public"]["Enums"]["mdfe_documento_tipo"]
+          tipo_unidade?: string | null
+          unidade_medida?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdfe_documentos_mdfe_id_fkey"
+            columns: ["mdfe_id"]
+            isOneToOne: false
+            referencedRelation: "mdfe_manifestos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdfe_logs: {
+        Row: {
+          created_at: string
+          id: string
+          mdfe_id: string
+          mensagem_sefaz: string | null
+          observacao: string | null
+          status_code: string | null
+          sucesso: boolean
+          tipo_operacao: string
+          user_id: string | null
+          xml_enviado: string | null
+          xml_resposta: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mdfe_id: string
+          mensagem_sefaz?: string | null
+          observacao?: string | null
+          status_code?: string | null
+          sucesso?: boolean
+          tipo_operacao: string
+          user_id?: string | null
+          xml_enviado?: string | null
+          xml_resposta?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mdfe_id?: string
+          mensagem_sefaz?: string | null
+          observacao?: string | null
+          status_code?: string | null
+          sucesso?: boolean
+          tipo_operacao?: string
+          user_id?: string | null
+          xml_enviado?: string | null
+          xml_resposta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdfe_logs_mdfe_id_fkey"
+            columns: ["mdfe_id"]
+            isOneToOne: false
+            referencedRelation: "mdfe_manifestos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdfe_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdfe_manifestos: {
+        Row: {
+          chave_acesso: string
+          cne_test: string | null
+          company_id: string | null
+          created_at: string
+          dacte_url: string | null
+          data_autorizacao: string | null
+          data_emissao: string
+          data_encerramento: string | null
+          emitted_by_id: string
+          emitter_type: Database["public"]["Enums"]["mdfe_emitter_type"]
+          freight_id: string
+          id: string
+          modo_emissao: Database["public"]["Enums"]["mdfe_modo_emissao"]
+          motivo_cancelamento: string | null
+          municipio_carregamento_codigo: string
+          municipio_carregamento_nome: string
+          municipio_descarregamento_codigo: string
+          municipio_descarregamento_nome: string
+          numero_mdfe: string
+          observacoes: string | null
+          peso_bruto_kg: number
+          protocolo_autorizacao: string | null
+          serie: string
+          status: Database["public"]["Enums"]["mdfe_status"]
+          uf_fim: string
+          uf_inicio: string
+          updated_at: string
+          valor_carga: number
+          xml_assinado: string | null
+          xml_contingencia: string | null
+        }
+        Insert: {
+          chave_acesso: string
+          cne_test?: string | null
+          company_id?: string | null
+          created_at?: string
+          dacte_url?: string | null
+          data_autorizacao?: string | null
+          data_emissao?: string
+          data_encerramento?: string | null
+          emitted_by_id: string
+          emitter_type: Database["public"]["Enums"]["mdfe_emitter_type"]
+          freight_id: string
+          id?: string
+          modo_emissao?: Database["public"]["Enums"]["mdfe_modo_emissao"]
+          motivo_cancelamento?: string | null
+          municipio_carregamento_codigo: string
+          municipio_carregamento_nome: string
+          municipio_descarregamento_codigo: string
+          municipio_descarregamento_nome: string
+          numero_mdfe: string
+          observacoes?: string | null
+          peso_bruto_kg: number
+          protocolo_autorizacao?: string | null
+          serie?: string
+          status?: Database["public"]["Enums"]["mdfe_status"]
+          uf_fim: string
+          uf_inicio: string
+          updated_at?: string
+          valor_carga: number
+          xml_assinado?: string | null
+          xml_contingencia?: string | null
+        }
+        Update: {
+          chave_acesso?: string
+          cne_test?: string | null
+          company_id?: string | null
+          created_at?: string
+          dacte_url?: string | null
+          data_autorizacao?: string | null
+          data_emissao?: string
+          data_encerramento?: string | null
+          emitted_by_id?: string
+          emitter_type?: Database["public"]["Enums"]["mdfe_emitter_type"]
+          freight_id?: string
+          id?: string
+          modo_emissao?: Database["public"]["Enums"]["mdfe_modo_emissao"]
+          motivo_cancelamento?: string | null
+          municipio_carregamento_codigo?: string
+          municipio_carregamento_nome?: string
+          municipio_descarregamento_codigo?: string
+          municipio_descarregamento_nome?: string
+          numero_mdfe?: string
+          observacoes?: string | null
+          peso_bruto_kg?: number
+          protocolo_autorizacao?: string | null
+          serie?: string
+          status?: Database["public"]["Enums"]["mdfe_status"]
+          uf_fim?: string
+          uf_inicio?: string
+          updated_at?: string
+          valor_carga?: number
+          xml_assinado?: string | null
+          xml_contingencia?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdfe_manifestos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdfe_manifestos_emitted_by_id_fkey"
+            columns: ["emitted_by_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdfe_manifestos_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdfe_veiculos: {
+        Row: {
+          capacidade_kg: number
+          created_at: string
+          id: string
+          mdfe_id: string
+          placa: string
+          renavam: string
+          tara: number
+          tipo_carroceria: string
+          tipo_proprietario: Database["public"]["Enums"]["mdfe_tipo_proprietario"]
+          tipo_rodado: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          capacidade_kg: number
+          created_at?: string
+          id?: string
+          mdfe_id: string
+          placa: string
+          renavam: string
+          tara: number
+          tipo_carroceria: string
+          tipo_proprietario?: Database["public"]["Enums"]["mdfe_tipo_proprietario"]
+          tipo_rodado: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          capacidade_kg?: number
+          created_at?: string
+          id?: string
+          mdfe_id?: string
+          placa?: string
+          renavam?: string
+          tara?: number
+          tipo_carroceria?: string
+          tipo_proprietario?: Database["public"]["Enums"]["mdfe_tipo_proprietario"]
+          tipo_rodado?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdfe_veiculos_mdfe_id_fkey"
+            columns: ["mdfe_id"]
+            isOneToOne: false
+            referencedRelation: "mdfe_manifestos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdfe_veiculos_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           chat_messages_enabled: boolean | null
@@ -7386,6 +7803,16 @@ export type Database = {
         | "LOADED"
         | "DELIVERED_PENDING_CONFIRMATION"
         | "COMPLETED"
+      mdfe_documento_tipo: "NFE" | "CTE" | "NFCE"
+      mdfe_emitter_type: "PRODUCER" | "DRIVER" | "COMPANY"
+      mdfe_modo_emissao: "NORMAL" | "CONTINGENCIA_FSDA"
+      mdfe_status:
+        | "PENDENTE"
+        | "AUTORIZADO"
+        | "ENCERRADO"
+        | "CANCELADO"
+        | "CONTINGENCIA"
+      mdfe_tipo_proprietario: "PROPRIO" | "TERCEIRO"
       payment_method: "PIX" | "BOLETO" | "CARTAO" | "DIRETO"
       plan_type: "free" | "essential" | "professional"
       provider_service_type:
@@ -7617,6 +8044,17 @@ export const Constants = {
         "DELIVERED_PENDING_CONFIRMATION",
         "COMPLETED",
       ],
+      mdfe_documento_tipo: ["NFE", "CTE", "NFCE"],
+      mdfe_emitter_type: ["PRODUCER", "DRIVER", "COMPANY"],
+      mdfe_modo_emissao: ["NORMAL", "CONTINGENCIA_FSDA"],
+      mdfe_status: [
+        "PENDENTE",
+        "AUTORIZADO",
+        "ENCERRADO",
+        "CANCELADO",
+        "CONTINGENCIA",
+      ],
+      mdfe_tipo_proprietario: ["PROPRIO", "TERCEIRO"],
       payment_method: ["PIX", "BOLETO", "CARTAO", "DIRETO"],
       plan_type: ["free", "essential", "professional"],
       provider_service_type: [
