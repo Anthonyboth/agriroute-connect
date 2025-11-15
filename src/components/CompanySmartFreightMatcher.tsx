@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +36,11 @@ interface CompatibleFreight {
   created_at: string;
 }
 
-export const CompanySmartFreightMatcher: React.FC = () => {
+interface CompanySmartFreightMatcherProps {
+  onTabChange?: (tab: string) => void;
+}
+
+export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProps> = ({ onTabChange }) => {
   const { profile } = useAuth();
   const { drivers, company } = useTransportCompany();
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
@@ -45,58 +49,49 @@ export const CompanySmartFreightMatcher: React.FC = () => {
   const [selectedCargoType, setSelectedCargoType] = useState<string>('all');
   const [matchingStats, setMatchingStats] = useState({ total: 0, matched: 0, assigned: 0 });
 
-  useEffect(() => {
-    if (company?.id) {
-      fetchCompatibleFreights();
-    }
-  }, [company]);
-
-  const fetchCompatibleFreights = async () => {
+  const fetchCompatibleFreights = useCallback(async () => {
     if (!company?.id) return;
 
     setLoading(true);
     try {
       console.log('🔍 [FRETES I.A] Buscando fretes para company:', company.id);
       
-      // Buscar fretes do MARKETPLACE (sem company_id atribuído)
-      // Status válidos no enum: OPEN, ACCEPTED, IN_NEGOTIATION
-      const { data: freights, error } = await supabase
+      // Query mais restrita: buscar apenas fretes realmente disponíveis
+      const { data: freightsData, error: freightsError } = await supabase
         .from('freights')
-        .select('*')
+        .select(`
+          id, cargo_type, weight, origin_address, destination_address, origin_city, origin_state,
+          destination_city, destination_state, pickup_date, delivery_date, price, urgency, status,
+          distance_km, minimum_antt_price, service_type, required_trucks, accepted_trucks, created_at,
+          producer:profiles!freights_producer_id_fkey(nome_completo, phone, email),
+          driver:profiles!freights_driver_id_fkey(nome_completo, phone)
+        `)
         .is('company_id', null)
-        .in('status', ['OPEN', 'ACCEPTED', 'IN_NEGOTIATION'] as const)
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .or('status.eq.OPEN,and(status.eq.ACCEPTED,accepted_trucks.lt.required_trucks),status.eq.IN_NEGOTIATION')
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      console.log(`📦 [FRETES I.A] ${freights?.length || 0} fretes retornados do banco`);
-      
-      if (!freights || freights.length === 0) {
-        console.warn('⚠️ [FRETES I.A] Nenhum frete encontrado no banco');
-        toast.info('Nenhum frete disponível no momento');
-        setCompatibleFreights([]);
-        setMatchingStats({ total: 0, matched: 0, assigned: 0 });
-        setLoading(false);
-        return;
-      }
+      if (freightsError) throw freightsError;
 
-      // Normalizar status e filtrar (considerar multi-carreta)
-      const matchedFreights: CompatibleFreight[] = [];
+      console.log('📦 [FRETES I.A] ' + (freightsData?.length || 0) + ' fretes retornados do banco');
+
+      // Filtrar fretes com vagas disponíveis
+      const normalizedFreights: CompatibleFreight[] = [];
       let discardedByStatus = 0;
-      let discardedByNoSlots = 0;
-      
-      for (const freight of freights) {
-        // Skip invalid freights
-        if (!freight || !freight.id) continue;
-        
-        // Normalizar status
-        const normalizedStatus = normalizeFreightStatus(freight.status);
-        
-        // Calcular vagas disponíveis (para multi-carreta)
+      let discardedNoSlots = 0;
+
+      for (const freight of freightsData || []) {
         const requiredTrucks = freight.required_trucks || 1;
         const acceptedTrucks = freight.accepted_trucks || 0;
-        const hasSlots = requiredTrucks > acceptedTrucks;
+        const hasAvailableSlots = acceptedTrucks < requiredTrucks;
+
+        if (!hasAvailableSlots) {
+          console.log(`❌ [FRETES I.A] Frete ${freight.id.substring(0, 8)} descartado: sem vagas (${acceptedTrucks}/${requiredTrucks})`);
+          discardedNoSlots++;
+          continue;
+        }
+
+        normalizedFreights.push(freight as CompatibleFreight);
+      }
         
         // Verificar se está disponível:
         // 1) Status OPEN (qualquer frete aberto)

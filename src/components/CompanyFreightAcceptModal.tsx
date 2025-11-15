@@ -22,6 +22,7 @@ interface CompanyFreightAcceptModalProps {
   driverName: string;
   companyOwnerId: string;
   companyId: string;
+  onUnavailable?: () => void;
 }
 
 export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps> = ({
@@ -31,7 +32,8 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
   driverId,
   driverName,
   companyOwnerId,
-  companyId
+  companyId,
+  onUnavailable
 }) => {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'accept' | 'counter'>('accept');
@@ -50,6 +52,7 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
 
       if (currentFreight?.status !== 'OPEN') {
         toast.error('Este frete não está mais disponível');
+        onUnavailable?.();
         onClose();
         return;
       }

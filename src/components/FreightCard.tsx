@@ -62,6 +62,7 @@ interface FreightCardProps {
   canAcceptFreights?: boolean;
   isAffiliatedDriver?: boolean;
   driverCompanyId?: string;
+  onUnavailable?: () => void;
 }
 
 export const FreightCard: React.FC<FreightCardProps> = ({ 
@@ -72,7 +73,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   hidePrice = false,
   canAcceptFreights = true,
   isAffiliatedDriver = false,
-  driverCompanyId
+  driverCompanyId,
+  onUnavailable
 }) => {
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [bulkAcceptorOpen, setBulkAcceptorOpen] = useState(false);
