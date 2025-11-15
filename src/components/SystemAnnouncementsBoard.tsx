@@ -16,9 +16,10 @@ type Announcement = {
 interface SystemAnnouncementsBoardProps {
   isOpen: boolean;
   onClose: () => void;
+  ignoreDismissals?: boolean;
 }
 
-export const SystemAnnouncementsBoard = ({ isOpen, onClose }: SystemAnnouncementsBoardProps) => {
+export const SystemAnnouncementsBoard = ({ isOpen, onClose, ignoreDismissals = false }: SystemAnnouncementsBoardProps) => {
   const [visibleAnnouncements, setVisibleAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
@@ -43,11 +44,28 @@ export const SystemAnnouncementsBoard = ({ isOpen, onClose }: SystemAnnouncement
         return;
       }
 
-      // Buscar dismissals do usuário
+      // Se abertura manual, ignorar dismissals
+      if (ignoreDismissals) {
+        if (mounted) {
+          setVisibleAnnouncements(announcements);
+        }
+        return;
+      }
+
+      // Calcular cutoff (últimas 07:00)
+      const now = new Date();
+      const cutoff = new Date(now);
+      cutoff.setHours(7, 0, 0, 0);
+      if (now < cutoff) {
+        cutoff.setDate(cutoff.getDate() - 1);
+      }
+
+      // Buscar dismissals do ciclo atual (após cutoff)
       const { data: dismissals } = await supabase
         .from("user_announcement_dismissals")
         .select("announcement_id")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .gte("dismissed_at", cutoff.toISOString());
 
       const dismissedIds = new Set((dismissals || []).map(d => d.announcement_id));
       const filtered = announcements.filter(a => !dismissedIds.has(a.id));
@@ -62,7 +80,7 @@ export const SystemAnnouncementsBoard = ({ isOpen, onClose }: SystemAnnouncement
     return () => {
       mounted = false;
     };
-  }, [isOpen]);
+  }, [isOpen, ignoreDismissals]);
 
   const handleDismissAll = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -99,18 +117,20 @@ export const SystemAnnouncementsBoard = ({ isOpen, onClose }: SystemAnnouncement
   const otherAnnouncements = visibleAnnouncements.filter(a => a.type !== 'success');
 
   return (
-    <Card className="relative">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleDismissAll}
-        aria-label="Fechar mural"
-        className="absolute top-3 right-3 z-10 h-8 w-8 rounded-full hover:bg-muted"
-      >
-        <X className="h-5 w-5" />
-      </Button>
+    <Card className="overflow-hidden">
+      <div className="flex justify-end p-2 border-b">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleDismissAll}
+          aria-label="Fechar mural"
+          className="h-8 w-8 rounded-full hover:bg-muted"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
 
-      <CardContent className="pt-6 space-y-4">
+      <CardContent className="pt-4 space-y-4">
         {/* Palavras da Salvação - Box Verde no topo */}
         {salvationAnnouncement && (
           <div className="bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-md p-4">

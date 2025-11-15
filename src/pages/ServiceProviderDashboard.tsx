@@ -15,6 +15,7 @@ const ServiceProviderDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMuralOpen, setIsMuralOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
 
   useEffect(() => {
     const dismissedAt = localStorage.getItem('mural_dismissed_at');
@@ -32,15 +33,18 @@ const ServiceProviderDashboard = () => {
         // Programa reabertura automática às 07:00
         timeoutId = window.setTimeout(() => {
           localStorage.removeItem('mural_dismissed_at');
+          setManualOpen(false);
           setIsMuralOpen(true);
         }, nextShow.getTime() - now.getTime());
       } else {
         // Já passou das 07:00: limpa flag e abre
         localStorage.removeItem('mural_dismissed_at');
+        setManualOpen(false);
         setIsMuralOpen(true);
       }
     } else {
       // Sem flag de dismiss: aberto por padrão
+      setManualOpen(false);
       setIsMuralOpen(true);
     }
 
@@ -85,17 +89,24 @@ const ServiceProviderDashboard = () => {
         <div className="container mx-auto p-4 space-y-4">
         {/* Botão Mural de Avisos */}
         <div className="mb-6">
-          <Button
-            variant="outline"
-            onClick={() => setIsMuralOpen(true)}
-            className="mb-3 flex items-center gap-2"
-          >
-            <span>📢</span> Mural de Avisos
-          </Button>
-          <SystemAnnouncementsBoard 
-            isOpen={isMuralOpen} 
-            onClose={() => setIsMuralOpen(false)} 
-          />
+        <Button
+          variant="outline"
+          onClick={() => {
+            setManualOpen(true);
+            setIsMuralOpen(true);
+          }}
+          className="mb-3 flex items-center gap-2"
+        >
+          <span>📢</span> Mural de Avisos
+        </Button>
+        <SystemAnnouncementsBoard
+          isOpen={isMuralOpen}
+          onClose={() => {
+            setIsMuralOpen(false);
+            setManualOpen(false);
+          }}
+          ignoreDismissals={manualOpen}
+        />
         </div>
 
           <ServiceDashboard />
