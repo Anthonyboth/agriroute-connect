@@ -22,31 +22,13 @@ export const SystemAnnouncementsBoard = ({ isOpen, onClose }: SystemAnnouncement
   const [visibleAnnouncements, setVisibleAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
+    if (!isOpen) return;
+    
     let mounted = true;
 
     const fetchAnnouncements = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      // Verificar se o mural foi dispensado e se já passou das 07:00 do dia seguinte
-      const dismissedAt = localStorage.getItem('mural_dismissed_at');
-      if (dismissedAt) {
-        const dismissed = new Date(dismissedAt);
-        const now = new Date();
-        
-        // Calcular próximo horário de exibição: 07:00 do dia seguinte
-        const nextShow = new Date(dismissed);
-        nextShow.setDate(nextShow.getDate() + 1);
-        nextShow.setHours(7, 0, 0, 0);
-        
-        // Se ainda não chegou às 07:00 do dia seguinte, não mostrar
-        if (now < nextShow) {
-          return;
-        }
-        
-        // Se já passou, limpar o flag
-        localStorage.removeItem('mural_dismissed_at');
-      }
 
       // Buscar todos os anúncios ativos
       const { data: announcements } = await supabase
@@ -56,7 +38,10 @@ export const SystemAnnouncementsBoard = ({ isOpen, onClose }: SystemAnnouncement
         .order("priority", { ascending: false })
         .order("created_at", { ascending: false });
 
-      if (!announcements || announcements.length === 0) return;
+      if (!announcements || announcements.length === 0) {
+        if (mounted) setVisibleAnnouncements([]);
+        return;
+      }
 
       // Buscar dismissals do usuário
       const { data: dismissals } = await supabase
@@ -77,7 +62,7 @@ export const SystemAnnouncementsBoard = ({ isOpen, onClose }: SystemAnnouncement
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [isOpen]);
 
   const handleDismissAll = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -119,7 +104,8 @@ export const SystemAnnouncementsBoard = ({ isOpen, onClose }: SystemAnnouncement
         variant="ghost"
         size="icon"
         onClick={handleDismissAll}
-        className="absolute top-4 right-4 z-10 h-8 w-8 rounded-full hover:bg-muted"
+        aria-label="Fechar mural"
+        className="absolute top-3 right-3 z-10 h-8 w-8 rounded-full hover:bg-muted"
       >
         <X className="h-5 w-5" />
       </Button>
