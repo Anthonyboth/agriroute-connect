@@ -13,10 +13,14 @@ import { toast } from 'sonner';
 
 interface AdvancedVehicleManagerProps {
   onVehicleAdd: (vehicleData: any) => void;
+  editingVehicle?: any | null;
+  onEditComplete?: () => void;
 }
 
 export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
-  onVehicleAdd
+  onVehicleAdd,
+  editingVehicle,
+  onEditComplete
 }) => {
   const [vehicleType, setVehicleType] = useState('');
   const [customVehicleType, setCustomVehicleType] = useState('');
@@ -194,6 +198,35 @@ export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
     }
   };
 
+  // Preencher formulário quando editando
+  React.useEffect(() => {
+    if (editingVehicle) {
+      setVehicleType(editingVehicle.vehicle_type || '');
+      setLicensePlate(editingVehicle.license_plate || '');
+      setAxleCount(editingVehicle.axle_count?.toString() || '');
+      setMaxCapacity(editingVehicle.max_capacity_tons?.toString() || '');
+      setSpecifications(editingVehicle.vehicle_specifications || '');
+      setVehicleDocuments(editingVehicle.vehicle_documents || []);
+      setVehiclePhotos(editingVehicle.vehicle_photos || []);
+      setCrrlvUrl(editingVehicle.crlv_url || '');
+      
+      // Scroll para o topo
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [editingVehicle]);
+
+  const resetForm = () => {
+    setVehicleType('');
+    setCustomVehicleType('');
+    setLicensePlate('');
+    setAxleCount('');
+    setMaxCapacity('');
+    setSpecifications('');
+    setVehicleDocuments([]);
+    setVehiclePhotos([]);
+    setCrrlvUrl('');
+  };
+
   const handleAddVehicle = () => {
     // Para OUTROS, garantir que tem especificação
     if (vehicleType === 'OUTROS' && !specifications) {
@@ -214,18 +247,18 @@ export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
       crlv_url: crrlvUrl
     };
 
-    onVehicleAdd(vehicleData);
-    
-    // Reset form
-    setVehicleType('');
-    setCustomVehicleType('');
-    setLicensePlate('');
-    setAxleCount('');
-    setMaxCapacity('');
-    setSpecifications('');
-    setVehicleDocuments([]);
-    setVehiclePhotos([]);
-    setCrrlvUrl('');
+    if (editingVehicle) {
+      // Modo de edição: passar o ID junto
+      onVehicleAdd({ ...vehicleData, id: editingVehicle.id });
+      toast.success('Veículo atualizado com sucesso!');
+      onEditComplete?.();
+    } else {
+      // Modo de criação
+      onVehicleAdd(vehicleData);
+      toast.success('Veículo cadastrado com sucesso!');
+    }
+
+    resetForm();
   };
 
   const selectedVehicleInfo = vehicleType && vehicleType !== 'OUTROS' ? vehicleTypes[vehicleType as keyof typeof vehicleTypes] : null;
@@ -396,20 +429,34 @@ export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
           </div>
         </div>
 
-        <Button
-          onClick={handleAddVehicle}
-          className="w-full gradient-primary"
-          disabled={
-            !vehicleType || 
-            !licensePlate || 
-            !axleCount || 
-            !maxCapacity || 
-            (vehicleType === 'OUTROS' && !specifications)
-          }
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar Veículo
-        </Button>
+        <div className="flex gap-2">
+          {editingVehicle && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                resetForm();
+                onEditComplete?.();
+              }}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+          )}
+          <Button
+            onClick={handleAddVehicle}
+            className={editingVehicle ? 'flex-1 gradient-primary' : 'w-full gradient-primary'}
+            disabled={
+              !vehicleType || 
+              !licensePlate || 
+              !axleCount || 
+              !maxCapacity || 
+              (vehicleType === 'OUTROS' && !specifications)
+            }
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {editingVehicle ? 'Atualizar Veículo' : 'Adicionar Veículo'}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

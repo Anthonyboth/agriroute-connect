@@ -40,6 +40,9 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
 import { AdvancedVehicleManager } from '@/components/AdvancedVehicleManager';
+import { CompanyVehiclesList } from '@/components/CompanyVehiclesList';
+import { ServiceVehicleForm } from '@/components/ServiceVehicleForm';
+import { CompanyServiceVehiclesManager } from '@/components/CompanyServiceVehiclesManager';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { useDriverPermissions } from '@/hooks/useDriverPermissions';
 import { cn } from '@/lib/utils';
@@ -200,6 +203,9 @@ const CompanyDashboard = () => {
     }, 100);
   };
 
+  const [editingVehicle, setEditingVehicle] = useState<any>(null);
+  const [editingServiceVehicle, setEditingServiceVehicle] = useState<any>(null);
+
   const handleAddVehicle = async (vehicleData: any) => {
     if (!company?.id || !profile?.id) {
       toast.error('Informações da empresa não encontradas. Recarregue a página.');
@@ -207,33 +213,70 @@ const CompanyDashboard = () => {
     }
 
     try {
-      const vehicleToInsert = {
-        company_id: company.id,
-        driver_id: profile.id,
-        is_company_vehicle: true,
-        vehicle_type: vehicleData.vehicle_type,
-        license_plate: vehicleData.license_plate,
-        axle_count: vehicleData.axle_count || 2,
-        max_capacity_tons: vehicleData.max_capacity_tons || 0,
-        vehicle_specifications: vehicleData.vehicle_specifications || null,
-        vehicle_documents: vehicleData.vehicle_documents || [],
-        vehicle_photos: vehicleData.vehicle_photos || [],
-        crlv_url: vehicleData.crlv_url || null
-      };
+      if (vehicleData.id) {
+        // UPDATE
+        const { error } = await supabase
+          .from('vehicles')
+          .update({
+            vehicle_type: vehicleData.vehicle_type,
+            license_plate: vehicleData.license_plate,
+            axle_count: vehicleData.axle_count || 2,
+            max_capacity_tons: vehicleData.max_capacity_tons || 0,
+            vehicle_specifications: vehicleData.vehicle_specifications || null,
+            vehicle_documents: vehicleData.vehicle_documents || [],
+            vehicle_photos: vehicleData.vehicle_photos || [],
+            crlv_url: vehicleData.crlv_url || null
+          })
+          .eq('id', vehicleData.id);
 
-      const { data, error } = await supabase
-        .from('vehicles')
-        .insert(vehicleToInsert)
-        .select()
-        .single();
+        if (error) throw error;
+        toast.success('Veículo atualizado com sucesso!');
+      } else {
+        // INSERT
+        const vehicleToInsert = {
+          company_id: company.id,
+          driver_id: profile.id,
+          is_company_vehicle: true,
+          vehicle_type: vehicleData.vehicle_type,
+          license_plate: vehicleData.license_plate,
+          axle_count: vehicleData.axle_count || 2,
+          max_capacity_tons: vehicleData.max_capacity_tons || 0,
+          vehicle_specifications: vehicleData.vehicle_specifications || null,
+          vehicle_documents: vehicleData.vehicle_documents || [],
+          vehicle_photos: vehicleData.vehicle_photos || [],
+          crlv_url: vehicleData.crlv_url || null
+        };
 
-      if (error) throw error;
+        const { error } = await supabase
+          .from('vehicles')
+          .insert(vehicleToInsert);
+
+        if (error) throw error;
+        toast.success('✅ Veículo cadastrado e aprovado automaticamente!');
+      }
       
-      toast.success('✅ Veículo cadastrado e aprovado automaticamente!');
       refetchCompany();
     } catch (error: any) {
-      console.error('Erro ao cadastrar veículo:', error);
-      toast.error(error?.message || 'Erro ao cadastrar veículo. Tente novamente.');
+      console.error('Erro ao salvar veículo:', error);
+      toast.error(error?.message || 'Erro ao salvar veículo. Tente novamente.');
+    }
+  };
+
+  const handleDeleteVehicle = async (vehicleId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este veículo?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('vehicles')
+        .delete()
+        .eq('id', vehicleId);
+      
+      if (error) throw error;
+      toast.success('Veículo excluído com sucesso');
+      refetchCompany();
+    } catch (error: any) {
+      console.error('Erro ao excluir veículo:', error);
+      toast.error('Erro ao excluir veículo');
     }
   };
   
@@ -665,7 +708,24 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="fleet" className="mt-6">
-            <AdvancedVehicleManager onVehicleAdd={handleAddVehicle} />
+            <div className="space-y-6">
+              <AdvancedVehicleManager 
+                onVehicleAdd={handleAddVehicle}
+                editingVehicle={editingVehicle}
+                onEditComplete={() => setEditingVehicle(null)}
+              />
+              
+              <div className="pt-6 border-t">
+                <CompanyVehiclesList
+                  companyId={company.id}
+                  onEdit={(vehicle) => {
+                    setEditingVehicle(vehicle);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  onDelete={handleDeleteVehicle}
+                />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="active" className="mt-6">
@@ -777,26 +837,25 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="services" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Serviços</CardTitle>
-                <CardDescription>
-                  Solicitação de serviços complementares
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Wrench className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="font-semibold mb-2">Solicitação de Serviços</p>
-                  <p className="text-sm text-muted-foreground">
-                    Aqui você poderá solicitar serviços complementares quando precisar.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    A execução dos serviços é feita por prestadores de serviços cadastrados.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <ServiceVehicleForm
+                companyId={company.id}
+                onSuccess={() => refetchCompany()}
+                editingVehicle={editingServiceVehicle}
+                onEditComplete={() => setEditingServiceVehicle(null)}
+              />
+              
+              <div className="pt-6 border-t">
+                <CompanyServiceVehiclesManager
+                  companyId={company.id}
+                  onEdit={(vehicle) => {
+                    setEditingServiceVehicle(vehicle);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  onDelete={handleDeleteVehicle}
+                />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="payments" className="mt-6">

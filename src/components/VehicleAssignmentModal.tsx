@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -15,6 +15,13 @@ interface VehicleAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  editingAssignment?: {
+    id: string;
+    driver_profile_id: string;
+    vehicle_id: string;
+    is_primary: boolean;
+    notes?: string;
+  } | null;
 }
 
 export const VehicleAssignmentModal = ({
@@ -22,12 +29,28 @@ export const VehicleAssignmentModal = ({
   isOpen,
   onClose,
   onSuccess,
+  editingAssignment,
 }: VehicleAssignmentModalProps) => {
   const [selectedDriver, setSelectedDriver] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [isPrimary, setIsPrimary] = useState(false);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Preencher dados ao editar
+  useEffect(() => {
+    if (editingAssignment) {
+      setSelectedDriver(editingAssignment.driver_profile_id);
+      setSelectedVehicle(editingAssignment.vehicle_id);
+      setIsPrimary(editingAssignment.is_primary);
+      setNotes(editingAssignment.notes || '');
+    } else {
+      setSelectedDriver('');
+      setSelectedVehicle('');
+      setIsPrimary(false);
+      setNotes('');
+    }
+  }, [editingAssignment, isOpen]);
 
   // Buscar motoristas da empresa
   const { data: drivers } = useQuery({
@@ -77,58 +100,75 @@ export const VehicleAssignmentModal = ({
 
     setLoading(true);
     try {
-      // Verificar se já existe vínculo ativo
-      const { data: existing } = await supabase
-        .from('company_vehicle_assignments')
-        .select('id')
-        .eq('company_id', companyId)
-        .eq('driver_profile_id', selectedDriver)
-        .eq('vehicle_id', selectedVehicle)
-        .is('removed_at', null)
-        .maybeSingle();
+      if (editingAssignment) {
+        // MODO DE EDIÇÃO
+        const { error } = await supabase
+          .from('company_vehicle_assignments')
+          .update({
+            vehicle_id: selectedVehicle,
+            is_primary: isPrimary,
+            notes: notes || null,
+          })
+          .eq('id', editingAssignment.id);
 
-      if (existing) {
-        toast.error('Este vínculo já existe');
-        return;
+        if (error) throw error;
+
+        toast.success('Vínculo atualizado com sucesso');
+      } else {
+        // MODO DE CRIAÇÃO
+        // Verificar se já existe vínculo ativo
+        const { data: existing } = await supabase
+          .from('company_vehicle_assignments')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('driver_profile_id', selectedDriver)
+          .eq('vehicle_id', selectedVehicle)
+          .is('removed_at', null)
+          .maybeSingle();
+
+        if (existing) {
+          toast.error('Este vínculo já existe');
+          return;
+        }
+
+        // Criar vínculo
+        const { data: newAssignment, error } = await supabase
+          .from('company_vehicle_assignments')
+          .insert({
+            company_id: companyId,
+            driver_profile_id: selectedDriver,
+            vehicle_id: selectedVehicle,
+            is_primary: isPrimary,
+            notes: notes || null,
+          })
+          .select('id, vehicle_id, driver_profile_id')
+          .single();
+
+        if (error) throw error;
+
+        // Invocar Edge Function para enviar notificação
+        try {
+          await supabase.functions.invoke('send-vehicle-assignment-notification', {
+            body: {
+              assignment_id: newAssignment.id,
+              driver_id: newAssignment.driver_profile_id,
+              vehicle_id: newAssignment.vehicle_id,
+              action: 'created',
+              company_id: companyId
+            }
+          });
+        } catch (notifError) {
+          console.warn('Erro ao enviar notificação de vínculo:', notifError);
+        }
+
+        toast.success('Vínculo criado com sucesso');
       }
 
-      // Criar vínculo
-      const { data: newAssignment, error } = await supabase
-        .from('company_vehicle_assignments')
-        .insert({
-          company_id: companyId,
-          driver_profile_id: selectedDriver,
-          vehicle_id: selectedVehicle,
-          is_primary: isPrimary,
-          notes: notes || null,
-        })
-        .select('id, vehicle_id, driver_profile_id')
-        .single();
-
-      if (error) throw error;
-
-      // Invocar Edge Function para enviar notificação
-      try {
-        await supabase.functions.invoke('send-vehicle-assignment-notification', {
-          body: {
-            assignment_id: newAssignment.id,
-            driver_id: newAssignment.driver_profile_id,
-            vehicle_id: newAssignment.vehicle_id,
-            action: 'created',
-            company_id: companyId
-          }
-        });
-      } catch (notifError) {
-        console.warn('Erro ao enviar notificação de vínculo:', notifError);
-        // Não bloqueia o fluxo se notificação falhar
-      }
-
-      toast.success('Vínculo criado com sucesso');
       onSuccess();
       handleClose();
     } catch (error: any) {
-      console.error('Erro ao criar vínculo:', error);
-      toast.error(error.message || 'Erro ao criar vínculo');
+      console.error('Erro ao salvar vínculo:', error);
+      toast.error(error.message || 'Erro ao salvar vínculo');
     } finally {
       setLoading(false);
     }
