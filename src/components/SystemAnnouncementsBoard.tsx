@@ -72,17 +72,54 @@ export const SystemAnnouncementsBoard = () => {
 
   if (visibleAnnouncements.length === 0) return null;
 
-  return (
-    <div className="space-y-4">
-      {visibleAnnouncements.map((announcement) => {
-        const paragraphs = announcement.message.split("\n\n");
-        const warningIndex = paragraphs.findIndex(p => p.includes("⚠️"));
-        const mainParagraphs = warningIndex >= 0 ? paragraphs.slice(0, warningIndex) : paragraphs;
-        const warningParagraph = warningIndex >= 0 ? paragraphs[warningIndex] : null;
+  // Separar "Palavras da Salvação" dos demais
+  const salvationAnnouncement = visibleAnnouncements.find(a => a.type === 'success');
+  const otherAnnouncements = visibleAnnouncements.filter(a => a.type !== 'success');
 
-        return (
-          <Card key={announcement.id} className="relative">
-            <CardContent className="pt-6">
+  return (
+    <Card className="relative">
+      <CardContent className="pt-6 space-y-4">
+        {/* Palavras da Salvação - Box Verde no topo */}
+        {salvationAnnouncement && (
+          <div className="bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-md p-4">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <h3 className="text-base font-semibold text-emerald-900 dark:text-emerald-100">
+                {salvationAnnouncement.title}
+              </h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDismiss(salvationAnnouncement)}
+                className="h-7 w-7 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900 -mt-1"
+              >
+                <X className="h-4 w-4 text-emerald-900 dark:text-emerald-100" />
+              </Button>
+            </div>
+            <p className="text-sm leading-relaxed text-emerald-900 dark:text-emerald-100 whitespace-pre-line mb-4">
+              {salvationAnnouncement.message}
+            </p>
+            <div className="flex justify-end">
+              <Button 
+                onClick={() => handleDismiss(salvationAnnouncement)} 
+                size="sm" 
+                variant="secondary"
+                className="bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-200 dark:hover:bg-emerald-800"
+              >
+                Entendi
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Demais avisos como subseções */}
+        {otherAnnouncements.map((announcement) => {
+          const paragraphs = announcement.message.split("\n\n");
+          const warningIndex = paragraphs.findIndex(p => p.includes("⚠️"));
+          const mainParagraphs = warningIndex >= 0 ? paragraphs.slice(0, warningIndex) : paragraphs;
+          const warningParagraph = warningIndex >= 0 ? paragraphs[warningIndex] : null;
+
+          return (
+            <div key={announcement.id} className="border rounded-md p-4">
               <div className="flex items-start justify-between gap-4 mb-3">
                 <h3 className="text-base font-semibold">{announcement.title}</h3>
                 <Button
@@ -119,10 +156,10 @@ export const SystemAnnouncementsBoard = () => {
                   Entendi
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 };
