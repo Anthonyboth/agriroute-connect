@@ -13,7 +13,12 @@ type Announcement = {
   priority?: number;
 };
 
-export const SystemAnnouncementsBoard = () => {
+interface SystemAnnouncementsBoardProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const SystemAnnouncementsBoard = ({ isOpen, onClose }: SystemAnnouncementsBoardProps) => {
   const [visibleAnnouncements, setVisibleAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
@@ -97,11 +102,12 @@ export const SystemAnnouncementsBoard = () => {
     // Salvar timestamp global do dismiss no localStorage
     localStorage.setItem('mural_dismissed_at', now.toISOString());
     
-    // Limpar estado
+    // Limpar estado e fechar
     setVisibleAnnouncements([]);
+    onClose();
   };
 
-  if (visibleAnnouncements.length === 0) return null;
+  if (!isOpen || visibleAnnouncements.length === 0) return null;
 
   // Separar "Palavras da Salvação" dos demais
   const salvationAnnouncement = visibleAnnouncements.find(a => a.type === 'success');
@@ -109,21 +115,16 @@ export const SystemAnnouncementsBoard = () => {
 
   return (
     <Card className="relative">
-      <div className="flex items-center justify-between p-6 pb-0">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          📢 Mural de Avisos
-        </h2>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleDismissAll}
-          className="h-8 w-8 rounded-full hover:bg-muted"
-        >
-          <X className="h-5 w-5" />
-        </Button>
-      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleDismissAll}
+        className="absolute top-4 right-4 z-10 h-8 w-8 rounded-full hover:bg-muted"
+      >
+        <X className="h-5 w-5" />
+      </Button>
 
-      <CardContent className="pt-4 space-y-4">
+      <CardContent className="pt-6 space-y-4">
         {/* Palavras da Salvação - Box Verde no topo */}
         {salvationAnnouncement && (
           <div className="bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-md p-4">

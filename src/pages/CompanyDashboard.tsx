@@ -121,6 +121,7 @@ const CompanyDashboard = () => {
   };
   
   const [activeTab, setActiveTab] = useState(getInitialTab());
+  const [isMuralOpen, setIsMuralOpen] = useState(true);
   
   const { isAffiliated, companyId } = useCompanyDriver();
   const { canAcceptFreights } = useDriverPermissions();
@@ -587,12 +588,19 @@ const CompanyDashboard = () => {
           </div>
         )}
 
-        {/* Seção Mural de Avisos */}
+        {/* Botão Mural de Avisos */}
         <div className="container mx-auto px-4 mb-6">
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsMuralOpen(!isMuralOpen)}
+            className="mb-3 flex items-center gap-2"
+          >
             <span>📢</span> Mural de Avisos
-          </h2>
-          <SystemAnnouncementsBoard />
+          </Button>
+          <SystemAnnouncementsBoard 
+            isOpen={isMuralOpen} 
+            onClose={() => setIsMuralOpen(false)} 
+          />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

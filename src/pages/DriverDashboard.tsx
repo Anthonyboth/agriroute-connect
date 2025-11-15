@@ -201,6 +201,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
   const [showLocationManager, setShowLocationManager] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [isTransportCompany, setIsTransportCompany] = useState(false);
+  const [isMuralOpen, setIsMuralOpen] = useState(true);
   // ✅ REMOVIDO: Dialog de service_request (motoristas não veem serviços)
   // Estados para controle de consentimento de tracking
   const [freightAwaitingConsent, setFreightAwaitingConsent] = useState<string | null>(null);
@@ -1984,12 +1985,19 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
           )}
         </div>
 
-        {/* Seção Mural de Avisos */}
+        {/* Botão Mural de Avisos */}
         <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsMuralOpen(!isMuralOpen)}
+            className="mb-3 flex items-center gap-2"
+          >
             <span>📢</span> Mural de Avisos
-          </h2>
-          <SystemAnnouncementsBoard />
+          </Button>
+          <SystemAnnouncementsBoard 
+            isOpen={isMuralOpen} 
+            onClose={() => setIsMuralOpen(false)} 
+          />
         </div>
 
         {/* Tabs Compactas */}
