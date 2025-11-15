@@ -5,12 +5,15 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { FreightCard } from '@/components/FreightCard';
-import { Brain, Filter, RefreshCw, Search, Zap, Package, Users, TrendingUp } from 'lucide-react';
+import { Brain, Filter, RefreshCw, Search, Zap, Package, Users, TrendingUp, Clock, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { getCargoTypesByCategory } from '@/lib/cargo-types';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { useLastUpdate } from '@/hooks/useLastUpdate';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { normalizeFreightStatus, isOpenStatus } from '@/lib/freight-status';
 
 interface CompatibleFreight {
@@ -48,6 +51,10 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCargoType, setSelectedCargoType] = useState<string>('all');
   const [matchingStats, setMatchingStats] = useState({ total: 0, matched: 0, assigned: 0 });
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+  const [showOnlyAvailable, setShowOnlyAvailable] = useState(true);
+  
+  const timeAgo = useLastUpdate(lastUpdateTime);
 
   const fetchCompatibleFreights = useCallback(async () => {
     if (!company?.id) return;
@@ -123,6 +130,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         matched: normalizedFreights.length,
         assigned: drivers?.length || 0
       });
+      setLastUpdateTime(new Date());
     } catch (error: any) {
       console.error('Erro ao buscar fretes compatíveis:', error);
       toast.error('Erro ao carregar fretes compatíveis');
@@ -178,7 +186,13 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
     const matchesCargoType = selectedCargoType === 'all' || freight.cargo_type === selectedCargoType;
 
-    return matchesSearch && matchesCargoType;
+    // Filtro "Somente disponíveis agora"
+    const isAvailableNow = !showOnlyAvailable || (
+      !['CANCELLED', 'IN_TRANSIT', 'DELIVERED', 'LOADING', 'LOADED'].includes(freight.status) &&
+      freight.accepted_trucks < freight.required_trucks
+    );
+
+    return matchesSearch && matchesCargoType && isAvailableNow;
   });
 
   return (
@@ -228,6 +242,17 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                 />
               </div>
 
+              <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-background">
+                <Switch
+                  id="only-available-main"
+                  checked={showOnlyAvailable}
+                  onCheckedChange={setShowOnlyAvailable}
+                />
+                <Label htmlFor="only-available-main" className="text-sm cursor-pointer whitespace-nowrap">
+                  Somente disponíveis
+                </Label>
+              </div>
+
               <Button
                 variant="outline"
                 onClick={fetchCompatibleFreights}
@@ -235,7 +260,12 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                 className="flex items-center gap-2"
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                Atualizar
+                {timeAgo ? (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {timeAgo}
+                  </span>
+                ) : 'Atualizar'}
               </Button>
             </div>
 

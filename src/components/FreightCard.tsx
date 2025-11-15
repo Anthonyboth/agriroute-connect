@@ -63,6 +63,7 @@ interface FreightCardProps {
   isAffiliatedDriver?: boolean;
   driverCompanyId?: string;
   onUnavailable?: () => void;
+  showAvailableSlots?: boolean;
 }
 
 export const FreightCard: React.FC<FreightCardProps> = ({ 
@@ -74,7 +75,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   canAcceptFreights = true,
   isAffiliatedDriver = false,
   driverCompanyId,
-  onUnavailable
+  onUnavailable,
+  showAvailableSlots = false
 }) => {
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [bulkAcceptorOpen, setBulkAcceptorOpen] = useState(false);
@@ -318,6 +320,15 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               <Badge variant={getFreightStatusVariant(freight.status)} className="text-xs font-medium">
                 {getFreightStatusLabel(freight.status)}
               </Badge>
+              {showAvailableSlots && freight.required_trucks && freight.required_trucks > 1 && (
+                <Badge 
+                  variant={isFullyBooked ? "default" : "outline"} 
+                  className={`text-xs font-medium ${isFullyBooked ? 'bg-green-600 hover:bg-green-700' : 'border-primary text-primary'}`}
+                >
+                  <Truck className="h-3 w-3 mr-1" />
+                  {freight.accepted_trucks || 0}/{freight.required_trucks}
+                </Badge>
+              )}
             </div>
           </div>
           <div className="flex justify-between items-center">
