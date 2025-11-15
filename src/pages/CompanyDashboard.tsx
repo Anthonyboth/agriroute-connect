@@ -49,7 +49,6 @@ import { FRETES_IA_LABEL, AI_ABBR, AREAS_IA_LABEL } from '@/lib/ui-labels';
 import Header from '@/components/Header';
 import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
-import FreightLimitTracker from '@/components/FreightLimitTracker';
 import { PendingVehiclesApproval } from '@/components/PendingVehiclesApproval';
 import { CompanyFreightsManager } from '@/components/CompanyFreightsManager';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
@@ -510,7 +509,6 @@ const CompanyDashboard = () => {
 
       <div className="container mx-auto px-4 pb-8">
         <SubscriptionExpiryNotification />
-        <FreightLimitTracker hideForAffiliatedDriver={true} />
 
         {company && (
           <div className="mb-6">
