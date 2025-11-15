@@ -12,8 +12,6 @@ import { toast } from 'sonner';
 import { getCargoTypesByCategory } from '@/lib/cargo-types';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { useLastUpdate } from '@/hooks/useLastUpdate';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { normalizeFreightStatus, isOpenStatus } from '@/lib/freight-status';
 
 interface CompatibleFreight {
@@ -52,7 +50,6 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
   const [selectedCargoType, setSelectedCargoType] = useState<string>('all');
   const [matchingStats, setMatchingStats] = useState({ total: 0, matched: 0, assigned: 0 });
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
-  const [showOnlyAvailable, setShowOnlyAvailable] = useState(true);
   
   const timeAgo = useLastUpdate(lastUpdateTime);
 
@@ -74,7 +71,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
           driver:profiles!freights_driver_id_fkey(nome_completo, phone)
         `)
         .is('company_id', null)
-        .or('status.eq.OPEN,and(status.eq.ACCEPTED,accepted_trucks.lt.required_trucks),status.eq.IN_NEGOTIATION')
+        .in('status', ['OPEN', 'ACCEPTED', 'IN_NEGOTIATION'])
         .order('created_at', { ascending: false });
 
       if (freightsError) throw freightsError;
@@ -87,6 +84,16 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       let discardedNoSlots = 0;
 
       for (const freight of freightsData || []) {
+        // Verificar se o status é realmente aberto
+        const normalizedStatus = normalizeFreightStatus(freight.status);
+        const isOpen = isOpenStatus(normalizedStatus);
+        
+        if (!isOpen) {
+          console.log(`❌ [FRETES I.A] Frete ${freight.id.substring(0, 8)} descartado: status ${freight.status} não está aberto`);
+          discardedByStatus++;
+          continue;
+        }
+
         const requiredTrucks = freight.required_trucks || 1;
         const acceptedTrucks = freight.accepted_trucks || 0;
         const hasAvailableSlots = acceptedTrucks < requiredTrucks;
@@ -132,7 +139,13 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       });
       setLastUpdateTime(new Date());
     } catch (error: any) {
-      console.error('Erro ao buscar fretes compatíveis:', error);
+      console.error('Erro ao buscar fretes compatíveis:', {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+        raw: error
+      });
       toast.error('Erro ao carregar fretes compatíveis');
     } finally {
       setLoading(false);
@@ -177,7 +190,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     }
   };
 
-  // Filtrar fretes
+  // Filtrar fretes (disponibilidade já garantida na normalização)
   const filteredFreights = compatibleFreights.filter(freight => {
     const matchesSearch = !searchTerm || 
       freight.cargo_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -186,13 +199,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
     const matchesCargoType = selectedCargoType === 'all' || freight.cargo_type === selectedCargoType;
 
-    // Filtro "Somente disponíveis agora"
-    const isAvailableNow = !showOnlyAvailable || (
-      !['CANCELLED', 'IN_TRANSIT', 'DELIVERED', 'LOADING', 'LOADED'].includes(freight.status) &&
-      freight.accepted_trucks < freight.required_trucks
-    );
-
-    return matchesSearch && matchesCargoType && isAvailableNow;
+    return matchesSearch && matchesCargoType;
   });
 
   return (
@@ -240,17 +247,6 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
-              </div>
-
-              <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-background">
-                <Switch
-                  id="only-available-main"
-                  checked={showOnlyAvailable}
-                  onCheckedChange={setShowOnlyAvailable}
-                />
-                <Label htmlFor="only-available-main" className="text-sm cursor-pointer whitespace-nowrap">
-                  Somente disponíveis
-                </Label>
               </div>
 
               <Button
