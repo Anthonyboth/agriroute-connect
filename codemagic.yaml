@@ -3,12 +3,11 @@
     name: Capacitor iOS Workflow
     max_build_duration: 120
     environment:
-      groups:
-        - app_store_connect
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+        DEVELOPMENT_TEAM: "4YULT95XAK"
       xcode: latest
       node: 20.9.0
     scripts:
@@ -31,12 +30,12 @@
         script: |
           cd ios/App && pod install
 
-      - name: Fix iOS project signing
+      - name: Configure iOS Automatic Signing
         script: |
-          echo "🔧 Corrigindo configuração do projeto iOS..."
+          echo "🔧 Configurando assinatura automática..."
           cd ios/App
           
-          # Corrigir DEVELOPMENT_TEAM duplicado usando Python
+          # Corrigir DEVELOPMENT_TEAM duplicado e configurar assinatura automática
           python3 -c "
           import re
           with open('App.xcodeproj/project.pbxproj', 'r') as f:
@@ -48,26 +47,72 @@
           # Garantir CODE_SIGN_STYLE = Automatic
           content = content.replace('CODE_SIGN_STYLE = Manual;', 'CODE_SIGN_STYLE = Automatic;')
           
+          # Se não tiver CODE_SIGN_STYLE, adicionar
+          if 'CODE_SIGN_STYLE = Automatic;' not in content:
+              content = content.replace('buildSettings = {', 'buildSettings = {\n\t\t\t\tCODE_SIGN_STYLE = Automatic;')
+          
           with open('App.xcodeproj/project.pbxproj', 'w') as f:
               f.write(content)
           "
-          echo "✅ Projeto iOS corrigido!"
+          echo "✅ Assinatura automática configurada!"
 
-      - name: Fetch signing files
+      - name: Build iOS with Automatic Signing
         script: |
-          app-store-connect fetch-signing-files "" \
-            --type IOS_APP_DEVELOPMENT \
-            --create
+          cd ios/App
+          
+          # Criar export options para desenvolvimento
+          cat > export_options.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>teamID</key>
+              <string></string>
+              <key>signingStyle</key>
+              <string>automatic</string>
+          </dict>
+          </plist>
+          EOF
 
-      - name: Set up code signing
-        script: |
-          xcode-project use-profiles
+          echo "📱 Iniciando build iOS com assinatura automática..."
+          
+          # Tentar build com assinatura automática
+          xcodebuild clean archive \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -archivePath build/App.xcarchive \
+            -allowProvisioningUpdates \
+            DEVELOPMENT_TEAM="" \
+            CODE_SIGN_STYLE=Automatic \
+            PRODUCT_BUNDLE_IDENTIFIER="" || echo "⚠️ Archive falhou, tentando sem provisioning updates..."
 
-      - name: Build iOS
-        script: |
-          xcode-project build-ipa \
-            --workspace "" \
-            --scheme ""
+          # Tentar novamente se falhar
+          xcodebuild clean archive \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -archivePath build/App.xcarchive \
+            DEVELOPMENT_TEAM="" \
+            CODE_SIGN_STYLE=Automatic \
+            PRODUCT_BUNDLE_IDENTIFIER=""
+
+          echo "✅ Archive concluído!"
+
+          # Exportar IPA
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist export_options.plist \
+            -allowProvisioningUpdates || echo "⚠️ Export falhou, tentando sem provisioning updates..."
+
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist export_options.plist
+
+          echo "🎉 Build iOS concluído com sucesso!"
 
     artifacts:
       - build/ios/ipa/*.ipa
+      - ios/App/build/ipa/*.ipa
