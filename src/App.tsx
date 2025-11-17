@@ -52,6 +52,8 @@ const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
 const CompanyInviteAccept = lazy(() => import("./pages/CompanyInviteAccept"));
 const AffiliateSignup = lazy(() => import("./pages/AffiliateSignup"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
+const AdminAnnouncementsManager = lazy(() => import("./pages/AdminAnnouncementsManager"));
+const AdminMaintenancePanel = lazy(() => import("./pages/AdminMaintenancePanel"));
 const ProducerDashboard = lazy(() => import("./pages/ProducerDashboard"));
 const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
 const CompanyDashboard = lazy(() => import("./pages/CompanyDashboard"));
@@ -583,7 +585,27 @@ const App = () => {
                           } 
                         />
                         <Route 
-                          path="/dashboard/producer" 
+                          path="/admin/avisos" 
+                          element={
+                            <ProtectedRoute requiresAuth adminOnly allowedRoles={["ADMIN"]}>
+                              <Suspense fallback={<ComponentLoader />}>
+                                <AdminAnnouncementsManager />
+                              </Suspense>
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/admin/manutencao" 
+                          element={
+                            <ProtectedRoute requiresAuth adminOnly allowedRoles={["ADMIN"]}>
+                              <Suspense fallback={<ComponentLoader />}>
+                                <AdminMaintenancePanel />
+                              </Suspense>
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/dashboard/producer"
                           element={
                             <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRODUTOR"]}>
                               <Suspense fallback={<ComponentLoader />}>

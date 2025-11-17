@@ -11,6 +11,10 @@ type Announcement = {
   type?: string;
   created_at?: string;
   priority?: number;
+  category?: string;
+  archived?: boolean;
+  starts_at?: string;
+  ends_at?: string;
 };
 
 interface SystemAnnouncementsBoardProps {

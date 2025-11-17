@@ -10,6 +10,10 @@ type Announcement = {
   message: string;
   type?: string;
   priority?: number;
+  category?: string;
+  archived?: boolean;
+  starts_at?: string;
+  ends_at?: string;
 };
 
 export const GlobalAnnouncementBar = () => {
