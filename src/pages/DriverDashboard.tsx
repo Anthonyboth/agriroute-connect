@@ -736,12 +736,17 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
 
     console.log('🔍 Buscando APENAS fretes ativos do motorista:', profile.id);
     try {
+      // Data de hoje para filtrar apenas fretes atuais/passados
+      const todayStr = new Date().toISOString().split('T')[0];
+      
       // ✅ Buscar fretes vinculados ao motorista diretamente
+      // CRÍTICO: Apenas fretes com pickup_date <= hoje OU pickup_date NULL
       const { data: freightData, error: freightError } = await supabase
         .from('freights')
         .select('*, producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, role)')
         .eq('driver_id', profile.id)
         .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
+        .or(`pickup_date.is.null,pickup_date.lte.${todayStr}`)
         .order('updated_at', { ascending: false })
         .limit(100);
 
@@ -751,6 +756,7 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       }
 
       // ✅ Buscar fretes via freight_assignments
+      // Buscar assignments primeiro, depois filtrar por data no client-side (pois não temos pickup_date no assignment)
       const { data: assignmentData, error: assignmentError } = await supabase
         .from('freight_assignments')
         .select(`
@@ -769,13 +775,24 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       }
 
       // Extract and map assignment freights, using agreed_price as price
-      const assignmentFreights = (assignmentData ?? []).map((a: any) => {
-        const freight = a.freight;
-        if (a.agreed_price) {
-          freight.price = a.agreed_price;
-        }
-        return freight;
-      });
+      // FILTRAR: Apenas fretes com data hoje/passada ou NULL
+      const assignmentFreights = (assignmentData ?? [])
+        .map((a: any) => {
+          const freight = a.freight;
+          if (a.agreed_price) {
+            freight.price = a.agreed_price;
+          }
+          return freight;
+        })
+        .filter((freight: any) => {
+          // Permitir NULL (sem data específica) ou data <= hoje
+          if (!freight.pickup_date) return true;
+          const pickupDate = new Date(freight.pickup_date);
+          pickupDate.setHours(0, 0, 0, 0);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return pickupDate <= today;
+        });
       
       // ✅ REMOVIDO: Não buscar service_requests aqui (motoristas não veem serviços)
       

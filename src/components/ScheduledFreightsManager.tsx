@@ -13,6 +13,7 @@ import { formatDateLong, formatDate } from '@/lib/formatters';
 import { ScheduledFreightModal } from './ScheduledFreightModal';
 import { EditFreightModal } from './EditFreightModal';
 import { ConfirmDialog } from './ConfirmDialog';
+import { ScheduledFreightCard } from './ScheduledFreightCard';
 
 // Helper para obter data efetiva (scheduled_date ou pickup_date como fallback)
 const getEffectiveDate = (freight: any): string | null => {
@@ -334,79 +335,25 @@ export const ScheduledFreightsManager: React.FC = () => {
                         : 'Não há fretes com coleta agendada para 2-3 dias.'}
                     </div>
                   ) : (
-                    sortedFreights.map((freight) => (
-                    <Card key={freight.id} className="p-4">
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-1">
-                            {freight.producer_name && (
-                              <p className="font-semibold text-lg">{freight.producer_name}</p>
-                            )}
-                            <p className="text-muted-foreground">{freight.cargo_type} - {(freight.weight / 1000).toFixed(1)}t</p>
-                          </div>
-                          <Badge variant="secondary" className="text-lg px-3 py-1">
-                            R$ {freight.price.toLocaleString()}
-                          </Badge>
-                        </div>
-
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span>{freight.origin_address} → {freight.destination_address}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                            <span>{formatDateLong(getEffectiveDate(freight))}</span>
-                            {freight.flexible_dates && (
-                              <Badge variant="outline" className="text-xs">
-                                Aceita datas alternativas
-                              </Badge>
-                            )}
-                          </div>
-
-                          {freight.flexible_dates && freight.date_range_start && freight.date_range_end && (
-                            <div className="text-xs text-muted-foreground pl-6">
-                              Período flexível: {formatDate(freight.date_range_start)} a{' '}
-                              {formatDate(freight.date_range_end)}
-                            </div>
-                          )}
-                        </div>
-
-                        {freight.description && (
-                          <p className="text-sm text-muted-foreground border-t pt-2">
-                            {freight.description}
-                          </p>
-                        )}
-
-                        <div className="flex justify-between items-center pt-2">
-                          <Badge variant={getFreightStatusVariant(freight.status)}>
-                            {getFreightStatusLabel(freight.status)}
-                          </Badge>
-                          
-                          {profile?.role === 'PRODUTOR' && freight.status === 'OPEN' && (
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="secondary"
-                                onClick={() => openEditModal(freight)}
-                              >
-                                Editar
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="destructive"
-                                onClick={() => confirmCancelFreight(freight)}
-                              >
-                                Cancelar
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  ))
-                );
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                      {sortedFreights.map((freight) => (
+                        <ScheduledFreightCard
+                          key={freight.id}
+                          freight={freight}
+                          userRole={profile?.role as 'PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO'}
+                          userProfileId={profile?.id || ''}
+                          currentUserProfile={profile}
+                          onWithdraw={(freightId) => {
+                            // Lógica de desistência do frete
+                            const freightToCancel = scheduledFreights.find(f => f.id === freightId);
+                            if (freightToCancel) {
+                              confirmCancelFreight(freightToCancel);
+                            }
+                          }}
+                        />
+                      ))}
+                    </div>
+                  );
                 })()}
               </div>
             </div>
