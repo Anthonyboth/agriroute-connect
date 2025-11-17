@@ -1,10 +1,12 @@
 import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 import { useOptimizedStats } from '@/hooks/useOptimizedStats';
-import { formatTonsCompactFromKg } from '@/lib/utils';
+import { formatTonsCompactFromKg, formatTimeAgo } from '@/lib/utils';
 
 export const PlatformStatsSection: React.FC = () => {
-  const { stats, isLoading } = useOptimizedStats();
+  const { stats, isLoading, lastUpdated, refetchStats } = useOptimizedStats();
 
   if (isLoading) {
     return (
