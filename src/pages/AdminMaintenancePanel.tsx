@@ -141,6 +141,58 @@ export default function AdminMaintenancePanel() {
       </div>
 
       <div className="grid gap-6">
+        {/* Recálculo de Distâncias (Backfill) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recálculo de Distâncias em Lote</CardTitle>
+            <CardDescription>
+              Executa o backfill de distâncias usando Google Maps API para todos os fretes com distância nula ou zero
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button
+              onClick={async () => {
+                setProcessLog((prev) => [...prev, "🔄 Iniciando recálculo de distâncias..."]);
+                setIsProcessing(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke('calculate-freight-distances');
+                  
+                  if (error) {
+                    toast({
+                      title: "Erro ao recalcular distâncias",
+                      description: error.message,
+                      variant: "destructive",
+                    });
+                    setProcessLog((prev) => [...prev, `❌ Erro: ${error.message}`]);
+                  } else {
+                    const result = data as { calculated_count: number; failed_count: number; skipped_count: number };
+                    toast({
+                      title: "Recálculo concluído",
+                      description: `${result.calculated_count} distâncias calculadas, ${result.failed_count} falharam, ${result.skipped_count} ignorados`,
+                    });
+                    setProcessLog((prev) => [...prev, `✅ ${result.calculated_count} distâncias recalculadas com sucesso`]);
+                  }
+                } catch (error: any) {
+                  setProcessLog((prev) => [...prev, `❌ Erro: ${error.message}`]);
+                } finally {
+                  setIsProcessing(false);
+                }
+              }}
+              disabled={isProcessing}
+              className="w-full"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Recalculando...
+                </>
+              ) : (
+                "Recalcular Todas as Distâncias"
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Cancelamento Manual de Fretes */}
         <Card>
           <CardHeader>

@@ -319,7 +319,48 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </div>
             <div>
               <span className="text-muted-foreground text-xs">Distância:</span>
-              <p className="font-medium">{formatKm(freight.distance_km)}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-medium">{formatKm(freight.distance_km)}</p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0"
+                  onClick={async () => {
+                    try {
+                      toast.info('Recalculando distância...');
+                      const { data, error } = await supabase.functions.invoke('calculate-route', {
+                        body: {
+                          origin: `${freight.origin_city}, ${freight.origin_state}`,
+                          destination: `${freight.destination_city}, ${freight.destination_state}`
+                        }
+                      });
+                      
+                      if (error) throw error;
+                      
+                      if (data && data.distance_km) {
+                        // Atualizar distance_km no banco
+                        const { error: updateError } = await supabase
+                          .from('freights')
+                          .update({ distance_km: data.distance_km })
+                          .eq('id', freight.id);
+                        
+                        if (updateError) throw updateError;
+                        
+                        // Atualizar estado local
+                        setFreight({ ...freight, distance_km: data.distance_km });
+                        toast.success(`Distância recalculada: ${Math.round(data.distance_km)} km`);
+                      }
+                    } catch (error: any) {
+                      toast.error('Erro ao recalcular distância', {
+                        description: error.message
+                      });
+                    }
+                  }}
+                  title="Recalcular distância usando Google Maps"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
             <div>
               <span className="text-muted-foreground text-xs">Valor por carreta:</span>

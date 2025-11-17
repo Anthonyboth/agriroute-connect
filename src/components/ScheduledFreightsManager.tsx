@@ -14,26 +14,11 @@ import { ScheduledFreightModal } from './ScheduledFreightModal';
 import { EditFreightModal } from './EditFreightModal';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ScheduledFreightCard } from './ScheduledFreightCard';
+import { getDaysUntilPickup } from '@/utils/freightDateHelpers';
 
 // Helper para obter data efetiva (scheduled_date ou pickup_date como fallback)
 const getEffectiveDate = (freight: any): string | null => {
   return freight.scheduled_date || freight.pickup_date || null;
-};
-
-// Helper para calcular dias até a coleta
-const getDaysUntilPickup = (pickupDate: string | null): number | null => {
-  if (!pickupDate) return null;
-  
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const pickup = new Date(pickupDate);
-  pickup.setHours(0, 0, 0, 0);
-  
-  const diffTime = pickup.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  return diffDays;
 };
 
 interface ScheduledFreight {
