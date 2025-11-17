@@ -6,8 +6,14 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatTonsCompactFromKg(kg: number): string {
-  if (!isFinite(kg) || kg <= 0) return '0 ton';
+  if (!isFinite(kg) || kg <= 0) return '0 t';
   const tons = kg / 1000;
+
+  // Para valores < 1 tonelada, mostrar com 1 casa decimal
+  if (tons < 1) {
+    const val = Math.round(tons * 10) / 10;
+    return `${val.toLocaleString('pt-BR')} t`;
+  }
 
   const units = [
     { value: 1e9, suffix: 'b' },
@@ -27,7 +33,7 @@ export function formatTonsCompactFromKg(kg: number): string {
   }
 
   if (suffix === '') {
-    return `${Math.round(tons).toLocaleString('pt-BR')} ton`;
+    return `${Math.round(tons).toLocaleString('pt-BR')} t`;
   }
 
   let formatted: string;
@@ -40,7 +46,7 @@ export function formatTonsCompactFromKg(kg: number): string {
     }
   }
 
-  return `${formatted}${suffix} ton`;
+  return `${formatted}${suffix} t`;
 }
 
 /**

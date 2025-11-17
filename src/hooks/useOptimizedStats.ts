@@ -40,9 +40,11 @@ export const useOptimizedStats = () => {
         completedFreights: Number(row?.fretes_entregues ?? 0)
       };
     },
-    staleTime: 15 * 60 * 1000, // 15 minutos (stats globais mudam lentamente)
-    gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false
+    staleTime: 55 * 60 * 1000, // 55 minutos
+    gcTime: 2 * 60 * 60 * 1000, // 2 horas
+    refetchOnWindowFocus: true, // Atualiza ao voltar para a aba
+    refetchInterval: 60 * 60 * 1000, // Atualiza automaticamente a cada 1 hora
+    refetchIntervalInBackground: true // Continua atualizando mesmo em background
   });
 
   const stats: OptimizedStats = {
