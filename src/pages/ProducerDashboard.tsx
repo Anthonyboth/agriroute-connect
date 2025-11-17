@@ -1545,25 +1545,8 @@ const ProducerDashboard = () => {
             </div>
             
             {(() => {
-              // 🔍 Filtrar fretes em andamento: status ativo E (data NULL ou data <= hoje)
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              const todayStr = today.toISOString().split('T')[0];
-              
-              const ongoingFreights = freights.filter(f => {
-                const hasActiveStatus = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status);
-                if (!hasActiveStatus) return false;
-                
-                // Se não tem pickup_date, considerar como "em andamento"
-                if (!f.pickup_date) return true;
-                
-                // Se tem pickup_date, só mostrar se for hoje ou passado
-                const pickupDate = new Date(f.pickup_date);
-                pickupDate.setHours(0, 0, 0, 0);
-                return pickupDate <= today;
-              });
-              
-              // debug log removido para evitar poluição de console
+              // 🔍 Filtrar fretes em andamento usando helper isInProgressFreight
+              const ongoingFreights = freights.filter(f => isInProgressFreight(f.pickup_date, f.status));
               
               return ongoingFreights.length === 0;
             })() ? (
@@ -1579,20 +1562,7 @@ const ProducerDashboard = () => {
             ) : (
               <div className="max-h-[70vh] overflow-y-auto pr-2">
                 <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
-                  {freights.filter(f => {
-                    const hasActiveStatus = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status);
-                    if (!hasActiveStatus) return false;
-                    
-                    // Se não tem pickup_date, considerar como "em andamento"
-                    if (!f.pickup_date) return true;
-                    
-                    // Se tem pickup_date, só mostrar se for hoje ou passado
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const pickupDate = new Date(f.pickup_date);
-                    pickupDate.setHours(0, 0, 0, 0);
-                    return pickupDate <= today;
-                  }).map((freight) => (
+                  {freights.filter(f => isInProgressFreight(f.pickup_date, f.status)).map((freight) => (
                     <FreightInProgressCard
                       key={freight.id}
                       freight={freight}

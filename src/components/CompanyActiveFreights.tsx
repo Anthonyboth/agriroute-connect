@@ -112,19 +112,38 @@ export const CompanyActiveFreights: React.FC = () => {
 
       if (error) throw error;
 
-      const formattedFromAssignments: ActiveFreight[] = (assignments || []).map((a: any) => ({
-        id: a.freight.id,
-        assignment_id: a.id,
-        cargo_type: a.freight.cargo_type,
-        origin_address: a.freight.origin_address,
-        destination_address: a.freight.destination_address,
-        status: a.status,
-        driver: a.driver,
-        vehicle: a.vehicle,
-        created_at: a.freight.created_at,
-        accepted_at: a.accepted_at,
-        last_tracking: null
-      }));
+      // Helper: validar se frete está ativo por data
+      const isActiveByDate = (freightPickupDate: string | null, status: string): boolean => {
+        // Status final sempre retorna false
+        if (['CANCELLED', 'DELIVERED', 'COMPLETED'].includes(status)) return false;
+        
+        // Se não tem pickup_date, considerar como não-ativo (não pode estar "em andamento")
+        if (!freightPickupDate) return false;
+        
+        // pickup_date deve ser hoje ou passado
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const pickupDate = new Date(freightPickupDate);
+        pickupDate.setHours(0, 0, 0, 0);
+        
+        return pickupDate <= today;
+      };
+
+      const formattedFromAssignments: ActiveFreight[] = (assignments || [])
+        .filter((a: any) => isActiveByDate(a.freight?.pickup_date, a.status))
+        .map((a: any) => ({
+          id: a.freight.id,
+          assignment_id: a.id,
+          cargo_type: a.freight.cargo_type,
+          origin_address: a.freight.origin_address,
+          destination_address: a.freight.destination_address,
+          status: a.status,
+          driver: a.driver,
+          vehicle: a.vehicle,
+          created_at: a.freight.created_at,
+          accepted_at: a.accepted_at,
+          last_tracking: null
+        }));
 
       // 🔗 Fallback: também buscar fretes diretos da empresa
       const { data: directFreights } = await supabase
@@ -137,19 +156,21 @@ export const CompanyActiveFreights: React.FC = () => {
         .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
         .order('created_at', { ascending: false });
 
-      const formattedFromFreights: ActiveFreight[] = (directFreights || []).map((f: any) => ({
-        id: f.id,
-        assignment_id: f.id, // sem assignment, usamos o id do frete como fallback
-        cargo_type: f.cargo_type,
-        origin_address: f.origin_address,
-        destination_address: f.destination_address,
-        status: f.status,
-        driver: f.driver ? { id: f.driver.id, full_name: f.driver.full_name } : { id: '', full_name: 'Motorista' },
-        vehicle: undefined,
-        created_at: f.created_at,
-        accepted_at: f.created_at,
-        last_tracking: null
-      }));
+      const formattedFromFreights: ActiveFreight[] = (directFreights || [])
+        .filter((f: any) => isActiveByDate(f.pickup_date, f.status))
+        .map((f: any) => ({
+          id: f.id,
+          assignment_id: f.id, // sem assignment, usamos o id do frete como fallback
+          cargo_type: f.cargo_type,
+          origin_address: f.origin_address,
+          destination_address: f.destination_address,
+          status: f.status,
+          driver: f.driver ? { id: f.driver.id, full_name: f.driver.full_name } : { id: '', full_name: 'Motorista' },
+          vehicle: undefined,
+          created_at: f.created_at,
+          accepted_at: f.created_at,
+          last_tracking: null
+        }));
 
       // Mesclar e deduplicar por id de frete
       const byFreightId = new Map<string, ActiveFreight>();

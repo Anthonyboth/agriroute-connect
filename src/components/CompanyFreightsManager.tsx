@@ -113,7 +113,24 @@ export const CompanyFreightsManager: React.FC = () => {
       return freights.filter(f => ['OPEN', 'IN_NEGOTIATION', 'ACCEPTED'].includes(f.status));
     }
     if (status === 'in_progress') {
-      return freights.filter(f => ['LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED', 'DELIVERED_PENDING_CONFIRMATION'].includes(f.status));
+      return freights.filter(f => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Se não tem pickup_date, não pode estar "em andamento"
+        if (!f.pickup_date) return false;
+        
+        // pickup_date deve ser hoje ou passado
+        const pickupDate = new Date(f.pickup_date);
+        pickupDate.setHours(0, 0, 0, 0);
+        
+        const isDateValid = pickupDate <= today;
+        
+        // Status deve ser ativo (não final)
+        const hasActiveStatus = !['CANCELLED', 'DELIVERED', 'COMPLETED'].includes(f.status);
+        
+        return isDateValid && hasActiveStatus;
+      });
     }
     if (status === 'cancelled') {
       return freights.filter(f => f.status === 'CANCELLED');

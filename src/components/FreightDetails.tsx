@@ -338,17 +338,20 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                       if (error) throw error;
                       
                       if (data && data.distance_km) {
-                        // Atualizar distance_km no banco
+                        // Arredondar distância antes de salvar
+                        const roundedDistance = Math.round(data.distance_km);
+                        
+                        // Atualizar no banco
                         const { error: updateError } = await supabase
                           .from('freights')
-                          .update({ distance_km: data.distance_km })
+                          .update({ distance_km: roundedDistance })
                           .eq('id', freight.id);
                         
                         if (updateError) throw updateError;
                         
                         // Atualizar estado local
-                        setFreight({ ...freight, distance_km: data.distance_km });
-                        toast.success(`Distância recalculada: ${Math.round(data.distance_km)} km`);
+                        setFreight({ ...freight, distance_km: roundedDistance });
+                        toast.success(`Distância recalculada: ${roundedDistance} km`);
                       }
                     } catch (error: any) {
                       toast.error('Erro ao recalcular distância', {
