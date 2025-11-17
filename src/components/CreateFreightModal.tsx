@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -9,10 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectGroup } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Loader2, Truck, Info, Save } from 'lucide-react';
+import { Plus, Loader2, Truck, Info, Save, RotateCcw } from 'lucide-react';
 import { SaveTemplateDialog } from './freight-templates/SaveTemplateDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { ANTTValidation } from './ANTTValidation';
 import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory, cargoRequiresAxles, AXLE_OPTIONS, VEHICLE_TYPES_URBAN } from '@/lib/cargo-types';
 import { LocationFillButton } from './LocationFillButton';
@@ -22,6 +23,9 @@ import { freightSchema, validateInput } from '@/lib/validations';
 import { getCityId } from '@/lib/city-utils';
 import { calculateFreightPrice, convertWeightToKg } from '@/lib/freight-calculations';
 import { WeightInput } from '@/components/WeightInput';
+import { useFreightDraft } from '@/hooks/useFreightDraft';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface CreateFreightModalProps {
   onFreightCreated: () => void;
@@ -81,13 +85,50 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
   const [showUserExistsWarning, setShowUserExistsWarning] = useState(false);
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
   const [formData, setFormData] = useState({ ...formDataInitial, ...initialData });
-
+  
   const isModalOpen = externalIsOpen !== undefined ? externalIsOpen : open;
+  
+  const { hasDraft, lastSaved, saveDraft, clearDraft, restoreDraft } = useFreightDraft(
+    userProfile?.id,
+    !guestMode && isModalOpen
+  );
+
+  // Auto-save draft every 3 seconds
+  useEffect(() => {
+    if (!guestMode && isModalOpen && !initialData) {
+      const interval = setInterval(() => {
+        const hasData = Object.values(formData).some(v => v && v !== '');
+        if (hasData) {
+          saveDraft(formData);
+        }
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }
+  }, [formData, guestMode, isModalOpen, initialData, saveDraft]);
+
   const handleModalClose = () => {
     if (externalOnClose) {
       externalOnClose();
     } else {
       setOpen(false);
+    }
+    // Não limpar draft ao fechar, apenas quando publicar ou salvar modelo
+  };
+
+  const handleRestoreDraft = () => {
+    const draftData = restoreDraft();
+    if (draftData) {
+      setFormData({ ...formDataInitial, ...draftData });
+      toast.success('Rascunho restaurado');
+    }
+  };
+
+  const handleClearDraft = () => {
+    if (confirm('Descartar rascunho e começar novo frete?')) {
+      clearDraft();
+      setFormData(formDataInitial);
+      toast.info('Rascunho descartado');
     }
   };
 
@@ -104,6 +145,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
       if (error) throw error;
 
       toast.success('Modelo salvo com sucesso!');
+      clearDraft(); // Limpar rascunho ao salvar modelo
     } catch (error: any) {
       console.error('Erro ao salvar modelo:', error);
       toast.error('Erro ao salvar modelo');
@@ -681,6 +723,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
           : 'Frete criado com sucesso! Motoristas qualificados serão notificados automaticamente.'
       );
       
+      clearDraft(); // Limpar rascunho ao publicar frete
+      
       if (externalOnClose) {
         externalOnClose();
       } else {
@@ -744,6 +788,39 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
             )}
           </div>
         </DialogHeader>
+        
+        {!guestMode && hasDraft && !initialData && (
+          <Alert className="mx-6 mt-4">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <div>
+                <strong>Rascunho encontrado</strong>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Salvo automaticamente {lastSaved && format(lastSaved, "d 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                </p>
+              </div>
+              <div className="flex gap-2 ml-4">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="default"
+                  onClick={handleRestoreDraft}
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                  Continuar Rascunho
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleClearDraft}
+                >
+                  Descartar
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
         
         <SaveTemplateDialog
           open={showSaveTemplateDialog}
