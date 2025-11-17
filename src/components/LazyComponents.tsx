@@ -9,16 +9,11 @@ export const ServiceProviderDashboard = lazy(() => import('@/pages/ServiceProvid
 
 // Modal Components that have default exports
 export const AuthModal = lazy(() => import('@/components/AuthModal'));
-export const CreateFreightModal = lazy(() => import('@/components/CreateFreightModal'));
 
 // Other Components with named exports
 export const FreightDetails = lazy(() => import('@/components/FreightDetails').then(module => ({ default: module.FreightDetails })));
 export const UserProfileModal = lazy(() => import('@/components/UserProfileModal').then(module => ({ default: module.UserProfileModal })));
 export const NotificationCenter = lazy(() => import('@/components/NotificationCenter').then(module => ({ default: module.NotificationCenter })));
-
-// Form Components
-export const DocumentUpload = lazy(() => import('@/components/DocumentUpload'));
-export const ProfilePhotoUpload = lazy(() => import('@/components/ProfilePhotoUpload'));
 
 // Complex Components
 export const GoogleMap = lazy(() => import('@/components/GoogleMap'));

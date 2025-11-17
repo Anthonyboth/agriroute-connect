@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
+import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
 interface Props {
   children: ReactNode;
@@ -33,14 +34,12 @@ class ErrorBoundary extends Component<Props, State> {
       console.warn('Transient DOM error (will be reported):', error);
       
       // ✅ Reportar erro DOM ao sistema de monitoramento
-      import('@/services/errorMonitoringService').then(({ ErrorMonitoringService }) => {
-        ErrorMonitoringService.getInstance().captureError(error, {
-          componentStack: errorInfo.componentStack,
-          source: 'frontend',
-          module: 'ErrorBoundary',
-          errorType: 'DOM_TRANSIENT',
-          userFacing: false
-        });
+      ErrorMonitoringService.getInstance().captureError(error, {
+        componentStack: errorInfo.componentStack,
+        source: 'frontend',
+        module: 'ErrorBoundary',
+        errorType: 'DOM_TRANSIENT',
+        userFacing: false
       });
       
       // Allow React to recover, then reset boundary
@@ -70,18 +69,16 @@ class ErrorBoundary extends Component<Props, State> {
     else if (currentPath.includes('/dashboard')) panel = 'Dashboard';
     
     // Enviar para monitoring com userFacing=true
-    import('@/services/errorMonitoringService').then(({ ErrorMonitoringService }) => {
-      ErrorMonitoringService.getInstance().captureError(error, {
-        componentStack: errorInfo.componentStack,
-        source: 'frontend',
-        module: 'ErrorBoundary',
-        panel,
-        userFacing: true
-      }).then(result => {
-        this.setState({
-          notified: result.notified,
-          errorLogId: result.errorLogId
-        });
+    ErrorMonitoringService.getInstance().captureError(error, {
+      componentStack: errorInfo.componentStack,
+      source: 'frontend',
+      module: 'ErrorBoundary',
+      panel,
+      userFacing: true
+    }).then(result => {
+      this.setState({
+        notified: result.notified,
+        errorLogId: result.errorLogId
       });
     });
   }
@@ -92,7 +89,6 @@ class ErrorBoundary extends Component<Props, State> {
     this.setState({ retrying: true });
     
     try {
-      const { ErrorMonitoringService } = await import('@/services/errorMonitoringService');
       const result = await ErrorMonitoringService.getInstance().captureError(
         this.state.error!,
         {

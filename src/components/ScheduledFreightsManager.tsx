@@ -14,7 +14,7 @@ import { ScheduledFreightModal } from './ScheduledFreightModal';
 import { EditFreightModal } from './EditFreightModal';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ScheduledFreightCard } from './ScheduledFreightCard';
-import { getDaysUntilPickup } from '@/utils/freightDateHelpers';
+import { getDaysUntilPickup, isScheduledFreight } from '@/utils/freightDateHelpers';
 
 // Helper para obter data efetiva (scheduled_date ou pickup_date como fallback)
 const getEffectiveDate = (freight: any): string | null => {
@@ -66,77 +66,121 @@ export const ScheduledFreightsManager: React.FC = () => {
         today.setHours(0, 0, 0, 0);
         const todayStr = today.toISOString().split('T')[0];
         
-        console.log('🔍 [AGENDADOS] Buscando fretes com pickup_date >= ', todayStr);
+        console.log('🔍 [AGENDADOS] Buscando fretes futuros (>= hoje)', todayStr);
         
-        // Queries completamente separadas com @ts-ignore para evitar problemas de inferência
         let freightsData: any[] = [];
+        const FINAL_STATUSES = ['CANCELLED', 'DELIVERED', 'COMPLETED', 'DELIVERED_PENDING_CONFIRMATION'];
         
         if (profile.role === 'PRODUTOR') {
-          // @ts-ignore - TypeScript tem dificuldade com inferência profunda em queries condicionais
           const result: any = await supabase
             .from('freights')
             .select('*')
             .eq('producer_id', profile.id)
-            .gte('pickup_date', todayStr)
+            .or(`pickup_date.gte.${todayStr},scheduled_date.gte.${todayStr}`)
             .order('pickup_date', { ascending: true })
             .limit(100);
           
           if (result.error) throw result.error;
-          freightsData = result.data || [];
+          const allFreights = result.data || [];
+          console.log('📊 [PRODUTOR] Total buscado:', allFreights.length);
+          
+          // Filtrar com helper isScheduledFreight e excluir finais
+          freightsData = allFreights.filter((f: any) => 
+            !FINAL_STATUSES.includes(f.status) && 
+            isScheduledFreight(f.pickup_date || f.scheduled_date, f.status)
+          );
+          console.log('✅ [PRODUTOR] Após filtro scheduled:', freightsData.length, 
+            'IDs:', freightsData.map(f => `${f.id.slice(0,8)}(${f.pickup_date})`));
           
         } else if (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO') {
-          // @ts-ignore - TypeScript tem dificuldade com inferência profunda em queries condicionais
-          const result: any = await supabase
-            .from('freights')
-            .select('*')
-            .eq('driver_id', profile.id)
-            .gte('pickup_date', todayStr)
-            .order('pickup_date', { ascending: true })
-            .limit(100);
+          // Tentar RPC primeiro
+          const { data: rpcData, error: rpcErr } = await supabase.rpc('get_freights_for_driver', { 
+            p_driver_id: profile.id 
+          });
           
-          if (result.error) throw result.error;
-          freightsData = result.data || [];
+          if (!rpcErr && rpcData) {
+            console.log('📊 [MOTORISTA RPC] Total buscado:', rpcData.length);
+            freightsData = rpcData.filter((f: any) => 
+              !FINAL_STATUSES.includes(f.status) && 
+              isScheduledFreight(f.pickup_date || f.scheduled_date, f.status)
+            );
+            console.log('✅ [MOTORISTA RPC] Após filtro scheduled:', freightsData.length,
+              'IDs:', freightsData.map(f => `${f.id.slice(0,8)}(${f.pickup_date})`));
+          } else {
+            // Fallback: buscar via freight_assignments
+            console.warn('⚠️ RPC falhou, usando fallback freight_assignments');
+            const { data: assigns } = await supabase
+              .from('freight_assignments')
+              .select('freight_id')
+              .eq('driver_id', profile.id)
+              .in('status', ['ACCEPTED']);
+            
+            const ids = (assigns || []).map(a => a.freight_id);
+            if (ids.length > 0) {
+              const { data: freights } = await supabase
+                .from('freights')
+                .select('*')
+                .in('id', ids);
+              
+              const allFreights = freights || [];
+              console.log('📊 [MOTORISTA FALLBACK] Total buscado:', allFreights.length);
+              
+              freightsData = allFreights.filter((f: any) => 
+                !FINAL_STATUSES.includes(f.status) && 
+                isScheduledFreight(f.pickup_date || f.scheduled_date, f.status)
+              );
+              console.log('✅ [MOTORISTA FALLBACK] Após filtro scheduled:', freightsData.length,
+                'IDs:', freightsData.map(f => `${f.id.slice(0,8)}(${f.pickup_date})`));
+            }
+          }
           
         } else if (profile.role === 'TRANSPORTADORA') {
-          // @ts-ignore - TypeScript tem dificuldade com inferência profunda em queries condicionais
           const result: any = await supabase
             .from('freights')
             .select('*')
             .eq('company_id', profile.id)
-            .gte('pickup_date', todayStr)
+            .or(`pickup_date.gte.${todayStr},scheduled_date.gte.${todayStr}`)
             .order('pickup_date', { ascending: true })
             .limit(100);
           
           if (result.error) throw result.error;
-          freightsData = result.data || [];
+          const allFreights = result.data || [];
+          console.log('📊 [TRANSPORTADORA] Total buscado:', allFreights.length);
+          
+          // Filtrar com helper isScheduledFreight e excluir finais
+          freightsData = allFreights.filter((f: any) => 
+            !FINAL_STATUSES.includes(f.status) && 
+            isScheduledFreight(f.pickup_date || f.scheduled_date, f.status)
+          );
+          console.log('✅ [TRANSPORTADORA] Após filtro scheduled:', freightsData.length,
+            'IDs:', freightsData.map(f => `${f.id.slice(0,8)}(${f.pickup_date})`));
           
         } else {
-          // @ts-ignore - TypeScript tem dificuldade com inferência profunda em queries condicionais
           const result: any = await supabase
             .from('freights')
             .select('*')
-            .gte('pickup_date', todayStr)
+            .or(`pickup_date.gte.${todayStr},scheduled_date.gte.${todayStr}`)
             .order('pickup_date', { ascending: true })
             .limit(100);
           
           if (result.error) throw result.error;
-          freightsData = result.data || [];
+          const allFreights = result.data || [];
+          console.log('📊 [OUTRO] Total buscado:', allFreights.length);
+          
+          freightsData = allFreights.filter((f: any) => 
+            !FINAL_STATUSES.includes(f.status) && 
+            isScheduledFreight(f.pickup_date || f.scheduled_date, f.status)
+          );
+          console.log('✅ [OUTRO] Após filtro scheduled:', freightsData.length);
         }
         
-        // Filtrar status finalizados no lado do cliente
-        const finalStatuses = ['CANCELLED', 'DELIVERED', 'COMPLETED', 'DELIVERED_PENDING_CONFIRMATION'];
-        const filteredData = freightsData.filter((freight: any) => 
-          !finalStatuses.includes(freight.status)
-        );
-        
         console.log('✅ [AGENDADOS] Fretes carregados:', {
-          total: filteredData.length,
-          totalBeforeFilter: freightsData.length,
-          ids: filteredData.map((f: any) => f.id),
-          dates: filteredData.map((f: any) => ({ id: f.id, pickup_date: f.pickup_date, status: f.status }))
+          total: freightsData.length,
+          ids: freightsData.map((f: any) => f.id),
+          dates: freightsData.map((f: any) => ({ id: f.id, pickup_date: f.pickup_date, status: f.status }))
         });
 
-        setScheduledFreights(filteredData);
+        setScheduledFreights(freightsData);
       } catch (queryError) {
         console.error('Erro na query de agendados:', queryError);
         throw queryError;
