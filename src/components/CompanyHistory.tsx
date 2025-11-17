@@ -101,9 +101,26 @@ export const CompanyHistory: React.FC = () => {
                 </p>
               )}
             </div>
-            <Badge variant={getFreightStatusVariant(freight.status)}>
-              {getFreightStatusLabel(freight.status)}
-            </Badge>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant={getFreightStatusVariant(freight.status)}>
+                {getFreightStatusLabel(freight.status)}
+              </Badge>
+              {/* Badge de data de coleta */}
+              {(() => {
+                const badgeInfo = getPickupDateBadge(freight.pickup_date);
+                if (!badgeInfo) return null;
+                
+                const iconMap = { AlertTriangle, Clock, Calendar };
+                const IconComponent = iconMap[badgeInfo.icon];
+                
+                return (
+                  <Badge variant={badgeInfo.variant} className="flex items-center gap-1 text-xs">
+                    <IconComponent className="h-3 w-3" />
+                    {badgeInfo.text}
+                  </Badge>
+                );
+              })()}
+            </div>
           </div>
 
           <div className="space-y-2 text-sm">
