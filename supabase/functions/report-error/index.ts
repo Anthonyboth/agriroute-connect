@@ -57,9 +57,21 @@ serve(async (req) => {
       category: errorReport.errorCategory 
     });
 
-    // Enriquecer com metadados
-    const enrichedReport = {
-      ...errorReport,
+    // Convert camelCase to snake_case for database
+    const dbReport = {
+      error_type: errorReport.errorType,
+      error_category: errorReport.errorCategory,
+      error_message: errorReport.errorMessage,
+      error_stack: errorReport.errorStack,
+      error_code: errorReport.errorCode,
+      module: errorReport.module,
+      function_name: errorReport.functionName,
+      route: errorReport.route,
+      user_id: errorReport.userId,
+      user_email: errorReport.userEmail,
+      auto_correction_attempted: errorReport.autoCorrectionAttempted,
+      auto_correction_action: errorReport.autoCorrectionAction,
+      auto_correction_success: errorReport.autoCorrectionSuccess,
       metadata: {
         ...errorReport.metadata,
         ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip'),
@@ -71,7 +83,7 @@ serve(async (req) => {
     // Salvar no banco
     const { data: errorLog, error: insertError } = await supabaseAdmin
       .from('error_logs')
-      .insert(enrichedReport)
+      .insert(dbReport)
       .select()
       .single();
 
