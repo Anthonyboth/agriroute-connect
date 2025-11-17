@@ -33,7 +33,9 @@ export function formatTonsCompactFromKg(kg: number): string {
   }
 
   if (suffix === '') {
-    return `${Math.round(tons).toLocaleString('pt-BR')} t`;
+    // Para 1-999 t, exibir com 1 casa decimal
+    const val = Math.round(tons * 10) / 10;
+    return `${val.toLocaleString('pt-BR')} t`;
   }
 
   let formatted: string;
