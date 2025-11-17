@@ -1,4 +1,4 @@
-workflows:
+﻿workflows:
   capacitor-ios:
     name: Capacitor iOS Workflow
     max_build_duration: 120
@@ -15,39 +15,63 @@ workflows:
       - name: Install dependencies
         script: |
           npm ci
-      
+
       - name: Build web app
         script: |
           npm run build
-      
+
       - name: Sync Capacitor
         script: |
           npx cap sync ios
-      
+
       - name: Install CocoaPods
         script: |
           cd ios/App && pod install
-      
-      - name: Fetch signing files
+
+      - name: Configure iOS Automatic Signing
         script: |
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_DEVELOPMENT \
-            --create
-      
-      - name: Add certificates to keychain
+          chmod +x ./scripts/configure_ios_signing.sh
+          ./scripts/configure_ios_signing.sh
+
+      - name: Build iOS with Automatic Signing
         script: |
-          keychain add-certificates
-      
-      - name: Set up code signing settings on Xcode project
-        script: |
-          xcode-project use-profiles
-      
-      - name: Build iOS
-        script: |
-          xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME"
-    
+          cd ios/App
+
+          # Generate export options for automatic signing
+          cat > export_options.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>teamID</key>
+              <string>4YULT95XAK</string>
+              <key>signingStyle</key>
+              <string>automatic</string>
+          </dict>
+          </plist>
+          EOF
+
+          # Archive with automatic signing
+          xcodebuild clean archive \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -archivePath build/App.xcarchive \
+            -allowProvisioningUpdates \
+            DEVELOPMENT_TEAM=4YULT95XAK \
+            CODE_SIGN_STYLE=Automatic \
+            PRODUCT_BUNDLE_IDENTIFIER=app.lovable.f2dbc20153194f90a3cc8dd215bbebba
+
+          # Export IPA
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist export_options.plist \
+            -allowProvisioningUpdates
+
+          echo "✅ Build iOS concluído com assinatura automática!"
+
     artifacts:
       - build/ios/ipa/*.ipa
-      - ios/App/build/ios/ipa/*.ipa
+      - ios/App/build/ipa/*.ipa
