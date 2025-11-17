@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
-import AuthModal from '@/components/AuthModal';
 import MudancaModal from '@/components/MudancaModal';
 import GuestServiceModal from '@/components/GuestServiceModal';
 import HowItWorksModal from '@/components/HowItWorksModal';
@@ -22,13 +21,9 @@ import {
   CarouselContent, 
   CarouselItem 
 } from "@/components/ui/carousel";
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-
-// Lazy load PlatformStatsSection para economizar bundle inicial
-const PlatformStatsSection = lazy(() => 
-  import('@/components/PlatformStatsSection').then(module => ({ default: module.PlatformStatsSection }))
-);
+import { AuthModal, PlatformStatsSection } from '@/components/LazyComponents';
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();

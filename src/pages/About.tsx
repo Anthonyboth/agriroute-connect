@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Leaf, Truck, Users, MapPin, Shield, Clock, Target, Heart, Award } from 'lucide-react';
-import { PlatformStatsSection } from '@/components/PlatformStatsSection';
+import { PlatformStatsSection } from '@/components/LazyComponents';
 
 const About = () => {
   const navigate = useNavigate();

@@ -37,6 +37,7 @@ export const DriverPayouts = lazy(() => import('@/components/DriverPayouts').the
 export const UnifiedHistory = lazy(() => import('@/components/UnifiedHistory').then(m => ({ default: m.UnifiedHistory })));
 export const PendingRatingsPanel = lazy(() => import('@/components/PendingRatingsPanel').then(m => ({ default: m.PendingRatingsPanel })));
 export const DriverAutoLocationTracking = lazy(() => import('@/components/DriverAutoLocationTracking').then(m => ({ default: m.DriverAutoLocationTracking })));
+export const PlatformStatsSection = lazy(() => import('@/components/PlatformStatsSection').then(m => ({ default: m.PlatformStatsSection })));
 
 // Modals - Heavy Components
 export const FreightCheckinModal = lazy(() => import('@/components/FreightCheckinModal'));

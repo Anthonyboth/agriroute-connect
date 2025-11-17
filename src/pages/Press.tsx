@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Leaf, Newspaper, Download, ExternalLink, Users, Trophy, TrendingUp, Calendar } from 'lucide-react';
-import { PlatformStatsSection } from '@/components/PlatformStatsSection';
+import { PlatformStatsSection } from '@/components/LazyComponents';
 
 const Press = () => {
   const navigate = useNavigate();

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
-import GoogleMap from '@/components/GoogleMap';
+import { GoogleMap } from '@/components/LazyComponents';
 import { CitySelector } from './CitySelector';
 
 interface AddressData {
