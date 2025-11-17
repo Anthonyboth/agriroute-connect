@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, MapPin, Calendar, DollarSign, RefreshCw, History } from 'lucide-react';
+import { Package, MapPin, Calendar, DollarSign, RefreshCw, History, Clock, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatBRL, formatDate, formatTons } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
+import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 
 interface CompanyFreightHistoryProps {
   companyId: string;
@@ -149,15 +150,32 @@ export const CompanyFreightHistory: React.FC<CompanyFreightHistoryProps> = ({ co
     <Card key={freight.id} className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Package className="h-4 w-4 text-primary" />
             <span className="font-semibold text-sm">
               {getCargoTypeLabel(freight.cargo_type)}
             </span>
           </div>
-          <Badge variant={getFreightStatusVariant(freight.status)}>
-            {getFreightStatusLabel(freight.status)}
-          </Badge>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant={getFreightStatusVariant(freight.status)}>
+              {getFreightStatusLabel(freight.status)}
+            </Badge>
+            {/* Badge de data de coleta */}
+            {(() => {
+              const badgeInfo = getPickupDateBadge(freight.pickup_date);
+              if (!badgeInfo) return null;
+              
+              const iconMap = { AlertTriangle, Clock, Calendar };
+              const IconComponent = iconMap[badgeInfo.icon];
+              
+              return (
+                <Badge variant={badgeInfo.variant} className="flex items-center gap-1 text-xs">
+                  <IconComponent className="h-3 w-3" />
+                  {badgeInfo.text}
+                </Badge>
+              );
+            })()}
+          </div>
         </div>
 
         <div className="space-y-2 text-sm">

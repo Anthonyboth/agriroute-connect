@@ -3,12 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, Package, MapPin, DollarSign, Calendar, Filter } from 'lucide-react';
+import { Clock, Package, MapPin, DollarSign, Calendar, Filter, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { formatBRL, formatDate, formatKm } from '@/lib/formatters';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
+import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 
 interface HistoricalFreight {
   id: string;

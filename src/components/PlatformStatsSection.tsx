@@ -3,7 +3,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useOptimizedStats } from '@/hooks/useOptimizedStats';
-import { formatTonsCompactFromKg, formatTimeAgo } from '@/lib/utils';
+import { formatTonsCompactFromKg } from '@/lib/utils';
+import { formatTimeAgo } from '@/lib/formatters';
 
 export const PlatformStatsSection: React.FC = () => {
   const { stats, isLoading, lastUpdated, refetchStats } = useOptimizedStats();
@@ -55,11 +56,27 @@ export const PlatformStatsSection: React.FC = () => {
   return (
     <section className="py-16 bg-muted/30">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Nossos Números</h2>
-          <p className="text-muted-foreground text-lg">
-            Resultados que comprovam nossa excelência
-          </p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="text-center flex-1">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Nossos Números</h2>
+            <p className="text-muted-foreground text-lg">
+              Resultados que comprovam nossa excelência
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              Atualizado {formatTimeAgo(lastUpdated)}
+            </span>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => refetchStats()}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Atualizar agora
+            </Button>
+          </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
           {statsData.map((stat, index) => (

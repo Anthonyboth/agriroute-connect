@@ -16,7 +16,9 @@ import {
   Wrench,
   Home,
   Edit,
-  X
+  X,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { getFreightTypeLabel, shouldShowAntt } from '@/lib/freight-type-labels';
@@ -24,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { formatTons, formatKm, formatBRL, formatDate } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
+import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 
 interface FreightCardProps {
   freight: {
@@ -211,6 +214,21 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
               <Badge variant={getFreightStatusVariant(freight.status)} className="text-sm font-semibold px-3 py-1">
                 {getFreightStatusLabel(freight.status)}
               </Badge>
+              {/* Badge de data de coleta */}
+              {(() => {
+                const badgeInfo = getPickupDateBadge(freight.pickup_date);
+                if (!badgeInfo) return null;
+                
+                const iconMap = { AlertTriangle, Clock, Calendar };
+                const IconComponent = iconMap[badgeInfo.icon];
+                
+                return (
+                  <Badge variant={badgeInfo.variant} className="flex items-center gap-1 text-xs">
+                    <IconComponent className="h-3 w-3" />
+                    {badgeInfo.text}
+                  </Badge>
+                );
+              })()}
               {hasCompletedBefore && (
                 <Badge variant="outline" className="bg-green-50 dark:bg-green-900/30 border-green-500 text-green-700 dark:text-green-400 text-sm font-semibold px-3 py-1">
                   ✅ Você já completou uma carreta

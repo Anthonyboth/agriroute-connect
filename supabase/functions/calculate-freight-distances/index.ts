@@ -133,10 +133,12 @@ serve(async (req) => {
           continue;
         }
         
-        // Extrair distância em km
-        const distance_km = Math.round((element.distance.value / 1000) * 100) / 100;
+        // Extrair distância em km e ARREDONDAR
+        const distance_km = Math.round(element.distance.value / 1000);
         
-        // Atualizar frete com distância calculada
+        console.log(`[CALCULATE-FREIGHT-DISTANCES] Freight ${freight.id}: ${(element.distance.value / 1000).toFixed(2)} km → ${distance_km} km (arredondado)`);
+        
+        // Atualizar frete com distância calculada (COM ARREDONDAMENTO)
         const { error: updateError } = await supabase
           .from('freights')
           .update({ distance_km })
