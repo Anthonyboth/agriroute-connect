@@ -60,31 +60,30 @@ const CompanyDashboard = lazy(() => import("./pages/CompanyDashboard"));
 const ServiceProviderDashboard = lazy(() => import("./pages/ServiceProviderDashboard"));
 import DriverInviteSignup from "./pages/DriverInviteSignup";
 import { AlertCircle } from 'lucide-react';
+import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
 const queryClient = new QueryClient();
 
 // Inicializar Error Monitoring
 if (typeof window !== 'undefined') {
-  import('@/services/errorMonitoringService').then(({ ErrorMonitoringService }) => {
-    const errorMonitoring = ErrorMonitoringService.getInstance();
+  const errorMonitoring = ErrorMonitoringService.getInstance();
 
-    // Capturar erros não tratados
-    window.addEventListener('error', (event) => {
-      errorMonitoring.captureError(event.error || new Error(event.message), {
-        source: 'window.error',
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno
-      });
+  // Capturar erros não tratados
+  window.addEventListener('error', (event) => {
+    errorMonitoring.captureError(event.error || new Error(event.message), {
+      source: 'window.error',
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno
     });
+  });
 
-    // Capturar rejeições de promessas não tratadas
-    window.addEventListener('unhandledrejection', (event) => {
-      errorMonitoring.captureError(
-        event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
-        { source: 'unhandledrejection' }
-      );
-    });
+  // Capturar rejeições de promessas não tratadas
+  window.addEventListener('unhandledrejection', (event) => {
+    errorMonitoring.captureError(
+      event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
+      { source: 'unhandledrejection' }
+    );
   });
 }
 
