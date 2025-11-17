@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, MapPin, Weight, TrendingUp, MessageSquare, Eye, XCircle, Clock } from 'lucide-react';
+import { Calendar, MapPin, Weight, TrendingUp, MessageSquare, Eye, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import { formatBRL, formatKm, formatTons, formatDate } from '@/lib/formatters';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { FreightDetails } from '@/components/FreightDetails';
 import { ChatModal } from '@/components/ChatModal';
 import type { ChatConversation } from '@/hooks/useUnifiedChats';
+import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 
 interface ScheduledFreightCardProps {
   freight: any;
@@ -16,32 +17,6 @@ interface ScheduledFreightCardProps {
   currentUserProfile: any;
   onWithdraw?: (freightId: string) => void;
 }
-
-// Helper para calcular dias até a coleta
-const getDaysUntilPickup = (pickupDate: string | null): { days: number; label: string; variant: 'default' | 'secondary' | 'destructive' } => {
-  if (!pickupDate) return { days: 0, label: 'Coleta hoje', variant: 'default' };
-  
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const pickup = new Date(pickupDate);
-  pickup.setHours(0, 0, 0, 0);
-  
-  const diffTime = pickup.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays < 0) {
-    return { days: diffDays, label: `${Math.abs(diffDays)} dia(s) atrasado`, variant: 'destructive' };
-  } else if (diffDays === 0) {
-    return { days: 0, label: 'Coleta hoje', variant: 'default' };
-  } else if (diffDays === 1) {
-    return { days: 1, label: 'Coleta amanhã', variant: 'secondary' };
-  } else if (diffDays <= 3) {
-    return { days: diffDays, label: `${diffDays} dias para coleta`, variant: 'secondary' };
-  } else {
-    return { days: diffDays, label: `${diffDays} dias para coleta`, variant: 'default' };
-  }
-};
 
 export const ScheduledFreightCard: React.FC<ScheduledFreightCardProps> = ({
   freight,
@@ -70,7 +45,7 @@ export const ScheduledFreightCard: React.FC<ScheduledFreightCardProps> = ({
     isClosed: false
   };
 
-  const daysInfo = getDaysUntilPickup(freight.pickup_date || freight.scheduled_date);
+  const badgeInfo = getPickupDateBadge(freight.pickup_date || freight.scheduled_date);
 
   return (
     <>
@@ -80,10 +55,16 @@ export const ScheduledFreightCard: React.FC<ScheduledFreightCardProps> = ({
             <CardTitle className="text-lg font-semibold truncate flex-1">
               {getCargoTypeLabel(freight.cargo_type)}
             </CardTitle>
-            <Badge variant={daysInfo.variant} className="whitespace-nowrap flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {daysInfo.label}
-            </Badge>
+            {badgeInfo && (() => {
+              const iconMap = { AlertTriangle, Clock, Calendar };
+              const IconComponent = iconMap[badgeInfo.icon];
+              return (
+                <Badge variant={badgeInfo.variant} className="whitespace-nowrap flex items-center gap-1">
+                  <IconComponent className="h-3 w-3" />
+                  {badgeInfo.text}
+                </Badge>
+              );
+            })()}
           </div>
           
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

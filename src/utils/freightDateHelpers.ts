@@ -126,3 +126,69 @@ export const formatPickupDate = (pickupDate: string | null): string => {
     year: 'numeric'
   });
 };
+
+/**
+ * Calcula dias até pickup (versão simplificada para uso direto)
+ */
+export const getDaysUntilPickup = (pickupDate: string | null): number | null => {
+  if (!pickupDate) return null;
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const pickup = new Date(pickupDate);
+  pickup.setHours(0, 0, 0, 0);
+  
+  const diffTime = pickup.getTime() - today.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
+/**
+ * Gera configuração de badge para data de coleta
+ */
+export const getPickupDateBadge = (pickupDate: string | null): {
+  variant: 'destructive' | 'default' | 'secondary';
+  icon: 'AlertTriangle' | 'Clock' | 'Calendar';
+  text: string;
+} | null => {
+  const days = getDaysUntilPickup(pickupDate);
+  if (days === null) return null;
+  
+  if (days < 0) {
+    return {
+      variant: 'destructive',
+      icon: 'AlertTriangle',
+      text: `${Math.abs(days)} dia(s) atrasado`
+    };
+  }
+  
+  if (days === 0) {
+    return {
+      variant: 'default',
+      icon: 'Clock',
+      text: 'Coleta hoje'
+    };
+  }
+  
+  if (days === 1) {
+    return {
+      variant: 'secondary',
+      icon: 'Calendar',
+      text: 'Coleta amanhã'
+    };
+  }
+  
+  if (days <= 3) {
+    return {
+      variant: 'secondary',
+      icon: 'Calendar',
+      text: `${days} dias para coleta`
+    };
+  }
+  
+  return {
+    variant: 'default',
+    icon: 'Calendar',
+    text: `${days} dias para coleta`
+  };
+};

@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Truck, MapPin, RefreshCw, BarChart, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { isInProgressFreight, isScheduledFreight } from '@/utils/freightDateHelpers';
 
 interface CompanyDashboardProps {
   onNavigateToReport?: (tab: string) => void;
@@ -69,13 +70,12 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
       console.log(`📊 [CompanyDashboard] Buscando dados para company ${company.id}`);
       console.log(`📦 [CompanyDashboard] ${freights.length} fretes da empresa encontrados`);
       
-      // Calcular stats
-      const active = freights.filter(f => 
-        ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'].includes(f.status)
-      );
+      // Calcular stats usando helpers centralizados
+      const active = freights.filter(f => isInProgressFreight(f.pickup_date, f.status));
+      const scheduled = freights.filter(f => isScheduledFreight(f.pickup_date, f.status));
       const available = freights.filter(f => f.status === 'OPEN');
       
-      console.log(`✅ [CompanyDashboard] ${active.length} ativos, ${available.length} disponíveis`);
+      console.log(`✅ [CompanyDashboard] ${active.length} ativos, ${scheduled.length} agendados, ${available.length} disponíveis`);
       
       // Ganhos: somar apenas fretes entregues
       const delivered = freights.filter(f => f.status === 'DELIVERED');

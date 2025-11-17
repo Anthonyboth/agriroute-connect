@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, TrendingUp, Truck, DollarSign, AlertCircle, CheckCircle2, Navigation } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, DollarSign, AlertCircle, CheckCircle2, Navigation, Clock, Calendar, AlertTriangle } from 'lucide-react';
 import { ANTTValidation } from './ANTTValidation';
 import { ShareFreightToDriver } from './ShareFreightToDriver';
 import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-helpers';
 import { useAuth } from '@/hooks/useAuth';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
-import { formatKm, formatBRL, formatTons } from '@/lib/formatters';
+import { formatTons, formatKm, formatBRL, formatDate } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
+import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 
 interface MyAssignmentCardProps {
   assignment: any;
@@ -94,7 +95,24 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-semibold truncate flex-1">{cargoType}</h3>
-          {getStatusBadge(status)}
+          <div className="flex items-center gap-2">
+            {getStatusBadge(status)}
+            {/* Badge de data de coleta */}
+            {(() => {
+              const badgeInfo = getPickupDateBadge(freight?.pickup_date);
+              if (!badgeInfo) return null;
+              
+              const iconMap = { AlertTriangle, Clock, Calendar };
+              const IconComponent = iconMap[badgeInfo.icon];
+              
+              return (
+                <Badge variant={badgeInfo.variant} className="flex items-center gap-1 text-xs">
+                  <IconComponent className="h-3 w-3" />
+                  {badgeInfo.text}
+                </Badge>
+              );
+            })()}
+          </div>
         </div>
       </CardHeader>
       

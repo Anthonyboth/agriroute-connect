@@ -14,52 +14,7 @@ import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-st
 import { formatKm, formatBRL, formatTons, formatDate } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
-
-// Helper para calcular dias até a coleta
-const getDaysUntilPickup = (pickupDate: string | null): number | null => {
-  if (!pickupDate) return null;
-  
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const pickup = new Date(pickupDate);
-  pickup.setHours(0, 0, 0, 0);
-  
-  const diffTime = pickup.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  return diffDays;
-};
-
-// Helper para gerar badge de dias até coleta
-const getDaysUntilPickupBadge = (days: number | null) => {
-  if (days === null) return null;
-  
-  let variant: 'destructive' | 'default' | 'secondary' = 'default';
-  let IconComponent = Calendar;
-  let text = '';
-  
-  if (days < 0) {
-    variant = 'destructive';
-    IconComponent = AlertTriangle;
-    text = `${Math.abs(days)} dia(s) atrasado`;
-  } else if (days === 0) {
-    variant = 'default';
-    IconComponent = Clock;
-    text = 'Coleta hoje';
-  } else if (days === 1) {
-    variant = 'secondary';
-    text = 'Coleta amanhã';
-  } else if (days <= 3) {
-    variant = 'secondary';
-    text = `${days} dias para coleta`;
-  } else {
-    variant = 'default';
-    text = `${days} dias para coleta`;
-  }
-  
-  return { variant, icon: IconComponent, text };
-};
+import { getDaysUntilPickup, getPickupDateBadge } from '@/utils/freightDateHelpers';
 
 interface FreightInProgressCardProps {
   freight: {
@@ -185,17 +140,21 @@ export const FreightInProgressCard: React.FC<FreightInProgressCardProps> = ({
             
             {/* 📅 Badge de dias até coleta */}
             {(() => {
-              const days = getDaysUntilPickup(freight.pickup_date);
-              const badge = getDaysUntilPickupBadge(days);
+              const badgeInfo = getPickupDateBadge(freight.pickup_date);
               
-              if (!badge) return null;
+              if (!badgeInfo) return null;
               
-              const IconComponent = badge.icon;
+              const iconMap = {
+                AlertTriangle,
+                Clock,
+                Calendar
+              };
+              const IconComponent = iconMap[badgeInfo.icon];
               
               return (
-                <Badge variant={badge.variant} className="text-xs whitespace-nowrap flex items-center gap-1 justify-end">
+                <Badge variant={badgeInfo.variant} className="text-xs whitespace-nowrap flex items-center gap-1 justify-end">
                   <IconComponent className="h-3 w-3" />
-                  {badge.text}
+                  {badgeInfo.text}
                 </Badge>
               );
             })()}

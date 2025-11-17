@@ -32,6 +32,8 @@ import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { toast } from 'sonner';
 import { formatTons, formatKm, formatBRL, formatDate } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
+import { getPickupDateBadge } from '@/utils/freightDateHelpers';
+import { AlertTriangle } from 'lucide-react';
 
 interface FreightCardProps {
   freight: {
@@ -320,6 +322,21 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               <Badge data-testid="freight-status-badge" variant={getFreightStatusVariant(freight.status)} className="text-xs font-medium">
                 {getFreightStatusLabel(freight.status)}
               </Badge>
+              {/* Badge de data de coleta */}
+              {(() => {
+                const badgeInfo = getPickupDateBadge(freight.pickup_date);
+                if (!badgeInfo) return null;
+                
+                const iconMap = { AlertTriangle, Clock, Calendar };
+                const IconComponent = iconMap[badgeInfo.icon];
+                
+                return (
+                  <Badge variant={badgeInfo.variant} className="flex items-center gap-1 text-xs">
+                    <IconComponent className="h-3 w-3" />
+                    {badgeInfo.text}
+                  </Badge>
+                );
+              })()}
               {showAvailableSlots && freight.required_trucks && freight.required_trucks > 1 && (
                 <Badge 
                   variant={isFullyBooked ? "default" : "outline"} 
