@@ -910,9 +910,24 @@ const ProducerDashboard = () => {
     
     const openServices = serviceRequests.filter(s => s.status === 'OPEN').length;
     
+    // 🔍 Filtrar fretes em andamento usando isInProgressFreight (pickup_date hoje ou passado)
+    const ongoingFreights = freights.filter(f => isInProgressFreight(f.pickup_date, f.status));
+    
+    if (import.meta.env.DEV) {
+      console.log('[ProducerDashboard] 📊 Stats - Fretes em andamento:', {
+        count: ongoingFreights.length,
+        freights: ongoingFreights.map(f => ({ 
+          id: f.id.slice(0, 8), 
+          status: f.status, 
+          pickup: f.pickup_date,
+          origin: f.origin_city
+        }))
+      });
+    }
+    
     return {
       openFreights: freights.filter(f => f.status === 'OPEN').length,
-      activeFreights: freights.filter(f => ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(f.status)).length,
+      activeFreights: ongoingFreights.length, // ✅ Corrigido: agora usa isInProgressFreight
       pendingConfirmation: freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length,
       totalValue: freights.reduce((sum, f) => sum + f.price, 0),
       pendingProposals: proposals.length,
@@ -1545,37 +1560,48 @@ const ProducerDashboard = () => {
             </div>
             
             {(() => {
-              // 🔍 Filtrar fretes em andamento usando helper isInProgressFreight
+              // 🔍 Filtrar fretes em andamento ÚNICO vez - reutilizar para card E lista
               const ongoingFreights = freights.filter(f => isInProgressFreight(f.pickup_date, f.status));
               
-              return ongoingFreights.length === 0;
-            })() ? (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                  <Play className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="font-semibold text-lg mb-2">Nenhum frete em andamento</h3>
-                  <p className="text-muted-foreground mb-6 max-w-sm">
-                    Você não possui fretes em andamento no momento.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="max-h-[70vh] overflow-y-auto pr-2">
-                <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
-                  {freights.filter(f => isInProgressFreight(f.pickup_date, f.status)).map((freight) => (
-                    <FreightInProgressCard
-                      key={freight.id}
-                      freight={freight}
-                      onViewDetails={() => setSelectedFreightDetails(freight)}
-                      onRequestCancel={() => {
-                        setFreightToCancel(freight);
-                        setConfirmDialogOpen(true);
-                      }}
-                    />
-                  ))}
+              if (import.meta.env.DEV) {
+                console.log('[ProducerDashboard] 📋 Lista "Em Andamento":', {
+                  count: ongoingFreights.length,
+                  freights: ongoingFreights.map(f => ({ 
+                    id: f.id.slice(0, 8), 
+                    status: f.status, 
+                    pickup: f.pickup_date 
+                  }))
+                });
+              }
+              
+              return ongoingFreights.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                    <Play className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="font-semibold text-lg mb-2">Nenhum frete em andamento</h3>
+                    <p className="text-muted-foreground mb-6 max-w-sm">
+                      Você não possui fretes em andamento no momento.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="max-h-[70vh] overflow-y-auto pr-2">
+                  <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
+                    {ongoingFreights.map((freight) => (
+                      <FreightInProgressCard
+                        key={freight.id}
+                        freight={freight}
+                        onViewDetails={() => setSelectedFreightDetails(freight)}
+                        onRequestCancel={() => {
+                          setFreightToCancel(freight);
+                          setConfirmDialogOpen(true);
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="confirm-delivery" className="space-y-4">
