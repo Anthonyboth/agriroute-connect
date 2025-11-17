@@ -213,4 +213,7 @@ verify_jwt = false
 [functions.monitor-suspicious-logins]
 verify_jwt = false
 
+[functions.cancel-overdue-now]
+verify_jwt = false
+
 
