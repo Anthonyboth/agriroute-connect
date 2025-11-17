@@ -5527,31 +5527,43 @@ export type Database = {
       }
       system_announcements: {
         Row: {
+          archived: boolean | null
+          category: string | null
           created_at: string | null
+          ends_at: string | null
           id: string
           is_active: boolean | null
           message: string
           priority: number | null
+          starts_at: string | null
           title: string
           type: string
           updated_at: string | null
         }
         Insert: {
+          archived?: boolean | null
+          category?: string | null
           created_at?: string | null
+          ends_at?: string | null
           id?: string
           is_active?: boolean | null
           message: string
           priority?: number | null
+          starts_at?: string | null
           title: string
           type?: string
           updated_at?: string | null
         }
         Update: {
+          archived?: boolean | null
+          category?: string | null
           created_at?: string | null
+          ends_at?: string | null
           id?: string
           is_active?: boolean | null
           message?: string
           priority?: number | null
+          starts_at?: string | null
           title?: string
           type?: string
           updated_at?: string | null

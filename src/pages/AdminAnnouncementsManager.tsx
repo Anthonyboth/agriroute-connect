@@ -19,10 +19,10 @@ type Announcement = {
   type?: string;
   priority?: number;
   category?: string;
-  is_active: boolean;
-  archived: boolean;
+  archived?: boolean;
   starts_at?: string;
   ends_at?: string;
+  is_active: boolean;
   created_at: string;
 };
 
