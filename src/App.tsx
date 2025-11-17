@@ -45,6 +45,7 @@ import { useDeviceRegistration } from './hooks/useDeviceRegistration';
 import { startSessionRefresh, stopSessionRefresh } from './utils/sessionRefresh';
 import { SilentCityBootstrap } from './components/SilentCityBootstrap';
 import { ZipCodeService } from './services/zipCodeService';
+import { GlobalAnnouncementBar } from './components/GlobalAnnouncementBar';
 const PressPage = lazy(() => import("./pages/Press"));
 const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess"));
 const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));

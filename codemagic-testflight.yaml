@@ -1,0 +1,88 @@
+workflows:
+  ios-release-testflight:
+    name: iOS Release to TestFlight
+    max_build_duration: 60
+    environment:
+      xcode: latest
+      node: 20.x
+      groups:
+        - app_store_credentials
+      vars:
+        BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
+      
+      - name: Build web app
+        script: |
+          npm run build
+      
+      - name: Sync Capacitor
+        script: |
+          npx cap sync ios
+      
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files \
+            $BUNDLE_ID \
+            --type IOS_APP_STORE \
+            --create
+      
+      - name: Add certificates to keychain
+        script: |
+          keychain add-certificates
+      
+      - name: Set up code signing settings
+        script: |
+          xcode-project use-profiles
+      
+      - name: Increment build number
+        script: |
+          cd ios/App
+          agvtool new-version -all $(($BUILD_NUMBER + 1))
+      
+      - name: Build IPA for App Store
+        script: |
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App \
+            --archive-flags="-destination 'generic/platform=iOS'" \
+            --export-options-plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>4YULT95XAK</string>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>compileBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>signingStyle</key>
+            <string>automatic</string>
+          </dict>
+          </plist>
+          EOF
+    
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Internal Testers
+        
+      email:
+        recipients:
+          - dev@agriroute.com
+        notify:
+          success: true
+          failure: true

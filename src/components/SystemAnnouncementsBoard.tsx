@@ -21,6 +21,7 @@ interface SystemAnnouncementsBoardProps {
 
 export const SystemAnnouncementsBoard = ({ isOpen, onClose, ignoreDismissals = false }: SystemAnnouncementsBoardProps) => {
   const [visibleAnnouncements, setVisibleAnnouncements] = useState<Announcement[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -112,9 +113,32 @@ export const SystemAnnouncementsBoard = ({ isOpen, onClose, ignoreDismissals = f
 
   if (!isOpen || visibleAnnouncements.length === 0) return null;
 
+  // Filtrar por categoria
+  const filteredAnnouncements = selectedCategory === "all" 
+    ? visibleAnnouncements 
+    : visibleAnnouncements.filter(a => a.category === selectedCategory);
+
   // Separar "Palavras da Salvação" dos demais
-  const salvationAnnouncement = visibleAnnouncements.find(a => a.type === 'success');
-  const otherAnnouncements = visibleAnnouncements.filter(a => a.type !== 'success');
+  const salvationAnnouncement = filteredAnnouncements.find(a => a.type === 'success');
+  const otherAnnouncements = filteredAnnouncements.filter(a => a.type !== 'success');
+
+  const categories = [
+    { value: "all", label: "Todas categorias" },
+    { value: "informativo", label: "Informativo" },
+    { value: "financeiro", label: "Financeiro" },
+    { value: "comunicado", label: "Comunicado" },
+    { value: "manutencao", label: "Manutenção" },
+  ];
+
+  const getCategoryBadge = (category?: string) => {
+    const colors = {
+      informativo: "bg-blue-500/10 text-blue-900 dark:text-blue-100",
+      financeiro: "bg-green-500/10 text-green-900 dark:text-green-100",
+      comunicado: "bg-purple-500/10 text-purple-900 dark:text-purple-100",
+      manutencao: "bg-orange-500/10 text-orange-900 dark:text-orange-100",
+    };
+    return colors[category as keyof typeof colors] || colors.informativo;
+  };
 
   return (
     <Card className="overflow-hidden">
