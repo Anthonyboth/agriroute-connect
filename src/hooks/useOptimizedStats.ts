@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useRef } from 'react';
+import { debounce } from '@/lib/utils';
 
 interface OptimizedStats {
   totalUsers: number;
@@ -57,6 +59,54 @@ export const useOptimizedStats = () => {
     completedFreights: data?.completedFreights || 0,
     loading: isLoading
   };
+
+  // Assinatura Realtime para atualização automática em 1-2s
+  useEffect(() => {
+    console.log('[useOptimizedStats] Iniciando assinatura Realtime...');
+    
+    // Debounce do refetch para evitar múltiplas chamadas
+    const debouncedRefetch = debounce(() => {
+      console.log('[useOptimizedStats] Realtime detectou mudança, atualizando stats...');
+      refetch();
+    }, 1000);
+
+    const channel = supabase
+      .channel('platform-stats-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'freights' },
+        () => {
+          console.log('[useOptimizedStats] Mudança em freights detectada');
+          debouncedRefetch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          console.log('[useOptimizedStats] Mudança em profiles detectada');
+          debouncedRefetch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ratings' },
+        () => {
+          console.log('[useOptimizedStats] Mudança em ratings detectada');
+          debouncedRefetch();
+        }
+      )
+      .subscribe((status) => {
+        console.log('[useOptimizedStats] Status da assinatura Realtime:', status);
+      });
+
+    // Cleanup ao desmontar
+    return () => {
+      console.log('[useOptimizedStats] Removendo assinatura Realtime');
+      debouncedRefetch.cancel();
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
 
   return { 
     stats, 
