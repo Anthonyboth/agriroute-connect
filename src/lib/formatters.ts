@@ -43,6 +43,36 @@ export const formatKg = (kg: number | null | undefined): string => {
   return `${kg.toLocaleString('pt-BR')} kg`;
 };
 
+/**
+ * Formata tempo relativo (ex: "há 5 minutos")
+ * @param date - data para calcular tempo relativo
+ * @returns string formatada (ex: "há 30 segundos", "há 2 minutos")
+ */
+export const formatTimeAgo = (date: Date | null): string => {
+  if (!date) return 'nunca';
+  
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  
+  if (diffSeconds < 60) {
+    return `há ${diffSeconds} segundo${diffSeconds !== 1 ? 's' : ''}`;
+  }
+  
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) {
+    return `há ${diffMinutes} minuto${diffMinutes !== 1 ? 's' : ''}`;
+  }
+  
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `há ${diffHours} hora${diffHours !== 1 ? 's' : ''}`;
+  }
+  
+  const diffDays = Math.floor(diffHours / 24);
+  return `há ${diffDays} dia${diffDays !== 1 ? 's' : ''}`;
+};
+
 // ============= MOEDA =============
 
 /**

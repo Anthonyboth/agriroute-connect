@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { debounce } from '@/lib/utils';
 
 interface OptimizedStats {
@@ -19,6 +19,8 @@ interface OptimizedStats {
  * Usa React Query com cache de longa duração
  */
 export const useOptimizedStats = () => {
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['system-stats'],
     queryFn: async () => {
@@ -31,6 +33,9 @@ export const useOptimizedStats = () => {
       }
 
       const row = Array.isArray(data) ? data[0] : data;
+
+      // Atualizar timestamp
+      setLastUpdated(new Date());
 
       return {
         totalUsers: Number(row?.total_usuarios ?? 0),
@@ -111,6 +116,7 @@ export const useOptimizedStats = () => {
   return { 
     stats, 
     isLoading,
-    refetchStats: refetch 
+    refetchStats: refetch,
+    lastUpdated
   };
 };
