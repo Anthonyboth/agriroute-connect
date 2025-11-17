@@ -92,6 +92,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   
   const urgencyVariant = getUrgencyVariant(freight.urgency);
   const urgencyLabel = getUrgencyLabel(freight.urgency);
+  const pickupBadge = getPickupDateBadge(freight.pickup_date);
 
   const isTransportCompany = profile?.role === 'TRANSPORTADORA';
 
