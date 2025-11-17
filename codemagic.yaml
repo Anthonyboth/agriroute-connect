@@ -22,11 +22,44 @@
         script: |
           cd ios/App && pod install
 
+      - name: Configure iOS Project for CI
+        script: |
+          cd ios/App
+          
+          # CORRIGIR DEFINITIVAMENTE o projeto para CI
+          python3 -c "
+          import re
+          
+          with open('App.xcodeproj/project.pbxproj', 'r') as f:
+              content = f.read()
+          
+          # 1. Configurar DEVELOPMENT_TEAM
+          content = re.sub(r'DEVELOPMENT_TEAM = "";', 'DEVELOPMENT_TEAM = \"4YULT95XAK\";', content)
+          content = re.sub(r'DEVELOPMENT_TEAM = 4YULT95XAK;\s*DEVELOPMENT_TEAM = 4YULT95XAK;', 'DEVELOPMENT_TEAM = 4YULT95XAK;', content)
+          
+          # 2. Configurar CODE_SIGN_STYLE
+          content = content.replace('CODE_SIGN_STYLE = Manual;', 'CODE_SIGN_STYLE = Automatic;')
+          
+          # 3. Configurar PROVISIONING_PROFILE_SPECIFIER para vazio (auto)
+          content = re.sub(r'PROVISIONING_PROFILE_SPECIFIER = \".*\";', 'PROVISIONING_PROFILE_SPECIFIER = \"\";', content)
+          
+          # 4. Configurar CODE_SIGN_IDENTITY para automático
+          content = re.sub(r'CODE_SIGN_IDENTITY = \".*\";', 'CODE_SIGN_IDENTITY = \"Apple Development\";', content)
+          
+          # 5. Garantir PRODUCT_BUNDLE_IDENTIFIER
+          if 'PRODUCT_BUNDLE_IDENTIFIER' not in content:
+              content = content.replace('buildSettings = {', 'buildSettings = {\\n\\t\\t\\t\\tPRODUCT_BUNDLE_IDENTIFIER = app.lovable.f2dbc20153194f90a3cc8dd215bbebba;')
+          
+          with open('App.xcodeproj/project.pbxproj', 'w') as f:
+              f.write(content)
+          "
+          echo "✅ Projeto iOS configurado para CI!"
+
       - name: Build iOS App
         script: |
           cd ios/App
           
-          # Criar export options
+          # Criar export options para desenvolvimento
           cat > export_options.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -38,22 +71,40 @@
               <string>4YULT95XAK</string>
               <key>signingStyle</key>
               <string>automatic</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>app.lovable.f2dbc20153194f90a3cc8dd215bbebba</key>
+                  <string></string>
+              </dict>
           </dict>
           </plist>
           EOF
 
-          # Build simples e direto
+          echo "📱 Iniciando build iOS..."
+          
+          # Build com todas as flags necessárias
           xcodebuild clean archive \
             -workspace App.xcworkspace \
             -scheme App \
             -archivePath build/App.xcarchive \
-            -allowProvisioningUpdates
+            -allowProvisioningUpdates \
+            DEVELOPMENT_TEAM=4YULT95XAK \
+            CODE_SIGN_STYLE=Automatic \
+            PRODUCT_BUNDLE_IDENTIFIER=app.lovable.f2dbc20153194f90a3cc8dd215bbebba \
+            CODE_SIGN_IDENTITY="Apple Development" \
+            PROVISIONING_PROFILE_SPECIFIER=""
 
+          echo "✅ Archive concluído!"
+
+          # Exportar IPA
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
             -exportPath build/ipa \
             -exportOptionsPlist export_options.plist \
             -allowProvisioningUpdates
+
+          echo "🎉 Build iOS concluído com sucesso!"
+          ls -la build/ipa/
 
     artifacts:
       - ios/App/build/ipa/*.ipa
