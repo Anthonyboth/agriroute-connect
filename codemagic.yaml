@@ -10,11 +10,15 @@
         XCODE_SCHEME: "App"
         BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
       xcode: latest
-      node: 20.5.1
+      node: 20.9.0
     scripts:
-      - name: Install dependencies
+      - name: Fix and install dependencies
         script: |
-          npm ci
+          echo "🔧 Resolvendo problemas de dependências..."
+          # Remove o lock file problemático e reinstala tudo
+          rm -f package-lock.json
+          npm install --legacy-peer-deps --no-audit
+          echo "✅ Dependências instaladas com sucesso!"
 
       - name: Build web app
         script: |
