@@ -14,6 +14,7 @@ import { AdminValidationPanel } from '@/components/AdminValidationPanel';
 import { AdminReportsPanel } from '@/components/AdminReportsPanel';
 import { AdminServiceProviderValidation } from '@/components/AdminServiceProviderValidation';
 import { ANTTDebugPanel } from '@/components/ANTTDebugPanel';
+import { AdminDistanceBackfillPanel } from '@/components/AdminDistanceBackfillPanel';
 
 interface Profile {
   id: string;
@@ -676,48 +677,7 @@ const AdminPanel = () => {
             
             {activeItem === "data-maintenance" && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-semibold text-gray-800 mb-2">Manutenção de Dados</h2>
-                  <p className="text-gray-600">Ferramentas para correção e cálculo de dados do sistema</p>
-                </div>
-
-                <Card className="p-6">
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-2">Calcular Distâncias Faltantes</h3>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Calcula automaticamente as distâncias de fretes que ainda não possuem essa informação usando a API do Google Maps.
-                        Processa até 50 fretes por vez.
-                      </p>
-                      <Button 
-                        onClick={async () => {
-                          try {
-                            toast.info('Iniciando cálculo de distâncias...');
-                            const { data, error } = await supabase.functions.invoke('calculate-freight-distances');
-                            
-                            if (error) throw error;
-                            
-                            if (data) {
-                              toast.success(
-                                `Distâncias calculadas com sucesso!\n` +
-                                `✅ Calculadas: ${data.calculated}\n` +
-                                `❌ Falharam: ${data.failed}\n` +
-                                `⏭️ Puladas: ${data.skipped}`
-                              );
-                            }
-                          } catch (error: any) {
-                            console.error('Error calculating distances:', error);
-                            toast.error('Erro ao calcular distâncias: ' + error.message);
-                          }
-                        }}
-                        className="gradient-primary"
-                      >
-                        <Wrench className="mr-2 h-4 w-4" />
-                        Calcular Distâncias
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
+                <AdminDistanceBackfillPanel />
               </div>
             )}
           </main>
