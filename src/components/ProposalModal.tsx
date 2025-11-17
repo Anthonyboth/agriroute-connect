@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { showErrorToast } from '@/lib/error-handler';
 import { DollarSign, MessageCircle, Calendar } from 'lucide-react';
 import { usePanelCapabilities } from '@/hooks/usePanelCapabilities';
+import { formatKm } from '@/lib/formatters';
 
 
 interface ProposalModalProps {
@@ -274,7 +275,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
                 <>
                   Valor original: R$ {freight.price_per_km.toLocaleString('pt-BR')}/km
                   <br />
-                  Distância: {freight.distance_km} km
+                  Distância: {formatKm(freight.distance_km)}
                 </>
               ) : (
                 <>Valor original: R$ {freight.price.toLocaleString('pt-BR')}</>
@@ -354,7 +355,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
             <h4 className="font-semibold">Resumo da Proposta:</h4>
             <p>• Valor: R$ {finalProposedPrice.toLocaleString('pt-BR')} {proposalData.pricing_type === 'PER_KM' ? `(R$ ${proposalData.proposed_price_per_km}/km)` : ''}</p>
             <p>• Prazo: {proposalData.delivery_estimate_days} dia{proposalData.delivery_estimate_days > 1 ? 's' : ''}</p>
-            <p>• Distância: {freight.distance_km} km</p>
+            <p>• Distância: {formatKm(freight.distance_km)}</p>
             <p>• Peso: {(freight.weight / 1000).toFixed(1)}t</p>
           </div>
 

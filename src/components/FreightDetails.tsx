@@ -23,6 +23,7 @@ import { getUrgencyLabel } from '@/lib/urgency-labels';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { formatKm } from '@/lib/formatters';
 
 interface FreightDetailsProps {
   freightId: string;
@@ -318,7 +319,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </div>
             <div>
               <span className="text-muted-foreground text-xs">Distância:</span>
-              <p className="font-medium">{freight.distance_km} km</p>
+              <p className="font-medium">{formatKm(freight.distance_km)}</p>
             </div>
             <div>
               <span className="text-muted-foreground text-xs">Valor por carreta:</span>

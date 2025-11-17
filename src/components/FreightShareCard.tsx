@@ -17,6 +17,7 @@ import { ServiceProposalModal } from './ServiceProposalModal';
 import { CompanyFreightAcceptModal } from './CompanyFreightAcceptModal';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { toast } from 'sonner';
+import { formatKm } from '@/lib/formatters';
 
 interface FreightShareCardProps {
   freightData: {
@@ -132,7 +133,7 @@ export const FreightShareCard: React.FC<FreightShareCardProps> = ({
               </div>
               <div>
                 <span className="text-muted-foreground">Distância:</span>{' '}
-                <span className="font-medium">{freightData.distance_km} km</span>
+                <span className="font-medium">{formatKm(freightData.distance_km)}</span>
               </div>
             </div>
             <div>

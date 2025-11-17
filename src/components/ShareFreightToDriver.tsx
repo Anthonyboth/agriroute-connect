@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { formatKm } from '@/lib/formatters';
 
 interface ShareFreightToDriverProps {
   freight: {
@@ -221,7 +222,7 @@ export const ShareFreightToDriver: React.FC<ShareFreightToDriverProps> = ({
               <p><strong>Carga:</strong> {freight.cargo_type}</p>
               <p><strong>Origem:</strong> {freight.origin_city}, {freight.origin_state}</p>
               <p><strong>Destino:</strong> {freight.destination_city}, {freight.destination_state}</p>
-              {freight.distance_km && <p><strong>Distância:</strong> {freight.distance_km} km</p>}
+              {freight.distance_km && <p><strong>Distância:</strong> {formatKm(freight.distance_km)}</p>}
               <p><strong>Valor original:</strong> R$ {freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
             </div>
 

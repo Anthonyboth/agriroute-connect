@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatWeight } from '@/lib/freight-calculations';
+import { formatKm } from '@/lib/formatters';
 
 interface CompanyFreightAcceptModalProps {
   isOpen: boolean;
@@ -256,7 +257,7 @@ export const CompanyFreightAcceptModal: React.FC<CompanyFreightAcceptModalProps>
                 </p>
                 {freight.distance_km && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Distância: {freight.distance_km} km
+                    Distância: {formatKm(freight.distance_km)}
                   </p>
                 )}
               </div>

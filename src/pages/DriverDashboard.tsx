@@ -357,13 +357,24 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     [myAssignments]
   );
 
-  // ✅ Usar função canônica para determinar status final
-  const visibleOngoing = useMemo(
-    () => (ongoingFreights || []).filter(f => 
-      !isFinalStatus(f.status) && !assignmentFreightIds.has(f.id)
-    ),
-    [ongoingFreights, assignmentFreightIds]
-  );
+  // ✅ Usar função canônica para determinar status final + filtro de data
+  const visibleOngoing = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return (ongoingFreights || []).filter(f => {
+      if (isFinalStatus(f.status) || assignmentFreightIds.has(f.id)) return false;
+      
+      // Filtrar por data: só mostrar em "Em Andamento" se pickup_date <= hoje
+      if (f.pickup_date) {
+        const pickupDate = new Date(f.pickup_date);
+        pickupDate.setHours(0, 0, 0, 0);
+        return pickupDate <= today;
+      }
+      
+      return true; // Se não tem pickup_date, manter comportamento anterior
+    });
+  }, [ongoingFreights, assignmentFreightIds]);
 
   // Buscar fretes disponíveis - com match inteligente por região
   const fetchAvailableFreights = useCallback(async () => {
@@ -1512,8 +1523,11 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
     return () => clearTimeout(timeoutId);
   }, [profile?.id]);
 
-  // ✅ Filtrar assignments ativos usando função canônica isFinalStatus
+  // ✅ Filtrar assignments ativos usando função canônica isFinalStatus + filtro de data
   const activeAssignments = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     return (myAssignments || []).filter(assignment => {
       if (!assignment) return false;
       
@@ -1524,7 +1538,17 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       const assignmentFinal = assignmentStatus ? isFinalStatus(assignmentStatus) : false;
 
       // Excluir de "Em Andamento" se qualquer um for final
-      return !(freightFinal || assignmentFinal);
+      if (freightFinal || assignmentFinal) return false;
+      
+      // Filtrar por data: só mostrar em "Em Andamento" se pickup_date <= hoje
+      const pickupDate = assignment.freight?.pickup_date;
+      if (pickupDate) {
+        const date = new Date(pickupDate);
+        date.setHours(0, 0, 0, 0);
+        return date <= today;
+      }
+      
+      return true; // Se não tem pickup_date, manter comportamento anterior
     });
   }, [myAssignments]);
 
