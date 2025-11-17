@@ -2601,30 +2601,43 @@ export type Database = {
       }
       freight_templates: {
         Row: {
+          company_id: string | null
           created_at: string
           id: string
           payload: Json
           producer_id: string
+          shared_with_company: boolean | null
           title: string
           updated_at: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           id?: string
           payload: Json
           producer_id: string
+          shared_with_company?: boolean | null
           title: string
           updated_at?: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           id?: string
           payload?: Json
           producer_id?: string
+          shared_with_company?: boolean | null
           title?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "freight_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "freight_templates_producer_id_fkey"
             columns: ["producer_id"]
