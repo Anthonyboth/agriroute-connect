@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
 import { usePanelCapabilities } from '@/hooks/usePanelCapabilities';
+import { formatKm } from '@/lib/formatters';
 
 interface ServiceProposalModalProps {
   isOpen: boolean;
@@ -578,7 +579,7 @@ const [pricePerKm, setPricePerKm] = useState('');
             {freight.distance_km && (
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Distância:</span>
-                <span className="text-sm">{freight.distance_km} km</span>
+                <span className="text-sm">{formatKm(freight.distance_km)}</span>
               </div>
             )}
             <div className="flex items-center justify-between">
