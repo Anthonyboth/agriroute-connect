@@ -8,25 +8,13 @@ workflows:
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
+        BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
       xcode: latest
       node: 20.5.1
     scripts:
-      - name: Discover project structure
-        script: |
-          echo "=== PROJECT STRUCTURE ==="
-          find . -name "*.xcworkspace" -o -name "*.xcodeproj" -o -name "capacitor.config.*" | head -20
-          echo "=== IOS FOLDER ==="
-          ls -la ios/ 2>/dev/null || echo "No ios folder at root"
-          echo "=== APP FOLDER ==="
-          ls -la ios/App/ 2>/dev/null || echo "No ios/App folder"
-          echo "=== CAPACITOR CONFIG ==="
-          cat capacitor.config.ts 2>/dev/null || cat capacitor.config.json 2>/dev/null || echo "No capacitor config found"
-          echo "=== PACKAGE.JSON ==="
-          cat package.json | grep -A 5 "capacitor"
-      
       - name: Install dependencies
         script: |
-          npm install
+          npm ci
       
       - name: Build web app
         script: |
@@ -40,44 +28,26 @@ workflows:
         script: |
           cd ios/App && pod install
       
-      - name: Build iOS with Automatic Signing
+      - name: Fetch signing files
         script: |
-          cd ios/App
-          
-          # Generate export options dynamically
-          cat > export_options.plist << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>development</string>
-              <key>teamID</key>
-              <string>4YULT95XAK</string>
-              <key>signingStyle</key>
-              <string>automatic</string>
-          </dict>
-          </plist>
-          EOF
-          
-          # Archive with automatic signing
-          xcodebuild clean archive \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -archivePath build/App.xcarchive \
-            -allowProvisioningUpdates \
-            DEVELOPMENT_TEAM=4YULT95XAK \
-            CODE_SIGN_STYLE=Automatic \
-            PRODUCT_BUNDLE_IDENTIFIER=app.lovable.f2dbc20153194f90a3cc8dd215bbebba
-          
-          # Export IPA
-          xcodebuild -exportArchive \
-            -archivePath build/App.xcarchive \
-            -exportPath build/ipa \
-            -exportOptionsPlist export_options.plist \
-            -allowProvisioningUpdates
-          
-          echo "✅ Build iOS concluído com assinatura automática!"
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_DEVELOPMENT \
+            --create
+      
+      - name: Add certificates to keychain
+        script: |
+          keychain add-certificates
+      
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      
+      - name: Build iOS
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
     
     artifacts:
       - build/ios/ipa/*.ipa
+      - ios/App/build/ios/ipa/*.ipa
