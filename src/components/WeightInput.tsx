@@ -29,7 +29,7 @@ export const WeightInput = ({ value, onChange, required = true }: WeightInputPro
         type="number"
         step="0.01"
         min="0.1"
-        max="50"
+        max="90"
         value={value}
         onChange={(e) => onChange(e.target.value, false)}
         placeholder="Ex: 15.5"
@@ -38,7 +38,7 @@ export const WeightInput = ({ value, onChange, required = true }: WeightInputPro
       />
       
       <p className="text-xs text-muted-foreground">
-        💡 Peso em <strong>toneladas</strong>. Ex: 15 = 15 toneladas = 15.000 kg
+        💡 Peso em <strong>toneladas</strong>. Ex: 15 = 15 toneladas = 15.000 kg (máx: 90t para 9 eixos)
       </p>
       
       {/* Preview do peso formatado */}

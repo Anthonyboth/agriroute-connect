@@ -55,16 +55,16 @@ export const validateWeight = (
     errors.push('Peso deve ser maior que zero.');
   }
   
-  // Limites realistas para carretas brasileiras
+  // Limites realistas para carretas brasileiras (9 eixos)
   const MIN_WEIGHT_TONNES = 0.1;  // 100kg mínimo
-  const MAX_WEIGHT_TONNES = 50;   // 50 toneladas máximo por carreta
+  const MAX_WEIGHT_TONNES = 90;   // 90 toneladas máximo (capacidade 9 eixos)
   
   if (weightTonnes < MIN_WEIGHT_TONNES && weightTonnes > 0) {
     errors.push(`Peso mínimo: ${MIN_WEIGHT_TONNES} toneladas (100kg).`);
   }
   
   if (weightTonnes > MAX_WEIGHT_TONNES) {
-    errors.push(`Peso máximo: ${MAX_WEIGHT_TONNES} toneladas (50.000kg) por carreta.`);
+    errors.push(`Peso máximo: ${MAX_WEIGHT_TONNES} toneladas (90.000kg) por carreta.`);
   }
   
   // Warnings para valores suspeitos
