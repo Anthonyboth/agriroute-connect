@@ -364,23 +364,24 @@ const Auth = () => {
           toast.error(msg);
         }
       } else {
-        // Login bem-sucedido - verificar se há múltiplos perfis
+        // Login bem-sucedido - verificar se há múltiplos perfis IMEDIATAMENTE
         toast.success('Login realizado!');
         
-        setTimeout(async () => {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: userProfiles, error: profilesError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('user_id', user.id);
-            
-            if (!profilesError && userProfiles && userProfiles.length > 1) {
-              setAvailableProfiles(userProfiles);
-              setShowProfileSelector(true);
-            }
+        // Verificar múltiplos perfis sem delay
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: userProfiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', user.id);
+          
+          if (!profilesError && userProfiles && userProfiles.length > 1) {
+            // Usuário tem múltiplos perfis - mostrar seletor
+            setAvailableProfiles(userProfiles);
+            setShowProfileSelector(true);
           }
-        }, 1500);
+          // Se há apenas 1 perfil, deixar RedirectIfAuthed redirecionar automaticamente
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
