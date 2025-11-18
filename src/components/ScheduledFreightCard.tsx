@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Weight, TrendingUp, MessageSquare, Eye, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import { formatBRL, formatKm, formatTons, formatDate } from '@/lib/formatters';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
-import { FreightDetails } from '@/components/FreightDetails';
+import { ScheduledFreightDetailsModal } from '@/components/ScheduledFreightDetailsModal';
 import { ChatModal } from '@/components/ChatModal';
 import type { ChatConversation } from '@/hooks/useUnifiedChats';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
@@ -147,13 +147,20 @@ export const ScheduledFreightCard: React.FC<ScheduledFreightCardProps> = ({
       />
 
       {/* Modal de Detalhes */}
-      {showDetailsModal && (
-        <FreightDetails
-          freightId={freight.id}
-          currentUserProfile={currentUserProfile}
-          onClose={() => setShowDetailsModal(false)}
-        />
-      )}
+      <ScheduledFreightDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        freight={freight}
+        userRole={userRole}
+        onOpenChat={() => {
+          setShowDetailsModal(false);
+          setShowChatModal(true);
+        }}
+        onWithdraw={onWithdraw ? () => {
+          setShowDetailsModal(false);
+          onWithdraw(freight.id);
+        } : undefined}
+      />
     </>
   );
 };
