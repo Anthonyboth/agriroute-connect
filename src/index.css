@@ -56,8 +56,8 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 20% 40%;
 
-    /* Accent: Complementary orange for CTAs - WCAG AA compliant */
-    --accent: 28 85% 48%;
+    /* Accent: Complementary orange for CTAs - WCAG AA compliant (4.8:1 contrast) */
+    --accent: 28 85% 38%;
     --accent-foreground: 0 0% 100%;
 
     /* Status colors for freight tracking */
