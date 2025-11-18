@@ -30,6 +30,7 @@ export const useFreightGPSMonitoring = (
     
     let consecutiveFailures = 0;
     const MAX_FAILURES = 3;
+    let lastIncidentReported: number | null = null; // ✅ Timestamp do último incidente reportado
 
     const updateLocation = async () => {
       try {
@@ -84,6 +85,16 @@ export const useFreightGPSMonitoring = (
         
         // Reportar incidente crítico após múltiplas falhas
         if (consecutiveFailures >= MAX_FAILURES) {
+          // ✅ VERIFICAR SE JÁ REPORTOU NAS ÚLTIMAS 2 HORAS
+          const now = Date.now();
+          const twoHours = 2 * 60 * 60 * 1000;
+          
+          if (lastIncidentReported && (now - lastIncidentReported) < twoHours) {
+            const minutesAgo = Math.round((now - lastIncidentReported) / 60000);
+            console.log(`[GPS] Incidente GPS_DISABLED já reportado há ${minutesAgo} minutos. Pulando...`);
+            return; // ⛔ NÃO REPORTAR NOVAMENTE
+          }
+          
           try {
             await supabase.functions.invoke('tracking-service/incidents', {
               body: {
@@ -99,6 +110,8 @@ export const useFreightGPSMonitoring = (
               }
             });
 
+            lastIncidentReported = now; // ✅ ATUALIZAR TIMESTAMP DO ÚLTIMO REPORT
+
             toast.error('🚨 GPS DESLIGADO DETECTADO!', {
               description: 'Reative o GPS imediatamente. O produtor foi notificado.',
               duration: 15000,
@@ -107,8 +120,8 @@ export const useFreightGPSMonitoring = (
             console.error('[GPS] Erro ao reportar incidente:', reportError);
           }
           
-          // Reset após reportar
-          consecutiveFailures = 0;
+          // ⛔ NÃO RESETAR CONTADOR - Manter alto para evitar loops de re-report
+          // consecutiveFailures = 0; 
         }
       }
     };
