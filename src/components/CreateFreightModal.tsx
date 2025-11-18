@@ -19,6 +19,7 @@ import { CARGO_TYPES, CARGO_CATEGORIES, getCargoTypesByCategory, cargoRequiresAx
 import { LocationFillButton } from './LocationFillButton';
 import { CitySelector } from './CitySelector';
 import { StructuredAddressInput } from './StructuredAddressInput';
+import { ZipCodeInput } from './ZipCodeInput';
 import { freightSchema, validateInput } from '@/lib/validations';
 import { getCityId } from '@/lib/city-utils';
 import { calculateFreightPrice, convertWeightToKg } from '@/lib/freight-calculations';
@@ -39,12 +40,14 @@ interface CreateFreightModalProps {
 const formDataInitial = {
   cargo_type: '',
   weight: '',
+  origin_zip: '',
   origin_address: '',
   origin_city: '',
   origin_state: '',
   origin_city_id: undefined as string | undefined,
   origin_lat: undefined as number | undefined,
   origin_lng: undefined as number | undefined,
+  destination_zip: '',
   destination_address: '',
   destination_city: '',
   destination_state: '',
@@ -977,59 +980,121 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
             </div>
           </div>
 
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <CitySelector
-    value={{ city: formData.origin_city, state: formData.origin_state, id: formData.origin_city_id }}
-    onChange={(city) => {
-      handleInputChange('origin_city', city.city);
-      handleInputChange('origin_state', city.state);
-      if (city.id) {
-        handleInputChange('origin_city_id', city.id);
-      }
-      if (city.lat && city.lng) {
-        handleInputChange('origin_lat', String(city.lat));
-        handleInputChange('origin_lng', String(city.lng));
-      }
-    }}
-    label="Cidade de Origem"
-    placeholder="Digite a cidade de origem..."
-    required
-  />
-</div>
+                {/* Origem com CEP */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <ZipCodeInput
+                      label="CEP de Origem"
+                      value={formData.origin_zip}
+                      onChange={(zipCode, cityData) => {
+                        handleInputChange('origin_zip', zipCode);
+                        if (cityData) {
+                          handleInputChange('origin_city', cityData.city);
+                          handleInputChange('origin_state', cityData.state);
+                          if (cityData.cityId) {
+                            handleInputChange('origin_city_id', cityData.cityId);
+                          }
+                          if (cityData.lat && cityData.lng) {
+                            handleInputChange('origin_lat', String(cityData.lat));
+                            handleInputChange('origin_lng', String(cityData.lng));
+                          }
+                          if (cityData.neighborhood) {
+                            const currentAddress = formData.origin_address;
+                            const addressParts = currentAddress ? currentAddress.split(',').map(p => p.trim()) : [];
+                            addressParts[0] = cityData.neighborhood;
+                            handleInputChange('origin_address', addressParts.join(', '));
+                          }
+                        }
+                      }}
+                      showAutoComplete={true}
+                    />
+                  </div>
 
-<StructuredAddressInput
-  label="Endereço de Origem"
-  value={formData.origin_address}
-  onChange={(address) => handleInputChange('origin_address', address)}
-  required
-/>
+                  <div className="space-y-2">
+                    <CitySelector
+                      value={{ city: formData.origin_city, state: formData.origin_state, id: formData.origin_city_id }}
+                      onChange={(city) => {
+                        handleInputChange('origin_city', city.city);
+                        handleInputChange('origin_state', city.state);
+                        if (city.id) {
+                          handleInputChange('origin_city_id', city.id);
+                        }
+                        if (city.lat && city.lng) {
+                          handleInputChange('origin_lat', String(city.lat));
+                          handleInputChange('origin_lng', String(city.lng));
+                        }
+                      }}
+                      label="Cidade de Origem (ou busque por CEP acima)"
+                      placeholder="Digite a cidade de origem..."
+                      required
+                    />
+                  </div>
 
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <CitySelector
-    value={{ city: formData.destination_city, state: formData.destination_state, id: formData.destination_city_id }}
-    onChange={(city) => {
-      handleInputChange('destination_city', city.city);
-      handleInputChange('destination_state', city.state);
-      if (city.id) {
-        handleInputChange('destination_city_id', city.id);
-      }
-      if (city.lat && city.lng) {
-        handleInputChange('destination_lat', String(city.lat));
-        handleInputChange('destination_lng', String(city.lng));
-      }
-    }}
-    label="Cidade de Destino"
-    placeholder="Digite a cidade de destino..."
-    required
-  />
-</div>
+                  <StructuredAddressInput
+                    label="Endereço Completo de Origem"
+                    value={formData.origin_address}
+                    onChange={(address) => handleInputChange('origin_address', address)}
+                    required
+                  />
+                </div>
 
-<StructuredAddressInput
-  label="Endereço de Destino"
-  value={formData.destination_address}
-  onChange={(address) => handleInputChange('destination_address', address)}
-  required
-/>
+                {/* Destino com CEP */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <ZipCodeInput
+                      label="CEP de Destino"
+                      value={formData.destination_zip}
+                      onChange={(zipCode, cityData) => {
+                        handleInputChange('destination_zip', zipCode);
+                        if (cityData) {
+                          handleInputChange('destination_city', cityData.city);
+                          handleInputChange('destination_state', cityData.state);
+                          if (cityData.cityId) {
+                            handleInputChange('destination_city_id', cityData.cityId);
+                          }
+                          if (cityData.lat && cityData.lng) {
+                            handleInputChange('destination_lat', String(cityData.lat));
+                            handleInputChange('destination_lng', String(cityData.lng));
+                          }
+                          if (cityData.neighborhood) {
+                            const currentAddress = formData.destination_address;
+                            const addressParts = currentAddress ? currentAddress.split(',').map(p => p.trim()) : [];
+                            addressParts[0] = cityData.neighborhood;
+                            handleInputChange('destination_address', addressParts.join(', '));
+                          }
+                        }
+                      }}
+                      showAutoComplete={true}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <CitySelector
+                      value={{ city: formData.destination_city, state: formData.destination_state, id: formData.destination_city_id }}
+                      onChange={(city) => {
+                        handleInputChange('destination_city', city.city);
+                        handleInputChange('destination_state', city.state);
+                        if (city.id) {
+                          handleInputChange('destination_city_id', city.id);
+                        }
+                        if (city.lat && city.lng) {
+                          handleInputChange('destination_lat', String(city.lat));
+                          handleInputChange('destination_lng', String(city.lng));
+                        }
+                      }}
+                      label="Cidade de Destino (ou busque por CEP acima)"
+                      placeholder="Digite a cidade de destino..."
+                      required
+                    />
+                  </div>
+
+                  <StructuredAddressInput
+                    label="Endereço Completo de Destino"
+                    value={formData.destination_address}
+                    onChange={(address) => handleInputChange('destination_address', address)}
+                    required
+                  />
+                </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
