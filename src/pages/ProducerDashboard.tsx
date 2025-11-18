@@ -1259,21 +1259,18 @@ const ProducerDashboard = () => {
       />
       
       {/* Hero Section Compacta */}
-      <section 
-        className="relative py-8 bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-white overflow-hidden animate-fade-in"
-        style={{
-          backgroundImage: `linear-gradient(rgba(34, 197, 94, 0.9), rgba(34, 197, 94, 0.95)), url(/hero-truck-night-moon.webp)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary/60 backdrop-blur-sm"></div>
-        <div className="relative container mx-auto px-4 max-w-7xl">
-          <div className="text-center space-y-3">
-            <h1 className="text-2xl md:text-3xl font-bold">
-              Dashboard do Produtor
+      <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
+          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
+        />
+        <div className="absolute inset-0 bg-primary/75" />
+        <div className="relative z-10 w-full">
+          <div className="container mx-auto px-4 text-center text-primary-foreground">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">
+              Painel de Gerenciamento
             </h1>
-            <p className="text-primary-foreground/90 max-w-xl mx-auto text-sm md:text-base">
+            <p className="text-base opacity-90 max-w-xl mx-auto mb-4">
               Gerencie seus fretes, acompanhe propostas e monitore o desempenho
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
