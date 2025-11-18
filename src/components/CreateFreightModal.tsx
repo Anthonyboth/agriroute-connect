@@ -531,12 +531,6 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
         return;
       }
 
-      // VALIDAÇÃO OBRIGATÓRIA: Eixos para CARGA
-      if (formData.service_type === 'CARGA' && (!formData.vehicle_axles_required || parseInt(formData.vehicle_axles_required) < 2)) {
-        toast.error('Para fretes de CARGA, é obrigatório informar o número de eixos do veículo (mínimo 2 eixos).');
-        setLoading(false);
-        return;
-      }
 
       // Validação do peso
       const weight = parseFloat(formData.weight);

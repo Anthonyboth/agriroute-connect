@@ -19,11 +19,9 @@ const VEHICLE_TYPES = [
   { value: 'TRUCK', label: 'Caminhão Truck' },
   { value: 'CARRETA', label: 'Semirreboque' },
   { value: 'CARRETA_BAU', label: 'Carreta Baú para Mudanças' },
-  { value: 'BITREM', label: 'Bitruck' },
+  { value: 'BITREM', label: 'Bitrem' },
   { value: 'RODOTREM', label: 'Rodotrem' },
   { value: 'TOCO', label: 'Toco' },
-  { value: 'F400', label: 'Ford F-400' },
-  { value: 'STRADA', label: 'Fiat Strada' },
   { value: 'CARRO_PEQUENO', label: 'Carro Pequeno para Fretes Urbanos' }
 ];
 
