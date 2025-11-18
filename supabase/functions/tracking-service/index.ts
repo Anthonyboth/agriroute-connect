@@ -208,20 +208,46 @@ async function checkRouteDeviation(supabase: any, freightId: string, lat: number
 }
 
 async function notifyProducer(supabase: any, freightId: string, incidentType: string) {
+  // ✅ VERIFICAR SE JÁ EXISTE NOTIFICAÇÃO RECENTE (últimas 2 horas)
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  
   const { data: freight } = await supabase
     .from('freights')
     .select('producer_id, origin_address, destination_address')
     .eq('id', freightId)
     .single();
 
-  if (freight) {
-    await supabase.functions.invoke('send-notification', {
-      body: {
-        user_id: freight.producer_id,
-        title: 'Alerta de Rastreamento',
-        message: `Incidente detectado no frete: ${incidentType}`,
-        type: 'warning'
-      }
-    });
+  if (!freight) {
+    console.log('[NOTIFY] Freight not found:', freightId);
+    return;
   }
+
+  const { data: recentNotifications } = await supabase
+    .from('notifications')
+    .select('id, created_at')
+    .eq('user_id', freight.producer_id)
+    .eq('type', 'warning')
+    .ilike('message', `%${incidentType}%`)
+    .gte('created_at', twoHoursAgo)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  
+  // ⛔ SE JÁ EXISTE NOTIFICAÇÃO RECENTE, NÃO CRIAR OUTRA
+  if (recentNotifications && recentNotifications.length > 0) {
+    const minutesAgo = Math.round((Date.now() - new Date(recentNotifications[0].created_at).getTime()) / 60000);
+    console.log(`[DEDUP] Notificação ${incidentType} já enviada há ${minutesAgo} minutos. Pulando...`);
+    return;
+  }
+
+  // ✅ SE NÃO EXISTE, CRIAR NOTIFICAÇÃO NORMALMENTE
+  await supabase.functions.invoke('send-notification', {
+    body: {
+      user_id: freight.producer_id,
+      title: 'Alerta de Rastreamento',
+      message: `Incidente detectado no frete: ${incidentType}`,
+      type: 'warning'
+    }
+  });
+  
+  console.log(`[NOTIFY] Nova notificação ${incidentType} criada para produtor ${freight.producer_id}`);
 }
