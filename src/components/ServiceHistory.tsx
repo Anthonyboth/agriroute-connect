@@ -311,34 +311,35 @@ export const ServiceHistory: React.FC = () => {
                   const isClient = service.client?.id === profile?.id;
 
                   return (
-                    <Card key={service.id} className="hover:shadow-md transition-shadow">
+                    <Card key={service.id} className="hover:shadow-md transition-shadow overflow-x-auto">
                       <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <CardTitle className="text-lg">
-                                {normalizeServiceType(service.service_type)}
-                              </CardTitle>
-                              <Badge variant={statusBadge.variant}>
-                                <StatusIcon className="h-3 w-3 mr-1" />
-                                {statusBadge.label}
-                              </Badge>
-                              <Badge variant={urgencyBadge.variant}>
-                                {urgencyBadge.label}
-                              </Badge>
-                            </div>
-                            <CardDescription>
-                              {isClient ? 'Serviço Solicitado' : 'Serviço Prestado'}
-                            </CardDescription>
-                          </div>
+                        {/* LINHA 1: Título e Badges */}
+                        <div className="flex items-center gap-2 mb-2 flex-wrap min-w-0">
+                          <CardTitle className="text-lg whitespace-nowrap">
+                            {normalizeServiceType(service.service_type)}
+                          </CardTitle>
+                          <Badge variant={statusBadge.variant} className="shrink-0">
+                            <StatusIcon className="h-3 w-3 mr-1" />
+                            {statusBadge.label}
+                          </Badge>
+                          <Badge variant={urgencyBadge.variant} className="shrink-0">
+                            {urgencyBadge.label}
+                          </Badge>
+                        </div>
+
+                        {/* LINHA 2: Descrição e Botão CANCELAR */}
+                        <div className="flex items-center justify-between gap-3">
+                          <CardDescription className="flex-1 min-w-0">
+                            {isClient ? 'Serviço Solicitado' : 'Serviço Prestado'}
+                          </CardDescription>
                           
-                          {/* Botão Cancelar - visível apenas para o cliente em serviços abertos/aceitos */}
+                          {/* Botão Cancelar - sempre visível, sem sobreposição */}
                           {isClient && ['OPEN', 'ACCEPTED'].includes(service.status) && (
                             <Button
                               variant="destructive"
                               size="sm"
                               onClick={() => handleCancelService(service.id)}
-                              className="shrink-0"
+                              className="shrink-0 min-w-[120px]"
                             >
                               <XCircle className="h-4 w-4 mr-1" />
                               CANCELAR
@@ -347,55 +348,57 @@ export const ServiceHistory: React.FC = () => {
                         </div>
                       </CardHeader>
 
-                      <CardContent className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                          <div className="flex items-start gap-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                            <div>
-                              <p className="font-medium">Local:</p>
-                              <p className="text-muted-foreground">{getDisplayLocation(service)}</p>
-                              {service.location_address && 
-                               service.location_address !== getDisplayLocation(service) && (
-                                <p className="text-muted-foreground text-xs">
-                                  Local específico: {service.location_address}
+                      <CardContent className="space-y-3 overflow-x-auto">
+                        <div className="min-w-fit">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div className="flex items-start gap-2">
+                              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                              <div>
+                                <p className="font-medium">Local:</p>
+                                <p className="text-muted-foreground">{getDisplayLocation(service)}</p>
+                                {service.location_address && 
+                                 service.location_address !== getDisplayLocation(service) && (
+                                  <p className="text-muted-foreground text-xs">
+                                    Local específico: {service.location_address}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                              <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                              <div>
+                                <p className="font-medium">Data:</p>
+                                <p className="text-muted-foreground">
+                                  {format(new Date(service.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                                 </p>
-                              )}
+                                {service.completed_at && (
+                                  <p className="text-muted-foreground text-xs">
+                                    Concluído: {format(new Date(service.completed_at), "dd/MM/yyyy", { locale: ptBR })}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
 
-                          <div className="flex items-start gap-2">
-                            <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
-                            <div>
-                              <p className="font-medium">Data:</p>
-                              <p className="text-muted-foreground">
-                                {format(new Date(service.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                              </p>
-                              {service.completed_at && (
-                                <p className="text-muted-foreground text-xs">
-                                  Concluído: {format(new Date(service.completed_at), "dd/MM/yyyy", { locale: ptBR })}
-                                </p>
-                              )}
+                          {service.problem_description && (
+                            <div className="pt-2 border-t">
+                              <p className="text-sm font-medium mb-1">Descrição:</p>
+                              <p className="text-sm text-muted-foreground">{service.problem_description}</p>
                             </div>
-                          </div>
-                        </div>
+                          )}
 
-                        {service.problem_description && (
-                          <div className="pt-2 border-t">
-                            <p className="text-sm font-medium mb-1">Descrição:</p>
-                            <p className="text-sm text-muted-foreground">{service.problem_description}</p>
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openChatDialog(service)}
+                              className="flex-1"
+                            >
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              Chat
+                            </Button>
                           </div>
-                        )}
-
-                        <div className="flex gap-2 pt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openChatDialog(service)}
-                            className="flex-1"
-                          >
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            Chat
-                          </Button>
                         </div>
                       </CardContent>
                     </Card>

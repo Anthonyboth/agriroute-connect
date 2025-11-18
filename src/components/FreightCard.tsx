@@ -305,54 +305,61 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   };
 
   return (
-    <Card data-testid="freight-card" className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <div className="flex flex-col space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 flex-1 min-w-0">
-              {getServiceIcon()}
-              <h3 className="font-semibold text-foreground truncate text-base">
-                {getCargoTypeLabel(freight.cargo_type)}
-              </h3>
-            </div>
-            <div className="flex items-center space-x-2 flex-shrink-0">
-              <Badge variant={urgencyVariant} className="text-xs font-medium">
-                {urgencyLabel}
-              </Badge>
-              <Badge data-testid="freight-status-badge" variant={getFreightStatusVariant(freight.status)} className="text-xs font-medium">
-                {getFreightStatusLabel(freight.status)}
-              </Badge>
-              {/* Badge de data de coleta */}
-              {(() => {
-                const badgeInfo = getPickupDateBadge(freight.pickup_date);
-                if (!badgeInfo) return null;
-                
-                const iconMap = { AlertTriangle, Clock, Calendar };
-                const IconComponent = iconMap[badgeInfo.icon];
-                
-                return (
-                  <Badge variant={badgeInfo.variant} className="flex items-center gap-1 text-xs">
-                    <IconComponent className="h-3 w-3" />
-                    {badgeInfo.text}
-                  </Badge>
-                );
-              })()}
-              {showAvailableSlots && freight.required_trucks && freight.required_trucks > 1 && (
-                <Badge 
-                  variant={isFullyBooked ? "default" : "outline"} 
-                  className={`text-xs font-medium ${isFullyBooked ? 'bg-green-600 hover:bg-green-700' : 'border-primary text-primary'}`}
-                >
-                  <Truck className="h-3 w-3 mr-1" />
-                  {freight.accepted_trucks || 0}/{freight.required_trucks}
-                </Badge>
-              )}
-            </div>
+    <Card data-testid="freight-card" className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60 overflow-x-auto">
+      <CardHeader className="pb-2 flex-shrink-0 overflow-x-auto">
+        <div className="min-w-fit space-y-2">
+          
+          {/* LINHA 1: Ícone + Título */}
+          <div className="flex items-center gap-2">
+            {getServiceIcon()}
+            <h3 className="font-semibold text-foreground text-base whitespace-nowrap">
+              {getCargoTypeLabel(freight.cargo_type)}
+            </h3>
           </div>
-          <div className="flex justify-between items-center">
-            <Badge variant="outline" className="text-xs bg-secondary/30">
+
+          {/* LINHA 2: Badges de Status (permite quebra se necessário) */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant={urgencyVariant} className="text-xs font-medium shrink-0">
+              {urgencyLabel}
+            </Badge>
+            <Badge data-testid="freight-status-badge" variant={getFreightStatusVariant(freight.status)} className="text-xs font-medium shrink-0">
+              {getFreightStatusLabel(freight.status)}
+            </Badge>
+            
+            {/* Badge de data de coleta */}
+            {(() => {
+              const badgeInfo = getPickupDateBadge(freight.pickup_date);
+              if (!badgeInfo) return null;
+              
+              const iconMap = { AlertTriangle, Clock, Calendar };
+              const IconComponent = iconMap[badgeInfo.icon];
+              
+              return (
+                <Badge variant={badgeInfo.variant} className="flex items-center gap-1 text-xs shrink-0">
+                  <IconComponent className="h-3 w-3" />
+                  {badgeInfo.text}
+                </Badge>
+              );
+            })()}
+            
+            {/* Badge de vagas disponíveis */}
+            {showAvailableSlots && freight.required_trucks && freight.required_trucks > 1 && (
+              <Badge 
+                variant={isFullyBooked ? "default" : "outline"} 
+                className={`text-xs font-medium shrink-0 ${isFullyBooked ? 'bg-green-600 hover:bg-green-700' : 'border-primary text-primary'}`}
+              >
+                <Truck className="h-3 w-3 mr-1" />
+                {freight.accepted_trucks || 0}/{freight.required_trucks}
+              </Badge>
+            )}
+          </div>
+
+          {/* LINHA 3: Tipo de Serviço + Peso/Distância (com scroll horizontal) */}
+          <div className="flex justify-between items-center gap-3 min-w-fit">
+            <Badge variant="outline" className="text-xs bg-secondary/30 shrink-0">
               {getServiceLabel()}
             </Badge>
-            <div className="flex items-center space-x-3 text-xs">
+            <div className="flex items-center space-x-3 text-xs whitespace-nowrap">
               {freight.service_type === 'GUINCHO' ? (
                 <span className="text-muted-foreground">Reboque</span>
               ) : freight.service_type === 'MUDANCA' ? (
@@ -366,7 +373,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                   ? 'Distância calculada com GPS preciso' 
                   : 'Distância estimada por endereço'
               }>
-                {formatKm(freight.distance_km)}
+                {formatKm(parseFloat(String(freight.distance_km).replace(/[^\d.]/g, '')) || 0)}
                 <span className="text-[10px] ml-1">
                   {((freight as any).origin_lat && (freight as any).origin_lng && 
                     (freight as any).destination_lat && (freight as any).destination_lng) 
@@ -375,6 +382,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               </span>
             </div>
           </div>
+
         </div>
       </CardHeader>
 
@@ -471,10 +479,10 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       </CardContent>
 
       {!hidePrice && (
-        <CardFooter className="pt-3 pb-3 flex-shrink-0 mt-auto">
-          <div className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border border-border/50">
+        <CardFooter className="pt-3 pb-3 flex-shrink-0 mt-auto sticky bottom-0 bg-card/95 backdrop-blur-sm border-t">
+          <div className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border border-border/50 min-w-fit">
             <div className="text-left">
-              <p className="font-bold text-xl text-primary">{formatBRL(freight.price, true)}</p>
+              <p className="font-bold text-xl text-primary whitespace-nowrap">{formatBRL(freight.price, true)}</p>
               {freight.service_type === 'FRETE_MOTO' ? (
                 <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                   Mínimo: R$ 10,00
