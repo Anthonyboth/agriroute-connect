@@ -81,88 +81,89 @@ export const FreightInProgressCard: React.FC<FreightInProgressCardProps> = ({
 
   return (
     <Card className={cn(
-      "h-full flex flex-col border-l-4 hover:shadow-lg transition-all",
+      "h-full flex flex-col border-l-4 hover:shadow-lg transition-all overflow-x-auto",
       isHighlighted ? "border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 shadow-xl animate-pulse" : "border-l-primary"
     )}>
-      <CardHeader className="pb-4 min-h-[120px]">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            {/* Origem → Destino */}
-            <div className="flex items-center gap-2 mb-2">
-              <p className="font-semibold text-sm truncate line-clamp-1">
-                {freight.origin_city || 'Origem'} - {freight.origin_state || ''}
-              </p>
-              <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <p className="font-semibold text-sm truncate line-clamp-1">
-                {freight.destination_city || 'Destino'} - {freight.destination_state || ''}
-              </p>
-            </div>
+      <CardHeader className="pb-4 min-h-[120px] overflow-x-auto">
+        <div className="min-w-fit">
+          {/* Origem → Destino */}
+          <div className="flex items-center gap-2 mb-2">
+            <p className="font-semibold text-sm whitespace-nowrap">
+              {freight.origin_city || 'Origem'} - {freight.origin_state || ''}
+            </p>
+            <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <p className="font-semibold text-sm whitespace-nowrap">
+              {freight.destination_city || 'Destino'} - {freight.destination_state || ''}
+            </p>
+          </div>
 
+          {/* Container para badges e informações */}
+          <div className="flex items-start justify-between gap-3 mt-3">
             {/* Pílulas: peso, distância (com precisão GPS), data */}
-            <div className="flex flex-wrap items-center gap-2 mt-3">
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap">
+            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap shrink-0">
                 <Truck className="h-3.5 w-3.5 text-primary" />
                 <span>{formatTons(freight.weight)}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap" title={precisionInfo.tooltip}>
-                <MapPin className="h-3.5 w-3.5 text-accent" />
-                <span>{formatKm(freight.distance_km)}</span>
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap shrink-0" title={precisionInfo.tooltip}>
+                <MapPin className="h-3.5 w-3.5 text-primary" />
+                <span>{formatKm(parseFloat(String(freight.distance_km).replace(/[^\d.]/g, '')) || 0)}</span>
                 <span className="text-[10px]">{precisionInfo.icon}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap shrink-0">
                 <Clock className="h-3.5 w-3.5 text-warning" />
                 <span>{formatDate(freight.pickup_date)}</span>
               </div>
             </div>
 
-            {/* 🔥 Deadline indicator */}
-            {freight.deliveryDeadline && (
-              <div className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded text-xs font-bold mt-2",
-                freight.deliveryDeadline.isCritical && "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-                freight.deliveryDeadline.isUrgent && !freight.deliveryDeadline.isCritical && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-                !freight.deliveryDeadline.isUrgent && "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-              )}>
-                <Clock className="h-3 w-3" />
-                {freight.deliveryDeadline.displayText}
-              </div>
-            )}
+            {/* Status e Preço no lado direito */}
+            <div className="flex flex-col items-end gap-2 flex-shrink-0">
+              <Badge 
+                variant={getFreightStatusVariant(freight.status)} 
+                className="font-medium whitespace-nowrap"
+              >
+                {getFreightStatusLabel(freight.status)}
+              </Badge>
+              
+              {/* Badge de dias até coleta */}
+              {(() => {
+                const badgeInfo = getPickupDateBadge(freight.pickup_date);
+                
+                if (!badgeInfo) return null;
+                
+                const iconMap = {
+                  AlertTriangle,
+                  Clock,
+                  Calendar
+                };
+                const IconComponent = iconMap[badgeInfo.icon];
+                
+                return (
+                  <Badge variant={badgeInfo.variant} className="text-xs whitespace-nowrap flex items-center gap-1 justify-end">
+                    <IconComponent className="h-3 w-3" />
+                    {badgeInfo.text}
+                  </Badge>
+                );
+              })()}
+            
+              <p className="font-bold text-lg text-primary whitespace-nowrap">
+                {formatBRL(freight.price, true)}
+              </p>
+            </div>
           </div>
 
-          {/* Status, Badge de Dias até Coleta e Preço */}
-          <div className="text-right space-y-2 flex-shrink-0">
-            <Badge 
-              variant={getFreightStatusVariant(freight.status)} 
-              className="font-medium whitespace-nowrap"
-            >
-              {getFreightStatusLabel(freight.status)}
-            </Badge>
-            
-            {/* 📅 Badge de dias até coleta */}
-            {(() => {
-              const badgeInfo = getPickupDateBadge(freight.pickup_date);
-              
-              if (!badgeInfo) return null;
-              
-              const iconMap = {
-                AlertTriangle,
-                Clock,
-                Calendar
-              };
-              const IconComponent = iconMap[badgeInfo.icon];
-              
-              return (
-                <Badge variant={badgeInfo.variant} className="text-xs whitespace-nowrap flex items-center gap-1 justify-end">
-                  <IconComponent className="h-3 w-3" />
-                  {badgeInfo.text}
-                </Badge>
-              );
-            })()}
-            
-            <p className="font-bold text-lg text-primary whitespace-nowrap">
-              R$ {formatBRL(freight.price)}
-            </p>
-          </div>
+          {/* Deadline indicator */}
+          {freight.deliveryDeadline && (
+            <div className={cn(
+              "flex items-center gap-1 px-2 py-1 rounded text-xs font-bold mt-2",
+              freight.deliveryDeadline.isCritical && "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+              freight.deliveryDeadline.isUrgent && !freight.deliveryDeadline.isCritical && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+              !freight.deliveryDeadline.isUrgent && "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+            )}>
+              <Clock className="h-3 w-3" />
+              {freight.deliveryDeadline.displayText}
+            </div>
+          )}
         </div>
       </CardHeader>
 
