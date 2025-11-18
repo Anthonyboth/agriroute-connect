@@ -71,9 +71,8 @@ export const VEHICLE_TYPES_URBAN = [
   { value: 'CARRETA_GADO', label: 'Carreta Boiadeira' },
   { value: 'CARRETA_REFRIGERADA', label: 'Carreta Refrigerada' },
   { value: 'PRANCHA', label: 'Prancha (máquinas)' },
-  { value: 'F400', label: 'Ford F-400' },
-  { value: 'STRADA', label: 'Fiat Strada' },
-  { value: 'SAVEIRO', label: 'VW Saveiro' }
+  { value: 'BITREM', label: 'Bitrem' },
+  { value: 'RODOTREM', label: 'Rodotrem' }
 ];
 
 // Funções helper
