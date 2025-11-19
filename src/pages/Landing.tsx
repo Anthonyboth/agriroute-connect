@@ -1,3 +1,4 @@
+// Sprint 1: Performance optimization - removed dead carousel code
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
