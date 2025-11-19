@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'script-defer',
       includeAssets: ['favicon.ico', 'hero-truck-night-moon.jpg', 'apple-touch-icon.png'],
       manifest: {
         name: 'AGRIROUTE',
