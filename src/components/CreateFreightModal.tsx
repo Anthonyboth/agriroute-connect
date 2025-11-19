@@ -977,7 +977,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
                 <div className="space-y-4">
                   <UnifiedLocationInput
                     label="CEP ou Cidade de Origem"
-                    value={formData.origin_zip || `${formData.origin_city}${formData.origin_state ? ', ' + formData.origin_state : ''}`}
+                    value={formData.origin_zip || ''}
                     onChange={(value, locationData) => {
                       if (locationData) {
                         handleInputChange('origin_city', locationData.city);
