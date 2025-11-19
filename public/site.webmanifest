@@ -1,7 +1,7 @@
 {
   "name": "AgriRoute - Logística Agrícola",
   "short_name": "AgriRoute",
-  "description": "Plataforma completa para conectar produtores rurais e motoristas de caminhão",
+  "description": "Ambiente digital para orquestrar, conectar e monitorar o transporte agrícola",
   "icons": [
     {
       "src": "/favicon-16x16.png",

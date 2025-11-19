@@ -259,7 +259,7 @@ const Landing: React.FC = () => {
             </span>
           </h1>
           <p className="text-lg md:text-xl lg:text-2xl text-foreground/80 mb-12 max-w-3xl mx-auto font-medium px-4 leading-relaxed">
-            Plataforma para conectar e organizar o transporte agrícola de forma inteligente.
+            Ambiente digital para orquestrar, conectar e monitorar o transporte agrícola
           </p>
           
           {/* Main Action Buttons - Centered Group */}
