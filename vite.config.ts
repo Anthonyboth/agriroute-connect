@@ -41,7 +41,8 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,jpg,webp}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,jpg,webp,avif}'],
+        maximumFileSizeToCacheInBytes: 5000000, // 5MB for larger images
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/shnvtxejjecbnztdbbbl\.supabase\.co\/.*/i,
@@ -49,11 +50,23 @@ export default defineConfig(({ mode }) => ({
             options: {
               cacheName: 'supabase-api-cache',
               expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
               },
               cacheableResponse: {
                 statuses: [0, 200]
+              },
+              networkTimeoutSeconds: 5, // Fallback to cache after 5s
+            }
+          },
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|avif)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
               }
             }
           }
@@ -95,6 +108,11 @@ export default defineConfig(({ mode }) => ({
           'charts-vendor': ['recharts'],
           'query-vendor': ['@tanstack/react-query'],
           'supabase-vendor': ['@supabase/supabase-js'],
+          'forms-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          'stripe-vendor': ['@stripe/stripe-js', '@stripe/react-stripe-js'],
+          'pdf-vendor': ['jspdf', 'jspdf-autotable'],
+          'excel-vendor': ['xlsx'],
+          'maps-vendor': ['@googlemaps/js-api-loader', '@googlemaps/react-wrapper'],
         }
       }
     }

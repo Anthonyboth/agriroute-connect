@@ -24,24 +24,41 @@
     <meta name="msapplication-TileColor" content="#10b981">
     <meta name="msapplication-config" content="/browserconfig.xml">
     
+    <!-- FIRST: Preload LCP hero image - MUST be before everything else -->
+    <link rel="preload" as="image" href="/hero-truck-night-moon.jpg" fetchpriority="high" type="image/jpeg">
+    
     <!-- DNS prefetch and preconnect to Supabase API for faster API requests -->
     <link rel="dns-prefetch" href="https://shnvtxejjecbnztdbbbl.supabase.co">
     <link rel="preconnect" href="https://shnvtxejjecbnztdbbbl.supabase.co">
     <link rel="preconnect" href="https://shnvtxejjecbnztdbbbl.supabase.co" crossorigin>
     
-    <!-- Preload hero image for LCP optimization -->
-    <link rel="preload" as="image" href="/hero-truck-night-moon.webp" fetchpriority="high">
-    
-    <!-- Critical CSS inline for LCP hero section -->
+    <!-- Inline Critical CSS for LCP optimization -->
     <style>
-      .hero-section{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden}
-      .hero-section>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-      .hero-section::before{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.7),rgba(0,0,0,0.4))}
+      /* Hero section base */
+      .hero-section{position:relative;min-height:90vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+      .hero-section>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+      .hero-section::before{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.7),rgba(0,0,0,0.4));z-index:1}
+      
+      /* Hero content */
+      .hero-content{position:relative;z-index:10;max-width:80rem;margin:0 auto;padding:2rem 1rem}
+      .hero-title{font-size:3rem;font-weight:700;color:#fff;line-height:1.2;margin-bottom:1.5rem}
+      .hero-subtitle{font-size:1.25rem;color:rgba(255,255,255,0.9);margin-bottom:2rem}
+      
+      /* Hero buttons */
+      .hero-buttons{display:flex;gap:1rem;flex-wrap:wrap;margin-top:2rem}
+      .btn-hero{padding:0.75rem 2rem;border-radius:9999px;font-weight:600;transition:all 0.3s;display:inline-flex;align-items:center;gap:0.5rem;cursor:pointer;border:none;font-size:1rem}
+      .btn-primary{background:#22c55e;color:#fff}
+      .btn-primary:hover{background:#16a34a}
+      .btn-secondary{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.3)}
+      .btn-secondary:hover{background:rgba(255,255,255,0.2)}
+      
+      /* Layout utilities */
+      .container{max-width:80rem;margin:0 auto;padding:0 1rem}
+      .flex{display:flex}
+      .items-center{align-items:center}
+      .justify-between{justify-content:space-between}
+      .gap-4{gap:1rem}
     </style>
-    
-    <!-- Load main CSS asynchronously to avoid render blocking -->
-    <link rel="preload" href="/assets/index-1SWpMCfl.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/assets/index-1SWpMCfl.css"></noscript>
     
     <title>AgriRoute - Logística Agrícola Inteligente</title>
     <meta name="description" content="Plataforma completa para conectar produtores rurais e motoristas de caminhão. Gerencie fretes agrícolas com eficiência e segurança." />
