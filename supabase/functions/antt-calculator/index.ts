@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,16 +55,32 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') || '';
     
+    // Schema de validação rigoroso com Zod
+    const AnttRequestSchema = z.object({
+      cargo_type: z.string().min(1).max(100),
+      distance_km: z.number().positive().max(10000),
+      axles: z.number().int().min(2).max(9),
+      origin_state: z.string().length(2).optional(),
+      destination_state: z.string().length(2).optional(),
+      high_performance: z.boolean().optional().default(false),
+      table_type: z.enum(['A', 'B', 'C', 'D']).optional(),
+      required_trucks: z.number().int().positive().max(50).optional().default(1)
+    });
+    
+    // Validar input
+    const rawData = await req.json();
+    const validated = AnttRequestSchema.parse(rawData);
+    
     const { 
       cargo_type, 
       distance_km, 
       axles, 
       origin_state,
       destination_state,
-      high_performance = false,
+      high_performance,
       table_type,
-      required_trucks = 1 // NOVO - default 1 carreta
-    }: AnttCalculationRequest = await req.json();
+      required_trucks
+    } = validated;
     
     console.log('📊 ANTT Calculation Request:', { cargo_type, distance_km, axles, high_performance, table_type });
 

@@ -68,15 +68,45 @@ serve(async (req) => {
       );
     }
 
-    // Check if user has admin role
-    const { data: profile } = await supabaseClient
-      .from('profiles')
+    // Check if user has admin role via user_roles table
+    const { data: userRole, error: roleError } = await supabaseClient
+      .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .single();
 
-    if (!profile || profile.role !== 'ADMIN') {
+    const hasAdminRole = userRole && (userRole.role === 'admin' || userRole.role === 'moderator');
+
+    if (!hasAdminRole) {
       console.error(`[ADMIN-RECALC] Unauthorized access attempt by user: ${user.id}`);
+      
+      // 🔔 NOTIFICAÇÃO TELEGRAM - Tentativa de acesso não autorizado
+      try {
+        await supabaseClient.functions.invoke('send-telegram-alert', {
+          body: {
+            errorData: {
+              errorType: 'SECURITY_VIOLATION',
+              errorCategory: 'UNAUTHORIZED_ACCESS',
+              errorMessage: `Tentativa de acesso não autorizado à função admin-recalculate-all-antt`,
+              route: '/functions/admin-recalculate-all-antt',
+              module: 'EdgeFunction',
+              functionName: 'admin-recalculate-all-antt',
+              userId: user.id,
+              userEmail: user.email,
+              metadata: {
+                severity: 'HIGH',
+                action_blocked: true,
+                attempted_function: 'admin-recalculate-all-antt',
+                user_profile: userRole,
+                timestamp: new Date().toISOString()
+              }
+            }
+          }
+        });
+      } catch (telegramError) {
+        console.error('[ADMIN-RECALC] Failed to send Telegram alert:', telegramError);
+      }
+      
       return new Response(
         JSON.stringify({ error: 'Forbidden: Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -214,6 +244,34 @@ serve(async (req) => {
       });
 
     console.log('[ADMIN-RECALC] Completed:', results);
+
+    // 🔔 NOTIFICAÇÃO TELEGRAM - Operação concluída com sucesso
+    try {
+      await supabase.functions.invoke('send-telegram-alert', {
+        body: {
+          errorData: {
+            errorType: 'ADMIN_OPERATION',
+            errorCategory: 'SUCCESS',
+            errorMessage: `Recálculo ANTT executado com sucesso por ${user.email}`,
+            route: '/functions/admin-recalculate-all-antt',
+            module: 'AdminOperations',
+            functionName: 'admin-recalculate-all-antt',
+            userId: user.id,
+            userEmail: user.email,
+            metadata: {
+              severity: 'INFO',
+              success: true,
+              freights_updated: results.updated,
+              freights_failed: results.errors,
+              total_processed: results.total,
+              timestamp: new Date().toISOString()
+            }
+          }
+        }
+      });
+    } catch (telegramError) {
+      console.error('[ADMIN-RECALC] Failed to send success notification:', telegramError);
+    }
 
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
