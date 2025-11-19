@@ -62,6 +62,7 @@ import { ServiceProviderPayouts } from '@/components/ServiceProviderPayouts';
 import { ServiceChatDialog } from '@/components/ServiceChatDialog';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
+import { getProviderVisibleServices } from '@/lib/service-types';
 
 import { LocationManager } from '@/components/LocationManager';
 import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
@@ -914,34 +915,16 @@ export const ServiceProviderDashboard: React.FC = () => {
     }
   };
 
+  // Usar lista canônica de service-types.ts
   const serviceTypes = [
     { value: 'all', label: 'Todos os Serviços' },
-    { value: 'MECANICO', label: 'Mecânico' },
-    { value: 'ELETRICISTA_AUTOMOTIVO', label: 'Eletricista' },
-    { value: 'BORRACHEIRO', label: 'Borracheiro' },
-    { value: 'CHAVEIRO', label: 'Chaveiro' },
-    { value: 'COMBUSTIVEL', label: 'Combustível' },
-    { value: 'AR_CONDICIONADO', label: 'Ar Condicionado' },
-    { value: 'FREIOS', label: 'Freios' },
-    { value: 'SUSPENSAO', label: 'Suspensão' },
-    { value: 'SOLDADOR', label: 'Soldador' },
-    { value: 'PINTURA', label: 'Pintura' },
-    { value: 'VIDRACEIRO', label: 'Vidraceiro' },
-    { value: 'ASSISTENCIA_TECNICA', label: 'Assistência Técnica' },
-    { value: 'MANUTENCAO_EQUIPAMENTOS', label: 'Manutenção de Equipamentos' },
-    { value: 'CONSULTORIA_RURAL', label: 'Consultoria Rural' },
-    { value: 'SERVICOS_VETERINARIOS', label: 'Serviços Veterinários' },
-    { value: 'ANALISE_SOLO', label: 'Análise de Solo' },
-    { value: 'PULVERIZACAO', label: 'Pulverização' },
-    { value: 'PULVERIZACAO_DRONE', label: 'Pulverização por Drone' },
-    { value: 'COLHEITA_PLANTIO', label: 'Colheita e Plantio' },
-    { value: 'ADUBACAO_CALCARIO', label: 'Adubação e Calagem' },
-    { value: 'OPERADOR_MAQUINAS', label: 'Operador de Máquinas' },
-    { value: 'SECAGEM_GRAOS', label: 'Secador / Secagem de Grãos' },
-    { value: 'GUINDASTE', label: 'Guindaste' },
-    { value: 'ARMAZENAGEM', label: 'Armazenagem' },
-    { value: 'OUTROS', label: 'Outros' }
-    // NOTA: Removidos CARGA, GUINCHO, MUDANCA pois estes são para motoristas
+    ...getProviderVisibleServices()
+      .filter(s => !s.hideFromAllTab)
+      .map(s => ({
+        value: s.id,
+        label: s.label
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
   ];
 
   const getUrgencyColor = (urgency: string) => {

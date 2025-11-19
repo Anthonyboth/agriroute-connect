@@ -12,27 +12,18 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { X, Plus } from 'lucide-react';
+import { getProviderVisibleServices } from '@/lib/service-types';
 
 interface ServiceProviderRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const serviceTypes = [
-  'GUINCHO',
-  'MECANICO',
-  'BORRACHEIRO', 
-  'ELETRICISTA_AUTOMOTIVO',
-  'AUTO_ELETRICA',
-  'COMBUSTIVEL',
-  'CHAVEIRO',
-  'SOLDADOR',
-  'PINTURA',
-  'VIDRACEIRO',
-  'AR_CONDICIONADO',
-  'FREIOS',
-  'SUSPENSAO'
-];
+// Usar lista canônica de service-types.ts
+const serviceTypes = getProviderVisibleServices()
+  .filter(s => !s.hideFromAllTab)
+  .map(s => s.id)
+  .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
 const specialtyOptions = [
   'Carros de passeio',
