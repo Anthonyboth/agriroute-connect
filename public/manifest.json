@@ -1,7 +1,7 @@
 {
   "name": "AGRIROUTE",
   "short_name": "AGRIROUTE",
-  "description": "Plataforma de gestão de fretes agrícolas",
+  "description": "Ambiente digital para gestão de transporte agrícola",
   "theme_color": "#16a34a",
   "background_color": "#ffffff",
   "display": "standalone",
