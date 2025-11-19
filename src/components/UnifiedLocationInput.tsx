@@ -144,6 +144,22 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
     }
   };
 
+  // Handler para tecla ENTER - completar CEP parcial
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const numbers = inputValue.replace(/\D/g, '');
+      
+      // Se é CEP com 5-7 dígitos, completar com zeros e buscar
+      if (inputType === 'cep' && numbers.length >= 5 && numbers.length < 8) {
+        e.preventDefault();
+        const paddedZip = numbers.padEnd(8, '0');
+        const formatted = formatCEP(paddedZip);
+        setInputValue(formatted);
+        searchZipCode(paddedZip);
+      }
+    }
+  };
+
   // Handler de mudança de input
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
@@ -232,6 +248,7 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
           type="text"
           value={inputValue}
           onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={cn(
             'pl-10 pr-10',
@@ -254,6 +271,8 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           ) : validLocation === false ? (
             <MapPin className="h-4 w-4 text-destructive" />
+          ) : inputType === 'cep' && inputValue.replace(/\D/g, '').length >= 5 && inputValue.replace(/\D/g, '').length < 8 ? (
+            <MapPin className="h-4 w-4 text-yellow-600 animate-pulse" />
           ) : (
             <MapPin className="h-4 w-4 text-muted-foreground" />
           )}
@@ -267,7 +286,10 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
                 <Info className="h-4 w-4 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent>
-                <p>Digite o CEP (00000-000) ou nome da cidade</p>
+                <p>Digite o CEP (mínimo 5 dígitos) ou nome da cidade</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pressione ENTER para buscar CEP incompleto
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
