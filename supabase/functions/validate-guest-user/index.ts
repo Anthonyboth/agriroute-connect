@@ -1,10 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput, documentNumberSchema } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const GuestUserSchema = z.object({
+  name: z.string().min(3, 'Name must be at least 3 characters').max(100, 'Name too long'),
+  email: z.string().email('Invalid email').max(255, 'Email too long').optional(),
+  phone: z.string().min(10, 'Invalid phone').max(20, 'Phone too long').optional(),
+  document: documentNumberSchema,
+  captchaToken: z.string().min(1, 'CAPTCHA token required').max(500, 'Token too long')
+});
 
 interface ValidateGuestRequest {
   name: string;
@@ -56,7 +66,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { name, email, phone, document, captchaToken }: ValidateGuestRequest = await req.json();
+    const rawBody = await req.json();
+    const { name, email, phone, document, captchaToken } = validateInput(GuestUserSchema, rawBody);
     
     const clientIP = getClientIP(req);
 

@@ -1,9 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const RouteRequestSchema = z.object({
+  origin: z.string().min(3, 'Origin must be at least 3 characters').max(500, 'Origin too long'),
+  destination: z.string().min(3, 'Destination must be at least 3 characters').max(500, 'Destination too long')
+});
 
 interface RouteRequest {
   origin: string;
@@ -25,9 +32,10 @@ serve(async (req) => {
   }
 
   try {
-    const { origin, destination }: RouteRequest = await req.json();
+    const rawBody = await req.json();
+    const { origin, destination } = validateInput(RouteRequestSchema, rawBody);
     
-    console.log('[CALCULATE-ROUTE] Calculating route from', origin, 'to', destination);
+    console.log('[CALCULATE-ROUTE] Validatedroute from', origin, 'to', destination);
 
     const googleMapsApiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
     

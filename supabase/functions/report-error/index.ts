@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { ErrorReportSchema, validateInput } from '../_shared/validation.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,9 +51,10 @@ serve(async (req) => {
       });
     }
 
-    // Parse error report
-    const errorReport = await req.json();
-    logStep('Relatório recebido', { 
+    // Parse and validate error report with Zod
+    const rawReport = await req.json();
+    const errorReport = validateInput(ErrorReportSchema, rawReport);
+    logStep('Relatório validado', { 
       type: errorReport.errorType, 
       category: errorReport.errorCategory 
     });
