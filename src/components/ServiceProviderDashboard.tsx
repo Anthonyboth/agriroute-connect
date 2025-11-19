@@ -1006,7 +1006,7 @@ export const ServiceProviderDashboard: React.FC = () => {
       <section className="relative min-h-[280px] flex items-center justify-center overflow-hidden animate-fade-in">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat blur-[2px]"
-          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
+          style={{ backgroundImage: `url(/hero-truck-real-night.webp)` }}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-accent/85 to-warning/80 backdrop-blur-sm" />
         <div className="relative z-10 w-full">

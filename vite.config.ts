@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'script-defer',
-      includeAssets: ['favicon.ico', 'hero-truck-night-moon.jpg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'hero-truck-real-night.webp', 'apple-touch-icon.png'],
       manifest: {
         name: 'AGRIROUTE',
         short_name: 'AGRIROUTE',
