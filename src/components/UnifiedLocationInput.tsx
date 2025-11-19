@@ -69,11 +69,17 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
 
   // Detectar tipo de input
   const detectInputType = (val: string): InputType => {
-    const cleaned = val.replace(/\D/g, '');
-    if (cleaned === '') return 'empty';
-    if (cleaned.length > 0 && (val === cleaned || val.includes('-'))) {
+    const trimmed = val.trim();
+    
+    // Se está realmente vazio → empty
+    if (trimmed === '') return 'empty';
+    
+    // Se tem APENAS números e hífens → cep
+    if (/^[\d\-\s]+$/.test(trimmed)) {
       return 'cep';
     }
+    
+    // Se tem qualquer letra → city
     return 'city';
   };
 
