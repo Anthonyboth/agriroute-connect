@@ -379,11 +379,12 @@ const Auth = () => {
             // Usuário tem múltiplos perfis - mostrar seletor
             setAvailableProfiles(userProfiles);
             setShowProfileSelector(true);
-            // Manter loading=true para manter componente estável até seleção
+            setLoading(false); // ✅ Limpar loading
             return;
           }
-          // Se há apenas 1 perfil, manter loading=true
-          // O App.tsx vai redirecionar automaticamente
+          // Se há apenas 1 perfil, deixar RedirectIfAuthed redirecionar
+          console.log('[AUTH] Login concluído, redirecionando...');
+          setLoading(false); // ✅ Limpar loading
           return;
         }
       }
