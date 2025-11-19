@@ -30,7 +30,6 @@ import Clock from 'lucide-react/dist/esm/icons/clock';
 import Wrench from 'lucide-react/dist/esm/icons/wrench';
 
 const Landing: React.FC = () => {
-  // Feature flag para controlar exibição da seção de parceiros
   const navigate = useNavigate();
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; initialTab?: 'login' | 'signup' }>({
     isOpen: false,
