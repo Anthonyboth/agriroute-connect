@@ -528,7 +528,7 @@ const CompanyDashboard = () => {
       <section className="relative py-6 overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-20 animate-fade-in"
-          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
+          style={{ backgroundImage: `url(/hero-truck-real-night.webp)` }}
         />
         <div className="container relative z-10 mx-auto px-4">
           <div className="max-w-5xl mx-auto text-center space-y-4">

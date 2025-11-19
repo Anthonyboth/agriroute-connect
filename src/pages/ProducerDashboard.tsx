@@ -1262,7 +1262,7 @@ const ProducerDashboard = () => {
       <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
-          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
+          style={{ backgroundImage: `url(/hero-truck-real-night.webp)` }}
         />
         <div className="absolute inset-0 bg-primary/75" />
         <div className="relative z-10 w-full">

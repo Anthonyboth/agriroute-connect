@@ -236,10 +236,10 @@ const Landing: React.FC = () => {
         <picture>
           <source 
             type="image/webp" 
-            srcSet="/hero-truck-night-moon.webp"
+            srcSet="/hero-truck-real-night.webp"
           />
           <img 
-            src="/hero-truck-night-moon.jpg" 
+            src="/hero-truck-real-night.webp"
             alt="Logística agrícola moderna - caminhão transportando carga agrícola"
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
