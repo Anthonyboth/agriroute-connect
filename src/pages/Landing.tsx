@@ -4,14 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import agriRouteLogo from '@/assets/agriroute-logo-158.webp';
 import { supabase } from '@/integrations/supabase/client';
-import Autoplay from "embla-carousel-autoplay";
-import { 
-  Carousel, 
-  CarouselContent, 
-  CarouselItem 
-} from "@/components/ui/carousel";
 import { Skeleton } from '@/components/ui/skeleton';
 import { AuthModal, PlatformStatsSection } from '@/components/LazyComponents';
 
@@ -38,28 +31,10 @@ import Wrench from 'lucide-react/dist/esm/icons/wrench';
 
 const Landing: React.FC = () => {
   // Feature flag para controlar exibição da seção de parceiros
-  const SHOW_PARTNERS_SECTION = false; // Mudar para true quando houver parceiros ativos
-  
   const navigate = useNavigate();
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; initialTab?: 'login' | 'signup' }>({
     isOpen: false,
   });
-  
-  const partners = [
-    { id: 1, name: 'AgriRoute', logo: agriRouteLogo },
-    { id: 2, name: 'Parceiro 2', logo: null },
-    { id: 3, name: 'Parceiro 3', logo: null },
-    { id: 4, name: 'Parceiro 4', logo: null },
-    { id: 5, name: 'Parceiro 5', logo: null },
-    { id: 6, name: 'Parceiro 6', logo: null },
-    { id: 7, name: 'Parceiro 7', logo: null },
-    { id: 8, name: 'Parceiro 8', logo: null },
-    { id: 9, name: 'Parceiro 9', logo: null },
-    { id: 10, name: 'Parceiro 10', logo: null },
-  ];
-  
-  // Filtrar apenas parceiros com logo
-  const partnersWithLogo = partners.filter(partner => partner.logo !== null);
   
   const [mudancaModal, setMudancaModal] = useState(false);
   const [guestServiceModal, setGuestServiceModal] = useState<{ isOpen: boolean; serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' }>({
@@ -390,61 +365,6 @@ const Landing: React.FC = () => {
           </Button>
         </div>
       </section>
-
-      {/* Partners Section */}
-        {SHOW_PARTNERS_SECTION && partnersWithLogo.length > 0 && (
-          <section className="py-16 bg-muted/10 border-y">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Parceiros
-              </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Organizações que apoiam nossa plataforma
-              </p>
-            </div>
-            
-            <Carousel
-              opts={{
-                align: "start",
-                loop: partnersWithLogo.length > 4,
-              }}
-              plugins={partnersWithLogo.length > 4 ? [
-                Autoplay({
-                  delay: 3000,
-                  stopOnInteraction: false,
-                  stopOnMouseEnter: true,
-                })
-              ] : []}
-              className="w-full max-w-6xl mx-auto"
-            >
-              <CarouselContent className="-ml-2 md:-ml-4">
-                {partnersWithLogo.map((partner) => (
-                  <CarouselItem 
-                    key={partner.id}
-                    className="pl-2 md:pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4"
-                  >
-                    <div className="p-4">
-                      <Card className="border-0 bg-transparent hover:shadow-xl hover:scale-105 transition-all duration-300">
-                        <CardContent className="flex aspect-square items-center justify-center p-8">
-                          <img 
-                            src={partner.logo as string} 
-                            alt={partner.name}
-                            width="158"
-                            height="158"
-                            loading="lazy"
-                            className="max-w-full max-h-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                          />
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
-          </div>
-        </section>
-      )}
 
       {/* Footer */}
       <footer className="bg-card border-t py-12">
