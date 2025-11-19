@@ -1,17 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
-import MudancaModal from '@/components/MudancaModal';
-import GuestServiceModal from '@/components/GuestServiceModal';
-import HowItWorksModal from '@/components/HowItWorksModal';
-import { FreightTransportModal } from '@/components/FreightTransportModal';
-import { ServicesModal } from '@/components/ServicesModal';
-import ServiceRequestModal from '@/components/ServiceRequestModal';
-import { ContactModal } from '@/components/ContactModal';
-import ReportModal from '@/components/ReportModal';
-import { Truck, Users, MapPin, Star, ArrowRight, Leaf, Shield, Clock, Wrench } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import agriRouteLogo from '@/assets/agriroute-logo-158.webp';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,9 +12,29 @@ import {
   CarouselContent, 
   CarouselItem 
 } from "@/components/ui/carousel";
-import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AuthModal, PlatformStatsSection } from '@/components/LazyComponents';
+
+// Lazy load modals - only load when user opens them
+const MudancaModal = lazy(() => import('@/components/MudancaModal'));
+const GuestServiceModal = lazy(() => import('@/components/GuestServiceModal'));
+const HowItWorksModal = lazy(() => import('@/components/HowItWorksModal'));
+const FreightTransportModal = lazy(() => import('@/components/FreightTransportModal').then(m => ({ default: m.FreightTransportModal })));
+const ServicesModal = lazy(() => import('@/components/ServicesModal').then(m => ({ default: m.ServicesModal })));
+const ServiceRequestModal = lazy(() => import('@/components/ServiceRequestModal'));
+const ContactModal = lazy(() => import('@/components/ContactModal').then(m => ({ default: m.ContactModal })));
+const ReportModal = lazy(() => import('@/components/ReportModal'));
+
+// Lazy load icons - only import what's needed
+import Truck from 'lucide-react/dist/esm/icons/truck';
+import Users from 'lucide-react/dist/esm/icons/users';
+import MapPin from 'lucide-react/dist/esm/icons/map-pin';
+import Star from 'lucide-react/dist/esm/icons/star';
+import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
+import Leaf from 'lucide-react/dist/esm/icons/leaf';
+import Shield from 'lucide-react/dist/esm/icons/shield';
+import Clock from 'lucide-react/dist/esm/icons/clock';
+import Wrench from 'lucide-react/dist/esm/icons/wrench';
 
 const Landing: React.FC = () => {
   // Feature flag para controlar exibição da seção de parceiros
@@ -246,18 +257,26 @@ const Landing: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
-        <img 
-          src="/hero-truck-night-moon.webp" 
-          alt="Logística agrícola moderna"
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-          width="1920"
-          height="1080"
-        />
+      <section className="hero-section relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+        <picture>
+          <source 
+            type="image/webp" 
+            srcSet="/hero-truck-night-moon.webp"
+          />
+          <img 
+            src="/hero-truck-night-moon.jpg" 
+            alt="Logística agrícola moderna - caminhão transportando carga agrícola"
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+            width="1920"
+            height="1080"
+          />
+        </picture>
         <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/50 to-transparent" />
         
-        <div className="relative z-10 container mx-auto px-6 md:px-8 text-center max-w-5xl">
+        <div className="hero-content relative z-10 container mx-auto px-6 md:px-8 text-center max-w-5xl">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight px-4">
             <span className="text-foreground">Conectando Quem Precisa</span>
             <span className="block gradient-hero bg-clip-text text-transparent font-extrabold">
@@ -487,60 +506,77 @@ const Landing: React.FC = () => {
         </div>
       </footer>
 
-      <AuthModal 
-        isOpen={authModal.isOpen}
-        onClose={closeAuthModal}
-        initialTab={authModal.initialTab}
-      />
+      <Suspense fallback={<div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>}>
+        <AuthModal 
+          isOpen={authModal.isOpen}
+          onClose={closeAuthModal}
+          initialTab={authModal.initialTab}
+        />
+      </Suspense>
 
-      <ContactModal
-        isOpen={contactModal}
-        onClose={() => setContactModal(false)}
-      />
+      <Suspense fallback={null}>
+        <ContactModal
+          isOpen={contactModal}
+          onClose={() => setContactModal(false)}
+        />
+      </Suspense>
 
-      <GuestServiceModal
-        isOpen={guestServiceModal.isOpen}
-        onClose={() => setGuestServiceModal({ isOpen: false })}
-        serviceType={guestServiceModal.serviceType || 'GUINCHO'}
-      />
+      <Suspense fallback={null}>
+        <GuestServiceModal
+          isOpen={guestServiceModal.isOpen}
+          onClose={() => setGuestServiceModal({ isOpen: false })}
+          serviceType={guestServiceModal.serviceType || 'GUINCHO'}
+        />
+      </Suspense>
       
-      <MudancaModal
-        isOpen={mudancaModal}
-        onClose={() => setMudancaModal(false)}
-      />
+      <Suspense fallback={null}>
+        <MudancaModal
+          isOpen={mudancaModal}
+          onClose={() => setMudancaModal(false)}
+        />
+      </Suspense>
 
-      <ServicesModal 
-        isOpen={servicesModal}
-        onClose={() => setServicesModal(false)}
-        onSelect={handleServiceSelect}
-      />
+      <Suspense fallback={null}>
+        <ServicesModal 
+          isOpen={servicesModal}
+          onClose={() => setServicesModal(false)}
+          onSelect={handleServiceSelect}
+        />
+      </Suspense>
 
       {selectedService && requestModalOpen && (
-        <ServiceRequestModal
-          isOpen={true}
-          onClose={() => {
-            setRequestModalOpen(false);
-            setSelectedService(null);
-          }}
-          serviceId={selectedService.id}
-          serviceLabel={selectedService.label}
-          serviceDescription={selectedService.description}
-          category={selectedService.category}
-        />
+        <Suspense fallback={null}>
+          <ServiceRequestModal
+            isOpen={true}
+            onClose={() => {
+              setRequestModalOpen(false);
+              setSelectedService(null);
+            }}
+            serviceId={selectedService.id}
+            serviceLabel={selectedService.label}
+            serviceDescription={selectedService.description}
+            category={selectedService.category}
+          />
+        </Suspense>
       )}
 
       {howItWorksModal.isOpen && (
-        <HowItWorksModal
-          isOpen={howItWorksModal.isOpen}
-          onClose={closeHowItWorksModal}
-          userType={howItWorksModal.userType || 'PRODUTOR'}
-          onProceed={handleProceedToDashboard}
-        />
+        <Suspense fallback={null}>
+          <HowItWorksModal
+            isOpen={howItWorksModal.isOpen}
+            onClose={closeHowItWorksModal}
+            userType={howItWorksModal.userType || 'PRODUTOR'}
+            onProceed={handleProceedToDashboard}
+          />
+        </Suspense>
       )}
-      <ReportModal
-        isOpen={reportModal}
-        onClose={() => setReportModal(false)}
-      />
+      
+      <Suspense fallback={null}>
+        <ReportModal
+          isOpen={reportModal}
+          onClose={() => setReportModal(false)}
+        />
+      </Suspense>
     </div>
   );
 };
