@@ -50,14 +50,22 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
   placeholder = "Digite 00000-000 ou nome da cidade",
   className
 }) => {
-  const [inputValue, setInputValue] = useState(value);
+  const [inputValue, setInputValue] = useState('');
   const [inputType, setInputType] = useState<InputType>('empty');
   const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchingFor, setSearchingFor] = useState<'cep' | 'city' | null>(null);
   const [validLocation, setValidLocation] = useState<boolean | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Inicializar inputValue apenas uma vez
+  useEffect(() => {
+    if (value && !inputValue) {
+      setInputValue(value);
+    }
+  }, []);
 
   // Detectar tipo de input
   const detectInputType = (val: string): InputType => {
@@ -83,6 +91,7 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
   // Buscar CEP
   const searchZipCode = async (zipCode: string) => {
     setLoading(true);
+    setSearchingFor('cep');
     setValidLocation(null);
     try {
       const result = await ZipCodeService.searchZipCode(zipCode);
@@ -106,12 +115,14 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
       setValidLocation(false);
     } finally {
       setLoading(false);
+      setSearchingFor(null);
     }
   };
 
   // Buscar cidades
   const searchCities = async (searchTerm: string) => {
     setLoading(true);
+    setSearchingFor('city');
     try {
       const { data, error } = await supabase.rpc('search_cities', {
         search_term: searchTerm,
@@ -129,6 +140,7 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
       setShowSuggestions(false);
     } finally {
       setLoading(false);
+      setSearchingFor(null);
     }
   };
 
@@ -143,17 +155,23 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
     if (type === 'cep') {
       const formatted = formatCEP(rawValue);
       setInputValue(formatted);
-      onChange(formatted);
+      // NÃO chamar onChange aqui - só após completar busca
       
       const numbers = formatted.replace(/\D/g, '');
       if (numbers.length === 8) {
-        searchZipCode(numbers);
+        // Validar CEP brasileiro
+        if (numbers[0] === '0') {
+          setValidLocation(false);
+          setShowSuggestions(false);
+        } else {
+          searchZipCode(numbers);
+        }
       } else {
         setShowSuggestions(false);
       }
     } else if (type === 'city') {
       setInputValue(rawValue);
-      onChange(rawValue);
+      // NÃO chamar onChange aqui - só após selecionar cidade
       
       if (rawValue.length >= 2) {
         searchCities(rawValue);
@@ -202,13 +220,6 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Atualizar valor quando prop value mudar
-  useEffect(() => {
-    if (value !== inputValue) {
-      setInputValue(value);
-    }
-  }, [value]);
-
   return (
     <div className={cn('space-y-2 relative', className)}>
       <Label>
@@ -233,7 +244,12 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
         {/* Ícone de status à esquerda */}
         <div className="absolute left-3 top-1/2 -translate-y-1/2">
           {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <div className="flex items-center gap-1">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                {searchingFor === 'cep' ? 'CEP...' : 'Cidades...'}
+              </span>
+            </div>
           ) : validLocation === true ? (
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           ) : validLocation === false ? (
