@@ -1282,7 +1282,7 @@ const ProducerDashboard = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setActiveTab('proposals')}
-                className="bg-background/10 text-white border-white/30 hover:bg-white/20 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-white/20 text-white border-white/50 hover:bg-white/30 font-semibold rounded-full px-4 py-2 w-full sm:w-auto shadow-lg backdrop-blur-sm transition-all duration-200"
               >
                 <Users className="mr-1 h-4 w-4" />
                 Ver Propostas
@@ -1291,7 +1291,7 @@ const ProducerDashboard = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setServicesModalOpen(true)}
-                className="bg-background/10 text-white border-white/30 hover:bg-white/20 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-white/20 text-white border-white/50 hover:bg-white/30 font-semibold rounded-full px-4 py-2 w-full sm:w-auto shadow-lg backdrop-blur-sm transition-all duration-200"
               >
                 <Wrench className="mr-1 h-4 w-4" />
                 Solicitar Serviços
@@ -1300,7 +1300,7 @@ const ProducerDashboard = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setActiveTab('ratings')}
-                className="bg-background/10 text-white border-white/30 hover:bg-white/20 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-white/20 text-white border-white/50 hover:bg-white/30 font-semibold rounded-full px-4 py-2 w-full sm:w-auto shadow-lg backdrop-blur-sm transition-all duration-200"
               >
                 <Star className="mr-1 h-4 w-4" />
                 Avaliações
