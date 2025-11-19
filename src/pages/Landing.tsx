@@ -26,6 +26,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AuthModal, PlatformStatsSection } from '@/components/LazyComponents';
 
 const Landing: React.FC = () => {
+  // Feature flag para controlar exibição da seção de parceiros
+  const SHOW_PARTNERS_SECTION = false; // Mudar para true quando houver parceiros ativos
+  
   const navigate = useNavigate();
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; initialTab?: 'login' | 'signup' }>({
     isOpen: false,
@@ -370,8 +373,8 @@ const Landing: React.FC = () => {
       </section>
 
       {/* Partners Section */}
-      {partnersWithLogo.length > 0 && (
-        <section className="py-16 bg-muted/10 border-y">
+        {SHOW_PARTNERS_SECTION && partnersWithLogo.length > 0 && (
+          <section className="py-16 bg-muted/10 border-y">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
