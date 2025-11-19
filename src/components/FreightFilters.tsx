@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLa
 import { Separator } from '@/components/ui/separator';
 import { Filter, MapPin } from 'lucide-react';
 import { CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
-import { FREIGHT_SERVICE_TYPES } from '@/lib/service-types';
 import { CitySelector } from './CitySelector';
 
 interface FreightFiltersProps {
@@ -36,12 +35,10 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
   userRole,
   userServiceTypes = []
 }) => {
-  // Usar lista canônica de service-types.ts para tipos de frete
+  // Filter service types based on user's allowed types
   const availableServiceTypes = userRole === 'MOTORISTA' && userServiceTypes.length > 0
     ? userServiceTypes
-    : FREIGHT_SERVICE_TYPES
-        .filter(s => s.clientVisible)
-        .map(s => s.id);
+    : ['CARGA', 'GUINCHO', 'MUDANCA'];
 
   return (
     <Card>
