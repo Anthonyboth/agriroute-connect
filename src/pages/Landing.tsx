@@ -258,9 +258,6 @@ const Landing: React.FC = () => {
               a Quem Resolve
             </span>
           </h1>
-          <p className="text-lg md:text-xl lg:text-2xl text-foreground/80 mb-12 max-w-3xl mx-auto font-medium px-4 leading-relaxed">
-            Ambiente digital para orquestrar, conectar e monitorar o transporte agrícola
-          </p>
           
           {/* Main Action Buttons - Centered Group */}
           <div className="max-w-3xl mx-auto px-4">
