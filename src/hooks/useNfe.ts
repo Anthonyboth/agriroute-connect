@@ -70,12 +70,25 @@ export function useNfe() {
       if (filters?.status) params.append('status', filters.status);
       if (filters?.freight_id) params.append('freight_id', filters.freight_id);
 
-      const { data, error: listError } = await supabase.functions.invoke('nfe-list', {
+      const queryString = params.toString();
+      const url = `https://shnvtxejjecbnztdbbbl.supabase.co/functions/v1/nfe-list${queryString ? `?${queryString}` : ''}`;
+
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+
+      const response = await fetch(url, {
         method: 'GET',
-        body: null,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
-      if (listError) throw listError;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
 
       if (!data.success) {
         throw new Error(data.error || 'Erro ao listar NF-es');
