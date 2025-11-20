@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, Building2, Truck } from 'lucide-react';
+import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, Building2, Truck, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NotificationCenter, UserProfileModal } from '@/components/LazyComponents';
@@ -152,6 +152,20 @@ const Header: React.FC<HeaderProps> = ({
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-4">
+              {/* NF-es Link - Visible for PRODUTOR, MOTORISTA, and TRANSPORTADORA */}
+              {['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(user?.role || '') && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  asChild
+                >
+                  <Link to="/nfe-dashboard" className="flex items-center">
+                    <FileText className="h-4 w-4 mr-2" />
+                    NF-es
+                  </Link>
+                </Button>
+              )}
+              
               {/* Notifications */}
               <Button 
                 variant="ghost" 
@@ -276,6 +290,22 @@ const Header: React.FC<HeaderProps> = ({
                         </Badge>
                       )}
                     </Button>
+
+                    {/* NF-es Link for Mobile */}
+                    {['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(user?.role || '') && (
+                      <Button 
+                        variant="ghost" 
+                        className="justify-start" 
+                        size="sm"
+                        asChild
+                        onClick={() => setIsSheetOpen(false)}
+                      >
+                        <Link to="/nfe-dashboard" className="flex items-center">
+                          <FileText className="mr-3 h-5 w-5" />
+                          NF-es
+                        </Link>
+                      </Button>
+                    )}
 
                     {/* Menu Items */}
                     {menuItems.map((item) => (

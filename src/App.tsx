@@ -58,6 +58,7 @@ const ProducerDashboard = lazy(() => import("./pages/ProducerDashboard"));
 const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
 const CompanyDashboard = lazy(() => import("./pages/CompanyDashboard"));
 const ServiceProviderDashboard = lazy(() => import("./pages/ServiceProviderDashboard"));
+const NfeDashboard = lazy(() => import("./pages/NfeDashboard"));
 import DriverInviteSignup from "./pages/DriverInviteSignup";
 import { AlertCircle } from 'lucide-react';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
@@ -639,6 +640,16 @@ const App = () => {
                             <ProtectedRoute requiresAuth requiresApproval allowedRoles={["TRANSPORTADORA"]}>
                               <Suspense fallback={<ComponentLoader />}>
                                 <CompanyDashboard />
+                              </Suspense>
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/nfe-dashboard" 
+                          element={
+                            <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRODUTOR", "MOTORISTA", "MOTORISTA_AFILIADO", "TRANSPORTADORA"]}>
+                              <Suspense fallback={<ComponentLoader />}>
+                                <NfeDashboard />
                               </Suspense>
                             </ProtectedRoute>
                           } 

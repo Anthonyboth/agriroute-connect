@@ -222,4 +222,13 @@ verify_jwt = false
 [functions.security-health-check]
 verify_jwt = false
 
+[functions.nfe-scan]
+verify_jwt = true
+
+[functions.nfe-manifest]
+verify_jwt = true
+
+[functions.nfe-list]
+verify_jwt = true
+
 
