@@ -3576,6 +3576,78 @@ export type Database = {
           },
         ]
       }
+      nfe_documents: {
+        Row: {
+          access_key: string
+          created_at: string | null
+          created_by: string | null
+          freight_id: string | null
+          id: string
+          issue_date: string
+          issuer_cnpj: string
+          issuer_name: string
+          manifestation_date: string | null
+          manifestation_justification: string | null
+          manifestation_type: string | null
+          number: string
+          series: string
+          status: string
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          access_key: string
+          created_at?: string | null
+          created_by?: string | null
+          freight_id?: string | null
+          id?: string
+          issue_date: string
+          issuer_cnpj: string
+          issuer_name: string
+          manifestation_date?: string | null
+          manifestation_justification?: string | null
+          manifestation_type?: string | null
+          number: string
+          series: string
+          status?: string
+          updated_at?: string | null
+          value: number
+        }
+        Update: {
+          access_key?: string
+          created_at?: string | null
+          created_by?: string | null
+          freight_id?: string | null
+          id?: string
+          issue_date?: string
+          issuer_cnpj?: string
+          issuer_name?: string
+          manifestation_date?: string | null
+          manifestation_justification?: string | null
+          manifestation_type?: string | null
+          number?: string
+          series?: string
+          status?: string
+          updated_at?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfe_documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_documents_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           chat_messages_enabled: boolean | null

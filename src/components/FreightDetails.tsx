@@ -13,6 +13,7 @@ import { FreightAdvanceModal } from './FreightAdvanceModal';
 import { FreightPaymentModal } from './FreightPaymentModal';
 import { FreightAssignmentsList } from './FreightAssignmentsList';
 import { ManifestoModal } from './ManifestoModal';
+import { FreightNfePanel } from './nfe/FreightNfePanel';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { format } from 'date-fns';
@@ -831,54 +832,20 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       {/* Main Content Tabs - Only for participants */}
       {isParticipant && (
         <Tabs defaultValue={initialTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="status" className="text-sm">Status da Viagem</TabsTrigger>
             <TabsTrigger value="chat" className="text-sm">
               <MessageCircle className="h-3 w-3 mr-1" />
               Chat
             </TabsTrigger>
+            <TabsTrigger value="nfes" className="text-sm">
+              <FileText className="h-3 w-3 mr-1" />
+              NF-es
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="status" forceMount className="mt-4 data-[state=inactive]:hidden">
-            {/* ✅ Banner informativo para DELIVERED_PENDING_CONFIRMATION */}
-            {effectiveStatus === 'DELIVERED_PENDING_CONFIRMATION' && (
-              <Alert className="mb-4 border-blue-500 bg-blue-50 dark:bg-blue-950">
-                <Clock className="h-4 w-4 text-blue-600" />
-                <AlertTitle className="text-blue-900 dark:text-blue-100">
-                  {isDriver ? 'Entrega Reportada' : 'Aguardando Confirmação de Entrega'}
-                </AlertTitle>
-                <AlertDescription className="text-blue-800 dark:text-blue-200">
-                  {isDriver ? (
-                    <>
-                      ✅ Você reportou a entrega com sucesso! O produtor tem até <strong>72 horas</strong> para confirmar o recebimento.
-                      Após a confirmação, o pagamento será liberado automaticamente.
-                    </>
-                  ) : (
-                    <>
-                      O motorista reportou que a carga foi entregue. Por favor, <strong>confirme o recebimento</strong> para finalizar o frete.
-                      Você tem até 72 horas para confirmar. Após esse prazo, a entrega será confirmada automaticamente.
-                    </>
-                  )}
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            <FreightStatusTracker
-              freightId={freightId}
-              currentStatus={effectiveStatus || freight.status}
-              currentUserProfile={currentUserProfile}
-              isDriver={isDriver}
-              freightServiceType={freight.service_type}
-              assignmentId={driverAssignment?.id} // ✅ Passa assignmentId do motorista ativo
-              onStatusUpdated={() => {
-                fetchFreightDetails();
-              }}
-            />
-
-            {/* Histórico de mudanças de status */}
-            <div className="mt-6">
-              <FreightStatusHistory freightId={freightId} />
-            </div>
+...
           </TabsContent>
           
           <TabsContent value="chat" forceMount className="mt-4 data-[state=inactive]:hidden">
@@ -886,6 +853,10 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               freightId={freightId}
               currentUserProfile={currentUserProfile}
             />
+          </TabsContent>
+          
+          <TabsContent value="nfes" forceMount className="mt-4 data-[state=inactive]:hidden">
+            <FreightNfePanel freightId={freightId} />
           </TabsContent>
         </Tabs>
       )}
