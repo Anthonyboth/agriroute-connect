@@ -89,58 +89,93 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
 
     inFlightRef.current = true;
 
-    try {
-      if (!mountedRef.current) return;
-      setState(prev => ({ ...prev, loading: true }));
-      
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
-        headers: {
-          'Authorization': session.data.session?.access_token ? `Bearer ${session.data.session.access_token}` : ''
-        }
-      });
-      
-      if (error) throw error;
+    // Retry logic with exponential backoff for session propagation
+    const retryDelays = [100, 500, 1000]; // Progressive delays
+    let lastError: any = null;
 
-      if (!mountedRef.current) return;
-      setState({
-        subscribed: data.subscribed || false,
-        subscriptionTier: data.subscription_tier || 'FREE',
-        subscriptionEnd: data.subscription_end || null,
-        userCategory: data.user_category || null,
-        loading: false,
-      });
-    } catch (error) {
-      console.error('Error checking subscription:', error);
-      
-      if (!mountedRef.current) return;
-      
-      // Sempre permitir acesso com tier FREE em caso de erro
-      setState(prev => ({ 
-        ...prev, 
-        loading: false,
-        subscriptionTier: 'FREE',
-        subscribed: false,
-        userCategory: null
-      }));
-      
-      // Só notifica o usuário em erros críticos de autenticação E fora da rota /auth
-      const status = (error as any)?.status ?? (error as any)?.context?.response?.status ?? null;
-      if ((status === 401 || status === 403) && location.pathname !== '/auth') {
-        const now = Date.now();
-        if (now - lastErrorTime > 30000) {
-          setLastErrorTime(now);
-          toast.error('Sua sessão expirou. Faça login novamente.', {
-            action: {
-              label: 'Fechar',
-              onClick: () => {},
-            },
-          });
+    for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+      try {
+        if (!mountedRef.current) return;
+        
+        if (attempt === 0) {
+          setState(prev => ({ ...prev, loading: true }));
         }
+        
+        const { data, error } = await supabase.functions.invoke('check-subscription', {
+          headers: {
+            'Authorization': session.data.session?.access_token ? `Bearer ${session.data.session.access_token}` : ''
+          }
+        });
+        
+        if (error) throw error;
+
+        if (!mountedRef.current) return;
+        setState({
+          subscribed: data.subscribed || false,
+          subscriptionTier: data.subscription_tier || 'FREE',
+          subscriptionEnd: data.subscription_end || null,
+          userCategory: data.user_category || null,
+          loading: false,
+        });
+        
+        // Success - exit retry loop
+        inFlightRef.current = false;
+        return;
+        
+      } catch (error) {
+        lastError = error;
+        const errorMessage = (error as any)?.message || String(error);
+        
+        // Check if it's a session propagation error
+        const isSessionPropagationError = errorMessage.includes('session_id') || 
+                                         errorMessage.includes('Session from') ||
+                                         errorMessage.includes('does not exist');
+        
+        // If it's the last attempt or not a propagation error, break
+        if (attempt >= retryDelays.length || !isSessionPropagationError) {
+          console.error(`Subscription check failed after ${attempt + 1} attempts:`, error);
+          break;
+        }
+        
+        // Wait before next retry
+        await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+        console.log(`Retrying subscription check (attempt ${attempt + 2}/${retryDelays.length + 1})...`);
       }
-      // Para outros erros (como 500), não notifica o usuário para não interromper o fluxo
-    } finally {
-      inFlightRef.current = false;
     }
+    
+    // All retries failed
+    if (!mountedRef.current) {
+      inFlightRef.current = false;
+      return;
+    }
+    
+    // Sempre permitir acesso com tier FREE em caso de erro
+    setState(prev => ({ 
+      ...prev, 
+      loading: false,
+      subscriptionTier: 'FREE',
+      subscribed: false,
+      userCategory: null
+    }));
+    
+    // Só notifica o usuário em erros críticos de autenticação E fora da rota /auth
+    // Não notificar em erros de propagação de sessão (500)
+    const status = (lastError as any)?.status ?? (lastError as any)?.context?.response?.status ?? null;
+    if ((status === 401 || status === 403) && location.pathname !== '/auth') {
+      const now = Date.now();
+      if (now - lastErrorTime > 30000) {
+        setLastErrorTime(now);
+        toast.error('Sua sessão expirou. Faça login novamente.', {
+          action: {
+            label: 'Fechar',
+            onClick: () => {},
+          },
+        });
+      }
+    }
+    // Para erros de sessão (500) não notifica para não interromper o fluxo
+    
+    inFlightRef.current = false;
   }, [user, location.pathname, lastErrorTime]);
 
   const createCheckout = useCallback(async (category: string, planType: 'essential' | 'professional') => {
