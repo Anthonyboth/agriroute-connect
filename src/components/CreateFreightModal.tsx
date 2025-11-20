@@ -41,6 +41,10 @@ const formDataInitial = {
   weight: '',
   origin_zip: '',
   origin_address: '',
+  origin_neighborhood: '',
+  origin_street: '',
+  origin_number: '',
+  origin_complement: '',
   origin_city: '',
   origin_state: '',
   origin_city_id: undefined as string | undefined,
@@ -48,6 +52,10 @@ const formDataInitial = {
   origin_lng: undefined as number | undefined,
   destination_zip: '',
   destination_address: '',
+  destination_neighborhood: '',
+  destination_street: '',
+  destination_number: '',
+  destination_complement: '',
   destination_city: '',
   destination_state: '',
   destination_city_id: undefined as string | undefined,
@@ -1007,7 +1015,19 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
                   <StructuredAddressInput
                     label="Endereço Completo de Origem"
                     value={formData.origin_address}
-                    onChange={(address) => handleInputChange('origin_address', address)}
+                    initialNeighborhood={formData.origin_neighborhood}
+                    initialStreet={formData.origin_street}
+                    initialNumber={formData.origin_number}
+                    initialComplement={formData.origin_complement}
+                    onChange={(address, parts) => {
+                      handleInputChange('origin_address', address);
+                      if (parts) {
+                        handleInputChange('origin_neighborhood', parts.neighborhood);
+                        handleInputChange('origin_street', parts.street);
+                        handleInputChange('origin_number', parts.number);
+                        handleInputChange('origin_complement', parts.complement);
+                      }
+                    }}
                     required
                   />
                 </div>
@@ -1046,7 +1066,19 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
                   <StructuredAddressInput
                     label="Endereço Completo de Destino"
                     value={formData.destination_address}
-                    onChange={(address) => handleInputChange('destination_address', address)}
+                    initialNeighborhood={formData.destination_neighborhood}
+                    initialStreet={formData.destination_street}
+                    initialNumber={formData.destination_number}
+                    initialComplement={formData.destination_complement}
+                    onChange={(address, parts) => {
+                      handleInputChange('destination_address', address);
+                      if (parts) {
+                        handleInputChange('destination_neighborhood', parts.neighborhood);
+                        handleInputChange('destination_street', parts.street);
+                        handleInputChange('destination_number', parts.number);
+                        handleInputChange('destination_complement', parts.complement);
+                      }
+                    }}
                     required
                   />
                 </div>

@@ -3,10 +3,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
+interface AddressParts {
+  neighborhood: string;
+  street: string;
+  number: string;
+  complement: string;
+}
+
 interface StructuredAddressInputProps {
   label: string;
   value?: string;
-  onChange: (fullAddress: string) => void;
+  initialNeighborhood?: string;
+  initialStreet?: string;
+  initialNumber?: string;
+  initialComplement?: string;
+  onChange: (fullAddress: string, parts?: AddressParts) => void;
   required?: boolean;
   className?: string;
 }
@@ -14,21 +25,35 @@ interface StructuredAddressInputProps {
 export const StructuredAddressInput: React.FC<StructuredAddressInputProps> = ({
   label,
   value = '',
+  initialNeighborhood = '',
+  initialStreet = '',
+  initialNumber = '',
+  initialComplement = '',
   onChange,
   required = false,
   className
 }) => {
-  const [neighborhood, setNeighborhood] = useState('');
-  const [street, setStreet] = useState('');
-  const [number, setNumber] = useState('');
-  const [complement, setComplement] = useState('');
+  const [neighborhood, setNeighborhood] = useState(initialNeighborhood);
+  const [street, setStreet] = useState(initialStreet);
+  const [number, setNumber] = useState(initialNumber);
+  const [complement, setComplement] = useState(initialComplement);
+
+  // Populate fields when initial values change (e.g., loading template)
+  useEffect(() => {
+    if (initialNeighborhood || initialStreet || initialNumber || initialComplement) {
+      setNeighborhood(initialNeighborhood);
+      setStreet(initialStreet);
+      setNumber(initialNumber);
+      setComplement(initialComplement);
+    }
+  }, [initialNeighborhood, initialStreet, initialNumber, initialComplement]);
 
   // Build full address string whenever parts change
   useEffect(() => {
     const parts = [street, number ? `Nº ${number}` : '', neighborhood, complement]
       .filter(Boolean)
       .join(', ');
-    onChange(parts);
+    onChange(parts, { neighborhood, street, number, complement });
   }, [street, number, neighborhood, complement, onChange]);
 
   return (
