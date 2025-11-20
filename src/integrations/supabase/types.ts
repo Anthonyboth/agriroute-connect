@@ -8032,6 +8032,9 @@ export type Database = {
         | "VLC_URBANO"
         | "PICKUP"
         | "OUTROS"
+        | "CARRETA_GADO"
+        | "CARRETA_REFRIGERADA"
+        | "PRANCHA"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -8279,6 +8282,9 @@ export const Constants = {
         "VLC_URBANO",
         "PICKUP",
         "OUTROS",
+        "CARRETA_GADO",
+        "CARRETA_REFRIGERADA",
+        "PRANCHA",
       ],
     },
   },
