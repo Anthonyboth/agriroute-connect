@@ -81,6 +81,7 @@ export function useNfe() {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'X-Skip-Error-Monitoring': 'true', // ✅ Não reportar erros NFE ao Telegram
         },
       });
 

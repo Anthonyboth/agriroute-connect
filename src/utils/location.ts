@@ -102,6 +102,16 @@ export const getCurrentPositionSafe = async (maxRetries: number = 3): Promise<Sa
             
             // Accept accuracy <= 500m OR always accept on last attempt
             if (quality.accuracy <= 500 || attempt === maxRetries) {
+              // ✅ Na última tentativa, avisar sobre GPS ruim
+              if (attempt === maxRetries && quality.quality === 'POOR') {
+                console.warn(`[GPS] ⚠️ Aceitando GPS de baixa qualidade após ${maxRetries} tentativas: ${quality.accuracy}m`);
+                // Importar toast dinamicamente para evitar problemas de dependência circular
+                import('sonner').then(({ toast }) => {
+                  toast.warning('GPS com baixa precisão. Considere mover-se para área aberta.', {
+                    duration: 5000
+                  });
+                });
+              }
               resolve(p);
             } else {
               reject(new Error(`GPS de baixa qualidade: ${quality.accuracy}m`));

@@ -856,7 +856,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           </TabsContent>
           
           <TabsContent value="nfes" forceMount className="mt-4 data-[state=inactive]:hidden">
-            <FreightNfePanel freightId={freightId} />
+            <FreightNfePanel freightId={freightId} autoLoad={false} />
           </TabsContent>
         </Tabs>
       )}
