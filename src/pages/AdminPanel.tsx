@@ -9,12 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Users, Truck, Package, FileText, Eye, Search, LayoutDashboard, Building2, HelpCircle, UserPlus, Folder, TrendingUp, DollarSign, CreditCard, Menu, Building, Wrench, Calculator, Loader2, Info } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Truck, Package, FileText, Eye, Search, LayoutDashboard, Building2, HelpCircle, UserPlus, Folder, TrendingUp, DollarSign, CreditCard, Menu, Building, Wrench, Calculator, Loader2, Info, Shield } from 'lucide-react';
 import { AdminValidationPanel } from '@/components/AdminValidationPanel';
 import { AdminReportsPanel } from '@/components/AdminReportsPanel';
 import { AdminServiceProviderValidation } from '@/components/AdminServiceProviderValidation';
 import { ANTTDebugPanel } from '@/components/ANTTDebugPanel';
 import { AdminDistanceBackfillPanel } from '@/components/AdminDistanceBackfillPanel';
+import { AdminPermissionsAudit } from '@/components/admin/AdminPermissionsAudit';
 
 interface Profile {
   id: string;
@@ -58,6 +59,7 @@ const financialItems = [
 const maintenanceItems = [
   { title: "Manutenção de Dados", icon: Wrench, id: "data-maintenance" },
   { title: "Debug ANTT", icon: Calculator, id: "antt-debug" },
+  { title: "Auditoria de Permissões", icon: Shield, id: "permissions-audit" },
 ];
 
 function AdminSidebar({ activeItem, setActiveItem }: { activeItem: string; setActiveItem: (item: string) => void }) {
@@ -678,6 +680,12 @@ const AdminPanel = () => {
             {activeItem === "data-maintenance" && (
               <div className="space-y-6">
                 <AdminDistanceBackfillPanel />
+              </div>
+            )}
+
+            {activeItem === "permissions-audit" && (
+              <div className="space-y-6">
+                <AdminPermissionsAudit />
               </div>
             )}
           </main>
