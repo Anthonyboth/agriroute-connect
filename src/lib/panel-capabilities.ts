@@ -245,6 +245,8 @@ export const computePanelCapabilities = (params: ComputeCapabilitiesParams): Pan
     capabilities.approve_affiliation = { allowed: true };
     capabilities.rate_company_driver = { allowed: true };
     capabilities.chat = { allowed: true };
+    capabilities.submit_freight_proposal = { allowed: true };
+    capabilities.submit_service_proposal = { allowed: true };
   }
 
   // ========== SERVICE_PROVIDER: regras específicas ==========
