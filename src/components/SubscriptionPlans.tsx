@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Star, Zap } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useDieselPricing } from '@/hooks/useDieselPricing';
 
 const SubscriptionPlans: React.FC = () => {
   const { subscriptionTier, createCheckout, loading, userCategory, getAvailablePlans } = useSubscription();
+  const { userPricing, dieselPrice, isLoading: loadingDiesel } = useDieselPricing();
   
   const availablePlans = getAvailablePlans();
 
@@ -31,40 +33,46 @@ const SubscriptionPlans: React.FC = () => {
     {
       id: 'ESSENTIAL',
       name: 'Plano Essencial',
-      price: `R$ ${availablePlans.find(p => p.planType === 'essential')?.price || 69}`,
+      price: loadingDiesel 
+        ? 'Calculando...' 
+        : `R$ ${userPricing?.monthlyFee?.toFixed(2) || '60,00'}`,
       period: '/mês',
-      description: 'Para profissionais ativos',
+      description: userPricing 
+        ? `${userPricing.litersBase}L × R$ ${dieselPrice?.toFixed(2)}/L`
+        : 'Baseado no diesel',
       features: [
         'Fretes/serviços ilimitados',
         '2% comissão reduzida',
-        'Valor mensal fixo',
+        `💡 Valor: ${userPricing?.litersBase || 10}L de diesel`,
         'Suporte prioritário',
         'Relatórios básicos',
         'Dashboard avançado'
       ],
       icon: <Star className="h-5 w-5" />,
-      buttonText: subscriptionTier === 'ESSENTIAL' ? 'Plano Atual' : 'Assinar Essencial',
-      disabled: subscriptionTier === 'ESSENTIAL',
-      popular: true
+      buttonText: 'Em Breve',
+      disabled: true,
+      popular: true,
+      badge: '⛽ Diesel'
     },
     {
       id: 'PROFESSIONAL',
       name: 'Plano Profissional',
-      price: `R$ ${availablePlans.find(p => p.planType === 'professional')?.price || 199}`,
+      price: loadingDiesel 
+        ? 'Calculando...' 
+        : `R$ ${((userPricing?.monthlyFee || 60) * 2).toFixed(2)}`,
       period: '/mês',
       description: 'Para grandes profissionais',
       features: [
         'Tudo do Essencial',
-        'Sem comissões sobre transações',
-        'Apenas valor mensal',
-        'Suporte Prioritário 24/7',
+        'Sem comissões',
+        'Suporte 24/7',
         'Relatórios avançados',
         'API para integração',
         'Consultor dedicado'
       ],
       icon: <Zap className="h-5 w-5" />,
-      buttonText: subscriptionTier === 'PROFESSIONAL' ? 'Plano Atual' : 'Assinar Profissional',
-      disabled: subscriptionTier === 'PROFESSIONAL',
+      buttonText: 'Em Breve',
+      disabled: true,
       popular: false
     }
   ];
@@ -76,19 +84,32 @@ const SubscriptionPlans: React.FC = () => {
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-3">
-      {plans.map((plan) => (
-        <Card 
-          key={plan.id} 
-          className={`relative ${plan.popular ? 'border-primary' : ''} ${
-            subscriptionTier === plan.id ? 'bg-primary/5' : ''
-          }`}
-        >
-          {plan.popular && (
-            <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary">
-              Mais Popular
-            </Badge>
-          )}
+    <div>
+      {loadingDiesel && (
+        <div className="text-center text-sm text-muted-foreground mb-4">
+          ⛽ Calculando valores do diesel...
+        </div>
+      )}
+      
+      <div className="grid gap-6 md:grid-cols-3">
+        {plans.map((plan) => (
+          <Card 
+            key={plan.id} 
+            className={`relative ${plan.popular ? 'border-primary' : ''} ${
+              subscriptionTier === plan.id ? 'bg-primary/5' : ''
+            }`}
+          >
+            {plan.popular && (
+              <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary">
+                Mais Popular
+              </Badge>
+            )}
+            
+            {plan.badge && (
+              <Badge variant="secondary" className="absolute -top-2 right-4 bg-amber-500/10 text-amber-900 border-amber-200">
+                {plan.badge}
+              </Badge>
+            )}
           
           <CardHeader className="text-center pb-4">
             <div className="flex justify-center mb-2">
@@ -123,8 +144,9 @@ const SubscriptionPlans: React.FC = () => {
               {plan.buttonText}
             </Button>
           </CardContent>
-        </Card>
-      ))}
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };

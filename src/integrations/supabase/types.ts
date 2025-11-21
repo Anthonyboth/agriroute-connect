@@ -1026,6 +1026,33 @@ export type Database = {
           },
         ]
       }
+      diesel_prices: {
+        Row: {
+          created_at: string | null
+          effective_date: string
+          id: string
+          price: number
+          source: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          effective_date?: string
+          id?: string
+          price: number
+          source?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          effective_date?: string
+          id?: string
+          price?: number
+          source?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       document_request_messages: {
         Row: {
           created_at: string
