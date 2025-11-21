@@ -10,9 +10,10 @@ import { Plus, Loader2 } from 'lucide-react';
 
 interface FreightNfePanelProps {
   freightId: string;
+  autoLoad?: boolean;
 }
 
-export function FreightNfePanel({ freightId }: FreightNfePanelProps) {
+export function FreightNfePanel({ freightId, autoLoad = true }: FreightNfePanelProps) {
   const [showScanner, setShowScanner] = useState(false);
   const [showManifestation, setShowManifestation] = useState(false);
   const [selectedNfe, setSelectedNfe] = useState<NFeDocument | null>(null);
@@ -24,9 +25,12 @@ export function FreightNfePanel({ freightId }: FreightNfePanelProps) {
     setNfes(data);
   };
 
+  // ✅ Só carrega automaticamente se autoLoad=true
   useEffect(() => {
-    loadNfes();
-  }, [freightId]);
+    if (autoLoad) {
+      loadNfes();
+    }
+  }, [freightId, autoLoad]);
 
   const handleScanSuccess = () => {
     loadNfes();

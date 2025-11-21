@@ -27,7 +27,16 @@ export function useErrorMonitoring() {
       }
       
       try {
+        // ✅ Verificar se deve pular monitoramento antes de fazer request
+        const skipMonitoring = args[1]?.headers && 
+          (args[1].headers as Record<string, string>)['X-Skip-Error-Monitoring'] === 'true';
+        
         const response = await originalFetch(...args);
+        
+        // ✅ Não reportar se flag X-Skip-Error-Monitoring estiver presente
+        if (skipMonitoring) {
+          return response;
+        }
         
         // Capturar erros HTTP 400-599 de APIs Supabase
         if (!response.ok && typeof args[0] === 'string' && args[0].includes('supabase')) {
