@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sendNotification } from "@/utils/notify";
 
 interface DriverLocationTabProps {
   driverProfileId: string;
@@ -36,7 +37,7 @@ export const DriverLocationTab = ({ driverProfileId, companyId }: DriverLocation
     if (!driverProfileId || !companyId) return;
     
     try {
-      const { error } = await supabase.from('notifications').insert({
+      const success = await sendNotification({
         user_id: driverProfileId,
         title: '📍 Solicitação de Localização',
         message: 'A transportadora solicitou que você ative o GPS e compartilhe sua localização. Por favor, abra o aplicativo e ative o rastreamento.',
@@ -44,7 +45,9 @@ export const DriverLocationTab = ({ driverProfileId, companyId }: DriverLocation
         data: { companyId, requestedAt: new Date().toISOString() }
       });
       
-      if (error) throw error;
+      if (!success) {
+        throw new Error('Falha ao enviar notificação');
+      }
       
       alert('✅ Solicitação enviada! O motorista receberá uma notificação para ativar o GPS.');
     } catch (error) {
