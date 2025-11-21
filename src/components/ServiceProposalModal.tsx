@@ -78,20 +78,7 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM'>('FIXED');
 const [pricePerKm, setPricePerKm] = useState('');
 
-  const getDriverProfileId = async (): Promise<string | null> => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-    
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('role', 'MOTORISTA')
-      .maybeSingle();
-      
-    if (error) throw error;
-    return data?.id ?? null;
-  };
+  // ✅ Função removida - usamos profile.id diretamente do useAuth
 
   const getServiceIcon = () => {
     switch (freight.service_type) {
@@ -173,22 +160,21 @@ const [pricePerKm, setPricePerKm] = useState('');
 
     setLoading(true);
     try {
-      const driverProfileId = await getDriverProfileId();
-      if (!driverProfileId) {
-        toast.error('Apenas motorista autônomo pode enviar proposta. Se você é filiado/empregado, compartilhe com sua transportadora.');
+      // ✅ Usa profile.id diretamente - funciona para MOTORISTA e TRANSPORTADORA
+      if (!profile?.id) {
+        toast.error('Perfil não encontrado. Faça login novamente.');
         setLoading(false);
         return;
       }
-
-      // Garantir que o usuário tenha o papel 'driver' para RLS
-      await supabase.rpc('ensure_current_user_role', { _role: 'driver' });
+      
+      const profileId = profile.id;
       
       // Evitar múltiplas propostas para o mesmo frete
       const { data: existingProposal, error: checkError } = await supabase
         .from('freight_proposals')
         .select('status')
         .eq('freight_id', freight.id)
-        .eq('driver_id', driverProfileId)
+        .eq('driver_id', profileId)
         .maybeSingle();
       if (checkError) throw checkError;
       
@@ -210,7 +196,7 @@ const [pricePerKm, setPricePerKm] = useState('');
       // Criar nova proposta (apenas se não existir PENDING)
       let proposalData: any = {
         freight_id: freight.id,
-        driver_id: driverProfileId,
+        driver_id: profileId,
         proposed_price: finalPrice,
         status: 'PENDING',
         message: message
@@ -239,7 +225,7 @@ const [pricePerKm, setPricePerKm] = useState('');
           .from('freight_messages')
           .insert({
             freight_id: freight.id,
-            sender_id: driverProfileId,
+            sender_id: profileId,
             message: messageContent,
             message_type: originalProposal ? 'COUNTER_PROPOSAL' : 'PROPOSAL'
           });
