@@ -115,7 +115,8 @@ export const SystemAnnouncementsBoard = ({ isOpen, onClose, ignoreDismissals = f
     onClose();
   };
 
-  if (!isOpen || visibleAnnouncements.length === 0) return null;
+  if (!isOpen) return null;
+  if (visibleAnnouncements.length === 0) return null;
 
   // Filtrar por categoria
   const filteredAnnouncements = selectedCategory === "all" 
