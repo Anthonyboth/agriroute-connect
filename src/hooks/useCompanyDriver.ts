@@ -52,13 +52,7 @@ export const useCompanyDriver = () => {
     isLoading,
   };
   
-  // 🐛 DEBUG: Log do retorno
-  console.log('[useCompanyDriver] Return:', {
-    hasCompanyDriver: !!companyDriver,
-    canAcceptFreights: result.canAcceptFreights,
-    isLoading,
-    profileId: profile?.id
-  });
+  // ✅ Return computed (debug removed to prevent console pollution)
   
   return result;
 };
