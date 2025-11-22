@@ -174,6 +174,14 @@ export const computePanelCapabilities = (params: ComputeCapabilitiesParams): Pan
     const canAcceptFreights = companyDriver?.canAcceptFreights || driverPermissions?.canAcceptFreights || false;
     const canManageVehicles = companyDriver?.canManageVehicles || driverPermissions?.canManageVehicles || false;
 
+    // 🐛 DEBUG: Log driver capabilities context
+    console.log('[panel-capabilities] DRIVER context:', {
+      isCompanyDriver,
+      isAffiliated,
+      canAcceptFreights,
+      profileRole: profile?.role
+    });
+
     // view_platform_freights: autônomo sempre vê; empresa vê só se canAcceptFreights
     if (!isCompanyDriver) {
       capabilities.view_platform_freights = { allowed: true };
@@ -191,17 +199,22 @@ export const computePanelCapabilities = (params: ComputeCapabilitiesParams): Pan
       allowed: isCompanyDriver 
     };
 
-    // submit_freight_proposal: APENAS autônomo (sem vínculo)
+    // submit_freight_proposal: autônomo sempre pode, afiliado depende de can_accept_freights
     if (!isCompanyDriver) {
+      // ✅ Motorista independente: sempre permitido
       capabilities.submit_freight_proposal = { allowed: true };
-    } else {
+    } else if (isAffiliated && !canAcceptFreights) {
+      // ❌ Motorista AFILIADO sem can_accept_freights: bloqueado (deve usar chat)
       capabilities.submit_freight_proposal = { 
         allowed: false, 
         reason: PERMISSION_MESSAGES.DRIVER_AFFILIATED_NO_PROPOSAL 
       };
+    } else {
+      // ✅ Motorista de empresa COM can_accept_freights: permitido
+      capabilities.submit_freight_proposal = { allowed: true };
     }
 
-    // submit_service_proposal: mesmo que freight proposal
+    // submit_service_proposal: mesma lógica que freight proposal
     capabilities.submit_service_proposal = capabilities.submit_freight_proposal;
 
     // manage_own_vehicles: depende de canManageVehicles
