@@ -41,7 +41,7 @@ export const useCompanyDriver = () => {
     enabled: !!profile?.id && (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO'),
   });
   
-  return {
+  const result = {
     companyDriver,
     isCompanyDriver: !!companyDriver,
     companyId: companyDriver?.company_id,
@@ -51,4 +51,14 @@ export const useCompanyDriver = () => {
     isAffiliated: companyDriver?.affiliation_type === 'AFFILIATED',
     isLoading,
   };
+  
+  // 🐛 DEBUG: Log do retorno
+  console.log('[useCompanyDriver] Return:', {
+    hasCompanyDriver: !!companyDriver,
+    canAcceptFreights: result.canAcceptFreights,
+    isLoading,
+    profileId: profile?.id
+  });
+  
+  return result;
 };
