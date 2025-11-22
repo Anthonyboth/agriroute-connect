@@ -174,13 +174,7 @@ export const computePanelCapabilities = (params: ComputeCapabilitiesParams): Pan
     const canAcceptFreights = companyDriver?.canAcceptFreights || driverPermissions?.canAcceptFreights || false;
     const canManageVehicles = companyDriver?.canManageVehicles || driverPermissions?.canManageVehicles || false;
 
-    // 🐛 DEBUG: Log driver capabilities context
-    console.log('[panel-capabilities] DRIVER context:', {
-      isCompanyDriver,
-      isAffiliated,
-      canAcceptFreights,
-      profileRole: profile?.role
-    });
+    // ✅ Driver context evaluated (debug removed to prevent console pollution)
 
     // view_platform_freights: autônomo sempre vê; empresa vê só se canAcceptFreights
     if (!isCompanyDriver) {
