@@ -411,6 +411,12 @@ const RedirectIfAuthed = () => {
     return <ComponentLoader />;
   }
   
+  // ✅ GUARD: Aguardar profile carregar completamente antes de renderizar Auth
+  // Isso previne o flash da tela de cadastro durante transição de login
+  if (isAuthenticated && !profile && !profiles) {
+    return <ComponentLoader />;
+  }
+  
   if (!isAuthenticated) return <Auth />;
   
   // Evita redirecionar cedo demais: só vá para /complete-profile

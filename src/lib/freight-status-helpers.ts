@@ -38,12 +38,54 @@ export async function driverUpdateFreightStatus({
   });
   
   try {
+    // 🌐 Verificar conexão de rede antes de qualquer operação
+    if (!navigator.onLine) {
+      console.error('[STATUS-UPDATE] ❌ Sem conexão com internet');
+      toast.error('Sem conexão com internet. Verifique sua rede.');
+      return false;
+    }
+
+    console.log('[STATUS-UPDATE] 🔍 Iniciando preflight check 1 (status da tabela freights)...');
+    console.log('[STATUS-UPDATE] 🔐 Auth UID:', (await supabase.auth.getUser()).data.user?.id);
+    
     // ✅ PREFLIGHT CHECK 1: Verificar se frete já está em status final via tabela principal
-    const { data: freightData, error: checkError } = await supabase
+    // Adicionar timeout protection para evitar travamentos
+    const checkPromise = supabase
       .from('freights')
       .select('status')
       .eq('id', freightId)
       .maybeSingle();
+    
+    const preflightTimeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('PREFLIGHT_TIMEOUT')), 5000)
+    );
+    
+    let freightData, checkError;
+    try {
+      const result = await Promise.race([checkPromise, preflightTimeoutPromise]);
+      freightData = result.data;
+      checkError = result.error;
+      console.log('[STATUS-UPDATE] ✅ Preflight check 1 completou:', { 
+        freightData, 
+        checkError,
+        duration: '< 5s'
+      });
+    } catch (timeoutError: any) {
+      console.error('[STATUS-UPDATE] ❌ TIMEOUT no preflight check 1 (>5s)');
+      console.error('[STATUS-UPDATE] Stack:', timeoutError?.stack);
+      toast.error('Operação demorou muito. Tentando método alternativo...');
+      
+      // Fallback imediato para updateStatusDirect
+      console.log('[STATUS-UPDATE] 🔄 Iniciando fallback para updateStatusDirect...');
+      return await updateStatusDirect(
+        freightId,
+        newStatus,
+        currentUserProfile.id,
+        notes,
+        location,
+        assignmentId
+      );
+    }
 
     if (checkError) {
       console.error('[STATUS-UPDATE] Preflight check error:', checkError);
