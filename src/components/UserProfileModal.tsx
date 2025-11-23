@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   user
 }) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [ratingDistribution, setRatingDistribution] = useState<{ star_rating: number; count: number }[]>([]);
@@ -147,6 +149,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         description: "Suas informações foram salvas com sucesso.",
       });
       
+      // Invalidar queries para atualização reativa
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      await queryClient.invalidateQueries({ queryKey: ['user'] });
+      
       setEditMode(false);
     } catch (error: any) {
       console.error('Error updating profile:', error);
@@ -240,13 +246,17 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         });
         window.location.href = '/';
       } else {
-        // Se há outros perfis, apenas fechar modal e recarregar
+        // Se há outros perfis, invalidar queries e fechar modal
         toast({
           title: "Perfil excluído",
           description: "Este perfil foi excluído. Você ainda tem outros perfis ativos.",
         });
+        
+        // Invalidar queries para atualização reativa
+        await queryClient.invalidateQueries({ queryKey: ['profiles'] });
+        await queryClient.invalidateQueries({ queryKey: ['profile'] });
+        
         onClose();
-        window.location.reload();
       }
       
     } catch (error: any) {
