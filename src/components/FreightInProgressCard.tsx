@@ -89,11 +89,15 @@ export const FreightInProgressCard: React.FC<FreightInProgressCardProps> = ({
           {/* Origem → Destino */}
           <div className="flex items-center gap-2 mb-2">
             <p className="font-semibold text-sm whitespace-nowrap">
-              {freight.origin_city || 'Origem'} - {freight.origin_state || ''}
+              {freight.origin_city && freight.origin_state 
+                ? `${freight.origin_city}, ${freight.origin_state}`
+                : 'Carregando origem...'}
             </p>
             <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <p className="font-semibold text-sm whitespace-nowrap">
-              {freight.destination_city || 'Destino'} - {freight.destination_state || ''}
+              {freight.destination_city && freight.destination_state
+                ? `${freight.destination_city}, ${freight.destination_state}`
+                : 'Carregando destino...'}
             </p>
           </div>
 
