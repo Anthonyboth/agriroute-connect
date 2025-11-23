@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +36,7 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
   onConfirm
 }) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -107,13 +109,13 @@ export const DeliveryConfirmationModal: React.FC<DeliveryConfirmationModalProps>
         console.error('[DeliveryConfirmationModal] ⚠️ Erro ao enviar notificação (não bloqueante):', notifyError);
       }
       
+      // Invalidar queries para atualização reativa
+      await queryClient.invalidateQueries({ queryKey: ['freights'] });
+      await queryClient.invalidateQueries({ queryKey: ['pending-delivery-confirmation'] });
+      await queryClient.invalidateQueries({ queryKey: ['completed-freights'] });
+      
       onConfirm();
       onClose();
-      
-      // Recarregar após 1 segundo para disparar o modal de avaliação
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
       
     } catch (error: any) {
       console.error('=== ERRO NA CONFIRMAÇÃO ===', error);

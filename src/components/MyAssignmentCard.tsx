@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +22,8 @@ interface MyAssignmentCardProps {
 export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, onAction }) => {
   const { profile: currentUserProfile } = useAuth();
   const { company } = useTransportCompany();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // 🛡️ Proteção contra null/undefined
@@ -71,10 +75,20 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
     });
     setIsUpdatingStatus(false);
     
-    if (success) {
-      // Recarregar página para atualizar dados
-      window.location.reload();
-    }
+      if (success) {
+        // Invalidar queries para atualização reativa
+        await queryClient.invalidateQueries({ queryKey: ['assignments'] });
+        await queryClient.invalidateQueries({ queryKey: ['freights'] });
+        await queryClient.invalidateQueries({ queryKey: ['active-freight'] });
+        
+        // Chamar callback para atualizar UI do dashboard
+        onAction();
+        
+        toast({
+          title: "Status atualizado",
+          description: "O frete foi marcado como 'A Caminho'",
+        });
+      }
   };
 
   // ✅ Check if freight is in final status using central constant
