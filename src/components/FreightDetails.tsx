@@ -845,7 +845,21 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           </TabsList>
           
           <TabsContent value="status" forceMount className="mt-4 data-[state=inactive]:hidden">
-...
+            <FreightStatusTracker
+              freightId={freightId}
+              currentStatus={effectiveStatus}
+              currentUserProfile={currentUserProfile}
+              isDriver={isDriver}
+              freightServiceType={freight?.service_type}
+              onStatusUpdated={(newStatus) => {
+                // Atualizar estado local do frete
+                setFreight((prev: any) => prev ? { ...prev, status: newStatus } : prev);
+                // Recarregar detalhes completos
+                fetchFreightDetails();
+              }}
+              companyId={currentUserProfile?.transport_company_id || undefined}
+              assignmentId={driverAssignment?.id || undefined}
+            />
           </TabsContent>
           
           <TabsContent value="chat" forceMount className="mt-4 data-[state=inactive]:hidden">
