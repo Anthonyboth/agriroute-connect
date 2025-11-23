@@ -29,6 +29,7 @@ export async function driverUpdateFreightStatus({
   companyId,
   assignmentId
 }: UpdateStatusParams): Promise<boolean> {
+  console.log('🔥 [DEBUG] driverUpdateFreightStatus INICIADO');
   console.log('[STATUS UPDATE] 🔄 Iniciando atualização:', {
     freightId,
     newStatus,
@@ -38,6 +39,7 @@ export async function driverUpdateFreightStatus({
   });
   
   try {
+    console.log('🔥 [DEBUG] Dentro do try block');
     // 🌐 Verificar conexão de rede antes de qualquer operação
     if (!navigator.onLine) {
       console.error('[STATUS-UPDATE] ❌ Sem conexão com internet');
@@ -180,6 +182,8 @@ export async function driverUpdateFreightStatus({
       return false;
     }
 
+    console.log('🔥 [DEBUG] RPC bem-sucedido, preparando toast...');
+    
     // Mensagens de sucesso
     const statusMessages: Record<string, string> = {
       'LOADING': 'Status atualizado: A caminho da coleta! 🚚',
@@ -187,7 +191,9 @@ export async function driverUpdateFreightStatus({
       'DELIVERED_PENDING_CONFIRMATION': 'Entrega reportada com sucesso! O produtor tem 72h para confirmar. ✅'
     };
 
+    console.log('🔥 [DEBUG] Mostrando toast de sucesso');
     toast.success(statusMessages[newStatus] || 'Status atualizado com sucesso!');
+    console.log('🔥 [DEBUG] Toast exibido');
     
     // 🔔 Enviar notificação persistente quando motorista reporta entrega
     if (newStatus === 'DELIVERED_PENDING_CONFIRMATION') {
@@ -234,15 +240,19 @@ export async function driverUpdateFreightStatus({
       }
     }
     
+    console.log('🔥 [DEBUG] driverUpdateFreightStatus RETORNANDO TRUE');
     console.log('[STATUS UPDATE] ✅ Status atualizado com sucesso:', {
       freightId,
       newStatus,
       assignmentId
     });
     
+    console.log('🔥 [DEBUG] Antes do return true');
     return true;
 
   } catch (error: any) {
+    console.error('🔥 [DEBUG] ERRO CAPTURADO no try/catch principal:', error);
+    console.error('🔥 [DEBUG] Error stack:', error.stack);
     console.error('[STATUS UPDATE] ❌ Falha na atualização:', {
       freightId,
       newStatus,
@@ -253,6 +263,7 @@ export async function driverUpdateFreightStatus({
     
     // Tratamento específico para lock timeout
     if (error.code === '55P03') {
+      console.log('🔥 [DEBUG] Lock timeout detectado');
       toast.error('Frete sendo atualizado por outra operação', {
         description: 'Tente novamente em alguns segundos.'
       });
@@ -260,8 +271,13 @@ export async function driverUpdateFreightStatus({
     }
     
     console.error('[STATUS-UPDATE] Unexpected error:', error);
+    console.log('🔥 [DEBUG] Mostrando toast de erro genérico');
     toast.error('Erro inesperado ao atualizar status');
+    
+    console.log('🔥 [DEBUG] driverUpdateFreightStatus RETORNANDO FALSE por erro');
     return false;
+  } finally {
+    console.log('🔥 [DEBUG] driverUpdateFreightStatus FINALLY BLOCK - função concluída');
   }
 }
 
