@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard } from '@/components/ui/stats-card';
@@ -109,6 +110,7 @@ interface Proposal {
 
 const DriverDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
+  const queryClient = useQueryClient();
   const { unreadCount } = useNotifications();
   const { unreadCount: chatUnreadCount } = useUnreadChatsCount(
     profile?.id || '', 
@@ -754,7 +756,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       // CRÍTICO: Apenas fretes com pickup_date <= hoje OU pickup_date NULL
       const { data: freightData, error: freightError } = await supabase
         .from('freights')
-        .select('*, producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, role)')
+        .select(`
+          *,
+          origin_city,
+          origin_state,
+          destination_city,
+          destination_state,
+          producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, role)
+        `)
         .eq('driver_id', profile.id)
         .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'])
         .or(`pickup_date.is.null,pickup_date.lte.${todayStr}`)
@@ -771,7 +780,14 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       const { data: assignmentData, error: assignmentError } = await supabase
         .from('freight_assignments')
         .select(`
-          freight:freights(*, producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, role)),
+          freight:freights(
+            *,
+            origin_city,
+            origin_state,
+            destination_city,
+            destination_state,
+            producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, role)
+          ),
           status,
           agreed_price,
           accepted_at
@@ -1751,19 +1767,22 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
               : 'Frete aceito com sucesso!'
           );
 
-          // Atualização otimista da UI: mover para "Em Andamento" imediatamente
-          setOngoingFreights(prev => {
-            const updated = { ...freight, status: 'ACCEPTED' as const, driver_id: profile.id } as Freight;
-            const without = prev.filter(f => f.id !== freightId);
-            return [updated, ...without];
-          });
-          setAvailableFreights(prev => prev.filter(f => f.id !== freightId));
+          // ✅ INVALIDAR CACHE DO REACT QUERY para forçar refetch imediato
+          queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
+          queryClient.invalidateQueries({ queryKey: ['available-freights'] });
+          queryClient.invalidateQueries({ queryKey: ['driver-proposals'] });
+          queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
+
+          // Forçar refetch imediato das queries para obter dados atualizados do banco
+          await queryClient.refetchQueries({ queryKey: ['driver-assignments'] });
+
+          // Atualizar listas locais
+          fetchOngoingFreights();
+          fetchMyProposals();
+          
+          // Mudar para tab "Em Andamento"
           setActiveTab('ongoing');
         }
-
-        // Atualizar as listas
-        fetchMyProposals();
-        // Removido fetchOngoingFreights aqui para evitar sobrescrever a atualização otimista
 
       }
     } catch (error: any) {
@@ -1819,6 +1838,16 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
       // Fechar modal e atualizar listas
       setShowWithdrawalModal(false);
       setSelectedFreightForWithdrawal(null);
+
+      // ✅ INVALIDAR CACHE DO REACT QUERY para forçar refetch imediato
+      queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['available-freights'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
+      
+      // Forçar refetch imediato das queries
+      await queryClient.refetchQueries({ queryKey: ['driver-assignments'] });
+      
       fetchOngoingFreights();
       fetchMyProposals();
     } catch (error: any) {
