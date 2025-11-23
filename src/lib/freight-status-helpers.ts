@@ -45,110 +45,11 @@ export async function driverUpdateFreightStatus({
       return false;
     }
 
-    console.log('[STATUS-UPDATE] 🔍 Iniciando preflight check 1 (status da tabela freights)...');
+    console.log('[STATUS-UPDATE] ⚡ FASE 2 FIX: Pulando preflight check (ir direto para RPC)');
     console.log('[STATUS-UPDATE] 🔐 Auth UID:', (await supabase.auth.getUser()).data.user?.id);
-    
-    // ✅ PREFLIGHT CHECK 1: Verificar se frete já está em status final via tabela principal
-    // Adicionar timeout protection para evitar travamentos
-    const checkPromise = supabase
-      .from('freights')
-      .select('status')
-      .eq('id', freightId)
-      .maybeSingle();
-    
-    const preflightTimeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('PREFLIGHT_TIMEOUT')), 5000)
-    );
-    
-    let freightData, checkError;
-    try {
-      const result = await Promise.race([checkPromise, preflightTimeoutPromise]);
-      freightData = result.data;
-      checkError = result.error;
-      console.log('[STATUS-UPDATE] ✅ Preflight check 1 completou:', { 
-        freightData, 
-        checkError,
-        duration: '< 5s'
-      });
-    } catch (timeoutError: any) {
-      console.error('[STATUS-UPDATE] ❌ TIMEOUT no preflight check 1 (>5s)');
-      console.error('[STATUS-UPDATE] Stack:', timeoutError?.stack);
-      toast.error('Operação demorou muito. Tentando método alternativo...');
-      
-      // Fallback imediato para updateStatusDirect
-      console.log('[STATUS-UPDATE] 🔄 Iniciando fallback para updateStatusDirect...');
-      return await updateStatusDirect(
-        freightId,
-        newStatus,
-        currentUserProfile.id,
-        notes,
-        location,
-        assignmentId
-      );
-    }
 
-    if (checkError) {
-      console.error('[STATUS-UPDATE] Preflight check error:', checkError);
-      toast.error('Erro ao verificar status do frete');
-      return false;
-    }
-
-    if (freightData && FINAL_STATUSES.includes(freightData.status as any)) {
-      console.warn('[STATUS-UPDATE] Preflight blocked: freight in final status', {
-        freightId,
-        currentStatus: freightData.status,
-        attemptedStatus: newStatus
-      });
-      
-      toast.error('Este frete já foi entregue e está aguardando confirmação. Não é possível alterar o status.');
-      
-      // Disparar evento para forçar refresh da UI
-      window.dispatchEvent(new CustomEvent('freight-status-blocked', { 
-        detail: { freightId, status: freightData.status } 
-      }));
-      
-      return false;
-    }
-
-    // ✅ PREFLIGHT CHECK 2: Verificar histórico de status (fonte de verdade definitiva)
-    const { data: lastBlocking, error: historyError } = await supabase
-      .from('freight_status_history')
-      .select('status, created_at')
-      .eq('freight_id', freightId)
-      .in('status', FINAL_STATUSES)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (historyError) {
-      console.error('[STATUS-UPDATE] History check error:', historyError);
-      // Não bloqueia por erro de histórico, apenas loga
-    }
-
-    if (lastBlocking) {
-      console.warn('[STATUS-UPDATE] Preflight blocked: found blocking status in history', {
-        freightId,
-        blockingStatus: lastBlocking.status,
-        blockingTime: lastBlocking.created_at,
-        attemptedStatus: newStatus
-      });
-      
-      toast.error('Este frete já foi entregue e está aguardando confirmação. Não é possível alterar o status.');
-      
-      // Disparar evento para forçar refresh da UI
-      window.dispatchEvent(new CustomEvent('freight-status-blocked', { 
-        detail: { freightId, status: lastBlocking.status } 
-      }));
-      
-      return false;
-    }
-
-    if (import.meta.env.DEV) {
-      console.log('[STATUS-UPDATE] Preflight passed:', {
-        currentStatus: freightData?.status,
-        nextStatus: newStatus
-      });
-    }
+    // ⚡ PREFLIGHT CHECKS REMOVIDOS para evitar timeouts
+    // Ir direto para RPC - a função faz as validações necessárias
 
     // Tentar RPC com timeout de 5s
     const rpcPromise = supabase.rpc('driver_update_freight_status', {

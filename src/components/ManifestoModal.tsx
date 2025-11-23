@@ -3,10 +3,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Loader2, Download, Lock, XCircle, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { FileText, Loader2, Download, Lock, XCircle, CheckCircle, AlertCircle, Clock, Settings } from 'lucide-react';
 import { useManifesto } from '@/hooks/useManifesto';
+import { useMdfeConfig } from '@/hooks/useMdfeConfig';
+import { MdfeConfigModal } from '@/components/MdfeConfigModal';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ManifestoModalProps {
   open: boolean;
@@ -45,12 +49,17 @@ const getStatusLabel = (status: string) => {
 };
 
 export const ManifestoModal: React.FC<ManifestoModalProps> = ({ open, onClose, freightId }) => {
+  const { profile } = useAuth();
   const { manifesto, loading, error, consultarMDFe, emitirMDFe, encerrarMDFe, cancelarMDFe, baixarXML, baixarDACTE } = useManifesto(freightId);
+  const { config: mdfeConfig, hasConfig, loading: loadingConfig } = useMdfeConfig(profile?.id || '');
   const [justificativa, setJustificativa] = useState('');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
 
   useEffect(() => {
     if (open) {
+      console.log('[MANIFESTO-MODAL] FASE 4: Modal aberto, verificando config MDFe...');
+      console.log('[MANIFESTO-MODAL] hasConfig:', hasConfig, 'loadingConfig:', loadingConfig);
       consultarMDFe();
     }
   }, [open, consultarMDFe]);
@@ -98,7 +107,28 @@ export const ManifestoModal: React.FC<ManifestoModalProps> = ({ open, onClose, f
           </DialogDescription>
         </DialogHeader>
 
-        {loading && !manifesto ? (
+        {loadingConfig ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2 text-muted-foreground">Verificando configuração...</span>
+          </div>
+        ) : !hasConfig ? (
+          <div className="py-8">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>⚠️ Configuração MDFe Incompleta</AlertTitle>
+              <AlertDescription className="mt-2">
+                Configure CNPJ, Inscrição Estadual e RNTRC para emitir manifestos eletrônicos.
+              </AlertDescription>
+            </Alert>
+            <div className="flex justify-center mt-6">
+              <Button onClick={() => setShowConfigModal(true)} size="lg">
+                <Settings className="h-4 w-4 mr-2" />
+                Configurar Agora
+              </Button>
+            </div>
+          </div>
+        ) : loading && !manifesto ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -336,6 +366,17 @@ export const ManifestoModal: React.FC<ManifestoModalProps> = ({ open, onClose, f
           </Button>
         </div>
       </DialogContent>
+
+      {/* Modal de Configuração MDFe */}
+      <MdfeConfigModal
+        open={showConfigModal}
+        onClose={() => setShowConfigModal(false)}
+        userId={profile?.id || ''}
+        onConfigSaved={() => {
+          console.log('[MANIFESTO-MODAL] Config salva, recarregando...');
+          consultarMDFe();
+        }}
+      />
     </Dialog>
   );
 };
