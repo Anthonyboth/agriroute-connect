@@ -3,7 +3,7 @@ workflows:
     name: iOS Release to TestFlight
     environment:
       xcode: latest
-      node: 20.x
+      node: 20.9.0
     scripts:
       - name: Install dependencies
         script: |
