@@ -63,7 +63,7 @@ const formDataInitial = {
   destination_lng: undefined as number | undefined,
   price: '',
   price_per_km: '',
-  pricing_type: 'PER_KM' as 'FIXED' | 'PER_KM',
+  pricing_type: 'PER_KM' as 'FIXED' | 'PER_KM' | 'PER_TON',
   pickup_date: '',
   delivery_date: '',
   urgency: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
@@ -591,8 +591,10 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
       // Calcular preços usando utilitário
       const calculation = calculateFreightPrice({
         pricePerKm: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : undefined,
+        pricePerTon: formData.pricing_type === 'PER_TON' ? parseFloat(formData.price_per_km) : undefined,
         fixedPrice: formData.pricing_type === 'FIXED' ? parseFloat(formData.price) : undefined,
         distanceKm: distance,
+        weightKg: convertWeightToKg(weight),
         requiredTrucks: parseInt(formData.required_trucks),
         pricingType: formData.pricing_type,
         anttMinimumPrice: minimumAnttPrice
@@ -636,6 +638,8 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
         minimum_antt_price: calculation.anttMinimumTotal || minimumAnttPrice, // Total ANTT
         price: calculation.totalPrice, // PREÇO TOTAL
         price_per_km: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : null,
+        price_per_ton: formData.pricing_type === 'PER_TON' ? parseFloat(formData.price_per_km) : null,
+        pricing_type: formData.pricing_type,
         required_trucks: parseInt(formData.required_trucks),
         accepted_trucks: 0,
         pickup_date: formData.pickup_date,
@@ -1112,12 +1116,13 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
           {/* Tipo de Cobrança */}
           <div className="space-y-2">
             <Label>Tipo de Cobrança</Label>
-            <Select value={formData.pricing_type} onValueChange={(value: 'FIXED' | 'PER_KM') => handleInputChange('pricing_type', value)}>
+            <Select value={formData.pricing_type} onValueChange={(value: 'FIXED' | 'PER_KM' | 'PER_TON') => handleInputChange('pricing_type', value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
+                <SelectItem value="PER_TON">Por Tonelada</SelectItem>
                 <SelectItem value="FIXED">Valor Fixo</SelectItem>
               </SelectContent>
             </Select>
@@ -1141,7 +1146,7 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
                   Valor POR CARRETA. Total = R$ {(parseFloat(formData.price || '0') * parseInt(formData.required_trucks)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
-            ) : (
+            ) : formData.pricing_type === 'PER_KM' ? (
               <div className="space-y-2">
                 <Label htmlFor="price_per_km">Valor por KM POR CARRETA (R$/km) *</Label>
                 <Input
@@ -1162,6 +1167,33 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
                       <p className="font-semibold">
                         • TOTAL ({formData.required_trucks} carreta{parseInt(formData.required_trucks) > 1 ? 's' : ''}): 
                         R$ {(parseFloat(formData.price_per_km) * calculatedDistance * parseInt(formData.required_trucks)).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="price_per_ton">Valor por Tonelada (R$/ton) *</Label>
+                <Input
+                  id="price_per_ton"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.price_per_km}
+                  onChange={(e) => handleInputChange('price_per_km', e.target.value)}
+                  placeholder="350.00"
+                  required
+                />
+                {formData.price_per_km && formData.weight && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs font-medium text-blue-900 mb-2">Preview de Cálculo:</p>
+                    <div className="text-xs text-blue-800 space-y-1">
+                      <p>• Peso: {(parseFloat(formData.weight) / 1000).toFixed(2)} toneladas</p>
+                      <p>• Por carreta: R$ {(parseFloat(formData.price_per_km) * (parseFloat(formData.weight) / 1000)).toFixed(2)}</p>
+                      <p className="font-semibold">
+                        • TOTAL ({formData.required_trucks} carreta{parseInt(formData.required_trucks) > 1 ? 's' : ''}): 
+                        R$ {(parseFloat(formData.price_per_km) * (parseFloat(formData.weight) / 1000) * parseInt(formData.required_trucks)).toFixed(2)}
                       </p>
                     </div>
                   </div>
