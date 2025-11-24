@@ -2,10 +2,12 @@
 
 export interface FreightCalculationInput {
   pricePerKm?: number;
+  pricePerTon?: number;
   fixedPrice?: number;
   distanceKm: number;
+  weightKg?: number;
   requiredTrucks: number;
-  pricingType: 'FIXED' | 'PER_KM';
+  pricingType: 'FIXED' | 'PER_KM' | 'PER_TON';
   anttMinimumPrice?: number;
 }
 
@@ -108,8 +110,13 @@ export const calculateFreightPrice = (input: FreightCalculationInput): FreightCa
   
   if (input.pricingType === 'FIXED') {
     pricePerTruck = input.fixedPrice || 0;
-  } else {
+  } else if (input.pricingType === 'PER_KM') {
     pricePerTruck = (input.pricePerKm || 0) * input.distanceKm;
+  } else if (input.pricingType === 'PER_TON') {
+    const weightTonnes = (input.weightKg || 0) / 1000;
+    pricePerTruck = (input.pricePerTon || 0) * weightTonnes;
+  } else {
+    pricePerTruck = 0;
   }
   
   const totalPrice = pricePerTruck * input.requiredTrucks;
