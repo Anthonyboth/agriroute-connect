@@ -5633,6 +5633,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           message: string
+          metadata: Json | null
           priority: number | null
           starts_at: string | null
           title: string
@@ -5647,6 +5648,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           message: string
+          metadata?: Json | null
           priority?: number | null
           starts_at?: string | null
           title: string
@@ -5661,6 +5663,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           message?: string
+          metadata?: Json | null
           priority?: number | null
           starts_at?: string | null
           title?: string
