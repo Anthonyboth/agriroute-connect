@@ -1,79 +1,69 @@
-﻿workflows:
-  capacitor-ios:
-    name: Capacitor iOS Workflow
-    max_build_duration: 120
+workflows:
+  ios-release-testflight:
+    name: iOS Release to TestFlight
+    max_build_duration: 60
     environment:
       xcode: latest
-      node: 20.9.0
+      node: 20.x
+      groups:
+        - app_store_credentials
+      vars:
+        BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
     scripts:
       - name: Install dependencies
         script: |
-          npm install
-
+          npm ci
+      
       - name: Build web app
         script: |
           npm run build
-
+      
       - name: Sync Capacitor
         script: |
           npx cap sync ios
-
-      - name: Install CocoaPods
+      
+      - name: Fetch signing files
         script: |
-          cd ios/App && pod install
-
-      - name: Configure iOS Project for Unsigned Build
+          app-store-connect fetch-signing-files \
+            $BUNDLE_ID \
+            --type IOS_APP_STORE \
+            --create
+      
+      - name: Add certificates to keychain
         script: |
-          cd ios/App
-          
-          # DESATIVAR ASSINATURA COMPLETAMENTE
-          python3 -c "
-          import re
-          
-          with open('App.xcodeproj/project.pbxproj', 'r') as f:
-              content = f.read()
-          
-          # 1. Desativar assinatura de código
-          content = re.sub(r'CODE_SIGN_STYLE = .*;', 'CODE_SIGN_STYLE = Manual;', content)
-          content = re.sub(r'CODE_SIGNING_ALLOWED = .*;', 'CODE_SIGNING_ALLOWED = NO;', content)
-          content = re.sub(r'CODE_SIGNING_REQUIRED = .*;', 'CODE_SIGNING_REQUIRED = NO;', content)
-          content = re.sub(r'PROVISIONING_PROFILE_SPECIFIER = \".*\";', 'PROVISIONING_PROFILE_SPECIFIER = \"\";', content)
-          content = re.sub(r'DEVELOPMENT_TEAM = \".*\";', 'DEVELOPMENT_TEAM = \"\";', content)
-          content = re.sub(r'CODE_SIGN_IDENTITY = \".*\";', 'CODE_SIGN_IDENTITY = \"\";', content)
-          
-          with open('App.xcodeproj/project.pbxproj', 'w') as f:
-              f.write(content)
-          "
-          echo "✅ Assinatura desativada para build!"
-
-      - name: Build iOS App Without Signing
+          keychain add-certificates
+      
+      - name: Set up code signing settings
+        script: |
+          xcode-project use-profiles
+      
+      - name: Increment build number
         script: |
           cd ios/App
-          
-          echo "📱 Iniciando build iOS SEM assinatura..."
-          
-          # Build SEM assinatura
-          xcodebuild clean build \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Debug \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            DEVELOPMENT_TEAM=""
-
-          echo "✅ Build concluído!"
-
-          # Criar IPA manualmente sem assinatura
-          mkdir -p build/ipa/Payload
-          cp -r build/Build/Products/Debug-iphoneos/App.app build/ipa/Payload/
-          cd build/ipa
-          zip -r App.ipa Payload
-          
-          echo "🎉 IPA criado manualmente!"
-          ls -la
-
+          agvtool new-version -all $(($BUILD_NUMBER + 1))
+      
+      - name: Build IPA for App Store
+        script: |
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App \
+            --archive-flags="-destination 'generic/platform=iOS'" \
+            --export-options-plist ios/App/exportOptions.plist
+    
     artifacts:
-      - ios/App/build/ipa/*.ipa
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Internal Testers
+        
+      email:
+        recipients:
+          - dev@agriroute.com
+        notify:
+          success: true
+          failure: true
