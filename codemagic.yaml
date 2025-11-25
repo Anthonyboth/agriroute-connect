@@ -21,12 +21,27 @@
         script: |
           cd ios/App && pod install
       
-      - name: Build IPA with Codemagic Signing
+      - name: Build with Automatic Provisioning
         script: |
-          xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
-            --scheme App \
-            --export-options-plist ios/App/exportOptions.plist
+          cd ios/App
+          rm -rf build
+          
+          xcodebuild archive \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            -allowProvisioningUpdates \
+            -destination 'generic/platform=iOS'
+          
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportOptionsPlist exportOptions.plist \
+            -exportPath build/ipa \
+            -allowProvisioningUpdates
+          
+          echo "=== IPA Gerado ==="
+          ls -la build/ipa/
     
     artifacts:
-      - build/ios/ipa/*.ipa
+      - ios/App/build/ipa/*.ipa
