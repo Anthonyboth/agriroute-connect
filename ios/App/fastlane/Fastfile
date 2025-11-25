@@ -15,7 +15,7 @@ platform :ios do
     sh("git config --global user.name 'GitHub Actions'")
     sh("git config --global user.email 'actions@github.com'")
 
-    # Usar match com o NOVO repositório PÚBLICO
+    # Usar match
     match(
       type: "appstore",
       readonly: false,
@@ -24,11 +24,18 @@ platform :ios do
 
     increment_build_number(build_number: latest_testflight_build_number + 1)
 
+    # Build com signing MANUAL explícito
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
       export_method: "app-store",
-      export_xcargs: "-allowProvisioningUpdates"
+      export_xcargs: "-allowProvisioningUpdates",
+      export_options: {
+        provisioningProfiles: {
+          "app.lovable.f2dbc20153194f90a3cc8dd215bbebba" => "match AppStore app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+        },
+        signingStyle: "manual"
+      }
     )
 
     upload_to_testflight(skip_waiting_for_build_processing: true)
