@@ -487,7 +487,7 @@ export const useAuth = () => {
           
           setSession(session);
           setUser(session.user);
-          fetchProfile(session.user.id);
+          fetchProfile(session.user.id, true); // ✅ Force=true para ignorar cooldown na carga inicial
         } else {
           setLoading(false);
           setInitialized(true);

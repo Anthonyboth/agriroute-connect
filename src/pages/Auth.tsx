@@ -367,6 +367,9 @@ const Auth = () => {
         // Login bem-sucedido - verificar se há múltiplos perfis IMEDIATAMENTE
         toast.success('Login realizado!');
         
+        // ✅ Limpar cooldown de fetch de profile ao fazer login
+        sessionStorage.removeItem('profile_fetch_cooldown_until');
+        
         // Verificar múltiplos perfis sem delay
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
