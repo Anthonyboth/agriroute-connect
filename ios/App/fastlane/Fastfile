@@ -12,19 +12,25 @@ platform :ios do
 
     setup_ci
 
-    # CRIAR PROVISIONING PROFILE MANUALMENTE
+    # 1. Primeiro, criar um provisioning profile manualmente
     sigh(
       app_identifier: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba",
       username: "anthony@agriroute.com",
       team_id: "4YULT95XAK",
-      output_path: "./",
-      filename: "profile.mobileprovision",
-      skip_install: false
+      skip_certificate_verification: true
+    )
+
+    # 2. Configurar code signing manual no projeto
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "App.xcodeproj",
+      team_id: "4YULT95XAK",
+      profile_name: "iOS Team Provisioning Profile: app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
     )
 
     increment_build_number(build_number: latest_testflight_build_number + 1)
     
-    # Build com export options explícitas
+    # 3. Build com configuração EXPLÍCITA
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
@@ -33,7 +39,8 @@ platform :ios do
       export_options: {
         provisioningProfiles: { 
           "app.lovable.f2dbc20153194f90a3cc8dd215bbebba" => "iOS Team Provisioning Profile: app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
-        }
+        },
+        signingStyle: "manual"
       }
     )
 
