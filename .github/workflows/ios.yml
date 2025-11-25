@@ -49,4 +49,5 @@ jobs:
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       run: |
         cd ios/App
+        bundle install
         fastlane beta
