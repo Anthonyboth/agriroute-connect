@@ -92,18 +92,11 @@ export const useAuth = () => {
         const remainingSec = Math.ceil((cooldownUntil - Date.now()) / 1000);
         console.log(`[useAuth] ⏸️ Cooldown ativo por mais ${remainingSec}s`);
       }
+      if (mountedRef.current) setLoading(false);
       return;
     }
     
     if (fetchingRef.current || !mountedRef.current) return;
-    
-    // ✅ Bail-out: não chamar se estiver na rota /auth sem sessão
-    if (window.location.pathname === '/auth' && !force) {
-      if (import.meta.env.DEV) {
-        console.log('[useAuth] Skipping fetch - user on /auth');
-      }
-      return;
-    }
     
     // Throttle: prevent too frequent calls
     const now = Date.now();
@@ -112,6 +105,7 @@ export const useAuth = () => {
       if (import.meta.env.DEV) {
         console.log('[useAuth] Fetch throttled');
       }
+      if (mountedRef.current) setLoading(false);
       return;
     }
     lastFetchTimestamp.current = now;
@@ -464,7 +458,7 @@ export const useAuth = () => {
             return;
           }
           
-          fetchProfile(session.user.id);
+          fetchProfile(session.user.id, true);
         } else {
           setProfile(null);
           setProfiles([]);
