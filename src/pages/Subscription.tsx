@@ -116,7 +116,7 @@ const Subscription: React.FC = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => window.open('https://wa.me/5515669942656', '_blank')}
+              onClick={() => window.open('https://wa.me/5566992734632', '_blank')}
               className="flex items-center gap-2 min-w-[200px]"
             >
               <MessageCircle className="h-4 w-4" />

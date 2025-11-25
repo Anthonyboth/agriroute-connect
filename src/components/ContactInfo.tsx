@@ -5,7 +5,7 @@ import { Phone, Mail, MessageCircle, User } from 'lucide-react';
 
 export const ContactInfo: React.FC = () => {
   const handleWhatsAppClick = () => {
-    const phoneNumber = '5566999426656'; // Formato internacional sem espaços
+    const phoneNumber = '5566992734632'; // Formato internacional sem espaços
     const message = encodeURIComponent('Olá! Preciso de ajuda com o AgriRoute Connect.');
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
   };
@@ -41,7 +41,7 @@ export const ContactInfo: React.FC = () => {
             </div>
             <div className="text-left">
               <p className="font-medium">WhatsApp</p>
-              <p className="text-sm text-muted-foreground">015 66 9 9942-6656</p>
+              <p className="text-sm text-muted-foreground">(66) 9 9273-4632</p>
             </div>
           </Button>
 

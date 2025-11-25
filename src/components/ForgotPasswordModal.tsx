@@ -11,7 +11,7 @@ interface ForgotPasswordModalProps {
 
 export const ForgotPasswordModal = ({ open, onOpenChange }: ForgotPasswordModalProps) => {
   const handleWhatsAppSupport = () => {
-    const phoneNumber = '5566999426656';
+    const phoneNumber = '5566992734632';
     const message = encodeURIComponent(
       'Olá! Esqueci minha senha e preciso redefinir. ' +
       'Meu e-mail cadastrado é: [DIGITE SEU EMAIL AQUI]'
@@ -51,7 +51,7 @@ export const ForgotPasswordModal = ({ open, onOpenChange }: ForgotPasswordModalP
             <div className="text-center space-y-2">
               <p className="text-lg font-semibold">WhatsApp Suporte</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-500">
-                (66) 9 9942-6656
+                (66) 9 9273-4632
               </p>
             </div>
 

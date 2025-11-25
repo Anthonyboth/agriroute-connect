@@ -40,7 +40,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
                   className="w-full"
                   onClick={() => {
                     const message = encodeURIComponent('Olá! Gostaria de saber mais sobre o AgriRoute.');
-                    window.open(`https://wa.me/5566999426656?text=${message}`, '_blank');
+                    window.open(`https://wa.me/5566992734632?text=${message}`, '_blank');
                   }}
                 >
                   Chamar no WhatsApp
@@ -87,7 +87,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
                   <Phone className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium">Telefone</p>
-                    <p className="text-sm text-muted-foreground">(66) 9 9942-6656</p>
+                    <p className="text-sm text-muted-foreground">(66) 9 9273-4632</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-center gap-2">

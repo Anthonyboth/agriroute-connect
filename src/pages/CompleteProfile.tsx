@@ -596,7 +596,7 @@ const CompleteProfile = () => {
             <p className="text-xs text-center text-muted-foreground">
               Precisa de ajuda?{' '}
               <a 
-                href="https://wa.me/5565999999999" 
+                href="https://wa.me/5566992734632" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
