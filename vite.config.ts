@@ -3,6 +3,38 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
+import { generate } from 'critical';
+
+// Critical CSS plugin
+function criticalCssPlugin() {
+  return {
+    name: 'critical-css',
+    apply: 'build',
+    closeBundle: async () => {
+      try {
+        console.log('🎨 Extracting critical CSS...');
+        await generate({
+          inline: true,
+          base: 'dist',
+          src: 'index.html',
+          target: {
+            html: 'index.html',
+          },
+          width: 1920,
+          height: 1080,
+          extract: true,
+          minify: true,
+          penthouse: {
+            timeout: 60000,
+          },
+        });
+        console.log('✅ Critical CSS extracted and inlined successfully!');
+      } catch (error) {
+        console.warn('⚠️  Critical CSS extraction failed (non-fatal):', error.message);
+      }
+    }
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -13,6 +45,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
+    criticalCssPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'script-defer',
