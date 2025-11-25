@@ -19,11 +19,11 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       eventsPerSecond: 10
     },
     timeout: 30000,
-    heartbeatIntervalMs: 30000,
-    logger: {
-      log: () => {},
-      error: () => {},
-      warn: () => {}
+    heartbeatIntervalMs: 30000
+  },
+  global: {
+    headers: {
+      'X-Suppress-Errors': 'true'
     }
   }
 });
