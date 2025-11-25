@@ -4,11 +4,6 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Type declaration for critical
-declare module 'critical' {
-  export function generate(options: any): Promise<void>;
-}
-
 // Critical CSS plugin
 function criticalCssPlugin(): Plugin {
   return {
