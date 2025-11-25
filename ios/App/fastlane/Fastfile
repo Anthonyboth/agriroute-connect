@@ -11,19 +11,19 @@ platform :ios do
 
     setup_ci
 
+    # Usar match para gerenciar certificados
+    match(
+      type: "appstore",
+      readonly: true
+    )
+
     increment_build_number(build_number: latest_testflight_build_number + 1)
-    
-    # Build usando o profile ESPECÍFICO que criamos
+
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
       export_method: "app-store",
-      export_xcargs: "-allowProvisioningUpdates",
-      export_options: {
-        provisioningProfiles: { 
-          "app.lovable.f2dbc20153194f90a3cc8dd215bbebba" => "Anthony Both Novo1"  #  NOME EXATO
-        }
-      }
+      export_xcargs: "-allowProvisioningUpdates"
     )
 
     upload_to_testflight(skip_waiting_for_build_processing: true)

@@ -1,0 +1,5 @@
+﻿git_url("https://github.com/Anthonyboth/certificates-repo")
+storage_mode("git") 
+type("appstore")
+app_identifier("app.lovable.f2dbc20153194f90a3cc8dd215bbebba")
+username("anthony@agriroute.com")
