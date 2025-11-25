@@ -3,6 +3,7 @@
 platform :ios do
   desc "Build and deploy to TestFlight"
   lane :beta do
+    # Configurar API Key
     app_store_connect_api_key(
       key_id: ENV["APPSTORE_CONNECT_KEY_ID"],
       issuer_id: ENV["APPSTORE_CONNECT_ISSUER_ID"],
@@ -11,27 +12,21 @@ platform :ios do
 
     setup_ci
 
-    # Tentar usar certificados existentes primeiro
-    begin
-      match(
-        type: "appstore",
-        app_identifier: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba",
-        readonly: true,
-        force_for_new_devices: true
-      )
-    rescue => exception
-      puts "No existing certificates found, creating new ones: #{exception}"
-      # Se não existir, criar novos certificados
-      match(
-        type: "appstore",
-        app_identifier: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba",
-        readonly: false,
-        force_for_new_devices: true
-      )
-    end
+    # Configurar Git para match conseguir fazer push
+    sh("git config --global user.name 'GitHub Actions'")
+    sh("git config --global user.email 'actions@github.com'")
 
+    #  AGORA VAI CRIAR CERTIFICADOS (limite resolvido!)
+    match(
+      type: "appstore",
+      app_identifier: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba",
+      readonly: false
+    )
+
+    # Incrementar build number
     increment_build_number(build_number: latest_testflight_build_number + 1)
     
+    # Build com code signing manual
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
@@ -44,6 +39,7 @@ platform :ios do
       }
     )
 
+    # Upload para TestFlight
     upload_to_testflight(skip_waiting_for_build_processing: true)
   end
 end

@@ -10,8 +10,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup Ruby
       uses: ruby/setup-ruby@v1
@@ -34,11 +32,14 @@ jobs:
         node-version: '20'
         cache: 'npm'
 
-    - name: Install dependencies and build
-      run: |
-        npm ci
-        npm run build
-        npx cap sync ios
+    - name: Install dependencies
+      run: npm install  # MUDADO: usar install em vez de ci
+
+    - name: Build web app
+      run: npm run build
+
+    - name: Sync Capacitor
+      run: npx cap sync ios
 
     - name: Install iOS dependencies
       run: |
@@ -51,14 +52,8 @@ jobs:
         APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
         APPSTORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        # Configurar Git para match
-        GIT_COMMITTER_NAME: 'GitHub Actions'
-        GIT_COMMITTER_EMAIL: 'actions@github.com'
-        GIT_AUTHOR_NAME: 'GitHub Actions' 
-        GIT_AUTHOR_EMAIL: 'actions@github.com'
       run: |
         cd ios/App
-        # Configurar Git globalmente para o match
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         fastlane beta
