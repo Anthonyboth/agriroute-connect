@@ -384,6 +384,28 @@ const RedirectIfAuthed = () => {
   const { isAuthenticated, profile, loading, profiles } = useAuth();
   const [isCheckingCompany, setIsCheckingCompany] = React.useState(false);
   const [isCompany, setIsCompany] = React.useState(false);
+  const [waitTime, setWaitTime] = React.useState(0);
+  
+  // ✅ Timeout para evitar loading infinito
+  React.useEffect(() => {
+    if (isAuthenticated && !profile && !loading) {
+      const timer = setInterval(() => {
+        setWaitTime(w => w + 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    } else {
+      setWaitTime(0);
+    }
+  }, [isAuthenticated, profile, loading]);
+  
+  // ✅ Se esperou mais de 10 segundos, limpar cooldown e recarregar
+  React.useEffect(() => {
+    if (waitTime > 10) {
+      console.warn('[RedirectIfAuthed] Timeout esperando profile, limpando cooldown...');
+      sessionStorage.removeItem('profile_fetch_cooldown_until');
+      window.location.reload();
+    }
+  }, [waitTime]);
   
   // Verificar se é transportadora
   React.useEffect(() => {
