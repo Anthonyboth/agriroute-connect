@@ -14,6 +14,18 @@ platform :ios do
 
     setup_ci
 
+    # Configurar match para certificados - PRIMEIRA EXECUÇÃO
+    # Na primeira vez, não usar readonly para criar os certificados
+    match(
+      type: "appstore",
+      app_identifier: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba",
+      readonly: false,  # Mudar para false na primeira execução
+      keychain_name: "fastlane_tmp_keychain",
+      keychain_password: "",
+      force: false,
+      clone_branch_directly: false
+    )
+
     # Obter último build number do TestFlight
     build_number = latest_testflight_build_number
     if build_number.nil?
@@ -26,7 +38,7 @@ platform :ios do
       build_number: build_number
     )
 
-    # Build app com provisioning automático
+    # Build app
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
