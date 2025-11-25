@@ -21,43 +21,12 @@
         script: |
           cd ios/App && pod install
       
-      - name: Force Automatic Code Signing
+      - name: Build IPA with Codemagic Signing
         script: |
-          cd ios/App
-          
-          # Force automatic code signing in project file
-          sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Automatic;/g' App.xcodeproj/project.pbxproj
-          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = "";/PROVISIONING_PROFILE_SPECIFIER = "";/g' App.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = "4YULT95XAK";/g' App.xcodeproj/project.pbxproj
-          
-          echo "=== Project Code Signing Configuration ==="
-          grep -n "CODE_SIGN_STYLE\|PROVISIONING_PROFILE\|DEVELOPMENT_TEAM" App.xcodeproj/project.pbxproj
-      
-      - name: Build with Automatic Signing
-        script: |
-          cd ios/App
-          rm -rf build
-          
-          echo "=== Starting Archive with Automatic Signing ==="
-          xcodebuild archive \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -archivePath build/App.xcarchive \
-            -allowProvisioningUpdates \
-            -destination 'generic/platform=iOS'
-          
-          echo "=== Starting Export ==="
-          xcodebuild -exportArchive \
-            -archivePath build/App.xcarchive \
-            -exportOptionsPlist exportOptions.plist \
-            -exportPath build/ipa \
-            -allowProvisioningUpdates
-          
-          echo "=== Generated Files ==="
-          ls -la build/ipa/
-          echo "=== IPA File ==="
-          find build/ipa -name "*.ipa"
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App \
+            --export-options-plist ios/App/exportOptions.plist
     
     artifacts:
-      - ios/App/build/ipa/*.ipa
+      - build/ios/ipa/*.ipa
