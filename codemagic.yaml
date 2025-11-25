@@ -1,47 +1,39 @@
 workflows:
-  ios-release-experimental:
+  ios-release-testflight:
     name: iOS Release to TestFlight
-
     environment:
       xcode: latest
       node: 20.9.0
-
-      ios_signing:
-        provisioning_profiles:
-          - AgriRoute
-
     scripts:
       - name: Install dependencies
         script: |
           npm install
+      
+      - name: Build web app
+        script: |
           npm run build
-
+      
+      - name: Sync Capacitor
+        script: |
+          npx cap sync ios
+      
       - name: Install CocoaPods
         script: |
-          cd ios && pod install --repo-update
-
-      - name: Build iOS .ipa
+          cd ios/App && pod install
+      
+      - name: Build IPA
         script: |
-          cd ios
-          xcodebuild \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -archivePath build/App.xcarchive \
-            archive
-
-          xcodebuild \
-            -exportArchive \
-            -archivePath build/App.xcarchive \
-            -exportPath build \
-            -exportOptionsPlist exportOptions.plist
-
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App \
+            --export-options-plist ios/App/exportOptions.plist
+    
     artifacts:
-      - ios/build/*.ipa
-
+      - build/ios/ipa/*.ipa
+    
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_API_KEY
-        key_id: $APP_STORE_CONNECT_KEY_ID
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-
         submit_to_testflight: true
