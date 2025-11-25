@@ -10,6 +10,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup Ruby
       uses: ruby/setup-ruby@v1
@@ -33,7 +35,7 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm install  # MUDADO: usar install em vez de ci
+      run: npm install
 
     - name: Build web app
       run: npm run build

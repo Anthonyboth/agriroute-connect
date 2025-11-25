@@ -6,4 +6,4 @@ username("anthony@agriroute.com")
 team_id("4YULT95XAK")
 git_branch("main")
 clone_branch_directly(true)
-readonly(false)  #  PERMITIR CRIAÇÃO - limite resolvido!
+readonly(true)  #  MUDAR PARA TRUE - NÃO CRIAR NOVOS
