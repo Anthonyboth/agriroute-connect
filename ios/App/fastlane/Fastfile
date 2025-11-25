@@ -14,11 +14,11 @@ platform :ios do
 
     setup_ci
 
-    # Configurar match para certificados
+    # Configurar match para certificados EXISTENTES (readonly)
     match(
       type: "appstore",
       app_identifier: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba",
-      readonly: false,
+      readonly: true,  #  MUDAR PARA TRUE - usar certificados existentes
       keychain_name: "fastlane_tmp_keychain",
       keychain_password: "",
       force: false,
@@ -37,14 +37,13 @@ platform :ios do
       build_number: build_number
     )
 
-    # Build app com code signing MANUAL explícito
+    # Build app com code signing manual
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
       export_method: "app-store",
       export_xcargs: "-allowProvisioningUpdates",
       clean: true,
-      # FORÇAR code signing manual
       export_options: {
         provisioningProfiles: { 
           "app.lovable.f2dbc20153194f90a3cc8dd215bbebba" => "match AppStore app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
