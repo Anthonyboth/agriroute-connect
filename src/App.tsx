@@ -568,15 +568,17 @@ const App = () => {
                     <main>
                       <Routes>
                         <Route path="/" element={<AuthedLanding />} />
-                        <Route path="/landing" element={<Landing />} />
+                        <Route path="/landing" element={<Suspense fallback={<ComponentLoader />}><Landing /></Suspense>} />
                         <Route path="/auth" element={<RedirectIfAuthed />} />
-                        <Route path="/reset-password" element={<ResetPassword />} />
-                        <Route path="/confirm-email" element={<ConfirmEmail />} />
+                        <Route path="/reset-password" element={<Suspense fallback={<ComponentLoader />}><ResetPassword /></Suspense>} />
+                        <Route path="/confirm-email" element={<Suspense fallback={<ComponentLoader />}><ConfirmEmail /></Suspense>} />
                         <Route 
                           path="/complete-profile" 
                           element={
                             <ProtectedRoute requiresAuth>
-                              <CompleteProfile />
+                              <Suspense fallback={<ComponentLoader />}>
+                                <CompleteProfile />
+                              </Suspense>
                             </ProtectedRoute>
                           } 
                         />
@@ -660,33 +662,37 @@ const App = () => {
                             </ProtectedRoute>
                           } 
                         />
-                        <Route path="/services" element={<Services />} />
-                        <Route path="/subscription" element={<Subscription />} />
+                        <Route path="/services" element={<Suspense fallback={<ComponentLoader />}><Services /></Suspense>} />
+                        <Route path="/subscription" element={<Suspense fallback={<ComponentLoader />}><Subscription /></Suspense>} />
                         <Route path="/plans" element={
                           <ProtectedRoute requiresAuth>
-                            <Plans />
+                            <Suspense fallback={<ComponentLoader />}>
+                              <Plans />
+                            </Suspense>
                           </ProtectedRoute>
                         } />
-                        <Route path="/cadastro-prestador" element={<ServiceProviderRegistration />} />
+                        <Route path="/cadastro-prestador" element={<Suspense fallback={<ComponentLoader />}><ServiceProviderRegistration /></Suspense>} />
                         <Route 
                           path="/cadastro-transportadora" 
                           element={
                             <ProtectedRoute requiresAuth>
-                              <TransportCompanyRegistration />
+                              <Suspense fallback={<ComponentLoader />}>
+                                <TransportCompanyRegistration />
+                              </Suspense>
                             </ProtectedRoute>
                           } 
                         />
-                        <Route path="/sobre" element={<About />} />
-                        <Route path="/privacidade" element={<Privacy />} />
-                        <Route path="/termos" element={<Terms />} />
-                        <Route path="/cookies" element={<Cookies />} />
-                        <Route path="/status" element={<Status />} />
+                        <Route path="/sobre" element={<Suspense fallback={<ComponentLoader />}><About /></Suspense>} />
+                        <Route path="/privacidade" element={<Suspense fallback={<ComponentLoader />}><Privacy /></Suspense>} />
+                        <Route path="/termos" element={<Suspense fallback={<ComponentLoader />}><Terms /></Suspense>} />
+                        <Route path="/cookies" element={<Suspense fallback={<ComponentLoader />}><Cookies /></Suspense>} />
+                        <Route path="/status" element={<Suspense fallback={<ComponentLoader />}><Status /></Suspense>} />
                         <Route path="/imprensa" element={<Suspense fallback={<ComponentLoader />}><PressPage /></Suspense>} />
-                        <Route path="/carreiras" element={<Careers />} />
-                        <Route path="/ajuda" element={<Help />} />
-                        <Route path="/system-test" element={<SystemTest />} />
-                        <Route path="/payment/success" element={<PaymentSuccess />} />
-                        <Route path="/payment/cancel" element={<PaymentCancel />} />
+                        <Route path="/carreiras" element={<Suspense fallback={<ComponentLoader />}><Careers /></Suspense>} />
+                        <Route path="/ajuda" element={<Suspense fallback={<ComponentLoader />}><Help /></Suspense>} />
+                        <Route path="/system-test" element={<Suspense fallback={<ComponentLoader />}><SystemTest /></Suspense>} />
+                        <Route path="/payment/success" element={<Suspense fallback={<ComponentLoader />}><PaymentSuccess /></Suspense>} />
+                        <Route path="/payment/cancel" element={<Suspense fallback={<ComponentLoader />}><PaymentCancel /></Suspense>} />
                         <Route path="/service-payment/success" element={
                           <Suspense fallback={<ComponentLoader />}> 
                             <ServicePaymentSuccess />
@@ -707,7 +713,7 @@ const App = () => {
                             <AffiliateSignup />
                           </Suspense>
                         } />
-                        <Route path="/cadastro-motorista" element={<DriverInviteSignup />} />
+                        <Route path="/cadastro-motorista" element={<Suspense fallback={<ComponentLoader />}><DriverInviteSignup /></Suspense>} />
                         <Route path="/cadastro-motorista-afiliado" element={
                           <Suspense fallback={<ComponentLoader />}> 
                             {React.createElement(lazy(() => import('./pages/AffiliatedDriverSignup')))}
