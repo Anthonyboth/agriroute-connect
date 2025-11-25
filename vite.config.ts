@@ -4,6 +4,33 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Plugin to add preload hints for critical resources
+const preloadCriticalResources = () => ({
+  name: 'preload-critical-resources',
+  transformIndexHtml: {
+    order: 'post' as const,
+    handler(html: string, ctx: any) {
+      if (!ctx.bundle) return html;
+      
+      // Find CSS files to preload
+      const cssFiles = Object.keys(ctx.bundle).filter((file: string) => 
+        file.endsWith('.css') && file.startsWith('assets/')
+      );
+      
+      let preloadLinks = '';
+      cssFiles.forEach((file: string) => {
+        preloadLinks += `  <link rel="preload" href="/${file}" as="style">\n`;
+      });
+      
+      if (preloadLinks) {
+        html = html.replace('</head>', `${preloadLinks}</head>`);
+      }
+      
+      return html;
+    }
+  }
+});
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
@@ -13,6 +40,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
+    preloadCriticalResources(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'script-defer',
