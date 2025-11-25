@@ -3,7 +3,6 @@
 platform :ios do
   desc "Build and deploy to TestFlight"
   lane :beta do
-    # Configurar API Key
     app_store_connect_api_key(
       key_id: ENV["APPSTORE_CONNECT_KEY_ID"],
       issuer_id: ENV["APPSTORE_CONNECT_ISSUER_ID"],
@@ -12,36 +11,21 @@ platform :ios do
 
     setup_ci
 
-    # 1. Primeiro, criar um provisioning profile manualmente
+    # Criar profile - ele vai criar "match AppStore app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
     sigh(
       app_identifier: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba",
       username: "anthony@agriroute.com",
-      team_id: "4YULT95XAK",
-      skip_certificate_verification: true
-    )
-
-    # 2. Configurar code signing manual no projeto
-    update_code_signing_settings(
-      use_automatic_signing: false,
-      path: "App.xcodeproj",
-      team_id: "4YULT95XAK",
-      profile_name: "iOS Team Provisioning Profile: app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+      team_id: "4YULT95XAK"
     )
 
     increment_build_number(build_number: latest_testflight_build_number + 1)
     
-    # 3. Build com configuração EXPLÍCITA
+    # Build SIMPLES - deixar o fastlane detectar automaticamente
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
       export_method: "app-store",
-      export_xcargs: "-allowProvisioningUpdates",
-      export_options: {
-        provisioningProfiles: { 
-          "app.lovable.f2dbc20153194f90a3cc8dd215bbebba" => "iOS Team Provisioning Profile: app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
-        },
-        signingStyle: "manual"
-      }
+      export_xcargs: "-allowProvisioningUpdates"
     )
 
     upload_to_testflight(skip_waiting_for_build_processing: true)
