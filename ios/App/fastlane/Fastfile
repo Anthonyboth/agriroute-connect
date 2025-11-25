@@ -15,7 +15,7 @@ platform :ios do
     sh("git config --global user.name 'GitHub Actions'")
     sh("git config --global user.email 'actions@github.com'")
 
-    # Match vai clonar o repositório de certificados AUTOMATICAMENTE
+    # Usar match com o NOVO repositório PÚBLICO
     match(
       type: "appstore",
       readonly: false,
