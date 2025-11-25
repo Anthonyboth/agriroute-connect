@@ -4,6 +4,9 @@ workflows:
     environment:
       xcode: latest
       node: 20.9.0
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.anthonyboth.agriroute
     scripts:
       - name: Install dependencies
         script: |
@@ -20,6 +23,26 @@ workflows:
       - name: Install CocoaPods
         script: |
           cd ios/App && pod install
+      
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files \
+            "com.anthonyboth.agriroute" \
+            --type IOS_APP_STORE \
+            --create
+      
+      - name: Set up keychain
+        script: |
+          keychain initialize
+      
+      - name: Add certificates
+        script: |
+          app-store-connect add-certificates --type IOS_APP_STORE
+      
+      - name: Install provisioning profiles
+        script: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          find $(pwd) -name "*.mobileprovision" -exec cp {} ~/Library/MobileDevice/Provisioning\ Profiles/ \;
       
       - name: Build IPA for App Store
         script: |
