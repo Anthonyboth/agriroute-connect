@@ -6,7 +6,7 @@ workflows:
       node: 20.9.0
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.anthonyboth.agriroute
+        bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
     scripts:
       - name: Install dependencies
         script: |
@@ -27,7 +27,7 @@ workflows:
       - name: Fetch signing files
         script: |
           app-store-connect fetch-signing-files \
-            "com.anthonyboth.agriroute" \
+            "app.lovable.f2dbc20153194f90a3cc8dd215bbebba" \
             --type IOS_APP_STORE \
             --create
       
