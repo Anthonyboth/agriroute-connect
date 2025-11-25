@@ -4,6 +4,9 @@ workflows:
     environment:
       xcode: latest
       node: 20.9.0
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.lovable.f2dbc20153194f90a3cc8dd215bbebba
     scripts:
       - name: Install dependencies
         script: |
@@ -30,3 +33,8 @@ workflows:
     
     artifacts:
       - build/ios/ipa/*.ipa
+    
+    publishing:
+      app_store_connect:
+        auth: integration  # ← USA SUA API KEY CONFIGURADA!
+        submit_to_testflight: true
