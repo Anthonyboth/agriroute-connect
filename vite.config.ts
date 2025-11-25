@@ -12,6 +12,7 @@ function criticalCssPlugin(): Plugin {
     closeBundle: async () => {
       try {
         console.log('🎨 Extracting critical CSS...');
+        // @ts-expect-error - critical module doesn't have type definitions
         const { generate } = await import('critical');
         await generate({
           inline: true,
