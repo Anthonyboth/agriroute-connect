@@ -12,21 +12,29 @@ platform :ios do
 
     setup_ci
 
-    # Configurar Git para match conseguir fazer push
+    # Configurar Git
     sh("git config --global user.name 'GitHub Actions'")
     sh("git config --global user.email 'actions@github.com'")
 
-    #  AGORA VAI CRIAR CERTIFICADOS (limite resolvido!)
+    # Criar/obter certificados
     match(
       type: "appstore",
       app_identifier: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba",
       readonly: false
     )
 
-    # Incrementar build number
+    # CONFIGURAÇÃO MANUAL DO CODE SIGNING
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "App.xcodeproj",
+      team_id: "4YULT95XAK",
+      code_sign_identity: "Apple Distribution",
+      profile_name: "match AppStore app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+    )
+
     increment_build_number(build_number: latest_testflight_build_number + 1)
     
-    # Build com code signing manual
+    # Build com configuração explícita
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
@@ -35,11 +43,12 @@ platform :ios do
       export_options: {
         provisioningProfiles: { 
           "app.lovable.f2dbc20153194f90a3cc8dd215bbebba" => "match AppStore app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
-        }
+        },
+        signingStyle: "manual",
+        signingCertificate: "Apple Distribution"
       }
     )
 
-    # Upload para TestFlight
     upload_to_testflight(skip_waiting_for_build_processing: true)
   end
 end
