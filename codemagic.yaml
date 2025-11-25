@@ -1,4 +1,4 @@
-﻿workflows:
+workflows:
   ios-release-testflight:
     name: iOS Release to TestFlight
     environment:
@@ -21,7 +21,7 @@
         script: |
           cd ios/App && pod install
       
-      - name: Build IPA
+      - name: Build IPA for App Store
         script: |
           xcode-project build-ipa \
             --workspace ios/App/App.xcworkspace \
