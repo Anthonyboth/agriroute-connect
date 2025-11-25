@@ -1,18 +1,13 @@
 workflows:
   ios-release-testflight:
     name: iOS Release to TestFlight
-    max_build_duration: 60
     environment:
       xcode: latest
-      node: 20.x
-      groups:
-        - app_store_credentials
-      vars:
-        BUNDLE_ID: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+      node: 20.9.0
     scripts:
       - name: Install dependencies
         script: |
-          npm ci
+          npm install
       
       - name: Build web app
         script: |
@@ -22,48 +17,16 @@ workflows:
         script: |
           npx cap sync ios
       
-      - name: Fetch signing files
+      - name: Install CocoaPods
         script: |
-          app-store-connect fetch-signing-files \
-            $BUNDLE_ID \
-            --type IOS_APP_STORE \
-            --create
-      
-      - name: Add certificates to keychain
-        script: |
-          keychain add-certificates
-      
-      - name: Set up code signing settings
-        script: |
-          xcode-project use-profiles
-      
-      - name: Increment build number
-        script: |
-          cd ios/App
-          agvtool new-version -all $(($BUILD_NUMBER + 1))
+          cd ios/App && pod install
       
       - name: Build IPA for App Store
         script: |
           xcode-project build-ipa \
             --workspace ios/App/App.xcworkspace \
             --scheme App \
-            --archive-flags="-destination 'generic/platform=iOS'" \
             --export-options-plist ios/App/exportOptions.plist
     
     artifacts:
       - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-    
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        beta_groups:
-          - Internal Testers
-        
-      email:
-        recipients:
-          - dev@agriroute.com
-        notify:
-          success: true
-          failure: true
