@@ -14,17 +14,6 @@ platform :ios do
 
     setup_ci
 
-    # Configurar match para certificados
-    match(
-      type: "appstore",
-      app_identifier: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba",
-      readonly: true,
-      keychain_name: "fastlane_tmp_keychain",
-      keychain_password: "",
-      clone_branch_directly: true,
-      force: false
-    )
-
     # Obter último build number do TestFlight
     build_number = latest_testflight_build_number
     if build_number.nil?
@@ -37,22 +26,18 @@ platform :ios do
       build_number: build_number
     )
 
-    # Build app
+    # Build app com provisioning automático
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
       export_method: "app-store",
       export_xcargs: "-allowProvisioningUpdates",
-      clean: true,
-      silent: false,
-      output_directory: ".",
-      output_name: "App"
+      clean: true
     )
 
     # Upload para TestFlight
     upload_to_testflight(
-      skip_waiting_for_build_processing: true,
-      apple_id: "anthony@agriroute.com"
+      skip_waiting_for_build_processing: true
     )
   end
 end
