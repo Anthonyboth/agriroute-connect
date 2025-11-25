@@ -176,12 +176,12 @@ const Plans: React.FC = () => {
                 📧 agrirouteconnect@gmail.com
               </a>
               <a 
-                href="https://wa.me/5515669942656" 
+                href="https://wa.me/5566992734632" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-primary hover:underline font-medium"
               >
-                📱 WhatsApp: (15) 9 9942-6656
+                📱 WhatsApp: (66) 9 9273-4632
               </a>
             </div>
           </CardContent>

@@ -394,7 +394,7 @@ const Landing: React.FC = () => {
                 <li><Link to="/ajuda" className="hover:text-foreground transition-smooth">Central de Ajuda</Link></li>
                 <li><button onClick={() => setContactModal(true)} className="hover:text-foreground transition-smooth text-left">Contato</button></li>
                 <li><Link to="/status" className="hover:text-foreground transition-smooth">Status</Link></li>
-                <li><a href="https://wa.me/5566999426656" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-smooth">WhatsApp</a></li>
+                <li><a href="https://wa.me/5566992734632" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-smooth">WhatsApp</a></li>
               </ul>
             </div>
             
