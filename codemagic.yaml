@@ -1,4 +1,4 @@
-workflows:
+﻿workflows:
   ios-release-testflight:
     name: iOS Release to TestFlight
     environment:
