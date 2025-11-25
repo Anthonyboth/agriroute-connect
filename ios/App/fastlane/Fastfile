@@ -12,20 +12,29 @@ platform :ios do
 
     setup_ci
 
-    # HABILITAR SIGNING AUTOMÁTICO no projeto
-    enable_automatic_code_signing(
-      path: "App.xcodeproj",
-      team_id: "4YULT95XAK"
+    # CRIAR PROVISIONING PROFILE MANUALMENTE
+    sigh(
+      app_identifier: "app.lovable.f2dbc20153194f90a3cc8dd215bbebba",
+      username: "anthony@agriroute.com",
+      team_id: "4YULT95XAK",
+      output_path: "./",
+      filename: "profile.mobileprovision",
+      skip_install: false
     )
 
     increment_build_number(build_number: latest_testflight_build_number + 1)
     
-    # Build com signing automático
+    # Build com export options explícitas
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
       export_method: "app-store",
-      export_xcargs: "-allowProvisioningUpdates"
+      export_xcargs: "-allowProvisioningUpdates",
+      export_options: {
+        provisioningProfiles: { 
+          "app.lovable.f2dbc20153194f90a3cc8dd215bbebba" => "iOS Team Provisioning Profile: app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+        }
+      }
     )
 
     upload_to_testflight(skip_waiting_for_build_processing: true)
