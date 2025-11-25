@@ -2,12 +2,3 @@
 apple_id("anthony@agriroute.com")
 itc_team_id("4YULT95XAK")
 team_id("4YULT95XAK")
-
-# API Key Auth
-app_store_connect_api_key(
-  key_id: ENV["APPSTORE_CONNECT_KEY_ID"],
-  issuer_id: ENV["APPSTORE_CONNECT_ISSUER_ID"],
-  key_content: ENV["APPSTORE_CONNECT_PRIVATE_KEY"],
-  duration: 1200,
-  in_house: false
-)
