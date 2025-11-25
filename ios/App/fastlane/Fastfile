@@ -12,12 +12,15 @@ platform :ios do
 
     setup_ci
 
-    # NÃO USAR MATCH - usar certificados que já existem na Apple Developer
-    # Os certificados de 25/11/2026 já estão disponíveis na sua conta
+    # HABILITAR SIGNING AUTOMÁTICO no projeto
+    enable_automatic_code_signing(
+      path: "App.xcodeproj",
+      team_id: "4YULT95XAK"
+    )
 
     increment_build_number(build_number: latest_testflight_build_number + 1)
     
-    # Build com code signing AUTOMÁTICO - vai usar certificados existentes
+    # Build com signing automático
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
