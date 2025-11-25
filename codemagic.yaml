@@ -1,13 +1,9 @@
-﻿workflows:
+workflows:
   ios-release-testflight:
     name: iOS Release to TestFlight
     environment:
       xcode: latest
       node: 20.9.0
-      vars:
-        APP_STORE_CONNECT_ISSUER_ID: "b3214eff-b69b-4b7a-bfd0-0c476ed2605c"
-        APP_STORE_CONNECT_KEY_IDENTIFIER: "67SDRAXWZR"
-        APP_STORE_CONNECT_PRIVATE_KEY: ""
     scripts:
       - name: Install dependencies
         script: |
@@ -24,22 +20,6 @@
       - name: Install CocoaPods
         script: |
           cd ios/App && pod install
-      
-      - name: Setup App Store Connect API Key
-        script: |
-          mkdir -p ~/.appstoreconnect/private_keys/
-          echo "" > ~/.appstoreconnect/private_keys/AuthKey_.p8
-      
-      - name: Fetch signing files
-        script: |
-          app-store-connect fetch-signing-files \
-            "app.lovable.f2dbc20153194f90a3cc8dd215bbebba" \
-            --type IOS_APP_STORE \
-            --platform IOS \
-            --create \
-            --issuer-id "" \
-            --key-id "" \
-            --private-key @file:~/.appstoreconnect/private_keys/AuthKey_.p8
       
       - name: Build IPA
         script: |
