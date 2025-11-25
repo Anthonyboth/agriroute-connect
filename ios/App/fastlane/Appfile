@@ -1,0 +1,13 @@
+﻿app_identifier("app.lovable.f2dbc20153194f90a3cc8dd215bbebba")
+apple_id("anthony@agriroute.com")
+itc_team_id("4YULT95XAK")
+team_id("4YULT95XAK")
+
+# API Key Auth
+app_store_connect_api_key(
+  key_id: ENV["APP_STORE_CONNECT_API_KEY_KEY_ID"],
+  issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+  key_content: ENV["APP_STORE_CONNECT_API_KEY_KEY"],
+  duration: 1200,
+  in_house: false
+)

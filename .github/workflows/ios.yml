@@ -1,0 +1,51 @@
+﻿name: iOS Build and Deploy
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build web app
+      run: npm run build
+    
+    - name: Sync Capacitor
+      run: npx cap sync ios
+    
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.1'
+        bundler-cache: true
+    
+    - name: Install Fastlane
+      run: gem install fastlane
+    
+    - name: Install CocoaPods
+      run: |
+        cd ios/App
+        pod install
+    
+    - name: Build and deploy with Fastlane
+      env:
+        APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+        APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
+        APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+        MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      run: |
+        cd ios/App
+        fastlane beta
