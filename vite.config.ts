@@ -1,18 +1,23 @@
-import { defineConfig } from "vite";
+import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
-import { generate } from 'critical';
+
+// Type declaration for critical
+declare module 'critical' {
+  export function generate(options: any): Promise<void>;
+}
 
 // Critical CSS plugin
-function criticalCssPlugin() {
+function criticalCssPlugin(): Plugin {
   return {
     name: 'critical-css',
-    apply: 'build',
+    apply: 'build' as const,
     closeBundle: async () => {
       try {
         console.log('🎨 Extracting critical CSS...');
+        const { generate } = await import('critical');
         await generate({
           inline: true,
           base: 'dist',
@@ -30,7 +35,7 @@ function criticalCssPlugin() {
         });
         console.log('✅ Critical CSS extracted and inlined successfully!');
       } catch (error) {
-        console.warn('⚠️  Critical CSS extraction failed (non-fatal):', error.message);
+        console.warn('⚠️  Critical CSS extraction failed (non-fatal):', (error as Error).message);
       }
     }
   };
