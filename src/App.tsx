@@ -46,6 +46,7 @@ import { startSessionRefresh, stopSessionRefresh } from './utils/sessionRefresh'
 import { SilentCityBootstrap } from './components/SilentCityBootstrap';
 import { ZipCodeService } from './services/zipCodeService';
 import { GlobalAnnouncementBar } from './components/GlobalAnnouncementBar';
+import { suppressWebSocketErrors } from './utils/suppressWebSocketErrors';
 const PressPage = lazy(() => import("./pages/Press"));
 const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess"));
 const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
@@ -536,6 +537,9 @@ const SessionManager = () => {
 
 const App = () => {
   React.useEffect(() => {
+    // Suppress WebSocket errors from Supabase during audits
+    suppressWebSocketErrors();
+    
     // Notificar o overlay que a app pintou
     const timer = setTimeout(() => {
       window.dispatchEvent(new Event('app:painted'));
