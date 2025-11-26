@@ -16,9 +16,12 @@ jobs:
     
     env:
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
       MATCH_GIT_URL: https://github.com/Anthonyboth/agriroute-connect-certificates-public.git
+
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APPSTORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
 
     steps:
       - name: Checkout repository
@@ -26,7 +29,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ===== NODE.JS E BUILD WEB (CAPACITOR) =====
+      # ===== NODE.JS & VITE BUILD =====
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -42,7 +45,7 @@ jobs:
       - name: Sync Capacitor iOS
         run: npx cap sync ios
 
-      # ===== RUBY E FASTLANE =====
+      # ===== RUBY + FASTLANE =====
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -54,7 +57,7 @@ jobs:
         working-directory: ios/App
         run: bundle install
 
-      # ===== CACHE COCOAPODS =====
+      # ===== COCOAPODS =====
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
@@ -67,7 +70,7 @@ jobs:
         working-directory: ios/App
         run: pod install --repo-update
 
-      # ===== CACHE DERIVED DATA =====
+      # ===== DERIVED DATA =====
       - name: Cache Xcode Derived Data
         uses: actions/cache@v4
         with:
@@ -76,14 +79,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-derived-data-
 
-      # ===== APP STORE CONNECT API KEY =====
+      # ===== APP STORE CONNECT API KEY (.p8) =====
       - name: Create App Store Connect API Key file
         run: |
           mkdir -p ~/.appstoreconnect
-          printf '%s' "${{ secrets.APP_STORE_CONNECT_API_KEY }}" > ~/.appstoreconnect/AuthKey.p8
+          printf '%s' "${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}" > ~/.appstoreconnect/AuthKey.p8
           chmod 600 ~/.appstoreconnect/AuthKey.p8
 
-      # ===== BUILD E UPLOAD =====
+      # ===== FASTLANE BUILD =====
       - name: Run Fastlane build_ios
         working-directory: ios/App
         env:
@@ -94,7 +97,7 @@ jobs:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: bundle exec fastlane ios build_ios
 
-      # ===== ARTEFATOS =====
+      # ===== IPA ARTEFACT =====
       - name: Upload IPA artifact
         if: always()
         uses: actions/upload-artifact@v4
