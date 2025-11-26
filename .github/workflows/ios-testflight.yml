@@ -37,17 +37,8 @@ jobs:
           cd ios/App
           pod install
 
-      - name: Setup Ruby and install Fastlane
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: true
-
-      - name: Install Bundler and Fastlane dependencies
-        run: |
-          cd ios/App
-          gem install bundler
-          bundle install
+      - name: Install Fastlane globally
+        run: gem install fastlane
 
       - name: Deploy to TestFlight
         env:
@@ -57,4 +48,4 @@ jobs:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
         run: |
           cd ios/App
-          bundle exec fastlane beta
+          fastlane beta
