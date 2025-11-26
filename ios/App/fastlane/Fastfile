@@ -1,0 +1,21 @@
+﻿default_platform(:ios)
+
+platform :ios do
+  desc "Build and deploy to TestFlight"
+  lane :beta do
+    setup_ci
+    match(type: "appstore")
+    build_app(
+      workspace: "App.xcworkspace",
+      scheme: "App",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          "app.lovable.f2dbc20153194f90a3cc8dd215bbebba" => "match AppStore app.lovable.f2dbc20153194f90a3cc8dd215bbebba"
+        }
+      }
+    )
+    upload_to_testflight(skip_waiting_for_build_processing: true)
+  end
+end
