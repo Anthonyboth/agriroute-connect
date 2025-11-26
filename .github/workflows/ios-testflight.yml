@@ -103,3 +103,4 @@ jobs:
           path: |
             ios/App/*.ipa
             ios/App/build/*.ipa
+            ios/App/build/**/*.ipa
