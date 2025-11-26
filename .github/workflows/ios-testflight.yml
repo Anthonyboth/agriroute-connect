@@ -13,14 +13,14 @@ jobs:
   build_ios:
     name: Build iOS and Upload to TestFlight
     runs-on: macos-14
-    
+
     env:
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
       MATCH_GIT_URL: https://github.com/Anthonyboth/agriroute-connect-certificates-public.git
 
-      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+      APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
       APPSTORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
 
     steps:
@@ -75,7 +75,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-derived-data-${{ hashFiles('ios/App/App.xcworkspace') }}
+          key: ${{ runner.os }}-derived-data-${{ hashFiles('ios/App/Podfile.lock') }}
           restore-keys: |
             ${{ runner.os }}-derived-data-
 
@@ -83,8 +83,8 @@ jobs:
       - name: Create App Store Connect API Key file
         run: |
           mkdir -p ~/.appstoreconnect
-          printf '%s' "${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}" > ~/.appstoreconnect/AuthKey.p8
-          chmod 600 ~/.appstoreconnect/AuthKey.p8
+          printf '%s' "${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}" > ~/.appstoreconnect/AuthKey_${{ secrets.APPSTORE_CONNECT_KEY_ID }}.p8
+          chmod 600 ~/.appstoreconnect/AuthKey_${{ secrets.APPSTORE_CONNECT_KEY_ID }}.p8
 
       # ===== FASTLANE BUILD =====
       - name: Run Fastlane build_ios
@@ -92,9 +92,10 @@ jobs:
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_URL: ${{ env.MATCH_GIT_URL }}
-          ASC_KEY_PATH: ~/.appstoreconnect/AuthKey.p8
-          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_PATH: ~/.appstoreconnect/AuthKey_${{ secrets.APPSTORE_CONNECT_KEY_ID }}.p8
+          APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+          FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
         run: bundle exec fastlane ios build_ios
 
       # ===== IPA ARTEFACT =====
