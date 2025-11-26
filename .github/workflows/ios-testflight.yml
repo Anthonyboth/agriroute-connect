@@ -24,10 +24,7 @@ jobs:
     runs-on: macos-14
 
     env:
-      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-      FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
       MATCH_GIT_URL: https://github.com/Anthonyboth/agriroute-connect-certificates-public.git
-
       APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
       APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
       APPSTORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
@@ -88,23 +85,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-derived-data-
 
-      # ===== APP STORE CONNECT API KEY (.p8) =====
-      - name: Create App Store Connect API Key file
-        run: |
-          mkdir -p ~/.appstoreconnect
-          printf '%s' "${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}" > ~/.appstoreconnect/AuthKey_${{ secrets.APPSTORE_CONNECT_KEY_ID }}.p8
-          chmod 600 ~/.appstoreconnect/AuthKey_${{ secrets.APPSTORE_CONNECT_KEY_ID }}.p8
-
       # ===== FASTLANE BUILD =====
       - name: Run Fastlane ${{ github.event.inputs.lane || 'build_ios' }}
         working-directory: ios/App
         env:
-          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_URL: ${{ env.MATCH_GIT_URL }}
-          ASC_KEY_PATH: ~/.appstoreconnect/AuthKey_${{ secrets.APPSTORE_CONNECT_KEY_ID }}.p8
           APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
           APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
-          FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
+          APPSTORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
         run: bundle exec fastlane ios ${{ github.event.inputs.lane || 'build_ios' }}
 
       # ===== IPA ARTEFACT =====
