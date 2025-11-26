@@ -6,7 +6,7 @@ platform :ios do
     setup_ci(provider: "travis")
     match(
       type: "appstore",
-      readonly: true,
+      readonly: false,
       git_url: "https://github.com/Anthonyboth/agriroute-connect-certificates-public.git"
     )
   end
