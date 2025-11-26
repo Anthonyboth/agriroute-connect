@@ -37,12 +37,17 @@ jobs:
           cd ios/App
           pod install
 
-      - name: Verify Fastlane setup
+      - name: Verify Fastlane structure
         run: |
+          echo "=== Verifying Fastlane files ==="
           cd ios/App
-          ls -la fastlane/ || echo "Fastlane folder not found"
+          pwd
+          ls -la
+          ls -la fastlane/
+          cat fastlane/Fastfile || echo "No Fastfile"
+          cat fastlane/Appfile || echo "No Appfile"
 
-      - name: Install Fastlane globally
+      - name: Install Fastlane
         run: gem install fastlane
 
       - name: Deploy to TestFlight
@@ -53,4 +58,6 @@ jobs:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
         run: |
           cd ios/App
+          pwd
+          ls -la fastlane/
           fastlane beta
