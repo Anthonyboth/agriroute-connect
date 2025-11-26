@@ -19,31 +19,7 @@ interface MyAssignmentCardProps {
   onAction: () => void;
 }
 
-export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, onAction }) => {
-  // 🔥 DEBUG FLAG: Confirmar versão nova do código está carregada
-  console.log('🔥 [DEBUG] MyAssignmentCard VERSÃO NOVA carregada - SEM RELOAD');
-  console.log('🔥 [DEBUG] Build timestamp:', new Date().toISOString());
-  
-  // 🔥 Verificar se há listeners de reload instalados
-  React.useEffect(() => {
-    console.log('🔥 [DEBUG] Verificando listeners de window...');
-    console.log('🔥 [DEBUG] beforeunload listeners:', window.onbeforeunload ? 'SIM' : 'NÃO');
-    console.log('🔥 [DEBUG] unload listeners:', window.onunload ? 'SIM' : 'NÃO');
-    
-    // Interceptar qualquer tentativa de reload
-    const preventReload = (e: BeforeUnloadEvent) => {
-      console.error('🔥 [DEBUG] ⚠️ TENTATIVA DE RELOAD DETECTADA E BLOQUEADA!');
-      e.preventDefault();
-      e.returnValue = '';
-      return '';
-    };
-    
-    // Não adicionar listener de fato, apenas logar se existir
-    return () => {
-      console.log('🔥 [DEBUG] MyAssignmentCard desmontado');
-    };
-  }, []);
-  
+const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment, onAction }) => {
   const { profile: currentUserProfile } = useAuth();
   const { company } = useTransportCompany();
   const { toast } = useToast();
@@ -82,29 +58,17 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    console.log('🔥 [DEBUG] handleStatusChange INICIADO:', { newStatus, freightId: freight?.id });
-    
     try {
-      // 🛡️ Validações iniciais
       if (!currentUserProfile || isUpdatingStatus || !freight?.id) {
-        console.log('🔥 [DEBUG] Validação inicial falhou:', {
-          hasProfile: !!currentUserProfile,
-          isUpdating: isUpdatingStatus,
-          hasFreightId: !!freight?.id
-        });
         return;
       }
       
-      // ✅ Check if freight is in final status using central constant
       if (freight?.status && FINAL_STATUSES.includes(freight.status as any)) {
-        console.log('🔥 [DEBUG] Frete em status final, bloqueado:', freight.status);
-        return; // Silently prevent action (helper will show toast if somehow reached)
+        return;
       }
       
-      console.log('🔥 [DEBUG] Iniciando atualização - setIsUpdatingStatus(true)');
       setIsUpdatingStatus(true);
       
-      console.log('🔥 [DEBUG] Chamando driverUpdateFreightStatus...');
       const success = await driverUpdateFreightStatus({
         freightId: freight.id,
         newStatus,
@@ -112,55 +76,32 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
         assignmentId: assignment.id
       });
       
-      console.log('🔥 [DEBUG] driverUpdateFreightStatus retornou:', success);
-      console.log('🔥 [DEBUG] setIsUpdatingStatus(false)');
       setIsUpdatingStatus(false);
       
       if (success) {
-        console.log('🔥 [DEBUG] Sucesso! Invalidando queries...');
+        // Combine query invalidations
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['assignments'] }),
+          queryClient.invalidateQueries({ queryKey: ['freights'] }),
+          queryClient.invalidateQueries({ queryKey: ['active-freight'] })
+        ]);
         
-        await queryClient.invalidateQueries({ queryKey: ['assignments'] });
-        console.log('🔥 [DEBUG] Query "assignments" invalidada');
-        
-        await queryClient.invalidateQueries({ queryKey: ['freights'] });
-        console.log('🔥 [DEBUG] Query "freights" invalidada');
-        
-        await queryClient.invalidateQueries({ queryKey: ['active-freight'] });
-        console.log('🔥 [DEBUG] Query "active-freight" invalidada');
-        
-        console.log('🔥 [DEBUG] Chamando onAction()...');
         onAction();
-        console.log('🔥 [DEBUG] onAction() executado');
         
-        console.log('🔥 [DEBUG] Mostrando toast de sucesso...');
         toast({
           title: "Status atualizado",
           description: "O frete foi marcado como 'A Caminho'",
         });
-        
-        console.log('🔥 [DEBUG] handleStatusChange CONCLUÍDO COM SUCESSO - SEM RELOAD');
-      } else {
-        console.log('🔥 [DEBUG] Falha na atualização, success=false');
       }
       
     } catch (error: any) {
-      console.error('🔥 [DEBUG] ERRO CAPTURADO em handleStatusChange:', error);
-      console.error('🔥 [DEBUG] Stack:', error.stack);
-      console.error('🔥 [DEBUG] Mensagem:', error.message);
-      
       setIsUpdatingStatus(false);
       
       toast({
-        title: "Erro capturado",
-        description: `Erro: ${error.message}`,
+        title: "Erro",
+        description: error.message || "Erro ao atualizar status",
         variant: "destructive"
       });
-      
-      // 🚨 PREVENIR RELOAD ACIDENTAL
-      if (error.message?.includes('reload') || error.message?.includes('refresh')) {
-        console.error('🔥 [DEBUG] TENTATIVA DE RELOAD BLOQUEADA!');
-        return;
-      }
     }
   };
 
@@ -326,3 +267,6 @@ export const MyAssignmentCard: React.FC<MyAssignmentCardProps> = ({ assignment, 
     </Card>
   );
 };
+
+// Memoize component to prevent unnecessary re-renders
+export const MyAssignmentCard = React.memo(MyAssignmentCardComponent);

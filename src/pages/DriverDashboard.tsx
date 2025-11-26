@@ -194,11 +194,17 @@ const DriverDashboard = () => {
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const { visible: showEarnings, toggle: toggleEarnings } = useEarningsVisibility(false);
-const [showCheckinModal, setShowCheckinModal] = useState(false);
-const [selectedFreightForCheckin, setSelectedFreightForCheckin] = useState<string | null>(null);
-const [initialCheckinType, setInitialCheckinType] = useState<string | null>(null);
+  const [showCheckinModal, setShowCheckinModal] = useState(false);
+  const [selectedFreightForCheckin, setSelectedFreightForCheckin] = useState<string | null>(null);
+  const [initialCheckinType, setInitialCheckinType] = useState<string | null>(null);
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
-const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<Freight | null>(null);
+  const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState<Freight | null>(null);
+  
+  // Memoized handler for assignment card actions
+  const handleAssignmentAction = useCallback((freightId: string) => {
+    setSelectedFreightId(freightId);
+    setShowDetails(true);
+  }, []);
 
   const [showLocationManager, setShowLocationManager] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
@@ -2351,18 +2357,17 @@ const [selectedFreightForWithdrawal, setSelectedFreightForWithdrawal] = useState
                   <Badge variant="outline" className="text-xs">{activeAssignments.length}</Badge>
                 </div>
                 <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando lista...</div>}>
-                  {activeAssignments.map((assignment) => (
-                    assignment?.id ? (
+                  {activeAssignments.map((assignment) => {
+                    if (!assignment?.id) return null;
+                    
+                    return (
                       <MyAssignmentCard
                         key={assignment.id}
                         assignment={assignment}
-                        onAction={() => {
-                          setSelectedFreightId(assignment.freight_id);
-                          setShowDetails(true);
-                        }}
+                        onAction={() => handleAssignmentAction(assignment.freight_id)}
                       />
-                    ) : null
-                  ))}
+                    );
+                  })}
                 </SafeListWrapper>
               </div>
             )}
