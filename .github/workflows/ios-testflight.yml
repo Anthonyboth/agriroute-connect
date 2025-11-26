@@ -43,9 +43,10 @@ jobs:
           ruby-version: '3.2'
           bundler-cache: true
 
-      - name: Install Fastlane dependencies
+      - name: Install Bundler and Fastlane dependencies
         run: |
           cd ios/App
+          gem install bundler
           bundle install
 
       - name: Deploy to TestFlight
