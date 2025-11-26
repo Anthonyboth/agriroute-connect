@@ -1,10 +1,20 @@
-﻿default_platform(:ios)
+default_platform(:ios)
 
 platform :ios do
-  desc "Build and deploy to TestFlight"
-  lane :beta do
-    setup_ci
-    match(type: "appstore")
+  desc "Baixar certificados via Match"
+  lane :match_certificates do
+    setup_ci(provider: "travis")
+    match(
+      type: "appstore",
+      readonly: true,
+      git_url: "https://github.com/Anthonyboth/agriroute-connect-certificates-public.git"
+    )
+  end
+
+  desc "Build completo para App Store"
+  lane :build_ios do
+    match_certificates
+    
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
@@ -16,6 +26,22 @@ platform :ios do
         }
       }
     )
-    upload_to_testflight(skip_waiting_for_build_processing: true)
+    
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_filepath: ENV["ASC_KEY_PATH"],
+      in_house: false
+    )
+    
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Build and deploy to TestFlight (legacy compatibility)"
+  lane :beta do
+    build_ios
   end
 end

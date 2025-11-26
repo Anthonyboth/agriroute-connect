@@ -1,4 +1,4 @@
-name: iOS Build & Deploy to TestFlight
+name: iOS Build & TestFlight Upload
 
 on:
   push:
@@ -10,23 +10,23 @@ permissions:
   contents: read
 
 jobs:
-  ios:
+  build_ios:
     name: Build iOS and Upload to TestFlight
     runs-on: macos-14
+    
     env:
-      # Paths used by fastlane / match
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       MATCH_GIT_URL: https://github.com/Anthonyboth/agriroute-connect-certificates-public.git
-      # Fastlane App Store Connect API (we will write to a file)
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-      # If you prefer to store key base64-encoded, adjust accordingly.
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # ===== NODE.JS E BUILD WEB (CAPACITOR) =====
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -39,61 +39,67 @@ jobs:
       - name: Build web assets (Vite)
         run: npm run build
 
-      - name: Install Capacitor iOS platform & sync
+      - name: Sync Capacitor iOS
         run: npx cap sync ios
 
-      - name: Set up Ruby and Bundler
+      # ===== RUBY E FASTLANE =====
+      - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2'
           bundler-cache: true
+          working-directory: ios/App
 
-      - name: Ensure fastlane available (bundle or gem)
+      - name: Install Fastlane dependencies
         working-directory: ios/App
-        run: |
-          if [ -f Gemfile ]; then
-            bundle install --path vendor/bundle
-          else
-            gem install fastlane -v 2.229.1
-          fi
+        run: bundle install
 
+      # ===== CACHE COCOAPODS =====
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/App/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/App/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install CocoaPods
+        working-directory: ios/App
+        run: pod install --repo-update
+
+      # ===== CACHE DERIVED DATA =====
+      - name: Cache Xcode Derived Data
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-derived-data-${{ hashFiles('ios/App/App.xcworkspace') }}
+          restore-keys: |
+            ${{ runner.os }}-derived-data-
+
+      # ===== APP STORE CONNECT API KEY =====
       - name: Create App Store Connect API Key file
         run: |
           mkdir -p ~/.appstoreconnect
-          # Write the private key (.p8) from the secret to a file. Ensure your secret contains the full .p8 content including BEGIN/END lines.
           printf '%s' "${{ secrets.APP_STORE_CONNECT_API_KEY }}" > ~/.appstoreconnect/AuthKey.p8
           chmod 600 ~/.appstoreconnect/AuthKey.p8
 
-      - name: Install CocoaPods
-        run: |
-          cd ios/App
-          pod install --repo-update
-
-      - name: Prepare environment for fastlane (keychain)
-        run: |
-          # Fastlane setup_ci will create a temporary keychain. No-op here but keep step for clarity.
-          echo "fastlane keychain will be created by setup_ci in lane."
-
-      - name: Run Fastlane (build & upload to TestFlight)
+      # ===== BUILD E UPLOAD =====
+      - name: Run Fastlane build_ios
         working-directory: ios/App
         env:
-          # Fastlane / match will read these
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_URL: ${{ env.MATCH_GIT_URL }}
           ASC_KEY_PATH: ~/.appstoreconnect/AuthKey.p8
-          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          # Optional: can set FASTLANE_DISABLE_COLORS=true for cleaner logs
-        run: |
-          if [ -f Gemfile ]; then
-            bundle exec fastlane ios beta
-          else
-            fastlane ios beta
-          fi
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: bundle exec fastlane ios build_ios
 
-      - name: Upload build artifact (IPA) to workflow artifacts
+      # ===== ARTEFATOS =====
+      - name: Upload IPA artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa
-          path: ios/App/build/*.ipa
+          path: |
+            ios/App/*.ipa
+            ios/App/build/*.ipa
