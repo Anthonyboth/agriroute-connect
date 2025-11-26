@@ -5,6 +5,15 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      lane:
+        description: 'Fastlane lane to run'
+        required: false
+        default: 'build_ios'
+        type: choice
+        options:
+          - build_ios
+          - testflight
 
 permissions:
   contents: read
@@ -87,7 +96,7 @@ jobs:
           chmod 600 ~/.appstoreconnect/AuthKey_${{ secrets.APPSTORE_CONNECT_KEY_ID }}.p8
 
       # ===== FASTLANE BUILD =====
-      - name: Run Fastlane build_ios
+      - name: Run Fastlane ${{ github.event.inputs.lane || 'build_ios' }}
         working-directory: ios/App
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
@@ -96,7 +105,7 @@ jobs:
           APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
           APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
           FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
-        run: bundle exec fastlane ios build_ios
+        run: bundle exec fastlane ios ${{ github.event.inputs.lane || 'build_ios' }}
 
       # ===== IPA ARTEFACT =====
       - name: Upload IPA artifact
