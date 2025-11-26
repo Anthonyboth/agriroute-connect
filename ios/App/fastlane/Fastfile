@@ -31,7 +31,10 @@ platform :ios do
       app_identifier: ["app.lovable.f2dbc20153194f90a3cc8dd215bbebba"],
       team_id: "4YULT95XAK",
       readonly: true,
+      shallow_clone: true,
       skip_set_partition_list: true,
+      skip_certificate_matching: true,
+      force: false,
       keychain_name: "ci_keychain",
       keychain_password: "ci_keychain_password",
       api_key: create_api_key
