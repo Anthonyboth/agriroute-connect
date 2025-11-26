@@ -26,7 +26,6 @@ jobs:
 
     env:
       MATCH_GIT_URL: https://github.com/Anthonyboth/agriroute-connect-certificates-public.git
-      MATCH_PASSWORD: ""
       APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
       APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
       APPSTORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
@@ -92,7 +91,6 @@ jobs:
         working-directory: ios/App
         env:
           MATCH_GIT_URL: ${{ env.MATCH_GIT_URL }}
-          MATCH_PASSWORD: ""
           APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
           APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
           APPSTORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
