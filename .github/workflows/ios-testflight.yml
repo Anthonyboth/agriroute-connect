@@ -37,6 +37,11 @@ jobs:
           cd ios/App
           pod install
 
+      - name: Verify Fastlane setup
+        run: |
+          cd ios/App
+          ls -la fastlane/ || echo "Fastlane folder not found"
+
       - name: Install Fastlane globally
         run: gem install fastlane
 
