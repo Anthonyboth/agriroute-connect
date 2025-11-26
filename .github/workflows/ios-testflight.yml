@@ -1,43 +1,24 @@
-name: iOS Build & TestFlight Upload
+name: iOS TestFlight Build
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      lane:
-        description: 'Fastlane lane to run'
-        required: false
-        default: 'build_ios'
-        type: choice
-        options:
-          - build_ios
-          - testflight
-          - upload_testflight
 
 permissions:
   contents: read
 
 jobs:
-  build_ios:
+  build:
     name: Build iOS and Upload to TestFlight
-    runs-on: macos-14
-
-    env:
-      MATCH_GIT_URL: https://github.com/Anthonyboth/agriroute-connect-certificates-public.git
-      APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
-      APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
-      APPSTORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
+    runs-on: macos-15
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      # ===== NODE.JS & VITE BUILD =====
-      - name: Set up Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -52,8 +33,7 @@ jobs:
       - name: Sync Capacitor iOS
         run: npx cap sync ios
 
-      # ===== RUBY + FASTLANE =====
-      - name: Set up Ruby
+      - name: Setup Ruby + Fastlane
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2'
@@ -64,7 +44,6 @@ jobs:
         working-directory: ios/App
         run: bundle install
 
-      # ===== COCOAPODS =====
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
@@ -77,7 +56,6 @@ jobs:
         working-directory: ios/App
         run: pod install --repo-update
 
-      # ===== DERIVED DATA =====
       - name: Cache Xcode Derived Data
         uses: actions/cache@v4
         with:
@@ -86,17 +64,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-derived-data-
 
-      # ===== FASTLANE BUILD =====
-      - name: Run Fastlane ${{ github.event.inputs.lane || 'build_ios' }}
+      - name: Run Fastlane TestFlight
         working-directory: ios/App
         env:
-          MATCH_GIT_URL: ${{ env.MATCH_GIT_URL }}
           APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
           APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
           APPSTORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
-        run: bundle exec fastlane ios ${{ github.event.inputs.lane || 'build_ios' }}
+        run: bundle exec fastlane testflight
 
-      # ===== IPA ARTEFACT =====
       - name: Upload IPA artifact
         if: always()
         uses: actions/upload-artifact@v4
