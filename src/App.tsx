@@ -46,6 +46,7 @@ import { startSessionRefresh, stopSessionRefresh } from './utils/sessionRefresh'
 import { SilentCityBootstrap } from './components/SilentCityBootstrap';
 import { ZipCodeService } from './services/zipCodeService';
 import { GlobalAnnouncementBar } from './components/GlobalAnnouncementBar';
+import { FloatingSupportButton } from './components/FloatingSupportButton';
 const PressPage = lazy(() => import("./pages/Press"));
 const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess"));
 const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
@@ -563,6 +564,7 @@ const App = () => {
                     <SessionManager />
                     <ErrorMonitoringSetup />
                     <ZipCodeSyncOnReconnect />
+                    <FloatingSupportButton />
                     <SilentCityBootstrap />
                     <main>
                       <Routes>

@@ -1,0 +1,177 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { MessageCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { getWhatsAppUrl } from '@/lib/support-contact';
+
+interface Position {
+  x: number;
+  y: number;
+}
+
+const STORAGE_KEY = 'agriroute-support-button-position';
+
+/**
+ * Botão flutuante de suporte via WhatsApp
+ * - Draggable: usuário pode arrastar para qualquer posição
+ * - Persistente: salva posição no localStorage
+ * - Discreto: design minimalista com hover sutil
+ * - Acessível: tooltip e aria-label
+ */
+export const FloatingSupportButton: React.FC = () => {
+  const [position, setPosition] = useState<Position>({ x: 24, y: 24 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dragStartPos = useRef<Position>({ x: 0, y: 0 });
+
+  // Carregar posição salva do localStorage
+  useEffect(() => {
+    const savedPosition = localStorage.getItem(STORAGE_KEY);
+    if (savedPosition) {
+      try {
+        const parsed = JSON.parse(savedPosition);
+        setPosition(parsed);
+      } catch (e) {
+        console.debug('Failed to parse saved position');
+      }
+    }
+  }, []);
+
+  // Salvar posição no localStorage quando mudar
+  const savePosition = (newPosition: Position) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newPosition));
+    setPosition(newPosition);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return; // apenas botão esquerdo
+    e.preventDefault();
+    setIsDragging(true);
+    dragStartPos.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    };
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const touch = e.touches[0];
+    dragStartPos.current = {
+      x: touch.clientX - position.x,
+      y: touch.clientY - position.y,
+    };
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      
+      const newX = e.clientX - dragStartPos.current.x;
+      const newY = e.clientY - dragStartPos.current.y;
+      
+      // Limitar dentro da viewport
+      const maxX = window.innerWidth - 48;
+      const maxY = window.innerHeight - 48;
+      
+      setPosition({
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY)),
+      });
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging) return;
+      
+      const touch = e.touches[0];
+      const newX = touch.clientX - dragStartPos.current.x;
+      const newY = touch.clientY - dragStartPos.current.y;
+      
+      const maxX = window.innerWidth - 48;
+      const maxY = window.innerHeight - 48;
+      
+      setPosition({
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY)),
+      });
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging) {
+        setIsDragging(false);
+        savePosition(position);
+      }
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleMouseUp);
+    };
+  }, [isDragging, position]);
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Não abrir WhatsApp se estava arrastando
+    if (isDragging) {
+      e.preventDefault();
+      return;
+    }
+    
+    window.open(getWhatsAppUrl('Olá! Preciso de suporte.'), '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            ref={buttonRef}
+            onClick={handleClick}
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+            className={cn(
+              'fixed rounded-full shadow-lg transition-all duration-200',
+              'bg-[#25D366] hover:bg-[#1fb855] text-white',
+              'flex items-center justify-center',
+              'touch-none select-none',
+              isDragging ? 'cursor-grabbing scale-110' : 'cursor-grab scale-100',
+              isHovering && !isDragging && 'scale-105',
+              'focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2'
+            )}
+            style={{
+              left: `${position.x}px`,
+              top: `${position.y}px`,
+              width: '48px',
+              height: '48px',
+              zIndex: 9999,
+              opacity: isDragging ? 0.9 : isHovering ? 1 : 0.85,
+            }}
+            aria-label="Suporte via WhatsApp"
+          >
+            <MessageCircle className="h-6 w-6" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="left" className="bg-[#25D366] text-white border-none">
+          <p className="font-medium">Suporte via WhatsApp</p>
+          <p className="text-xs opacity-90">Arraste para mover</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
