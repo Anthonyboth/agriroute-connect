@@ -25,7 +25,10 @@
     <meta name="msapplication-config" content="/browserconfig.xml">
     
     <!-- FIRST: Preload LCP hero image - MUST be before everything else -->
-    <link rel="preload" as="image" href="/hero-truck-real-night.webp" fetchpriority="high" type="image/webp">
+    <link rel="preload" as="image" href="/hero-truck-night-mobile.webp" 
+          imagesrcset="/hero-truck-night-mobile.webp 800w, /hero-truck-real-night.webp 1920w"
+          imagesizes="(max-width: 768px) 800px, 1920px"
+          fetchpriority="high" type="image/webp">
     
     <!-- DNS prefetch and preconnect to Supabase API for faster API requests -->
     <link rel="dns-prefetch" href="https://shnvtxejjecbnztdbbbl.supabase.co">
