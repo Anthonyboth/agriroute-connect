@@ -27,8 +27,10 @@ export const FloatingSupportButton: React.FC = () => {
   const [position, setPosition] = useState<Position>({ x: 24, y: 24 });
   const [isDragging, setIsDragging] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const buttonRef = useRef<HTMLAnchorElement>(null);
   const dragStartPos = useRef<Position>({ x: 0, y: 0 });
+  const hasMoved = useRef(false);
+  const startPosition = useRef<Position>({ x: 0, y: 0 });
 
   // Carregar posição salva do localStorage
   useEffect(() => {
@@ -51,7 +53,8 @@ export const FloatingSupportButton: React.FC = () => {
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return; // apenas botão esquerdo
-    e.preventDefault();
+    hasMoved.current = false;
+    startPosition.current = { x: e.clientX, y: e.clientY };
     setIsDragging(true);
     dragStartPos.current = {
       x: e.clientX - position.x,
@@ -61,8 +64,10 @@ export const FloatingSupportButton: React.FC = () => {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     e.preventDefault();
-    setIsDragging(true);
     const touch = e.touches[0];
+    hasMoved.current = false;
+    startPosition.current = { x: touch.clientX, y: touch.clientY };
+    setIsDragging(true);
     dragStartPos.current = {
       x: touch.clientX - position.x,
       y: touch.clientY - position.y,
@@ -72,6 +77,15 @@ export const FloatingSupportButton: React.FC = () => {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
+      
+      // Detectar se houve movimento significativo (>5px)
+      const distance = Math.sqrt(
+        Math.pow(e.clientX - startPosition.current.x, 2) +
+        Math.pow(e.clientY - startPosition.current.y, 2)
+      );
+      if (distance > 5) {
+        hasMoved.current = true;
+      }
       
       const newX = e.clientX - dragStartPos.current.x;
       const newY = e.clientY - dragStartPos.current.y;
@@ -90,6 +104,16 @@ export const FloatingSupportButton: React.FC = () => {
       if (!isDragging) return;
       
       const touch = e.touches[0];
+      
+      // Detectar se houve movimento significativo (>5px)
+      const distance = Math.sqrt(
+        Math.pow(touch.clientX - startPosition.current.x, 2) +
+        Math.pow(touch.clientY - startPosition.current.y, 2)
+      );
+      if (distance > 5) {
+        hasMoved.current = true;
+      }
+      
       const newX = touch.clientX - dragStartPos.current.x;
       const newY = touch.clientY - dragStartPos.current.y;
       
@@ -125,21 +149,24 @@ export const FloatingSupportButton: React.FC = () => {
   }, [isDragging, position]);
 
   const handleClick = (e: React.MouseEvent) => {
-    // Não abrir WhatsApp se estava arrastando
-    if (isDragging) {
+    // Só prevenir navegação se realmente arrastou
+    if (hasMoved.current) {
       e.preventDefault();
+      e.stopPropagation();
       return;
     }
-    
-    window.open(getWhatsAppUrl('Olá! Preciso de suporte.'), '_blank', 'noopener,noreferrer');
+    // Se não arrastou, deixa o link <a> funcionar naturalmente
   };
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
+          <a
             ref={buttonRef}
+            href={getWhatsAppUrl('Olá! Preciso de suporte.')}
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={handleClick}
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
@@ -165,7 +192,7 @@ export const FloatingSupportButton: React.FC = () => {
             aria-label="Suporte via WhatsApp"
           >
             <MessageCircle className="h-6 w-6" />
-          </button>
+          </a>
         </TooltipTrigger>
         <TooltipContent side="left" className="bg-[#25D366] text-white border-none">
           <p className="font-medium">Suporte via WhatsApp</p>
