@@ -14,27 +14,6 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthErrorBoundary } from "@/components/AuthErrorBoundary";
 import { PageDOMErrorBoundary } from "@/components/PageDOMErrorBoundary";
 import Landing from "./pages/Landing";
-import Auth from "./pages/Auth";
-import ResetPassword from "./pages/ResetPassword";
-import ConfirmEmail from "./pages/ConfirmEmail";
-import CompleteProfile from "./pages/CompleteProfile";
-import ServiceProviderRegistration from "./pages/ServiceProviderRegistration";
-import Services from "./pages/Services";
-import NotFound from "./pages/NotFound";
-import About from "./pages/About";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import Cookies from "./pages/Cookies";
-import Status from "./pages/Status";
-import TransportCompanyRegistration from "./pages/TransportCompanyRegistration";
-
-import Careers from "./pages/Careers";
-import Help from "./pages/Help";
-import Subscription from "./pages/Subscription";
-import Plans from "./pages/Plans";
-import SystemTest from "./pages/SystemTest";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import PaymentCancel from "./pages/PaymentCancel";
 import React, { lazy, Suspense } from 'react';
 import { useAuth } from "./hooks/useAuth";
 import { useCompanyDriver } from "./hooks/useCompanyDriver";
@@ -47,6 +26,29 @@ import { SilentCityBootstrap } from './components/SilentCityBootstrap';
 import { ZipCodeService } from './services/zipCodeService';
 import { GlobalAnnouncementBar } from './components/GlobalAnnouncementBar';
 import { FloatingSupportButton } from './components/FloatingSupportButton';
+
+// Lazy load all page components except Landing (needed for initial render)
+const Auth = lazy(() => import("./pages/Auth"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const ConfirmEmail = lazy(() => import("./pages/ConfirmEmail"));
+const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
+const ServiceProviderRegistration = lazy(() => import("./pages/ServiceProviderRegistration"));
+const Services = lazy(() => import("./pages/Services"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const About = lazy(() => import("./pages/About"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Cookies = lazy(() => import("./pages/Cookies"));
+const Status = lazy(() => import("./pages/Status"));
+const TransportCompanyRegistration = lazy(() => import("./pages/TransportCompanyRegistration"));
+const Careers = lazy(() => import("./pages/Careers"));
+const Help = lazy(() => import("./pages/Help"));
+const Subscription = lazy(() => import("./pages/Subscription"));
+const Plans = lazy(() => import("./pages/Plans"));
+const SystemTest = lazy(() => import("./pages/SystemTest"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const PaymentCancel = lazy(() => import("./pages/PaymentCancel"));
+const DriverInviteSignup = lazy(() => import("./pages/DriverInviteSignup"));
 const PressPage = lazy(() => import("./pages/Press"));
 const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess"));
 const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
@@ -60,7 +62,6 @@ const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
 const CompanyDashboard = lazy(() => import("./pages/CompanyDashboard"));
 const ServiceProviderDashboard = lazy(() => import("./pages/ServiceProviderDashboard"));
 const NfeDashboard = lazy(() => import("./pages/NfeDashboard"));
-import DriverInviteSignup from "./pages/DriverInviteSignup";
 import { AlertCircle } from 'lucide-react';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
@@ -417,7 +418,7 @@ const RedirectIfAuthed = () => {
     return <ComponentLoader />;
   }
   
-  if (!isAuthenticated) return <Auth />;
+  if (!isAuthenticated) return <Suspense fallback={<ComponentLoader />}><Auth /></Suspense>;
   
   // Evita redirecionar cedo demais: só vá para /complete-profile
   // quando já soubermos que não há perfis após o carregamento
@@ -571,13 +572,15 @@ const App = () => {
                         <Route path="/" element={<AuthedLanding />} />
                         <Route path="/landing" element={<Landing />} />
                         <Route path="/auth" element={<RedirectIfAuthed />} />
-                        <Route path="/reset-password" element={<ResetPassword />} />
-                        <Route path="/confirm-email" element={<ConfirmEmail />} />
+                        <Route path="/reset-password" element={<Suspense fallback={<ComponentLoader />}><ResetPassword /></Suspense>} />
+                        <Route path="/confirm-email" element={<Suspense fallback={<ComponentLoader />}><ConfirmEmail /></Suspense>} />
                         <Route 
                           path="/complete-profile" 
                           element={
                             <ProtectedRoute requiresAuth>
-                              <CompleteProfile />
+                              <Suspense fallback={<ComponentLoader />}>
+                                <CompleteProfile />
+                              </Suspense>
                             </ProtectedRoute>
                           } 
                         />
@@ -661,33 +664,37 @@ const App = () => {
                             </ProtectedRoute>
                           } 
                         />
-                        <Route path="/services" element={<Services />} />
-                        <Route path="/subscription" element={<Subscription />} />
+                        <Route path="/services" element={<Suspense fallback={<ComponentLoader />}><Services /></Suspense>} />
+                        <Route path="/subscription" element={<Suspense fallback={<ComponentLoader />}><Subscription /></Suspense>} />
                         <Route path="/plans" element={
                           <ProtectedRoute requiresAuth>
-                            <Plans />
+                            <Suspense fallback={<ComponentLoader />}>
+                              <Plans />
+                            </Suspense>
                           </ProtectedRoute>
                         } />
-                        <Route path="/cadastro-prestador" element={<ServiceProviderRegistration />} />
+                        <Route path="/cadastro-prestador" element={<Suspense fallback={<ComponentLoader />}><ServiceProviderRegistration /></Suspense>} />
                         <Route 
                           path="/cadastro-transportadora" 
                           element={
                             <ProtectedRoute requiresAuth>
-                              <TransportCompanyRegistration />
+                              <Suspense fallback={<ComponentLoader />}>
+                                <TransportCompanyRegistration />
+                              </Suspense>
                             </ProtectedRoute>
                           } 
                         />
-                        <Route path="/sobre" element={<About />} />
-                        <Route path="/privacidade" element={<Privacy />} />
-                        <Route path="/termos" element={<Terms />} />
-                        <Route path="/cookies" element={<Cookies />} />
-                        <Route path="/status" element={<Status />} />
+                        <Route path="/sobre" element={<Suspense fallback={<ComponentLoader />}><About /></Suspense>} />
+                        <Route path="/privacidade" element={<Suspense fallback={<ComponentLoader />}><Privacy /></Suspense>} />
+                        <Route path="/termos" element={<Suspense fallback={<ComponentLoader />}><Terms /></Suspense>} />
+                        <Route path="/cookies" element={<Suspense fallback={<ComponentLoader />}><Cookies /></Suspense>} />
+                        <Route path="/status" element={<Suspense fallback={<ComponentLoader />}><Status /></Suspense>} />
                         <Route path="/imprensa" element={<Suspense fallback={<ComponentLoader />}><PressPage /></Suspense>} />
-                        <Route path="/carreiras" element={<Careers />} />
-                        <Route path="/ajuda" element={<Help />} />
-                        <Route path="/system-test" element={<SystemTest />} />
-                        <Route path="/payment/success" element={<PaymentSuccess />} />
-                        <Route path="/payment/cancel" element={<PaymentCancel />} />
+                        <Route path="/carreiras" element={<Suspense fallback={<ComponentLoader />}><Careers /></Suspense>} />
+                        <Route path="/ajuda" element={<Suspense fallback={<ComponentLoader />}><Help /></Suspense>} />
+                        <Route path="/system-test" element={<Suspense fallback={<ComponentLoader />}><SystemTest /></Suspense>} />
+                        <Route path="/payment/success" element={<Suspense fallback={<ComponentLoader />}><PaymentSuccess /></Suspense>} />
+                        <Route path="/payment/cancel" element={<Suspense fallback={<ComponentLoader />}><PaymentCancel /></Suspense>} />
                         <Route path="/service-payment/success" element={
                           <Suspense fallback={<ComponentLoader />}> 
                             <ServicePaymentSuccess />
@@ -708,7 +715,7 @@ const App = () => {
                             <AffiliateSignup />
                           </Suspense>
                         } />
-                        <Route path="/cadastro-motorista" element={<DriverInviteSignup />} />
+                        <Route path="/cadastro-motorista" element={<Suspense fallback={<ComponentLoader />}><DriverInviteSignup /></Suspense>} />
                         <Route path="/cadastro-motorista-afiliado" element={
                           <Suspense fallback={<ComponentLoader />}> 
                             {React.createElement(lazy(() => import('./pages/AffiliatedDriverSignup')))}
