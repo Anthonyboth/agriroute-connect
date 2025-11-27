@@ -124,7 +124,7 @@ const Subscription: React.FC = () => {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground mt-4">
-            agrirouteconnect@gmail.com • 015 66 9 9942-6656
+            agrirouteconnect@gmail.com • (66) 9 9273-4632
           </p>
         </CardContent>
       </Card>

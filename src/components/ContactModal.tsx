@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MessageCircle, Mail, Phone, MapPin, Clock } from 'lucide-react';
+import { SUPPORT_PHONE_DISPLAY, SUPPORT_EMAIL } from '@/lib/support-contact';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -55,7 +56,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
                 </div>
                 <h3 className="font-semibold mb-2">E-mail</h3>
                 <p className="text-sm font-mono text-foreground mb-2">
-                  agrirouteconnect@gmail.com
+                  {SUPPORT_EMAIL}
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
                   Envie sua mensagem por e-mail
@@ -64,7 +65,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
                   variant="outline" 
                   className="w-full"
                   onClick={() => {
-                    window.open('mailto:agrirouteconnect@gmail.com?subject=Contato AgriRoute', '_blank');
+                    window.open(`mailto:${SUPPORT_EMAIL}?subject=Contato AgriRoute`, '_blank');
                   }}
                 >
                   Enviar E-mail
@@ -87,7 +88,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
                   <Phone className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium">Telefone</p>
-                    <p className="text-sm text-muted-foreground">(66) 9 9273-4632</p>
+                    <p className="text-sm text-muted-foreground">{SUPPORT_PHONE_DISPLAY}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-center gap-2">
