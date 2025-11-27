@@ -236,10 +236,17 @@ const Landing: React.FC = () => {
         <picture>
           <source 
             type="image/webp" 
+            media="(max-width: 768px)"
+            srcSet="/hero-truck-night-mobile.webp"
+          />
+          <source 
+            type="image/webp" 
             srcSet="/hero-truck-real-night.webp"
           />
           <img 
             src="/hero-truck-real-night.webp"
+            srcSet="/hero-truck-night-mobile.webp 800w, /hero-truck-real-night.webp 1920w"
+            sizes="(max-width: 768px) 800px, 1920px"
             alt="Logística agrícola moderna - caminhão transportando carga agrícola"
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
