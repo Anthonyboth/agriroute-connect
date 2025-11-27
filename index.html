@@ -60,6 +60,13 @@
       .gap-4{gap:1rem}
     </style>
     
+    <!-- Async CSS loading pattern for non-critical CSS -->
+    <link rel="preload" href="/assets/index-AGMt3yw8.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/assets/index-AGMt3yw8.css"></noscript>
+    <script>
+      !function(e){"use strict";var t=function(t,n,r){var o,i=e.document,c=i.createElement("link");if(n)o=n;else{var a=(i.body||i.getElementsByTagName("head")[0]).childNodes;o=a[a.length-1]}var d=i.styleSheets;if(r)for(var s=d.length;s--;)if(d[s].href===t)return;c.rel="stylesheet",c.href=t,c.media="only x",function e(t){if(i.body)return t();setTimeout(function(){e(t)})}(function(){o.parentNode.insertBefore(c,n?o:o.nextSibling)});var l=function(e){for(var t=c.href,n=d.length;n--;)if(d[n].href===t)return e();setTimeout(function(){l(e)})};function u(){c.addEventListener&&c.removeEventListener("load",u),c.media=r||"all"}return c.addEventListener&&c.addEventListener("load",u),c.onloadcssdefined=l,l(u),c};"undefined"!=typeof exports?exports.loadCSS=t:e.loadCSS=t}("undefined"!=typeof global?global:this);
+    </script>
+    
     <title>AgriRoute - Logística Agrícola Inteligente</title>
     <meta name="description" content="Ambiente digital para orquestrar, conectar e monitorar o transporte agrícola. Conecte produtores rurais e motoristas com eficiência e segurança." />
     <meta name="author" content="AgriRoute" />
