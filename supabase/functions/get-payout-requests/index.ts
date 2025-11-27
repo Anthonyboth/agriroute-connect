@@ -38,9 +38,21 @@ serve(async (req) => {
       throw new Error('Perfil não encontrado')
     }
 
-    // Verificar se é o próprio motorista ou admin
-    if (profile.id !== driver_id && profile.role !== 'ADMIN') {
-      throw new Error('Acesso negado')
+    // Check if user is the driver themselves or has admin role
+    const isOwnProfile = profile.id === driver_id;
+    
+    if (!isOwnProfile) {
+      // Check if user has admin role via user_roles table
+      const { data: adminRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .in('role', ['admin', 'moderator'])
+        .maybeSingle();
+
+      if (!adminRole) {
+        throw new Error('Acesso negado')
+      }
     }
 
     // Buscar solicitações de saque

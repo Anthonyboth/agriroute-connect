@@ -39,14 +39,29 @@ serve(async (req) => {
       );
     }
 
-    // Verificar se é admin
-    const { data: profile } = await supabase
-      .from("profiles")
+    // Verify user has admin role via user_roles table
+    const { data: adminRole, error: roleError } = await supabase
+      .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
-      .single();
+      .in("role", ["admin", "moderator"])
+      .maybeSingle();
 
-    if (!profile || profile.role !== 'ADMIN') {
+    if (!adminRole) {
+      console.error(`[ADMIN-AUTO-HEAL] Unauthorized access attempt by user: ${user.id}`);
+      
+      // Send Telegram alert for unauthorized access
+      await supabase.functions.invoke('send-telegram-alert', {
+        body: {
+          errorData: {
+            errorType: 'SECURITY_VIOLATION',
+            errorCategory: 'UNAUTHORIZED_ACCESS',
+            errorMessage: `Unauthorized admin-auto-heal attempt by user ${user.id}`,
+            metadata: { user_id: user.id, function: 'admin-auto-heal' }
+          }
+        }
+      });
+      
       return new Response(
         JSON.stringify({ error: "Admin access required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
