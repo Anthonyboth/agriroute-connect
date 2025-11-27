@@ -2,9 +2,13 @@ import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { ReactNode, useState } from 'react';
 
-// Publishable key from env with safe fallback
-const PUBLISHABLE_KEY: string = (import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string) ||
-  'pk_test_51PU0MKBwKFCfq3PUCI4pLNxEpCQTRdKgBxdmLiPvvhg2iICHzK0qnUHhIJNRQoM1cHLxNhAAqn2fHe7sUbdgEjqq00VDqJW7L8';
+// Publishable key from env - required for production
+const PUBLISHABLE_KEY: string = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string;
+
+if (!PUBLISHABLE_KEY) {
+  console.error('[Stripe] VITE_STRIPE_PUBLISHABLE_KEY not configured');
+  throw new Error('Stripe configuration missing. Please configure VITE_STRIPE_PUBLISHABLE_KEY in environment variables.');
+}
 
 // True singleton for Stripe instance
 let stripePromiseRef: Promise<Stripe | null> | null = null;

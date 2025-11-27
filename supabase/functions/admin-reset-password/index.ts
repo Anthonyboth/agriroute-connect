@@ -42,14 +42,32 @@ serve(async (req) => {
       throw new Error('Não autorizado');
     }
 
-    // Verificar se o usuário é admin
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
+    // Verify user has admin role via user_roles table
+    const { data: adminRole, error: roleError } = await supabaseClient
+      .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
-      .single();
+      .in('role', ['admin', 'moderator'])
+      .maybeSingle();
 
-    if (profileError || !profile || profile.role !== 'ADMIN') {
+    if (!adminRole) {
+      console.error('[admin-reset-password] Unauthorized access attempt');
+      
+      // Send Telegram alert about unauthorized attempt
+      await supabaseClient.functions.invoke('send-telegram-alert', {
+        body: {
+          errorData: {
+            errorType: 'SECURITY_VIOLATION',
+            errorCategory: 'UNAUTHORIZED_ACCESS',
+            errorMessage: 'Unauthorized attempt to reset user password',
+            metadata: {
+              attempted_by_user_id: user?.id,
+              timestamp: new Date().toISOString(),
+            },
+          },
+        },
+      });
+      
       throw new Error('Acesso negado. Apenas administradores podem resetar senhas.');
     }
 
