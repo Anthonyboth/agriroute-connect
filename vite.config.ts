@@ -4,29 +4,21 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Plugin to add preload hints for critical resources
-const preloadCriticalResources = () => ({
-  name: 'preload-critical-resources',
+// Plugin to make CSS async (non-render-blocking)
+const asyncCssPlugin = () => ({
+  name: 'async-css-plugin',
   transformIndexHtml: {
     order: 'post' as const,
-    handler(html: string, ctx: any) {
-      if (!ctx.bundle) return html;
-      
-      // Find CSS files to preload
-      const cssFiles = Object.keys(ctx.bundle).filter((file: string) => 
-        file.endsWith('.css') && file.startsWith('assets/')
+    handler(html: string) {
+      // Transform synchronous CSS links to async loading pattern
+      return html.replace(
+        /<link ([^>]*?)rel="stylesheet"([^>]*?)href="([^"]+\.css)"([^>]*?)>/gi,
+        (match, before, middle, href, after) => {
+          // Create async CSS loading with preload + onload pattern
+          return `<link ${before}rel="preload"${middle}href="${href}"${after} as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="${href}"></noscript>`;
+        }
       );
-      
-      let preloadLinks = '';
-      cssFiles.forEach((file: string) => {
-        preloadLinks += `  <link rel="preload" href="/${file}" as="style">\n`;
-      });
-      
-      if (preloadLinks) {
-        html = html.replace('</head>', `${preloadLinks}</head>`);
-      }
-      
-      return html;
     }
   }
 });
@@ -40,7 +32,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
-    preloadCriticalResources(),
+    asyncCssPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'script-defer',
