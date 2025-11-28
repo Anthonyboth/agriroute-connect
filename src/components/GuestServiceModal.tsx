@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { User, MessageCircle, Mail, Truck, Home, Package, Info, AlertCircle, ArrowLeft } from 'lucide-react';
+import { User, MessageCircle, Mail, Truck, Home, Package, Info, AlertCircle, ArrowLeft, MapPin } from 'lucide-react';
 import { showErrorToast } from '@/lib/error-handler';
 import { LocationFillButton } from './LocationFillButton';
 import { UserLocationSelector } from './UserLocationSelector';
@@ -54,6 +54,20 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
     origin_lng: undefined as number | undefined,
     destination_lat: undefined as number | undefined,
     destination_lng: undefined as number | undefined,
+    origin_street: '',
+    origin_neighborhood: '',
+    origin_number: '',
+    origin_complement: '',
+    origin_city: '',
+    origin_state: '',
+    origin_cep: '',
+    destination_street: '',
+    destination_neighborhood: '',
+    destination_number: '',
+    destination_complement: '',
+    destination_city: '',
+    destination_state: '',
+    destination_cep: '',
     cargoType: '',
     cargoWeight: '',
     cargoWeightUnit: 'kg' as 'kg' | 'ton',
@@ -192,9 +206,21 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
       toast.error('Por favor, preencha seu telefone');
       return;
     }
-    if (!formData.origin?.trim()) {
-      toast.error('Por favor, preencha o endereço de origem');
+    
+    // Validar campos de endereço estruturado - ORIGEM
+    if (!formData.origin_street?.trim() || !formData.origin_neighborhood?.trim() || 
+        !formData.origin_number?.trim() || !formData.origin_city?.trim()) {
+      toast.error('Por favor, preencha todos os campos obrigatórios do endereço de coleta');
       return;
+    }
+    
+    // Validar destino para serviços que não sejam guincho
+    if (selectedSubService !== 'GUINCHO') {
+      if (!formData.destination_street?.trim() || !formData.destination_neighborhood?.trim() || 
+          !formData.destination_number?.trim() || !formData.destination_city?.trim()) {
+        toast.error('Por favor, preencha todos os campos obrigatórios do endereço de entrega');
+        return;
+      }
     }
     
     // VALIDAR GUEST (agora permite continuar)
@@ -226,12 +252,13 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
     setLoading(true);
     
     try {
-      // Validar campos obrigatórios
-      if (!formData.name || !formData.phone || !formData.origin) {
-        toast.error('Preencha todos os campos obrigatórios');
-        setLoading(false);
-        return;
-      }
+      // Construir endereço completo de origem
+      const originAddress = `${formData.origin_street}, ${formData.origin_number}${formData.origin_complement ? ', ' + formData.origin_complement : ''}, ${formData.origin_neighborhood}, ${formData.origin_city}`;
+      
+      // Construir endereço completo de destino
+      const destinationAddress = selectedSubService !== 'GUINCHO' 
+        ? `${formData.destination_street}, ${formData.destination_number}${formData.destination_complement ? ', ' + formData.destination_complement : ''}, ${formData.destination_neighborhood}, ${formData.destination_city}`
+        : null;
 
       // Preparar dados detalhados da carga
       const cargoDetails = selectedSubService !== 'GUINCHO' ? {
@@ -252,18 +279,37 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
           contact_phone: formData.phone,
           contact_email: formData.email,
           contact_document: formData.document.replace(/\D/g, ''),
-          location_address: formData.origin,
+          location_address: originAddress,
           location_lat: formData.origin_lat,
           location_lng: formData.origin_lng,
           problem_description: formData.description,
           urgency: formData.urgency,
           status: 'OPEN',
-          city_name: formData.origin.split(',')[0]?.trim(),
-          state: formData.origin.split(',')[1]?.trim(),
+          city_name: formData.origin_city,
+          state: formData.origin_state || formData.origin_city.split(',')[1]?.trim(),
           additional_info: JSON.stringify({
-            destination: formData.destination || null,
-            destination_lat: formData.destination_lat,
-            destination_lng: formData.destination_lng,
+            origin: {
+              street: formData.origin_street,
+              neighborhood: formData.origin_neighborhood,
+              number: formData.origin_number,
+              complement: formData.origin_complement,
+              city: formData.origin_city,
+              state: formData.origin_state,
+              cep: formData.origin_cep,
+              full_address: originAddress
+            },
+            destination: destinationAddress ? {
+              street: formData.destination_street,
+              neighborhood: formData.destination_neighborhood,
+              number: formData.destination_number,
+              complement: formData.destination_complement,
+              city: formData.destination_city,
+              state: formData.destination_state,
+              cep: formData.destination_cep,
+              full_address: destinationAddress,
+              lat: formData.destination_lat,
+              lng: formData.destination_lng
+            } : null,
             preferredTime: formData.preferredTime || null,
             cargoDetails: cargoDetails
           })
@@ -318,8 +364,24 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-2xl">
+        <DialogHeader className="relative">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (selectedSubService) {
+                setSelectedSubService('');
+              } else {
+                onClose();
+              }
+            }}
+            className="absolute left-0 top-0 flex items-center gap-1 z-10"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          <DialogTitle className="flex items-center gap-2 text-2xl pt-8">
             <span className="text-2xl">{info.icon}</span>
             {info.title}
           </DialogTitle>
@@ -433,51 +495,171 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                     </Alert>
                   )}
 
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-2">
-                      <Label>Localização do Atendimento *</Label>
-                      <UserLocationSelector 
-                        onLocationChange={(location) => {
-                          if (location) {
-                            setFormData(prev => ({
-                              ...prev,
-                              origin: `${location.city}, ${location.state}`,
-                              origin_lat: location.lat,
-                              origin_lng: location.lng
-                            }));
-                          }
-                        }}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Se a localização automática não funcionar, digite o endereço manualmente
-                      </p>
-                    </div>
-                    {serviceType !== 'GUINCHO' && (
+                  {/* ORIGEM - Endereço Completo */}
+                  <div className="space-y-3 border border-border rounded-lg p-4">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Endereço de Coleta *
+                    </h4>
+                    
+                    <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="destination">Destino *</Label>
-                        <div className="flex gap-2">
+                        <Label htmlFor="origin_cep">CEP</Label>
+                        <Input
+                          id="origin_cep"
+                          value={formData.origin_cep}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '');
+                            if (value.length <= 8) {
+                              handleInputChange('origin_cep', value);
+                            }
+                          }}
+                          placeholder="00000-000"
+                          maxLength={9}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="origin_city">Cidade *</Label>
+                        <Input
+                          id="origin_city"
+                          value={formData.origin_city}
+                          onChange={(e) => handleInputChange('origin_city', e.target.value)}
+                          placeholder="Nome da cidade"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="origin_street">Rua/Avenida *</Label>
+                      <Input
+                        id="origin_street"
+                        value={formData.origin_street}
+                        onChange={(e) => handleInputChange('origin_street', e.target.value)}
+                        placeholder="Nome da rua"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="origin_neighborhood">Bairro *</Label>
+                        <Input
+                          id="origin_neighborhood"
+                          value={formData.origin_neighborhood}
+                          onChange={(e) => handleInputChange('origin_neighborhood', e.target.value)}
+                          placeholder="Nome do bairro"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="origin_number">Número *</Label>
+                        <Input
+                          id="origin_number"
+                          value={formData.origin_number}
+                          onChange={(e) => handleInputChange('origin_number', e.target.value)}
+                          placeholder="Número"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="origin_complement">Complemento</Label>
+                      <Input
+                        id="origin_complement"
+                        value={formData.origin_complement}
+                        onChange={(e) => handleInputChange('origin_complement', e.target.value)}
+                        placeholder="Apto, bloco, etc. (opcional)"
+                      />
+                    </div>
+                  </div>
+
+                  {/* DESTINO - Endereço Completo */}
+                  {serviceType !== 'GUINCHO' && (
+                    <div className="space-y-3 border border-border rounded-lg p-4">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Endereço de Entrega *
+                      </h4>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="destination_cep">CEP</Label>
                           <Input
-                            id="destination"
-                            value={formData.destination}
-                            onChange={(e) => handleInputChange('destination', e.target.value)}
-                            required
-                            className="flex-1"
-                            placeholder="Local de entrega"
-                          />
-                          <LocationFillButton
-                            onLocationFilled={(address, lat, lng) => {
-                              handleInputChange('destination', address);
-                              setFormData(prev => ({
-                                ...prev,
-                                destination_lat: lat,
-                                destination_lng: lng
-                              }));
+                            id="destination_cep"
+                            value={formData.destination_cep}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '');
+                              if (value.length <= 8) {
+                                handleInputChange('destination_cep', value);
+                              }
                             }}
+                            placeholder="00000-000"
+                            maxLength={9}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="destination_city">Cidade *</Label>
+                          <Input
+                            id="destination_city"
+                            value={formData.destination_city}
+                            onChange={(e) => handleInputChange('destination_city', e.target.value)}
+                            placeholder="Nome da cidade"
+                            required
                           />
                         </div>
                       </div>
-                    )}
-                  </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="destination_street">Rua/Avenida *</Label>
+                        <Input
+                          id="destination_street"
+                          value={formData.destination_street}
+                          onChange={(e) => handleInputChange('destination_street', e.target.value)}
+                          placeholder="Nome da rua"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="destination_neighborhood">Bairro *</Label>
+                          <Input
+                            id="destination_neighborhood"
+                            value={formData.destination_neighborhood}
+                            onChange={(e) => handleInputChange('destination_neighborhood', e.target.value)}
+                            placeholder="Nome do bairro"
+                            required
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="destination_number">Número *</Label>
+                          <Input
+                            id="destination_number"
+                            value={formData.destination_number}
+                            onChange={(e) => handleInputChange('destination_number', e.target.value)}
+                            placeholder="Número"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="destination_complement">Complemento</Label>
+                        <Input
+                          id="destination_complement"
+                          value={formData.destination_complement}
+                          onChange={(e) => handleInputChange('destination_complement', e.target.value)}
+                          placeholder="Apto, bloco, etc. (opcional)"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Campos de Informações da Carga */}
                   {selectedSubService && selectedSubService !== 'GUINCHO' && (

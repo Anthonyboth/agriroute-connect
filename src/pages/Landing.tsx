@@ -232,7 +232,7 @@ const Landing: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="hero-section relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+      <section className="hero-section relative min-h-[100svh] sm:min-h-[90vh] w-full flex items-center justify-center overflow-hidden">
         <picture>
           <source 
             type="image/webp" 
