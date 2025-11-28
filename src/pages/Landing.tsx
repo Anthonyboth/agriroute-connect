@@ -237,23 +237,27 @@ const Landing: React.FC = () => {
           <source 
             type="image/webp" 
             media="(max-width: 768px)"
-            srcSet="/hero-truck-night-mobile.webp"
+            srcSet="/hero-truck-night-mobile-opt.webp"
+            width="800"
+            height="1200"
           />
           <source 
             type="image/webp" 
             srcSet="/hero-truck-real-night.webp"
+            width="1920"
+            height="1080"
           />
           <img 
-            src="/hero-truck-real-night.webp"
-            srcSet="/hero-truck-night-mobile.webp 800w, /hero-truck-real-night.webp 1920w"
-            sizes="(max-width: 768px) 800px, 1920px"
+            src="/hero-truck-night-mobile-opt.webp"
+            srcSet="/hero-truck-night-mobile-opt.webp 800w, /hero-truck-real-night.webp 1920w"
+            sizes="(max-width: 768px) 100vw, 1920px"
             alt="Logística agrícola moderna - caminhão transportando carga agrícola"
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
             fetchPriority="high"
             decoding="async"
-            width="1920"
-            height="1080"
+            width="800"
+            height="1200"
           />
         </picture>
         <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/50 to-transparent" />
