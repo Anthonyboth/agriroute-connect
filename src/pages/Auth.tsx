@@ -366,6 +366,7 @@ const Auth = () => {
       } else {
         // Login bem-sucedido - verificar se há múltiplos perfis IMEDIATAMENTE
         toast.success('Login realizado!');
+        sessionStorage.removeItem('profile_fetch_cooldown_until');
         
         // Verificar múltiplos perfis sem delay
         const { data: { user } } = await supabase.auth.getUser();
@@ -379,14 +380,30 @@ const Auth = () => {
             // Usuário tem múltiplos perfis - mostrar seletor
             setAvailableProfiles(userProfiles);
             setShowProfileSelector(true);
-            setLoading(false); // ✅ Limpar loading
+            setLoading(false);
             return;
           }
-          // Se há apenas 1 perfil, deixar RedirectIfAuthed redirecionar
-          console.log('[AUTH] Login concluído, redirecionando...');
-          setLoading(false); // ✅ Limpar loading
-          return;
+          
+          // Se há apenas 1 perfil, redirecionar diretamente
+          if (!profilesError && userProfiles && userProfiles.length === 1) {
+            const targetProfile = userProfiles[0];
+            setLoading(false);
+            
+            if (targetProfile.role === 'MOTORISTA' || targetProfile.role === 'MOTORISTA_AFILIADO') {
+              navigate('/dashboard/driver');
+            } else if (targetProfile.role === 'PRODUTOR') {
+              navigate('/dashboard/producer');
+            } else if (targetProfile.role === 'TRANSPORTADORA') {
+              navigate('/dashboard/company');
+            } else if (targetProfile.role === 'PRESTADOR_SERVICOS') {
+              navigate('/dashboard/service-provider');
+            } else {
+              navigate('/');
+            }
+            return;
+          }
         }
+        setLoading(false);
       }
     } catch (error) {
       console.error('Login error:', error);
