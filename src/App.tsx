@@ -571,7 +571,7 @@ const App = () => {
                       <Routes>
                         <Route path="/" element={<AuthedLanding />} />
                         <Route path="/landing" element={<Landing />} />
-                        <Route path="/auth" element={<RedirectIfAuthed />} />
+                        <Route path="/auth" element={<Suspense fallback={<ComponentLoader />}><Auth /></Suspense>} />
                         <Route path="/reset-password" element={<Suspense fallback={<ComponentLoader />}><ResetPassword /></Suspense>} />
                         <Route path="/confirm-email" element={<Suspense fallback={<ComponentLoader />}><ConfirmEmail /></Suspense>} />
                         <Route 
