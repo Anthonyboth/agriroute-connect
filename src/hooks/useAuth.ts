@@ -83,7 +83,18 @@ export const useAuth = () => {
 
   // Memoized fetch function to prevent recreation on every render
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
-    // ✅ 1. GATE: Verificar cooldown persistente no sessionStorage PRIMEIRO
+    // ✅ CRÍTICO: Verificar cache ANTES de qualquer gate/early return
+    if (!force) {
+      const cachedProfile = getCachedProfile(userId);
+      if (cachedProfile) {
+        setProfiles([cachedProfile]);
+        setProfile(cachedProfile);
+        setLoading(false);  // ✅ Garante que loading seja false
+        return;
+      }
+    }
+    
+    // ✅ 1. GATE: Verificar cooldown persistente no sessionStorage
     const COOLDOWN_KEY = 'profile_fetch_cooldown_until';
     const cooldownUntil = parseInt(sessionStorage.getItem(COOLDOWN_KEY) || '0', 10);
     
@@ -92,6 +103,7 @@ export const useAuth = () => {
         const remainingSec = Math.ceil((cooldownUntil - Date.now()) / 1000);
         console.log(`[useAuth] ⏸️ Cooldown ativo por mais ${remainingSec}s`);
       }
+      setLoading(false);  // ✅ CRÍTICO: Setar loading=false mesmo durante cooldown
       return;
     }
     
@@ -104,6 +116,7 @@ export const useAuth = () => {
       if (import.meta.env.DEV) {
         console.log('[useAuth] Fetch throttled');
       }
+      setLoading(false);  // ✅ CRÍTICO: Setar loading=false durante throttle
       return;
     }
     lastFetchTimestamp.current = now;
@@ -111,17 +124,6 @@ export const useAuth = () => {
     fetchingRef.current = true;
     
     try {
-      // ✅ Tentar carregar do cache primeiro (se não for forçado)
-      if (!force) {
-        const cachedProfile = getCachedProfile(userId);
-        if (cachedProfile) {
-          setProfiles([cachedProfile]);
-          setProfile(cachedProfile);
-          setLoading(false);
-          fetchingRef.current = false;
-          return;
-        }
-      }
       
       // SECURITY: Removed sensitive logging - user data should not be logged to console
       
