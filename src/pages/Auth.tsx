@@ -311,49 +311,59 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🔵 [LOGIN DEBUG] Início do handleSignIn');
     setLoading(true);
     setShowResendConfirmation(false);
 
     try {
       let emailToUse = loginField;
+      console.log('🔵 [LOGIN DEBUG] loginField:', loginField);
       
       // Se não contém @, assumir que é um documento (CPF/CNPJ)
       if (!loginField.includes('@')) {
+        console.log('🔵 [LOGIN DEBUG] Login por documento detectado');
         // Validar formato básico
         if (!isValidDocument(loginField)) {
+          console.log('🔴 [LOGIN DEBUG] Documento inválido');
           toast.error('CPF/CNPJ inválido. Verifique e tente novamente.');
           setLoading(false);
           return;
         }
         
+        console.log('🔵 [LOGIN DEBUG] Buscando email via RPC...');
         // Buscar o email via RPC (busca em profiles.document e transport_companies.company_cnpj)
         const { data: foundEmail, error: rpcError } = await supabase
           .rpc('get_email_by_document', { p_doc: loginField });
         
         if (rpcError) {
-          console.error('RPC error:', rpcError);
+          console.error('🔴 [LOGIN DEBUG] RPC error:', rpcError);
           toast.error('Erro ao buscar documento. Tente novamente.');
           setLoading(false);
           return;
         }
         
         if (!foundEmail) {
+          console.log('🔴 [LOGIN DEBUG] Email não encontrado para documento');
           toast.error('CPF/CNPJ não encontrado. Verifique seus dados ou cadastre-se.');
           setLoading(false);
           return;
         }
         
         emailToUse = foundEmail;
-        console.log('Login por documento:', loginField, '-> email:', emailToUse);
+        console.log('🟢 [LOGIN DEBUG] Email encontrado via documento:', emailToUse);
       }
 
+      console.log('🔵 [LOGIN DEBUG] Tentando signInWithPassword com email:', emailToUse);
       // Fazer login com o email (direto ou encontrado via documento)
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error, data: authData } = await supabase.auth.signInWithPassword({
         email: emailToUse,
         password
       });
 
+      console.log('🔵 [LOGIN DEBUG] Resposta do signInWithPassword:', { error: error?.message, hasSession: !!authData?.session });
+
       if (error) {
+        console.log('🔴 [LOGIN DEBUG] Erro no login:', error.message);
         const msg = error.message || '';
         if (msg.includes('Invalid login credentials')) {
           toast.error('E-mail/Documento ou senha incorretos');
@@ -363,21 +373,31 @@ const Auth = () => {
         } else {
           toast.error(msg);
         }
+        setLoading(false);
       } else {
-        // Login bem-sucedido - verificar se há múltiplos perfis IMEDIATAMENTE
+        // Login bem-sucedido
+        console.log('🟢 [LOGIN DEBUG] Login bem-sucedido!');
         toast.success('Login realizado!');
         sessionStorage.removeItem('profile_fetch_cooldown_until');
         
+        console.log('🔵 [LOGIN DEBUG] Buscando usuário autenticado...');
         // Verificar múltiplos perfis sem delay
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user }, error: getUserError } = await supabase.auth.getUser();
+        console.log('🔵 [LOGIN DEBUG] getUser resultado:', { userId: user?.id, error: getUserError?.message });
+        
         if (user) {
+          console.log('🔵 [LOGIN DEBUG] Buscando perfis do usuário...');
           const { data: userProfiles, error: profilesError } = await supabase
             .from('profiles')
             .select('*')
             .eq('user_id', user.id);
           
+          console.log('🔵 [LOGIN DEBUG] Perfis encontrados:', userProfiles?.length, 'Erro:', profilesError?.message);
+          console.log('🔵 [LOGIN DEBUG] Perfis:', userProfiles?.map(p => ({ id: p.id, role: p.role })));
+          
           if (!profilesError && userProfiles && userProfiles.length > 1) {
             // Usuário tem múltiplos perfis - mostrar seletor
+            console.log('🟡 [LOGIN DEBUG] Múltiplos perfis detectados - mostrando seletor');
             setAvailableProfiles(userProfiles);
             setShowProfileSelector(true);
             setLoading(false);
@@ -387,26 +407,52 @@ const Auth = () => {
           // Se há apenas 1 perfil, redirecionar diretamente
           if (!profilesError && userProfiles && userProfiles.length === 1) {
             const targetProfile = userProfiles[0];
+            console.log('🟢 [LOGIN DEBUG] 1 perfil detectado:', targetProfile.role);
+            
+            localStorage.setItem('current_profile_id', targetProfile.id);
+            console.log('🟢 [LOGIN DEBUG] Profile ID salvo no localStorage:', targetProfile.id);
+            
+            let targetRoute = '/';
+            if (targetProfile.role === 'MOTORISTA' || targetProfile.role === 'MOTORISTA_AFILIADO') {
+              targetRoute = '/dashboard/driver';
+            } else if (targetProfile.role === 'PRODUTOR') {
+              targetRoute = '/dashboard/producer';
+            } else if (targetProfile.role === 'TRANSPORTADORA') {
+              targetRoute = '/dashboard/company';
+            } else if (targetProfile.role === 'PRESTADOR_SERVICOS') {
+              targetRoute = '/dashboard/service-provider';
+            }
+            
+            console.log('🟢 [LOGIN DEBUG] Rota de destino:', targetRoute);
+            console.log('🟢 [LOGIN DEBUG] Chamando navigate para:', targetRoute);
+            
             setLoading(false);
             
-            if (targetProfile.role === 'MOTORISTA' || targetProfile.role === 'MOTORISTA_AFILIADO') {
-              navigate('/dashboard/driver');
-            } else if (targetProfile.role === 'PRODUTOR') {
-              navigate('/dashboard/producer');
-            } else if (targetProfile.role === 'TRANSPORTADORA') {
-              navigate('/dashboard/company');
-            } else if (targetProfile.role === 'PRESTADOR_SERVICOS') {
-              navigate('/dashboard/service-provider');
-            } else {
-              navigate('/');
-            }
+            // Forçar navegação com replace
+            navigate(targetRoute, { replace: true });
+            
+            console.log('🟢 [LOGIN DEBUG] Navigate chamado - aguardando redirecionamento...');
+            
+            // Fallback: se navigate falhar, usar window.location
+            setTimeout(() => {
+              console.log('🟡 [LOGIN DEBUG] Timeout de 1s atingido - verificando se ainda na página /auth');
+              if (window.location.pathname === '/auth') {
+                console.log('🟡 [LOGIN DEBUG] Ainda em /auth - usando window.location.href como fallback');
+                window.location.href = targetRoute;
+              }
+            }, 1000);
+            
             return;
           }
+          
+          console.log('🟡 [LOGIN DEBUG] Nenhum perfil encontrado ou erro - deixando RedirectIfAuthed lidar');
+        } else {
+          console.log('🔴 [LOGIN DEBUG] Usuário não encontrado após login bem-sucedido');
         }
         setLoading(false);
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('🔴 [LOGIN DEBUG] Erro fatal no login:', error);
       toast.error('Erro no login');
       setLoading(false);
     }
