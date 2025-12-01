@@ -2,13 +2,8 @@ import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { ReactNode, useState } from 'react';
 
-// Publishable key from env - required for production
+// Publishable key from env - optional for Stripe features
 const PUBLISHABLE_KEY: string = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string;
-
-if (!PUBLISHABLE_KEY) {
-  console.error('[Stripe] VITE_STRIPE_PUBLISHABLE_KEY not configured');
-  throw new Error('Stripe configuration missing. Please configure VITE_STRIPE_PUBLISHABLE_KEY in environment variables.');
-}
 
 // True singleton for Stripe instance
 let stripePromiseRef: Promise<Stripe | null> | null = null;
@@ -25,6 +20,11 @@ interface StripePaymentProviderProps {
 }
 
 export function StripePaymentProvider({ children, clientSecret }: StripePaymentProviderProps) {
+  // If Stripe is not configured, render children without payment features
+  if (!PUBLISHABLE_KEY) {
+    return <>{children}</>;
+  }
+
   const [stripe] = useState(getStripePromise);
 
   // Render children until we have a clientSecret to avoid premature Elements mount
