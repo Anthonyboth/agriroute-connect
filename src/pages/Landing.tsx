@@ -9,6 +9,66 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AuthModal, PlatformStatsSection } from '@/components/LazyComponents';
 
+// Intersection Observer wrapper for deferred loading
+const LazyStatsSection = () => {
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref}>
+      {shouldLoad ? (
+        <Suspense fallback={
+          <section className="py-16 bg-muted/30">
+            <div className="container mx-auto px-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="text-center">
+                    <Skeleton className="h-12 w-32 mx-auto mb-2" />
+                    <Skeleton className="h-6 w-24 mx-auto" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        }>
+          <PlatformStatsSection />
+        </Suspense>
+      ) : (
+        <section className="py-16 bg-muted/30" style={{ minHeight: '200px' }}>
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="text-center">
+                  <Skeleton className="h-12 w-32 mx-auto mb-2" />
+                  <Skeleton className="h-6 w-24 mx-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+};
+
 // Lazy load modals - only load when user opens them
 const MudancaModal = lazy(() => import('@/components/MudancaModal'));
 const GuestServiceModal = lazy(() => import('@/components/GuestServiceModal'));
@@ -298,23 +358,8 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Stats Section - Lazy loaded */}
-      <Suspense fallback={
-        <section className="py-16 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="text-center">
-                  <Skeleton className="h-12 w-32 mx-auto mb-2" />
-                  <Skeleton className="h-6 w-24 mx-auto" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      }>
-        <PlatformStatsSection />
-      </Suspense>
+  {/* Stats Section - Deferred until visible */}
+      <LazyStatsSection />
 
       {/* Features Section */}
       <section id="features" className="py-20">
