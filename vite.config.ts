@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
+// @ts-ignore - critical package doesn't have type definitions
+import { generate } from 'critical';
 
 // Plugin to make CSS async (non-render-blocking)
 const asyncCssPlugin = () => ({
@@ -19,6 +21,37 @@ const asyncCssPlugin = () => ({
     <noscript><link rel="stylesheet" href="${href}"></noscript>`;
         }
       );
+    }
+  }
+});
+
+// Plugin to extract and inline critical CSS
+const criticalCssPlugin = () => ({
+  name: 'critical-css-plugin',
+  async closeBundle() {
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        console.log('🎨 Extracting critical CSS...');
+        await generate({
+          inline: true,
+          base: 'dist',
+          src: 'index.html',
+          target: {
+            html: 'index.html',
+          },
+          width: 1920,
+          height: 1080,
+          extract: true,
+          minify: true,
+          penthouse: {
+            timeout: 60000,
+          },
+        });
+        console.log('✅ Critical CSS extracted and inlined successfully');
+      } catch (error) {
+        console.warn('⚠️  Critical CSS extraction failed:', error);
+        // Don't fail the build if critical CSS extraction fails
+      }
     }
   }
 });
@@ -64,6 +97,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === 'development' && componentTagger(),
     asyncCssPlugin(),
+    criticalCssPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'script-defer',
