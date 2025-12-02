@@ -139,7 +139,7 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       injectRegister: 'script-defer',
       strategies: 'generateSW',
-      includeAssets: ['favicon.ico', 'hero-truck-real-night.webp', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'hero-truck-night-moon.webp', 'apple-touch-icon.png'],
       manifest: {
         name: 'AGRIROUTE',
         short_name: 'AGRIROUTE',
