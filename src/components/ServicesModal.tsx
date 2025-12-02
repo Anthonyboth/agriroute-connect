@@ -110,7 +110,7 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
   const handleCategoryClick = (categoryId: string) => {
     if (categoryId === 'freight') {
       setFreightTransportModal(true);
-      onClose(); // Fecha ServicesModal
+      // NÃO fecha ServicesModal - mantém aberto no background
     } else {
       setSelectedCategory(categoryId);
       setViewMode('services');
@@ -225,7 +225,11 @@ export const ServicesModal: React.FC<ServicesModalProps> = ({
       {/* Modal de Fretes e Transportes */}
       <FreightTransportModal
         isOpen={freightTransportModal}
-        onClose={() => setFreightTransportModal(false)}
+        onClose={() => {
+          setFreightTransportModal(false);
+          onClose(); // Fecha tudo quando clica no X
+        }}
+        onBack={() => setFreightTransportModal(false)} // Volta para ServicesModal
       />
 
       {/* Modal de solicitação de serviços */}

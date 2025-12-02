@@ -10,15 +10,18 @@ import { Truck, Package, Home, Wheat, ArrowLeft } from 'lucide-react';
 interface FreightTransportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onBack?: () => void; // Voltar para modal anterior (ServicesModal)
 }
 
 export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
   isOpen,
   onClose,
+  onBack,
 }) => {
   const [guestServiceModal, setGuestServiceModal] = useState<{
     isOpen: boolean;
     serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO';
+    initialSubService?: string;
   }>({ isOpen: false });
 
   const [guestFreightModal, setGuestFreightModal] = useState(false);
@@ -61,13 +64,23 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
   const handleServiceSelect = (serviceId: string) => {
     if (serviceId === 'FRETE_RURAL') {
       setGuestFreightModal(true);
-      onClose();
-    } else {
+      // NÃO fecha FreightTransportModal - mantém aberto
+    } else if (serviceId === 'GUINCHO') {
+      // Guincho vai direto para formulário
       setGuestServiceModal({ 
         isOpen: true, 
-        serviceType: serviceId as 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' 
+        serviceType: 'GUINCHO',
+        initialSubService: 'GUINCHO' // Pula a seleção de sub-serviço
       });
-      onClose();
+      // NÃO fecha FreightTransportModal - mantém aberto
+    } else {
+      // Outros serviços mostram opções
+      setGuestServiceModal({ 
+        isOpen: true, 
+        serviceType: serviceId as 'MUDANCA' | 'FRETE_URBANO',
+        initialSubService: undefined
+      });
+      // NÃO fecha FreightTransportModal - mantém aberto
     }
   };
 
@@ -79,7 +92,7 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={onClose}
+              onClick={onBack || onClose}
               className="absolute left-4 top-4 flex items-center gap-1"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -132,8 +145,13 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
       {guestServiceModal.serviceType && (
         <GuestServiceModal
           isOpen={guestServiceModal.isOpen}
-          onClose={() => setGuestServiceModal({ isOpen: false })}
+          onClose={() => {
+            setGuestServiceModal({ isOpen: false });
+            onClose(); // Fecha tudo quando clica no X
+          }}
+          onBack={() => setGuestServiceModal({ isOpen: false })} // Volta para FreightTransportModal
           serviceType={guestServiceModal.serviceType}
+          initialSubService={guestServiceModal.initialSubService}
         />
       )}
 
