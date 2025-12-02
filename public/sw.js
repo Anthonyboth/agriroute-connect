@@ -1,4 +1,36 @@
 // Service Worker para receber push notifications com VAPID
+// Versão do cache - atualizado automaticamente a cada build
+const CACHE_VERSION = 'v__BUILD_TIME__';
+const CACHE_NAME = `agriroute-cache-${CACHE_VERSION}`;
+
+// Limpar caches antigos ao ativar nova versão
+self.addEventListener('activate', function(event) {
+  console.log('[SW] Ativando nova versão:', CACHE_VERSION);
+  event.waitUntil(
+    caches.keys().then(function(cacheNames) {
+      return Promise.all(
+        cacheNames.map(function(cacheName) {
+          // Deletar todos os caches que não sejam a versão atual
+          if (cacheName.startsWith('agriroute-cache-') && cacheName !== CACHE_NAME) {
+            console.log('[SW] Deletando cache antigo:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(function() {
+      // Forçar todos os clientes a usar a nova versão
+      return self.clients.claim();
+    })
+  );
+});
+
+// Forçar atualização imediata quando nova versão é detectada
+self.addEventListener('install', function(event) {
+  console.log('[SW] Instalando nova versão:', CACHE_VERSION);
+  // Pular waiting e ativar imediatamente
+  self.skipWaiting();
+});
+
 self.addEventListener('push', function(event) {
   console.log('[SW] Push notification received:', event);
   
