@@ -28,9 +28,18 @@
     <link rel="preload" as="image" href="/hero-truck-night-moon.webp" 
           fetchpriority="high" type="image/webp">
     
-    <!-- Preconnect to critical origins -->
+    <!-- Preconnect to critical origins - reduces DNS/TLS latency -->
     <link rel="preconnect" href="https://shnvtxejjecbnztdbbbl.supabase.co" crossorigin>
     <link rel="dns-prefetch" href="https://shnvtxejjecbnztdbbbl.supabase.co">
+    
+    <!-- Preconnect for Google Fonts if used -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- DNS prefetch for external services -->
+    <link rel="dns-prefetch" href="https://js.stripe.com">
+    <link rel="dns-prefetch" href="https://api.stripe.com">
+    <link rel="dns-prefetch" href="https://wa.me">
     
     <!-- Inline Critical CSS for LCP optimization + CLS prevention -->
     <style>
