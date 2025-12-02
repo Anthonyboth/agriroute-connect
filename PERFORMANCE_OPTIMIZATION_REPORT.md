@@ -184,18 +184,21 @@ import { FreightAnalyticsDashboard } from '@/components/FreightAnalyticsDashboar
 ---
 
 ### 1. **PurgeCSS Conservador** 
-**Localização:** `vite.config.ts` (linhas 84-125)
+**Localização:** `vite.config.ts` (linhas 84-93)
 
-**O que faz:**
-- Remove CSS não utilizado em produção APENAS
-- Mantém safelist extensiva para preservar:
-  - Todas as classes do design system (`gradient-*`, `shadow-*`, etc)
-  - Classes dinâmicas do Tailwind (`bg-*`, `text-*`, etc)
-  - Componentes Radix UI, Sonner, Lucide, Recharts
-  - Classes de acessibilidade e animações
-  - Variáveis CSS, keyframes, e font-faces
+**Status:** ⚠️ **DESABILITADO** - estava removendo CSS necessário
 
-**Ganho esperado:**
+**Problema Identificado:**
+- O PurgeCSS estava removendo classes dinâmicas usadas na página de Auth
+- Páginas ficavam completamente sem estilo (sem background, cores, layout)
+- A safelist não era suficiente para cobrir todas as classes dinâmicas
+
+**Solução:**
+- PurgeCSS foi temporariamente desabilitado
+- Requer teste extensivo com safelist mais completa antes de reabilitar
+- Classes dinâmicas como as geradas por Radix UI não foram preservadas corretamente
+
+**Ganho esperado (quando reabilitado):**
 - **Redução de 15-20% no CSS final** (de ~21KB para ~17KB)
 - **FCP melhora em ~100-150ms**
 
