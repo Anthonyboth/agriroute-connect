@@ -233,3 +233,15 @@ verify_jwt = true
 
 [functions.telegram-error-notifier]
 verify_jwt = false
+
+[functions.continuous-security-monitor]
+verify_jwt = false
+
+[functions.intelligent-alert-system]
+verify_jwt = false
+
+[functions.security-auto-response]
+verify_jwt = false
+
+[functions.daily-security-report]
+verify_jwt = false
