@@ -251,7 +251,7 @@ const Landing: React.FC = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-4 pr-2 sm:pr-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
               <Leaf className="h-8 w-8 text-primary" />
@@ -273,19 +273,19 @@ const Landing: React.FC = () => {
                 Contato
               </button>
             </nav>
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={() => navigate('/auth')}> 
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-nowrap">
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/auth')}
+                className="flex-shrink-0 text-sm sm:text-base"
+              > 
                 Entrar
               </Button>
-              <Button onClick={() => navigate('/auth')} className="gradient-primary text-primary-foreground">
-                Cadastrar-se
-              </Button>
               <Button 
-                variant="outline" 
-                onClick={() => setServicesModal(true)}
-                className="hidden lg:flex"
+                onClick={() => navigate('/auth')} 
+                className="gradient-primary text-primary-foreground flex-shrink-0 text-sm sm:text-base"
               >
-                Solicitar Serviço
+                Cadastrar-se
               </Button>
             </div>
         </div>
