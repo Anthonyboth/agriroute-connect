@@ -43,36 +43,36 @@ const swVersionPlugin = () => ({
   }
 });
 
-// Plugin to extract and inline critical CSS
-const criticalCssPlugin = () => ({
-  name: 'critical-css-plugin',
-  async closeBundle() {
-    if (process.env.NODE_ENV === 'production') {
-      try {
-        console.log('🎨 Extracting critical CSS...');
-        await generate({
-          inline: true,
-          base: 'dist',
-          src: 'index.html',
-          target: {
-            html: 'index.html',
-          },
-          width: 1920,
-          height: 1080,
-          extract: true,
-          minify: true,
-          penthouse: {
-            timeout: 60000,
-          },
-        });
-        console.log('✅ Critical CSS extracted and inlined successfully');
-      } catch (error) {
-        console.warn('⚠️  Critical CSS extraction failed:', error);
-        // Don't fail the build if critical CSS extraction fails
-      }
-    }
-  }
-});
+// Plugin to extract and inline critical CSS (DESABILITADO - estava causando falha no build)
+// const criticalCssPlugin = () => ({
+//   name: 'critical-css-plugin',
+//   async closeBundle() {
+//     if (process.env.NODE_ENV === 'production') {
+//       try {
+//         console.log('🎨 Extracting critical CSS...');
+//         await generate({
+//           inline: true,
+//           base: 'dist',
+//           src: 'index.html',
+//           target: {
+//             html: 'index.html',
+//           },
+//           width: 1920,
+//           height: 1080,
+//           extract: true,
+//           minify: true,
+//           penthouse: {
+//             timeout: 60000,
+//           },
+//         });
+//         console.log('✅ Critical CSS extracted and inlined successfully');
+//       } catch (error) {
+//         console.warn('⚠️  Critical CSS extraction failed:', error);
+//         // Don't fail the build if critical CSS extraction fails
+//       }
+//     }
+//   }
+// });
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -129,7 +129,7 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' && componentTagger(),
     // asyncCssPlugin() removed - was causing FOIT and delaying FCP
     swVersionPlugin(),
-    criticalCssPlugin(),
+    // criticalCssPlugin() - desabilitado por causar falha no build
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'script-defer',
