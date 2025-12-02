@@ -138,8 +138,7 @@ export default defineConfig(({ mode }) => ({
       filename: 'sw.js',
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,jpg,webp,avif}'],
-        // Injetar versão baseada em timestamp do build
-        injectionPoint: undefined,
+        maximumFileSizeToCacheInBytes: 5000000,
       },
       includeAssets: ['favicon.ico', 'hero-truck-real-night.webp', 'apple-touch-icon.png'],
       manifest: {
