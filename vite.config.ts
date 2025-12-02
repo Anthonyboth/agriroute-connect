@@ -174,4 +174,10 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ['react', 'react-dom'],
   },
+  optimizeDeps: {
+    include: ['recharts'],
+    esbuildOptions: {
+      target: 'es2020',
+    }
+  },
 }));
