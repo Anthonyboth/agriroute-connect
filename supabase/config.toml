@@ -25,10 +25,10 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.test-data-generator]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-test-users]
-verify_jwt = false
+verify_jwt = true
 
 [functions.service-provider-spatial-matching]
 verify_jwt = false
@@ -139,7 +139,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.test-telegram]
-verify_jwt = false
+verify_jwt = true
 
 [functions.report-user-panel-error]
 verify_jwt = false

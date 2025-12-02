@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AuthModal, PlatformStatsSection } from '@/components/LazyComponents';
+import { MobileMenu } from '@/components/MobileMenu';
 
 // Intersection Observer wrapper for deferred loading
 const LazyStatsSection = () => {
@@ -273,7 +274,7 @@ const Landing: React.FC = () => {
                 Contato
               </button>
             </nav>
-            <div className="flex items-center space-x-2 sm:space-x-4 flex-nowrap">
+            <div className="hidden md:flex items-center space-x-2 sm:space-x-4 flex-nowrap">
               <Button 
                 variant="ghost" 
                 onClick={() => navigate('/auth')}
@@ -288,6 +289,7 @@ const Landing: React.FC = () => {
                 Cadastrar-se
               </Button>
             </div>
+            <MobileMenu onContactClick={() => setContactModal(true)} />
         </div>
       </header>
 
@@ -321,26 +323,26 @@ const Landing: React.FC = () => {
             </span>
           </h1>
           
-          {/* Main Action Buttons - Centered Group */}
+          {/* Main Action Buttons - Stack vertically on mobile, horizontal on desktop */}
           <div className="max-w-3xl mx-auto px-4">
-            <div className="flex flex-wrap justify-center gap-3 md:gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('PRODUTOR')}
-                className="gradient-primary text-primary-foreground text-lg px-8 py-6 rounded-full shadow-glow hover:scale-105 transition-bounce"
+                className="gradient-primary text-primary-foreground text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-glow hover:scale-105 transition-bounce w-full sm:w-auto"
               >
-                <Users className="mr-2 h-5 w-5" />
+                <Users className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Produtor
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
               </Button>
               <Button 
                 size="lg"
                 onClick={() => handleGetStarted('MOTORISTA')}
-                className="bg-accent text-accent-foreground text-lg px-8 py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce"
+                className="bg-accent text-accent-foreground text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto"
               >
-                <Truck className="mr-2 h-5 w-5" />
+                <Truck className="mr-2 h-5 w-5 flex-shrink-0" />
                 Sou Motorista
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
               </Button>
             </div>
             <div className="mt-3 md:mt-4 flex justify-center">
@@ -348,9 +350,9 @@ const Landing: React.FC = () => {
                 variant="outline"
                 size="lg"
                 onClick={() => setServicesModal(true)}
-                className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base md:text-lg px-8 py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce"
+                className="border-accent text-accent hover:bg-accent hover:text-accent-foreground text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-elegant hover:scale-105 transition-bounce w-full sm:w-auto max-w-sm"
               >
-                <Wrench className="mr-2 h-5 w-5" />
+                <Wrench className="mr-2 h-5 w-5 flex-shrink-0" />
                 Solicitar sem Cadastro
               </Button>
             </div>
