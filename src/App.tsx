@@ -13,8 +13,10 @@ import { supabase } from "@/integrations/supabase/client";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthErrorBoundary } from "@/components/AuthErrorBoundary";
 import { PageDOMErrorBoundary } from "@/components/PageDOMErrorBoundary";
-import Landing from "./pages/Landing";
 import React, { lazy, Suspense } from 'react';
+
+// Lazy load Landing page for better performance
+const Landing = lazy(() => import("./pages/Landing"));
 import { useAuth } from "./hooks/useAuth";
 import { useCompanyDriver } from "./hooks/useCompanyDriver";
 import { ComponentLoader } from '@/components/LazyComponents';
@@ -67,27 +69,36 @@ import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
 const queryClient = new QueryClient();
 
-// Inicializar Error Monitoring
+// Defer Error Monitoring initialization to after first render
 if (typeof window !== 'undefined') {
-  const errorMonitoring = ErrorMonitoringService.getInstance();
+  // Use requestIdleCallback to defer non-critical initialization
+  const initErrorMonitoring = () => {
+    const errorMonitoring = ErrorMonitoringService.getInstance();
 
-  // Capturar erros não tratados
-  window.addEventListener('error', (event) => {
-    errorMonitoring.captureError(event.error || new Error(event.message), {
-      source: 'window.error',
-      filename: event.filename,
-      lineno: event.lineno,
-      colno: event.colno
+    // Capturar erros não tratados
+    window.addEventListener('error', (event) => {
+      errorMonitoring.captureError(event.error || new Error(event.message), {
+        source: 'window.error',
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+      });
     });
-  });
 
-  // Capturar rejeições de promessas não tratadas
-  window.addEventListener('unhandledrejection', (event) => {
-    errorMonitoring.captureError(
-      event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
-      { source: 'unhandledrejection' }
-    );
-  });
+    // Capturar rejeições de promessas não tratadas
+    window.addEventListener('unhandledrejection', (event) => {
+      errorMonitoring.captureError(
+        event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
+        { source: 'unhandledrejection' }
+      );
+    });
+  };
+
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(initErrorMonitoring);
+  } else {
+    setTimeout(initErrorMonitoring, 1);
+  }
 }
 
 // Componente para setup de monitoramento de erros
@@ -98,12 +109,22 @@ const ErrorMonitoringSetup = () => {
   return null;
 };
 
-// Componente para sincronização de CEPs ao reconectar
+// Defer ZipCode service initialization to after first render
 const ZipCodeSyncOnReconnect = () => {
   React.useEffect(() => {
     const handleOnline = () => {
-      console.log('🌐 Reconectado à internet - sincronizando cache de CEPs...');
-      ZipCodeService.syncOnReconnect();
+      // Defer sync to idle time
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          console.log('🌐 Reconectado à internet - sincronizando cache de CEPs...');
+          ZipCodeService.syncOnReconnect();
+        });
+      } else {
+        setTimeout(() => {
+          console.log('🌐 Reconectado à internet - sincronizando cache de CEPs...');
+          ZipCodeService.syncOnReconnect();
+        }, 100);
+      }
     };
 
     window.addEventListener('online', handleOnline);
@@ -351,7 +372,7 @@ const AuthedLanding = () => {
   
   // Se não autenticado, mostrar Landing normal
   if (!isAuthenticated || !profile) {
-    return <Landing />;
+    return <Suspense fallback={<ComponentLoader />}><Landing /></Suspense>;
   }
   
   // ✅ Usuário autenticado: redirecionar para painel apropriado

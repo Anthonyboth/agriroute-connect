@@ -2,10 +2,8 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AuthModal, PlatformStatsSection } from '@/components/LazyComponents';
 import { MobileMenu } from '@/components/MobileMenu';
@@ -142,8 +140,6 @@ const Landing: React.FC = () => {
     setTimeout(() => setRequestModalOpen(true), 0);
   };
 
-  const { profiles, switchProfile, session } = useAuth();
-  const redirectedRef = useRef(false);
   // Redirecionamento prioritário por querystring (para links de convite)
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -166,63 +162,6 @@ const Landing: React.FC = () => {
       return;
     }
   }, [navigate]);
-
-  // Auto-switch para TRANSPORTADORA quando houver perfil TRANSPORTADORA
-  useEffect(() => {
-    if (redirectedRef.current) return;
-    if (!session?.user?.id) return;
-
-    let cancelled = false;
-
-    const checkAndRedirect = async () => {
-      try {
-        // Buscar perfil TRANSPORTADORA se houver múltiplos perfis
-        const transportProfile = profiles.find((p: any) => p.role === 'TRANSPORTADORA');
-        if (transportProfile && !cancelled) {
-          // Verificar se existe registro em transport_companies
-          const { data: company } = await supabase
-            .from('transport_companies')
-            .select('id')
-            .eq('profile_id', transportProfile.id)
-            .maybeSingle();
-
-          if (company && !cancelled) {
-            redirectedRef.current = true;
-            switchProfile(transportProfile.id);
-            navigate('/dashboard/company', { replace: true });
-            return;
-          }
-        }
-
-        // Verificar perfil atual
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id, role, active_mode')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-
-        if (!profile || cancelled) return;
-
-        // Verificar se é transportadora pelo active_mode ou por registro
-        const { data: currentCompany } = await supabase
-          .from('transport_companies')
-          .select('id')
-          .eq('profile_id', profile.id)
-          .maybeSingle();
-
-        if ((currentCompany || profile.active_mode === 'TRANSPORTADORA') && !cancelled) {
-          redirectedRef.current = true;
-          navigate('/dashboard/company', { replace: true });
-        }
-      } catch (e) {
-        // Ignore errors to avoid blocking UI
-      }
-    };
-
-    checkAndRedirect();
-
-    return () => { cancelled = true; };
-  }, [navigate, switchProfile, session?.user?.id, profiles]);
 
   const features = [
     {
@@ -306,6 +245,7 @@ const Landing: React.FC = () => {
             src="/hero-truck-night-moon.webp"
             alt="Logística agrícola moderna - caminhão transportando carga agrícola"
             className="absolute inset-0 w-full h-full object-cover"
+            style={{ aspectRatio: '16/9' }}
             loading="eager"
             fetchPriority="high"
             decoding="async"

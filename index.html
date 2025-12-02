@@ -34,30 +34,42 @@
     
     <!-- Inline Critical CSS for LCP optimization -->
     <style>
+      /* Reset & Base */
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:system-ui,-apple-system,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+      
       /* Hero section base */
-      .hero-section{position:relative;min-height:90vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+      .hero-section{position:relative;min-height:90vh;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+      .hero-section>picture,
       .hero-section>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
-      .hero-section::before{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.7),rgba(0,0,0,0.4));z-index:1}
+      .hero-section::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,0.9) 0%,rgba(0,0,0,0.5) 50%,transparent 100%);z-index:1}
       
       /* Hero content */
-      .hero-content{position:relative;z-index:10;max-width:80rem;margin:0 auto;padding:2rem 1rem}
-      .hero-title{font-size:3rem;font-weight:700;color:#fff;line-height:1.2;margin-bottom:1.5rem}
-      .hero-subtitle{font-size:1.25rem;color:rgba(255,255,255,0.9);margin-bottom:2rem}
+      .hero-content{position:relative;z-index:10;max-width:80rem;margin:0 auto;padding:3rem 1.5rem;text-align:center}
+      .hero-content h1{font-size:clamp(2rem,5vw,4rem);font-weight:700;color:#fff;line-height:1.2;margin-bottom:2rem}
+      .gradient-hero{background:linear-gradient(135deg,#10b981,#22c55e,#84cc16);-webkit-background-clip:text;background-clip:text;color:transparent}
       
-      /* Hero buttons */
-      .hero-buttons{display:flex;gap:1rem;flex-wrap:wrap;margin-top:2rem}
-      .btn-hero{padding:0.75rem 2rem;border-radius:9999px;font-weight:600;transition:all 0.3s;display:inline-flex;align-items:center;gap:0.5rem;cursor:pointer;border:none;font-size:1rem}
-      .btn-primary{background:#22c55e;color:#fff}
-      .btn-primary:hover{background:#16a34a}
-      .btn-secondary{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.3)}
-      .btn-secondary:hover{background:rgba(255,255,255,0.2)}
+      /* Hero buttons - critical for FCP */
+      .gradient-primary{background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:1.25rem 2rem;border-radius:9999px;font-weight:600;font-size:1.125rem;display:inline-flex;align-items:center;gap:0.5rem;cursor:pointer;box-shadow:0 10px 30px -10px rgba(16,185,129,0.5);transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}
+      .gradient-primary:hover{transform:scale(1.05);box-shadow:0 20px 40px -10px rgba(16,185,129,0.6)}
+      
+      /* Header - sticky navigation */
+      header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.8);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,0,0,0.1)}
+      header .container{max-width:80rem;margin:0 auto;padding:1rem;display:flex;align-items:center;justify-content:space-between}
       
       /* Layout utilities */
       .container{max-width:80rem;margin:0 auto;padding:0 1rem}
       .flex{display:flex}
       .items-center{align-items:center}
+      .justify-center{justify-content:center}
       .justify-between{justify-content:space-between}
       .gap-4{gap:1rem}
+      .space-x-2>*+*{margin-left:0.5rem}
+      .space-x-4>*+*{margin-left:1rem}
+      
+      /* Loading skeleton for below-fold content */
+      .skeleton{background:linear-gradient(90deg,#f3f4f6 25%,#e5e7eb 50%,#f3f4f6 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+      @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
     </style>
     
     <!-- CSS will be injected by Vite with async loading via transformIndexHtml -->
