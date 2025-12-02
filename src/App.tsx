@@ -67,7 +67,18 @@ const NfeDashboard = lazy(() => import("./pages/NfeDashboard"));
 import { AlertCircle } from 'lucide-react';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
-const queryClient = new QueryClient();
+// QueryClient com configurações otimizadas de cache
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutos - dados considerados frescos
+      gcTime: 10 * 60 * 1000, // 10 minutos - tempo no cache
+      refetchOnWindowFocus: false, // Não refetch ao voltar para aba (economiza requests)
+      refetchOnMount: false, // Não refetch ao montar se dados no cache
+      retry: 1, // Apenas 1 retry em caso de erro (reduz latência)
+    },
+  },
+});
 
 // Defer Error Monitoring initialization to after first render
 if (typeof window !== 'undefined') {
