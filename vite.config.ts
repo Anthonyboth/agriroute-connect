@@ -65,19 +65,50 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-select',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-label',
-            '@radix-ui/react-slot'
-          ],
-          'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
-          'supabase-vendor': ['@supabase/supabase-js'],
-          'charts-vendor': ['recharts'],
-          'query-vendor': ['@tanstack/react-query']
+        manualChunks: (id) => {
+          // Core React - minimal bundle
+          if (id.includes('node_modules/react/') && !id.includes('react-dom')) {
+            return 'react-core';
+          }
+          if (id.includes('react-dom') || id.includes('react-router-dom')) {
+            return 'react-vendor';
+          }
+          
+          // Supabase - only load when authenticated
+          if (id.includes('@supabase/supabase-js') || id.includes('@supabase/')) {
+            return 'supabase-vendor';
+          }
+          
+          // Charts - only load in dashboards
+          if (id.includes('recharts') || id.includes('d3-')) {
+            return 'charts-vendor';
+          }
+          
+          // React Query - only load when data fetching needed
+          if (id.includes('@tanstack/react-query')) {
+            return 'query-vendor';
+          }
+          
+          // Radix UI - split by component type
+          if (id.includes('@radix-ui/react-dialog') || id.includes('@radix-ui/react-alert-dialog')) {
+            return 'dialog-vendor';
+          }
+          if (id.includes('@radix-ui/react-dropdown-menu') || id.includes('@radix-ui/react-menubar')) {
+            return 'menu-vendor';
+          }
+          if (id.includes('@radix-ui')) {
+            return 'ui-vendor';
+          }
+          
+          // Forms - load when form components needed
+          if (id.includes('react-hook-form') || id.includes('@hookform/resolvers') || id.includes('zod')) {
+            return 'form-vendor';
+          }
+          
+          // Lucide icons - defer icon loading
+          if (id.includes('lucide-react')) {
+            return 'icons-vendor';
+          }
         }
       }
     },
