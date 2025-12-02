@@ -25,6 +25,24 @@ const asyncCssPlugin = () => ({
   }
 });
 
+// Plugin to inject cache version into Service Worker
+const swVersionPlugin = () => ({
+  name: 'sw-version-plugin',
+  writeBundle() {
+    const fs = require('fs');
+    const path = require('path');
+    const swPath = path.resolve(__dirname, 'dist/sw.js');
+    
+    if (fs.existsSync(swPath)) {
+      let content = fs.readFileSync(swPath, 'utf8');
+      const buildTime = new Date().toISOString().replace(/[:.]/g, '-');
+      content = content.replace(/__BUILD_TIME__/g, buildTime);
+      fs.writeFileSync(swPath, content);
+      console.log('✅ Service Worker versão atualizada:', buildTime);
+    }
+  }
+});
+
 // Plugin to extract and inline critical CSS
 const criticalCssPlugin = () => ({
   name: 'critical-css-plugin',
@@ -110,10 +128,19 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === 'development' && componentTagger(),
     // asyncCssPlugin() removed - was causing FOIT and delaying FCP
+    swVersionPlugin(),
     criticalCssPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'script-defer',
+      strategies: 'injectManifest',
+      srcDir: 'public',
+      filename: 'sw.js',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,jpg,webp,avif}'],
+        // Injetar versão baseada em timestamp do build
+        injectionPoint: undefined,
+      },
       includeAssets: ['favicon.ico', 'hero-truck-real-night.webp', 'apple-touch-icon.png'],
       manifest: {
         name: 'AGRIROUTE',
