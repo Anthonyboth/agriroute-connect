@@ -1,10 +1,97 @@
-# 📊 Relatório de Otimizações de Performance - Fase 1 & 2
+# 📊 Relatório de Otimizações de Performance - Fase 1, 2 & 3
 
 ## ✅ Otimizações Implementadas
 
 ---
 
-## 🚀 FASE 2: Code Splitting por Componente (NOVA)
+## 🚀 FASE 3: Otimizações de Infraestrutura (NOVA)
+
+### 3.1 **Preconnect e DNS Prefetch Otimizados**
+**Localização:** `index.html`
+
+**O que faz:**
+- Adiciona preconnect para Google Fonts (reduz latência de DNS/TLS)
+- DNS prefetch para Stripe e WhatsApp
+- Permite que o browser inicie conexões antes de precisar dos recursos
+
+**Recursos adicionados:**
+- `fonts.googleapis.com` / `fonts.gstatic.com` - preconnect
+- `js.stripe.com` / `api.stripe.com` - dns-prefetch
+- `wa.me` - dns-prefetch (botão WhatsApp)
+
+**Ganho esperado:**
+- **Redução de 100-300ms** em conexões com serviços externos
+- **Zero impacto no bundle** - apenas hints para o browser
+
+### 3.2 **HTTP/2 Server Push via Link Headers**
+**Localização:** `netlify.toml`
+
+**O que faz:**
+- Configura Link headers para preload de recursos críticos
+- index.html inclui preload hint para hero image e CSS
+- Hero image tem preload hint próprio
+
+**Headers adicionados:**
+```
+Link: </hero-truck-night-moon.webp>; rel=preload; as=image; type=image/webp
+Link: </assets/index.css>; rel=preload; as=style
+```
+
+**Ganho esperado:**
+- **FCP melhora em 200-400ms** (recursos críticos carregam em paralelo)
+- **LCP melhora em 300-500ms** (hero image inicia download antes)
+
+### 3.3 **Cache Headers Expandidos**
+**Localização:** `netlify.toml`
+
+**Novos recursos com cache agressivo:**
+- Fonts (.woff, .woff2) - 1 ano, immutable
+- SVG files - 1 ano, immutable  
+- Service Worker - sem cache (atualizações imediatas)
+- Manifests - 24h cache (balance entre fresh e performance)
+
+**Ganho esperado:**
+- **Redução de 50-80% em requests** em visitas de retorno
+- **Navegação instantânea** para usuários recorrentes
+
+### 3.4 **Lazy Loading já Implementado**
+**Localização:** `src/pages/Landing.tsx`
+
+**Já existente:**
+- Hero image: `loading="eager"` + `fetchPriority="high"` (correto - é LCP)
+- Stats section: IntersectionObserver com `rootMargin: '200px'`
+- Modais: React.lazy() para carregamento sob demanda
+
+---
+
+## ⚠️ RISCOS DA FASE 3
+
+### 🟢 **Risco Baixo: Preconnect para serviços não utilizados**
+
+**Sintoma:**
+- Console mostra conexões desnecessárias
+
+**Impacto:**
+- Mínimo - apenas overhead de DNS lookup
+
+**Solução:**
+- Remover preconnects não utilizados do index.html
+
+### 🟢 **Risco Baixo: Link headers conflitantes**
+
+**Sintoma:**
+- Recursos carregados duas vezes
+
+**Impacto:**
+- Desperdício mínimo de banda
+
+**Solução:**
+- Verificar Network tab para duplicações
+- Remover Link headers problemáticos do netlify.toml
+
+---
+
+## 🚀 FASE 2: Code Splitting por Componente
 
 ### 2.1 **Lazy Loading de Componentes com Charts**
 **Localização:** `src/pages/ProducerDashboard.tsx`, `src/pages/CompanyDashboard.tsx`
