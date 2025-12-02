@@ -177,22 +177,23 @@ serve(async (req) => {
       });
     }
 
-    // Check if user has admin or system role
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
+    // CORRIGIDO: Verificar role na tabela user_roles (não profiles.role)
+    const { data: userRoles, error: rolesError } = await supabaseAdmin
+      .from('user_roles')
       .select('role')
-      .eq('user_id', user.id)
-      .single();
+      .eq('user_id', user.id);
 
-    if (profileError || !profile || !['ADMIN', 'SYSTEM'].includes(profile.role)) {
-      logStep('Acesso negado', { userId: user.id, role: profile?.role });
-      return new Response(JSON.stringify({ error: 'Acesso negado' }), {
+    const hasAdminRole = userRoles?.some(r => ['admin', 'moderator'].includes(r.role));
+
+    if (rolesError || !hasAdminRole) {
+      logStep('Acesso negado', { userId: user.id, roles: userRoles?.map(r => r.role) });
+      return new Response(JSON.stringify({ error: 'Acesso negado - requer role admin ou moderator' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403
       });
     }
 
-    logStep('Usuário autenticado', { role: profile.role });
+    logStep('Usuário autenticado como admin', { roles: userRoles?.map(r => r.role) });
 
     if (!TELEGRAM_BOT_TOKEN) {
       throw new Error('TELEGRAM_BOT_TOKEN não configurado');

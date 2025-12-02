@@ -2,6 +2,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { ErrorAutoCorrector } from "./errorAutoCorrector";
 import type { ErrorReport, ErrorCategory, ErrorType, AutoCorrectionResult } from "@/types/errorTypes";
 
+const SUPABASE_URL = "https://shnvtxejjecbnztdbbbl.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNobnZ0eGVqamVjYm56dGRiYmJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNjAzMzAsImV4cCI6MjA3MjkzNjMzMH0.qcYO3vsj8KOmGDGM12ftFpr0mTQP5DB_0jAiRkPYyFg";
+
 export class ErrorMonitoringService {
   private static instance: ErrorMonitoringService;
   private autoCorrector: ErrorAutoCorrector;
@@ -29,18 +32,45 @@ export class ErrorMonitoringService {
     return ErrorMonitoringService.instance;
   }
 
+  /**
+   * Notificar TODOS os erros diretamente no Telegram
+   * SEM deduplicação, SEM verificação de role
+   */
+  private async notifyTelegram(report: ErrorReport): Promise<boolean> {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/telegram-error-notifier`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify(report)
+      });
+
+      const data = await response.json();
+      console.log('[ErrorMonitoringService] Notificação Telegram:', data);
+      return data?.success || false;
+    } catch (error) {
+      console.error('[ErrorMonitoringService] Falha ao notificar Telegram:', error);
+      return false;
+    }
+  }
+
   private isUserPanelRoute(pathname: string): boolean {
     const userPanelRoutes = ['/dashboard', '/company', '/app', '/painel', '/profile', '/driver', '/producer', '/provider'];
     return userPanelRoutes.some(route => pathname.startsWith(route));
   }
 
   async reportUserPanelError(report: ErrorReport): Promise<{ notified: boolean; errorLogId?: string }> {
-    console.log('[ErrorMonitoringService] Reportando erro de painel ao Telegram:', report.errorMessage);
+    console.log('[ErrorMonitoringService] Reportando erro de painel:', report.errorMessage);
+
+    // SEMPRE notificar no Telegram primeiro
+    const telegramNotified = await this.notifyTelegram(report);
 
     if (!this.isOnline) {
       console.log('[ErrorMonitoringService] Offline - adicionando à fila');
       this.errorQueue.push(report);
-      return { notified: false };
+      return { notified: telegramNotified };
     }
 
     try {
@@ -49,21 +79,18 @@ export class ErrorMonitoringService {
       });
 
       if (error) {
-        console.error('[ErrorMonitoringService] Erro ao reportar ao painel:', error);
+        console.error('[ErrorMonitoringService] Erro ao reportar ao backend:', error);
         this.errorQueue.push(report);
-        return { notified: false };
       }
 
-      console.log('[ErrorMonitoringService] Resposta do reporte de painel:', data);
-      
       return {
-        notified: data?.notified || false,
+        notified: telegramNotified || data?.notified || false,
         errorLogId: data?.errorLogId
       };
     } catch (error) {
       console.error('[ErrorMonitoringService] Falha ao reportar erro de painel:', error);
       this.errorQueue.push(report);
-      return { notified: false };
+      return { notified: telegramNotified };
     }
   }
 
@@ -94,21 +121,30 @@ export class ErrorMonitoringService {
     };
 
     // Adicionar informações do usuário se disponível
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      errorReport.userId = user.id;
-      errorReport.userEmail = user.email;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        errorReport.userId = user.id;
+        errorReport.userEmail = user.email;
+      }
+    } catch {
+      // Ignorar erro ao obter usuário
     }
 
-    // Se é erro de painel do usuário, usa função exclusiva
+    // SEMPRE notificar no Telegram PRIMEIRO
+    const telegramNotified = await this.notifyTelegram(errorReport);
+
+    // Se é erro de painel do usuário, também usa função exclusiva de reporte
     const isUserFacingError = context?.userFacing === true || this.isUserPanelRoute(window.location.pathname);
     
     if (isUserFacingError) {
-      console.log('[ErrorMonitoringService] Erro de painel detectado - usando reporte exclusivo');
-      return await this.reportUserPanelError(errorReport);
+      console.log('[ErrorMonitoringService] Erro de painel detectado');
+      const result = await this.reportUserPanelError(errorReport);
+      return { ...result, notified: telegramNotified || result.notified };
     }
 
-    return await this.sendToBackend(errorReport);
+    const backendResult = await this.sendToBackend(errorReport);
+    return { ...backendResult, notified: telegramNotified || backendResult.notified };
   }
 
   private classifyError(error: Error): ErrorCategory {
@@ -190,17 +226,14 @@ export class ErrorMonitoringService {
     }
 
     try {
-      // Adicionar try-catch específico para não quebrar a aplicação
       const { data, error } = await supabase.functions.invoke('report-error', {
         body: report
       }).catch((invokeError) => {
-        // Fail silently - monitoring não deve quebrar a aplicação
         console.debug('[ErrorMonitoringService] Invoke falhou (não crítico):', invokeError?.message || invokeError);
         return { data: null, error: invokeError };
       });
 
       if (error) {
-        // Log mas não propagar erro
         console.debug('[ErrorMonitoringService] Edge function retornou erro (não crítico):', error?.message || error);
         return { notified: false };
       }
@@ -210,7 +243,6 @@ export class ErrorMonitoringService {
         errorLogId: data?.errorLogId
       };
     } catch (error) {
-      // Fail silently - monitoring não deve quebrar a aplicação
       console.debug('[ErrorMonitoringService] Erro capturado e suprimido:', error);
       return { notified: false };
     }
@@ -222,8 +254,9 @@ export class ErrorMonitoringService {
     while (this.errorQueue.length > 0 && this.isOnline) {
       const report = this.errorQueue.shift();
       if (report) {
+        await this.notifyTelegram(report); // Notificar primeiro
         await this.sendToBackend(report);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Delay entre envios
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
   }
