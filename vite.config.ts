@@ -326,7 +326,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
-    // asyncCssPlugin() removed - was causing FOIT and delaying FCP
+    asyncCssPlugin(), // Re-enabled - critical CSS is inlined in index.html, so FOIT is mitigated
     // swVersionPlugin() - não necessário com generateSW strategy
     // criticalCssPlugin() - desabilitado por causar falha no build
     VitePWA({
