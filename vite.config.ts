@@ -77,8 +77,8 @@ export default defineConfig(({ mode }) => ({
             return 'supabase-vendor';
           }
           
-          // Charts - only load in dashboards
-          if (id.includes('recharts') || id.includes('d3-')) {
+          // Charts - only load in dashboards (incluir recharts E todas as libs d3 juntas)
+          if (id.includes('recharts') || id.includes('d3-') || id.includes('d3.')) {
             return 'charts-vendor';
           }
           
@@ -97,6 +97,10 @@ export default defineConfig(({ mode }) => ({
         drop_console: mode === 'production',
         drop_debugger: mode === 'production',
         pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : []
+      },
+      mangle: {
+        keep_fnames: true,
+        keep_classnames: true
       }
     },
     reportCompressedSize: false,
@@ -175,7 +179,18 @@ export default defineConfig(({ mode }) => ({
     dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
-    include: ['recharts'],
+    include: [
+      'recharts',
+      'd3-shape',
+      'd3-scale',
+      'd3-interpolate',
+      'd3-path',
+      'd3-color',
+      'd3-format',
+      'd3-time',
+      'd3-time-format',
+      'd3-array'
+    ],
     esbuildOptions: {
       target: 'es2020',
     }
