@@ -84,9 +84,6 @@ export default defineConfig(({ mode }) => ({
   // ✅ PERFORMANCE: PostCSS com PurgeCSS - SAFELIST ROBUSTA v2
   // Preserva todas as classes dinâmicas, variáveis CSS, e componentes de terceiros
   css: {
-    postcss: {
-      plugins: [] // DESABILITADO TEMPORARIAMENTE - purgecss removendo classes necessárias
-    },
     devSourcemap: false, // Disable CSS sourcemaps in dev for faster HMR
   },
   build: {
