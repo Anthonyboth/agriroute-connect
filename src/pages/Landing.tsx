@@ -189,9 +189,9 @@ const Landing: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 pr-2 sm:pr-4 flex items-center justify-between">
+      {/* Header - Fixed height to prevent CLS */}
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 h-[72px]">
+        <div className="container mx-auto px-4 pr-2 sm:pr-4 flex items-center justify-between h-full">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
               <Leaf className="h-8 w-8 text-primary" />
@@ -232,8 +232,8 @@ const Landing: React.FC = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="hero-section relative min-h-[100svh] sm:min-h-[90vh] w-full flex items-center justify-center overflow-hidden">
+      {/* Hero Section - Fixed height to prevent CLS */}
+      <section className="hero-section relative h-screen w-full flex items-center justify-center overflow-hidden">
         <picture>
           <source 
             type="image/webp" 
@@ -245,7 +245,6 @@ const Landing: React.FC = () => {
             src="/hero-truck-night-moon.webp"
             alt="Logística agrícola moderna - caminhão transportando carga agrícola"
             className="absolute inset-0 w-full h-full object-cover"
-            style={{ aspectRatio: '16/9' }}
             loading="eager"
             fetchPriority="high"
             decoding="async"
