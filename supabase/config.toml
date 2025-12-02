@@ -231,4 +231,5 @@ verify_jwt = true
 [functions.nfe-list]
 verify_jwt = true
 
-
+[functions.telegram-error-notifier]
+verify_jwt = false

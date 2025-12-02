@@ -28,8 +28,36 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Suppress WebSocket DNS errors in console for SEO/Lighthouse tests
-// These errors are handled gracefully by the Supabase client with automatic retries
+/**
+ * Função para notificar erros no Telegram
+ * Chamada para TODOS os erros, sem exceções
+ */
+async function notifyErrorToTelegram(errorData: {
+  errorType: string;
+  errorCategory: string;
+  errorMessage: string;
+  errorStack?: string;
+  module?: string;
+  route?: string;
+  metadata?: Record<string, any>;
+}) {
+  try {
+    // Usar fetch direto para evitar dependência circular
+    await fetch(`${SUPABASE_URL}/functions/v1/telegram-error-notifier`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY
+      },
+      body: JSON.stringify(errorData)
+    });
+  } catch (e) {
+    // Fail silently - não queremos loops infinitos de erro
+    console.debug('[notifyErrorToTelegram] Falha silenciosa:', e);
+  }
+}
+
+// Capturar e NOTIFICAR erros (não suprimir)
 if (typeof window !== 'undefined') {
   const isWebSocketError = (message: string) => {
     return (message.includes('WebSocket') || message.includes('websocket')) &&
@@ -38,27 +66,110 @@ if (typeof window !== 'undefined') {
             message.includes('connection'));
   };
 
+  // Throttle para evitar spam de notificações (máx 1 por minuto para mesmo tipo de erro)
+  const notificationThrottle = new Map<string, number>();
+  const THROTTLE_MS = 60000; // 1 minuto
+
+  const shouldNotify = (errorKey: string): boolean => {
+    const lastNotified = notificationThrottle.get(errorKey);
+    const now = Date.now();
+    if (!lastNotified || (now - lastNotified) > THROTTLE_MS) {
+      notificationThrottle.set(errorKey, now);
+      return true;
+    }
+    return false;
+  };
+
   const originalConsoleError = console.error;
   console.error = (...args: any[]) => {
     const message = args[0]?.toString() || '';
-    if (isWebSocketError(message)) return;
+    
+    // Sempre logar no console
     originalConsoleError.apply(console, args);
+    
+    // Notificar erros de WebSocket no Telegram
+    if (isWebSocketError(message) && shouldNotify('websocket_error')) {
+      notifyErrorToTelegram({
+        errorType: 'WEBSOCKET',
+        errorCategory: 'SIMPLE',
+        errorMessage: message.substring(0, 500),
+        module: 'supabase-client',
+        route: window.location.pathname,
+        metadata: {
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
   };
 
-  // Also suppress console.warn for WebSocket issues
+  // Capturar console.warn também
   const originalConsoleWarn = console.warn;
   console.warn = (...args: any[]) => {
     const message = args[0]?.toString() || '';
-    if (isWebSocketError(message)) return;
     originalConsoleWarn.apply(console, args);
+    
+    if (isWebSocketError(message) && shouldNotify('websocket_warn')) {
+      notifyErrorToTelegram({
+        errorType: 'WEBSOCKET',
+        errorCategory: 'SIMPLE',
+        errorMessage: `[WARN] ${message.substring(0, 500)}`,
+        module: 'supabase-client',
+        route: window.location.pathname,
+        metadata: {
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
   };
 
-  // Suppress unhandled WebSocket errors at window level
+  // Capturar erros não tratados no window
   window.addEventListener('error', (event) => {
     const message = event.message || '';
-    if (isWebSocketError(message)) {
-      event.preventDefault();
-      return false;
+    const errorKey = `window_error_${message.substring(0, 50)}`;
+    
+    if (shouldNotify(errorKey)) {
+      notifyErrorToTelegram({
+        errorType: 'FRONTEND',
+        errorCategory: 'CRITICAL',
+        errorMessage: message.substring(0, 500),
+        errorStack: event.error?.stack,
+        module: 'window-error-handler',
+        route: window.location.pathname,
+        metadata: {
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+  });
+
+  // Capturar promise rejections não tratadas
+  window.addEventListener('unhandledrejection', (event) => {
+    const message = event.reason?.message || String(event.reason);
+    const errorKey = `promise_rejection_${message.substring(0, 50)}`;
+    
+    if (shouldNotify(errorKey)) {
+      notifyErrorToTelegram({
+        errorType: 'FRONTEND',
+        errorCategory: 'CRITICAL',
+        errorMessage: `Unhandled Promise Rejection: ${message.substring(0, 400)}`,
+        errorStack: event.reason?.stack,
+        module: 'unhandled-rejection-handler',
+        route: window.location.pathname,
+        metadata: {
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+          timestamp: new Date().toISOString()
+        }
+      });
     }
   });
 }
