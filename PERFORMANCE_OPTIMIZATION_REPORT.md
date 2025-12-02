@@ -183,22 +183,20 @@ import { FreightAnalyticsDashboard } from '@/components/FreightAnalyticsDashboar
 
 ---
 
-### 1. **PurgeCSS Conservador** 
-**Localização:** `vite.config.ts` (linhas 84-93)
+### 1. **PurgeCSS com Safelist Ultra-Robusta v2** 
+**Localização:** `vite.config.ts` (linhas 84-265)
 
-**Status:** ⚠️ **DESABILITADO** - estava removendo CSS necessário
+**Status:** ✅ **REABILITADO** com safelist abrangente
 
-**Problema Identificado:**
-- O PurgeCSS estava removendo classes dinâmicas usadas na página de Auth
-- Páginas ficavam completamente sem estilo (sem background, cores, layout)
-- A safelist não era suficiente para cobrir todas as classes dinâmicas
+**Safelist Inclui:**
+- **Tailwind Utilities**: Todas variantes dinâmicas (bg-, text-, border-, hover:, focus:, dark:, sm:, md:, etc.)
+- **Design System**: gradient-*, shadow-*, transition-*, status-*, safe-area-*, pentagon-*
+- **Componentes UI**: btn-*, card-*, freight-card-standard, provider-theme, scroll-area
+- **Terceiros (deep)**: radix, sonner, lucide, recharts, cmdk, vaul, embla, react-day-picker
+- **Greedy Patterns**: dialog, modal, toast, dropdown, tabs, accordion, button, badge, alert, etc.
+- **Preservação**: keyframes, variables, fontFace
 
-**Solução:**
-- PurgeCSS foi temporariamente desabilitado
-- Requer teste extensivo com safelist mais completa antes de reabilitar
-- Classes dinâmicas como as geradas por Radix UI não foram preservadas corretamente
-
-**Ganho esperado (quando reabilitado):**
+**Ganho esperado:**
 - **Redução de 15-20% no CSS final** (de ~21KB para ~17KB)
 - **FCP melhora em ~100-150ms**
 
