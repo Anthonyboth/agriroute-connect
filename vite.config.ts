@@ -326,7 +326,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
-    asyncCssPlugin(), // Re-enabled - critical CSS is inlined in index.html, so FOIT is mitigated
+    // asyncCssPlugin(), // DESABILITADO - quebra carregamento do CSS completamente
     // swVersionPlugin() - não necessário com generateSW strategy
     // criticalCssPlugin() - desabilitado por causar falha no build
     VitePWA({
