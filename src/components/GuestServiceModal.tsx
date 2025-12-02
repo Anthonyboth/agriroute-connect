@@ -28,18 +28,22 @@ interface SubService {
 interface GuestServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onBack?: () => void; // Voltar para modal anterior
   serviceType: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO';
+  initialSubService?: string; // Sub-serviço pré-selecionado (ex: 'GUINCHO')
 }
 
 const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
   isOpen,
   onClose,
-  serviceType
+  onBack,
+  serviceType,
+  initialSubService
 }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
-  const [selectedSubService, setSelectedSubService] = useState<string>('');
+  const [selectedSubService, setSelectedSubService] = useState<string>(initialSubService || '');
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -370,9 +374,14 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
             variant="ghost"
             size="sm"
             onClick={() => {
-              if (selectedSubService) {
+              // Se tem sub-serviço selecionado E não veio pré-selecionado, volta para lista
+              if (selectedSubService && !initialSubService) {
                 setSelectedSubService('');
+              } else if (onBack) {
+                // Se tem onBack (vindo de outro modal), chama onBack
+                onBack();
               } else {
+                // Caso contrário, fecha tudo
                 onClose();
               }
             }}
