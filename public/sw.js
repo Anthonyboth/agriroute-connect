@@ -3,6 +3,9 @@
 const CACHE_VERSION = 'v__BUILD_TIME__';
 const CACHE_NAME = `agriroute-cache-${CACHE_VERSION}`;
 
+// Workbox precache manifest injection point
+const precacheManifest = self.__WB_MANIFEST || [];
+
 // Limpar caches antigos ao ativar nova versão
 self.addEventListener('activate', function(event) {
   console.log('[SW] Ativando nova versão:', CACHE_VERSION);
