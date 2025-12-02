@@ -423,6 +423,20 @@ export const useAuth = () => {
         setSession(session);
         setUser(session?.user ?? null);
 
+        // ✅ ETAPA 4: Limpar cooldown e forçar fetch no SIGNED_IN
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('🟢 [useAuth] SIGNED_IN event - limpando cooldown e forçando fetch');
+          sessionStorage.removeItem('profile_fetch_cooldown_until');
+          
+          // Validate UUID format
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          if (uuidRegex.test(session.user.id)) {
+            fetchProfile(session.user.id, true); // force = true
+          }
+          setInitialized(true);
+          return;
+        }
+
         // Correção de sessão inválida: quando o refresh falha e o Supabase não entrega session
         if (!session) {
           // Evitar chamadas Supabase aqui (deadlock prevention)
