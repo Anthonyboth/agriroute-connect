@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bell, Check, CheckCheck, Info, AlertTriangle, TrendingUp, Truck, DollarSign, CreditCard, MessageSquare, Star, Package, ChevronRight, RefreshCw, Filter } from 'lucide-react';
+import { Bell, Check, CheckCheck, Info, AlertTriangle, Truck, DollarSign, CreditCard, MessageSquare, Star, Package, ChevronRight, RefreshCw, Filter, MailCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -40,6 +40,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const { openServiceRating, openFreightRating } = useGlobalRating();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,8 +56,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     setError(null);
     
     try {
-      console.log('[NotificationCenter] Iniciando busca de notificações...');
-      
       const result = await queryWithTimeout(
         async () => {
           const { data, error } = await supabase
@@ -77,7 +76,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         }
       );
       
-      console.log(`[NotificationCenter] ${result?.length || 0} notificações carregadas`);
       setNotifications(result || []);
     } catch (error: any) {
       console.error('[NotificationCenter] Erro ao carregar:', error);
@@ -119,6 +117,40 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   };
 
+  const markAllAsRead = async () => {
+    if (!profile || unreadCount === 0) return;
+    
+    setMarkingAllRead(true);
+    try {
+      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .in('id', unreadIds);
+
+      if (error) throw error;
+
+      setNotifications(prev => 
+        prev.map(notif => ({ ...notif, read: true }))
+      );
+      
+      toast({
+        title: "Todas marcadas como lidas",
+        description: `${unreadIds.length} notificações marcadas como lidas`,
+      });
+    } catch (error: any) {
+      console.error('Error marking all as read:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível marcar todas como lidas",
+        variant: "destructive",
+      });
+    } finally {
+      setMarkingAllRead(false);
+    }
+  };
+
   const getDashboardRoute = (role?: string) => {
     switch (role) {
       case 'driver':
@@ -138,18 +170,15 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   };
 
   const handleNotificationClick = async (notification: Notification) => {
-    // Marcar como lida
     if (!notification.read) {
       await markAsRead(notification.id);
     }
     
     const { type, data } = notification;
     
-    // Lógica de navegação baseada no tipo
     switch (type) {
       case 'rating_pending':
         if (data?.freight_id && data?.rated_user_id) {
-          // Buscar nome do avaliado
           const { data: ratedProfile } = await supabase
             .from('profiles')
             .select('full_name')
@@ -166,7 +195,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         if (data?.freight_id) {
           onClose();
           
-          // 🔥 REFETCH DIRECIONADO do frete específico
           const { data: freightData } = await supabase
             .from('freights')
             .select(`
@@ -183,7 +211,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             state: { 
               openTab: 'confirm-delivery',
               highlightFreightId: data.freight_id,
-              freightData: freightData // 🔥 Passa dados atualizados
+              freightData: freightData
             } 
           });
         }
@@ -270,7 +298,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         
       case 'service_rating_pending':
         if (data?.service_request_id && data?.rated_user_id) {
-          // Buscar informações do serviço e usuário
           const { data: serviceData } = await supabase
             .from('service_requests')
             .select('service_type')
@@ -315,13 +342,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         });
         break;
         
-      // Para notificações genéricas, apenas marca como lida
-      case 'info':
-      case 'warning':
-      case 'success':
-      case 'error':
       default:
-        // Apenas marca como lida, sem navegação
         break;
     }
   };
@@ -357,46 +378,47 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   };
 
   const getNotificationIcon = (type: string) => {
+    const iconClass = "h-5 w-5";
     switch (type) {
       case 'rating_pending':
       case 'service_rating_pending':
-        return <Star className="h-5 w-5 text-yellow-500" />;
+        return <Star className={`${iconClass} text-yellow-500`} />;
       case 'freight_accepted':
       case 'freight_in_transit':
       case 'freight_created':
       case 'company_freight_status_change':
-        return <Truck className="h-5 w-5 text-blue-500" />;
+        return <Truck className={`${iconClass} text-blue-500`} />;
       case 'proposal_received':
       case 'company_new_proposal':
-        return <Package className="h-5 w-5 text-purple-500" />;
+        return <Package className={`${iconClass} text-purple-500`} />;
       case 'chat_message':
       case 'service_chat_message':
       case 'proposal_chat_message':
-        return <MessageSquare className="h-5 w-5 text-green-500" />;
+        return <MessageSquare className={`${iconClass} text-green-500`} />;
       case 'payment_completed':
       case 'payment_confirmation':
-        return <DollarSign className="h-5 w-5 text-green-600" />;
+        return <DollarSign className={`${iconClass} text-green-600`} />;
       case 'advance_request':
       case 'advance_approved':
-        return <CreditCard className="h-5 w-5 text-indigo-500" />;
+        return <CreditCard className={`${iconClass} text-indigo-500`} />;
       case 'delivery_confirmation_required':
       case 'checkin_confirmation_required':
       case 'company_delivery_confirmation':
-        return <CheckCheck className="h-5 w-5 text-orange-500" />;
+        return <CheckCheck className={`${iconClass} text-orange-500`} />;
       case 'company_driver_assignment':
-        return <Truck className="h-5 w-5 text-indigo-500" />;
+        return <Truck className={`${iconClass} text-indigo-500`} />;
       case 'vehicle_assignment_created':
       case 'vehicle_assignment_removed':
-        return <Truck className="h-5 w-5 text-purple-500" />;
+        return <Truck className={`${iconClass} text-purple-500`} />;
       case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
+        return <AlertTriangle className={`${iconClass} text-yellow-600`} />;
       case 'success':
-        return <Check className="h-5 w-5 text-green-500" />;
+        return <Check className={`${iconClass} text-green-500`} />;
       case 'error':
-        return <AlertTriangle className="h-5 w-5 text-red-500" />;
+        return <AlertTriangle className={`${iconClass} text-red-500`} />;
       case 'info':
       default:
-        return <Info className="h-5 w-5 text-blue-500" />;
+        return <Info className={`${iconClass} text-blue-500`} />;
     }
   };
 
@@ -409,19 +431,31 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     const diffDays = Math.floor(diffMs / 86400000);
 
     if (diffMins < 1) return 'Agora';
-    if (diffMins < 60) return `${diffMins} min atrás`;
-    if (diffHours < 24) return `${diffHours}h atrás`;
-    if (diffDays < 7) return `${diffDays}d atrás`;
+    if (diffMins < 60) return `${diffMins}min`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
     
     return date.toLocaleDateString('pt-BR', { 
       day: '2-digit', 
-      month: 'short' 
+      month: '2-digit'
     });
+  };
+
+  const getDateGroup = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today.getTime() - 86400000);
+    const weekAgo = new Date(today.getTime() - 7 * 86400000);
+    
+    if (date >= today) return 'Hoje';
+    if (date >= yesterday) return 'Ontem';
+    if (date >= weekAgo) return 'Esta semana';
+    return 'Anteriores';
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Agrupar notificações por tipo
   const groupedNotifications = useMemo(() => {
     return {
       proposals: notifications.filter(n => 
@@ -453,251 +487,231 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     };
   }, [notifications]);
 
+  // Group notifications by date
+  const notificationsByDate = useMemo(() => {
+    const groups: Record<string, Notification[]> = {};
+    notifications.forEach(n => {
+      const group = getDateGroup(n.created_at);
+      if (!groups[group]) groups[group] = [];
+      groups[group].push(n);
+    });
+    return groups;
+  }, [notifications]);
+
+  const renderNotificationCard = (notification: Notification) => (
+    <div
+      key={notification.id}
+      className={`group p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
+        !notification.read 
+          ? 'bg-primary/5 border-primary/20 hover:bg-primary/10' 
+          : 'bg-card border-border/50 hover:bg-muted/50'
+      } ${isActionableNotification(notification.type) ? 'hover:shadow-sm' : ''}`}
+      onClick={() => handleNotificationClick(notification)}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`flex-shrink-0 p-2 rounded-full ${
+          !notification.read ? 'bg-primary/10' : 'bg-muted'
+        }`}>
+          {getNotificationIcon(notification.type)}
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <h4 className={`text-sm font-medium leading-tight ${
+              !notification.read ? 'text-foreground' : 'text-muted-foreground'
+            }`}>
+              {notification.title}
+            </h4>
+            
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="text-[11px] text-muted-foreground">
+                {formatDate(notification.created_at)}
+              </span>
+              {!notification.read && (
+                <div className="w-2 h-2 bg-primary rounded-full" />
+              )}
+            </div>
+          </div>
+          
+          <p className={`text-sm mt-0.5 line-clamp-2 ${
+            !notification.read ? 'text-foreground/80' : 'text-muted-foreground'
+          }`}>
+            {notification.message}
+          </p>
+          
+          {isActionableNotification(notification.type) && (
+            <div className="flex items-center gap-1 mt-2 text-primary">
+              <span className="text-xs font-medium">Ver detalhes</span>
+              <ChevronRight className="h-3 w-3" />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderNotificationList = (notifs: Notification[], showDateGroups = false) => {
+    if (notifs.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="p-4 rounded-full bg-muted/50 mb-4">
+            <Bell className="h-8 w-8 text-muted-foreground/50" />
+          </div>
+          <p className="text-sm font-medium text-muted-foreground">Nenhuma notificação</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">Você está em dia!</p>
+        </div>
+      );
+    }
+
+    if (showDateGroups) {
+      const groups = ['Hoje', 'Ontem', 'Esta semana', 'Anteriores'];
+      return (
+        <div className="space-y-4">
+          {groups.map(group => {
+            const groupNotifs = notificationsByDate[group];
+            if (!groupNotifs || groupNotifs.length === 0) return null;
+            
+            return (
+              <div key={group}>
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {group}
+                  </span>
+                  <div className="flex-1 h-px bg-border/50" />
+                </div>
+                <div className="space-y-2">
+                  {groupNotifs.map(renderNotificationCard)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {notifs.map(renderNotificationCard)}
+      </div>
+    );
+  };
+
   return (
     <>
-      {/* Componente de som - ativa quando unreadCount aumenta */}
       <NotificationSound unreadCount={unreadCount} />
       
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] p-0 gap-0 overflow-hidden">
+          {/* Header */}
+          <div className="px-4 py-3 border-b bg-muted/30">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-5 w-5 text-primary" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                      {unreadCount > 9 ? '9+' : unreadCount}
+                    <span className="absolute -top-1 -right-1.5 h-4 min-w-4 px-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                   )}
                 </div>
-                Notificações
+                <div>
+                  <h2 className="text-base font-semibold">Notificações</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {unreadCount > 0 ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : 'Todas lidas'}
+                  </p>
+                </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={fetchNotifications}
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-            </DialogTitle>
-            <DialogDescription>
-              Fique por dentro de tudo que acontece
-            </DialogDescription>
-          </DialogHeader>
-
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid grid-cols-4 w-full">
-            <TabsTrigger value="all" className="text-xs">
-              Todas {unreadCount > 0 && `(${unreadCount})`}
-            </TabsTrigger>
-            <TabsTrigger value="proposals" className="text-xs">
-              <Package className="h-3 w-3 mr-1" />
-              Propostas
-            </TabsTrigger>
-            <TabsTrigger value="freights" className="text-xs">
-              <Truck className="h-3 w-3 mr-1" />
-              Fretes
-            </TabsTrigger>
-            <TabsTrigger value="payments" className="text-xs">
-              <DollarSign className="h-3 w-3 mr-1" />
-              Pagamentos
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all" className="mt-4">
-            <ScrollArea className="h-[450px] pr-4">
-              {loading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <Card key={`notification-skeleton-${i}`}>
-                      <CardContent className="pt-6">
-                        <div className="flex gap-3">
-                          <Skeleton className="h-10 w-10 rounded-full" />
-                          <div className="flex-1 space-y-2">
-                            <Skeleton className="h-4 w-3/4" />
-                            <Skeleton className="h-3 w-full" />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : error ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center text-muted-foreground">
-                      <AlertTriangle className="h-10 w-10 mx-auto mb-2 text-destructive" />
-                      <p>{error}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : notifications.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center text-muted-foreground py-8">
-                      <Bell className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p className="text-lg font-medium">Nenhuma notificação</p>
-                      <p className="text-sm mt-1">Você está em dia! 🎉</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-2">
-                  {notifications.map((notification) => (
-                    <Card 
-                      key={notification.id}
-                      className={`transition-colors cursor-pointer ${
-                        !notification.read 
-                          ? 'bg-primary/5 hover:bg-primary/10 border-primary/20' 
-                          : 'hover:bg-muted/50'
-                      } ${
-                        isActionableNotification(notification.type) 
-                          ? 'hover:shadow-md' 
-                          : ''
-                      }`}
-                      onClick={() => handleNotificationClick(notification)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 mt-1">
-                            {getNotificationIcon(notification.type)}
-                          </div>
-                          
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2 mb-1">
-                              <h4 className={`text-sm font-semibold ${
-                                !notification.read ? 'text-foreground' : 'text-muted-foreground'
-                              }`}>
-                                {notification.title}
-                              </h4>
-                              
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                  {formatDate(notification.created_at)}
-                                </span>
-                                {!notification.read && (
-                                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <p className={`text-sm mt-1 ${
-                              !notification.read ? 'text-foreground' : 'text-muted-foreground'
-                            }`}>
-                              {notification.message}
-                            </p>
-                            
-                            {/* Atalho visual para fretes */}
-                            {notification.data?.freight_id && (
-                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
-                                <Package className="h-3 w-3 text-primary" />
-                                <span className="text-xs text-primary font-medium">
-                                  Clique para ver detalhes do frete
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {isActionableNotification(notification.type) && (
-                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
-
-          {/* Tabs filtradas por grupo */}
-          {['proposals', 'freights', 'payments'].map((group) => (
-            <TabsContent key={group} value={group} className="mt-4">
-              <ScrollArea className="h-[450px] pr-4">
-                {groupedNotifications[group as keyof typeof groupedNotifications].length === 0 ? (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-center text-muted-foreground py-8">
-                        <Filter className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                        <p className="text-sm">Nenhuma notificação deste tipo</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-2">
-                    {groupedNotifications[group as keyof typeof groupedNotifications].map((notification) => (
-                      <Card 
-                        key={notification.id}
-                        className={`transition-colors cursor-pointer ${
-                          !notification.read 
-                            ? 'bg-primary/5 hover:bg-primary/10 border-primary/20' 
-                            : 'hover:bg-muted/50'
-                        } ${
-                          isActionableNotification(notification.type) 
-                            ? 'hover:shadow-md' 
-                            : ''
-                        }`}
-                        onClick={() => handleNotificationClick(notification)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 mt-1">
-                              {getNotificationIcon(notification.type)}
-                            </div>
-                            
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2 mb-1">
-                                <h4 className={`text-sm font-semibold ${
-                                  !notification.read ? 'text-foreground' : 'text-muted-foreground'
-                                }`}>
-                                  {notification.title}
-                                </h4>
-                                
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                    {formatDate(notification.created_at)}
-                                  </span>
-                                  {!notification.read && (
-                                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              <p className={`text-sm mt-1 ${
-                                !notification.read ? 'text-foreground' : 'text-muted-foreground'
-                              }`}>
-                                {notification.message}
-                              </p>
-                              
-                              {/* Atalho visual para fretes */}
-                              {notification.data?.freight_id && (
-                                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
-                                  <Package className="h-3 w-3 text-primary" />
-                                  <span className="text-xs text-primary font-medium">
-                                    Clique para ver detalhes do frete
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-
-                            {isActionableNotification(notification.type) && (
-                              <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+              
+              <div className="flex items-center gap-1">
+                {unreadCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={markAllAsRead}
+                    disabled={markingAllRead}
+                    className="h-8 text-xs gap-1.5"
+                  >
+                    <MailCheck className={`h-3.5 w-3.5 ${markingAllRead ? 'animate-pulse' : ''}`} />
+                    Marcar lidas
+                  </Button>
                 )}
-              </ScrollArea>
-            </TabsContent>
-          ))}
-        </Tabs>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={fetchNotifications}
+                  disabled={loading}
+                  className="h-8 w-8"
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+          </div>
 
-          <div className="flex justify-end pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
+          {/* Tabs */}
+          <Tabs defaultValue="all" className="flex-1 flex flex-col">
+            <TabsList className="grid grid-cols-4 mx-4 mt-3 h-9">
+              <TabsTrigger value="all" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                Todas
+              </TabsTrigger>
+              <TabsTrigger value="proposals" className="text-xs">
+                <Package className="h-3 w-3 mr-1" />
+                Propostas
+              </TabsTrigger>
+              <TabsTrigger value="freights" className="text-xs">
+                <Truck className="h-3 w-3 mr-1" />
+                Fretes
+              </TabsTrigger>
+              <TabsTrigger value="payments" className="text-xs">
+                <DollarSign className="h-3 w-3 mr-1" />
+                Pagtos
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex-1 overflow-hidden">
+              <TabsContent value="all" className="m-0 h-full">
+                <ScrollArea className="h-[400px] px-4 py-3">
+                  {loading ? (
+                    <div className="space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="p-3 rounded-lg border bg-card">
+                          <div className="flex gap-3">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div className="flex-1 space-y-2">
+                              <Skeleton className="h-4 w-3/4" />
+                              <Skeleton className="h-3 w-full" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : error ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <AlertTriangle className="h-10 w-10 text-destructive mb-3" />
+                      <p className="text-sm text-muted-foreground">{error}</p>
+                      <Button variant="outline" size="sm" onClick={fetchNotifications} className="mt-3">
+                        Tentar novamente
+                      </Button>
+                    </div>
+                  ) : (
+                    renderNotificationList(notifications, true)
+                  )}
+                </ScrollArea>
+              </TabsContent>
+
+              {['proposals', 'freights', 'payments'].map((group) => (
+                <TabsContent key={group} value={group} className="m-0 h-full">
+                  <ScrollArea className="h-[400px] px-4 py-3">
+                    {renderNotificationList(groupedNotifications[group as keyof typeof groupedNotifications])}
+                  </ScrollArea>
+                </TabsContent>
+              ))}
+            </div>
+          </Tabs>
+
+          {/* Footer */}
+          <div className="px-4 py-3 border-t bg-muted/20">
+            <Button variant="outline" onClick={onClose} className="w-full">
               Fechar
             </Button>
           </div>

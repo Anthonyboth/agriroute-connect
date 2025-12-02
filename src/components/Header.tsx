@@ -9,9 +9,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, Building2, Truck, FileText } from 'lucide-react';
+import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, Building2, Truck, FileText, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NotificationCenter, UserProfileModal } from '@/components/LazyComponents';
@@ -51,28 +51,31 @@ const Header: React.FC<HeaderProps> = ({
 
   const getUserInitials = (name?: string) => {
     if (!name) return 'U';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    const parts = name.split(' ').filter(Boolean);
+    if (parts.length === 0) return 'U';
+    if (parts.length === 1) return parts[0][0]?.toUpperCase() || 'U';
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
   const getRoleBadge = (role?: string, activeMode?: string) => {
     if (!role) return 'Usuário';
     if (activeMode === 'TRANSPORTADORA') return 'Transportadora';
     if (role === 'PRODUTOR') return 'Produtor';
-    if (role === 'PRESTADOR_SERVICOS') return 'Prestador de Serviço';
-    if (role === 'MOTORISTA_AFILIADO') return 'Motorista Afiliado';
+    if (role === 'PRESTADOR_SERVICOS') return 'Prestador';
+    if (role === 'MOTORISTA_AFILIADO') return 'Afiliado';
     if (role === 'MOTORISTA') return 'Motorista';
     if (role === 'TRANSPORTADORA') return 'Transportadora';
     return 'Usuário';
   };
 
   const getRoleColor = (role?: string) => {
-    if (!role) return "bg-gray-500";
-    if (role === 'PRODUTOR') return 'bg-primary/10 text-primary';
-    if (role === 'PRESTADOR_SERVICOS') return 'bg-blue-600 text-white font-medium';
-    if (role === 'MOTORISTA_AFILIADO') return 'bg-purple-500/10 text-purple-700';
-    if (role === 'MOTORISTA') return 'bg-accent/10 text-accent';
-    if (role === 'TRANSPORTADORA') return 'bg-orange-500/10 text-orange-700';
-    return 'bg-gray-500';
+    if (!role) return "bg-muted text-muted-foreground";
+    if (role === 'PRODUTOR') return 'bg-primary/15 text-primary border border-primary/20';
+    if (role === 'PRESTADOR_SERVICOS') return 'bg-blue-500/15 text-blue-600 border border-blue-500/20';
+    if (role === 'MOTORISTA_AFILIADO') return 'bg-purple-500/15 text-purple-600 border border-purple-500/20';
+    if (role === 'MOTORISTA') return 'bg-accent/15 text-accent-foreground border border-accent/20';
+    if (role === 'TRANSPORTADORA') return 'bg-orange-500/15 text-orange-600 border border-orange-500/20';
+    return 'bg-muted text-muted-foreground';
   };
 
   const [showProfile, setShowProfile] = useState(false);
@@ -103,7 +106,7 @@ const Header: React.FC<HeaderProps> = ({
       return data || [];
     },
     enabled: !!userProfile?.id && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(user?.role || ''),
-    refetchInterval: 30000, // Atualizar a cada 30 segundos
+    refetchInterval: 30000,
   });
 
   // Verificar se é transportadora
@@ -134,34 +137,38 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="bg-card border-b shadow-card sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2">
-                <Leaf className="h-8 w-8 text-primary" />
-                <span className="text-2xl font-bold text-foreground">AgriRoute</span>
+      <header className="bg-card/95 backdrop-blur-sm border-b border-border/50 shadow-sm sticky top-0 z-50">
+        <div className="container mx-auto px-3 sm:px-4">
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            {/* Logo + Badge */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <Leaf className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                </div>
+                <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  AgriRoute
+                </span>
               </div>
-              <div className="hidden sm:block">
-                <Badge className={getRoleColor(user?.role)}>
-                  {getRoleBadge(user?.role, userProfile?.active_mode)}
-                </Badge>
-              </div>
+              
+              <Badge className={`text-[10px] sm:text-xs px-2 py-0.5 ${getRoleColor(user?.role)}`}>
+                {getRoleBadge(user?.role, userProfile?.active_mode)}
+              </Badge>
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-4">
-              {/* NF-es Link - Visible for PRODUTOR, MOTORISTA, and TRANSPORTADORA */}
+            <div className="hidden md:flex items-center gap-2">
+              {/* NF-es Link */}
               {['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(user?.role || '') && (
                 <Button 
                   variant="ghost" 
                   size="sm"
+                  className="h-9 px-3 text-muted-foreground hover:text-foreground"
                   asChild
                 >
-                  <Link to="/nfe-dashboard" className="flex items-center">
-                    <FileText className="h-4 w-4 mr-2" />
-                    NF-es
+                  <Link to="/nfe-dashboard" className="flex items-center gap-1.5">
+                    <FileText className="h-4 w-4" />
+                    <span className="text-sm">NF-es</span>
                   </Link>
                 </Button>
               )}
@@ -170,41 +177,57 @@ const Header: React.FC<HeaderProps> = ({
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="relative"
+                className="relative h-9 w-9 p-0"
                 onClick={() => setShowNotifications(true)}
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-5 w-5 text-muted-foreground" />
                 {notifications > 0 && (
-                  <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-destructive text-destructive-foreground text-xs">
-                    {notifications > 9 ? '9+' : notifications}
-                  </Badge>
+                  <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 flex items-center justify-center px-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full">
+                    {notifications > 99 ? '99+' : notifications}
+                  </span>
                 )}
               </Button>
 
               {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="gradient-primary text-primary-foreground">
+                  <Button variant="ghost" className="h-9 px-2 gap-2 hover:bg-muted/50">
+                    <div className="relative">
+                      <Avatar className="h-8 w-8 border-2 border-primary/20">
+                        {userProfile?.profile_photo_url && (
+                          <AvatarImage src={userProfile.profile_photo_url} alt={user?.name} />
+                        )}
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                          {getUserInitials(user?.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {pendingDocRequests && pendingDocRequests.length > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 h-3.5 min-w-3.5 flex items-center justify-center bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full">
+                          {pendingDocRequests.length}
+                        </span>
+                      )}
+                    </div>
+                    <div className="hidden lg:flex flex-col items-start">
+                      <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
+                        {user?.name?.split(' ')[0] || 'Usuário'}
+                      </span>
+                    </div>
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" sideOffset={8}>
+                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-t-md">
+                    <Avatar className="h-10 w-10 border-2 border-primary/20">
+                      {userProfile?.profile_photo_url && (
+                        <AvatarImage src={userProfile.profile_photo_url} alt={user?.name} />
+                      )}
+                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                         {getUserInitials(user?.name)}
                       </AvatarFallback>
                     </Avatar>
-                    {pendingDocRequests && pendingDocRequests.length > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-1 -right-1 h-5 min-w-5 p-0 flex items-center justify-center text-xs"
-                      >
-                        {pendingDocRequests.length}
-                      </Badge>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end">
-                  <div className="flex items-center justify-start gap-2 p-2">
-                    <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium text-sm">{user?.name ?? 'Usuário'}</p>
-                      <p className="w-[200px] truncate text-xs text-muted-foreground">
+                    <div className="flex flex-col min-w-0">
+                      <p className="font-medium text-sm truncate">{user?.name ?? 'Usuário'}</p>
+                      <p className="text-xs text-muted-foreground truncate">
                         {getRoleBadge(user?.role, userProfile?.active_mode)}
                       </p>
                     </div>
@@ -212,9 +235,9 @@ const Header: React.FC<HeaderProps> = ({
                   <DropdownMenuSeparator />
                   {isTransportCompany && (
                     <>
-                      <DropdownMenuItem asChild>
-                        <Link to="/dashboard/company" className="flex items-center cursor-pointer">
-                          <Building2 className="mr-2 h-4 w-4" />
+                      <DropdownMenuItem asChild className="cursor-pointer">
+                        <Link to="/dashboard/company" className="flex items-center">
+                          <Building2 className="mr-2 h-4 w-4 text-orange-500" />
                           Painel da Transportadora
                         </Link>
                       </DropdownMenuItem>
@@ -222,8 +245,12 @@ const Header: React.FC<HeaderProps> = ({
                     </>
                   )}
                   {menuItems.map((item) => (
-                    <DropdownMenuItem key={item.label} onClick={item.action}>
-                      <item.icon className="mr-2 h-4 w-4" />
+                    <DropdownMenuItem 
+                      key={item.label} 
+                      onClick={item.action}
+                      className="cursor-pointer"
+                    >
+                      <item.icon className="mr-2 h-4 w-4 text-muted-foreground" />
                       {item.label}
                     </DropdownMenuItem>
                   ))}
@@ -239,7 +266,10 @@ const Header: React.FC<HeaderProps> = ({
                     </>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={onLogout} className="text-destructive">
+                  <DropdownMenuItem 
+                    onClick={onLogout} 
+                    className="text-destructive focus:text-destructive cursor-pointer"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     Sair
                   </DropdownMenuItem>
@@ -248,95 +278,98 @@ const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* Mobile Menu */}
-            <div className="md:hidden">
+            <div className="flex md:hidden items-center gap-1">
+              {/* Mobile Notifications */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="relative h-9 w-9 p-0"
+                onClick={() => setShowNotifications(true)}
+              >
+                <Bell className="h-5 w-5 text-muted-foreground" />
+                {notifications > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 flex items-center justify-center px-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full">
+                    {notifications > 99 ? '99+' : notifications}
+                  </span>
+                )}
+              </Button>
+
               <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <Menu className="h-6 w-6" />
+                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                    <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[300px]">
-                  <div className="flex flex-col space-y-6 py-6">
-                    {/* User Info */}
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback className="gradient-primary text-primary-foreground">
-                          {getUserInitials(user?.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{user?.name ?? 'Usuário'}</p>
-                        <Badge className={getRoleColor(user?.role)}>
-                          {getRoleBadge(user?.role, userProfile?.active_mode)}
-                        </Badge>
+                <SheetContent side="right" className="w-[280px] p-0">
+                  <div className="flex flex-col h-full">
+                    {/* User Info Header */}
+                    <div className="p-4 bg-muted/30 border-b">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12 border-2 border-primary/20">
+                          {userProfile?.profile_photo_url && (
+                            <AvatarImage src={userProfile.profile_photo_url} alt={user?.name} />
+                          )}
+                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                            {getUserInitials(user?.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-foreground truncate">{user?.name ?? 'Usuário'}</p>
+                          <Badge className={`text-[10px] mt-1 ${getRoleColor(user?.role)}`}>
+                            {getRoleBadge(user?.role, userProfile?.active_mode)}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Notifications */}
-                    <Button 
-                      variant="ghost" 
-                      className="justify-start" 
-                      size="sm"
-                      onClick={() => {
-                        setShowNotifications(true);
-                        setIsSheetOpen(false);
-                      }}
-                    >
-                      <Bell className="mr-3 h-5 w-5" />
-                      Notificações
-                      {notifications > 0 && (
-                        <Badge className="ml-auto bg-destructive text-destructive-foreground">
-                          {notifications}
-                        </Badge>
-                      )}
-                    </Button>
-
-                    {/* NF-es Link for Mobile */}
-                    {['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(user?.role || '') && (
-                      <Button 
-                        variant="ghost" 
-                        className="justify-start" 
-                        size="sm"
-                        asChild
-                        onClick={() => setIsSheetOpen(false)}
-                      >
-                        <Link to="/nfe-dashboard" className="flex items-center">
-                          <FileText className="mr-3 h-5 w-5" />
-                          NF-es
-                        </Link>
-                      </Button>
-                    )}
-
                     {/* Menu Items */}
-                    {menuItems.map((item) => (
+                    <div className="flex-1 overflow-y-auto p-2">
+                      {/* NF-es Link for Mobile */}
+                      {['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(user?.role || '') && (
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start h-11 px-3 mb-1" 
+                          asChild
+                          onClick={() => setIsSheetOpen(false)}
+                        >
+                          <Link to="/nfe-dashboard" className="flex items-center">
+                            <FileText className="mr-3 h-5 w-5 text-muted-foreground" />
+                            NF-es
+                          </Link>
+                        </Button>
+                      )}
+
+                      {/* Menu Items */}
+                      {menuItems.map((item) => (
+                        <Button
+                          key={item.label}
+                          variant="ghost"
+                          className="w-full justify-start h-11 px-3 mb-1"
+                          onClick={() => {
+                            item.action();
+                            setIsSheetOpen(false);
+                          }}
+                        >
+                          <item.icon className="mr-3 h-5 w-5 text-muted-foreground" />
+                          {item.label}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Logout */}
+                    <div className="p-3 border-t">
                       <Button
-                        key={item.label}
                         variant="ghost"
-                        className="justify-start"
-                        size="sm"
+                        className="w-full justify-start h-11 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => {
-                          item.action();
+                          onLogout();
                           setIsSheetOpen(false);
                         }}
                       >
-                        <item.icon className="mr-3 h-5 w-5" />
-                        {item.label}
+                        <LogOut className="mr-3 h-5 w-5" />
+                        Sair da conta
                       </Button>
-                    ))}
-
-                    {/* Logout */}
-                    <Button
-                      variant="ghost"
-                      className="justify-start text-destructive hover:text-destructive"
-                      size="sm"
-                      onClick={() => {
-                        onLogout();
-                        setIsSheetOpen(false);
-                      }}
-                    >
-                      <LogOut className="mr-3 h-5 w-5" />
-                      Sair
-                    </Button>
+                    </div>
                   </div>
                 </SheetContent>
               </Sheet>
