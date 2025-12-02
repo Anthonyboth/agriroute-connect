@@ -23,6 +23,41 @@ serve(async (req) => {
       }
     );
 
+    // SECURITY: Verify admin role before allowing user generation
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Não autenticado' }), 
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Autenticação inválida' }), 
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user has admin role
+    const { data: isAdmin } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .single();
+
+    if (!isAdmin) {
+      console.warn(`Unauthorized generate-test-users attempt by user ${user.id}`);
+      return new Response(
+        JSON.stringify({ error: 'Acesso negado. Apenas administradores podem gerar usuários de teste.' }), 
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     console.log('🚀 Iniciando geração de dados de teste...');
 
     const createdUsers: any[] = [];

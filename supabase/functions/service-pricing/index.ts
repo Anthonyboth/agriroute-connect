@@ -1,10 +1,39 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Zod validation schema
+const ServicePricingSchema = z.object({
+  service_type: z.enum(['CARGA', 'GUINCHO', 'MUDANCA'], {
+    errorMap: () => ({ message: "Tipo de serviço inválido. Use: CARGA, GUINCHO ou MUDANCA" })
+  }),
+  distance_km: z.number()
+    .positive({ message: "Distância deve ser maior que zero" })
+    .max(10000, { message: "Distância máxima: 10.000km" }),
+  weight_kg: z.number()
+    .positive({ message: "Peso deve ser maior que zero" })
+    .max(100000, { message: "Peso máximo: 100.000kg" })
+    .optional(),
+  cargo_type: z.string()
+    .max(100, { message: "Tipo de carga muito longo (máx 100 caracteres)" })
+    .optional(),
+  vehicle_type: z.string()
+    .max(50, { message: "Tipo de veículo muito longo (máx 50 caracteres)" })
+    .optional(),
+  rooms: z.number()
+    .int({ message: "Número de cômodos deve ser inteiro" })
+    .positive({ message: "Número de cômodos deve ser maior que zero" })
+    .max(50, { message: "Máximo: 50 cômodos" })
+    .optional(),
+  additional_services: z.array(
+    z.string().max(50, { message: "Nome de serviço adicional muito longo" })
+  ).max(20, { message: "Máximo: 20 serviços adicionais" }).optional()
+});
 
 interface ServicePricingRequest {
   service_type: 'CARGA' | 'GUINCHO' | 'MUDANCA';
@@ -39,6 +68,28 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Parse and validate request body
+    const rawBody = await req.json();
+    
+    const validationResult = ServicePricingSchema.safeParse(rawBody);
+    
+    if (!validationResult.success) {
+      console.error('Validation error:', validationResult.error.errors);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Dados de entrada inválidos',
+          details: validationResult.error.errors.map(e => ({
+            field: e.path.join('.'),
+            message: e.message
+          }))
+        }), 
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const { 
       service_type, 
       distance_km, 
@@ -47,7 +98,7 @@ serve(async (req) => {
       vehicle_type, 
       rooms, 
       additional_services = [] 
-    }: ServicePricingRequest = await req.json();
+    }: ServicePricingRequest = validationResult.data;
     
     console.log('Calculating service pricing for:', { service_type, distance_km, weight_kg, vehicle_type, rooms });
 

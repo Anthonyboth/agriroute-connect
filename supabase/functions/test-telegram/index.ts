@@ -13,6 +13,46 @@ serve(async (req) => {
   console.log('[TEST-TELEGRAM] Function started');
 
   try {
+    // SECURITY: Verify admin role before allowing telegram tests
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Não autenticado' }), 
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Autenticação inválida' }), 
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user has admin role
+    const { data: isAdmin } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .single();
+
+    if (!isAdmin) {
+      console.warn(`Unauthorized test-telegram attempt by user ${user.id}`);
+      return new Response(
+        JSON.stringify({ error: 'Acesso negado. Apenas administradores podem testar notificações.' }), 
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
     const TELEGRAM_CHAT_ID = '-1003009756749'; // Supergroup (migrado)
 
