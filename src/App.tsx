@@ -151,7 +151,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
     if (loading || isLoadingCompany) {
       const timer = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 8000);
+      }, 15000); // ✅ ETAPA 5: Aumentado de 8s para 15s
       return () => clearTimeout(timer);
     }
   }, [loading, isLoadingCompany]);
@@ -407,6 +407,20 @@ const RedirectIfAuthed = () => {
   const { isAuthenticated, profile, loading, profiles } = useAuth();
   const [isCheckingCompany, setIsCheckingCompany] = React.useState(false);
   const [isCompany, setIsCompany] = React.useState(false);
+  const [profileTimeout, setProfileTimeout] = React.useState(false); // ✅ ETAPA 2: Novo estado para timeout
+  
+  // ✅ ETAPA 2: Timeout para quando isAuthenticated mas profile não carrega
+  React.useEffect(() => {
+    if (isAuthenticated && !profile && !loading) {
+      const timer = setTimeout(() => {
+        console.log('⏰ [RedirectIfAuthed] Profile timeout após 10s');
+        setProfileTimeout(true);
+      }, 10000); // 10 segundos
+      return () => clearTimeout(timer);
+    } else {
+      setProfileTimeout(false);
+    }
+  }, [isAuthenticated, profile, loading]);
   
   // Verificar se é transportadora
   React.useEffect(() => {
@@ -429,6 +443,37 @@ const RedirectIfAuthed = () => {
       checkCompany();
     }
   }, [profile]);
+  
+  // ✅ ETAPA 2: Se timeout atingido, mostrar opção de limpar e tentar novamente
+  if (profileTimeout && isAuthenticated && !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-md">
+          <AlertCircle className="h-12 w-12 mx-auto text-warning" />
+          <h2 className="text-2xl font-bold">Erro ao carregar perfil</h2>
+          <p className="text-muted-foreground">
+            Não foi possível carregar seu perfil. Isso pode ser um problema temporário.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => {
+              console.log('🔄 [RedirectIfAuthed] Limpando cooldown e recarregando...');
+              sessionStorage.removeItem('profile_fetch_cooldown_until');
+              window.location.reload();
+            }}>
+              Tentar Novamente
+            </Button>
+            <Button onClick={async () => {
+              console.log('🚪 [RedirectIfAuthed] Fazendo logout...');
+              await supabase.auth.signOut({ scope: 'local' });
+              window.location.href = '/auth';
+            }} variant="outline">
+              Fazer Login Novamente
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   if (loading || isCheckingCompany) {
     return <ComponentLoader />;
