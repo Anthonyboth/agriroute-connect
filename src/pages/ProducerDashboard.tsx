@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,15 +30,11 @@ import { formatKm, formatBRL, formatDate } from '@/lib/formatters';
 import { isInProgressFreight, isScheduledFreight, formatPickupDate } from '@/utils/freightDateHelpers';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star, MessageCircle, BarChart } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star, MessageCircle, BarChart, Loader2 } from 'lucide-react';
 import { Wrench } from 'lucide-react';
 import { AdvancedFreightFilters, FreightFilters } from '@/components/AdvancedFreightFilters';
-import { FreightAnalyticsDashboard } from '@/components/FreightAnalyticsDashboard';
 import { FreightReportExporter } from '@/components/FreightReportExporter';
 import { useFreightReportData } from '@/hooks/useFreightReportData';
-import { DriverPerformanceDashboard } from '@/components/dashboards/DriverPerformanceDashboard';
-import { PeriodComparisonDashboard } from '@/components/PeriodComparisonDashboard';
-import { RouteRentabilityReport } from '@/components/RouteRentabilityReport';
 import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
@@ -50,6 +46,20 @@ import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { FreightProposalsManager } from '@/components/FreightProposalsManager';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
+
+// ✅ PHASE 2: Lazy load chart-heavy components to reduce initial bundle
+const FreightAnalyticsDashboard = lazy(() => import('@/components/FreightAnalyticsDashboard').then(m => ({ default: m.FreightAnalyticsDashboard })));
+const DriverPerformanceDashboard = lazy(() => import('@/components/dashboards/DriverPerformanceDashboard').then(m => ({ default: m.DriverPerformanceDashboard })));
+const PeriodComparisonDashboard = lazy(() => import('@/components/PeriodComparisonDashboard').then(m => ({ default: m.PeriodComparisonDashboard })));
+const RouteRentabilityReport = lazy(() => import('@/components/RouteRentabilityReport').then(m => ({ default: m.RouteRentabilityReport })));
+
+// Loading fallback for chart components
+const ChartLoader = () => (
+  <div className="flex items-center justify-center p-12 min-h-[300px]">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <span className="ml-2 text-muted-foreground">Carregando gráficos...</span>
+  </div>
+);
 
 const ProducerDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
@@ -1831,24 +1841,30 @@ const ProducerDashboard = () => {
               currentFilters={filters}
             />
             
-            <FreightAnalyticsDashboard
-              freights={filteredFreights}
-              timeRange={timeRange}
-              onTimeRangeChange={setTimeRange}
-            />
+            <Suspense fallback={<ChartLoader />}>
+              <FreightAnalyticsDashboard
+                freights={filteredFreights}
+                timeRange={timeRange}
+                onTimeRangeChange={setTimeRange}
+              />
+            </Suspense>
             
             <Separator className="my-8" />
             
-            <PeriodComparisonDashboard
-              freights={filteredFreights}
-              comparisonType="month"
-            />
+            <Suspense fallback={<ChartLoader />}>
+              <PeriodComparisonDashboard
+                freights={filteredFreights}
+                comparisonType="month"
+              />
+            </Suspense>
             
             <Separator className="my-8" />
             
-            <RouteRentabilityReport
-              freights={filteredFreights}
-            />
+            <Suspense fallback={<ChartLoader />}>
+              <RouteRentabilityReport
+                freights={filteredFreights}
+              />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4">
