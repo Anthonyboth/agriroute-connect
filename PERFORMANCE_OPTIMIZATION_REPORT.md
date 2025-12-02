@@ -1,6 +1,100 @@
-# 📊 Relatório de Otimizações de Performance - Fase 1
+# 📊 Relatório de Otimizações de Performance - Fase 1 & 2
 
 ## ✅ Otimizações Implementadas
+
+---
+
+## 🚀 FASE 2: Code Splitting por Componente (NOVA)
+
+### 2.1 **Lazy Loading de Componentes com Charts**
+**Localização:** `src/pages/ProducerDashboard.tsx`, `src/pages/CompanyDashboard.tsx`
+
+**O que faz:**
+- Componentes que usam Recharts (charts-vendor ~105KB) são carregados sob demanda
+- Só carrega quando o usuário acessa a aba específica
+- Wrapper Suspense com ChartLoader visual
+
+**Componentes convertidos para lazy:**
+- `FreightAnalyticsDashboard` (usa LineChart, BarChart, PieChart)
+- `DriverPerformanceDashboard` (usa LineChart, BarChart, PieChart)
+- `PeriodComparisonDashboard` (usa LineChart, BarChart)
+- `RouteRentabilityReport` (usa ScatterChart)
+- `CompanyAnalyticsDashboard` (usa LineChart, BarChart, PieChart)
+- `CompanyDriverPerformanceDashboard` (usa BarChart, RadarChart)
+- `CompanyFinancialDashboard` (usa LineChart, BarChart, PieChart)
+
+**Ganho esperado:**
+- **Redução de 95KB+ no bundle inicial da landing page**
+- **FCP melhora em ~500-800ms** (charts-vendor não carrega mais)
+- **LCP melhora em ~300-500ms**
+
+### 2.2 **Estrutura de Code Splitting**
+
+```
+Landing Page (inicial):
+├── react-vendor (~91KB) - necessário
+├── vendor (~76KB) - necessário
+├── index (~56KB) - código da app
+├── ui-vendor - componentes UI
+└── NÃO CARREGA: charts-vendor, supabase-vendor*
+
+Dashboard (sob demanda):
+├── Carrega apenas quando acessado
+├── charts-vendor (~105KB) - só em abas de relatórios
+└── Componentes específicos do dashboard
+```
+
+---
+
+## ⚠️ RISCOS DA FASE 2
+
+### 🟡 **Risco: Flash de Loading nos Charts**
+
+**Sintoma:**
+- Usuário vê "Carregando gráficos..." brevemente ao abrir aba de relatórios
+
+**Solução:**
+- Isso é comportamento esperado e indica economia de recursos
+- ChartLoader exibe spinner visual durante carregamento
+- Primeira carga: ~200-500ms, depois fica em cache
+
+### 🟡 **Risco: Erro de Import em Componentes**
+
+**Sintoma:**
+- Console mostra erro de módulo não encontrado
+- Componente de chart não renderiza
+
+**Causa possível:**
+- Path incorreto no lazy import
+- Export não é named export como esperado
+
+**Solução:**
+```typescript
+// Verificar que o export está correto
+// Em FreightAnalyticsDashboard.tsx deve ter:
+export const FreightAnalyticsDashboard = ...
+
+// E o lazy import usa:
+const FreightAnalyticsDashboard = lazy(() => 
+  import('@/components/FreightAnalyticsDashboard')
+    .then(m => ({ default: m.FreightAnalyticsDashboard }))
+);
+```
+
+### 🟢 **Rollback da Fase 2**
+
+Se os charts não funcionarem, reverter para imports estáticos:
+```typescript
+// Trocar de:
+const FreightAnalyticsDashboard = lazy(() => import(...));
+
+// Para:
+import { FreightAnalyticsDashboard } from '@/components/FreightAnalyticsDashboard';
+
+// E remover <Suspense> wrappers
+```
+
+---
 
 ### 1. **PurgeCSS Conservador** 
 **Localização:** `vite.config.ts` (linhas 84-125)

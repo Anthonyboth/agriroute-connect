@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,8 +31,6 @@ import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { CompanySmartFreightMatcher } from '@/components/CompanySmartFreightMatcher';
 import { CompanyDriverManager } from '@/components/CompanyDriverManager';
 import { CompanyDashboard as CompanyDashboardComponent } from '@/components/CompanyDashboard';
-import { CompanyAnalyticsDashboard } from '@/components/CompanyAnalyticsDashboard';
-import { CompanyDriverPerformanceDashboard } from '@/components/dashboards/CompanyDriverPerformanceDashboard';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,10 +59,22 @@ import { UserCityManager } from '@/components/UserCityManager';
 import { CompanyHistory } from '@/components/CompanyHistory';
 import { UnifiedChatHub } from '@/components/UnifiedChatHub';
 import { CompanyVehicleAssignments } from '@/components/CompanyVehicleAssignments';
-import { CompanyFinancialDashboard } from '@/components/CompanyFinancialDashboard';
 import { FreightDetails } from '@/components/FreightDetails';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ServicesModal } from '@/components/ServicesModal';
+
+// ✅ PHASE 2: Lazy load chart-heavy components to reduce initial bundle
+const CompanyAnalyticsDashboard = lazy(() => import('@/components/CompanyAnalyticsDashboard').then(m => ({ default: m.CompanyAnalyticsDashboard })));
+const CompanyDriverPerformanceDashboard = lazy(() => import('@/components/dashboards/CompanyDriverPerformanceDashboard').then(m => ({ default: m.CompanyDriverPerformanceDashboard })));
+const CompanyFinancialDashboard = lazy(() => import('@/components/CompanyFinancialDashboard').then(m => ({ default: m.CompanyFinancialDashboard })));
+
+// Loading fallback for chart components
+const ChartLoader = () => (
+  <div className="flex items-center justify-center p-12 min-h-[300px]">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <span className="ml-2 text-muted-foreground">Carregando gráficos...</span>
+  </div>
+);
 
 // Definição de tabs
 const getCompanyTabs = (activeCount: number, chatCount: number) => [
@@ -704,7 +714,9 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="performance" className="mt-6">
-            <CompanyDriverPerformanceDashboard companyId={company.id} />
+            <Suspense fallback={<ChartLoader />}>
+              <CompanyDriverPerformanceDashboard companyId={company.id} />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="fleet" className="mt-6">
@@ -859,7 +871,9 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="payments" className="mt-6">
-            <CompanyFinancialDashboard companyId={company.id} companyName={company.company_name} />
+            <Suspense fallback={<ChartLoader />}>
+              <CompanyFinancialDashboard companyId={company.id} companyName={company.company_name} />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="cities" className="mt-6">
@@ -867,7 +881,9 @@ const CompanyDashboard = () => {
           </TabsContent>
 
           <TabsContent value="ratings" className="mt-6">
-            <CompanyDriverPerformanceDashboard companyId={company.id} />
+            <Suspense fallback={<ChartLoader />}>
+              <CompanyDriverPerformanceDashboard companyId={company.id} />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="history" className="mt-6">
@@ -880,12 +896,14 @@ const CompanyDashboard = () => {
           
           {/* Aba de Relatórios Analytics */}
           <TabsContent value="reports" className="mt-6">
-            <CompanyAnalyticsDashboard
-              assignments={myAssignments}
-              drivers={drivers || []}
-              timeRange={timeRange}
-              onTimeRangeChange={setTimeRange}
-            />
+            <Suspense fallback={<ChartLoader />}>
+              <CompanyAnalyticsDashboard
+                assignments={myAssignments}
+                drivers={drivers || []}
+                timeRange={timeRange}
+                onTimeRangeChange={setTimeRange}
+              />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>
