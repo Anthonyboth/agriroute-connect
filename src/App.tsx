@@ -15,8 +15,8 @@ import { AuthErrorBoundary } from "@/components/AuthErrorBoundary";
 import { PageDOMErrorBoundary } from "@/components/PageDOMErrorBoundary";
 import React, { lazy, Suspense } from 'react';
 
-// Lazy load Landing page for better performance
-const Landing = lazy(() => import("./pages/Landing"));
+// Import Landing directly (not lazy) - it's the LCP element
+import Landing from "./pages/Landing";
 import { useAuth } from "./hooks/useAuth";
 import { useCompanyDriver } from "./hooks/useCompanyDriver";
 import { ComponentLoader } from '@/components/LazyComponents';
@@ -372,7 +372,7 @@ const AuthedLanding = () => {
   
   // Se não autenticado, mostrar Landing normal
   if (!isAuthenticated || !profile) {
-    return <Suspense fallback={<ComponentLoader />}><Landing /></Suspense>;
+    return <Landing />;
   }
   
   // ✅ Usuário autenticado: redirecionar para painel apropriado
