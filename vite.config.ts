@@ -81,48 +81,12 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
-  // ✅ PERFORMANCE: PostCSS com PurgeCSS conservador para produção
+  // ✅ PERFORMANCE: PostCSS com PurgeCSS - DESABILITADO por remover CSS necessário
+  // O PurgeCSS estava removendo classes dinâmicas e causando páginas sem estilo
+  // TODO: Reabilitar com safelist mais completa após testes extensivos
   css: {
     postcss: {
-      plugins: mode === 'production' ? [
-        purgecss({
-          content: [
-            './index.html',
-            './src/**/*.{js,jsx,ts,tsx}',
-          ],
-          // SAFELIST EXTENSIVA - preserva classes críticas do design system
-          safelist: {
-            standard: [
-              /^bg-/, /^text-/, /^border-/, /^ring-/, /^shadow-/,
-              /^hover:/, /^focus:/, /^active:/, /^disabled:/,
-              /^dark:/, /^group-/, /^peer-/,
-              /^data-/, /^aria-/,
-              'gradient-primary', 'gradient-hero', 'gradient-card',
-              'shadow-elegant', 'shadow-card', 'shadow-glow',
-              'transition-smooth', 'transition-bounce',
-              'freight-card-standard',
-              /^status-/, /^provider-theme/,
-              /^safe-area-/, /^pentagon-card/,
-              /^z-/, // Preserve z-index utilities
-              /^animate-/, /^animation-/, // Preserve animations
-            ],
-            deep: [
-              /^radix/, // Preserve Radix UI classes
-              /^sonner/, // Preserve Sonner toast classes  
-              /^lucide/, // Preserve Lucide icon classes
-              /^recharts/, // Preserve Recharts classes
-            ],
-            greedy: [
-              /^scroll-area/, // Preserve scrollbar styles
-              /^btn-/, /^card-/, /^text-/, /^spacing-/, // Accessibility utilities
-            ]
-          },
-          // Preserve CSS variables and keyframes
-          keyframes: true,
-          variables: true,
-          fontFace: true,
-        })
-      ] : []
+      plugins: [] // PurgeCSS temporariamente desabilitado
     },
     devSourcemap: false, // Disable CSS sourcemaps in dev for faster HMR
   },

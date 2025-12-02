@@ -77,7 +77,9 @@
   for = "/index.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
-    Link = "</hero-truck-night-moon.webp>; rel=preload; as=image; type=image/webp, </assets/index.css>; rel=preload; as=style"
+    # Note: CSS preload removed because Vite adds hash to filename (index-[hash].css)
+    # Hero image preload is handled via HTML <link rel="preload"> tag
+    Link = "</hero-truck-night-moon.webp>; rel=preload; as=image; type=image/webp"
 
 # Manifest and config - medium cache
 [[headers]]
