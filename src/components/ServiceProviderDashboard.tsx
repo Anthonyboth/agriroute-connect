@@ -68,6 +68,7 @@ import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
 import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
 import { UserCityManager } from '@/components/UserCityManager';
 import { ServiceHistory } from '@/components/ServiceHistory';
+import { ServiceProviderReportsDashboard } from '@/components/ServiceProviderReportsDashboard';
 import { PendingServiceRatingsPanel } from '@/components/PendingServiceRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
 import { normalizeServiceType } from '@/lib/pt-br-validator';
@@ -1196,6 +1197,14 @@ export const ServiceProviderDashboard: React.FC = () => {
                   </Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger 
+                value="reports" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+              >
+                <TrendingUp className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Relatórios</span>
+                <span className="sm:hidden">Relat</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -1551,6 +1560,10 @@ export const ServiceProviderDashboard: React.FC = () => {
               userProfileId={profile?.id || ''}
               userRole="PRESTADOR_SERVICOS"
             />
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-4">
+            <ServiceProviderReportsDashboard providerId={getProviderProfileId() || ''} />
           </TabsContent>
 
         </Tabs>
