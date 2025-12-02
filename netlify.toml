@@ -26,8 +26,19 @@
 [[headers]]
   for = "/hero-truck-night-moon.webp"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=31536000, s-maxage=31536000, immutable"
     Link = "</hero-truck-night-moon.webp>; rel=preload; as=image; type=image/webp"
+
+# Immutable hashed assets - 1 year cache with CDN directive
+[[headers]]
+  for = "/assets/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, s-maxage=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, s-maxage=31536000, immutable"
 
 # Static images - long cache
 [[headers]]
