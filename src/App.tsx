@@ -29,6 +29,32 @@ import { ZipCodeService } from './services/zipCodeService';
 import { GlobalAnnouncementBar } from './components/GlobalAnnouncementBar';
 import { FloatingSupportButton } from './components/FloatingSupportButton';
 
+// ✅ PERFORMANCE: Prefetch estratégico de rotas críticas
+// Só executa em conexões rápidas (não mobile data saver)
+if (typeof window !== 'undefined' && 'connection' in navigator) {
+  const conn = (navigator as any).connection;
+  if (!conn?.saveData && conn?.effectiveType !== '2g' && conn?.effectiveType !== 'slow-2g') {
+    const prefetchRoutes = ['/dashboard/driver', '/dashboard/producer', '/dashboard/company'];
+    
+    // Defer prefetch to idle time
+    const doPrefetch = () => {
+      prefetchRoutes.forEach(route => {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = route;
+        link.as = 'document';
+        document.head.appendChild(link);
+      });
+    };
+    
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(doPrefetch, { timeout: 3000 });
+    } else {
+      setTimeout(doPrefetch, 2000);
+    }
+  }
+}
+
 // Lazy load all page components except Landing (needed for initial render)
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));

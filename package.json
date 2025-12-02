@@ -18,6 +18,7 @@
     "@capacitor/core": "^7.4.3",
     "@capacitor/geolocation": "^7.1.5",
     "@capacitor/ios": "^7.4.3",
+    "@fullhuman/postcss-purgecss": "^7.0.2",
     "@googlemaps/js-api-loader": "^1.16.10",
     "@googlemaps/react-wrapper": "^1.2.0",
     "@hookform/resolvers": "^3.10.0",

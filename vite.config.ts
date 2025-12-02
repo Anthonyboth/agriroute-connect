@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
+import purgecss from '@fullhuman/postcss-purgecss';
 // @ts-ignore - critical package doesn't have type definitions
 import { generate } from 'critical';
 
@@ -80,35 +81,96 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  // ✅ PERFORMANCE: PostCSS com PurgeCSS conservador para produção
+  css: {
+    postcss: {
+      plugins: mode === 'production' ? [
+        purgecss({
+          content: [
+            './index.html',
+            './src/**/*.{js,jsx,ts,tsx}',
+          ],
+          // SAFELIST EXTENSIVA - preserva classes críticas do design system
+          safelist: {
+            standard: [
+              /^bg-/, /^text-/, /^border-/, /^ring-/, /^shadow-/,
+              /^hover:/, /^focus:/, /^active:/, /^disabled:/,
+              /^dark:/, /^group-/, /^peer-/,
+              /^data-/, /^aria-/,
+              'gradient-primary', 'gradient-hero', 'gradient-card',
+              'shadow-elegant', 'shadow-card', 'shadow-glow',
+              'transition-smooth', 'transition-bounce',
+              'freight-card-standard',
+              /^status-/, /^provider-theme/,
+              /^safe-area-/, /^pentagon-card/,
+              /^z-/, // Preserve z-index utilities
+              /^animate-/, /^animation-/, // Preserve animations
+            ],
+            deep: [
+              /^radix/, // Preserve Radix UI classes
+              /^sonner/, // Preserve Sonner toast classes  
+              /^lucide/, // Preserve Lucide icon classes
+              /^recharts/, // Preserve Recharts classes
+            ],
+            greedy: [
+              /^scroll-area/, // Preserve scrollbar styles
+              /^btn-/, /^card-/, /^text-/, /^spacing-/, // Accessibility utilities
+            ]
+          },
+          // Preserve CSS variables and keyframes
+          keyframes: true,
+          variables: true,
+          fontFace: true,
+        })
+      ] : []
+    },
+    devSourcemap: false, // Disable CSS sourcemaps in dev for faster HMR
+  },
   build: {
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Simplified to 4 main chunks for better HTTP/2 performance
-          // Core React + Router
+          // ✅ PERFORMANCE: Otimizado para HTTP/2 + tree-shaking agressivo
+          
+          // Core React + Router (crítico, sempre necessário)
           if (id.includes('node_modules/react') || id.includes('react-router') || id.includes('react-dom')) {
             return 'react-vendor';
           }
           
-          // Supabase - only load when authenticated
+          // Supabase - carrega apenas quando autenticado
           if (id.includes('@supabase')) {
             return 'supabase-vendor';
           }
           
-          // Charts - only load in dashboards (incluir recharts E todas as libs d3 juntas)
+          // Charts - carrega apenas em dashboards (recharts + d3 juntos)
           if (id.includes('recharts') || id.includes('d3-') || id.includes('d3.')) {
             return 'charts-vendor';
           }
           
-          // Everything else (UI, forms, icons, query)
-          if (id.includes('@radix-ui') || id.includes('@tanstack') || id.includes('lucide-react') || 
-              id.includes('react-hook-form') || id.includes('zod')) {
-            return 'vendor';
+          // UI components - separado para melhor cache
+          if (id.includes('@radix-ui') || id.includes('lucide-react')) {
+            return 'ui-vendor';
+          }
+          
+          // Forms & Validation - separado (usado em poucos lugares)
+          if (id.includes('react-hook-form') || id.includes('zod')) {
+            return 'forms-vendor';
+          }
+          
+          // Query & State management
+          if (id.includes('@tanstack')) {
+            return 'query-vendor';
           }
         }
+      },
+      // ✅ Tree-shaking agressivo
+      treeshake: {
+        moduleSideEffects: 'no-external',
+        propertyReadSideEffects: false,
+        tryCatchDeoptimization: false,
       }
     },
-    cssCodeSplit: true,
+    cssCodeSplit: true, // Split CSS por rota para melhor cache
     minify: 'terser',
     terserOptions: {
       compress: {
