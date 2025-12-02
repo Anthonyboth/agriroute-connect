@@ -66,16 +66,14 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Core React - minimal bundle
-          if (id.includes('node_modules/react/') && !id.includes('react-dom')) {
-            return 'react-core';
-          }
-          if (id.includes('react-dom') || id.includes('react-router-dom')) {
+          // Simplified to 4 main chunks for better HTTP/2 performance
+          // Core React + Router
+          if (id.includes('node_modules/react') || id.includes('react-router') || id.includes('react-dom')) {
             return 'react-vendor';
           }
           
           // Supabase - only load when authenticated
-          if (id.includes('@supabase/supabase-js') || id.includes('@supabase/')) {
+          if (id.includes('@supabase')) {
             return 'supabase-vendor';
           }
           
@@ -84,30 +82,10 @@ export default defineConfig(({ mode }) => ({
             return 'charts-vendor';
           }
           
-          // React Query - only load when data fetching needed
-          if (id.includes('@tanstack/react-query')) {
-            return 'query-vendor';
-          }
-          
-          // Radix UI - split by component type
-          if (id.includes('@radix-ui/react-dialog') || id.includes('@radix-ui/react-alert-dialog')) {
-            return 'dialog-vendor';
-          }
-          if (id.includes('@radix-ui/react-dropdown-menu') || id.includes('@radix-ui/react-menubar')) {
-            return 'menu-vendor';
-          }
-          if (id.includes('@radix-ui')) {
-            return 'ui-vendor';
-          }
-          
-          // Forms - load when form components needed
-          if (id.includes('react-hook-form') || id.includes('@hookform/resolvers') || id.includes('zod')) {
-            return 'form-vendor';
-          }
-          
-          // Lucide icons - defer icon loading
-          if (id.includes('lucide-react')) {
-            return 'icons-vendor';
+          // Everything else (UI, forms, icons, query)
+          if (id.includes('@radix-ui') || id.includes('@tanstack') || id.includes('lucide-react') || 
+              id.includes('react-hook-form') || id.includes('zod')) {
+            return 'vendor';
           }
         }
       }
@@ -127,7 +105,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
-    asyncCssPlugin(),
+    // asyncCssPlugin() removed - was causing FOIT and delaying FCP
     criticalCssPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
