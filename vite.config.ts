@@ -85,181 +85,7 @@ export default defineConfig(({ mode }) => ({
   // Preserva todas as classes dinâmicas, variáveis CSS, e componentes de terceiros
   css: {
     postcss: {
-      plugins: mode === 'production' ? [
-        purgecss({
-          content: [
-            './index.html',
-            './src/**/*.{js,jsx,ts,tsx}',
-          ],
-          // SAFELIST ULTRA-EXTENSIVA - preserva todas as classes críticas
-          safelist: {
-            standard: [
-              // === TAILWIND UTILITIES (todas as variantes dinâmicas) ===
-              /^bg-/, /^text-/, /^border-/, /^ring-/, /^shadow-/, /^outline-/,
-              /^hover:/, /^focus:/, /^active:/, /^disabled:/, /^visited:/,
-              /^dark:/, /^light:/, /^group-/, /^peer-/, /^has-/,
-              /^data-/, /^aria-/, /^state-/,
-              /^sm:/, /^md:/, /^lg:/, /^xl:/, /^2xl:/,
-              /^min-/, /^max-/, /^w-/, /^h-/, /^p-/, /^m-/, /^gap-/,
-              /^space-/, /^flex-/, /^grid-/, /^col-/, /^row-/,
-              /^items-/, /^justify-/, /^self-/, /^place-/,
-              /^rounded-/, /^opacity-/, /^scale-/, /^rotate-/, /^translate-/,
-              /^inset-/, /^top-/, /^right-/, /^bottom-/, /^left-/,
-              /^z-/, /^overflow-/, /^cursor-/, /^pointer-/,
-              /^font-/, /^leading-/, /^tracking-/, /^whitespace-/,
-              /^list-/, /^decoration-/, /^underline/, /^line-through/,
-              /^truncate/, /^break-/, /^hyphens-/,
-              /^transition-/, /^duration-/, /^ease-/, /^delay-/,
-              /^animate-/, /^animation-/,
-              /^fill-/, /^stroke-/,
-              /^origin-/, /^transform/,
-              /^aspect-/, /^object-/,
-              /^select-/, /^resize-/, /^appearance-/,
-              /^scroll-/, /^snap-/, /^touch-/,
-              /^will-change-/, /^isolation-/, /^mix-blend-/,
-              /^backdrop-/, /^filter-/, /^blur-/, /^brightness-/, /^contrast-/, /^grayscale-/, /^hue-rotate-/, /^invert-/, /^saturate-/, /^sepia-/,
-              /^drop-shadow-/,
-              /^ring-offset-/,
-              /^divide-/,
-              /^sr-only/, /^not-sr-only/,
-              /^outline-offset-/,
-              /^accent-/, /^caret-/,
-              /^columns-/, /^break-/,
-              /^table-/, /^caption-/,
-              
-              // === DESIGN SYSTEM CUSTOM CLASSES ===
-              'gradient-primary', 'gradient-hero', 'gradient-card',
-              'shadow-elegant', 'shadow-card', 'shadow-glow',
-              'transition-smooth', 'transition-bounce',
-              'btn-accessible', 'card-accessible', 'text-accessible', 'text-large-accessible', 'spacing-accessible',
-              'freight-card-standard',
-              'provider-theme',
-              'scroll-area',
-              'touch-target-safe', 'prevent-button-overlap',
-              
-              // === STATUS BADGES ===
-              /^status-/, 'status-open', 'status-booked', 'status-in-transit', 'status-delivered', 'status-cancelled',
-              
-              // === SAFE AREA UTILITIES ===
-              /^safe-area-/, 'safe-area-top-right', 'safe-area-top-left', 'safe-area-bottom-right', 'safe-area-bottom-left',
-              
-              // === PENTAGON ANIMATIONS ===
-              /^pentagon-/,
-              
-              // === FORM STATES ===
-              /^valid:/, /^invalid:/, /^required:/, /^optional:/, /^read-only:/, /^placeholder:/,
-              /^checked:/, /^indeterminate:/, /^default:/,
-              /^enabled:/, /^focus-visible:/, /^focus-within:/,
-              /^open:/, /^closed:/,
-              /^empty:/, /^first:/, /^last:/, /^odd:/, /^even:/,
-              /^only:/, /^first-of-type:/, /^last-of-type:/,
-              
-              // === MOTION SAFE/REDUCE ===
-              /^motion-safe:/, /^motion-reduce:/,
-              
-              // === PRINT ===
-              /^print:/,
-              
-              // === CONTRAST ===
-              /^contrast-more:/, /^contrast-less:/,
-              
-              // === FORCED COLORS ===
-              /^forced-colors:/,
-              
-              // === LANDSCAPE/PORTRAIT ===
-              /^landscape:/, /^portrait:/,
-            ],
-            deep: [
-              // === THIRD-PARTY LIBRARIES ===
-              /radix/, // Radix UI (Dialog, Popover, Select, etc)
-              /sonner/, // Toast notifications
-              /lucide/, // Icons
-              /recharts/, // Charts
-              /cmdk/, // Command palette
-              /vaul/, // Drawer
-              /embla/, // Carousel
-              /react-day-picker/, // Calendar
-              /react-resizable-panels/, // Resizable panels
-            ],
-            greedy: [
-              // === SCROLLBAR STYLES ===
-              /scroll/, /scrollbar/,
-              
-              // === ACCESSIBILITY ===
-              /btn-/, /card-/, /text-/, /spacing-/,
-              
-              // === CHART ELEMENTS ===
-              /recharts-/, /chart-/,
-              
-              // === TOASTER ===
-              /toast/, /sonner/,
-              
-              // === DIALOG/MODAL ===
-              /dialog/, /modal/, /overlay/, /backdrop/,
-              
-              // === DROPDOWN/MENU ===
-              /dropdown/, /menu/, /popover/, /tooltip/,
-              
-              // === TABS ===
-              /tab/, /tabs/,
-              
-              // === ACCORDION ===
-              /accordion/, /collapsible/,
-              
-              // === FORM ELEMENTS ===
-              /input/, /select/, /checkbox/, /radio/, /switch/, /slider/, /toggle/,
-              
-              // === ALERTS ===
-              /alert/, /warning/, /error/, /success/, /info/,
-              
-              // === BADGES ===
-              /badge/,
-              
-              // === BUTTONS ===
-              /button/, /btn/,
-              
-              // === CARDS ===
-              /card/,
-              
-              // === AVATARS ===
-              /avatar/,
-              
-              // === PROGRESS ===
-              /progress/,
-              
-              // === SKELETON ===
-              /skeleton/, /shimmer/,
-              
-              // === SHEET ===
-              /sheet/, /drawer/,
-              
-              // === SEPARATOR ===
-              /separator/, /divider/,
-              
-              // === NAVIGATION ===
-              /nav/, /navigation/, /breadcrumb/,
-              
-              // === SIDEBAR ===
-              /sidebar/,
-              
-              // === TABLE ===
-              /table/, /thead/, /tbody/, /tfoot/, /tr/, /th/, /td/,
-              
-              // === ASPECT RATIO ===
-              /aspect/,
-              
-              // === CONTAINER ===
-              /container/,
-            ]
-          },
-          // CRITICAL: Preserve CSS variables, keyframes, font-faces
-          keyframes: true,
-          variables: true,
-          fontFace: true,
-          // Don't remove :root or :host selectors
-          blocklist: []
-        })
-      ] : []
+      plugins: [] // DESABILITADO TEMPORARIAMENTE - purgecss removendo classes necessárias
     },
     devSourcemap: false, // Disable CSS sourcemaps in dev for faster HMR
   },
@@ -267,7 +93,7 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // ✅ PERFORMANCE: Otimizado para HTTP/2 + tree-shaking agressivo
+          // ✅ SIMPLIFICADO - apenas separações seguras para evitar circular dependencies
           
           // Core React + Router (crítico, sempre necessário)
           if (id.includes('node_modules/react') || id.includes('react-router') || id.includes('react-dom')) {
@@ -279,33 +105,16 @@ export default defineConfig(({ mode }) => ({
             return 'supabase-vendor';
           }
           
-          // Charts - carrega apenas em dashboards (recharts + d3 juntos)
-          if (id.includes('recharts') || id.includes('d3-') || id.includes('d3.')) {
-            return 'charts-vendor';
-          }
-          
           // UI components - separado para melhor cache
           if (id.includes('@radix-ui') || id.includes('lucide-react')) {
             return 'ui-vendor';
           }
           
-          // Forms & Validation - separado (usado em poucos lugares)
-          if (id.includes('react-hook-form') || id.includes('zod')) {
-            return 'forms-vendor';
-          }
-          
-          // Query & State management
-          if (id.includes('@tanstack')) {
-            return 'query-vendor';
-          }
+          // REMOVIDO: charts-vendor, forms-vendor, query-vendor
+          // Deixar o Vite agrupar automaticamente para evitar circular dependencies
         }
-      },
-      // ✅ Tree-shaking agressivo
-      treeshake: {
-        moduleSideEffects: 'no-external',
-        propertyReadSideEffects: false,
-        tryCatchDeoptimization: false,
       }
+      // REMOVIDO: treeshake agressivo - estava quebrando bibliotecas com side effects
     },
     cssCodeSplit: true, // Split CSS por rota para melhor cache
     minify: 'terser',
