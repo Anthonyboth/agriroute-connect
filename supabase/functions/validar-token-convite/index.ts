@@ -18,9 +18,11 @@ serve(async (req) => {
   }
 
   try {
-    const { token } = await req.json()
+    const rawBody = await req.json()
+    const validatedInput = validateInput(TokenRequestSchema, rawBody)
+    const { token } = validatedInput
 
-    console.log('[VALIDAR-TOKEN] Validando token:', token)
+    console.log('[VALIDAR-TOKEN] Token validado via Zod, buscando convite...')
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
