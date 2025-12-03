@@ -114,7 +114,7 @@ export function AdvancedSecurityDashboard() {
       const errors30d = await supabase.from('error_logs').select('*', { count: 'exact' }).gte('created_at', last30d.toISOString());
       const auditLogs = await supabase.from('audit_logs').select('*').gte('timestamp', last24h.toISOString()).order('timestamp', { ascending: false }).limit(100);
       const rateLimitViolations = await supabase.from('rate_limit_violations').select('*').gte('created_at', last24h.toISOString());
-      const blacklist = await supabase.from('security_blacklist').select('*').eq('is_active', true);
+      const blacklist = await supabase.from('security_blacklist' as any).select('*').eq('is_active', true) as any;
 
       // Calculate metrics
       const criticalCount = errors30d.data?.filter(e => e.error_category === 'CRITICAL').length || 0;
