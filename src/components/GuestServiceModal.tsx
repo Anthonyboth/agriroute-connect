@@ -327,7 +327,10 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
         throw new Error(data.details || data.error);
       }
 
-      toast.success('Solicitação enviada com sucesso! Prestadores próximos foram notificados.');
+      const notificationTarget = ['GUINCHO', 'MUDANCA_RESIDENCIAL', 'MUDANCA_COMERCIAL', 'FRETE_URBANO', 'FRETE_MOTO'].includes(selectedSubService) 
+        ? 'Motoristas' 
+        : 'Prestadores';
+      toast.success(`Solicitação enviada com sucesso! ${notificationTarget} próximos foram notificados.`);
       onClose();
       
     } catch (error) {
