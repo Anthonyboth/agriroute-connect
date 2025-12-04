@@ -272,26 +272,23 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
         needsPackaging: formData.needsPackaging
       } : null;
 
-      // Inserir na tabela service_requests com client_id NULL (guest)
-      const { data, error } = await supabase
-        .from('service_requests')
-        .insert([{
-          client_id: null, // NULL = solicitação de convidado
-          prospect_user_id: prospectId,
+      // Chamar Edge Function para criar solicitação (bypass RLS)
+      const { data, error } = await supabase.functions.invoke('create-guest-service-request', {
+        body: {
+          prospect_user_id: prospectId === 'guest_user' ? null : prospectId,
           service_type: selectedSubService,
           contact_name: formData.name,
           contact_phone: formData.phone,
-          contact_email: formData.email,
-          contact_document: formData.document.replace(/\D/g, ''),
+          contact_email: formData.email || null,
+          contact_document: formData.document ? formData.document.replace(/\D/g, '') : null,
           location_address: originAddress,
           location_lat: formData.origin_lat,
           location_lng: formData.origin_lng,
-          problem_description: formData.description,
+          problem_description: formData.description || null,
           urgency: formData.urgency,
-          status: 'OPEN',
           city_name: formData.origin_city,
-          state: formData.origin_state || formData.origin_city.split(',')[1]?.trim(),
-          additional_info: JSON.stringify({
+          state: formData.origin_state || formData.origin_city.split(',')[1]?.trim() || null,
+          additional_info: {
             origin: {
               street: formData.origin_street,
               neighborhood: formData.origin_neighborhood,
@@ -316,38 +313,18 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
             } : null,
             preferredTime: formData.preferredTime || null,
             cargoDetails: cargoDetails
-          })
-        } as any])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Executar matching espacial automático
-      if (data?.id) {
-        try {
-          const matchingPayload = {
-            service_request_id: data.id,
-            request_lat: formData.origin_lat,
-            request_lng: formData.origin_lng,
-            service_type: selectedSubService,
-            notify_providers: true
-          };
-
-          console.log('Executando matching espacial com:', matchingPayload);
-
-          const { data: matchData, error: matchError } = await supabase.functions.invoke('service-provider-spatial-matching', {
-            body: matchingPayload
-          });
-
-          if (matchError) {
-            console.error('Erro no matching:', matchError);
-          } else {
-            console.log('Matching executado com sucesso:', matchData);
           }
-        } catch (matchError) {
-          console.error('Exceção no matching:', matchError);
         }
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Erro ao processar solicitação');
+      }
+
+      if (data?.error) {
+        console.error('Server error:', data);
+        throw new Error(data.details || data.error);
       }
 
       toast.success('Solicitação enviada com sucesso! Prestadores próximos foram notificados.');
