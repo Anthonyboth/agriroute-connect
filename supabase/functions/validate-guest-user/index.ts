@@ -10,10 +10,10 @@ const corsHeaders = {
 
 const GuestUserSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters').max(100, 'Name too long'),
-  email: z.string().email('Invalid email').max(255, 'Email too long').optional(),
-  phone: z.string().min(10, 'Invalid phone').max(20, 'Phone too long').optional(),
+  email: z.string().max(255, 'Email too long').optional().transform(val => val === '' ? undefined : val).pipe(z.string().email('Invalid email').optional()),
+  phone: z.string().min(10, 'Invalid phone').max(20, 'Phone too long').optional().transform(val => val === '' ? undefined : val),
   document: documentNumberSchema,
-  captchaToken: z.string().min(1, 'CAPTCHA token required').max(500, 'Token too long')
+  captchaToken: z.string().min(1, 'CAPTCHA token required').max(500, 'Token too long').optional()
 });
 
 interface ValidateGuestRequest {
@@ -71,26 +71,18 @@ serve(async (req) => {
     
     const clientIP = getClientIP(req);
 
-    // 1. SECURITY: Verify CAPTCHA first (prevent automated attacks)
-    if (!captchaToken) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'CAPTCHA verification required',
-          message: 'Por favor, complete a verificação de segurança.'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
-    const captchaValid = await verifyCaptcha(captchaToken);
-    if (!captchaValid) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'CAPTCHA verification failed',
-          message: 'Verificação de segurança falhou. Por favor, tente novamente.'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
-      );
+    // 1. SECURITY: Verify CAPTCHA if provided (optional for now)
+    if (captchaToken) {
+      const captchaValid = await verifyCaptcha(captchaToken);
+      if (!captchaValid) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'CAPTCHA verification failed',
+            message: 'Verificação de segurança falhou. Por favor, tente novamente.'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+        );
+      }
     }
 
     // 2. SECURITY: Check rate limiting (3 attempts per hour per IP)
