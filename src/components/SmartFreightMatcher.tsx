@@ -1123,83 +1123,130 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               </SafeListWrapper>
             )}
 
-            {/* Chamados de Guincho/Mudança */}
+            {/* Chamados de Guincho/Mudança - Design Profissional */}
             {filteredRequests.length > 0 && (
               <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando lista...</div>}>
                 <div className="space-y-3">
-                  <h4 className="font-semibold">Chamados de Guincho/Mudança</h4>
+                  <h4 className="font-semibold text-lg flex items-center gap-2">
+                    <Wrench className="h-5 w-5 text-primary" />
+                    Chamados de Guincho/Mudança
+                  </h4>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredRequests.map((r: any) => (
-                      <Card key={r.id} className="freight-card-standard border-l-4 border-l-orange-500 min-h-[600px] flex flex-col">
-                        <CardHeader className="pb-3 flex-shrink-0">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-2">
-                              {r.service_type === 'GUINCHO' ? (
-                                <Wrench className="h-5 w-5 text-orange-600" />
-                              ) : (
-                                <Truck className="h-5 w-5 text-blue-600" />
-                              )}
-                              <div>
-                                <CardTitle className="text-base">
-                                  {r.service_type === 'GUINCHO' ? 'Guincho' : 'Mudança/Frete Urbano'}
-                                </CardTitle>
-                                <div className="flex items-center gap-2 mt-1">
-                                  {r.is_emergency && (
-                                    <Badge variant="destructive" className="text-xs">Emergência</Badge>
-                                  )}
-                                </div>
+                      <Card key={r.id} className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60 overflow-hidden">
+                        {/* Header com gradiente */}
+                        <div className={`p-4 ${r.service_type === 'GUINCHO' ? 'bg-gradient-to-r from-orange-500/10 to-orange-600/5' : 'bg-gradient-to-r from-blue-500/10 to-blue-600/5'}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-full ${r.service_type === 'GUINCHO' ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
+                                {r.service_type === 'GUINCHO' ? (
+                                  <Wrench className="h-5 w-5 text-orange-600" />
+                                ) : r.service_type?.includes('FRETE_MOTO') ? (
+                                  <Bike className="h-5 w-5 text-blue-600" />
+                                ) : (
+                                  <Truck className="h-5 w-5 text-blue-600" />
+                                )}
                               </div>
+                              <div>
+                                <h3 className="font-bold text-foreground">
+                                  {r.service_type === 'GUINCHO' ? 'Guincho' : 
+                                   r.service_type?.includes('MOTO') ? 'Frete Moto' :
+                                   r.service_type?.includes('MUDANCA') ? 'Mudança' : 'Frete Urbano'}
+                                </h3>
+                                <p className="text-xs text-muted-foreground">Solicitação #{r.id?.slice(0,8)}</p>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-300">
+                                Disponível
+                              </Badge>
+                              {r.is_emergency && (
+                                <Badge variant="destructive" className="animate-pulse">
+                                  🚨 Emergência
+                                </Badge>
+                              )}
                             </div>
                           </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3 flex-1 flex flex-col justify-between overflow-y-auto">
+                        </div>
+
+                        <CardContent className="p-4 space-y-4">
+                          {/* Local com cidade em destaque */}
                           <div className="space-y-2">
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-sm font-medium">Local</p>
-                                <p className="text-sm text-muted-foreground">{r.location_address}</p>
-                              </div>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-primary" />
+                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Local do Serviço</span>
                             </div>
-                            {r.problem_description && (
+                            {r.city_name && (
+                              <p className="text-lg font-bold text-primary pl-6">
+                                {r.city_name.toUpperCase()} {r.state ? `- ${r.state}` : ''}
+                              </p>
+                            )}
+                            <p className="text-sm text-muted-foreground pl-6 line-clamp-2">
+                              {r.location_address || 'Endereço não informado'}
+                            </p>
+                          </div>
+
+                          {/* Descrição do problema */}
+                          {r.problem_description && (
+                            <div className="p-3 bg-secondary/30 rounded-lg border border-border/50">
                               <div className="flex items-start gap-2">
                                 <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                                 <div>
-                                  <p className="text-sm font-medium">Descrição</p>
-                                  <p className="text-sm text-muted-foreground">{r.problem_description}</p>
+                                  <p className="text-xs font-medium text-muted-foreground mb-1">Descrição</p>
+                                  <p className="text-sm text-foreground line-clamp-3">{r.problem_description}</p>
                                 </div>
                               </div>
-                            )}
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              Há {Math.floor((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60))} min
                             </div>
-                            {r.estimated_price && (
-                              <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                                <DollarSign className="h-4 w-4 text-green-600" />
-                                <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                                  Valor: R$ {r.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </span>
+                          )}
+
+                          {/* Valor destacado */}
+                          {r.estimated_price && (
+                            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                              <div className="flex items-center gap-2">
+                                <DollarSign className="h-5 w-5 text-green-600" />
+                                <span className="text-sm text-green-700 dark:text-green-300">Valor Estimado</span>
                               </div>
+                              <span className="text-xl font-bold text-green-700 dark:text-green-300">
+                                R$ {r.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Tempo */}
+                          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>Solicitado há {Math.floor((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60))} min</span>
+                            </div>
+                            {r.urgency && (
+                              <Badge variant={r.urgency === 'HIGH' ? 'destructive' : r.urgency === 'MEDIUM' ? 'default' : 'secondary'} className="text-xs">
+                                {r.urgency === 'HIGH' ? 'Alta' : r.urgency === 'MEDIUM' ? 'Média' : 'Baixa'}
+                              </Badge>
                             )}
                           </div>
-                          <Button className="w-full" size="sm" onClick={async () => {
-                            try {
-                              if (!profile?.id) return;
-                              const { error } = await supabase
-                                .from('service_requests')
-                                .update({ provider_id: profile.id, status: 'ACCEPTED', accepted_at: new Date().toISOString() })
-                                .eq('id', r.id)
-                                .eq('status', 'OPEN');
-                              if (error) throw error;
-                              toast.success('Solicitação aceita com sucesso!');
-                              setTowingRequests(prev => prev.filter((x:any) => x.id !== r.id));
-                            } catch (e:any) {
-                              console.error('Erro ao aceitar solicitação:', e);
-                              toast.error('Erro ao aceitar solicitação');
-                            }
-                          }}>
-                            Aceitar Solicitação
+
+                          {/* Botão de ação */}
+                          <Button 
+                            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3" 
+                            size="lg"
+                            onClick={async () => {
+                              try {
+                                if (!profile?.id) return;
+                                const { error } = await supabase
+                                  .from('service_requests')
+                                  .update({ provider_id: profile.id, status: 'ACCEPTED', accepted_at: new Date().toISOString() })
+                                  .eq('id', r.id)
+                                  .eq('status', 'OPEN');
+                                if (error) throw error;
+                                toast.success('Chamado aceito com sucesso! Aguarde contato do solicitante.');
+                                setTowingRequests(prev => prev.filter((x:any) => x.id !== r.id));
+                              } catch (e:any) {
+                                console.error('Erro ao aceitar chamado:', e);
+                                toast.error('Erro ao aceitar chamado');
+                              }
+                            }}
+                          >
+                            ✅ Aceitar Chamado
                           </Button>
                         </CardContent>
                       </Card>

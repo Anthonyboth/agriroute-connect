@@ -211,7 +211,10 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
         }
       }
 
-      toast.success('Solicitação enviada com sucesso! Prestadores próximos foram notificados.');
+      const notificationTarget = ['GUINCHO', 'MUDANCA_RESIDENCIAL', 'MUDANCA_COMERCIAL', 'FRETE_URBANO', 'FRETE_MOTO'].includes(serviceId) 
+        ? 'Motoristas' 
+        : 'Prestadores';
+      toast.success(`Solicitação enviada com sucesso! ${notificationTarget} próximos foram notificados.`);
       onClose();
     } catch (error) {
       console.error('Erro:', error);
