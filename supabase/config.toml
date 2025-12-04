@@ -245,3 +245,6 @@ verify_jwt = false
 
 [functions.daily-security-report]
 verify_jwt = false
+
+[functions.create-guest-service-request]
+verify_jwt = false
