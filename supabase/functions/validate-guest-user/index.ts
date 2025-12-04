@@ -207,6 +207,17 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    // Handle validation errors (thrown as Response by validateInput)
+    if (error instanceof Response) {
+      const headers = new Headers(error.headers);
+      headers.set('Access-Control-Allow-Origin', '*');
+      headers.set('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
+      return new Response(error.body, { 
+        status: error.status, 
+        headers 
+      });
+    }
+    
     console.error('[ERROR] validate-guest-user:', error);
     
     // SECURITY: Don't reveal internal error details
