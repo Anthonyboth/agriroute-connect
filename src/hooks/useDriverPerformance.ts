@@ -43,8 +43,25 @@ export const useDriverPerformance = (driverId: string, startDate?: Date, endDate
   return useQuery({
     queryKey: ['driver-performance', driverId, startDate, endDate],
     queryFn: async (): Promise<DriverPerformanceData> => {
-      if (!driverId) {
-        throw new Error('Driver ID é obrigatório');
+      if (!driverId || driverId.trim() === '') {
+        // Retornar dados vazios em vez de lançar erro
+        return {
+          driverId: '',
+          driverName: 'Motorista',
+          totalFreights: 0,
+          completedFreights: 0,
+          cancelledFreights: 0,
+          onTimeFreights: 0,
+          averageRating: 0,
+          totalRatings: 0,
+          totalRevenue: 0,
+          averageDeliveryTime: 0,
+          completionRate: 0,
+          onTimeRate: 0,
+          topRoutes: [],
+          monthlyStats: [],
+          recentDeliveries: []
+        };
       }
 
       // Build date filter

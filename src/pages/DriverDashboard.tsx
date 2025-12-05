@@ -51,8 +51,8 @@ import { ServicesModal } from '@/components/ServicesModal';
 import { UnifiedHistory } from '@/components/UnifiedHistory';
 import { CompanyDriverBadge } from '@/components/CompanyDriverBadge';
 import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
-import { DriverAutoLocationTracking } from '@/components/DriverAutoLocationTracking';
-import { ManualLocationTracking } from '@/components/ManualLocationTracking';
+import { UnifiedTrackingControl } from '@/components/UnifiedTrackingControl';
+import { ServiceRequestInProgressCard } from '@/components/ServiceRequestInProgressCard';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { useDriverPermissions } from '@/hooks/useDriverPermissions';
@@ -189,6 +189,7 @@ const DriverDashboard = () => {
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
   const [counterOffers, setCounterOffers] = useState<any[]>([]);
   const [ongoingFreights, setOngoingFreights] = useState<Freight[]>([]);
+  const [acceptedServiceRequests, setAcceptedServiceRequests] = useState<any[]>([]);
   const [myAssignments, setMyAssignments] = useState<any[]>([]);
   const [transportRequests, setTransportRequests] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('available');
@@ -749,12 +750,12 @@ const DriverDashboard = () => {
     }
   }, [profile?.id, profile?.role]);
 
-  // ✅ Buscar APENAS fretes em andamento (nunca service_requests)
+  // ✅ Buscar fretes em andamento E service_requests aceitos
   const fetchOngoingFreights = useCallback(async () => {
     // Don't fetch if user is not a driver
     if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
 
-    console.log('🔍 Buscando APENAS fretes ativos do motorista:', profile.id);
+    console.log('🔍 Buscando fretes ativos e serviços aceitos do motorista:', profile.id);
     try {
       // Data de hoje para filtrar apenas fretes atuais/passados
       const todayStr = new Date().toISOString().split('T')[0];
@@ -806,6 +807,23 @@ const DriverDashboard = () => {
 
       if (assignmentError) {
         console.error('❌ Erro buscando assignments:', assignmentError);
+      }
+
+      // ✅ NOVO: Buscar service_requests (GUINCHO/MUDANCA) aceitos pelo motorista
+      const { data: serviceRequestsData, error: serviceRequestsError } = await supabase
+        .from('service_requests')
+        .select('*')
+        .eq('provider_id', profile.id)
+        .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_URBANO'])
+        .in('status', ['ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'])
+        .order('accepted_at', { ascending: false })
+        .limit(50);
+
+      if (serviceRequestsError) {
+        console.error('❌ Erro buscando service_requests aceitos:', serviceRequestsError);
+      } else {
+        console.log('🚗 Service requests aceitos:', serviceRequestsData?.length || 0);
+        if (isMountedRef.current) setAcceptedServiceRequests(serviceRequestsData || []);
       }
 
       // Extract and map assignment freights, using agreed_price as price
@@ -1023,6 +1041,52 @@ const DriverDashboard = () => {
       toast.error('Erro ao aceitar solicitação');
     }
   };
+
+  // Marcar serviço como "A Caminho" (para usuários cadastrados)
+  const handleMarkServiceOnTheWay = async (requestId: string) => {
+    try {
+      const { error } = await supabase
+        .from('service_requests')
+        .update({ 
+          status: 'ON_THE_WAY',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId)
+        .eq('provider_id', profile?.id);
+
+      if (error) throw error;
+
+      toast.success('Status atualizado: A Caminho!');
+      await fetchOngoingFreights();
+    } catch (error) {
+      console.error('Error updating service request:', error);
+      toast.error('Erro ao atualizar status');
+    }
+  };
+
+  // Encerrar/Concluir serviço
+  const handleFinishService = async (requestId: string) => {
+    try {
+      const { error } = await supabase
+        .from('service_requests')
+        .update({ 
+          status: 'COMPLETED',
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId)
+        .eq('provider_id', profile?.id);
+
+      if (error) throw error;
+
+      toast.success('Serviço concluído com sucesso!');
+      await fetchOngoingFreights();
+    } catch (error) {
+      console.error('Error finishing service request:', error);
+      toast.error('Erro ao finalizar serviço');
+    }
+  };
+
   const fetchCounterOffers = useCallback(async () => {
     if (!profile?.id || myProposals.length === 0) return;
 
@@ -2104,8 +2168,9 @@ const DriverDashboard = () => {
         <Button
           variant="outline"
           onClick={() => {
-            setManualOpen(true);
-            setIsMuralOpen(true);
+            const newState = !isMuralOpen;
+            setIsMuralOpen(newState);
+            setManualOpen(newState);
           }}
           className="mb-3 flex items-center gap-2"
         >
@@ -2276,13 +2341,8 @@ const DriverDashboard = () => {
             </div>
           )}
 
-          {/* Auto-tracking para motoristas */}
-          <DriverAutoLocationTracking />
-          
-          {/* Controle manual de rastreamento */}
-          <div className="mb-4">
-            <ManualLocationTracking />
-          </div>
+          {/* Controle unificado de rastreamento */}
+          <UnifiedTrackingControl />
           
           {/* ✅ Banner informativo para afiliados sem permissão de aceitar fretes */}
           {isAffiliated && !canAcceptFreights && (
@@ -2352,10 +2412,31 @@ const DriverDashboard = () => {
               <div className="flex justify-between items-center">
                 <h3 className="text-base font-semibold">Em Andamento</h3>
                 <Badge variant="secondary" className="text-xs">
-                  {activeAssignments.length + visibleOngoing.length}
+                  {activeAssignments.length + visibleOngoing.length + acceptedServiceRequests.length}
                 </Badge>
               </div>
             </div>
+            
+            {/* ✅ Service Requests Aceitos (Guincho/Mudança) */}
+            {acceptedServiceRequests && acceptedServiceRequests.length > 0 && (
+              <div className="space-y-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-orange-600" />
+                  <h4 className="text-sm font-semibold text-orange-600">Serviços em Andamento</h4>
+                  <Badge variant="outline" className="text-xs border-orange-300">{acceptedServiceRequests.length}</Badge>
+                </div>
+                <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando lista...</div>}>
+                  {acceptedServiceRequests.map((request) => (
+                    <ServiceRequestInProgressCard
+                      key={request.id}
+                      request={request}
+                      onMarkOnTheWay={handleMarkServiceOnTheWay}
+                      onFinishService={handleFinishService}
+                    />
+                  ))}
+                </SafeListWrapper>
+              </div>
+            )}
             
             {/* Assignments (Fretes com valores individualizados) */}
             {activeAssignments && activeAssignments.length > 0 && (
@@ -2468,7 +2549,7 @@ const DriverDashboard = () => {
                 </div>
               </SafeListWrapper>
             ) : (
-              !myAssignments || myAssignments.length === 0 ? (
+              (!myAssignments || myAssignments.length === 0) && acceptedServiceRequests.length === 0 ? (
                 <div className="text-center py-12">
                   <Play className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-muted-foreground mb-2">
