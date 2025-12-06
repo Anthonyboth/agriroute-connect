@@ -213,19 +213,13 @@ const Landing: React.FC = () => {
                 Contato
               </button>
             </nav>
-            <div className="hidden md:flex items-center space-x-2 sm:space-x-4 flex-nowrap">
+            <div className="hidden md:flex items-center space-x-4">
               <Button 
                 variant="ghost" 
                 onClick={() => navigate('/auth')}
-                className="flex-shrink-0 text-sm sm:text-base"
+                className="flex-shrink-0"
               > 
                 Entrar
-              </Button>
-              <Button 
-                onClick={() => navigate('/auth')} 
-                className="gradient-primary text-primary-foreground flex-shrink-0 text-sm sm:text-base"
-              >
-                Cadastrar-se
               </Button>
             </div>
             <MobileMenu onContactClick={() => setContactModal(true)} />
@@ -399,7 +393,7 @@ const Landing: React.FC = () => {
           
           <div className="border-t mt-12 pt-8 flex flex-col md:flex-row justify-between items-center text-muted-foreground">
             <p>
-              &copy; 2024 AgriRoute. Todos os direitos reservados. | 
+              &copy; 2025 AgriRoute. Todos os direitos reservados. | 
               <Link to="/system-test" className="hover:text-foreground transition-smooth ml-1">
                 Verificação do Sistema
               </Link>
