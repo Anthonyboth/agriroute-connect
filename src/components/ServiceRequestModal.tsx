@@ -158,29 +158,33 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
 
       // Latitude/longitude não são obrigatórios; cidade e endereço estruturado bastam para o match por cidade.
 
-      // Criar solicitação de serviço na tabela service_requests
-      const { data, error } = await supabase.from('service_requests').insert([{
-        client_id: profile?.id || null, // NULL se não estiver logado
-        service_type: serviceId,
-        contact_name: formData.name,
-        contact_phone: formData.phone,
-        location_address: formData.location_address,
-        location_lat: formData.location_lat,
-        location_lng: formData.location_lng,
-        city_name: formData.city || null,
-        state: formData.state || null,
-        city_id: cityId,
-        problem_description: formData.description,
-        urgency: formData.urgency,
-        preferred_datetime: formData.preferred_time ? new Date().toISOString() : null,
-        additional_info: formData.additional_info || null,
-        status: 'OPEN'
-      } as any])
-      .select()
-      .single();
+      // Usar Edge Function para criar solicitação (bypass RLS para usuários não autenticados)
+      const { data, error } = await supabase.functions.invoke('create-guest-service-request', {
+        body: {
+          client_id: profile?.id || null,
+          service_type: serviceId,
+          contact_name: formData.name,
+          contact_phone: formData.phone,
+          location_address: formData.location_address,
+          location_lat: formData.location_lat,
+          location_lng: formData.location_lng,
+          city_name: formData.city || null,
+          state: formData.state || null,
+          city_id: cityId,
+          problem_description: formData.description,
+          urgency: formData.urgency,
+          preferred_datetime: formData.preferred_time ? new Date().toISOString() : null,
+          additional_info: formData.additional_info || null
+        }
+      });
 
       if (error) {
         showErrorToast(toast, 'Erro ao enviar solicitação', error);
+        return;
+      }
+      
+      if (data?.error) {
+        showErrorToast(toast, 'Erro ao enviar solicitação', data.error);
         return;
       }
 

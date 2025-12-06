@@ -16,6 +16,7 @@ import { showErrorToast } from '@/lib/error-handler';
 import { LocationFillButton } from './LocationFillButton';
 import { UserLocationSelector } from './UserLocationSelector';
 import { supabase } from '@/integrations/supabase/client';
+import { CitySelector } from './CitySelector';
 
 interface SubService {
   id: string;
@@ -510,12 +511,18 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                       
                       <div className="space-y-2">
                         <Label htmlFor="origin_city">Cidade *</Label>
-                        <Input
-                          id="origin_city"
-                          value={formData.origin_city}
-                          onChange={(e) => handleInputChange('origin_city', e.target.value)}
-                          placeholder="Nome da cidade"
-                          required
+                        <CitySelector
+                          value={formData.origin_city && formData.origin_state ? { city: formData.origin_city, state: formData.origin_state } : undefined}
+                          onChange={(city) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              origin_city: city.city,
+                              origin_state: city.state,
+                              origin_lat: city.lat,
+                              origin_lng: city.lng
+                            }));
+                          }}
+                          placeholder="Selecione a cidade"
                         />
                       </div>
                     </div>
@@ -593,12 +600,18 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                         
                         <div className="space-y-2">
                           <Label htmlFor="destination_city">Cidade *</Label>
-                          <Input
-                            id="destination_city"
-                            value={formData.destination_city}
-                            onChange={(e) => handleInputChange('destination_city', e.target.value)}
-                            placeholder="Nome da cidade"
-                            required
+                          <CitySelector
+                            value={formData.destination_city && formData.destination_state ? { city: formData.destination_city, state: formData.destination_state } : undefined}
+                            onChange={(city) => {
+                              setFormData(prev => ({
+                                ...prev,
+                                destination_city: city.city,
+                                destination_state: city.state,
+                                destination_lat: city.lat,
+                                destination_lng: city.lng
+                              }));
+                            }}
+                            placeholder="Selecione a cidade"
                           />
                         </div>
                       </div>
