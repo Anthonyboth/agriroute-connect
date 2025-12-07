@@ -88,7 +88,21 @@
       img[width][height]{aspect-ratio:attr(width)/attr(height)}
     </style>
     
-    <!-- CSS will be injected by Vite with async loading via transformIndexHtml -->
+    <!-- CSS async loading - prevents render blocking -->
+    <script>
+      (function(){
+        var links=document.querySelectorAll('link[rel="stylesheet"]');
+        links.forEach(function(link){
+          if(link.href&&link.href.includes('/assets/')){
+            link.media='print';
+            link.onload=function(){this.media='all';this.onload=null;};
+          }
+        });
+      })();
+    </script>
+    <noscript>
+      <!-- Fallback for no-JS: CSS loads normally -->
+    </noscript>
     
     <title>AgriRoute - Logística Agrícola Inteligente</title>
     <meta name="description" content="Ambiente digital para orquestrar, conectar e monitorar o transporte agrícola. Conecte produtores rurais e motoristas com eficiência e segurança." />
