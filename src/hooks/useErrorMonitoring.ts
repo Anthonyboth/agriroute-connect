@@ -39,7 +39,11 @@ export function useErrorMonitoring() {
         }
         
         // Capturar erros HTTP 400-599 de APIs Supabase
-        if (!response.ok && typeof args[0] === 'string' && args[0].includes('supabase')) {
+        // ✅ Ignorar erros da própria função de notificação para evitar loops
+        const urlString = typeof args[0] === 'string' ? args[0] : '';
+        const isTelegramNotifier = urlString.includes('telegram-error-notifier') || urlString.includes('report-error');
+        
+        if (!response.ok && urlString.includes('supabase') && !isTelegramNotifier) {
           if (import.meta.env.DEV) {
             console.log('❌ [useErrorMonitoring] Erro HTTP capturado:', response.status);
           }
@@ -60,7 +64,7 @@ export function useErrorMonitoring() {
           
           // Melhorar mensagem de erro para rotas de auth
           let errorMessage = `Supabase API Error: ${response.status} ${response.statusText}`;
-          const isAuthRoute = args[0].includes('/auth/v1/');
+          const isAuthRoute = urlString.includes('/auth/v1/');
           
           if (isAuthRoute && errorData) {
             const detailedMessage = errorData.error_description || errorData.msg || errorData.message;

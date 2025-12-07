@@ -43,17 +43,19 @@ async function notifyErrorToTelegram(errorData: {
 }) {
   try {
     // Usar fetch direto para evitar dependência circular
+    // Adicionar header para que o useErrorMonitoring ignore erros desta chamada
     await fetch(`${SUPABASE_URL}/functions/v1/telegram-error-notifier`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_PUBLISHABLE_KEY
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'X-Skip-Error-Monitoring': 'true'
       },
       body: JSON.stringify(errorData)
     });
   } catch (e) {
     // Fail silently - não queremos loops infinitos de erro
-    console.debug('[notifyErrorToTelegram] Falha silenciosa:', e);
+    // NÃO logar nada aqui para evitar loops
   }
 }
 
