@@ -325,7 +325,7 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                 <div className="space-y-2">
                   <Label>Cidade e Estado *</Label>
                   <CitySelector
-                    value={formData.city && formData.state ? { city: formData.city, state: formData.state } : undefined}
+                    value={formData.city && formData.state ? { city: formData.city, state: formData.state, id: formData.city_id } : undefined}
                     onChange={(city) => {
                       setFormData(prev => ({
                         ...prev,
