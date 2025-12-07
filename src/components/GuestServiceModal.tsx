@@ -65,6 +65,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
     origin_complement: '',
     origin_city: '',
     origin_state: '',
+    origin_city_id: undefined as string | undefined,
     origin_cep: '',
     destination_street: '',
     destination_neighborhood: '',
@@ -72,6 +73,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
     destination_complement: '',
     destination_city: '',
     destination_state: '',
+    destination_city_id: undefined as string | undefined,
     destination_cep: '',
     cargoType: '',
     cargoWeight: '',
@@ -289,6 +291,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
           urgency: formData.urgency,
           city_name: formData.origin_city,
           state: formData.origin_state || formData.origin_city.split(',')[1]?.trim() || null,
+          city_id: formData.origin_city_id || null,
           additional_info: {
             origin: {
               street: formData.origin_street,
@@ -512,12 +515,13 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                       <div className="space-y-2">
                         <Label htmlFor="origin_city">Cidade *</Label>
                         <CitySelector
-                          value={formData.origin_city && formData.origin_state ? { city: formData.origin_city, state: formData.origin_state } : undefined}
+                          value={formData.origin_city && formData.origin_state ? { city: formData.origin_city, state: formData.origin_state, id: formData.origin_city_id } : undefined}
                           onChange={(city) => {
                             setFormData(prev => ({
                               ...prev,
                               origin_city: city.city,
                               origin_state: city.state,
+                              origin_city_id: city.id,
                               origin_lat: city.lat,
                               origin_lng: city.lng
                             }));
@@ -601,12 +605,13 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
                         <div className="space-y-2">
                           <Label htmlFor="destination_city">Cidade *</Label>
                           <CitySelector
-                            value={formData.destination_city && formData.destination_state ? { city: formData.destination_city, state: formData.destination_state } : undefined}
+                            value={formData.destination_city && formData.destination_state ? { city: formData.destination_city, state: formData.destination_state, id: formData.destination_city_id } : undefined}
                             onChange={(city) => {
                               setFormData(prev => ({
                                 ...prev,
                                 destination_city: city.city,
                                 destination_state: city.state,
+                                destination_city_id: city.id,
                                 destination_lat: city.lat,
                                 destination_lng: city.lng
                               }));
