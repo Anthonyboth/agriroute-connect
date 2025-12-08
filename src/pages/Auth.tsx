@@ -25,12 +25,14 @@ const Auth = () => {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [loginField, setLoginField] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<'PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA'>('PRODUTOR');
   const [phone, setPhone] = useState('');
   const [document, setDocument] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const navigate = useNavigate();
@@ -71,6 +73,13 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Verificar se as senhas coincidem
+    if (password !== confirmPassword) {
+      toast.error('As senhas não coincidem. Digite a mesma senha nos dois campos.');
+      setLoading(false);
+      return;
+    }
 
     // Se for transportadora e não aceitou os termos
     if (driverType === 'TRANSPORTADORA' && !acceptedTerms) {
@@ -822,6 +831,33 @@ const Auth = () => {
                           onClick={() => setShowPassword(!showPassword)}
                         >
                           {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          required
+                          minLength={8}
+                          className="pr-10"
+                          placeholder="Digite a senha novamente"
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? (
                             <EyeOff className="h-4 w-4" />
                           ) : (
                             <Eye className="h-4 w-4" />
