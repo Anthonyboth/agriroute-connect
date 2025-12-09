@@ -69,6 +69,12 @@ export function MobileMenu({ onContactClick }: MobileMenuProps) {
             >
               Entrar
             </Button>
+            <Button 
+              onClick={() => handleNavigation('/auth?tab=signup')}
+              className="w-full justify-start text-base bg-green-600 hover:bg-green-700 text-white"
+            >
+              Cadastrar-se
+            </Button>
           </div>
         </nav>
       </SheetContent>
