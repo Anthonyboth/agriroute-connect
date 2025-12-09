@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { X, Plus, FileText, IdCard, Building, CreditCard, User, Shield } from 'lucide-react';
+import { X, Plus, FileText, IdCard, Building, CreditCard, User, Shield, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { DocumentUpload } from './DocumentUpload';
 import { ProfilePhotoUpload } from './ProfilePhotoUpload';
 import { getProviderVisibleServices } from '@/lib/service-types';
@@ -114,6 +115,11 @@ export const ServiceProviderRegistrationForm: React.FC<ServiceProviderRegistrati
 }) => {
   const { toast } = useToast();
   const { user, profile } = useAuth();
+  
+  // Estados para termos obrigatórios
+  const [acceptedDocumentsResponsibility, setAcceptedDocumentsResponsibility] = useState(false);
+  const [acceptedTermsOfUse, setAcceptedTermsOfUse] = useState(false);
+  const [acceptedPrivacyPolicy, setAcceptedPrivacyPolicy] = useState(false);
   
   const [formData, setFormData] = useState<FormData>({
     serviceType: '',
@@ -262,6 +268,34 @@ export const ServiceProviderRegistrationForm: React.FC<ServiceProviderRegistrati
       toast({
         title: "Dados financeiros incompletos",
         description: financialError,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validar termos obrigatórios
+    if (!acceptedDocumentsResponsibility) {
+      toast({
+        title: "Termos obrigatórios",
+        description: "Você deve declarar a veracidade dos documentos enviados",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!acceptedTermsOfUse) {
+      toast({
+        title: "Termos obrigatórios", 
+        description: "Você deve aceitar os Termos de Uso",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!acceptedPrivacyPolicy) {
+      toast({
+        title: "Termos obrigatórios",
+        description: "Você deve aceitar a Política de Privacidade",
         variant: "destructive",
       });
       return;
