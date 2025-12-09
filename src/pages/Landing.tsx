@@ -199,21 +199,7 @@ const Landing: React.FC = () => {
             </div>
             <ThemeToggle />
           </div>
-            <nav className="hidden md:flex items-center space-x-6">
-              <a href="#features" className="text-muted-foreground hover:text-foreground transition-smooth">
-                Recursos
-              </a>
-              <Link to="/sobre" className="text-muted-foreground hover:text-foreground transition-smooth">
-                Sobre
-              </Link>
-              <button 
-                onClick={() => setContactModal(true)}
-                className="text-muted-foreground hover:text-foreground transition-smooth"
-              >
-                Contato
-              </button>
-            </nav>
-            <div className="hidden md:flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
               <Button 
                 variant="ghost" 
                 onClick={() => navigate('/auth')}
@@ -221,8 +207,8 @@ const Landing: React.FC = () => {
               > 
                 Entrar
               </Button>
+              <MobileMenu onContactClick={() => setContactModal(true)} />
             </div>
-            <MobileMenu onContactClick={() => setContactModal(true)} />
         </div>
       </header>
 
