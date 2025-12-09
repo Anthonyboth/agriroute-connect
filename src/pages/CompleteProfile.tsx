@@ -17,7 +17,7 @@ import LocationPermission from '@/components/LocationPermission';
 import GoogleMap from '@/components/GoogleMap';
 import { CameraSelfie } from '@/components/CameraSelfie';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AddressInput } from '@/components/AddressInput';
+import { CitySelector } from '@/components/CitySelector';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
 import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building, Plus, X, Shield } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -38,6 +38,18 @@ type PlatePhoto = {
   url: string;
   label: string;
 };
+
+interface AddressData {
+  city: string;
+  state: string;
+  cityId?: string;
+  lat?: number;
+  lng?: number;
+  bairro: string;
+  rua: string;
+  numero: string;
+  complemento: string;
+}
 
 const CompleteProfile = () => {
   const { profile, loading: authLoading, isAuthenticated, profileError, clearProfileError, retryProfileCreation, signOut, user } = useAuth();
@@ -85,18 +97,21 @@ const CompleteProfile = () => {
     cnh_category: '',
     cnh_expiry_date: '' as string,
   });
-  const [vehicles, setVehicles] = useState<any[]>([]);
-  const [newVehicle, setNewVehicle] = useState({
-    vehicle_type: '',
-    axle_count: 2,
-    max_capacity_tons: 0,
-    license_plate: '',
+  
+  // Estado para endereço estruturado
+  const [addressData, setAddressData] = useState<AddressData>({
+    city: '',
+    state: '',
+    cityId: undefined,
+    lat: undefined,
+    lng: undefined,
+    bairro: '',
+    rua: '',
+    numero: '',
+    complemento: ''
   });
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [vehicleToDelete, setVehicleToDelete] = useState<string | null>(null);
+  
   const [showSelfieModal, setShowSelfieModal] = useState(false);
-  const [skipVehicleRegistration, setSkipVehicleRegistration] = useState(false);
-  const [showVehicleChoice, setShowVehicleChoice] = useState(true);
   const [platePhotos, setPlatePhotos] = useState<PlatePhoto[]>([
     { id: '1', type: 'TRACTOR', url: '', label: 'Placa do Cavalo (Trator)' }
   ]);
@@ -135,11 +150,6 @@ const CompleteProfile = () => {
         setPlatePhotos(metadata.plate_photos);
       }
       
-      // Load vehicle registration skip status
-      if (metadata?.vehicle_registration_skipped) {
-        setSkipVehicleRegistration(true);
-        setShowVehicleChoice(false);
-      }
       setLocationEnabled(profile.location_enabled || false);
       
       // Load profile data with safe access
@@ -159,10 +169,12 @@ const CompleteProfile = () => {
         cnh_category: (profile as any).cnh_category || '',
         cnh_expiry_date: (profile as any).cnh_expiry_date || null,
       });
-
-      // Fetch vehicles for autonomous drivers only
-      if (isAutonomousDriver) {
-        fetchVehicles();
+      
+      // Load structured address from fixed_address if available
+      if ((profile as any).fixed_address) {
+        // Tentar extrair dados do endereço já salvo
+        const savedAddress = (profile as any).fixed_address;
+        setProfileData(prev => ({ ...prev, fixed_address: savedAddress }));
       }
 
       // Redirect if profile is fully complete (even if pending approval)
@@ -185,101 +197,24 @@ const CompleteProfile = () => {
     }
   }, [profile, authLoading, isAuthenticated, navigate]);
 
-  const fetchVehicles = async () => {
-    if (!profile) return;
-    
-    const { data, error } = await supabase
-      .from('vehicles')
-      .select('*')
-      .eq('driver_id', profile.id);
-
-    if (!error && data) {
-      setVehicles(data);
+  // Função para construir endereço completo
+  const buildFullAddress = () => {
+    const parts = [];
+    if (addressData.rua) parts.push(addressData.rua);
+    if (addressData.numero) parts.push(addressData.numero);
+    if (addressData.bairro) parts.push(addressData.bairro);
+    if (addressData.complemento) parts.push(addressData.complemento);
+    if (addressData.city && addressData.state) parts.push(`${addressData.city} - ${addressData.state}`);
+    return parts.join(', ');
+  };
+  
+  // Atualizar fixed_address quando os campos de endereço mudarem
+  useEffect(() => {
+    if (addressData.city && addressData.rua && addressData.numero) {
+      const fullAddress = buildFullAddress();
+      setProfileData(prev => ({ ...prev, fixed_address: fullAddress }));
     }
-  };
-
-  const addVehicle = async () => {
-    if (!profile || !newVehicle.vehicle_type || !newVehicle.license_plate) return;
-
-    const { error } = await supabase
-      .from('vehicles')
-      .insert({
-        driver_id: profile.id,
-        vehicle_type: newVehicle.vehicle_type as 'TRUCK' | 'BITREM' | 'RODOTREM' | 'CARRETA' | 'VUC' | 'TOCO',
-        axle_count: newVehicle.axle_count,
-        max_capacity_tons: newVehicle.max_capacity_tons,
-        license_plate: newVehicle.license_plate,
-      });
-
-    if (error) {
-      toast.error('Erro ao cadastrar veículo. Tente novamente.');
-    } else {
-      toast.success('Veículo cadastrado com sucesso!');
-      setNewVehicle({
-        vehicle_type: '',
-        axle_count: 2,
-        max_capacity_tons: 0,
-        license_plate: '',
-      });
-      fetchVehicles();
-    }
-  };
-
-  const deleteVehicle = async (vehicleId: string) => {
-    if (!profile) return;
-    setVehicleToDelete(vehicleId);
-    setConfirmDialogOpen(true);
-  };
-
-  const confirmDeleteVehicle = async () => {
-    if (!profile || !vehicleToDelete) return;
-
-    const { error } = await supabase
-      .from('vehicles')
-      .delete()
-      .eq('id', vehicleToDelete)
-      .eq('driver_id', profile.id);
-
-    if (error) {
-      toast.error('Erro ao remover veículo. Tente novamente.');
-    } else {
-      toast.success('Veículo removido com sucesso');
-      setVehicles(prev => prev.filter(v => v.id !== vehicleToDelete));
-    }
-  };
-
-  const uploadVehicleFile = async (
-    vehicleId: string,
-    field: 'crlv_url' | 'vehicle_photo_url' | 'insurance_document_url',
-    file: File,
-    label: string
-  ) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Não autenticado');
-
-      const ext = file.name.split('.').pop();
-      const path = `${user.id}/vehicles/${vehicleId}/${field}_${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('driver-documents')
-        .upload(path, file, { contentType: file.type });
-      if (uploadError) throw uploadError;
-
-      const { error: updateError } = await supabase
-        .from('vehicles')
-        .update({ [field]: path })
-        .eq('id', vehicleId)
-        .eq('driver_id', profile!.id);
-      if (updateError) throw updateError;
-
-      setVehicles(prev => prev.map(v => v.id === vehicleId ? { ...v, [field]: path } : v));
-      toast.success(`${label} enviado com sucesso!`);
-    } catch (e: any) {
-      console.error(e);
-      toast.error(`Falha ao enviar ${label}`);
-    }
-  };
+  }, [addressData]);
 
   const ensureLocationEnabled = async (): Promise<boolean> => {
     if (locationEnabled) return true;
@@ -308,8 +243,8 @@ const CompleteProfile = () => {
       profileData,
       documentUrls,
       platePhotos,
-      vehicles,
-      skipVehicleRegistration,
+      vehicles: [], // Veículos agora são adicionados após o cadastro
+      skipVehicleRegistration: true, // Sempre pular cadastro de veículos durante registro
       locationEnabled
     };
 
@@ -438,10 +373,10 @@ const CompleteProfile = () => {
         address_proof_url: documentUrls.address_proof,
         location_enabled: locationEnabled,
         metadata: {
-          ...((profile as any).metadata || {}),
-          plate_photos: platePhotosMetadata,
-          vehicle_registration_skipped: skipVehicleRegistration,
-          terms_acceptance: {
+        ...((profile as any).metadata || {}),
+        plate_photos: platePhotosMetadata,
+        vehicle_registration_skipped: true, // Veículos são adicionados após o cadastro
+        terms_acceptance: {
             documents_responsibility: acceptedDocumentsResponsibility ? new Date().toISOString() : null,
             terms_of_use: acceptedTermsOfUse ? new Date().toISOString() : null,
             privacy_policy: acceptedPrivacyPolicy ? new Date().toISOString() : null,
@@ -721,15 +656,91 @@ const CompleteProfile = () => {
                       </div>
                     </div>
 
-                    {/* Fixed Address - Required for all users */}
-                    <div className="space-y-4">
-                      <AddressInput
-                        address={profileData.fixed_address}
-                        onAddressChange={(address) => setProfileData(prev => ({ ...prev, fixed_address: address }))}
-                        label="Endereço Fixo"
+                    {/* Endereço Estruturado com CitySelector */}
+                    <div className="space-y-4 border-t pt-4">
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="h-5 w-5 text-primary" />
+                        <h4 className="text-md font-semibold">Endereço Completo *</h4>
+                      </div>
+                      
+                      {/* Cidade com validação */}
+                      <CitySelector
+                        value={addressData.city && addressData.state ? {
+                          city: addressData.city,
+                          state: addressData.state,
+                          id: addressData.cityId,
+                          lat: addressData.lat,
+                          lng: addressData.lng
+                        } : undefined}
+                        onChange={(city) => setAddressData(prev => ({
+                          ...prev,
+                          city: city.city,
+                          state: city.state,
+                          cityId: city.id,
+                          lat: city.lat,
+                          lng: city.lng
+                        }))}
+                        label="Cidade *"
                         required={true}
-                        placeholder="Rua, número, bairro/fazenda, cidade, estado, CEP"
+                        error={!addressData.cityId && addressData.city ? 'Selecione uma cidade da lista' : undefined}
                       />
+                      
+                      {/* Bairro e Rua */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="bairro">Bairro *</Label>
+                          <Input
+                            id="bairro"
+                            value={addressData.bairro}
+                            onChange={(e) => setAddressData(prev => ({ ...prev, bairro: e.target.value }))}
+                            placeholder="Ex: Centro, Jardim América"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="rua">Rua *</Label>
+                          <Input
+                            id="rua"
+                            value={addressData.rua}
+                            onChange={(e) => setAddressData(prev => ({ ...prev, rua: e.target.value }))}
+                            placeholder="Ex: Rua das Flores"
+                            required
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Número e Complemento */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="numero">Número *</Label>
+                          <Input
+                            id="numero"
+                            value={addressData.numero}
+                            onChange={(e) => setAddressData(prev => ({ ...prev, numero: e.target.value }))}
+                            placeholder="Ex: 123"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="complemento">Complemento</Label>
+                          <Input
+                            id="complemento"
+                            value={addressData.complemento}
+                            onChange={(e) => setAddressData(prev => ({ ...prev, complemento: e.target.value }))}
+                            placeholder="Ex: Apt 101, Bloco A"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Validação visual */}
+                      {addressData.cityId && addressData.bairro && addressData.rua && addressData.numero && (
+                        <Alert className="bg-green-50 border-green-200">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <AlertDescription className="text-green-800">
+                            ✅ Endereço validado: {buildFullAddress()}
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </div>
 
                 {/* Producer-specific fields */}
@@ -965,39 +976,18 @@ const CompleteProfile = () => {
                   <h3 className="text-lg font-semibold">Documentos e Veículos</h3>
                 </div>
 
-                {/* Alert para transportadoras escolherem quando cadastrar veículos */}
-                {showVehicleChoice && isTransportCompany && (
-                  <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900">
-                    <Truck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    <AlertTitle className="text-amber-900 dark:text-amber-100">
+                {/* Aviso sobre veículos para motoristas */}
+                {isAutonomousDriver && (
+                  <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900">
+                    <Truck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <AlertTitle className="text-blue-900 dark:text-blue-100">
                       Cadastro de Veículos
                     </AlertTitle>
-                    <AlertDescription className="text-amber-800 dark:text-amber-200">
-                      <p className="mb-3">
-                        Como transportadora, você pode cadastrar seus veículos agora ou adicionar depois que seu cadastro for aprovado.
+                    <AlertDescription className="text-blue-800 dark:text-blue-200">
+                      <p>
+                        Após finalizar seu cadastro, você poderá adicionar seus veículos na aba "Veículos" do seu painel.
+                        <strong> É necessário ter pelo menos um veículo cadastrado para aceitar fretes.</strong>
                       </p>
-                      <div className="flex gap-2">
-                        <Button 
-                          onClick={() => {
-                            setSkipVehicleRegistration(false);
-                            setShowVehicleChoice(false);
-                          }}
-                          variant="default"
-                          size="sm"
-                        >
-                          Adicionar Veículos Agora
-                        </Button>
-                        <Button 
-                          onClick={() => {
-                            setSkipVehicleRegistration(true);
-                            setShowVehicleChoice(false);
-                          }}
-                          variant="outline"
-                          size="sm"
-                        >
-                          Adicionar Depois
-                        </Button>
-                      </div>
                     </AlertDescription>
                   </Alert>
                 )}
@@ -1134,144 +1124,6 @@ const CompleteProfile = () => {
                     onPermissionChange={setLocationEnabled}
                     required
                   />
-                )}
-
-                {/* Vehicle Registration - apenas se não pulou */}
-                {!skipVehicleRegistration && !isTransportCompany && (
-                  <div className="space-y-4 border-t pt-4">
-                  <h4 className="text-md font-semibold">Cadastro de Veículos</h4>
-                  
-                  {vehicles.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">Veículos Cadastrados:</p>
-                      {vehicles.map((vehicle) => (
-                        <div key={vehicle.id} className="p-3 border rounded-lg space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="font-medium">{vehicle.vehicle_type} - {vehicle.license_plate}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {vehicle.max_capacity_tons}t • {vehicle.axle_count} eixos • Status: {vehicle.status}
-                              </p>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => deleteVehicle(vehicle.id)}
-                            >
-                              Remover
-                            </Button>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div className="space-y-2">
-                              <Label>CRLV {vehicle.crlv_url ? '✓' : ''}</Label>
-                              <Input
-                                type="file"
-                                accept="image/*,application/pdf"
-                                onChange={(e) => {
-                                  const f = e.target.files?.[0];
-                                  if (f) uploadVehicleFile(vehicle.id, 'crlv_url', f, 'CRLV');
-                                }}
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Foto do veículo {vehicle.vehicle_photo_url ? '✓' : ''}</Label>
-                              <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const f = e.target.files?.[0];
-                                  if (f) uploadVehicleFile(vehicle.id, 'vehicle_photo_url', f, 'Foto do veículo');
-                                }}
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Seguro (opcional) {vehicle.insurance_document_url ? '✓' : ''}</Label>
-                              <Input
-                                type="file"
-                                accept="image/*,application/pdf"
-                                onChange={(e) => {
-                                  const f = e.target.files?.[0];
-                                  if (f) uploadVehicleFile(vehicle.id, 'insurance_document_url', f, 'Seguro');
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-
-                  <div className="border rounded-lg p-4 space-y-4">
-                    <h5 className="text-sm font-medium">Adicionar Novo Veículo:</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Tipo de Veículo</Label>
-                        <Select
-                          value={newVehicle.vehicle_type}
-                          onValueChange={(value) => setNewVehicle(prev => ({ ...prev, vehicle_type: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="TRUCK">Truck</SelectItem>
-                            <SelectItem value="BITREM">Bitrem</SelectItem>
-                            <SelectItem value="RODOTREM">Rodotrem</SelectItem>
-                            <SelectItem value="CARRETA">Carreta</SelectItem>
-                            <SelectItem value="CARRETA_BAU">Carreta Baú</SelectItem>
-                            <SelectItem value="VUC">VUC</SelectItem>
-                            <SelectItem value="TOCO">Toco</SelectItem>
-                            <SelectItem value="CARRO_PEQUENO">Carro Pequeno</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Placa do Veículo</Label>
-                        <Input
-                          placeholder="ABC-1234"
-                          value={newVehicle.license_plate}
-                          onChange={(e) => setNewVehicle(prev => ({ ...prev, license_plate: e.target.value }))}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Capacidade (toneladas)</Label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          value={newVehicle.max_capacity_tons}
-                          onChange={(e) => setNewVehicle(prev => ({ ...prev, max_capacity_tons: Number(e.target.value) }))}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Número de Eixos</Label>
-                        <Input
-                          type="number"
-                          min="2"
-                          max="9"
-                          value={newVehicle.axle_count}
-                          onChange={(e) => setNewVehicle(prev => ({ ...prev, axle_count: Number(e.target.value) }))}
-                        />
-                      </div>
-                    </div>
-
-                    <Button 
-                      type="button" 
-                      onClick={addVehicle}
-                      disabled={!newVehicle.vehicle_type || !newVehicle.license_plate}
-                      className="w-full"
-                    >
-                      Adicionar Veículo
-                    </Button>
-                  </div>
-                </div>
                 )}
 
                 {/* Seção de Aceite de Termos e Responsabilidades */}
@@ -1412,16 +1264,6 @@ const CompleteProfile = () => {
         </Card>
       </div>
 
-      <ConfirmDialog
-        isOpen={confirmDialogOpen}
-        onClose={() => setConfirmDialogOpen(false)}
-        onConfirm={confirmDeleteVehicle}
-        title="Remover Veículo"
-        description="Tem certeza que deseja remover este veículo? Esta ação não pode ser desfeita."
-        confirmText="Sim, remover"
-        cancelText="Cancelar"
-        variant="destructive"
-      />
     </div>
   );
 };
