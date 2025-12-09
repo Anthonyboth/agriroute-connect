@@ -28,7 +28,7 @@ export function MobileMenu({ onContactClick }: MobileMenuProps) {
         <Button 
           variant="ghost" 
           size="icon"
-          className="md:hidden flex-shrink-0"
+          className="flex-shrink-0"
           aria-label="Menu de navegação"
         >
           <Menu className="h-6 w-6" />
