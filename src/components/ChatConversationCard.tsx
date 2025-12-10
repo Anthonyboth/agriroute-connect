@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Truck, Wrench, MessageSquare, FileText, X, Share2, Navigation, Users, CheckCircle2, Clock, Package } from 'lucide-react';
+import { Truck, Wrench, MessageSquare, FileText, X, Share2, Navigation, Users, CheckCircle2, Clock, Package, Phone } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChatConversation, ChatParticipant } from '@/hooks/useUnifiedChats';
@@ -30,6 +30,14 @@ export const ChatConversationCard = ({
         return <Share2 className="h-4 w-4 text-accent" />;
       default:
         return <MessageSquare className="h-4 w-4" />;
+    }
+  };
+
+  const handlePhoneCall = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (conversation.otherParticipant?.phone) {
+      const cleanNumber = conversation.otherParticipant.phone.replace(/\D/g, '');
+      window.open(`tel:+55${cleanNumber}`, '_self');
     }
   };
 
@@ -117,9 +125,15 @@ export const ChatConversationCard = ({
             </Avatar>
           )}
           
-          {/* Indicador GPS pulsando */}
+          {/* Indicador GPS pulsando com tempo */}
           {conversation.hasGpsTracking && !conversation.isClosed && (
-            <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 animate-pulse">
+            <div 
+              className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 animate-pulse"
+              title={conversation.gpsLastUpdate 
+                ? `Última atualização: ${formatDistanceToNow(new Date(conversation.gpsLastUpdate), { addSuffix: true, locale: ptBR })}`
+                : 'GPS ativo'
+              }
+            >
               <Navigation className="h-3 w-3 text-white" />
             </div>
           )}
@@ -138,14 +152,40 @@ export const ChatConversationCard = ({
             )}
           </div>
 
-          {/* Status do frete e contagem de participantes */}
+          {/* Status do frete, GPS info e contagem de participantes */}
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             {getStatusBadge()}
+            
+            {/* Indicador GPS detalhado com última atualização */}
+            {conversation.hasGpsTracking && !conversation.isClosed && (
+              <Badge variant="outline" className="text-xs gap-1 px-1.5 py-0 bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300">
+                <Navigation className="h-3 w-3" />
+                GPS
+                {conversation.gpsLastUpdate && (
+                  <span className="text-green-600/70 dark:text-green-400/70">
+                    • {formatDistanceToNow(new Date(conversation.gpsLastUpdate), { locale: ptBR })}
+                  </span>
+                )}
+              </Badge>
+            )}
+            
             {hasMultipleParticipants && (
               <Badge variant="outline" className="text-xs gap-1 px-1.5 py-0">
                 <Users className="h-3 w-3" />
                 {participants.length} participantes
               </Badge>
+            )}
+            
+            {/* Botão de ligação rápida */}
+            {conversation.otherParticipant?.phone && !conversation.isClosed && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handlePhoneCall}
+                className="h-5 px-1.5 py-0 text-xs gap-1 text-green-700 dark:text-green-300 hover:bg-green-500/10"
+              >
+                <Phone className="h-3 w-3" />
+              </Button>
             )}
           </div>
 

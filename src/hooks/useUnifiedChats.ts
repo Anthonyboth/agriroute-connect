@@ -20,6 +20,7 @@ export interface ChatConversation {
   otherParticipant: {
     name: string;
     avatar?: string;
+    phone?: string;
   };
   participants: ChatParticipant[];
   metadata: any;
@@ -27,6 +28,7 @@ export interface ChatConversation {
   isAutoClosedByRatings?: boolean;
   freightStatus?: string;
   hasGpsTracking?: boolean;
+  gpsLastUpdate?: string;
 }
 
 export const useUnifiedChats = (userProfileId: string, userRole: string) => {
@@ -88,8 +90,26 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
           
           const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, full_name, role')
+            .select('id, full_name, role, phone')
             .in('id', [...producerIds, ...driverIds]);
+
+          // Buscar últimas localizações GPS dos motoristas
+          let gpsLocationMap = new Map();
+          if (driverIds.length > 0) {
+            const { data: locations } = await supabase
+              .from('driver_location_history')
+              .select('driver_profile_id, freight_id, captured_at')
+              .in('driver_profile_id', driverIds)
+              .order('captured_at', { ascending: false });
+            
+            // Agrupar por driver_id, pegando a mais recente
+            locations?.forEach((loc: any) => {
+              const key = `${loc.driver_profile_id}-${loc.freight_id}`;
+              if (!gpsLocationMap.has(key)) {
+                gpsLocationMap.set(key, loc.captured_at);
+              }
+            });
+          }
 
           // Buscar transportadoras se existirem
           let companyMap = new Map();
@@ -167,16 +187,24 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
 
               // Determinar "outro participante" principal para exibição
               let otherParticipantName = 'Participante';
+              let otherParticipantPhone: string | undefined;
               if (userRole === 'PRODUTOR') {
                 otherParticipantName = driverProfile?.full_name || 'Motorista';
+                otherParticipantPhone = driverProfile?.phone;
               } else if (userRole === 'TRANSPORTADORA') {
                 otherParticipantName = producerProfile?.full_name || 'Produtor';
+                otherParticipantPhone = producerProfile?.phone;
               } else {
                 otherParticipantName = producerProfile?.full_name || 'Produtor';
+                otherParticipantPhone = producerProfile?.phone;
               }
 
               // Verificar se GPS está ativo (frete em andamento)
               const hasGpsTracking = ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'].includes(freight.status);
+              
+              // Buscar última atualização GPS
+              const gpsKey = `${freight.driver_id}-${freight.id}`;
+              const gpsLastUpdate = gpsLocationMap.get(gpsKey);
               
               conversationMap.set(msg.freight_id, {
                 id: `freight-${msg.freight_id}`,
@@ -187,6 +215,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                 unreadCount: 0,
                 otherParticipant: {
                   name: otherParticipantName,
+                  phone: otherParticipantPhone,
                 },
                 participants,
                 metadata: { freightId: freight.id, companyId: freight.company_id },
@@ -194,6 +223,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                 isAutoClosedByRatings,
                 freightStatus: freight.status,
                 hasGpsTracking,
+                gpsLastUpdate,
               });
             }
             
