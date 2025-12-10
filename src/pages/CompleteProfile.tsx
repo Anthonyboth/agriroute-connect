@@ -17,7 +17,7 @@ import LocationPermission from '@/components/LocationPermission';
 import GoogleMap from '@/components/GoogleMap';
 import { CameraSelfie } from '@/components/CameraSelfie';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CitySelector } from '@/components/CitySelector';
+import { AddressLocationInput } from '@/components/AddressLocationInput';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
 import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building, Plus, X, Shield } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -648,8 +648,8 @@ const CompleteProfile = () => {
                         <h4 className="text-md font-semibold">Endereço Completo *</h4>
                       </div>
                       
-                      {/* Cidade com validação */}
-                      <CitySelector
+                      {/* Cidade com validação - aceita CEP ou nome da cidade */}
+                      <AddressLocationInput
                         value={addressData.city && addressData.state ? {
                           city: addressData.city,
                           state: addressData.state,
@@ -657,17 +657,18 @@ const CompleteProfile = () => {
                           lat: addressData.lat,
                           lng: addressData.lng
                         } : undefined}
-                        onChange={(city) => setAddressData(prev => ({
+                        onChange={(data) => setAddressData(prev => ({
                           ...prev,
-                          city: city.city,
-                          state: city.state,
-                          cityId: city.id,
-                          lat: city.lat,
-                          lng: city.lng
+                          city: data.city,
+                          state: data.state,
+                          cityId: data.id,
+                          lat: data.lat,
+                          lng: data.lng,
+                          bairro: data.neighborhood || prev.bairro // Auto-preencher bairro do CEP
                         }))}
                         label="Cidade *"
                         required={true}
-                        error={!addressData.cityId && addressData.city ? 'Selecione uma cidade da lista' : undefined}
+                        error={!addressData.cityId && addressData.city ? 'Selecione uma cidade da lista ou digite um CEP válido' : undefined}
                       />
                       
                       {/* Bairro e Rua */}
