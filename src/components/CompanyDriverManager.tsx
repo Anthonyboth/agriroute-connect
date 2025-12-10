@@ -13,7 +13,7 @@ import { useAffiliationValidation } from '@/hooks/useAffiliationValidation';
 import { CompanyInviteModal } from './CompanyInviteModal';
 import { DriverDetailsModal } from './driver-details/DriverDetailsModal';
 import { AffiliationSettingsModal } from './AffiliationSettingsModal';
-import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Check, AlertCircle, LogOut, Bell } from 'lucide-react';
+import { Users, UserPlus, Star, Truck, Phone, Mail, Search, Filter, Eye, Check, AlertCircle, Trash2, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -55,6 +55,7 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
+  const [removingDriverId, setRemovingDriverId] = useState<string | null>(null);
   const [affiliationSettings, setAffiliationSettings] = useState<{
     isOpen: boolean;
     requestId: string | null;
@@ -299,106 +300,143 @@ export const CompanyDriverManager: React.FC<CompanyDriverManagerProps> = ({ inMo
           </CardContent>
         </Card>
       ) : filteredDrivers.length > 0 ? (
-        <div className="grid gap-4">
+        <div className="space-y-3">
           {filteredDrivers.map((cd: any) => (
-            <Card key={cd.id}>
-              <CardContent className="pt-6">
-                <div className="flex flex-col sm:flex-row justify-between gap-4">
-                  <div className="space-y-3 flex-1">
-                    {/* Nome e Status */}
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-semibold text-lg">{cd.driver?.full_name}</h4>
-                        <Badge variant={cd.status === 'ACTIVE' ? 'default' : 'secondary'} className="mt-1">
-                          {cd.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
-                        </Badge>
-                      </div>
-                    </div>
+            <Card key={cd.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  {/* Avatar */}
+                  <Avatar className="h-14 w-14 border-2 border-muted flex-shrink-0">
+                    <AvatarImage 
+                      src={cd.driver?.profile_photo_url || cd.driver?.selfie_url} 
+                      alt={cd.driver?.full_name}
+                    />
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-lg font-bold">
+                      {cd.driver?.full_name
+                        ?.split(' ')
+                        .filter((n: string) => n.length > 0)
+                        .map((n: string) => n[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase() || '??'}
+                    </AvatarFallback>
+                  </Avatar>
 
-                    {/* Informações de contato */}
-                    <div className="space-y-2">
-                      {cd.driver?.email && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Mail className="h-4 w-4" />
-                          <span>{cd.driver.email}</span>
+                  {/* Info Principal */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-semibold text-base truncate">{cd.driver?.full_name}</h4>
+                      <Badge variant={cd.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-xs">
+                        {cd.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                      {cd.driver?.rating > 0 && (
+                        <div className="flex items-center gap-1 text-sm">
+                          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                          <span className="font-medium">{cd.driver.rating.toFixed(1)}</span>
                         </div>
+                      )}
+                    </div>
+                    
+                    {/* Contato */}
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1 flex-wrap">
+                      {cd.driver?.email && (
+                        <span className="flex items-center gap-1 truncate">
+                          <Mail className="h-3.5 w-3.5" />
+                          {cd.driver.email}
+                        </span>
                       )}
                       {(cd.driver?.phone || cd.driver?.contact_phone) && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Phone className="h-4 w-4" />
-                          <span>{cd.driver?.phone || cd.driver?.contact_phone}</span>
-                        </div>
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3.5 w-3.5" />
+                          {cd.driver?.phone || cd.driver?.contact_phone}
+                        </span>
                       )}
-                    </div>
-
-                    {/* Foto do motorista */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <Avatar className="h-16 w-16 border-2 border-muted">
-                        <AvatarImage 
-                          src={cd.driver?.profile_photo_url || cd.driver?.selfie_url} 
-                          alt={cd.driver?.full_name}
-                        />
-                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-xl font-bold">
-                          {cd.driver?.full_name
-                            ?.split(' ')
-                            .filter((n: string) => n.length > 0)
-                            .map((n: string) => n[0])
-                            .join('')
-                            .slice(0, 2)
-                            .toUpperCase() || '??'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h4 className="font-semibold text-lg">{cd.driver?.full_name}</h4>
-                        {cd.driver?.rating > 0 && (
-                          <div className="flex items-center gap-2 mt-1">
-                            <div className="flex items-center gap-1 text-sm">
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                              <span className="font-medium">{cd.driver.rating.toFixed(1)}</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              ({cd.driver.total_ratings} avaliações)
-                            </span>
-                          </div>
-                        )}
-                      </div>
                     </div>
 
                     {/* Permissões */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5 mt-2">
                       {cd.can_accept_freights && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs bg-green-50 border-green-300 text-green-700">
                           <Truck className="h-3 w-3 mr-1" />
                           Aceita fretes
                         </Badge>
                       )}
                       {cd.can_manage_vehicles && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs bg-blue-50 border-blue-300 text-blue-700">
                           <Truck className="h-3 w-3 mr-1" />
                           Gerencia veículos
                         </Badge>
                       )}
                     </div>
-
-                    {/* Notas */}
-                    {cd.notes && (
-                      <p className="text-sm text-muted-foreground italic">
-                        {cd.notes}
-                      </p>
-                    )}
                   </div>
 
                   {/* Ações */}
-                  <div className="flex sm:flex-col gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <Button
-                      variant="outline"
-                      size="sm"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9"
                       onClick={() => setSelectedDriver(cd)}
+                      title="Ver detalhes"
                     >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Ver Detalhes
+                      <Eye className="h-4 w-4" />
                     </Button>
                     
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      onClick={() => {
+                        setAffiliationSettings({
+                          isOpen: true,
+                          requestId: cd.id,
+                          driver: cd.driver
+                        });
+                      }}
+                      title="Editar permissões"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          title="Excluir motorista"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remover motorista?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja remover <strong>{cd.driver?.full_name}</strong> da transportadora?
+                            <br /><br />
+                            O motorista será desvinculado e perderá acesso aos fretes da empresa.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={async () => {
+                              setRemovingDriverId(cd.driver_profile_id);
+                              try {
+                                await removeDriver(cd.driver_profile_id);
+                              } finally {
+                                setRemovingDriverId(null);
+                              }
+                            }}
+                            disabled={removingDriverId === cd.driver_profile_id}
+                          >
+                            {removingDriverId === cd.driver_profile_id ? 'Removendo...' : 'Sim, Remover'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>
