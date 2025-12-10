@@ -1267,6 +1267,63 @@ export type Database = {
           },
         ]
       }
+      driver_location_history: {
+        Row: {
+          accuracy: number | null
+          captured_at: string
+          created_at: string
+          driver_profile_id: string
+          expires_at: string
+          freight_id: string | null
+          heading: number | null
+          id: string
+          lat: number
+          lng: number
+          speed: number | null
+        }
+        Insert: {
+          accuracy?: number | null
+          captured_at?: string
+          created_at?: string
+          driver_profile_id: string
+          expires_at?: string
+          freight_id?: string | null
+          heading?: number | null
+          id?: string
+          lat: number
+          lng: number
+          speed?: number | null
+        }
+        Update: {
+          accuracy?: number | null
+          captured_at?: string
+          created_at?: string
+          driver_profile_id?: string
+          expires_at?: string
+          freight_id?: string | null
+          heading?: number | null
+          id?: string
+          lat?: number
+          lng?: number
+          speed?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_location_history_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_location_history_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_notification_limits: {
         Row: {
           created_at: string | null
@@ -3152,6 +3209,52 @@ export type Database = {
             columns: ["freight_id"]
             isOneToOne: false
             referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_chat_log: {
+        Row: {
+          driver_profile_id: string
+          freight_id: string
+          id: string
+          last_sent_at: string
+          message_id: string | null
+        }
+        Insert: {
+          driver_profile_id: string
+          freight_id: string
+          id?: string
+          last_sent_at?: string
+          message_id?: string | null
+        }
+        Update: {
+          driver_profile_id?: string
+          freight_id?: string
+          id?: string
+          last_sent_at?: string
+          message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_chat_log_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_chat_log_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_chat_log_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "freight_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -6840,6 +6943,7 @@ export type Database = {
       clean_expired_zip_cache: { Args: never; Returns: undefined }
       cleanup_expired_requests: { Args: never; Returns: undefined }
       cleanup_old_error_logs: { Args: never; Returns: undefined }
+      cleanup_old_location_history: { Args: never; Returns: Json }
       confirm_checkin_as_counterpart: {
         Args: { p_checkin_id: string; p_observations?: string }
         Returns: boolean
@@ -7566,6 +7670,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      insert_driver_location_history: {
+        Args: {
+          p_accuracy?: number
+          p_driver_profile_id: string
+          p_freight_id: string
+          p_heading?: number
+          p_lat: number
+          p_lng: number
+          p_speed?: number
+        }
+        Returns: string
+      }
       is_admin: { Args: never; Returns: boolean }
       is_affiliated_driver: { Args: { p_profile_id: string }; Returns: boolean }
       is_company_driver: {
@@ -7724,6 +7840,7 @@ export type Database = {
           street: string
         }[]
       }
+      send_location_to_freight_chats: { Args: never; Returns: Json }
       send_notification: {
         Args: {
           p_data?: Json
