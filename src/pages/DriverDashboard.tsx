@@ -63,6 +63,8 @@ import { FRETES_IA_LABEL, AREAS_IA_LABEL, AI_ABBR, SISTEMA_IA_LABEL, VER_FRETES_
 import { DriverProposalDetailsModal } from '@/components/DriverProposalDetailsModal';
 import { DriverAffiliationsManager } from '@/components/DriverAffiliationsManager';
 import { DriverPerformanceDashboard } from '@/components/dashboards/DriverPerformanceDashboard';
+import { DriverExpenseManager } from '@/components/driver/DriverExpenseManager';
+import { DriverFinancialReport } from '@/components/driver/DriverFinancialReport';
 
 interface Freight {
   id: string;
@@ -2980,7 +2982,20 @@ const DriverDashboard = () => {
 
           <TabsContent value="reports" className="mt-6">
             <SafeListWrapper>
-              <DriverPerformanceDashboard driverId={profile?.id || ''} />
+              <div className="space-y-6">
+                {/* Formulário para registrar despesas */}
+                <DriverExpenseManager driverId={profile?.id || ''} />
+                
+                <Separator />
+                
+                {/* Dashboard de Performance */}
+                <DriverPerformanceDashboard driverId={profile?.id || ''} />
+                
+                <Separator />
+                
+                {/* Relatório Financeiro Completo */}
+                <DriverFinancialReport driverId={profile?.id || ''} />
+              </div>
             </SafeListWrapper>
           </TabsContent>
 
