@@ -99,16 +99,19 @@ export const ServiceHistory: React.FC = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Se for prestador de serviços e estiver na tab "provided", filtrar apenas os fornecidos
-      if (profile.role === 'PRESTADOR_SERVICOS') {
+      // Para MOTORISTA: mostrar apenas serviços que ELE SOLICITOU (client_id)
+      // Serviços prestados (provider_id + GUINCHO/MUDANCA) vão para FreightHistory
+      if (profile.role === 'MOTORISTA') {
+        query = query.eq('client_id', profile.id);
+      } else if (profile.role === 'PRESTADOR_SERVICOS') {
         if (mainTab === 'provided') {
           query = query.eq('provider_id', profile.id);
         } else {
           query = query.eq('client_id', profile.id);
         }
       } else {
-        // Para outros roles, mostrar todos relacionados ao usuário
-        query = query.or(`client_id.eq.${profile.id},provider_id.eq.${profile.id}`);
+        // Para outros roles (PRODUTOR), mostrar serviços que solicitou
+        query = query.eq('client_id', profile.id);
       }
 
       const { data: serviceRequests, error } = await query;
