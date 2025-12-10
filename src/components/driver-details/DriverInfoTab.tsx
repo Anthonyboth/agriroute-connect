@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Phone, Mail, FileText, Calendar, MapPin, User, IdCard, 
-  CreditCard, Star, Camera, X, Upload, CheckCircle2, AlertCircle,
+  Star, Camera, X, Upload, CheckCircle2, AlertCircle,
   Clock, Building2, ImageIcon
 } from "lucide-react";
 import { formatDocument } from "@/utils/document";
@@ -271,38 +271,6 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
         </Card>
       </div>
 
-      {/* Dados Bancários */}
-      {(driver.pix_key || driver.bank_name) && (
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 mb-3">
-              <CreditCard className="h-5 w-5 text-primary" />
-              <h4 className="font-semibold">Dados Bancários</h4>
-            </div>
-            <Separator className="mb-3" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {driver.pix_key && (
-                <div>
-                  <span className="text-sm text-muted-foreground">Chave PIX</span>
-                  <p className="font-medium">{driver.pix_key}</p>
-                </div>
-              )}
-              {driver.bank_name && (
-                <div>
-                  <span className="text-sm text-muted-foreground">Banco</span>
-                  <p className="font-medium">{driver.bank_name}</p>
-                </div>
-              )}
-              {driver.bank_account && (
-                <div>
-                  <span className="text-sm text-muted-foreground">Conta</span>
-                  <p className="font-medium">{driver.bank_account}</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* CNH */}
       <Card>
