@@ -1267,6 +1267,79 @@ export type Database = {
           },
         ]
       }
+      driver_expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          driver_id: string
+          expense_date: string
+          expense_type: string
+          freight_id: string | null
+          id: string
+          km_reading: number | null
+          liters: number | null
+          price_per_liter: number | null
+          receipt_url: string | null
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          driver_id: string
+          expense_date?: string
+          expense_type: string
+          freight_id?: string | null
+          id?: string
+          km_reading?: number | null
+          liters?: number | null
+          price_per_liter?: number | null
+          receipt_url?: string | null
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          driver_id?: string
+          expense_date?: string
+          expense_type?: string
+          freight_id?: string | null
+          id?: string
+          km_reading?: number | null
+          liters?: number | null
+          price_per_liter?: number | null
+          receipt_url?: string | null
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_expenses_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_expenses_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_expenses_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_location_history: {
         Row: {
           accuracy: number | null
