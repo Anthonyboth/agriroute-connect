@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { formatBRL, formatKm } from '@/lib/formatters';
 import { DriverPerformanceDashboard } from './DriverPerformanceDashboard';
+import { DriverPerformanceExporter } from './DriverPerformanceExporter';
+import { DriverPerformanceAlerts } from '@/components/company/DriverPerformanceAlerts';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 

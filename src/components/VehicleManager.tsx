@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Truck, Plus, Edit, FileText, Camera } from 'lucide-react';
+import { Truck, Plus, Edit, FileText, Camera, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { DocumentUpload } from '@/components/DocumentUpload';
@@ -15,6 +15,7 @@ import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { usePanelCapabilities } from '@/hooks/usePanelCapabilities';
 import { VehiclePhotoGallery } from '@/components/vehicle/VehiclePhotoGallery';
 import { VehiclePhotoThumbnails } from '@/components/vehicle/VehiclePhotoThumbnails';
+import { VehiclePhotoExpandedGallery } from '@/components/vehicle/VehiclePhotoExpandedGallery';
 
 import { VEHICLE_TYPES_SELECT, getVehicleTypeLabel } from '@/lib/vehicle-types';
 
@@ -23,6 +24,7 @@ interface Vehicle {
   license_plate: string;
   vehicle_type: string;
   max_capacity_tons: number;
+  max_capacity_kg?: number;
   axle_count: number;
   status: string;
   crlv_url?: string;
@@ -33,25 +35,31 @@ interface VehicleManagerProps {
   driverProfile: any;
 }
 
+// Vehicle types that use kg instead of tons
+const SMALL_VEHICLE_TYPES = ['MOTO', 'FIORINO', 'VAN', 'HR', 'PICKUP'];
+
 export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isTransportCompany } = useTransportCompany();
+  const { isTransportCompany, company } = useTransportCompany();
   const { can, reason } = usePanelCapabilities();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [duplicatePlateError, setDuplicatePlateError] = useState<string | null>(null);
   const [vehicleData, setVehicleData] = useState({
     license_plate: '',
     vehicle_type: '',
     max_capacity_tons: 0,
+    max_capacity_kg: 0,
     axle_count: 2,
     crlv_url: '',
     vehicle_photo_url: ''
   });
   const [photoCount, setPhotoCount] = useState(0);
   const [viewingGalleryVehicleId, setViewingGalleryVehicleId] = useState<string | null>(null);
+  const [expandedGalleryVehicleId, setExpandedGalleryVehicleId] = useState<string | null>(null);
 
   const fetchVehicles = async () => {
     if (!driverProfile?.id) return;
@@ -75,16 +83,83 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
       license_plate: '',
       vehicle_type: '',
       max_capacity_tons: 0,
+      max_capacity_kg: 0,
       axle_count: 2,
       crlv_url: '',
       vehicle_photo_url: ''
     });
     setEditingVehicle(null);
+    setDuplicatePlateError(null);
   };
+
+  // Check for duplicate plate
+  const checkDuplicatePlate = async (plate: string): Promise<boolean> => {
+    if (!plate || plate.length < 7) return false;
+    
+    const normalizedPlate = plate.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    
+    // Query for existing vehicles with same plate
+    let query = supabase
+      .from('vehicles')
+      .select('id, license_plate, driver_id')
+      .ilike('license_plate', `%${normalizedPlate}%`);
+    
+    // If editing, exclude current vehicle
+    if (editingVehicle) {
+      query = query.neq('id', editingVehicle.id);
+    }
+
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('Erro ao verificar placa:', error);
+      return false;
+    }
+
+    // Check if any match belongs to same driver or company
+    if (data && data.length > 0) {
+      const match = data.find(v => {
+        const vPlate = v.license_plate.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        return vPlate === normalizedPlate;
+      });
+      
+      if (match) {
+        setDuplicatePlateError('Esta placa já está cadastrada no sistema');
+        return true;
+      }
+    }
+
+    setDuplicatePlateError(null);
+    return false;
+  };
+
+  const handlePlateChange = async (value: string) => {
+    const formatted = value.toUpperCase();
+    setVehicleData(prev => ({ ...prev, license_plate: formatted }));
+    
+    if (formatted.length >= 7) {
+      await checkDuplicatePlate(formatted);
+    } else {
+      setDuplicatePlateError(null);
+    }
+  };
+
+  const isSmallVehicle = SMALL_VEHICLE_TYPES.includes(vehicleData.vehicle_type);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!driverProfile?.id) return;
+
+    // Check for duplicate plate before submitting
+    const isDuplicate = await checkDuplicatePlate(vehicleData.license_plate);
+    if (isDuplicate) {
+      toast({
+        title: "Placa duplicada",
+        description: "Já existe um veículo cadastrado com esta placa.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Validação: carretas precisam de pelo menos 1 foto
     const isCarreta = ['CARRETA', 'CARRETA_BAU', 'BITREM', 'RODOTREM'].includes(vehicleData.vehicle_type);
@@ -99,8 +174,18 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
 
     setLoading(true);
     try {
+      // Convert kg to tons if small vehicle, or use tons directly
+      const capacityInTons = isSmallVehicle 
+        ? vehicleData.max_capacity_kg / 1000 
+        : vehicleData.max_capacity_tons;
+
       const vehiclePayload = {
-        ...vehicleData,
+        license_plate: vehicleData.license_plate,
+        vehicle_type: vehicleData.vehicle_type,
+        max_capacity_tons: capacityInTons,
+        axle_count: vehicleData.axle_count,
+        crlv_url: vehicleData.crlv_url,
+        vehicle_photo_url: vehicleData.vehicle_photo_url,
         driver_id: driverProfile.id
       };
 
@@ -148,6 +233,7 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
       resetForm();
       setIsAddModalOpen(false);
       setPhotoCount(0);
+      setDuplicatePlateError(null);
       fetchVehicles();
     } catch (error: any) {
       console.error('Error saving vehicle:', error);
@@ -162,10 +248,12 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
   };
 
   const handleEdit = (vehicle: Vehicle) => {
+    const isSmall = SMALL_VEHICLE_TYPES.includes(vehicle.vehicle_type);
     setVehicleData({
       license_plate: vehicle.license_plate,
       vehicle_type: vehicle.vehicle_type,
       max_capacity_tons: vehicle.max_capacity_tons,
+      max_capacity_kg: isSmall ? vehicle.max_capacity_tons * 1000 : 0,
       axle_count: vehicle.axle_count,
       crlv_url: vehicle.crlv_url || '',
       vehicle_photo_url: vehicle.vehicle_photo_url || ''
@@ -252,12 +340,16 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
                     id="license_plate"
                     placeholder="ABC-1234"
                     value={vehicleData.license_plate}
-                    onChange={(e) => setVehicleData(prev => ({ 
-                      ...prev, 
-                      license_plate: e.target.value.toUpperCase() 
-                    }))}
+                    onChange={(e) => handlePlateChange(e.target.value)}
+                    className={duplicatePlateError ? 'border-destructive' : ''}
                     required
                   />
+                  {duplicatePlateError && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {duplicatePlateError}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -285,22 +377,45 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="max_capacity">Capacidade (toneladas)</Label>
-                  <Input
-                    id="max_capacity"
-                    type="number"
-                    min="1"
-                    max="100"
-                    step="0.5"
-                    value={vehicleData.max_capacity_tons}
-                    onChange={(e) => setVehicleData(prev => ({ 
-                      ...prev, 
-                      max_capacity_tons: Number(e.target.value) 
-                    }))}
-                    required
-                  />
-                </div>
+                {isSmallVehicle ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="max_capacity_kg">Capacidade (kg)</Label>
+                    <Input
+                      id="max_capacity_kg"
+                      type="number"
+                      min="1"
+                      max="5000"
+                      step="10"
+                      placeholder="Ex: 500"
+                      value={vehicleData.max_capacity_kg || ''}
+                      onChange={(e) => setVehicleData(prev => ({ 
+                        ...prev, 
+                        max_capacity_kg: Number(e.target.value) 
+                      }))}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Para motos e veículos pequenos
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="max_capacity">Capacidade (toneladas)</Label>
+                    <Input
+                      id="max_capacity"
+                      type="number"
+                      min="0.5"
+                      max="100"
+                      step="0.5"
+                      value={vehicleData.max_capacity_tons || ''}
+                      onChange={(e) => setVehicleData(prev => ({ 
+                        ...prev, 
+                        max_capacity_tons: Number(e.target.value) 
+                      }))}
+                      required
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="axle_count">Número de Eixos</Label>
