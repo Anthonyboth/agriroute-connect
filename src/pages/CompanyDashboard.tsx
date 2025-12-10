@@ -683,8 +683,9 @@ const CompanyDashboard = () => {
           <Button
             variant="outline"
             onClick={() => {
-              setManualOpen(true);
-              setIsMuralOpen(true);
+              const newState = !isMuralOpen;
+              setIsMuralOpen(newState);
+              setManualOpen(newState);
             }}
             className="mb-3 flex items-center gap-2"
           >
