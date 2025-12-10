@@ -197,7 +197,12 @@ export const CompanyVehiclesList = ({ companyId, onEdit, onDelete }: CompanyVehi
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onEdit(vehicle)}
+                onClick={() => {
+                  onEdit(vehicle);
+                  toast.info(`Veículo ${vehicle.license_plate} carregado para edição`, {
+                    description: 'O formulário acima está pronto para edição'
+                  });
+                }}
                 className="flex-1"
                 disabled={vehicle.status === 'REJECTED'}
               >

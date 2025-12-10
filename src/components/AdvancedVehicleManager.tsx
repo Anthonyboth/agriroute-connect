@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Truck, Plus, Info } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Truck, Plus, Info, Edit, X } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
 import { toast } from 'sonner';
 
@@ -22,6 +23,7 @@ export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
   editingVehicle,
   onEditComplete
 }) => {
+  const formRef = useRef<HTMLDivElement>(null);
   const [vehicleType, setVehicleType] = useState('');
   const [customVehicleType, setCustomVehicleType] = useState('');
   const [licensePlate, setLicensePlate] = useState('');
@@ -199,7 +201,7 @@ export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
   };
 
   // Preencher formulário quando editando
-  React.useEffect(() => {
+  useEffect(() => {
     if (editingVehicle) {
       setVehicleType(editingVehicle.vehicle_type || '');
       setLicensePlate(editingVehicle.license_plate || '');
@@ -210,8 +212,10 @@ export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
       setVehiclePhotos(editingVehicle.vehicle_photos || []);
       setCrrlvUrl(editingVehicle.crlv_url || '');
       
-      // Scroll para o topo
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Scroll para o formulário com pequeno delay
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     }
   }, [editingVehicle]);
 
@@ -264,18 +268,45 @@ export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
   const selectedVehicleInfo = vehicleType && vehicleType !== 'OUTROS' ? vehicleTypes[vehicleType as keyof typeof vehicleTypes] : null;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Truck className="h-5 w-5" />
-          Dados do Veículo
-        </CardTitle>
-        <CardDescription>
-          Adicione informações completas do seu veículo para melhor matchmaking
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
+    <div ref={formRef}>
+      {/* Indicador de modo edição */}
+      {editingVehicle && (
+        <Alert className="mb-4 border-warning bg-warning/10">
+          <Edit className="h-4 w-4 text-warning" />
+          <AlertDescription className="flex items-center justify-between">
+            <span className="font-medium text-warning">
+              Editando veículo: {editingVehicle.license_plate}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                resetForm();
+                onEditComplete?.();
+              }}
+              className="h-7 text-warning hover:text-warning/80"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Cancelar edição
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Card className={editingVehicle ? 'border-warning border-2' : ''}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Truck className="h-5 w-5" />
+            {editingVehicle ? 'Editar Veículo' : 'Dados do Veículo'}
+          </CardTitle>
+          <CardDescription>
+            {editingVehicle 
+              ? 'Atualize as informações do veículo abaixo'
+              : 'Adicione informações completas do seu veículo para melhor matchmaking'}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
         {/* Tipo de Veículo */}
         <div className="space-y-3">
           <Label>Tipo de Veículo *</Label>
@@ -459,5 +490,6 @@ export const AdvancedVehicleManager: React.FC<AdvancedVehicleManagerProps> = ({
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 };
