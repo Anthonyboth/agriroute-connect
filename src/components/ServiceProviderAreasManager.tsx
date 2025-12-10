@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from 'sonner';
 import { MapPin, Plus, Edit, Trash2, Navigation, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { CitySelector } from './CitySelector';
+import { UnifiedLocationInput, type LocationData } from './UnifiedLocationInput';
 
 interface ServiceProviderArea {
   id: string;
@@ -347,11 +347,22 @@ const ServiceProviderAreasManager = () => {
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-<CitySelector
-  value={{ city: formData.city_name, state: formData.state, id: formData.city_id }}
-  onChange={(c) => setFormData(prev => ({ ...prev, city_name: c.city, state: c.state, city_id: c.id, lat: c.lat ?? prev.lat, lng: c.lng ?? prev.lng }))}
+<UnifiedLocationInput
   label="Cidade de Atendimento *"
-  placeholder="Digite e selecione a cidade"
+  value={formData.city_name && formData.state ? `${formData.city_name}, ${formData.state}` : ''}
+  onChange={(value, locationData) => {
+    if (locationData && locationData.city && locationData.state) {
+      setFormData(prev => ({
+        ...prev,
+        city_name: locationData.city || '',
+        state: locationData.state || '',
+        city_id: locationData.cityId,
+        lat: locationData.lat ?? prev.lat,
+        lng: locationData.lng ?? prev.lng
+      }));
+    }
+  }}
+  placeholder="Digite CEP ou nome da cidade"
   required
 />
 

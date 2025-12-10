@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Plus, Trash2, CheckCircle, XCircle, Info } from 'lucide-react';
-import { CitySelector } from './CitySelector';
+import { UnifiedLocationInput, type LocationData } from './UnifiedLocationInput';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -409,22 +409,25 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
           
           <div className="space-y-4">
             <div>
-              <Label>Cidade</Label>
-              <CitySelector
-                value={selectedCity ? { 
-                  id: selectedCity.id,
-                  city: selectedCity.city, 
-                  state: selectedCity.state 
-                } : undefined}
-                onChange={(city) => setSelectedCity({ 
-                  id: city.id,
-                  city: city.city, 
-                  state: city.state
-                })}
-                placeholder="Digite o nome da cidade..."
+              <UnifiedLocationInput
+                label="Cidade"
+                value={selectedCity ? `${selectedCity.city}, ${selectedCity.state}` : ''}
+                onChange={(value, locationData) => {
+                  if (locationData && locationData.city && locationData.state) {
+                    setSelectedCity({
+                      id: locationData.cityId,
+                      city: locationData.city,
+                      state: locationData.state
+                    });
+                  } else {
+                    setSelectedCity(null);
+                  }
+                }}
+                placeholder="Digite CEP (00000-000) ou nome da cidade"
+                required
               />
               <p className="text-xs text-muted-foreground mt-1">
-                💡 Você precisa clicar em uma opção da lista. Só digitar não funciona.
+                💡 Digite o CEP ou nome da cidade e selecione uma opção da lista.
               </p>
             </div>
 

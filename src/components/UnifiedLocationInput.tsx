@@ -12,7 +12,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-interface LocationData {
+export interface LocationData {
   city: string;
   state: string;
   cityId?: string;

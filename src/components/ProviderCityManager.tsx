@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, MapPin, X, Save, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { CitySelector } from './CitySelector';
+import { UnifiedLocationInput, type LocationData } from './UnifiedLocationInput';
 
 interface ProviderCityManagerProps {
   providerId: string;
@@ -171,11 +171,15 @@ export const ProviderCityManager: React.FC<ProviderCityManagerProps> = ({
         {/* Cidade atual */}
         <div className="space-y-3">
           <h4 className="font-medium">Sua cidade atual</h4>
-          <CitySelector
+          <UnifiedLocationInput
             label=""
-            value={currentCity || undefined}
-            onChange={setCurrentCityFromSelection}
-            placeholder="Selecione sua cidade atual..."
+            value={currentCity ? `${currentCity.city}, ${currentCity.state}` : ''}
+            onChange={(value, locationData) => {
+              if (locationData && locationData.city && locationData.state) {
+                setCurrentCityFromSelection({ city: locationData.city, state: locationData.state });
+              }
+            }}
+            placeholder="Digite CEP ou nome da cidade..."
           />
           <p className="text-xs text-muted-foreground">
             Esta será sua cidade principal e será automaticamente incluída nas cidades de atendimento.
@@ -200,11 +204,17 @@ export const ProviderCityManager: React.FC<ProviderCityManagerProps> = ({
           {/* Formulário para adicionar cidade */}
           {isAddingCity && (
             <div className="p-4 border rounded-lg bg-muted/50 space-y-3">
-              <CitySelector
+              <UnifiedLocationInput
                 label="Nova cidade de atendimento"
-                value={newCity || undefined}
-                onChange={setNewCity}
-                placeholder="Digite o nome da cidade..."
+                value={newCity ? `${newCity.city}, ${newCity.state}` : ''}
+                onChange={(value, locationData) => {
+                  if (locationData && locationData.city && locationData.state) {
+                    setNewCity({ city: locationData.city, state: locationData.state });
+                  } else {
+                    setNewCity(null);
+                  }
+                }}
+                placeholder="Digite CEP ou nome da cidade..."
               />
               <div className="flex gap-2">
                 <Button 
