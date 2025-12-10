@@ -56,7 +56,7 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
           producer_profiles:profiles!freights_producer_id_fkey(full_name),
           driver_profiles:profiles!freights_driver_id_fkey(full_name)
         `)
-        .eq('status', 'COMPLETED')
+        .eq('status', 'DELIVERED')
         .or(`producer_id.eq.${userProfileId},driver_id.eq.${userProfileId}`);
 
       if (freightsError) throw freightsError;
