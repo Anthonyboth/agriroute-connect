@@ -88,42 +88,24 @@ export function useNfe() {
   }, []);
 
   const listNfes = useCallback(async (filters?: NFeFilter): Promise<NFeDocument[]> => {
-    console.log('[NFE] 🔄 FASE 3: Iniciando listNfes com logs detalhados');
+    console.log('[NFE] 🔄 Iniciando listNfes');
     console.log('[NFE] 📋 Filters:', filters);
     
     setLoading(true);
     setError(null);
 
     try {
-      const params = new URLSearchParams();
-      if (filters?.status) params.append('status', filters.status);
-      if (filters?.freight_id) params.append('freight_id', filters.freight_id);
-
-      const queryString = params.toString();
-      const url = `https://shnvtxejjecbnztdbbbl.supabase.co/functions/v1/nfe-list${queryString ? `?${queryString}` : ''}`;
-
-      console.log('[NFE] 📡 Fazendo fetch para:', url);
-
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'X-Skip-Error-Monitoring': 'true', // ✅ Não reportar erros NFE ao Telegram
-        },
+      // ✅ Usar supabase.functions.invoke como scanNfe e manifestNfe
+      const { data, error: listError } = await supabase.functions.invoke('nfe-list', {
+        body: filters || {},
       });
 
-      console.log('[NFE] 📦 Resposta HTTP status:', response.status, response.statusText);
+      console.log('[NFE] 📦 Resposta nfe-list:', { data, error: listError });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (listError) {
+        console.error('[NFE] ❌ Erro na resposta:', listError);
+        throw listError;
       }
-
-      const data = await response.json();
-      console.log('[NFE] 📦 Resposta JSON:', data);
 
       if (!data.success) {
         console.error('[NFE] ❌ data.success = false, error:', data.error);
