@@ -272,18 +272,18 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
   return (
     <>
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Minhas Cidades de Atendimento
+        <CardHeader className="pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg break-words">
+                <MapPin className="h-5 w-5 flex-shrink-0" />
+                <span className="break-words">Minhas Cidades de Atendimento</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="break-words mt-1">
                 Gerencie as cidades onde você atua e defina o raio de atendimento (máximo: 300km por cidade)
               </CardDescription>
             </div>
-            <Button onClick={() => setIsDialogOpen(true)} size="sm">
+            <Button onClick={() => setIsDialogOpen(true)} size="sm" className="w-full sm:w-auto flex-shrink-0">
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Cidade
             </Button>
@@ -314,12 +314,12 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
             <div className="space-y-4">
               {cities.map(city => (
                 <Card key={city.id} className={!city.is_active ? 'opacity-60' : ''}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold">{city.city_name}, {city.city_state}</h4>
-                          <Badge variant={city.is_active ? 'default' : 'secondary'}>
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
+                          <h4 className="font-semibold break-words text-sm sm:text-base">{city.city_name}, {city.city_state}</h4>
+                          <Badge variant={city.is_active ? 'default' : 'secondary'} className="w-fit text-xs">
                             {TYPE_LABELS[city.type]}
                           </Badge>
                         </div>
@@ -327,10 +327,11 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
                           Raio de atendimento: {city.radius_km}km
                         </p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-9 w-9"
                           onClick={() => handleToggleActive(city.id, city.is_active)}
                           title={city.is_active ? 'Desativar' : 'Ativar'}
                         >
@@ -343,6 +344,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-9 w-9"
                           onClick={() => handleRemoveCity(city.id)}
                           title="Remover"
                         >

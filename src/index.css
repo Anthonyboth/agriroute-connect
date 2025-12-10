@@ -423,4 +423,33 @@
       transform: scale(1);
     }
   }
+
+  /* Text legibility over images */
+  .text-shadow-lg {
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.4);
+  }
+  
+  .text-shadow-md {
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  }
+
+  /* Safe text overflow handling */
+  .safe-text {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  
+  /* Responsive card layout */
+  .responsive-card-header {
+    @apply flex flex-col sm:flex-row sm:items-start gap-3;
+  }
+  
+  .responsive-card-actions {
+    @apply flex gap-2 flex-shrink-0 mt-2 sm:mt-0;
+  }
+
+  /* Improved badge positioning */
+  .badge-inline {
+    @apply inline-flex items-center w-fit whitespace-nowrap;
+  }
 }

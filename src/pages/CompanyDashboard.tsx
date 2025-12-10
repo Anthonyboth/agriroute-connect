@@ -85,11 +85,11 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
     icon: Building2,
     badge: activeCount > 0 ? activeCount : undefined
   },
-  { value: 'marketplace', label: FRETES_IA_LABEL, shortLabel: AI_ABBR, icon: Brain, badge: undefined },
-  { value: 'drivers', label: 'Motoristas', shortLabel: 'Mot', icon: Users, badge: undefined },
-  { value: 'performance', label: 'Performance', shortLabel: 'Perf', icon: TrendingUp, badge: undefined },
+  { value: 'marketplace', label: FRETES_IA_LABEL, shortLabel: FRETES_IA_LABEL, icon: Brain, badge: undefined },
+  { value: 'drivers', label: 'Motoristas', shortLabel: 'Motoristas', icon: Users, badge: undefined },
+  { value: 'performance', label: 'Performance', shortLabel: 'Performance', icon: TrendingUp, badge: undefined },
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck, badge: undefined },
-  { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínc', icon: Link2, badge: undefined },
+  { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínculos', icon: Link2, badge: undefined },
   { value: 'freights', label: 'Fretes', shortLabel: 'Fretes', icon: Package, badge: undefined },
   { value: 'scheduled', label: 'Agendamentos', shortLabel: 'Agend', icon: Calendar, badge: undefined },
   { 
@@ -537,9 +537,11 @@ const CompanyDashboard = () => {
       
       <section className="relative py-6 overflow-hidden">
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-20 animate-fade-in"
+          className="absolute inset-0 bg-cover bg-center opacity-30 animate-fade-in"
           style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
         />
+        {/* Overlay escuro para melhorar legibilidade */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background/70" />
         <div className="container relative z-10 mx-auto px-4">
           <div className="max-w-5xl mx-auto text-center space-y-4">
             <Badge variant="default" className="mb-1">
@@ -547,7 +549,7 @@ const CompanyDashboard = () => {
               Transportadora
             </Badge>
             
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-shadow-lg">
               Painel de Gerenciamento
             </h1>
             
