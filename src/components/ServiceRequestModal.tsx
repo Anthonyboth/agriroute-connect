@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { User, Clock, AlertCircle, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { CitySelector } from './CitySelector';
+import { UnifiedLocationInput } from './UnifiedLocationInput';
 import { StructuredAddressInput } from './StructuredAddressInput';
 import { getCityId } from '@/lib/city-utils';
 import { showErrorToast } from '@/lib/error-handler';
@@ -323,19 +323,23 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
 
                 {/* Localização */}
                 <div className="space-y-2">
-                  <Label>Cidade e Estado *</Label>
-                  <CitySelector
-                    value={formData.city && formData.state ? { city: formData.city, state: formData.state, id: formData.city_id } : undefined}
-                    onChange={(city) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        city: city.city,
-                        state: city.state,
-                        city_id: city.id,
-                        location_lat: city.lat,
-                        location_lng: city.lng
-                      }));
+                  <UnifiedLocationInput
+                    label="Cidade e Estado *"
+                    value={formData.city && formData.state ? `${formData.city}, ${formData.state}` : ''}
+                    onChange={(value, locationData) => {
+                      if (locationData) {
+                        setFormData(prev => ({
+                          ...prev,
+                          city: locationData.city,
+                          state: locationData.state,
+                          city_id: locationData.cityId,
+                          location_lat: locationData.lat,
+                          location_lng: locationData.lng
+                        }));
+                      }
                     }}
+                    placeholder="Digite CEP (00000-000) ou nome da cidade"
+                    required
                   />
                   <p className="text-xs text-muted-foreground">
                     Selecione a cidade onde o serviço será realizado

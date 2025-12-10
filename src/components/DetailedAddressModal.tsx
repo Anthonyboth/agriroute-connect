@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleMap } from '@/components/LazyComponents';
-import { CitySelector } from './CitySelector';
+import { UnifiedLocationInput } from './UnifiedLocationInput';
 
 interface AddressData {
   street: string;
@@ -204,21 +204,24 @@ export const DetailedAddressModal: React.FC<DetailedAddressModalProps> = ({
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <CitySelector
-                  value={{ city: addressData.city, state: addressData.state, id: addressData.city_id }}
-                  onChange={(c) => {
-                    setAddressData((prev) => ({
-                      ...prev,
-                      city: c.city || '',
-                      state: c.state || '',
-                      city_id: c.id,
-                      lat: c.lat ?? prev.lat,
-                      lng: c.lng ?? prev.lng,
-                    }));
+                <UnifiedLocationInput
+                  label="Cidade"
+                  placeholder="CEP ou nome da cidade"
+                  value={addressData.city && addressData.state ? `${addressData.city}, ${addressData.state}` : ''}
+                  onChange={(value, locationData) => {
+                    if (locationData) {
+                      setAddressData((prev) => ({
+                        ...prev,
+                        city: locationData.city || '',
+                        state: locationData.state || '',
+                        city_id: locationData.cityId,
+                        lat: locationData.lat ?? prev.lat,
+                        lng: locationData.lng ?? prev.lng,
+                        neighborhood: locationData.neighborhood || prev.neighborhood
+                      }));
+                    }
                   }}
                   required
-                  label="Cidade"
-                  placeholder="Digite e selecione a cidade"
                 />
               </div>
               <div>

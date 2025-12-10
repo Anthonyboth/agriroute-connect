@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { CitySelector } from './CitySelector';
+import { UnifiedLocationInput } from './UnifiedLocationInput';
 import { FreightCard } from './FreightCard';
 import { cn } from '@/lib/utils';
 interface DriverAvailabilityAreasManagerProps {
@@ -282,11 +282,15 @@ export const DriverAvailabilityAreasManager: React.FC<DriverAvailabilityAreasMan
             {/* Seletor de Cidade */}
             <div className="space-y-2">
               <Label>Cidade da Região</Label>
-              <CitySelector
+              <UnifiedLocationInput
                 label=""
-                value={selectedCity || undefined}
-                onChange={setSelectedCity}
-                placeholder="Digite o nome da cidade..."
+                value={selectedCity ? `${selectedCity.city}, ${selectedCity.state}` : ''}
+                onChange={(value, locationData) => {
+                  if (locationData) {
+                    setSelectedCity({ city: locationData.city, state: locationData.state });
+                  }
+                }}
+                placeholder="CEP ou nome da cidade"
               />
             </div>
           </div>
