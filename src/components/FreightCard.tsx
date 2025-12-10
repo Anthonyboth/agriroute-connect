@@ -305,8 +305,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   };
 
   return (
-    <Card data-testid="freight-card" className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60 overflow-x-auto">
-      <CardHeader className="pb-2 flex-shrink-0 overflow-x-auto">
+    <Card data-testid="freight-card" className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60 overflow-hidden">
+      <CardHeader className="pb-2 flex-shrink-0">
         <div className="min-w-fit space-y-2">
           
           {/* LINHA 1: Ícone + Título */}

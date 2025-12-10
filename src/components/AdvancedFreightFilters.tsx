@@ -108,7 +108,7 @@ export const AdvancedFreightFilters: React.FC<AdvancedFreightFiltersProps> = ({
               cargoType: value === 'all' ? undefined : [value]
             })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="border border-input bg-background">
               <SelectValue placeholder="Todos os tipos" />
             </SelectTrigger>
             <SelectContent>
@@ -133,7 +133,7 @@ export const AdvancedFreightFilters: React.FC<AdvancedFreightFiltersProps> = ({
               urgency: value === 'all' ? undefined : [value]
             })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="border border-input bg-background">
               <SelectValue placeholder="Todas as urgências" />
             </SelectTrigger>
             <SelectContent>
@@ -194,7 +194,7 @@ export const AdvancedFreightFilters: React.FC<AdvancedFreightFiltersProps> = ({
                 sortBy: sortBy as any 
               })}
             >
-              <SelectTrigger className="flex-1">
+              <SelectTrigger className="flex-1 border border-input bg-background">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
