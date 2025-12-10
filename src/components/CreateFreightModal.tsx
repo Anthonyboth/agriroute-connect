@@ -546,7 +546,18 @@ const CreateFreightModal = ({ onFreightCreated, userProfile, guestMode = false, 
         return;
       }
 
-      console.log('Peso validado:', weight, 'toneladas');
+      // ✅ Validação de peso máximo para moto (500kg)
+      const weightInKg = weight * 1000; // Converter toneladas para kg
+      const isMotoFreight = formData.service_type === 'FRETE_MOTO' || 
+                            formData.vehicle_type_required === 'MOTO';
+      
+      if (isMotoFreight && weightInKg > 500) {
+        toast.error('⚠️ Peso máximo para frete de moto é 500kg. Para cargas maiores, selecione outro tipo de veículo ou serviço.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Peso validado:', weight, 'toneladas', isMotoFreight ? '(Moto - máx 500kg)' : '');
 
       // Calculate distance (mock for now)
       const distance = await calculateDistance(formData.origin_address, formData.destination_address);

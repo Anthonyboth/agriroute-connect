@@ -912,39 +912,136 @@ const Auth = () => {
                           />
                         </div>
 
-                        <div className="flex items-start space-x-2">
-                          <Checkbox
-                            id="terms"
-                            checked={acceptedTerms}
-                            onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
-                          />
-                          <label
-                            htmlFor="terms"
-                            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            Li e aceito os{' '}
-                            <a 
-                              href="/termos" 
-                              target="_blank" 
-                              className="text-primary hover:underline"
+                        {/* 3 Checkboxes obrigatórios para Transportadora */}
+                        <div className="space-y-3 border-t pt-4 mt-4">
+                          <p className="text-sm font-medium text-foreground">Termos Obrigatórios *</p>
+                          
+                          <div className="flex items-start space-x-2">
+                            <Checkbox
+                              id="termsDocumentResponsibility"
+                              checked={acceptedTerms}
+                              onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                            />
+                            <label
+                              htmlFor="termsDocumentResponsibility"
+                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              Termos de Uso para Transportadoras
-                            </a>
-                            {' '}*
-                          </label>
+                              Declaro que sou responsável pelas informações e documentos fornecidos
+                            </label>
+                          </div>
+                          
+                          <div className="flex items-start space-x-2">
+                            <Checkbox
+                              id="termsOfUse"
+                              required
+                            />
+                            <label
+                              htmlFor="termsOfUse"
+                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              Li e aceito os{' '}
+                              <a 
+                                href="/termos" 
+                                target="_blank" 
+                                className="text-primary hover:underline"
+                              >
+                                Termos de Uso
+                              </a>
+                            </label>
+                          </div>
+                          
+                          <div className="flex items-start space-x-2">
+                            <Checkbox
+                              id="privacyPolicy"
+                              required
+                            />
+                            <label
+                              htmlFor="privacyPolicy"
+                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              Li e aceito a{' '}
+                              <a 
+                                href="/privacidade" 
+                                target="_blank" 
+                                className="text-primary hover:underline"
+                              >
+                                Política de Privacidade
+                              </a>
+                            </label>
+                          </div>
                         </div>
                       </>
                     ) : (
-                      <div className="space-y-2">
-                        <Label htmlFor="document">CPF/CNPJ *</Label>
-                        <Input
-                          id="document"
-                          value={document}
-                          onChange={(e) => setDocument(e.target.value)}
-                          placeholder="000.000.000-00 ou 00.000.000/0001-00"
-                          required
-                        />
-                      </div>
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="document">CPF/CNPJ *</Label>
+                          <Input
+                            id="document"
+                            value={document}
+                            onChange={(e) => setDocument(e.target.value)}
+                            placeholder="000.000.000-00 ou 00.000.000/0001-00"
+                            required
+                          />
+                        </div>
+                        
+                        {/* 3 Checkboxes obrigatórios para Motorista/Produtor */}
+                        <div className="space-y-3 border-t pt-4 mt-4">
+                          <p className="text-sm font-medium text-foreground">Termos Obrigatórios *</p>
+                          
+                          <div className="flex items-start space-x-2">
+                            <Checkbox
+                              id="termsDocResponsibility"
+                              required
+                            />
+                            <label
+                              htmlFor="termsDocResponsibility"
+                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              Declaro que sou responsável pelas informações e documentos fornecidos
+                            </label>
+                          </div>
+                          
+                          <div className="flex items-start space-x-2">
+                            <Checkbox
+                              id="termsOfUseGeneral"
+                              required
+                            />
+                            <label
+                              htmlFor="termsOfUseGeneral"
+                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              Li e aceito os{' '}
+                              <a 
+                                href="/termos" 
+                                target="_blank" 
+                                className="text-primary hover:underline"
+                              >
+                                Termos de Uso
+                              </a>
+                            </label>
+                          </div>
+                          
+                          <div className="flex items-start space-x-2">
+                            <Checkbox
+                              id="privacyPolicyGeneral"
+                              required
+                            />
+                            <label
+                              htmlFor="privacyPolicyGeneral"
+                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              Li e aceito a{' '}
+                              <a 
+                                href="/privacidade" 
+                                target="_blank" 
+                                className="text-primary hover:underline"
+                              >
+                                Política de Privacidade
+                              </a>
+                            </label>
+                          </div>
+                        </div>
+                      </>
                     )}
                     
                     <Button type="submit" className="w-full h-12" disabled={loading}>

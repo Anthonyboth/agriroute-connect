@@ -218,10 +218,17 @@ const OptimizedFreightCard = memo<FreightCardProps>(({
               )}
             </div>
           </div>
-          <div className="flex justify-start">
+          <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-sm bg-secondary/30 px-3 py-1">
               {serviceLabel}
             </Badge>
+            {/* Badge de capacidade máxima para moto */}
+            {freight.service_type === 'FRETE_MOTO' && (
+              <Badge variant="outline" className="text-sm bg-yellow-50 text-yellow-700 border-yellow-300 px-3 py-1">
+                <Truck className="h-3.5 w-3.5 mr-1" />
+                Máx. 500kg
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
