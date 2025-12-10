@@ -11,15 +11,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { AdvancedAssignmentFilters, AssignmentFilters } from './AdvancedAssignmentFilters';
 import { AssignmentReportExporter } from './AssignmentReportExporter';
 
-const VEHICLE_TYPES = [
-  { value: 'CAMINHÃO', label: 'Caminhão' },
-  { value: 'CARRETA', label: 'Carreta' },
-  { value: 'TRUCK', label: 'Truck' },
-  { value: 'BITRUCK', label: 'Bitruck' },
-  { value: 'TOCO', label: 'Toco' },
-  { value: 'VUC', label: 'VUC' },
-  { value: 'OUTRO', label: 'Outro' },
-];
+import { VEHICLE_TYPES_SELECT, getVehicleTypeLabel } from '@/lib/vehicle-types';
+import { Phone } from 'lucide-react';
 
 interface CompanyVehicleAssignmentsProps {
   companyId: string;
@@ -140,28 +133,7 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
     });
   }, [assignments, filters]);
 
-  // Agrupar por motorista
-  const groupedByDriver = filteredAssignments?.reduce((acc: any, assignment: any) => {
-    const driverId = assignment.driver_profile_id;
-    const driver = assignment.driver_profiles || assignment.driver;
-    const vehicle = assignment.vehicles || assignment.vehicle;
-    
-    if (!acc[driverId]) {
-      acc[driverId] = {
-        driver: driver,
-        vehicles: [],
-      };
-    }
-    acc[driverId].vehicles.push({
-      ...vehicle,
-      assignmentId: assignment.id,
-      isPrimary: assignment.is_primary,
-      notes: assignment.notes,
-    });
-    return acc;
-  }, {});
-
-  const driverGroups = groupedByDriver ? Object.values(groupedByDriver) : [];
+  // Lista linear de vínculos (sem agrupamento)
 
   if (isLoading) {
     return (
@@ -201,10 +173,10 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
             filters={filters}
             onFiltersChange={setFilters}
             resultCount={filteredAssignments?.length || 0}
-            vehicleTypes={VEHICLE_TYPES}
+            vehicleTypes={VEHICLE_TYPES_SELECT}
           />
 
-          {!driverGroups || driverGroups.length === 0 ? (
+          {!filteredAssignments || filteredAssignments.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Link2 className="mx-auto h-12 w-12 mb-4 opacity-50" />
               <p className="text-lg font-medium mb-2">Nenhum vínculo cadastrado</p>
@@ -217,86 +189,85 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
               </Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              {driverGroups.map((group: any) => (
-                <Card key={group.driver?.id} className="border-2">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <User className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">{group.driver?.full_name}</h3>
-                          <p className="text-sm text-muted-foreground">{group.driver?.phone}</p>
+            <div className="space-y-2 mt-4">
+              {filteredAssignments.map((assignment: any) => {
+                const driver = assignment.driver_profiles;
+                const vehicle = assignment.vehicles;
+                
+                return (
+                  <div
+                    key={assignment.id}
+                    className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border hover:bg-muted/50 transition-colors"
+                  >
+                    {/* Motorista */}
+                    <div className="flex items-center gap-3 min-w-[200px]">
+                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <User className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{driver?.full_name || 'Motorista'}</p>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Phone className="h-3 w-3" />
+                          {driver?.phone || '-'}
                         </div>
                       </div>
-                      {group.driver?.rating > 0 && (
-                        <Badge variant="secondary" className="gap-1">
-                          <Star className="h-3 w-3 fill-current" />
-                          {group.driver.rating.toFixed(1)}
+                    </div>
+
+                    {/* Veículo */}
+                    <div className="flex items-center gap-3 min-w-[220px]">
+                      <div className="h-9 w-9 rounded-lg bg-secondary/50 flex items-center justify-center shrink-0">
+                        <Truck className="h-4 w-4 text-secondary-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-mono font-medium text-sm">{vehicle?.license_plate || '-'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {getVehicleTypeLabel(vehicle?.vehicle_type)} • {vehicle?.max_capacity_tons}t
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Status e Ações */}
+                    <div className="flex items-center gap-3">
+                      {assignment.is_primary && (
+                        <Badge variant="default" className="gap-1">
+                          <Star className="h-3 w-3" />
+                          Principal
                         </Badge>
                       )}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {group.vehicles.map((vehicle: any) => (
-                        <div
-                          key={vehicle.assignmentId}
-                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
+                      {driver?.rating > 0 && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Star className="h-3 w-3 fill-current" />
+                          {driver.rating.toFixed(1)}
+                        </Badge>
+                      )}
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingAssignment({
+                            id: assignment.id,
+                            driver_profile_id: driver?.id,
+                            vehicle_id: vehicle?.id,
+                            is_primary: assignment.is_primary,
+                            notes: assignment.notes
+                          })}
+                          title="Editar vínculo"
                         >
-                          <div className="flex items-center gap-3">
-                            <Truck className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{vehicle.license_plate}</span>
-                                {vehicle.isPrimary && (
-                                  <Badge variant="default" className="text-xs">
-                                    Principal
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                {vehicle.vehicle_type} • {vehicle.max_capacity_tons}t • {vehicle.axle_count} eixos
-                              </p>
-                              {vehicle.notes && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {vehicle.notes}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingAssignment({
-                                id: vehicle.assignmentId,
-                                driver_profile_id: group.driver.id,
-                                vehicle_id: vehicle.vehicle_id,
-                                is_primary: vehicle.isPrimary,
-                                notes: vehicle.notes
-                              })}
-                              title="Editar vínculo"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setAssignmentToRemove(vehicle.assignmentId)}
-                              title="Remover vínculo"
-                            >
-                              <Unlink className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAssignmentToRemove(assignment.id)}
+                          title="Remover vínculo"
+                        >
+                          <Unlink className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>
