@@ -34,7 +34,7 @@ export const RouteRentabilityReport: React.FC<RouteRentabilityReportProps> = ({ 
     const routeMap = new Map<string, RouteAnalysis>();
     
     freights.forEach(freight => {
-      const routeKey = `${freight.origin_city}, ${freight.origin_state} → ${freight.destination_city}, ${freight.destination_state}`;
+      const routeKey = `${freight.origin_city || 'Origem'}, ${freight.origin_state || '?'} → ${freight.destination_city || 'Destino'}, ${freight.destination_state || '?'}`;
       
       if (!routeMap.has(routeKey)) {
         routeMap.set(routeKey, {
@@ -126,17 +126,17 @@ export const RouteRentabilityReport: React.FC<RouteRentabilityReportProps> = ({ 
   
   return (
     <div className="space-y-6" translate="no">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-6 w-6 text-primary" />
-          <div>
-            <h2 className="text-2xl font-bold">Análise de Rentabilidade por Rota</h2>
-            <p className="text-sm text-muted-foreground">
-              Identificando as rotas mais lucrativas e oportunidades de otimização
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <MapPin className="h-6 w-6 text-primary shrink-0" />
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-2xl font-bold truncate">Análise de Rentabilidade por Rota</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Identificando as rotas mais lucrativas
             </p>
           </div>
         </div>
-        <Button onClick={exportToExcel} variant="outline" size="sm">
+        <Button onClick={exportToExcel} variant="outline" size="sm" className="shrink-0 w-full sm:w-auto">
           <Download className="h-4 w-4 mr-2" />
           Exportar Excel
         </Button>
@@ -256,32 +256,32 @@ export const RouteRentabilityReport: React.FC<RouteRentabilityReportProps> = ({ 
       {/* Tabela Detalhada */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Todas as Rotas</CardTitle>
-            <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <CardTitle className="text-base sm:text-lg">Todas as Rotas</CardTitle>
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={sortBy === 'profitability' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSortBy('profitability')}
               >
-                <ArrowUpDown className="h-4 w-4 mr-2" />
-                Rentabilidade
+                <ArrowUpDown className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Rentabilidade</span>
               </Button>
               <Button
                 variant={sortBy === 'revenue' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSortBy('revenue')}
               >
-                <ArrowUpDown className="h-4 w-4 mr-2" />
-                Receita
+                <ArrowUpDown className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Receita</span>
               </Button>
               <Button
                 variant={sortBy === 'volume' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSortBy('volume')}
               >
-                <ArrowUpDown className="h-4 w-4 mr-2" />
-                Volume
+                <ArrowUpDown className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Volume</span>
               </Button>
             </div>
           </div>

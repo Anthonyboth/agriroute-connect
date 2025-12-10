@@ -2033,7 +2033,7 @@ const DriverDashboard = () => {
             <h1 className="text-xl md:text-2xl font-bold mb-2">
               Olá, {profile?.full_name?.split(' ')[0] || (profile?.active_mode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista')}
             </h1>
-            <p className="text-sm md:text-base mb-2 opacity-90">
+            <p className="text-sm md:text-base mb-2 opacity-90 px-2">
               {SISTEMA_IA_LABEL} encontra fretes para você
             </p>
             {isCompanyDriver && companyName && (
@@ -2042,7 +2042,7 @@ const DriverDashboard = () => {
                 Motorista - {companyName}
               </Badge>
             )}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2 px-2">
               {/* ✅ Mostrar botão "Ver Fretes IA" se canSeeFreights */}
               {canSeeFreights && (
                 <Button 

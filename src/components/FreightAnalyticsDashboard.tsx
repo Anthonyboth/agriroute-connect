@@ -93,14 +93,14 @@ export const FreightAnalyticsDashboard: React.FC<FreightAnalyticsDashboardProps>
     <div className="space-y-6" translate="no">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>{UI_TEXTS.ANALYTICS}</CardTitle>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <CardTitle className="text-base sm:text-lg">{UI_TEXTS.ANALYTICS}</CardTitle>
             <Tabs value={timeRange} onValueChange={(v) => onTimeRangeChange(v as any)}>
-              <TabsList>
-                <TabsTrigger value="week">{UI_TEXTS.ULTIMA_SEMANA}</TabsTrigger>
-                <TabsTrigger value="month">{UI_TEXTS.ULTIMO_MES}</TabsTrigger>
-                <TabsTrigger value="quarter">{UI_TEXTS.ULTIMO_TRIMESTRE}</TabsTrigger>
-                <TabsTrigger value="year">{UI_TEXTS.ULTIMO_ANO}</TabsTrigger>
+              <TabsList className="flex-wrap h-auto gap-1">
+                <TabsTrigger value="week" className="text-xs sm:text-sm">{UI_TEXTS.ULTIMA_SEMANA}</TabsTrigger>
+                <TabsTrigger value="month" className="text-xs sm:text-sm">{UI_TEXTS.ULTIMO_MES}</TabsTrigger>
+                <TabsTrigger value="quarter" className="text-xs sm:text-sm">{UI_TEXTS.ULTIMO_TRIMESTRE}</TabsTrigger>
+                <TabsTrigger value="year" className="text-xs sm:text-sm">{UI_TEXTS.ULTIMO_ANO}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>

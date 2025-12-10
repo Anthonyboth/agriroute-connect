@@ -1827,8 +1827,8 @@ const ProducerDashboard = () => {
           <TabsContent value="reports" className="space-y-6">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Relatórios e Analytics de Fretes</CardTitle>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <CardTitle className="text-base sm:text-lg">Relatórios e Analytics de Fretes</CardTitle>
                   <FreightReportExporter 
                     data={reportData}
                     reportTitle="Relatório de Fretes - Produtor"
@@ -2031,13 +2031,13 @@ const ProducerDashboard = () => {
                     return (
                       <Card key={freight.id} className="p-4 border-purple-200 bg-purple-50/50">
                         <div className="space-y-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h5 className="font-semibold text-lg">
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                            <div className="min-w-0 flex-1">
+                              <h5 className="font-semibold text-base sm:text-lg truncate">
                                 Frete Entregue - {freight.cargo_type}
                               </h5>
                               <p className="text-sm text-muted-foreground">
-                                Valor total do frete: R$ {freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                Valor total: R$ {freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </p>
                               <p className="text-sm text-muted-foreground">
                                 Já pago: R$ {paidAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -2045,13 +2045,14 @@ const ProducerDashboard = () => {
                               <p className="text-sm font-semibold">
                                 Restante: R$ {remainingAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-muted-foreground truncate">
                                 Motorista: {freight.profiles?.full_name}
                               </p>
                             </div>
                             <Button
                               onClick={() => handleConfirmExternalPayment(freight.id, remainingAmount)}
                               disabled={paymentLoading}
+                              className="w-full sm:w-auto shrink-0"
                             >
                               <CheckCircle className="h-4 w-4 mr-2" />
                               Confirmar Pagamento
