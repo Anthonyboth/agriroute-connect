@@ -1263,8 +1263,8 @@ const DriverDashboard = () => {
     }
   }, [profile?.id]);
 
-  // Função para confirmar recebimento de pagamento
-  const confirmPaymentReceived = async (paymentId: string) => {
+  // Função para confirmar recebimento de pagamento e disparar avaliação
+  const confirmPaymentReceived = async (payment: { id: string; freight_id: string; producer_id: string }) => {
     try {
       const { error } = await supabase
         .from('external_payments')
@@ -1273,12 +1273,31 @@ const DriverDashboard = () => {
           accepted_by_driver: true,
           accepted_at: new Date().toISOString()
         })
-        .eq('id', paymentId);
+        .eq('id', payment.id);
 
       if (error) throw error;
 
       toast.success('Recebimento confirmado com sucesso!');
       fetchPendingPayments();
+
+      // Disparar modal de avaliação do produtor
+      if (payment.freight_id && payment.producer_id) {
+        const { data: producerProfile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', payment.producer_id)
+          .single();
+
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('show-freight-rating', {
+            detail: {
+              freightId: payment.freight_id,
+              ratedUserId: payment.producer_id,
+              ratedUserName: producerProfile?.full_name || 'Produtor'
+            }
+          }));
+        }, 500);
+      }
     } catch (error) {
       console.error('Error confirming payment:', error);
       toast.error('Erro ao confirmar recebimento');
@@ -2883,7 +2902,11 @@ const DriverDashboard = () => {
                           <div className="flex gap-2">
                             <Button 
                               className="gradient-primary flex-1"
-                              onClick={() => handleConfirmPayment(payment.id)}
+                              onClick={() => handleConfirmPayment({
+                                id: payment.id,
+                                freight_id: payment.freight_id,
+                                producer_id: payment.producer_id
+                              })}
                             >
                               <CheckCircle className="mr-2 h-4 w-4" />
                               Confirmar Recebimento
