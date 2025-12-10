@@ -624,14 +624,14 @@ const CompanyDashboard = () => {
                     size="sm"
                     onClick={() => setActiveTab(tab.value)}
                     className={cn(
-                      "flex items-center justify-center gap-2",
+                      "flex items-center justify-center gap-1.5 px-2 py-2 min-w-0",
                       isActive && "font-semibold"
                     )}
                   >
-                    <Icon className="h-4 w-4" />
-                    <span>{tab.shortLabel}</span>
+                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <span className="whitespace-nowrap text-xs">{tab.shortLabel}</span>
                     {tab.badge && tab.badge > 0 && (
-                      <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                      <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs flex-shrink-0">
                         {tab.badge}
                       </Badge>
                     )}
