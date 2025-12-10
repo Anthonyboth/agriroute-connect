@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLocationPermission } from '@/hooks/useLocationPermission';
-import { CitySelector } from './CitySelector';
+import { UnifiedLocationInput } from './UnifiedLocationInput';
 
 interface LocationManagerProps {
   onClose?: () => void;
@@ -164,11 +164,18 @@ export const LocationManager: React.FC<LocationManagerProps> = ({ onClose }) => 
 
           {/* Seletor de Cidade */}
           <div className="space-y-2">
-            <CitySelector
-              value={city}
-              onChange={handleCityChange}
+            <UnifiedLocationInput
               label="Cidade Base"
-              placeholder="Digite sua cidade..."
+              placeholder="CEP ou nome da cidade"
+              value={city.city && city.state ? `${city.city}, ${city.state}` : ''}
+              onChange={(value, locationData) => {
+                if (locationData) {
+                  handleCityChange({ city: locationData.city, state: locationData.state });
+                  if (locationData.cityId) {
+                    setCityId(locationData.cityId);
+                  }
+                }
+              }}
               required
             />
           </div>

@@ -18,7 +18,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CitySelector } from './CitySelector';
+import { UnifiedLocationInput } from './UnifiedLocationInput';
 import { CitySelectionGuide } from './CitySelectionGuide';
 
 interface AdvancedSearchFilters {
@@ -290,31 +290,29 @@ export const AdvancedFreightSearch: React.FC<AdvancedFreightSearchProps> = ({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  <CitySelector
+                  <UnifiedLocationInput
                     label="Cidade de Origem"
-                    placeholder="Digite para buscar a cidade"
-                    value={filters.origin_city && filters.origin_state ? {
-                      city: filters.origin_city,
-                      state: filters.origin_state
-                    } : undefined}
-                    onChange={(city) => {
-                      handleFilterChange('origin_city', city.city);
-                      handleFilterChange('origin_state', city.state);
-                      handleFilterChange('origin_city_id', city.id || '');
+                    placeholder="CEP ou nome da cidade"
+                    value={filters.origin_city && filters.origin_state ? `${filters.origin_city}, ${filters.origin_state}` : ''}
+                    onChange={(value, locationData) => {
+                      if (locationData) {
+                        handleFilterChange('origin_city', locationData.city);
+                        handleFilterChange('origin_state', locationData.state);
+                        handleFilterChange('origin_city_id', locationData.cityId || '');
+                      }
                     }}
                   />
                   
-                  <CitySelector
+                  <UnifiedLocationInput
                     label="Cidade de Destino"
-                    placeholder="Digite para buscar a cidade"
-                    value={filters.destination_city && filters.destination_state ? {
-                      city: filters.destination_city,
-                      state: filters.destination_state
-                    } : undefined}
-                    onChange={(city) => {
-                      handleFilterChange('destination_city', city.city);
-                      handleFilterChange('destination_state', city.state);
-                      handleFilterChange('destination_city_id', city.id || '');
+                    placeholder="CEP ou nome da cidade"
+                    value={filters.destination_city && filters.destination_state ? `${filters.destination_city}, ${filters.destination_state}` : ''}
+                    onChange={(value, locationData) => {
+                      if (locationData) {
+                        handleFilterChange('destination_city', locationData.city);
+                        handleFilterChange('destination_state', locationData.state);
+                        handleFilterChange('destination_city_id', locationData.cityId || '');
+                      }
                     }}
                   />
                   

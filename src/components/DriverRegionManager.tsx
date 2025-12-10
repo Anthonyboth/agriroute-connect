@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { MapPin, Navigation, Save, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { CitySelector } from './CitySelector';
+import { UnifiedLocationInput } from './UnifiedLocationInput';
 
 interface DriverRegionManagerProps {
   driverId?: string;
@@ -189,11 +189,15 @@ export const DriverRegionManager: React.FC<DriverRegionManagerProps> = ({
           {/* Seletor de Cidade */}
           <div className="space-y-3">
             <Label className="text-base font-medium">Cidade de Atendimento</Label>
-            <CitySelector
+            <UnifiedLocationInput
               label=""
-              value={selectedCity || undefined}
-              onChange={setSelectedCity}
-              placeholder="Digite o nome da sua cidade..."
+              value={selectedCity ? `${selectedCity.city}, ${selectedCity.state}` : ''}
+              onChange={(value, locationData) => {
+                if (locationData) {
+                  setSelectedCity({ city: locationData.city, state: locationData.state });
+                }
+              }}
+              placeholder="CEP ou nome da cidade"
             />
             <Button
               type="button"

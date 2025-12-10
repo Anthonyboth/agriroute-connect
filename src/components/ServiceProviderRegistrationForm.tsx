@@ -857,6 +857,85 @@ export const ServiceProviderRegistrationForm: React.FC<ServiceProviderRegistrati
             </TabsContent>
 
             <TabsContent value="financial" className="space-y-6">
+              {/* Termos Obrigatórios */}
+              <Card className="border-primary/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Shield className="h-5 w-5 text-primary" />
+                    Termos e Condições
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Alert variant="default" className="border-primary/30 bg-primary/5">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Leitura Obrigatória</AlertTitle>
+                    <AlertDescription>
+                      Você deve aceitar todos os termos abaixo para concluir seu cadastro.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  {/* Checkbox 1: Responsabilidade sobre documentos */}
+                  <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id="acceptDocuments"
+                      checked={acceptedDocumentsResponsibility}
+                      onCheckedChange={(checked) => setAcceptedDocumentsResponsibility(!!checked)}
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="acceptDocuments" className="font-medium cursor-pointer">
+                        Declaro a veracidade das informações e documentos enviados
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Confirmo que todos os dados fornecidos são verdadeiros e que os documentos enviados são autênticos. 
+                        Estou ciente de que informações falsas podem resultar em penalidades legais e exclusão da plataforma.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Checkbox 2: Termos de Uso */}
+                  <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id="acceptTerms"
+                      checked={acceptedTermsOfUse}
+                      onCheckedChange={(checked) => setAcceptedTermsOfUse(!!checked)}
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="acceptTerms" className="font-medium cursor-pointer">
+                        Li e aceito os Termos de Uso da plataforma
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Declaro que li e concordo com os{' '}
+                        <a href="/terms" target="_blank" className="text-primary underline hover:no-underline">
+                          Termos de Uso
+                        </a>{' '}
+                        que regem a utilização da plataforma AgriRoute.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Checkbox 3: Política de Privacidade */}
+                  <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id="acceptPrivacy"
+                      checked={acceptedPrivacyPolicy}
+                      onCheckedChange={(checked) => setAcceptedPrivacyPolicy(!!checked)}
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="acceptPrivacy" className="font-medium cursor-pointer">
+                        Li e aceito a Política de Privacidade
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Declaro que li e concordo com a{' '}
+                        <a href="/privacy" target="_blank" className="text-primary underline hover:no-underline">
+                          Política de Privacidade
+                        </a>{' '}
+                        e autorizo o tratamento dos meus dados pessoais conforme descrito.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Dados da Empresa */}
               <Card>
                 <CardHeader>

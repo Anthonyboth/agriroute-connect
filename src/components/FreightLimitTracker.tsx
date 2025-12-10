@@ -118,7 +118,7 @@ const FreightLimitTracker: React.FC<FreightLimitTrackerProps> = ({ onLimitReache
 
         <div className="bg-amber-50 dark:bg-amber-950 border border-amber-600 dark:border-amber-800 rounded-lg p-3">
           <p className="text-sm text-amber-900 dark:text-amber-100 leading-relaxed font-medium">
-            ⚠️ <strong>Importante:</strong> Durante o período de testes, transações financeiras não estão habilitadas dentro da plataforma. Os acordos de pagamento devem ser feitos externamente. O seguro de frete, caso seja necessário, também deve ser contratado por fora da plataforma por enquanto.
+            ⚠️ <strong>Importante:</strong> Durante o período de testes, as transações financeiras não estão habilitadas dentro da plataforma. Os acordos de pagamento devem ser feitos externamente.
           </p>
         </div>
 

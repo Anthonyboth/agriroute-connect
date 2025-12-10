@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { MapPin, Plus, Edit, Trash2, Target, TrendingUp, X, Lightbulb } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
-import { CitySelector } from './CitySelector';
+import { UnifiedLocationInput } from './UnifiedLocationInput';
 
 interface CompanyServiceArea {
   id: string;
@@ -314,18 +314,22 @@ export const CompanyServiceAreasManager: React.FC = () => {
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <CitySelector
-                  value={{ city: formData.city_name, state: formData.state, id: formData.city_id }}
-                  onChange={(c) => setFormData(prev => ({ 
-                    ...prev, 
-                    city_name: c.city, 
-                    state: c.state,
-                    city_id: c.id,
-                    lat: c.lat ?? prev.lat, 
-                    lng: c.lng ?? prev.lng 
-                  }))}
+                <UnifiedLocationInput
                   label="Cidade *"
-                  placeholder="Digite e selecione a cidade"
+                  placeholder="CEP ou nome da cidade"
+                  value={formData.city_name && formData.state ? `${formData.city_name}, ${formData.state}` : ''}
+                  onChange={(value, locationData) => {
+                    if (locationData) {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        city_name: locationData.city, 
+                        state: locationData.state,
+                        city_id: locationData.cityId,
+                        lat: locationData.lat ?? prev.lat, 
+                        lng: locationData.lng ?? prev.lng 
+                      }));
+                    }
+                  }}
                   required
                 />
 
