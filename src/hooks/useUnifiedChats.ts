@@ -3,6 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export interface ChatParticipant {
+  id: string;
+  name: string;
+  role: 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' | 'MOTORISTA_AFILIADO' | 'PRESTADOR_SERVICO';
+  avatar?: string;
+}
+
 export interface ChatConversation {
   id: string;
   type: 'FREIGHT' | 'SERVICE' | 'DIRECT_CHAT' | 'DOCUMENT_REQUEST' | 'FREIGHT_SHARE';
@@ -14,8 +21,12 @@ export interface ChatConversation {
     name: string;
     avatar?: string;
   };
+  participants: ChatParticipant[];
   metadata: any;
   isClosed: boolean;
+  isAutoClosedByRatings?: boolean;
+  freightStatus?: string;
+  hasGpsTracking?: boolean;
 }
 
 export const useUnifiedChats = (userProfileId: string, userRole: string) => {
@@ -29,16 +40,32 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
       const allConversations: ChatConversation[] = [];
 
       // 1. FRETES COM CHAT - Query refatorada em 3 etapas para evitar 400
-      if (['MOTORISTA', 'MOTORISTA_AFILIADO', 'PRODUTOR'].includes(userRole)) {
+      if (['MOTORISTA', 'MOTORISTA_AFILIADO', 'PRODUTOR', 'TRANSPORTADORA'].includes(userRole)) {
         // Etapa 1: Buscar fretes básicos do usuário
-        const { data: userFreights, error: freightsError } = await supabase
+        let freightQuery = supabase
           .from('freights')
-          .select('id, producer_id, driver_id, cargo_type, origin_city, destination_city')
-          .or(
-            userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO'
-              ? `driver_id.eq.${userProfileId}`
-              : `producer_id.eq.${userProfileId}`
-          );
+          .select('id, producer_id, driver_id, cargo_type, origin_city, destination_city, origin_address, destination_address, status, company_id');
+
+        if (userRole === 'MOTORISTA' || userRole === 'MOTORISTA_AFILIADO') {
+          freightQuery = freightQuery.eq('driver_id', userProfileId);
+        } else if (userRole === 'PRODUTOR') {
+          freightQuery = freightQuery.eq('producer_id', userProfileId);
+        } else if (userRole === 'TRANSPORTADORA') {
+          // Transportadora vê fretes de seus motoristas afiliados
+          const { data: companyData } = await supabase
+            .from('transport_companies')
+            .select('id')
+            .eq('profile_id', userProfileId)
+            .maybeSingle();
+          
+          if (companyData) {
+            freightQuery = freightQuery.eq('company_id', companyData.id);
+          } else {
+            freightQuery = freightQuery.eq('company_id', 'none'); // Não retorna nada
+          }
+        }
+
+        const { data: userFreights, error: freightsError } = await freightQuery;
 
         if (freightsError) {
           console.error('[useUnifiedChats] Erro ao buscar fretes:', freightsError);
@@ -54,14 +81,39 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
             .in('freight_id', freightIds)
             .order('created_at', { ascending: false });
 
-          // Etapa 3: Buscar perfis necessários
+          // Etapa 3: Buscar perfis necessários incluindo company_id
           const producerIds = [...new Set((userFreights || []).map((f: any) => f.producer_id).filter(Boolean))];
           const driverIds = [...new Set((userFreights || []).map((f: any) => f.driver_id).filter(Boolean))];
+          const companyIds = [...new Set((userFreights || []).map((f: any) => f.company_id).filter(Boolean))];
           
           const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, full_name')
+            .select('id, full_name, role')
             .in('id', [...producerIds, ...driverIds]);
+
+          // Buscar transportadoras se existirem
+          let companyMap = new Map();
+          if (companyIds.length > 0) {
+            const { data: companies } = await supabase
+              .from('transport_companies')
+              .select('id, company_name, profile_id')
+              .in('id', companyIds);
+            companyMap = new Map(companies?.map((c: any) => [c.id, c]) || []);
+          }
+
+          // Buscar ratings para verificar fechamento automático
+          const { data: ratings } = await supabase
+            .from('ratings')
+            .select('freight_id, rater_id')
+            .in('freight_id', freightIds);
+          
+          const ratingsMap = new Map<string, Set<string>>();
+          ratings?.forEach((r: any) => {
+            if (!ratingsMap.has(r.freight_id)) {
+              ratingsMap.set(r.freight_id, new Set());
+            }
+            ratingsMap.get(r.freight_id)?.add(r.rater_id);
+          });
 
           // Criar mapa de perfis para lookup rápido
           const profileMap = new Map(profiles?.map((p: any) => [p.id, p]) || []);
@@ -76,22 +128,72 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
             if (!conversationMap.has(msg.freight_id)) {
               const producerProfile = profileMap.get(freight.producer_id);
               const driverProfile = profileMap.get(freight.driver_id);
+              const company = companyMap.get(freight.company_id);
               const isClosed = msg.chat_closed_by?.[userProfileId] === true;
+              
+              // Verificar fechamento automático: frete finalizado + ambos avaliaram
+              const freightRatings = ratingsMap.get(freight.id);
+              const isFreightCompleted = ['DELIVERED', 'COMPLETED'].includes(freight.status);
+              const bothRated = freightRatings && freightRatings.size >= 2;
+              const isAutoClosedByRatings = isFreightCompleted && bothRated;
+
+              // Corrigir cidades null
+              const originCity = freight.origin_city || freight.origin_address?.split(',')[0] || 'Origem';
+              const destinationCity = freight.destination_city || freight.destination_address?.split(',')[0] || 'Destino';
+
+              // Construir lista de participantes (suporte a 3+)
+              const participants: ChatParticipant[] = [];
+              if (producerProfile) {
+                participants.push({
+                  id: freight.producer_id,
+                  name: producerProfile.full_name || 'Produtor',
+                  role: 'PRODUTOR',
+                });
+              }
+              if (driverProfile) {
+                participants.push({
+                  id: freight.driver_id,
+                  name: driverProfile.full_name || 'Motorista',
+                  role: driverProfile.role || 'MOTORISTA',
+                });
+              }
+              if (company) {
+                participants.push({
+                  id: company.profile_id,
+                  name: company.company_name || 'Transportadora',
+                  role: 'TRANSPORTADORA',
+                });
+              }
+
+              // Determinar "outro participante" principal para exibição
+              let otherParticipantName = 'Participante';
+              if (userRole === 'PRODUTOR') {
+                otherParticipantName = driverProfile?.full_name || 'Motorista';
+              } else if (userRole === 'TRANSPORTADORA') {
+                otherParticipantName = producerProfile?.full_name || 'Produtor';
+              } else {
+                otherParticipantName = producerProfile?.full_name || 'Produtor';
+              }
+
+              // Verificar se GPS está ativo (frete em andamento)
+              const hasGpsTracking = ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'].includes(freight.status);
               
               conversationMap.set(msg.freight_id, {
                 id: `freight-${msg.freight_id}`,
                 type: 'FREIGHT' as const,
-                title: `Frete: ${freight.cargo_type || 'Carga'} - ${freight.origin_city} → ${freight.destination_city}`,
+                title: `Frete: ${freight.cargo_type || 'Carga'} - ${originCity} → ${destinationCity}`,
                 lastMessage: msg.message,
                 lastMessageTime: msg.created_at,
                 unreadCount: 0,
                 otherParticipant: {
-                  name: userRole === 'PRODUTOR'
-                    ? driverProfile?.full_name || 'Motorista'
-                    : producerProfile?.full_name || 'Produtor',
+                  name: otherParticipantName,
                 },
-                metadata: { freightId: freight.id },
-                isClosed,
+                participants,
+                metadata: { freightId: freight.id, companyId: freight.company_id },
+                isClosed: isClosed || isAutoClosedByRatings,
+                isAutoClosedByRatings,
+                freightStatus: freight.status,
+                hasGpsTracking,
               });
             }
             
