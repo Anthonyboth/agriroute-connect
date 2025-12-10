@@ -5,41 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Truck, Edit, Trash2, FileText, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { getVehicleTypeLabel } from '@/lib/vehicle-types';
 
 interface CompanyVehiclesListProps {
   companyId: string;
   onEdit: (vehicle: any) => void;
   onDelete: (vehicleId: string) => void;
 }
-
-const VEHICLE_TYPES: Record<string, string> = {
-  'TOCO': 'Toco',
-  'TRUCK': 'Truck',
-  'CARRETA': 'Carreta',
-  'CARRETA_2_EIXOS': 'Carreta 2 Eixos',
-  'CARRETA_3_EIXOS': 'Carreta 3 Eixos',
-  'CARRETA_SIDER': 'Carreta Sider',
-  'CARRETA_GRANELEIRA': 'Carreta Graneleira',
-  'CARRETA_PRANCHA': 'Carreta Prancha',
-  'CARRETA_TANQUE': 'Carreta Tanque',
-  'CARRETA_FRIGORIFICA': 'Carreta Frigorífica',
-  'RODOTREM': 'Rodotrem',
-  'RODOTREM_7_EIXOS': 'Rodotrem 7 Eixos',
-  'RODOTREM_9_EIXOS': 'Rodotrem 9 Eixos',
-  'BITREM': 'Bitrem',
-  'BITREM_7_EIXOS': 'Bitrem 7 Eixos',
-  'BITREM_9_EIXOS': 'Bitrem 9 Eixos',
-  'BITRUCK': 'Bitruck',
-  'VUC': 'VUC',
-  'VAN': 'Van',
-  'CAMINHÃO_3_4': 'Caminhão 3/4',
-  'CAMINHONETE': 'Caminhonete',
-  'OUTROS': 'Outros',
-};
-
-const getVehicleTypeLabel = (type: string): string => {
-  return VEHICLE_TYPES[type] || type;
-};
 
 const getStatusBadgeVariant = (status: string) => {
   switch (status) {

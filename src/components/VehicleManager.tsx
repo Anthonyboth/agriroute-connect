@@ -16,16 +16,7 @@ import { usePanelCapabilities } from '@/hooks/usePanelCapabilities';
 import { VehiclePhotoGallery } from '@/components/vehicle/VehiclePhotoGallery';
 import { VehiclePhotoThumbnails } from '@/components/vehicle/VehiclePhotoThumbnails';
 
-const VEHICLE_TYPES = [
-  { value: 'VUC', label: 'Caminhão 3/4' },
-  { value: 'TRUCK', label: 'Caminhão Truck' },
-  { value: 'CARRETA', label: 'Semirreboque' },
-  { value: 'CARRETA_BAU', label: 'Carreta Baú para Mudanças' },
-  { value: 'BITREM', label: 'Bitrem' },
-  { value: 'RODOTREM', label: 'Rodotrem' },
-  { value: 'TOCO', label: 'Toco' },
-  { value: 'CARRO_PEQUENO', label: 'Carro Pequeno para Fretes Urbanos' }
-];
+import { VEHICLE_TYPES_SELECT, getVehicleTypeLabel } from '@/lib/vehicle-types';
 
 interface Vehicle {
   id: string;
@@ -194,9 +185,7 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
     return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
   };
 
-  const getVehicleTypeLabel = (type: string) => {
-    return VEHICLE_TYPES.find(v => v.value === type)?.label || type;
-  };
+  // getVehicleTypeLabel agora é importado de @/lib/vehicle-types
 
   const handleAddVehicle = () => {
     // ✅ Verificar permissão centralizada
@@ -285,7 +274,7 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {VEHICLE_TYPES.map((type) => (
+                      {VEHICLE_TYPES_SELECT.map((type) => (
                         <SelectItem key={type.value} value={type.value}>
                           {type.label}
                         </SelectItem>
