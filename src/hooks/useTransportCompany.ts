@@ -1,8 +1,8 @@
+// Transport Company Hook - Updated 2025-12-10
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-
 export const useTransportCompany = () => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -88,10 +88,7 @@ export const useTransportCompany = () => {
             address_state,
             address_zip,
             created_at,
-            role,
-            pix_key,
-            bank_name,
-            bank_account
+            role
           )
         `)
         .eq('company_id', company.id)
