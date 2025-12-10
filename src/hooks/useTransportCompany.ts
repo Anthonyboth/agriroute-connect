@@ -79,7 +79,19 @@ export const useTransportCompany = () => {
             document,
             rntrc,
             document_validation_status,
-            cnh_validation_status
+            cnh_validation_status,
+            address_street,
+            address_number,
+            address_complement,
+            address_neighborhood,
+            address_city,
+            address_state,
+            address_zip,
+            created_at,
+            role,
+            pix_key,
+            bank_name,
+            bank_account
           )
         `)
         .eq('company_id', company.id)
