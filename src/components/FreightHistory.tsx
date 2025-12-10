@@ -119,7 +119,10 @@ export const FreightHistory: React.FC = () => {
 
     setLoading(true);
     try {
-      let query = supabase
+      let allFreights: Freight[] = [];
+
+      // 1. Buscar fretes tradicionais
+      let freightQuery = supabase
         .from('freights')
         .select(`
           *,
@@ -128,25 +131,74 @@ export const FreightHistory: React.FC = () => {
         `)
         .order('created_at', { ascending: false });
 
-      // Filter based on user role
       if (profile.role === 'PRODUTOR') {
-        query = query.eq('producer_id', profile.id);
+        freightQuery = freightQuery.eq('producer_id', profile.id);
       } else if (profile.role === 'MOTORISTA') {
-        query = query.eq('driver_id', profile.id);
+        freightQuery = freightQuery.eq('driver_id', profile.id);
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
+      const { data: freightsData, error: freightsError } = await freightQuery;
+      if (freightsError) throw freightsError;
       
-      // Transform data to match interface
-      const transformedData = (data || []).map(item => ({
+      const transformedFreights = (freightsData || []).map(item => ({
         ...item,
         producer: Array.isArray(item.producer) && item.producer.length > 0 ? item.producer[0] : undefined,
         driver: Array.isArray(item.driver) && item.driver.length > 0 ? item.driver[0] : undefined
       }));
       
-      setFreights(transformedData as Freight[]);
+      allFreights = [...transformedFreights];
+
+      // 2. Para motoristas: buscar service_requests onde provider_id = motorista (trabalhos prestados)
+      if (profile.role === 'MOTORISTA') {
+        const { data: serviceData, error: serviceError } = await supabase
+          .from('service_requests')
+          .select('*, client:profiles!service_requests_client_id_fkey(id, full_name)')
+          .eq('provider_id', profile.id)
+          .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_MOTO', 'FRETE_URBANO'])
+          .order('created_at', { ascending: false });
+
+        if (serviceError) throw serviceError;
+
+        // Transformar service_requests para o formato de Freight
+        const serviceAsFreights: Freight[] = (serviceData || []).map(service => {
+          let clientData: { id: string; full_name: string } | undefined = undefined;
+          if (service.client) {
+            if (Array.isArray(service.client) && service.client.length > 0) {
+              clientData = service.client[0];
+            } else if (typeof service.client === 'object' && !Array.isArray(service.client)) {
+              const c = service.client as unknown as { id: string; full_name: string };
+              if (c.id && c.full_name) {
+                clientData = c;
+              }
+            }
+          }
+          
+          return {
+            id: service.id,
+            cargo_type: service.service_type,
+            weight: 0,
+            origin_address: service.location_address || 'N/A',
+            destination_address: service.location_address || 'N/A',
+            pickup_date: service.created_at,
+            delivery_date: service.completed_at || service.created_at,
+            price: service.estimated_price || 0,
+            urgency: service.urgency || 'MEDIUM',
+            status: service.status,
+            distance_km: 0,
+            service_type: service.service_type,
+            created_at: service.created_at,
+            producer: clientData || undefined,
+            driver: { id: profile.id, full_name: profile.full_name || '' }
+          };
+        });
+
+        allFreights = [...allFreights, ...serviceAsFreights];
+      }
+
+      // Ordenar por data de criação
+      allFreights.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+      setFreights(allFreights as Freight[]);
     } catch (error) {
       console.error('Erro ao carregar histórico de fretes:', error);
       toast.error('Erro ao carregar histórico de fretes');

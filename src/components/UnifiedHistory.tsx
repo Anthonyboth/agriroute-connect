@@ -27,20 +27,27 @@ export const UnifiedHistory: React.FC<UnifiedHistoryProps> = ({
 
     const fetchCounts = async () => {
       try {
-        // Contagem de fretes
         if (userRole === 'MOTORISTA') {
-          const { count: freightCount } = await supabase
+          // Fretes = freights.driver_id + service_requests onde provider_id (GUINCHO, MUDANCA = trabalhos prestados)
+          const { count: freightsCount } = await supabase
             .from('freights')
             .select('*', { count: 'exact', head: true })
             .eq('driver_id', profile.id);
           
-          const { count: serviceCount } = await supabase
+          const { count: providedServicesCount } = await supabase
             .from('service_requests')
             .select('*', { count: 'exact', head: true })
-            .eq('provider_id', profile.id);
+            .eq('provider_id', profile.id)
+            .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_MOTO', 'FRETE_URBANO']);
 
-          setFreightCount(freightCount || 0);
-          setServiceCount(serviceCount || 0);
+          // Serviços = service_requests onde client_id (serviços que o motorista SOLICITOU)
+          const { count: requestedServicesCount } = await supabase
+            .from('service_requests')
+            .select('*', { count: 'exact', head: true })
+            .eq('client_id', profile.id);
+
+          setFreightCount((freightsCount || 0) + (providedServicesCount || 0));
+          setServiceCount(requestedServicesCount || 0);
         } else if (userRole === 'PRODUTOR') {
           const { count: freightCount } = await supabase
             .from('freights')
