@@ -105,9 +105,9 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
         { 
           id: 'FRETE_MOTO', 
           name: 'Frete por Moto', 
-          description: 'Entregas rápidas com motos e carretinhas', 
+          description: 'Moto com carretinha - Capacidade até 500kg', 
           price: 'A partir de R$ 15',
-          details: 'Ideal para pequenas cargas até 150kg. Motos equipadas com carretinhas para maior capacidade.'
+          details: 'Moto equipada com carretinha para cargas de até 500kg. Ideal para entregas rápidas e econômicas.'
         },
         { 
           id: 'FRETE_URBANO', 
@@ -148,7 +148,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
       description: 'Transporte rápido dentro da cidade',
       icon: '',
       subServices: [
-        { id: 'FRETE_MOTO', name: 'Frete de Moto', description: 'Entregas até 0.02t', price: 'A partir de R$ 15' },
+        { id: 'FRETE_MOTO', name: 'Frete por Moto', description: 'Moto com carretinha - até 500kg', price: 'A partir de R$ 15' },
         { id: 'FRETE_VAN', name: 'Frete de Van/Picape', description: 'Cargas até 1.5 toneladas', price: 'A partir de R$ 45' }
       ],
       features: ['Entrega rápida', 'Rastreamento', 'Carga protegida']
