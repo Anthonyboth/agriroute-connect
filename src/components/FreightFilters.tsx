@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLa
 import { Separator } from '@/components/ui/separator';
 import { Filter, MapPin } from 'lucide-react';
 import { CARGO_CATEGORIES, getCargoTypesByCategory } from '@/lib/cargo-types';
-import { CitySelector } from './CitySelector';
+import { UnifiedLocationInput, type LocationData } from './UnifiedLocationInput';
 
 interface FreightFiltersProps {
   filters: {
@@ -190,28 +190,30 @@ export const FreightFilters: React.FC<FreightFiltersProps> = ({
           <Label className="text-sm font-medium">Localização (opcional mas recomendado)</Label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Origem */}
-            <CitySelector
+            <UnifiedLocationInput
               label="Cidade de Origem"
-              placeholder="Digite para buscar"
-              value={filters.origin_city ? {
-                city: filters.origin_city.split(' - ')[0] || filters.origin_city,
-                state: filters.origin_city.split(' - ')[1] || ''
-              } : undefined}
-              onChange={(city) => {
-                onFilterChange('origin_city', `${city.city} - ${city.state}`);
+              placeholder="Digite CEP ou cidade"
+              value={filters.origin_city || ''}
+              onChange={(value, locationData) => {
+                if (locationData && locationData.city && locationData.state) {
+                  onFilterChange('origin_city', `${locationData.city} - ${locationData.state}`);
+                } else if (!value) {
+                  onFilterChange('origin_city', '');
+                }
               }}
             />
 
             {/* Destino */}
-            <CitySelector
+            <UnifiedLocationInput
               label="Cidade de Destino"
-              placeholder="Digite para buscar"
-              value={filters.destination_city ? {
-                city: filters.destination_city.split(' - ')[0] || filters.destination_city,
-                state: filters.destination_city.split(' - ')[1] || ''
-              } : undefined}
-              onChange={(city) => {
-                onFilterChange('destination_city', `${city.city} - ${city.state}`);
+              placeholder="Digite CEP ou cidade"
+              value={filters.destination_city || ''}
+              onChange={(value, locationData) => {
+                if (locationData && locationData.city && locationData.state) {
+                  onFilterChange('destination_city', `${locationData.city} - ${locationData.state}`);
+                } else if (!value) {
+                  onFilterChange('destination_city', '');
+                }
               }}
             />
           </div>

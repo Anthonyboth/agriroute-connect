@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CitySelector } from './CitySelector';
+import { UnifiedLocationInput, type LocationData } from './UnifiedLocationInput';
 import { RadiusSelector } from './RadiusSelector';
 import { MapPin, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -68,16 +68,11 @@ export const LocationValidationModal: React.FC<LocationValidationModalProps> = (
     checkExistingLocation();
   }, [user, isOpen]);
 
-  const handleCityChange = async (newCity: { city: string; state: string }) => {
-    setCity(newCity);
-    
-    // Buscar city_id
-    if (newCity.city && newCity.state) {
-      const { data } = await supabase
-        .rpc('search_cities', { search_term: newCity.city, limit_count: 1 });
-      
-      if (data && data.length > 0 && data[0].state === newCity.state) {
-        setCityId(data[0].id);
+  const handleCityChange = (value: string, locationData?: LocationData) => {
+    if (locationData && locationData.city && locationData.state) {
+      setCity({ city: locationData.city, state: locationData.state });
+      if (locationData.cityId) {
+        setCityId(locationData.cityId);
       }
     }
   };
@@ -169,11 +164,11 @@ export const LocationValidationModal: React.FC<LocationValidationModalProps> = (
           </Alert>
 
           <div className="space-y-4">
-            <CitySelector
-              value={city}
-              onChange={handleCityChange}
+            <UnifiedLocationInput
               label="Sua Cidade Base"
-              placeholder="Digite sua cidade..."
+              value={city.city && city.state ? `${city.city}, ${city.state}` : ''}
+              onChange={handleCityChange}
+              placeholder="Digite CEP ou nome da cidade..."
               required
             />
 
