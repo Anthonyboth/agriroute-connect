@@ -30,11 +30,11 @@ const CARGO_TYPE_LABELS: Record<string, string> = {
   // Outros
   'maquinas_agricolas': 'Máquinas Agrícolas',
   'equipamentos': 'Equipamentos',
-  'frete_moto': 'Frete por Moto',
+  'frete_moto': 'Frete Moto (Carretinha 500kg)',
   'outros': 'Outros',
   
   // Mapeamento em MAIÚSCULAS (compatibilidade)
-  'FRETE_MOTO': 'Frete por Moto',
+  'FRETE_MOTO': 'Frete Moto (Carretinha 500kg)',
   'GRAOS_SOJA': 'Grãos - Soja',
   'GRAOS_MILHO': 'Grãos - Milho',
   'GRAOS_TRIGO': 'Grãos - Trigo',
@@ -61,7 +61,7 @@ const CARGO_TYPE_LABELS: Record<string, string> = {
 
 const SERVICE_TYPE_LABELS: Record<string, string> = {
   'CARGA': 'Transporte de Carga',
-  'FRETE_MOTO': 'Frete por Moto',
+  'FRETE_MOTO': 'Frete Moto (Carretinha 500kg)',
   'GUINCHO': 'Guincho',
   'MUDANCA': 'Mudança',
   'CARGA_GERAL': 'Carga Geral',

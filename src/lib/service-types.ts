@@ -200,7 +200,7 @@ export const ALL_SERVICE_TYPES: ServiceType[] = [
   {
     id: 'FRETE_MOTO',
     label: 'Frete por Moto',
-    description: 'Entregas rápidas e pequenos fretes urbanos',
+    description: 'Moto com carretinha - Capacidade até 500kg para entregas rápidas',
     icon: Bike,
     color: 'bg-green-100 text-green-800 border-green-200',
     category: 'freight',

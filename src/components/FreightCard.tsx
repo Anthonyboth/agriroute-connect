@@ -298,7 +298,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       case 'MUDANCA':
         return 'Mudança';
       case 'FRETE_MOTO':
-        return 'Frete Moto';
+        return 'Frete Moto (Carretinha 500kg)';
       default:
         return 'Carga';
     }
