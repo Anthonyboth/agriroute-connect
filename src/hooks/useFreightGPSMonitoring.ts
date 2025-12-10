@@ -69,6 +69,19 @@ export const useFreightGPSMonitoring = (
         if (trackingError && trackingError.code !== 'PGRST116') {
           console.error('[GPS] Erro ao atualizar tracking:', trackingError);
         }
+
+        // ✅ NOVO: Salvar localização no histórico de 360 dias
+        const { error: historyError } = await supabase.rpc('insert_driver_location_history', {
+          p_driver_profile_id: driverProfileId,
+          p_freight_id: freightId,
+          p_lat: lat,
+          p_lng: lng,
+          p_accuracy: accuracy
+        });
+
+        if (historyError) {
+          console.error('[GPS] Erro ao salvar histórico:', historyError);
+        }
         
         // Reset contador de falhas
         consecutiveFailures = 0;
