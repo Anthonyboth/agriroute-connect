@@ -69,33 +69,36 @@ export const PendingServiceRatingsPanel: React.FC = () => {
         (profilesData || []).map(p => [p.id, p.full_name])
       );
 
-      // Filtrar serviços que ainda não foram avaliados
-      const pending: PendingService[] = [];
-      
-      for (const service of services) {
-        const isClient = service.client_id === profile.id;
-        const ratingType = isClient ? 'CLIENT_TO_PROVIDER' : 'PROVIDER_TO_CLIENT';
+      // OTIMIZAÇÃO: Buscar TODAS as avaliações existentes do usuário de uma vez (batch)
+      const serviceIds = services.map(s => s.id);
+      const { data: existingRatings } = await supabase
+        .from('service_ratings')
+        .select('service_request_id, rating_type')
+        .eq('rater_id', profile.id)
+        .in('service_request_id', serviceIds);
 
-        const { data: existingRating } = await supabase
-          .from('service_ratings')
-          .select('id')
-          .eq('service_request_id', service.id)
-          .eq('rater_id', profile.id)
-          .eq('rating_type', ratingType)
-          .maybeSingle();
+      // Criar Set para busca O(1) em vez de N consultas
+      const ratedServiceKeys = new Set(
+        (existingRatings || []).map(r => `${r.service_request_id}_${r.rating_type}`)
+      );
 
-        if (!existingRating) {
-          pending.push({
-            id: service.id,
-            service_type: service.service_type,
-            updated_at: service.updated_at,
-            client_id: service.client_id,
-            provider_id: service.provider_id,
-            client_name: profilesMap.get(service.client_id) || 'Cliente',
-            provider_name: profilesMap.get(service.provider_id) || 'Prestador',
-          });
-        }
-      }
+      // Filtrar serviços pendentes SEM consultas adicionais ao banco
+      const pending: PendingService[] = services
+        .filter(service => {
+          const isClient = service.client_id === profile.id;
+          const ratingType = isClient ? 'CLIENT_TO_PROVIDER' : 'PROVIDER_TO_CLIENT';
+          const key = `${service.id}_${ratingType}`;
+          return !ratedServiceKeys.has(key);
+        })
+        .map(service => ({
+          id: service.id,
+          service_type: service.service_type,
+          updated_at: service.updated_at,
+          client_id: service.client_id,
+          provider_id: service.provider_id,
+          client_name: profilesMap.get(service.client_id) || 'Cliente',
+          provider_name: profilesMap.get(service.provider_id) || 'Prestador',
+        }));
 
       setPendingServices(pending);
     } catch (error) {
