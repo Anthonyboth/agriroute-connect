@@ -49,6 +49,25 @@ interface FreightStatusTrackerProps {
   assignmentId?: string; // Track which assignment is being updated
 }
 
+// Fallback para traduzir status quando não encontrado no fluxo
+const getStatusLabelFallback = (status: string): string => {
+  const labels: Record<string, string> = {
+    'OPEN': 'Aberto',
+    'IN_NEGOTIATION': 'Em Negociação',
+    'ACCEPTED': 'Aceito',
+    'LOADING': 'A Caminho da Coleta',
+    'LOADED': 'Carregado',
+    'IN_TRANSIT': 'Em Transporte',
+    'DELIVERED': 'Entregue',
+    'DELIVERED_PENDING_CONFIRMATION': 'Entrega Reportada',
+    'CANCELLED': 'Cancelado',
+    'COMPLETED': 'Concluído',
+    'REJECTED': 'Rejeitado',
+    'PENDING': 'Pendente'
+  };
+  return labels[status] || status;
+};
+
 export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
   freightId,
   currentStatus,
@@ -410,7 +429,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
                   
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium">{status?.label}</span>
+                      <span className="font-medium">{status?.label || getStatusLabelFallback(item.status)}</span>
                       <Badge variant="outline" className="text-xs">
                         {['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(item.changer?.role) ? 'Motorista' : 'Sistema'}
                       </Badge>

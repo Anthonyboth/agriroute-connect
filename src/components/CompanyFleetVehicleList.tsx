@@ -49,30 +49,39 @@ export const CompanyFleetVehicleList = ({ companyId, onRefresh }: CompanyFleetVe
   };
 
   const getStatusBadge = (status: string) => {
+    const statusLabels: Record<string, string> = {
+      'APPROVED': 'Aprovado',
+      'PENDING': 'Pendente',
+      'REJECTED': 'Rejeitado',
+      'ACTIVE': 'Ativo',
+      'INACTIVE': 'Inativo'
+    };
+    const label = statusLabels[status] || status;
+    
     switch (status) {
       case 'APPROVED':
         return (
           <Badge className="bg-green-500 hover:bg-green-600">
             <CheckCircle className="mr-1 h-3 w-3" />
-            Aprovado
+            {label}
           </Badge>
         );
       case 'PENDING':
         return (
           <Badge className="bg-yellow-500 hover:bg-yellow-600">
             <Clock className="mr-1 h-3 w-3" />
-            Pendente
+            {label}
           </Badge>
         );
       case 'REJECTED':
         return (
           <Badge variant="destructive">
             <XCircle className="mr-1 h-3 w-3" />
-            Rejeitado
+            {label}
           </Badge>
         );
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="secondary">{label}</Badge>;
     }
   };
 

@@ -81,17 +81,27 @@ export function DriverPayouts({ driverId }: DriverPayoutsProps) {
   };
 
   const getStatusBadge = (status: string) => {
+    const statusLabels: Record<string, string> = {
+      'PENDING': 'Pendente',
+      'PROCESSING': 'Processando',
+      'COMPLETED': 'Concluído',
+      'REJECTED': 'Rejeitado',
+      'CANCELLED': 'Cancelado',
+      'FAILED': 'Falhou'
+    };
+    const label = statusLabels[status] || status;
+    
     switch (status) {
       case 'PENDING':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pendente</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">{label}</Badge>;
       case 'PROCESSING':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Processando</Badge>;
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">{label}</Badge>;
       case 'COMPLETED':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Concluído</Badge>;
+        return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">{label}</Badge>;
       case 'REJECTED':
-        return <Badge variant="destructive">Rejeitado</Badge>;
+        return <Badge variant="destructive">{label}</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{label}</Badge>;
     }
   };
 

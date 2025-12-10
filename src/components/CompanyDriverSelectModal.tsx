@@ -103,7 +103,7 @@ export const CompanyDriverSelectModal: React.FC<CompanyDriverSelectModalProps> =
                     >
                       <p className="font-medium">{driver.full_name}</p>
                       <p className="text-xs text-muted-foreground">
-                        Status: {driver.status}
+                        Status: {driver.status === 'ACTIVE' ? 'Ativo' : driver.status === 'INACTIVE' ? 'Inativo' : driver.status === 'PENDING' ? 'Pendente' : driver.status}
                       </p>
                     </Label>
                   </div>
