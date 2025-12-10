@@ -501,12 +501,20 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const renderNotificationCard = (notification: Notification) => (
     <div
       key={notification.id}
-      className={`group p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
+      className={`group p-3 rounded-lg border transition-all duration-200 cursor-pointer relative z-10 touch-manipulation ${
         !notification.read 
-          ? 'bg-primary/5 border-primary/20 hover:bg-primary/10' 
-          : 'bg-card border-border/50 hover:bg-muted/50'
+          ? 'bg-primary/5 border-primary/20 hover:bg-primary/10 active:bg-primary/15' 
+          : 'bg-card border-border/50 hover:bg-muted/50 active:bg-muted/70'
       } ${isActionableNotification(notification.type) ? 'hover:shadow-sm' : ''}`}
       onClick={() => handleNotificationClick(notification)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleNotificationClick(notification);
+        }
+      }}
     >
       <div className="flex items-start gap-3">
         <div className={`flex-shrink-0 p-2 rounded-full ${
@@ -540,10 +548,16 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           </p>
           
           {isActionableNotification(notification.type) && (
-            <div className="flex items-center gap-1 mt-2 text-primary">
+            <button 
+              className="flex items-center gap-1 mt-2 text-primary hover:text-primary/80 active:text-primary/60 touch-manipulation"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNotificationClick(notification);
+              }}
+            >
               <span className="text-xs font-medium">Ver detalhes</span>
               <ChevronRight className="h-3 w-3" />
-            </div>
+            </button>
           )}
         </div>
       </div>
@@ -601,7 +615,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       <NotificationSound unreadCount={unreadCount} />
       
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] p-0 gap-0 overflow-hidden">
+        <DialogContent 
+          className="sm:max-w-lg max-h-[85vh] p-0 gap-0 overflow-hidden"
+          hideCloseButton={true}
+        >
           {/* Header */}
           <div className="px-4 py-3 border-b bg-muted/30">
             <div className="flex items-center justify-between">
@@ -650,27 +667,41 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
           {/* Tabs */}
           <Tabs defaultValue="all" className="flex-1 flex flex-col">
-            <TabsList className="grid grid-cols-4 mx-4 mt-3 h-9">
-              <TabsTrigger value="all" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                Todas
-              </TabsTrigger>
-              <TabsTrigger value="proposals" className="text-xs">
-                <Package className="h-3 w-3 mr-1" />
-                Propostas
-              </TabsTrigger>
-              <TabsTrigger value="freights" className="text-xs">
-                <Truck className="h-3 w-3 mr-1" />
-                Fretes
-              </TabsTrigger>
-              <TabsTrigger value="payments" className="text-xs">
-                <DollarSign className="h-3 w-3 mr-1" />
-                Pagtos
-              </TabsTrigger>
-            </TabsList>
+            <div className="px-4 pt-3 overflow-x-auto">
+              <TabsList className="inline-flex w-auto min-w-full h-9 p-1 gap-1">
+                <TabsTrigger 
+                  value="all" 
+                  className="flex-1 min-w-[60px] text-xs px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  Todas
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="proposals" 
+                  className="flex-1 min-w-[80px] text-xs px-2"
+                >
+                  <Package className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span className="whitespace-nowrap">Propostas</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="freights" 
+                  className="flex-1 min-w-[60px] text-xs px-2"
+                >
+                  <Truck className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span className="whitespace-nowrap">Fretes</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="payments" 
+                  className="flex-1 min-w-[80px] text-xs px-2"
+                >
+                  <DollarSign className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span className="whitespace-nowrap">Pagamentos</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <div className="flex-1 overflow-hidden">
               <TabsContent value="all" className="m-0 h-full">
-                <ScrollArea className="h-[400px] px-4 py-3">
+                <ScrollArea className="h-[50vh] max-h-[400px] px-4 py-3">
                   {loading ? (
                     <div className="space-y-3">
                       {[1, 2, 3].map((i) => (
@@ -701,7 +732,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
               {['proposals', 'freights', 'payments'].map((group) => (
                 <TabsContent key={group} value={group} className="m-0 h-full">
-                  <ScrollArea className="h-[400px] px-4 py-3">
+                  <ScrollArea className="h-[50vh] max-h-[400px] px-4 py-3">
                     {renderNotificationList(groupedNotifications[group as keyof typeof groupedNotifications])}
                   </ScrollArea>
                 </TabsContent>
