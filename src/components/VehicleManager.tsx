@@ -6,13 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Truck, Plus, Edit, FileText } from 'lucide-react';
+import { Truck, Plus, Edit, FileText, Camera } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { DocumentUpload } from '@/components/DocumentUpload';
 import { useNavigate } from 'react-router-dom';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { usePanelCapabilities } from '@/hooks/usePanelCapabilities';
+import { VehiclePhotoGallery } from '@/components/vehicle/VehiclePhotoGallery';
+import { VehiclePhotoThumbnails } from '@/components/vehicle/VehiclePhotoThumbnails';
 
 const VEHICLE_TYPES = [
   { value: 'VUC', label: 'Caminhão 3/4' },
@@ -57,6 +59,8 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
     crlv_url: '',
     vehicle_photo_url: ''
   });
+  const [photoCount, setPhotoCount] = useState(0);
+  const [viewingGalleryVehicleId, setViewingGalleryVehicleId] = useState<string | null>(null);
 
   const fetchVehicles = async () => {
     if (!driverProfile?.id) return;
@@ -90,6 +94,17 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!driverProfile?.id) return;
+
+    // Validação: carretas precisam de pelo menos 1 foto
+    const isCarreta = ['CARRETA', 'CARRETA_BAU', 'BITREM', 'RODOTREM'].includes(vehicleData.vehicle_type);
+    if (isCarreta && editingVehicle && photoCount < 1) {
+      toast({
+        title: "Foto obrigatória",
+        description: "Carretas precisam de pelo menos 1 foto do veículo.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -141,6 +156,7 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
 
       resetForm();
       setIsAddModalOpen(false);
+      setPhotoCount(0);
       fetchVehicles();
     } catch (error: any) {
       console.error('Error saving vehicle:', error);
@@ -323,14 +339,28 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
                   bucketName="driver-documents"
                   onUploadComplete={(url) => setVehicleData(prev => ({ ...prev, crlv_url: url }))}
                 />
-
-                <DocumentUpload
-                  label="Foto do Veículo"
-                  fileType="vehicle_photo"
-                  bucketName="driver-documents"
-                  onUploadComplete={(url) => setVehicleData(prev => ({ ...prev, vehicle_photo_url: url }))}
-                />
               </div>
+
+              {/* Galeria de fotos - só aparece ao editar veículo existente */}
+              {editingVehicle && (
+                <div className="space-y-2">
+                  <VehiclePhotoGallery
+                    vehicleId={editingVehicle.id}
+                    isEditing={true}
+                    minPhotos={['CARRETA', 'CARRETA_BAU', 'BITREM', 'RODOTREM'].includes(vehicleData.vehicle_type) ? 1 : 0}
+                    onPhotosChange={setPhotoCount}
+                  />
+                </div>
+              )}
+
+              {/* Aviso para novos veículos */}
+              {!editingVehicle && (
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-xs text-blue-800 dark:text-blue-200">
+                    💡 Após cadastrar o veículo, você poderá adicionar fotos no álbum clicando em "Editar".
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-2 pt-4">
                 <Button 
@@ -393,38 +423,59 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
             </CardHeader>
             
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Tipo:</span>
-                  <p className="font-medium">{getVehicleTypeLabel(vehicle.vehicle_type)}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Capacidade:</span>
-                  <p className="font-medium">{vehicle.max_capacity_tons}t</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Eixos:</span>
-                  <p className="font-medium">{vehicle.axle_count}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {vehicle.crlv_url && (
-                    <FileText className="h-4 w-4 text-success" />
-                  )}
-                  <span className="text-xs text-muted-foreground">
-                    {vehicle.crlv_url ? 'CRLV OK' : 'Sem CRLV'}
-                  </span>
+              <div className="flex gap-4">
+                {/* Thumbnails das fotos */}
+                <VehiclePhotoThumbnails
+                  vehicleId={vehicle.id}
+                  maxShow={4}
+                  onClick={() => setViewingGalleryVehicleId(vehicle.id)}
+                />
+
+                {/* Informações do veículo */}
+                <div className="flex-1 grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground text-xs">Tipo:</span>
+                    <p className="font-medium text-sm">{getVehicleTypeLabel(vehicle.vehicle_type)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Capacidade:</span>
+                    <p className="font-medium text-sm">{vehicle.max_capacity_tons}t</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Eixos:</span>
+                    <p className="font-medium text-sm">{vehicle.axle_count}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {vehicle.crlv_url && (
+                      <FileText className="h-3 w-3 text-success" />
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {vehicle.crlv_url ? 'CRLV OK' : 'Sem CRLV'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => handleEdit(vehicle)}
-                className="w-full"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Editar
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setViewingGalleryVehicleId(vehicle.id)}
+                  className="flex-1"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Ver Fotos
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleEdit(vehicle)}
+                  className="flex-1"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -444,6 +495,25 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
           </Card>
         )}
       </div>
+
+      {/* Modal de galeria de fotos */}
+      <Dialog open={!!viewingGalleryVehicleId} onOpenChange={() => setViewingGalleryVehicleId(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              Álbum de Fotos
+            </DialogTitle>
+          </DialogHeader>
+          {viewingGalleryVehicleId && (
+            <VehiclePhotoGallery
+              vehicleId={viewingGalleryVehicleId}
+              isEditing={true}
+              minPhotos={0}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

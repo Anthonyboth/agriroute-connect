@@ -6615,6 +6615,47 @@ export type Database = {
           },
         ]
       }
+      vehicle_photo_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_visible: boolean | null
+          photo_type: string | null
+          photo_url: string
+          removed_at: string | null
+          uploaded_at: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_visible?: boolean | null
+          photo_type?: string | null
+          photo_url: string
+          removed_at?: string | null
+          uploaded_at?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_visible?: boolean | null
+          photo_type?: string | null
+          photo_url?: string
+          removed_at?: string | null
+          uploaded_at?: string | null
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_photo_history_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           assigned_driver_id: string | null
