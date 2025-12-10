@@ -41,7 +41,11 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
     try {
       setLoading(true);
       
-      // Get freights that are COMPLETED but user hasn't rated yet
+      console.log('[PendingRatingsPanel] 🔍 Iniciando busca de avaliações pendentes...');
+      console.log('[PendingRatingsPanel] 👤 User Profile ID:', userProfileId);
+      console.log('[PendingRatingsPanel] 🎭 User Role:', userRole);
+      
+      // Get freights that are DELIVERED but user hasn't rated yet
       const { data: freights, error: freightsError } = await supabase
         .from('freights')
         .select(`
@@ -53,15 +57,31 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
           updated_at,
           producer_id,
           driver_id,
+          status,
           producer_profiles:profiles!freights_producer_id_fkey(full_name),
           driver_profiles:profiles!freights_driver_id_fkey(full_name)
         `)
         .eq('status', 'DELIVERED')
         .or(`producer_id.eq.${userProfileId},driver_id.eq.${userProfileId}`);
 
-      if (freightsError) throw freightsError;
+      if (freightsError) {
+        console.error('[PendingRatingsPanel] ❌ Erro ao buscar fretes:', freightsError);
+        throw freightsError;
+      }
+
+      console.log('[PendingRatingsPanel] 📦 Fretes DELIVERED encontrados:', freights?.length || 0);
+      if (freights && freights.length > 0) {
+        console.log('[PendingRatingsPanel] 📋 Detalhes dos fretes:', freights.map(f => ({
+          id: f.id,
+          status: f.status,
+          cargo_type: f.cargo_type,
+          producer_id: f.producer_id,
+          driver_id: f.driver_id
+        })));
+      }
 
       if (!freights || freights.length === 0) {
+        console.log('[PendingRatingsPanel] ⚠️ Nenhum frete DELIVERED encontrado para este usuário');
         setPendingRatings([]);
         return;
       }
@@ -70,6 +90,8 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
       const freightIds = freights.map(f => f.id);
       const ratingType = userRole === 'PRODUTOR' ? 'PRODUCER_TO_DRIVER' : 'DRIVER_TO_PRODUCER';
 
+      console.log('[PendingRatingsPanel] 🔎 Buscando ratings existentes do tipo:', ratingType);
+
       const { data: existingRatings, error: ratingsError } = await supabase
         .from('freight_ratings')
         .select('freight_id')
@@ -77,15 +99,25 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
         .eq('rater_id', userProfileId)
         .eq('rating_type', ratingType);
 
-      if (ratingsError) throw ratingsError;
+      if (ratingsError) {
+        console.error('[PendingRatingsPanel] ❌ Erro ao buscar ratings:', ratingsError);
+        throw ratingsError;
+      }
+
+      console.log('[PendingRatingsPanel] ✅ Ratings existentes:', existingRatings?.length || 0);
 
       const ratedFreightIds = new Set(existingRatings?.map(r => r.freight_id) || []);
       const unratedFreights = freights.filter(f => !ratedFreightIds.has(f.id));
 
+      console.log('[PendingRatingsPanel] 📝 Fretes sem avaliação (pendentes):', unratedFreights.length);
+      if (unratedFreights.length > 0) {
+        console.log('[PendingRatingsPanel] 📋 IDs pendentes:', unratedFreights.map(f => f.id));
+      }
+
       setPendingRatings(unratedFreights);
       
     } catch (error) {
-      console.error('Erro ao buscar avaliações pendentes:', error);
+      console.error('[PendingRatingsPanel] ❌ Erro geral ao buscar avaliações pendentes:', error);
     } finally {
       setLoading(false);
     }

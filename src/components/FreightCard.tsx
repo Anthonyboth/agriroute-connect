@@ -356,9 +356,18 @@ export const FreightCard: React.FC<FreightCardProps> = ({
 
           {/* LINHA 3: Tipo de Serviço + Peso/Distância (com scroll horizontal) */}
           <div className="flex justify-between items-center gap-3 min-w-fit">
-            <Badge variant="outline" className="text-xs bg-secondary/30 shrink-0">
-              {getServiceLabel()}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs bg-secondary/30 shrink-0">
+                {getServiceLabel()}
+              </Badge>
+              {/* Badge de capacidade máxima para moto */}
+              {freight.service_type === 'FRETE_MOTO' && (
+                <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300 shrink-0">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Máx. 500kg
+                </Badge>
+              )}
+            </div>
             <div className="flex items-center space-x-3 text-xs whitespace-nowrap">
               {freight.service_type === 'GUINCHO' ? (
                 <span className="text-muted-foreground">Reboque</span>

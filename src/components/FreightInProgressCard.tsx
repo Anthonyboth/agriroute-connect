@@ -9,7 +9,7 @@ import React from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Truck, Clock, ArrowRight, Calendar, AlertTriangle } from 'lucide-react';
+import { MapPin, Truck, Clock, ArrowRight, Calendar, AlertTriangle, Bike } from 'lucide-react';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { formatKm, formatBRL, formatTons, formatDate } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
@@ -32,6 +32,7 @@ interface FreightInProgressCardProps {
     pickup_date: string;
     price: number;
     status: string;
+    service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO';
     driver_profiles?: {
       full_name: string;
     } | null;
@@ -118,6 +119,13 @@ export const FreightInProgressCard: React.FC<FreightInProgressCardProps> = ({
                 <Clock className="h-3.5 w-3.5 text-warning" />
                 <span>{formatDate(freight.pickup_date)}</span>
               </div>
+              {/* Badge de capacidade máxima para moto */}
+              {freight.service_type === 'FRETE_MOTO' && (
+                <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300 shrink-0">
+                  <Bike className="h-3 w-3 mr-1" />
+                  Máx. 500kg
+                </Badge>
+              )}
             </div>
 
             {/* Status e Preço no lado direito */}
