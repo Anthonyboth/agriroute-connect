@@ -24,6 +24,7 @@ import { CompanyModeToggle } from '@/components/CompanyModeToggle';
 import { NotificationPreferencesModal } from '@/components/NotificationPreferencesModal';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { AffiliationDetailsModal } from '@/components/AffiliationDetailsModal';
+import { playSoundNotification } from '@/utils/playSound';
 
 interface User {
   name: string;
@@ -178,7 +179,10 @@ const Header: React.FC<HeaderProps> = ({
                 variant="ghost" 
                 size="sm" 
                 className="relative h-9 w-9 p-0"
-                onClick={() => setShowNotifications(true)}
+                onClick={() => {
+                  playSoundNotification();
+                  setShowNotifications(true);
+                }}
               >
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 {notifications > 0 && (
@@ -284,7 +288,10 @@ const Header: React.FC<HeaderProps> = ({
                 variant="ghost" 
                 size="sm" 
                 className="relative h-9 w-9 p-0"
-                onClick={() => setShowNotifications(true)}
+                onClick={() => {
+                  playSoundNotification();
+                  setShowNotifications(true);
+                }}
               >
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 {notifications > 0 && (

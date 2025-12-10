@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { getWhatsAppUrl } from '@/lib/support-contact';
+import { playSoundSupport } from '@/utils/playSound';
 
 interface Position {
   x: number;
@@ -155,7 +156,9 @@ export const FloatingSupportButton: React.FC = () => {
       e.stopPropagation();
       return;
     }
-    // Se não arrastou, deixa o link <a> funcionar naturalmente
+    // Tocar som antes de abrir WhatsApp
+    playSoundSupport();
+    // Deixa o link <a> funcionar naturalmente
   };
 
   return (
