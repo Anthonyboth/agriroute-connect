@@ -1,28 +1,42 @@
 // Traduções para português brasileiro - Textos corrigidos
 
-export const statusTranslations = {
-  // Estados de frete
+export const statusTranslations: Record<string, string> = {
+  // Estados de frete - COMPLETO
   'OPEN': 'Aberto',
   'IN_NEGOTIATION': 'Em Negociação',
   'ACCEPTED': 'Aceito',
+  'LOADING': 'A Caminho da Coleta',
+  'LOADED': 'Carregado',
   'IN_TRANSIT': 'Em Transporte',
   'DELIVERED': 'Entregue',
+  'DELIVERED_PENDING_CONFIRMATION': 'Entrega Reportada',
   'CANCELLED': 'Cancelado',
+  'COMPLETED': 'Concluído',
+  'REJECTED': 'Rejeitado',
   
   // Estados de proposta
   'PENDING': 'Pendente',
-  'REJECTED': 'Rejeitada',
   
-  // Estados de usuário
+  // Estados de usuário/motorista
   'APPROVED': 'Aprovado',
+  'ACTIVE': 'Ativo',
+  'INACTIVE': 'Inativo',
+  'LEFT': 'Saiu',
+  'REMOVED': 'Removido',
   
   // Estados de validação
   'VALIDATED': 'Validado',
   'EXPIRED': 'Expirado',
-  'COMPLETED': 'Concluído',
   
   // Estados de serviço
-  'IN_PROGRESS': 'Em Andamento'
+  'IN_PROGRESS': 'Em Andamento',
+  
+  // Estados de pagamento
+  'PROCESSING': 'Processando',
+  'FAILED': 'Falhou',
+  
+  // Estados de emergência
+  'RESOLVED': 'Resolvido'
 };
 
 export const buttonTranslations = {

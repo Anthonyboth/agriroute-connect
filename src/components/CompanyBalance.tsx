@@ -32,15 +32,24 @@ export function CompanyBalance() {
   const [recentTransactions] = useState<Transaction[]>([]);
 
   const getStatusBadge = (status: string) => {
+    const statusLabels: Record<string, string> = {
+      'PENDING': 'Pendente',
+      'COMPLETED': 'Concluído',
+      'FAILED': 'Falhou',
+      'CANCELLED': 'Cancelado',
+      'PROCESSING': 'Processando'
+    };
+    const label = statusLabels[status] || status;
+    
     switch (status) {
       case 'PENDING':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pendente</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">{label}</Badge>;
       case 'COMPLETED':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800">Concluído</Badge>;
+        return <Badge variant="secondary" className="bg-green-100 text-green-800">{label}</Badge>;
       case 'FAILED':
-        return <Badge variant="destructive">Falhou</Badge>;
+        return <Badge variant="destructive">{label}</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{label}</Badge>;
     }
   };
 

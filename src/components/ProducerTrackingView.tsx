@@ -133,10 +133,15 @@ export function ProducerTrackingView({ freightId }: ProducerTrackingViewProps) {
 function getStatusLabel(status: string): string {
   const statusLabels: Record<string, string> = {
     'ACCEPTED': 'Aceito',
-    'LOADING': 'A caminho da coleta', 
+    'LOADING': 'A Caminho da Coleta', 
     'LOADED': 'Carregado',
-    'IN_TRANSIT': 'Em Trânsito',
-    'DELIVERED': 'Entregue'
+    'IN_TRANSIT': 'Em Transporte',
+    'DELIVERED': 'Entregue',
+    'DELIVERED_PENDING_CONFIRMATION': 'Entrega Reportada',
+    'OPEN': 'Aberto',
+    'IN_NEGOTIATION': 'Em Negociação',
+    'CANCELLED': 'Cancelado',
+    'COMPLETED': 'Concluído'
   };
   return statusLabels[status] || status;
 }

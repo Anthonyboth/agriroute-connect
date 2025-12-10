@@ -65,13 +65,15 @@ export const getFreightStatusLabel = (status: string): string => {
     case 'ACCEPTED':
       return 'Aceito';
     case 'LOADING':
-      return 'Coletando';
+      return 'A Caminho da Coleta';
+    case 'LOADED':
+      return 'Carregado';
     case 'IN_TRANSIT':
       return 'Em Transporte';
     case 'DELIVERED':
       return 'Entregue';
     case 'DELIVERED_PENDING_CONFIRMATION':
-      return 'Aguardando Confirmação';
+      return 'Entrega Reportada';
     case 'CANCELLED':
       return 'Cancelado';
     case 'REJECTED':
@@ -79,7 +81,7 @@ export const getFreightStatusLabel = (status: string): string => {
     case 'PENDING':
       return 'Pendente';
     case 'COMPLETED':
-      return 'Finalizado';
+      return 'Concluído';
     default:
       return status;
   }

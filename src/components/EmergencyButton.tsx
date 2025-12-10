@@ -177,15 +177,23 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({
   };
 
   const getStatusBadge = (status: string) => {
+    const statusLabels: Record<string, string> = {
+      'ACTIVE': 'Ativo',
+      'RESOLVED': 'Resolvido',
+      'CANCELLED': 'Cancelado',
+      'PENDING': 'Pendente'
+    };
+    const label = statusLabels[status] || status;
+    
     switch (status) {
       case 'ACTIVE':
-        return <Badge variant="destructive" className="animate-pulse"><AlertTriangle className="w-3 h-3 mr-1" />Ativo</Badge>;
+        return <Badge variant="destructive" className="animate-pulse"><AlertTriangle className="w-3 h-3 mr-1" />{label}</Badge>;
       case 'RESOLVED':
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Resolvido</Badge>;
+        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />{label}</Badge>;
       case 'CANCELLED':
-        return <Badge variant="outline"><XCircle className="w-3 h-3 mr-1" />Cancelado</Badge>;
+        return <Badge variant="outline"><XCircle className="w-3 h-3 mr-1" />{label}</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{label}</Badge>;
     }
   };
 

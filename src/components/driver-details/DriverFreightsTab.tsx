@@ -59,13 +59,31 @@ export const DriverFreightsTab = ({ driverProfileId }: DriverFreightsTabProps) =
   }
 
   const getStatusBadge = (status: string) => {
+    const statusLabels: Record<string, string> = {
+      'OPEN': 'Aberto',
+      'IN_NEGOTIATION': 'Em Negociação',
+      'ACCEPTED': 'Aceito',
+      'LOADING': 'A Caminho da Coleta',
+      'LOADED': 'Carregado',
+      'IN_TRANSIT': 'Em Transporte',
+      'DELIVERED': 'Entregue',
+      'DELIVERED_PENDING_CONFIRMATION': 'Entrega Reportada',
+      'COMPLETED': 'Concluído',
+      'CANCELLED': 'Cancelado',
+      'REJECTED': 'Rejeitado',
+      'PENDING': 'Pendente'
+    };
     const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
       'COMPLETED': 'default',
+      'DELIVERED': 'default',
       'IN_TRANSIT': 'secondary',
+      'LOADING': 'secondary',
       'CANCELLED': 'destructive',
+      'REJECTED': 'destructive',
       'PENDING': 'outline',
     };
-    return <Badge variant={variants[status] || 'outline'}>{status}</Badge>;
+    const label = statusLabels[status] || status;
+    return <Badge variant={variants[status] || 'outline'}>{label}</Badge>;
   };
 
   return (

@@ -37,17 +37,26 @@ export const ServicePaymentHistory: React.FC = () => {
   }
 
   const getStatusBadge = (status: string) => {
+    const statusLabels: Record<string, string> = {
+      'COMPLETED': 'Pago',
+      'PENDING': 'Pendente',
+      'FAILED': 'Falhou',
+      'CANCELLED': 'Cancelado',
+      'PROCESSING': 'Processando'
+    };
+    const label = statusLabels[status] || status;
+    
     switch (status) {
       case 'COMPLETED':
-        return <Badge className="bg-green-100 text-green-800">Pago</Badge>;
+        return <Badge className="bg-green-100 text-green-800">{label}</Badge>;
       case 'PENDING':
-        return <Badge variant="secondary">Pendente</Badge>;
+        return <Badge variant="secondary">{label}</Badge>;
       case 'FAILED':
-        return <Badge variant="destructive">Falhou</Badge>;
+        return <Badge variant="destructive">{label}</Badge>;
       case 'CANCELLED':
-        return <Badge variant="outline">Cancelado</Badge>;
+        return <Badge variant="outline">{label}</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="secondary">{label}</Badge>;
     }
   };
 
