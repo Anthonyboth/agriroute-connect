@@ -269,6 +269,10 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                     ? clientProfile?.full_name || 'Cliente'
                     : providerProfile?.full_name || 'Prestador',
                 },
+                participants: [
+                  ...(clientProfile ? [{ id: service.client_id, name: clientProfile.full_name || 'Cliente', role: 'PRODUTOR' as const }] : []),
+                  ...(providerProfile ? [{ id: service.provider_id, name: providerProfile.full_name || 'Prestador', role: 'PRESTADOR_SERVICO' as const }] : []),
+                ],
                 metadata: { serviceRequestId: service.id },
                 isClosed,
               });
@@ -358,6 +362,10 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                     ? msg.company?.company_name || 'Transportadora'
                     : msg.driver?.full_name || 'Motorista',
               },
+              participants: [
+                { id: msg.driver_profile_id, name: msg.driver?.full_name || 'Motorista', role: 'MOTORISTA_AFILIADO' as const },
+                { id: msg.company?.profile_id || msg.company_id, name: msg.company?.company_name || 'Transportadora', role: 'TRANSPORTADORA' as const },
+              ],
               metadata: {
                 companyId: msg.company_id,
                 driverProfileId: msg.driver_profile_id,
@@ -431,6 +439,11 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                   otherParticipant: {
                     name: msg.sender?.full_name || 'Motorista',
                   },
+                  participants: [{
+                    id: msg.sender_id,
+                    name: msg.sender?.full_name || 'Motorista',
+                    role: 'MOTORISTA' as const,
+                  }],
                   metadata: {
                     messageId: msg.id,
                     freightData: freightData,

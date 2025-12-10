@@ -41,6 +41,7 @@ export const ScheduledFreightCard: React.FC<ScheduledFreightCardProps> = ({
         ? (freight.profiles?.full_name || 'Motorista')
         : (freight.producer?.full_name || 'Produtor')
     },
+    participants: [],
     metadata: freight,
     isClosed: false
   };
