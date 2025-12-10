@@ -6936,16 +6936,6 @@ export type Database = {
       }
       find_drivers_by_origin:
         | {
-            Args: { origin_city_param: string; origin_state_param: string }
-            Returns: {
-              distance_km: number
-              driver_id: string
-              driver_name: string
-              driver_rating: number
-              service_types: string[]
-            }[]
-          }
-        | {
             Args: { freight_uuid: string }
             Returns: {
               distance_m: number
@@ -6955,7 +6945,27 @@ export type Database = {
               radius_km: number
             }[]
           }
+        | {
+            Args: { origin_city_param: string; origin_state_param: string }
+            Returns: {
+              distance_km: number
+              driver_id: string
+              driver_name: string
+              driver_rating: number
+              service_types: string[]
+            }[]
+          }
       find_drivers_by_route:
+        | {
+            Args: { freight_uuid: string }
+            Returns: {
+              distance_to_route_m: number
+              driver_area_id: string
+              driver_id: string
+              match_method: string
+              radius_km: number
+            }[]
+          }
         | {
             Args: {
               destination_city_param: string
@@ -6969,16 +6979,6 @@ export type Database = {
               driver_rating: number
               match_score: number
               service_types: string[]
-            }[]
-          }
-        | {
-            Args: { freight_uuid: string }
-            Returns: {
-              distance_to_route_m: number
-              driver_area_id: string
-              driver_id: string
-              match_method: string
-              radius_km: number
             }[]
           }
       find_providers_by_location: {
@@ -7609,15 +7609,15 @@ export type Database = {
       }
       log_sensitive_data_access:
         | {
-            Args: { access_type: string; request_id: string }
-            Returns: undefined
-          }
-        | {
             Args: {
               access_type: string
               accessed_id: string
               accessed_table: string
             }
+            Returns: undefined
+          }
+        | {
+            Args: { access_type: string; request_id: string }
             Returns: undefined
           }
       mark_freight_messages_as_read: {

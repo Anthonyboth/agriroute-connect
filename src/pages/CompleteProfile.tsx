@@ -32,12 +32,7 @@ import {
   type RegistrationMode 
 } from '@/lib/registration-policy';
 
-type PlatePhoto = {
-  id: string;
-  type: 'TRACTOR' | 'TRAILER';
-  url: string;
-  label: string;
-};
+// Tipo PlatePhoto removido - veículos são cadastrados após o cadastro pessoal
 
 interface AddressData {
   city: string;
@@ -112,9 +107,7 @@ const CompleteProfile = () => {
   });
   
   const [showSelfieModal, setShowSelfieModal] = useState(false);
-  const [platePhotos, setPlatePhotos] = useState<PlatePhoto[]>([
-    { id: '1', type: 'TRACTOR', url: '', label: 'Placa do Cavalo (Trator)' }
-  ]);
+  // platePhotos removido - veículos são cadastrados após o cadastro pessoal na aba Veículos
   const [acceptedDocumentsResponsibility, setAcceptedDocumentsResponsibility] = useState(false);
   const [acceptedTermsOfUse, setAcceptedTermsOfUse] = useState(false);
   const [acceptedPrivacyPolicy, setAcceptedPrivacyPolicy] = useState(false);
@@ -144,11 +137,7 @@ const CompleteProfile = () => {
         address_proof: profile.address_proof_url || ''
       });
       
-      // Load plate photos from metadata
-      const metadata = (profile as any).metadata;
-      if (metadata?.plate_photos) {
-        setPlatePhotos(metadata.plate_photos);
-      }
+      // plate_photos removido - veículos são cadastrados após o cadastro pessoal
       
       setLocationEnabled(profile.location_enabled || false);
       
@@ -242,7 +231,7 @@ const CompleteProfile = () => {
     const state = {
       profileData,
       documentUrls,
-      platePhotos,
+      platePhotos: [], // Removido - veículos são adicionados após o cadastro
       vehicles: [], // Veículos agora são adicionados após o cadastro
       skipVehicleRegistration: true, // Sempre pular cadastro de veículos durante registro
       locationEnabled
@@ -355,12 +344,8 @@ const CompleteProfile = () => {
         return cleaned;
       };
 
-      // Salvar metadata com as fotos de placas
-      const platePhotosMetadata = platePhotos.map(p => ({
-        type: p.type,
-        label: p.label,
-        url: p.url
-      }));
+      // Fotos de placas removidas - veículos são cadastrados após o cadastro
+      const platePhotosMetadata: any[] = [];
 
       // Preparar dados base (obrigatórios para todos)
       const baseUpdateData = {
@@ -1044,69 +1029,18 @@ const CompleteProfile = () => {
                       </div>
                     </div>
 
-                    {/* Sistema de múltiplas fotos de placas */}
-                    <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>Fotos das Placas *</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const nextNumber = platePhotos.filter(p => p.type === 'TRAILER').length + 1;
-                        setPlatePhotos([
-                          ...platePhotos,
-                          { 
-                            id: Date.now().toString(), 
-                            type: 'TRAILER', 
-                            url: '', 
-                            label: `Placa da Carreta ${nextNumber}` 
-                          }
-                        ]);
-                      }}
-                      className="flex items-center gap-1"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Adicionar Placa de Carreta
-                    </Button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {platePhotos.map((plate, index) => (
-                      <div key={plate.id} className="flex items-start gap-2">
-                        <div className="flex-1">
-                          <DocumentUpload
-                            label={plate.label}
-                            fileType={`plate_${plate.type.toLowerCase()}_${index}`}
-                            bucketName="driver-documents"
-                            onUploadComplete={(url) => {
-                              setPlatePhotos(platePhotos.map(p => 
-                                p.id === plate.id ? { ...p, url } : p
-                              ));
-                            }}
-                            required={plate.type === 'TRACTOR'}
-                          />
-                        </div>
-                        {plate.type === 'TRAILER' && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setPlatePhotos(platePhotos.filter(p => p.id !== plate.id));
-                            }}
-                            className="mt-8"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                      <p className="text-xs text-muted-foreground">
-                        Adicione fotos de todas as placas do conjunto (cavalo + carretas)
-                      </p>
-                    </div>
+                    {/* Seção de fotos de placas REMOVIDA - veículos são cadastrados após o cadastro pessoal na aba Veículos */}
+                    <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900">
+                      <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <AlertTitle className="text-blue-900 dark:text-blue-100">
+                        Cadastro de Veículos
+                      </AlertTitle>
+                      <AlertDescription className="text-blue-800 dark:text-blue-200">
+                        O cadastro de veículos será realizado após finalizar seu cadastro pessoal, 
+                        através da aba "Veículos" no seu painel. Motoristas autônomos devem cadastrar 
+                        pelo menos um veículo para poder aceitar fretes.
+                      </AlertDescription>
+                    </Alert>
                   </>
                 )}
 
