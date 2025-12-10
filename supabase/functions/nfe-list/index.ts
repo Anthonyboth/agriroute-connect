@@ -22,9 +22,23 @@ serve(async (req) => {
       }
     );
 
-    const url = new URL(req.url);
-    const status = url.searchParams.get('status');
-    const freight_id = url.searchParams.get('freight_id');
+    // Aceitar parâmetros tanto de query string quanto do body (POST)
+    let status: string | null = null;
+    let freight_id: string | null = null;
+
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        status = body.status || null;
+        freight_id = body.freight_id || null;
+      } catch {
+        // Body vazio é ok
+      }
+    } else {
+      const url = new URL(req.url);
+      status = url.searchParams.get('status');
+      freight_id = url.searchParams.get('freight_id');
+    }
 
     let query = supabaseClient
       .from('nfe_documents')
