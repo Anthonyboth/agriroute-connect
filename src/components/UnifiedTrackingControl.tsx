@@ -162,21 +162,21 @@ export const UnifiedTrackingControl = () => {
   return (
     <>
       {/* Versão compacta (sempre visível) */}
-      <div className="flex items-center justify-between p-3 bg-card rounded-lg border mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-card rounded-lg border mb-4">
         <div 
-          className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={toggleModal}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => e.key === 'Enter' && toggleModal()}
         >
-          <Navigation className={`h-5 w-5 ${isTracking ? 'text-green-500 animate-pulse' : 'text-muted-foreground'}`} />
+          <Navigation className={`h-5 w-5 flex-shrink-0 ${isTracking ? 'text-green-500 animate-pulse' : 'text-muted-foreground'}`} />
           <span className="font-medium text-sm">Rastreamento</span>
-          <Info className="h-3 w-3 text-muted-foreground" />
+          <Info className="h-3 w-3 text-muted-foreground flex-shrink-0" />
         </div>
         
-        <div className="flex items-center gap-2">
-          <Badge variant={isTracking ? "default" : "secondary"} className="text-xs">
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <Badge variant={isTracking ? "default" : "secondary"} className="text-xs whitespace-nowrap">
             {isTracking ? (
               <>
                 <MapPin className="h-3 w-3 mr-1 animate-pulse" />
@@ -194,6 +194,7 @@ export const UnifiedTrackingControl = () => {
             onClick={isTracking ? stopTracking : () => startTracking(false)}
             variant={isTracking ? "destructive" : "default"}
             size="sm"
+            className="whitespace-nowrap"
           >
             {isTracking ? (
               <>
