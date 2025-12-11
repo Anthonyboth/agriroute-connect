@@ -92,7 +92,7 @@ export const FreightRatingModal: React.FC<FreightRatingModalProps> = ({
           comment: comment.trim() || null,
           rating_type: ratingType
         }, {
-          onConflict: 'freight_id,rater_id'
+          onConflict: 'freight_id,rater_id,rating_type'
         });
 
       if (ratingError) throw ratingError;

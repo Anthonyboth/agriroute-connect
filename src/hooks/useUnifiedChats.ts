@@ -153,9 +153,13 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
               
               // Verificar fechamento automático: frete finalizado + ambos avaliaram
               const freightRatings = ratingsMap.get(freight.id);
-              const isFreightCompleted = ['DELIVERED', 'COMPLETED'].includes(freight.status);
+              const FINAL_STATUSES = ['DELIVERED', 'COMPLETED', 'CANCELLED', 'DELIVERED_PENDING_CONFIRMATION', 'ENTREGUE', 'CONCLUIDO', 'CANCELADO'];
+              const isFreightCompleted = FINAL_STATUSES.includes(freight.status);
               const bothRated = freightRatings && freightRatings.size >= 2;
               const isAutoClosedByRatings = isFreightCompleted && bothRated;
+              
+              // Se frete está em status final, marcar como fechado automaticamente
+              const shouldAutoClose = isFreightCompleted;
 
               // Corrigir cidades null
               const originCity = freight.origin_city || freight.origin_address?.split(',')[0] || 'Origem';
@@ -219,7 +223,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                 },
                 participants,
                 metadata: { freightId: freight.id, companyId: freight.company_id },
-                isClosed: isClosed || isAutoClosedByRatings,
+                isClosed: isClosed || isAutoClosedByRatings || shouldAutoClose,
                 isAutoClosedByRatings,
                 freightStatus: freight.status,
                 hasGpsTracking,

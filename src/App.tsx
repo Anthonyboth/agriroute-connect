@@ -639,6 +639,30 @@ const SessionManager = () => {
   return null;
 };
 
+// Component to handle Android/browser back button navigation
+const AndroidBackButtonHandler = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  React.useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // Handle back button for modals or special cases
+      const currentPath = window.location.pathname;
+      
+      // Se estiver em auth, ir para landing
+      if (currentPath === '/auth') {
+        event.preventDefault();
+        navigate('/', { replace: true });
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate, location.pathname]);
+
+  return null;
+};
+
 const App = () => {
   React.useEffect(() => {
     // Notificar o overlay que a app pintou
@@ -666,6 +690,7 @@ const App = () => {
                     <ScrollToTop />
                     <DeviceSetup />
                     <SessionManager />
+                    <AndroidBackButtonHandler />
                     <ErrorMonitoringSetup />
                     <ZipCodeSyncOnReconnect />
                     <FloatingSupportButton />
