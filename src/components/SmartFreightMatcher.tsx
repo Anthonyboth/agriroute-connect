@@ -853,34 +853,34 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     switch (serviceType) {
       case 'CARGA':
         return (
-          <Badge className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
-            <Package className="h-3 w-3" />
-            Carga
+          <Badge className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
+            <Package className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">Carga</span>
           </Badge>
         );
       case 'MUDANCA':
         return (
-          <Badge className="bg-blue-100 text-blue-800 border-blue-200 flex items-center gap-1">
-            <Truck className="h-3 w-3" />
-            Mudança
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
+            <Truck className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">Mudança</span>
           </Badge>
         );
       case 'GUINCHO':
         return (
-          <Badge className="bg-orange-100 text-orange-800 border-orange-200 flex items-center gap-1">
-            <Wrench className="h-3 w-3" />
-            Guincho
+          <Badge className="bg-orange-100 text-orange-800 border-orange-200 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
+            <Wrench className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">Guincho</span>
           </Badge>
         );
       case 'FRETE_MOTO':
         return (
-          <Badge className="bg-teal-100 text-teal-800 border-teal-200 flex items-center gap-1">
-            <Bike className="h-3 w-3" />
-            Moto
+          <Badge className="bg-teal-100 text-teal-800 border-teal-200 flex items-center gap-1 max-w-fit truncate whitespace-nowrap">
+            <Bike className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">Moto</span>
           </Badge>
         );
       default:
-        return <Badge variant="secondary">{serviceType}</Badge>;
+        return <Badge variant="secondary" className="truncate max-w-fit whitespace-nowrap">{serviceType}</Badge>;
     }
   };
 
