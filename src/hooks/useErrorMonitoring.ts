@@ -1,6 +1,18 @@
 import { useEffect } from 'react';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
+// ✅ Lista centralizada de URLs de monitoramento (Correção 4)
+const MONITORING_ENDPOINTS = [
+  'telegram-error-notifier',
+  'report-error',
+  'report-user-panel-error',
+  'send-telegram-alert',
+  'process-telegram-queue'
+];
+
+const isMonitoringUrl = (url: string): boolean => 
+  MONITORING_ENDPOINTS.some(endpoint => url.includes(endpoint));
+
 /**
  * Hook global para interceptar erros de API do Supabase
  * Captura erros HTTP 400-599 e reporta ao sistema de monitoramento
@@ -22,7 +34,11 @@ export function useErrorMonitoring() {
     const originalFetch = window.fetch;
     
     window.fetch = async (...args: Parameters<typeof fetch>) => {
-      if (import.meta.env.DEV) {
+      // ✅ Extrair URL antes do try/catch (Correção 1 e 4)
+      const urlString = typeof args[0] === 'string' ? args[0] : '';
+      const isMonitoringRequest = isMonitoringUrl(urlString);
+      
+      if (import.meta.env.DEV && !isMonitoringRequest) {
         console.log('🌐 [useErrorMonitoring] Fetch interceptado:', args[0]);
       }
       
@@ -33,17 +49,13 @@ export function useErrorMonitoring() {
         
         const response = await originalFetch(...args);
         
-        // ✅ Não reportar se flag X-Skip-Error-Monitoring estiver presente
-        if (skipMonitoring) {
+        // ✅ Não reportar se flag X-Skip-Error-Monitoring ou se é URL de monitoramento
+        if (skipMonitoring || isMonitoringRequest) {
           return response;
         }
         
         // Capturar erros HTTP 400-599 de APIs Supabase
-        // ✅ Ignorar erros da própria função de notificação para evitar loops
-        const urlString = typeof args[0] === 'string' ? args[0] : '';
-        const isTelegramNotifier = urlString.includes('telegram-error-notifier') || urlString.includes('report-error');
-        
-        if (!response.ok && urlString.includes('supabase') && !isTelegramNotifier) {
+        if (!response.ok && urlString.includes('supabase')) {
           if (import.meta.env.DEV) {
             console.log('❌ [useErrorMonitoring] Erro HTTP capturado:', response.status);
           }
@@ -87,11 +99,17 @@ export function useErrorMonitoring() {
         
         return response;
       } catch (error) {
+        // ✅ Correção 1: NÃO reportar erros de rede das próprias chamadas de monitoramento
+        if (isMonitoringRequest) {
+          console.debug('[useErrorMonitoring] Erro de rede em chamada de monitoramento - suprimido para evitar loop');
+          throw error;
+        }
+        
         console.error('💥 [useErrorMonitoring] Erro de fetch:', error);
         // Capturar erros de rede (fetch falhou)
         errorMonitoring.captureError(error as Error, {
           source: 'fetch_error',
-          url: typeof args[0] === 'string' ? args[0] : 'unknown',
+          url: urlString || 'unknown',
           userFacing: true
         });
         throw error;
@@ -103,7 +121,6 @@ export function useErrorMonitoring() {
         console.log('🔍 [useErrorMonitoring] Hook desmontado');
       }
       // ✅ Não restaurar fetch - manter patch ativo até reload
-      // (evita reinstalações caso componente seja remontado)
     };
   }, []);
 }
