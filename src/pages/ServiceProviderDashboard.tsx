@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ServiceProviderDashboard as ServiceDashboard } from '@/components/ServiceProviderDashboard';
-import { PendingServiceRatingsPanel } from '@/components/PendingServiceRatingsPanel';
 import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
 import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { Button } from '@/components/ui/button';
-import { AppBreadcrumb } from '@/components/navigation/AppBreadcrumb';
 
 const ServiceProviderDashboard = () => {
   const { profile, signOut } = useAuth();
@@ -31,20 +29,17 @@ const ServiceProviderDashboard = () => {
 
       if (now < nextShow) {
         setIsMuralOpen(false);
-        // Programa reabertura automática às 07:00
         timeoutId = window.setTimeout(() => {
           localStorage.removeItem('mural_dismissed_at');
           setManualOpen(false);
           setIsMuralOpen(true);
         }, nextShow.getTime() - now.getTime());
       } else {
-        // Já passou das 07:00: limpa flag e abre
         localStorage.removeItem('mural_dismissed_at');
         setManualOpen(false);
         setIsMuralOpen(true);
       }
     } else {
-      // Sem flag de dismiss: aberto por padrão
       setManualOpen(false);
       setIsMuralOpen(true);
     }
@@ -68,11 +63,9 @@ const ServiceProviderDashboard = () => {
     console.log('Menu clicked');
   };
 
-  // Tratar navegação de notificações (ServiceProviderDashboard não implementa modal de serviço ainda)
   useEffect(() => {
     const state = location.state as any;
     if (state) {
-      // Apenas limpar state por enquanto - funcionalidade pode ser expandida futuramente
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.state, navigate, location.pathname]);
@@ -87,35 +80,30 @@ const ServiceProviderDashboard = () => {
         notifications={unreadCount}
       />
       
-      {/* Breadcrumb Navigation */}
-      <div className="container mx-auto px-4 py-2">
-        <AppBreadcrumb />
-      </div>
-      
       <div className="provider-theme">
         <div className="container mx-auto p-4 space-y-4">
-        {/* Botão Mural de Avisos */}
-        <div className="mb-6">
-        <Button
-          variant="outline"
-          onClick={() => {
-            const newState = !isMuralOpen;
-            setIsMuralOpen(newState);
-            setManualOpen(newState);
-          }}
-          className="mb-3 flex items-center gap-2"
-        >
-          <span>📢</span> Mural de Avisos
-        </Button>
-        <SystemAnnouncementsBoard
-          isOpen={isMuralOpen}
-          onClose={() => {
-            setIsMuralOpen(false);
-            setManualOpen(false);
-          }}
-          ignoreDismissals={manualOpen}
-        />
-        </div>
+          {/* Botão Mural de Avisos */}
+          <div className="mb-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                const newState = !isMuralOpen;
+                setIsMuralOpen(newState);
+                setManualOpen(newState);
+              }}
+              className="mb-3 flex items-center gap-2"
+            >
+              <span>📢</span> Mural de Avisos
+            </Button>
+            <SystemAnnouncementsBoard
+              isOpen={isMuralOpen}
+              onClose={() => {
+                setIsMuralOpen(false);
+                setManualOpen(false);
+              }}
+              ignoreDismissals={manualOpen}
+            />
+          </div>
 
           <ServiceDashboard />
         </div>
