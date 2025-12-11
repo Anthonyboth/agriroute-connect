@@ -18,7 +18,7 @@ interface ScheduledFreightCardProps {
   onWithdraw?: (freightId: string) => void;
 }
 
-export const ScheduledFreightCard: React.FC<ScheduledFreightCardProps> = ({
+const ScheduledFreightCardComponent: React.FC<ScheduledFreightCardProps> = ({
   freight,
   userRole,
   userProfileId,
@@ -165,3 +165,16 @@ export const ScheduledFreightCard: React.FC<ScheduledFreightCardProps> = ({
     </>
   );
 };
+
+// ✅ PHASE 1: Memoização para evitar re-renders desnecessários em listas
+export const ScheduledFreightCard = React.memo(ScheduledFreightCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.freight.id === nextProps.freight.id &&
+    prevProps.freight.status === nextProps.freight.status &&
+    prevProps.freight.price === nextProps.freight.price &&
+    prevProps.freight.pickup_date === nextProps.freight.pickup_date &&
+    prevProps.userRole === nextProps.userRole &&
+    prevProps.userProfileId === nextProps.userProfileId &&
+    prevProps.onWithdraw === nextProps.onWithdraw
+  );
+});

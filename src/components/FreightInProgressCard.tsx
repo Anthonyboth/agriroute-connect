@@ -49,7 +49,7 @@ interface FreightInProgressCardProps {
   highlightFreightId?: string;
 }
 
-export const FreightInProgressCard: React.FC<FreightInProgressCardProps> = ({
+const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   freight,
   onViewDetails,
   onRequestCancel,
@@ -225,3 +225,17 @@ export const FreightInProgressCard: React.FC<FreightInProgressCardProps> = ({
     </Card>
   );
 };
+
+// ✅ PHASE 1: Memoização para evitar re-renders desnecessários em listas
+export const FreightInProgressCard = React.memo(FreightInProgressCardComponent, (prevProps, nextProps) => {
+  // Comparador customizado para evitar re-renders desnecessários
+  return (
+    prevProps.freight.id === nextProps.freight.id &&
+    prevProps.freight.status === nextProps.freight.status &&
+    prevProps.freight.price === nextProps.freight.price &&
+    prevProps.showActions === nextProps.showActions &&
+    prevProps.highlightFreightId === nextProps.highlightFreightId &&
+    prevProps.onViewDetails === nextProps.onViewDetails &&
+    prevProps.onRequestCancel === nextProps.onRequestCancel
+  );
+});

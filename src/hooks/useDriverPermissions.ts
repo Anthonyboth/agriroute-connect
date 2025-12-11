@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { useCompanyDriver } from './useCompanyDriver';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 export interface DriverPermissions {
   isAffiliated: boolean;
@@ -18,48 +18,35 @@ export const useDriverPermissions = (): DriverPermissions => {
   const { profile } = useAuth();
   const { companyDriver, canAcceptFreights: companyCanAccept, canManageVehicles } = useCompanyDriver();
   
-  const [hasVehicle, setHasVehicle] = useState(false);
-  const [vehicleCheckLoading, setVehicleCheckLoading] = useState(true);
+  // ✅ PHASE 3: Migrar verificação de veículo para React Query com cache
+  const isAutonomous = (profile?.role === 'MOTORISTA' || profile?.role === 'MOTORISTA_AFILIADO') && !companyDriver;
   
-  // Verificar se motorista autônomo tem veículo cadastrado
-  useEffect(() => {
-    const checkVehicle = async () => {
-      if (!profile?.id) {
-        setVehicleCheckLoading(false);
-        return;
-      }
+  const { data: vehicleCount = 0, isLoading: vehicleCheckLoading } = useQuery({
+    queryKey: ['driver-vehicle-count', profile?.id],
+    queryFn: async () => {
+      if (!profile?.id || !isAutonomous) return 0;
       
-      // Só verificar para motoristas autônomos (não afiliados)
-      const isAutonomous = (profile?.role === 'MOTORISTA' || profile?.role === 'MOTORISTA_AFILIADO') && !companyDriver;
+      const { count, error } = await supabase
+        .from('vehicles')
+        .select('id', { count: 'exact', head: true })
+        .eq('driver_id', profile.id);
       
-      if (!isAutonomous) {
-        setHasVehicle(true); // Afiliados usam veículos da empresa
-        setVehicleCheckLoading(false);
-        return;
-      }
-      
-      try {
-        const { count, error } = await supabase
-          .from('vehicles')
-          .select('id', { count: 'exact', head: true })
-          .eq('driver_id', profile.id);
-        
-        if (error) {
+      if (error) {
+        if (import.meta.env.DEV) {
           console.error('Erro ao verificar veículos:', error);
-          setHasVehicle(false);
-        } else {
-          setHasVehicle((count || 0) > 0);
         }
-      } catch (error) {
-        console.error('Erro ao verificar veículos:', error);
-        setHasVehicle(false);
-      } finally {
-        setVehicleCheckLoading(false);
+        return 0;
       }
-    };
-    
-    checkVehicle();
-  }, [profile?.id, profile?.role, companyDriver]);
+      
+      return count || 0;
+    },
+    enabled: !!profile?.id && isAutonomous,
+    staleTime: 5 * 60 * 1000, // 5 minutos de cache
+    gcTime: 10 * 60 * 1000, // 10 minutos de garbage collection
+    refetchOnWindowFocus: false,
+  });
+  
+  const hasVehicle = isAutonomous ? vehicleCount > 0 : true; // Afiliados usam veículos da empresa
   
   // ✅ CRÍTICO: Verificar se é AFILIADO (não apenas motorista de empresa)
   const isAffiliatedDriver = companyDriver?.affiliation_type === 'AFFILIATED';
@@ -80,6 +67,6 @@ export const useDriverPermissions = (): DriverPermissions => {
     companyName: companyDriver?.company?.company_name || null,
     mustUseChat: isAffiliatedDriver && !canAccept,
     hasVehicle,
-    vehicleCheckLoading,
+    vehicleCheckLoading: isAutonomous ? vehicleCheckLoading : false,
   };
 };

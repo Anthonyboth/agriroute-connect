@@ -256,11 +256,8 @@ const ProducerDashboard = () => {
   const fetchFreights = useCallback(async () => {
     // Don't fetch if user is not a producer
     if (!profile?.id || profile.role !== 'PRODUTOR') {
-      console.log('fetchFreights: Não executando - Profile não é produtor:', profile);
       return;
     }
-
-    console.log('fetchFreights: Iniciando busca para produtor ID:', profile.id);
 
     try {
       // ✅ Query com JOIN para carregar dados do motorista
@@ -280,35 +277,15 @@ const ProducerDashboard = () => {
         .eq('producer_id', profile.id)
         .order('updated_at', { ascending: false })
         .limit(500);
-
-      console.log('fetchFreights: Resposta da query:', { data, error, count: data?.length });
       
       if (error) {
-        console.error('fetchFreights: ❌ Erro na query:', error);
         toast.error('Erro ao carregar fretes');
         showErrorToast(toast, 'Erro ao carregar fretes', error);
         return;
       }
 
-      // ✅ Se vazio, fazer HEAD count para debug
+      // Se vazio, não precisa fazer fallback
       if (!data || data.length === 0) {
-        console.warn('fetchFreights: ⚠️ Nenhum frete retornado. Verificando count...');
-        
-        const { count, error: countError } = await supabase
-          .from('freights')
-          .select('id', { count: 'exact', head: true })
-          .eq('producer_id', profile.id);
-
-        console.log('fetchFreights: HEAD count result:', { count, countError });
-        
-        if (countError) {
-          console.error('fetchFreights: ❌ Erro ao buscar count:', countError);
-        } else if (count === 0) {
-          console.log('fetchFreights: ✅ Confirmado: produtor não tem fretes cadastrados');
-        } else {
-          console.error('fetchFreights: 🔥 CRÍTICO: count=' + count + ' mas SELECT retornou 0. Problema de RLS ou query!');
-        }
-        
         setFreights([]);
         return;
       }
@@ -348,7 +325,6 @@ const ProducerDashboard = () => {
 
       // Fallback: garantir que fretes aguardando confirmação apareçam
       if (finalData.every(f => f.status !== 'DELIVERED_PENDING_CONFIRMATION')) {
-        console.log('fetchFreights: Nenhum DPC na busca principal, executando fallback direcionado...');
         const { data: dpcData, error: dpcError } = await (supabase as any)
           .from('freights')
           .select(`
@@ -366,66 +342,25 @@ const ProducerDashboard = () => {
           .order('updated_at', { ascending: false })
           .limit(50);
 
-        if (dpcError) {
-          console.warn('fetchFreights: Fallback DPC query erro:', dpcError);
-        } else if (dpcData && dpcData.length > 0) {
+        if (!dpcError && dpcData && dpcData.length > 0) {
           const existingIds = new Set(finalData.map((f: any) => f.id));
           finalData = [...finalData, ...dpcData.filter((f: any) => !existingIds.has(f.id))];
-          console.log('fetchFreights: Fallback adicionou fretes DPC:', dpcData.map(f => f.id));
         }
       }
       
-      // ✅ Logs detalhados por status (dados finais)
-      const openFreights = finalData.filter(f => f.status === 'OPEN');
-      console.log('fetchFreights: ✅ Fretes encontrados por status:', {
-        OPEN: openFreights.length,
-        OPEN_IDs: openFreights.map(f => f.id),
-        ACCEPTED: finalData.filter(f => f.status === 'ACCEPTED').length,
-        IN_TRANSIT: finalData.filter(f => f.status === 'IN_TRANSIT').length,
-        DELIVERED_PENDING_CONFIRMATION: finalData.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length,
-        DELIVERED: finalData.filter(f => f.status === 'DELIVERED').length,
-        total: finalData.length,
-        allStatuses: finalData.map(f => f.status)
-      });
-      
       setFreights(finalData);
     } catch (error) {
-      console.error('fetchFreights: ❌ Erro fatal:', error);
       toast.error('Erro ao carregar fretes');
       showErrorToast(toast, 'Erro ao carregar fretes', error);
     }
   }, [profile?.id, profile?.role]);
 
-  // 🔍 DEBUG: Log detalhado quando freights mudam
-  useEffect(() => {
-    if (freights.length > 0) {
-      console.log('🟢 DASHBOARD: Fretes carregados:', {
-        total: freights.length,
-        profileId: profile?.id,
-        freightsByStatus: {
-          OPEN: freights.filter(f => f.status === 'OPEN').length,
-          ACCEPTED: freights.filter(f => f.status === 'ACCEPTED').length,
-          LOADED: freights.filter(f => f.status === 'LOADED').length,
-          IN_TRANSIT: freights.filter(f => f.status === 'IN_TRANSIT').length,
-          DELIVERED_PENDING_CONFIRMATION: freights.filter(f => f.status === 'DELIVERED_PENDING_CONFIRMATION').length,
-          CANCELLED: freights.filter(f => f.status === 'CANCELLED').length
-        },
-        freightIds: freights.map(f => f.id)
-      });
-    } else {
-      console.warn('🔴 DASHBOARD: Nenhum frete carregado para profile:', profile?.id);
-    }
-  }, [freights, profile?.id]);
-
   // Buscar propostas - otimizado
   const fetchProposals = useCallback(async () => {
     // Don't fetch if user is not a producer
     if (!profile?.id || profile.role !== 'PRODUTOR') {
-      console.log('fetchProposals: Não executando - Profile não é produtor:', profile);
       return;
     }
-
-    console.log('fetchProposals: Iniciando busca para produtor ID:', profile.id);
 
     try {
       // First get freight IDs for this producer
@@ -434,18 +369,14 @@ const ProducerDashboard = () => {
         .select('id')
         .eq('producer_id', profile.id);
 
-      console.log('fetchProposals: Fretes do produtor:', { producerFreights, freightError });
-
       if (freightError) throw freightError;
 
       if (!producerFreights || producerFreights.length === 0) {
-        console.log('fetchProposals: Nenhum frete encontrado para o produtor');
         setProposals([]);
         return;
       }
 
       const freightIds = producerFreights.map(f => f.id);
-      console.log('fetchProposals: IDs dos fretes:', freightIds);
 
       // Then get proposals for those freights
       const { data, error } = await supabase
@@ -460,12 +391,9 @@ const ProducerDashboard = () => {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      console.log('fetchProposals: Resposta da query de propostas:', { data, error, count: data?.length });
-
       if (error) throw error;
       setProposals(data || []);
     } catch (error) {
-      console.error('fetchProposals: Error:', error);
       toast.error('Erro ao carregar propostas');
     }
   }, [profile?.id, profile?.role]);
@@ -473,11 +401,8 @@ const ProducerDashboard = () => {
   // Buscar pagamentos externos
   const fetchExternalPayments = useCallback(async () => {
     if (!profile?.id || profile.role !== 'PRODUTOR') {
-      console.log('fetchExternalPayments: Não executando - Profile não é produtor:', profile);
       return;
     }
-
-    console.log('fetchExternalPayments: Iniciando busca para produtor ID:', profile.id);
 
     try {
       const { data, error } = await supabase
@@ -486,16 +411,9 @@ const ProducerDashboard = () => {
         .eq('producer_id', profile.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('fetchExternalPayments: Erro na query:', error);
-        throw error;
-      }
-
-      const paymentsData = data || [];
-      
-      setExternalPayments(paymentsData);
+      if (error) throw error;
+      setExternalPayments(data || []);
     } catch (error) {
-      console.error('fetchExternalPayments: Error:', error);
       toast.error('Erro ao carregar pagamentos');
     }
   }, [profile?.id, profile?.role]);
@@ -503,11 +421,8 @@ const ProducerDashboard = () => {
   // Buscar pagamentos de fretes
   const fetchFreightPayments = useCallback(async () => {
     if (!profile?.id || profile.role !== 'PRODUTOR') {
-      console.log('fetchFreightPayments: Não executando - Profile não é produtor:', profile);
       return;
     }
-
-    console.log('fetchFreightPayments: Iniciando busca para produtor ID:', profile.id);
 
     try {
       const { data, error } = await (supabase as any)
@@ -516,16 +431,9 @@ const ProducerDashboard = () => {
         .eq('payer_id', profile.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('fetchFreightPayments: Erro na query:', error);
-        throw error;
-      }
-
-      const paymentsData = data || [];
-      
-      setFreightPayments(paymentsData);
+      if (error) throw error;
+      setFreightPayments(data || []);
     } catch (error) {
-      console.error('fetchFreightPayments: Error:', error);
       toast.error('Erro ao carregar pagamentos de fretes');
     }
   }, [profile?.id, profile?.role]);
@@ -533,11 +441,8 @@ const ProducerDashboard = () => {
   // Buscar solicitações de serviço
   const fetchServiceRequests = useCallback(async () => {
     if (!profile?.id || profile.role !== 'PRODUTOR') {
-      console.log('fetchServiceRequests: Não executando - Profile não é produtor:', profile);
       return;
     }
-
-    console.log('fetchServiceRequests: Iniciando busca para produtor ID:', profile.id);
 
     try {
       const { data, error } = await supabase
@@ -547,26 +452,10 @@ const ProducerDashboard = () => {
         .eq('status', 'OPEN')
         .order('created_at', { ascending: false })
         .limit(100);
-
-      console.log('fetchServiceRequests: Resposta da query:', { data, error, count: data?.length });
       
-      if (error) {
-        console.error('fetchServiceRequests: Erro na query:', error);
-        throw error;
-      }
-      
-      const serviceData = data || [];
-      console.log('fetchServiceRequests: Serviços encontrados por status:', {
-        OPEN: serviceData.filter(s => s.status === 'OPEN').length,
-        ACCEPTED: serviceData.filter(s => s.status === 'ACCEPTED').length,
-        IN_PROGRESS: serviceData.filter(s => s.status === 'IN_PROGRESS').length,
-        COMPLETED: serviceData.filter(s => s.status === 'COMPLETED').length,
-        total: serviceData.length
-      });
-      
-      setServiceRequests(serviceData);
+      if (error) throw error;
+      setServiceRequests(data || []);
     } catch (error) {
-      console.error('fetchServiceRequests: Error:', error);
       toast.error('Erro ao carregar serviços');
     }
   }, [profile?.id, profile?.role]);
@@ -586,23 +475,11 @@ const ProducerDashboard = () => {
 
   // Carregar dados - otimizado
   useEffect(() => {
-    console.log('useEffect loadData executado. Profile:', profile);
-    
     const loadData = async () => {
-      // Forçar execução mesmo sem profile para debug
-      console.log('loadData: Forçando execução. Profile disponível:', !!profile?.id, 'Role:', profile?.role);
-      
-      if (!profile?.id) {
-        console.log('loadData: Profile não está disponível ainda, aguardando...');
+      if (!profile?.id || profile.role !== 'PRODUTOR') {
         return;
       }
 
-      if (profile.role !== 'PRODUTOR') {
-        console.log('loadData: Usuário não é produtor, role:', profile.role);
-        return;
-      }
-
-      console.log('loadData: Executando fetchFreights, fetchProposals e fetchExternalPayments para:', profile.id);
       setLoading(true);
       
       try {
@@ -614,8 +491,6 @@ const ProducerDashboard = () => {
           fetchFreightPayments(),
           fetchServiceRequests()
         ]);
-      } catch (error) {
-        console.error('loadData: Erro no carregamento:', error);
       } finally {
         setLoading(false);
       }
@@ -623,7 +498,6 @@ const ProducerDashboard = () => {
 
     // Executar imediatamente se profile estiver disponível
     if (profile?.id && profile?.role === 'PRODUTOR') {
-      console.log('loadData: Profile disponível, executando imediatamente');
       loadData();
     }
   }, [profile?.id, profile?.role]);
@@ -646,11 +520,69 @@ const ProducerDashboard = () => {
   }, [location.state, profile?.id, freights, navigate, location.pathname]);
 
 
-  // Atualização em tempo real
+  // ✅ PHASE 2: Debounced fetch functions para evitar chamadas em cascata
+  const debouncedFetchFreights = useMemo(
+    () => {
+      let timeoutId: NodeJS.Timeout | null = null;
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fetchFreights(), 300);
+      };
+    },
+    [fetchFreights]
+  );
+
+  const debouncedFetchProposals = useMemo(
+    () => {
+      let timeoutId: NodeJS.Timeout | null = null;
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fetchProposals(), 300);
+      };
+    },
+    [fetchProposals]
+  );
+
+  const debouncedFetchExternalPayments = useMemo(
+    () => {
+      let timeoutId: NodeJS.Timeout | null = null;
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fetchExternalPayments(), 300);
+      };
+    },
+    [fetchExternalPayments]
+  );
+
+  const debouncedFetchFreightPayments = useMemo(
+    () => {
+      let timeoutId: NodeJS.Timeout | null = null;
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fetchFreightPayments(), 300);
+      };
+    },
+    [fetchFreightPayments]
+  );
+
+  const debouncedFetchServiceRequests = useMemo(
+    () => {
+      let timeoutId: NodeJS.Timeout | null = null;
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fetchServiceRequests(), 300);
+      };
+    },
+    [fetchServiceRequests]
+  );
+
+  // Atualização em tempo real - COM DEBOUNCE
   useEffect(() => {
     if (!profile?.id) return;
     
-    console.log('Configurando realtime para produtor:', profile.id);
+    if (import.meta.env.DEV) {
+      console.log('Configurando realtime para produtor:', profile.id);
+    }
     
     // Canal para monitorar mudanças de status e disparar avaliação
     const ratingChannel = supabase
@@ -693,34 +625,32 @@ const ProducerDashboard = () => {
     
     const channel = supabase
       .channel('realtime-freights-producer')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'freights' }, (payload) => {
-        console.log('Mudança em freights detectada:', payload);
-        fetchFreights();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freights' }, () => {
+        // ✅ PHASE 2: Usar versão debounced
+        debouncedFetchFreights();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_proposals' }, (payload) => {
-        console.log('Mudança em propostas detectada:', payload);
-        fetchProposals();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_proposals' }, () => {
+        debouncedFetchProposals();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'external_payments' }, (payload) => {
-        console.log('Mudança em pagamentos externos detectada:', payload);
-        fetchExternalPayments();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'external_payments' }, () => {
+        debouncedFetchExternalPayments();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_payments' }, (payload) => {
-        console.log('Mudança em pagamentos de fretes detectada:', payload);
-        fetchFreightPayments();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_payments' }, () => {
+        debouncedFetchFreightPayments();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_requests' }, (payload) => {
-        console.log('Mudança em service_requests detectada:', payload);
-        fetchServiceRequests();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_requests' }, () => {
+        debouncedFetchServiceRequests();
       })
       .subscribe();
 
     return () => {
-      console.log('Removendo canal realtime');
+      if (import.meta.env.DEV) {
+        console.log('Removendo canal realtime');
+      }
       supabase.removeChannel(ratingChannel);
       supabase.removeChannel(channel);
     };
-  }, [profile?.id]);
+  }, [profile?.id, debouncedFetchFreights, debouncedFetchProposals, debouncedFetchExternalPayments, debouncedFetchFreightPayments, debouncedFetchServiceRequests]);
 
   const handleAcceptProposal = async (proposalId: string) => {
     try {
