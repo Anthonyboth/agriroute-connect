@@ -8,13 +8,24 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Check if we're on a public page that doesn't need realtime
+const isPublicPage = typeof window !== 'undefined' && 
+  ['/', '/auth', '/about', '/privacy', '/terms', '/cookies', '/plans', '/services', '/help', '/careers', '/status'].some(
+    path => window.location.pathname === path || window.location.pathname.startsWith('/auth')
+  );
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: sessionStorage, // Changed from localStorage for better security against XSS attacks
     persistSession: true,
     autoRefreshToken: true,
   },
-  realtime: {
+  realtime: isPublicPage ? {
+    // Disable realtime on public pages to prevent console errors
+    params: {
+      eventsPerSecond: 0
+    }
+  } : {
     params: {
       eventsPerSecond: 10
     },
