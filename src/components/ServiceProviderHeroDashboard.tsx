@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatsCard } from '@/components/ui/stats-card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Settings, 
   MapPin, 
@@ -144,6 +145,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
   }
 
   return (
+    <TooltipProvider>
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-green-500 to-green-600 text-white overflow-hidden">
@@ -158,35 +160,59 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
             
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-2xl mx-auto">
-              <Button
-                onClick={() => setShowAreasModal(true)}
-                variant="secondary"
-                size="lg"
-                className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
-              >
-                <MapPin className="h-5 w-5 mr-2" />
-                Configurar Região
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => setShowAreasModal(true)}
+                    variant="secondary"
+                    size="lg"
+                    className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
+                    aria-label="Configurar cidades e regiões onde você atende"
+                  >
+                    <MapPin className="h-5 w-5 mr-2" aria-hidden="true" />
+                    Configurar Região
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Defina as cidades onde você atende clientes</p>
+                </TooltipContent>
+              </Tooltip>
               
-              <Button
-                onClick={() => setShowServiceTypesModal(true)}
-                variant="secondary"
-                size="lg"
-                className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
-              >
-                <Wrench className="h-5 w-5 mr-2" />
-                Configurar Serviços
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => setShowServiceTypesModal(true)}
+                    variant="secondary"
+                    size="lg"
+                    className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
+                    aria-label="Configurar tipos de serviços oferecidos"
+                  >
+                    <Wrench className="h-5 w-5 mr-2" aria-hidden="true" />
+                    Configurar Serviços
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Configure os serviços que você oferece</p>
+                </TooltipContent>
+              </Tooltip>
               
-              <Button
-                onClick={() => setServicesModalOpen(true)}
-                variant="secondary"
-                size="lg"
-                className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
-              >
-                <Settings className="h-5 w-5 mr-2" />
-                Solicitar Serviços
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => setServicesModalOpen(true)}
+                    variant="secondary"
+                    size="lg"
+                    className="w-full sm:w-auto bg-white/90 hover:bg-white text-green-700 border-0 shadow-lg"
+                    aria-label="Solicitar serviços como guincho ou mudança"
+                  >
+                    <Settings className="h-5 w-5 mr-2" aria-hidden="true" />
+                    Solicitar Serviços
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Solicite guincho, mudança ou outros serviços</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -332,6 +358,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
         onClose={() => setServicesModalOpen(false)}
       />
     </div>
+    </TooltipProvider>
   );
 };
 
