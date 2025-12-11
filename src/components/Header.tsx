@@ -129,7 +129,7 @@ const Header: React.FC<HeaderProps> = ({
 
   const menuItems = [
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
-    { icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) },
+    ...(user?.role !== 'TRANSPORTADORA' ? [{ icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) }] : []),
     ...(user?.role !== 'PRODUTOR' ? [{ icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) }] : []),
     { icon: Bell, label: 'Notificações', action: () => setShowNotificationPrefs(true) },
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
