@@ -66,50 +66,16 @@ import { DriverPerformanceDashboard } from '@/components/dashboards/DriverPerfor
 import { DriverExpenseManager } from '@/components/driver/DriverExpenseManager';
 import { DriverFinancialReport } from '@/components/driver/DriverFinancialReport';
 
-interface Freight {
-  id: string;
-  cargo_type: string;
-  weight: number;
-  origin_address: string;
-  destination_address: string;
-  pickup_date: string;
-  delivery_date: string;
-  price: number;
-  urgency: 'LOW' | 'MEDIUM' | 'HIGH';
-  status: string; // Allow all database status values
-  distance_km: number;
-  minimum_antt_price: number;
-  service_type?: CanonicalServiceType;
-  // Flag para identificar serviços urbanos (GUINCHO/MUDANCA) convertidos
-  is_service_request?: boolean;
-  // Propriedades específicas de service_requests
-  problem_description?: string;
-  contact_phone?: string;
-  contact_name?: string;
-  additional_info?: string;
-  producer?: {
-    id: string;
-    full_name: string;
-    contact_phone?: string;
-    role: string;
-  };
-}
+// Sub-components refatorados
+import { DriverDashboardHero } from './driver/DriverDashboardHero';
+import { DriverDashboardStats } from './driver/DriverDashboardStats';
+import { DriverOngoingTab } from './driver/DriverOngoingTab';
+import { DriverProposalsTab } from './driver/DriverProposalsTab';
+import { DriverPaymentsTab } from './driver/DriverPaymentsTab';
+import { DriverDashboardModals } from './driver/DriverDashboardModals';
+import type { Freight, Proposal } from './driver/types';
 
-interface Proposal {
-  id: string;
-  freight_id: string;
-  driver_id: string;
-  proposed_price: number;
-  status: string; // Allow all database status values
-  created_at: string;
-  message?: string;
-  freight?: Freight;
-  producer?: {
-    id: string;
-    full_name: string;
-    phone: string;
-  };
-}
+// LocalProposal type removed - using imported Proposal from ./driver/types
 
 const DriverDashboard = () => {
   const { profile, hasMultipleProfiles, signOut } = useAuth();
@@ -2043,146 +2009,29 @@ const DriverDashboard = () => {
         />
 
       {/* Hero Section Compacto */}
-      <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
-          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
-        />
-        <div className="absolute inset-0 bg-primary/80" />
-        <div className="relative z-10 w-full">
-          <div className="container mx-auto px-4 text-center text-primary-foreground">
-            <h1 className="text-xl md:text-2xl font-bold mb-2">
-              Olá, {profile?.full_name?.split(' ')[0] || (profile?.active_mode === 'TRANSPORTADORA' ? 'Transportadora' : 'Motorista')}
-            </h1>
-            <p className="text-sm md:text-base mb-2 opacity-90 px-2">
-              {SISTEMA_IA_LABEL} encontra fretes para você
-            </p>
-            {isCompanyDriver && companyName && (
-              <Badge variant="secondary" className="mb-3 bg-background/20 text-primary-foreground border-primary-foreground/30">
-                <Users className="h-3 w-3 mr-1" />
-                Motorista - {companyName}
-              </Badge>
-            )}
-            <div className="flex flex-wrap items-center justify-center gap-2 px-2">
-              {/* ✅ Mostrar botão "Ver Fretes IA" se canSeeFreights */}
-              {canSeeFreights && (
-                <Button 
-                  variant="default"
-                  size="sm"
-                  onClick={() => setActiveTab('available')}
-                  className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
-                >
-                  <Brain className="mr-1 h-4 w-4" />
-                  {VER_FRETES_IA_LABEL}
-                </Button>
-              )}
-              
-              <Button 
-                variant="default"
-                size="sm"
-                onClick={() => setActiveTab('cities')}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
-              >
-                <MapPin className="mr-1 h-4 w-4" />
-                Configurar Região
-              </Button>
-              
-              <Button 
-                variant="default"
-                size="sm"
-                onClick={() => setActiveTab('services')}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
-              >
-                <Settings className="mr-1 h-4 w-4" />
-                Configurar Serviços
-              </Button>
-              
-              <Button 
-                variant="default"
-                size="sm"
-                onClick={() => setServicesModalOpen(true)}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
-              >
-                <Wrench className="mr-1 h-4 w-4" />
-                Solicitar Serviços
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+      <DriverDashboardHero
+        profileName={profile?.full_name}
+        activeMode={profile?.active_mode}
+        isCompanyDriver={isCompanyDriver}
+        companyName={companyName}
+        canSeeFreights={canSeeFreights}
+        onTabChange={setActiveTab}
+        onServicesModalOpen={() => setServicesModalOpen(true)}
+      />
 
       <div className="container max-w-7xl mx-auto py-4 px-4">
         {/* Stats Cards Compactos - Navegáveis */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {/* ✅ Mostrar stats de fretes disponíveis se canSeeFreights */}
-          {canSeeFreights && (
-            <StatsCard
-              size="sm"
-              icon={<MapPin className="h-5 w-5" />}
-              iconColor="text-primary"
-              label="Disponíveis"
-              value={availableCountUI}
-              onClick={() => setActiveTab('available')}
-            />
-          )}
-
-          <StatsCard
-            size="sm"
-            icon={<Clock className="h-5 w-5" />}
-            iconColor="text-orange-500"
-            label="Ativas"
-            value={statistics.activeTrips}
-            onClick={() => setActiveTab('ongoing')}
-          />
-
-          {/* ✅ Mostrar stats de propostas se canSeeFreights */}
-          {canSeeFreights && (
-            <StatsCard
-              size="sm"
-              icon={<CheckCircle className="h-5 w-5" />}
-              iconColor="text-green-500"
-              label="Propostas"
-              value={statistics.pendingProposals}
-              onClick={() => setActiveTab('my-trips')}
-            />
-          )}
-
-          {/* Saldo - apenas para motoristas independentes e não afiliados */}
-          {!isCompanyDriver && (
-            <StatsCard
-              size="sm"
-              icon={<TrendingUp className="h-5 w-5" />}
-              iconColor="text-blue-500"
-              label="Saldo"
-              value={showEarnings ? 'R$ 0,00' : '****'}
-              onClick={() => setActiveTab('advances')}
-              actionButton={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleEarnings();
-                  }}
-                  className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-                >
-                  {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                </Button>
-              }
-            />
-          )}
-          
-          {/* Mensagem para motoristas afiliados */}
-          {isAffiliated && (
-            <StatsCard 
-              size="sm"
-              icon={<DollarSign className="h-5 w-5" />}
-              iconColor="text-muted-foreground"
-              label="Valores"
-              value="Gerenciados pela empresa"
-            />
-          )}
-        </div>
+        <DriverDashboardStats
+          canSeeFreights={canSeeFreights}
+          availableCount={availableCountUI}
+          activeTrips={statistics.activeTrips}
+          pendingProposals={statistics.pendingProposals}
+          showEarnings={showEarnings}
+          toggleEarnings={toggleEarnings}
+          isCompanyDriver={isCompanyDriver}
+          isAffiliated={isAffiliated}
+          onTabChange={setActiveTab}
+        />
 
         {/* Botão Mural de Avisos */}
         <div className="mb-6">
