@@ -7337,6 +7337,7 @@ export type Database = {
           vehicle_info: string
         }[]
       }
+      get_current_profile_id: { Args: never; Returns: string }
       get_current_user_safe: { Args: never; Returns: string }
       get_email_by_document: { Args: { p_doc: string }; Returns: string }
       get_failed_login_attempts: {
