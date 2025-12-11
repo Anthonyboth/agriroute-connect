@@ -39,6 +39,7 @@ import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { useDriverPermissions } from '@/hooks/useDriverPermissions';
 import { normalizeServiceType } from '@/lib/service-type-normalization';
 import { debounce } from '@/lib/utils';
+import { fetchBatchCheckins } from '@/hooks/useBatchCheckins';
 import { FRETES_IA_LABEL, AREAS_IA_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
 import { DriverProposalDetailsModal } from '@/components/DriverProposalDetailsModal';
 import { AppBreadcrumb } from '@/components/navigation/AppBreadcrumb';
@@ -649,30 +650,13 @@ const DriverDashboard = () => {
         setOngoingFreights(dedupedOngoing);
       }
 
-      // ✅ CORREÇÃO: Usar Promise.all para controlar assíncrono
+      // ✅ OTIMIZADO: Usar query única com .in() ao invés de N+1
       if (ongoing.length > 0) {
-        const checkinPromises = ongoing.map(async (freight: any) => {
-          try {
-            const { count } = await (supabase as any)
-              .from('freight_checkins')
-              .select('*', { count: 'exact', head: true })
-              .eq('freight_id', freight.id)
-              .eq('user_id', profile.id);
-            return { freightId: freight.id, count: count || 0 };
-          } catch (err) {
-            console.error('Error checking freight checkins for freight:', freight.id, err);
-            return { freightId: freight.id, count: 0 };
-          }
-        });
-
-        const checkinResults = await Promise.all(checkinPromises);
+        const freightIds = ongoing.map((f: any) => f.id);
+        const checkinCounts = await fetchBatchCheckins(freightIds, profile.id);
         
         if (isMountedRef.current) {
-          const newCheckins = checkinResults.reduce((acc, result) => ({
-            ...acc,
-            [result.freightId]: result.count
-          }), {});
-          setFreightCheckins(prev => ({ ...prev, ...newCheckins }));
+          setFreightCheckins(prev => ({ ...prev, ...checkinCounts }));
         }
       }
     } catch (error) {
@@ -894,30 +878,13 @@ const DriverDashboard = () => {
         });
       }
 
-      // ✅ CORREÇÃO: Usar Promise.all para checkins
+      // ✅ OTIMIZADO: Usar query única com .in() ao invés de N+1
       if (freightData && freightData.length > 0) {
-        const checkinPromises = freightData.map(async (freight) => {
-          try {
-            const { count } = await (supabase as any)
-              .from('freight_checkins')
-              .select('*', { count: 'exact', head: true })
-              .eq('freight_id', (freight as any).id)
-              .eq('user_id', profile.id);
-            return { freightId: (freight as any).id, count: count || 0 };
-          } catch (error) {
-            console.error('Error checking freight checkins for freight:', (freight as any).id, error);
-            return { freightId: (freight as any).id, count: 0 };
-          }
-        });
-
-        const checkinResults = await Promise.all(checkinPromises);
+        const freightIds = freightData.map((f: any) => f.id);
+        const checkinCounts = await fetchBatchCheckins(freightIds, profile.id);
         
         if (isMountedRef.current) {
-          const newCheckins = checkinResults.reduce((acc, result) => ({
-            ...acc,
-            [result.freightId]: result.count
-          }), {});
-          setFreightCheckins(prev => ({ ...prev, ...newCheckins }));
+          setFreightCheckins(prev => ({ ...prev, ...checkinCounts }));
         }
       }
     } catch (error) {
