@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 import { validateInput, pixKeySchema } from '../_shared/validation.ts';
 
@@ -10,13 +10,14 @@ const corsHeaders = {
 };
 
 const WithdrawalSchema = z.object({
-  amount: z.number().min(50, 'Minimum withdrawal is R$ 50').max(1000000),
+  amount: z.number().min(50, 'Valor mínimo para saque é R$ 50').max(1000000, 'Valor máximo excedido'),
   pix_key: pixKeySchema
 });
 
 const logStep = (step: string, details?: any) => {
+  const timestamp = new Date().toISOString();
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[REQUEST-WITHDRAWAL] ${step}${detailsStr}`);
+  console.log(`[${timestamp}] [REQUEST-WITHDRAWAL] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
@@ -25,7 +26,7 @@ serve(async (req) => {
   }
 
   try {
-    logStep("Function started");
+    logStep("Função iniciada");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -34,15 +35,30 @@ serve(async (req) => {
     );
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Autenticação necessária", code: "AUTH_REQUIRED" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    if (userError) {
+      return new Response(
+        JSON.stringify({ error: `Erro de autenticação: ${userError.message}`, code: "AUTH_ERROR" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     const user = userData.user;
-    if (!user) throw new Error("User not authenticated");
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: "Usuário não autenticado", code: "UNAUTHENTICATED" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    logStep("User authenticated", { userId: user.id });
+    logStep("Usuário autenticado", { userId: user.id });
 
     const body = await req.json();
     const { amount, pix_key } = validateInput(WithdrawalSchema, body);
@@ -56,7 +72,10 @@ serve(async (req) => {
       .single();
 
     if (profileError || !profile) {
-      throw new Error("Only drivers can request withdrawals");
+      return new Response(
+        JSON.stringify({ error: "Apenas motoristas podem solicitar saques", code: "DRIVER_ONLY" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const { data: stripeAccount, error: accountError } = await supabaseClient
@@ -66,11 +85,23 @@ serve(async (req) => {
       .single();
 
     if (accountError || !stripeAccount) {
-      throw new Error("Driver must have a verified Stripe Connect account");
+      return new Response(
+        JSON.stringify({ 
+          error: "Motorista precisa ter uma conta Stripe Connect verificada", 
+          code: "STRIPE_ACCOUNT_REQUIRED" 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     if (!stripeAccount.payouts_enabled) {
-      throw new Error("Stripe Connect account is not enabled for payouts");
+      return new Response(
+        JSON.stringify({ 
+          error: "Conta Stripe Connect não está habilitada para saques", 
+          code: "PAYOUTS_DISABLED" 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Calcular saldo disponível
@@ -91,7 +122,14 @@ serve(async (req) => {
     const availableBalance = totalEarnings - totalWithdrawn;
 
     if (amount > availableBalance) {
-      throw new Error(`Insufficient balance. Available: R$ ${availableBalance.toFixed(2)}`);
+      return new Response(
+        JSON.stringify({ 
+          error: `Saldo insuficiente. Disponível: R$ ${availableBalance.toFixed(2)}`, 
+          code: "INSUFFICIENT_BALANCE",
+          available_balance: availableBalance
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Calcular taxa da plataforma (2%)
@@ -99,7 +137,7 @@ serve(async (req) => {
     const platformFee = amount * platformFeeRate;
     const netAmount = amount - platformFee;
 
-    logStep("Processing withdrawal", { 
+    logStep("Processando saque", { 
       amount, 
       platformFee, 
       netAmount,
@@ -122,12 +160,35 @@ serve(async (req) => {
       .single();
 
     if (withdrawalError) {
-      logStep("Error creating withdrawal", { error: withdrawalError });
-      throw new Error("Failed to create withdrawal request");
+      logStep("Erro ao criar solicitação de saque", { error: withdrawalError });
+      return new Response(
+        JSON.stringify({ 
+          error: "Falha ao criar solicitação de saque", 
+          code: "WITHDRAWAL_CREATE_FAILED" 
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Tentar processar saque via Stripe (em background)
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
+    // Tentar processar saque via Stripe
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    
+    if (!stripeSecretKey) {
+      logStep("STRIPE_SECRET_KEY não configurada - saque será processado manualmente");
+      return new Response(JSON.stringify({
+        withdrawal_id: withdrawal.id,
+        amount: amount,
+        net_amount: netAmount,
+        platform_fee: platformFee,
+        status: "pending",
+        message: "Solicitação criada. O saque será processado manualmente pela equipe."
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    const stripe = new Stripe(stripeSecretKey, { 
       apiVersion: "2023-10-16" 
     });
 
@@ -174,39 +235,90 @@ serve(async (req) => {
         })
         .eq("id", withdrawal.id);
 
-      logStep("Withdrawal processed successfully", { 
+      logStep("Saque processado com sucesso", { 
         withdrawalId: withdrawal.id,
         transferId: transfer.id,
         payoutId: payout.id
       });
 
-    } catch (stripeError) {
-      logStep("Stripe processing failed", { error: stripeError });
+      return new Response(JSON.stringify({
+        withdrawal_id: withdrawal.id,
+        amount: amount,
+        net_amount: netAmount,
+        platform_fee: platformFee,
+        status: "paid",
+        stripe_payout_id: payout.id
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+
+    } catch (stripeError: any) {
+      // ✅ CORRIGIDO: Melhor tratamento de erro Stripe - não silenciar
+      logStep("Erro no processamento Stripe", { 
+        error: stripeError.message,
+        type: stripeError.type,
+        code: stripeError.code
+      });
       
-      // Marcar como falha
+      // Marcar como falha com detalhes do erro
       await supabaseClient
         .from("driver_withdrawals")
-        .update({ status: 'failed' })
+        .update({ 
+          status: 'failed',
+          metadata: {
+            stripe_error: stripeError.message,
+            stripe_error_code: stripeError.code,
+            stripe_error_type: stripeError.type,
+            failed_at: new Date().toISOString()
+          }
+        })
         .eq("id", withdrawal.id);
-      
-      // Não falhar a função, apenas informar que será processado manualmente
+
+      // Enviar notificação de falha ao motorista
+      try {
+        await supabaseClient.functions.invoke('send-notification', {
+          body: {
+            user_id: profile.id,
+            title: 'Falha no Saque',
+            message: `Sua solicitação de saque de R$ ${amount.toFixed(2)} falhou. Por favor, verifique sua conta Stripe ou entre em contato com o suporte.`,
+            type: 'withdrawal_failed',
+            data: {
+              withdrawal_id: withdrawal.id,
+              amount,
+              error: stripeError.message
+            }
+          }
+        });
+      } catch (notifyError) {
+        logStep("Erro ao notificar falha de saque", { error: notifyError });
+      }
+
+      // ✅ CORRIGIDO: Retornar erro ao cliente ao invés de silenciar
+      return new Response(JSON.stringify({
+        error: "Falha ao processar saque via Stripe",
+        code: "STRIPE_PROCESSING_FAILED",
+        withdrawal_id: withdrawal.id,
+        details: stripeError.message,
+        status: "failed"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
     }
 
-    return new Response(JSON.stringify({
-      withdrawal_id: withdrawal.id,
-      amount: amount,
-      net_amount: netAmount,
-      platform_fee: platformFee,
-      status: "processing"
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-
   } catch (error) {
+    // Handle validation errors
+    if (error instanceof Response) {
+      return error;
+    }
+    
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in request-withdrawal", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    logStep("ERRO em request-withdrawal", { message: errorMessage });
+    return new Response(JSON.stringify({ 
+      error: errorMessage,
+      code: "INTERNAL_ERROR"
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

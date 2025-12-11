@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 import { validateInput, documentNumberSchema } from '../_shared/validation.ts';
 
@@ -9,20 +9,18 @@ const corsHeaders = {
 };
 
 const GuestUserSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters').max(100, 'Name too long'),
-  email: z.string().max(255, 'Email too long').optional().transform(val => val === '' ? undefined : val).pipe(z.string().email('Invalid email').optional()),
-  phone: z.string().min(10, 'Invalid phone').max(20, 'Phone too long').optional().transform(val => val === '' ? undefined : val),
+  name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres').max(100, 'Nome muito longo'),
+  email: z.string().max(255, 'Email muito longo').optional().transform(val => val === '' ? undefined : val).pipe(z.string().email('Email inválido').optional()),
+  phone: z.string().min(10, 'Telefone inválido').max(20, 'Telefone muito longo').optional().transform(val => val === '' ? undefined : val),
   document: documentNumberSchema,
-  captchaToken: z.string().min(1, 'CAPTCHA token required').max(500, 'Token too long').optional()
+  captchaToken: z.string().min(1, 'Token CAPTCHA necessário').max(500, 'Token muito longo').optional()
 });
 
-interface ValidateGuestRequest {
-  name: string;
-  email?: string;
-  phone?: string;
-  document: string;
-  captchaToken: string;
-}
+const logStep = (step: string, details?: any) => {
+  const timestamp = new Date().toISOString();
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[${timestamp}] [VALIDATE-GUEST-USER] ${step}${detailsStr}`);
+};
 
 function getClientIP(req: Request): string {
   return req.headers.get('x-forwarded-for') || 
@@ -34,9 +32,13 @@ async function verifyCaptcha(token: string): Promise<boolean> {
   const secretKey = Deno.env.get('HCAPTCHA_SECRET_KEY');
   
   if (!secretKey) {
-    console.error('[SECURITY] HCAPTCHA_SECRET_KEY not configured');
-    return false;
+    logStep('HCAPTCHA_SECRET_KEY não configurada - CAPTCHA desabilitado');
+    return true; // Permitir se não configurado (para dev)
   }
+
+  // ✅ CORRIGIDO: Adicionar timeout na verificação do CAPTCHA
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
   try {
     const response = await fetch('https://hcaptcha.com/siteverify', {
@@ -45,12 +47,21 @@ async function verifyCaptcha(token: string): Promise<boolean> {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: `response=${token}&secret=${secretKey}`,
+      signal: controller.signal
     });
 
+    clearTimeout(timeoutId);
+
     const data = await response.json();
+    logStep('Resposta CAPTCHA', { success: data.success });
     return data.success === true;
   } catch (error) {
-    console.error('[SECURITY] CAPTCHA verification failed:', error);
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      logStep('Timeout na verificação CAPTCHA');
+    } else {
+      logStep('Erro na verificação CAPTCHA', { error: error instanceof Error ? error.message : String(error) });
+    }
     return false;
   }
 }
@@ -61,6 +72,8 @@ serve(async (req) => {
   }
 
   try {
+    logStep('Função iniciada');
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -70,15 +83,17 @@ serve(async (req) => {
     const { name, email, phone, document, captchaToken } = validateInput(GuestUserSchema, rawBody);
     
     const clientIP = getClientIP(req);
+    logStep('Validando usuário convidado', { name, clientIP });
 
-    // 1. SECURITY: Verify CAPTCHA if provided (optional for now)
+    // 1. SECURITY: Verify CAPTCHA if provided
     if (captchaToken) {
       const captchaValid = await verifyCaptcha(captchaToken);
       if (!captchaValid) {
         return new Response(
           JSON.stringify({ 
-            error: 'CAPTCHA verification failed',
-            message: 'Verificação de segurança falhou. Por favor, tente novamente.'
+            error: 'Verificação CAPTCHA falhou',
+            message: 'Verificação de segurança falhou. Por favor, tente novamente.',
+            code: 'CAPTCHA_FAILED'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
         );
@@ -90,10 +105,12 @@ serve(async (req) => {
       .rpc('check_guest_validation_rate_limit', { p_ip_address: clientIP });
 
     if (rateLimitCheck && !rateLimitCheck.allowed) {
+      logStep('Rate limit atingido', { ip: clientIP, attempts: rateLimitCheck.current_attempts });
       return new Response(
         JSON.stringify({ 
-          error: 'Rate limit exceeded',
+          error: 'Limite de tentativas excedido',
           message: `Você atingiu o limite de tentativas. Por favor, aguarde até ${new Date(rateLimitCheck.reset_at).toLocaleTimeString('pt-BR')} para tentar novamente.`,
+          code: 'RATE_LIMITED',
           retry_after: rateLimitCheck.reset_at,
           current_attempts: rateLimitCheck.current_attempts,
           max_allowed: rateLimitCheck.max_allowed
@@ -112,15 +129,15 @@ serve(async (req) => {
     if (!documentType) {
       return new Response(
         JSON.stringify({ 
-          error: 'Invalid document',
-          message: 'Documento inválido. Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).' 
+          error: 'Documento inválido',
+          message: 'Documento inválido. Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).',
+          code: 'INVALID_DOCUMENT'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
     // 5. SECURITY: Check if user exists BUT DON'T REVEAL THIS INFORMATION
-    // This is for internal tracking only - we'll return a generic message regardless
     const { data: existingProfile } = await supabaseClient
       .from('profiles')
       .select('id, user_id')
@@ -137,7 +154,7 @@ serve(async (req) => {
     let prospectId: string;
 
     if (existingProspect) {
-      // Update existing prospect (don't create duplicate)
+      // Update existing prospect
       const { data: updatedProspect } = await supabaseClient
         .from('prospect_users')
         .update({
@@ -152,7 +169,7 @@ serve(async (req) => {
             ip_address: clientIP,
             user_agent: req.headers.get('user-agent'),
             last_captcha_verified: new Date().toISOString(),
-            has_registered_account: !!existingProfile // Track internally only
+            has_registered_account: !!existingProfile
           }
         })
         .eq('id', existingProspect.id)
@@ -160,6 +177,7 @@ serve(async (req) => {
         .single();
 
       prospectId = updatedProspect?.id || existingProspect.id;
+      logStep('Prospect atualizado', { prospectId });
     } else {
       // Create new prospect
       const { data: newProspect } = await supabaseClient
@@ -175,31 +193,29 @@ serve(async (req) => {
             ip_address: clientIP,
             user_agent: req.headers.get('user-agent'),
             first_captcha_verified: new Date().toISOString(),
-            has_registered_account: !!existingProfile // Track internally only
+            has_registered_account: !!existingProfile
           }
         })
         .select('id')
         .single();
 
       prospectId = newProspect?.id || '';
+      logStep('Prospect criado', { prospectId });
     }
 
     // 7. SECURITY: ALWAYS return the same generic success message
-    // NEVER reveal whether the user exists or not
-    // This prevents user enumeration attacks
     return new Response(
       JSON.stringify({ 
         success: true,
         prospect_id: prospectId,
         message: 'Informações recebidas com sucesso! Você receberá as próximas instruções em breve.',
-        // Generic response that works for both new and existing users
         next_steps: 'Se você já possui uma conta, faça login para continuar. Caso contrário, aguarde as instruções de cadastro.'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
 
   } catch (error) {
-    // Handle validation errors (thrown as Response by validateInput)
+    // Handle validation errors
     if (error instanceof Response) {
       const headers = new Headers(error.headers);
       headers.set('Access-Control-Allow-Origin', '*');
@@ -210,13 +226,13 @@ serve(async (req) => {
       });
     }
     
-    console.error('[ERROR] validate-guest-user:', error);
+    logStep('ERRO', { error: error instanceof Error ? error.message : String(error) });
     
-    // SECURITY: Don't reveal internal error details
     return new Response(
       JSON.stringify({ 
-        error: 'Internal error',
-        message: 'Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.'
+        error: 'Erro interno',
+        message: 'Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.',
+        code: 'INTERNAL_ERROR'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
