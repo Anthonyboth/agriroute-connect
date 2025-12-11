@@ -73,7 +73,7 @@ const OptimizedHeader = memo<OptimizedHeaderProps>(({
   // Memoized menu items to prevent recreation on every render
   const menuItems = React.useMemo(() => [
     { icon: User, label: 'Perfil', action: () => setShowProfile(true) },
-    { icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) },
+    ...(user.role !== 'TRANSPORTADORA' ? [{ icon: ArrowLeftRight, label: 'Alternar Conta', action: () => setShowAccountSwitcher(true) }] : []),
     ...(user.role !== 'PRODUTOR' ? [{ icon: CreditCard, label: 'Planos', action: () => setShowPlanos(true) }] : []),
     { icon: Settings, label: 'Configurações', action: () => setShowSettings(true) },
   ], [user.role]);
