@@ -62,6 +62,7 @@ import { CompanyVehicleAssignments } from '@/components/CompanyVehicleAssignment
 import { FreightDetails } from '@/components/FreightDetails';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ServicesModal } from '@/components/ServicesModal';
+import { AppBreadcrumb } from '@/components/navigation/AppBreadcrumb';
 
 // ✅ PHASE 2: Lazy load chart-heavy components to reduce initial bundle
 const CompanyAnalyticsDashboard = lazy(() => import('@/components/CompanyAnalyticsDashboard').then(m => ({ default: m.CompanyAnalyticsDashboard })));
@@ -534,6 +535,11 @@ const CompanyDashboard = () => {
         onLogout={signOut}
         userProfile={profile ? { ...profile, active_mode: 'TRANSPORTADORA' } : undefined}
       />
+      
+      {/* Breadcrumb Navigation */}
+      <div className="container mx-auto px-4 py-2">
+        <AppBreadcrumb />
+      </div>
       
       <section className="relative py-6 overflow-hidden">
         <div 

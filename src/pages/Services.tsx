@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import ServiceRequestModal from '@/components/ServiceRequestModal';
-import CreateFreightModal from '@/components/CreateFreightModal';
+import { CreateFreightWizardModal } from '@/components/freight-wizard';
 import { MudancaModal } from '@/components/MudancaModal';
 import GuestServiceModal from '@/components/GuestServiceModal';
 import { BackButton } from '@/components/BackButton';
@@ -238,15 +238,13 @@ const Services: React.FC = () => {
         />
       )}
 
-      {showFreightModal && (
-        <CreateFreightModal
-          onFreightCreated={() => {
-            setShowFreightModal(false);
-            // Opcional: adicionar callback se necessário
-          }}
-          userProfile={profile}
-        />
-      )}
+      <CreateFreightWizardModal
+        onFreightCreated={() => setShowFreightModal(false)}
+        userProfile={profile}
+        open={showFreightModal}
+        onOpenChange={setShowFreightModal}
+        trigger={null}
+      />
 
       <MudancaModal
         isOpen={showMudancaModal}

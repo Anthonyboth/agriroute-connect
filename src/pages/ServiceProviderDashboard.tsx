@@ -8,6 +8,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
 import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { Button } from '@/components/ui/button';
+import { AppBreadcrumb } from '@/components/navigation/AppBreadcrumb';
 
 const ServiceProviderDashboard = () => {
   const { profile, signOut } = useAuth();
@@ -85,6 +86,12 @@ const ServiceProviderDashboard = () => {
         userProfile={profile}
         notifications={unreadCount}
       />
+      
+      {/* Breadcrumb Navigation */}
+      <div className="container mx-auto px-4 py-2">
+        <AppBreadcrumb />
+      </div>
+      
       <div className="provider-theme">
         <div className="container mx-auto p-4 space-y-4">
         {/* Botão Mural de Avisos */}
