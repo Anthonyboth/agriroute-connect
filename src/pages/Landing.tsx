@@ -273,7 +273,7 @@ const Landing: React.FC = () => {
                 aria-label="Solicitar serviço rapidamente sem necessidade de criar conta"
               >
                 <Wrench className="mr-2 h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                Serviço Rápido (sem conta)
+                Solicitar sem Cadastro
               </Button>
             </div>
           </div>
