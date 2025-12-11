@@ -1,9 +1,29 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Schema de validação de entrada
+const UpdateFreightSchema = z.object({
+  freight_id: z.string().uuid('ID de frete inválido'),
+  updates: z.object({
+    pickup_date: z.string().datetime().optional(),
+    delivery_date: z.string().datetime().optional(),
+    status: z.enum(['OPEN', 'ACCEPTED', 'LOADING', 'IN_TRANSIT', 'DELIVERED']).optional(),
+    notes: z.string().max(1000).optional(),
+    price: z.number().min(0).max(10000000).optional(),
+  }).refine(obj => Object.keys(obj).length > 0, {
+    message: 'Pelo menos um campo de atualização é obrigatório'
+  })
+});
+
+const logStep = (step: string, details?: any) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] [SAFE-UPDATE-FREIGHT] ${step}`, details ? JSON.stringify(details) : '');
 };
 
 serve(async (req) => {
@@ -23,42 +43,131 @@ serve(async (req) => {
       }
     );
 
-    const authHeader = req.headers.get('Authorization')!;
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
-
-    if (userError || !user) {
-      console.error('[SAFE-UPDATE] Auth error:', userError);
+    // Validar autenticação
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      logStep('Erro: Authorization header ausente');
       return new Response(
-        JSON.stringify({ error: 'Não autenticado' }),
+        JSON.stringify({ error: 'Não autorizado', code: 'AUTH_REQUIRED' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { freight_id, updates } = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
-    if (!freight_id || !updates) {
+    if (userError || !user) {
+      logStep('Erro: Autenticação falhou', { error: userError?.message });
       return new Response(
-        JSON.stringify({ error: 'freight_id e updates são obrigatórios' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Token inválido ou expirado', code: 'INVALID_TOKEN' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[SAFE-UPDATE] User ${user.id} updating freight ${freight_id}`);
+    // Validar entrada com Zod
+    let requestBody;
+    try {
+      const rawBody = await req.json();
+      requestBody = UpdateFreightSchema.parse(rawBody);
+    } catch (zodError) {
+      if (zodError instanceof z.ZodError) {
+        logStep('Erro de validação', { errors: zodError.errors });
+        return new Response(
+          JSON.stringify({ 
+            error: 'Dados de entrada inválidos',
+            code: 'VALIDATION_ERROR',
+            details: zodError.errors.map(e => ({ field: e.path.join('.'), message: e.message }))
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      throw zodError;
+    }
 
-    // Get current freight
+    const { freight_id, updates } = requestBody;
+    logStep('Requisição validada', { freight_id, userId: user.id });
+
+    // Buscar perfil do usuário
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      logStep('Erro: Perfil não encontrado', { userId: user.id });
+      return new Response(
+        JSON.stringify({ error: 'Perfil não encontrado', code: 'PROFILE_NOT_FOUND' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Buscar frete com verificação de autorização
     const { data: freight, error: fetchError } = await supabaseAdmin
       .from('freights')
-      .select('id, pickup_date')
+      .select('id, pickup_date, producer_id, driver_id, status')
       .eq('id', freight_id)
       .single();
 
     if (fetchError || !freight) {
-      console.error('[SAFE-UPDATE] Freight not found:', fetchError);
+      logStep('Erro: Frete não encontrado', { freight_id });
       return new Response(
-        JSON.stringify({ error: 'Frete não encontrado' }),
+        JSON.stringify({ error: 'Frete não encontrado', code: 'FREIGHT_NOT_FOUND' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // ✅ CRÍTICO: Verificar autorização - usuário deve ser producer_id ou driver_id
+    const isProducer = freight.producer_id === profile.id;
+    const isDriver = freight.driver_id === profile.id;
+    
+    // Verificar se é admin via user_roles
+    const { data: adminRole } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .in('role', ['admin', 'moderator'])
+      .maybeSingle();
+    
+    const isAdmin = !!adminRole;
+
+    if (!isProducer && !isDriver && !isAdmin) {
+      logStep('Erro: Acesso negado - usuário não autorizado', { 
+        profileId: profile.id, 
+        producerId: freight.producer_id, 
+        driverId: freight.driver_id,
+        isAdmin 
+      });
+      
+      // Registrar tentativa de acesso não autorizado
+      await supabaseAdmin.from('audit_logs').insert({
+        user_id: user.id,
+        operation: 'UNAUTHORIZED_UPDATE_ATTEMPT',
+        table_name: 'freights',
+        new_data: { freight_id, attempted_updates: updates }
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          error: 'Você não tem permissão para atualizar este frete',
+          code: 'FORBIDDEN' 
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validar regras de negócio por role
+    if (isDriver && !isAdmin) {
+      // Motoristas não podem alterar preço
+      if (updates.price !== undefined) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Motoristas não podem alterar o preço do frete',
+            code: 'DRIVER_CANNOT_UPDATE_PRICE' 
+          }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Calculate safe pickup date
@@ -70,11 +179,11 @@ serve(async (req) => {
       const pickupDate = new Date(finalPickupDate);
       if (pickupDate <= now) {
         finalPickupDate = safePickup.toISOString();
-        console.log(`[SAFE-UPDATE] Adjusting past pickup_date to: ${finalPickupDate}`);
+        logStep('Ajustando pickup_date passado', { original: updates.pickup_date, adjusted: finalPickupDate });
       }
     } else {
       finalPickupDate = safePickup.toISOString();
-      console.log(`[SAFE-UPDATE] No pickup_date, setting to: ${finalPickupDate}`);
+      logStep('Definindo pickup_date padrão', { value: finalPickupDate });
     }
 
     // Update freight with safe pickup_date
@@ -90,17 +199,27 @@ serve(async (req) => {
       .single();
 
     if (updateError) {
-      console.error('[SAFE-UPDATE] Update error:', updateError);
+      logStep('Erro ao atualizar frete', { error: updateError });
       return new Response(
         JSON.stringify({ 
           error: 'Erro ao atualizar frete',
+          code: 'UPDATE_FAILED',
           details: updateError.message 
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[SAFE-UPDATE] ✅ Freight ${freight_id} updated successfully`);
+    // Registrar auditoria de sucesso
+    await supabaseAdmin.from('audit_logs').insert({
+      user_id: user.id,
+      operation: 'UPDATE',
+      table_name: 'freights',
+      old_data: { pickup_date: freight.pickup_date },
+      new_data: { pickup_date: finalPickupDate, ...updates }
+    });
+
+    logStep('Frete atualizado com sucesso', { freight_id });
 
     return new Response(
       JSON.stringify({ 
@@ -112,10 +231,11 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('[SAFE-UPDATE] Error:', error);
+    logStep('Erro inesperado', { error: error.message, stack: error.stack });
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Erro inesperado ao atualizar frete' 
+        error: 'Erro inesperado ao atualizar frete',
+        code: 'INTERNAL_ERROR'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

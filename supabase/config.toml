@@ -241,7 +241,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.security-auto-response]
-verify_jwt = false
+verify_jwt = true
 
 [functions.daily-security-report]
 verify_jwt = false

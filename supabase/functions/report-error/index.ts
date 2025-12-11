@@ -8,8 +8,9 @@ const corsHeaders = {
 };
 
 const logStep = (step: string, details?: any) => {
+  const timestamp = new Date().toISOString();
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[REPORT-ERROR] ${step}${detailsStr}`);
+  console.log(`[${timestamp}] [REPORT-ERROR] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
@@ -43,7 +44,7 @@ serve(async (req) => {
       
       return new Response(JSON.stringify({ 
         error: 'Rate limit exceeded',
-        message: `Too many error reports from your IP. Maximum ${rateLimitCheck.max_allowed} errors per hour.`,
+        message: `Muitos relatórios de erro do seu IP. Máximo de ${rateLimitCheck.max_allowed} erros por hora.`,
         retry_after: rateLimitCheck.reset_at
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -145,13 +146,14 @@ serve(async (req) => {
       }
     }
 
-    // Adicionar motivo da notificação ao metadata
-    if (shouldNotify && notifyReason) {
-      enrichedReport.metadata = {
-        ...enrichedReport.metadata,
+    // ✅ CORRIGIDO: Usar errorReport ao invés de enrichedReport (variável inexistente)
+    const enrichedReportData = {
+      ...errorReport,
+      metadata: {
+        ...errorReport.metadata,
         notify_reason: notifyReason
-      };
-    }
+      }
+    };
 
     // Enviar para Telegram se necessário
     if (shouldNotify) {
@@ -167,7 +169,7 @@ serve(async (req) => {
               'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
             },
             body: JSON.stringify({
-              errorData: enrichedReport,
+              errorData: enrichedReportData,
               errorLogId: errorLog.id
             })
           }
@@ -180,6 +182,15 @@ serve(async (req) => {
             body: responseText
           });
         } else {
+          // Marcar como notificado
+          await supabaseAdmin
+            .from('error_logs')
+            .update({ 
+              telegram_notified: true,
+              telegram_sent_at: new Date().toISOString()
+            })
+            .eq('id', errorLog.id);
+          
           logStep('Telegram enviado com sucesso');
         }
       } catch (telegramError) {
