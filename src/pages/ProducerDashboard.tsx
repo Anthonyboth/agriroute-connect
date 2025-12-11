@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FreightCard } from '@/components/FreightCard';
-import CreateFreightModal from '@/components/CreateFreightModal';
+import { CreateFreightWizardModal } from '@/components/freight-wizard';
+import { AppBreadcrumb } from '@/components/navigation/AppBreadcrumb';
 import { EditFreightModal } from '@/components/EditFreightModal';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
@@ -1198,6 +1199,11 @@ const ProducerDashboard = () => {
         notifications={unreadCount}
       />
       
+      {/* Breadcrumb Navigation */}
+      <div className="container mx-auto px-4 py-2">
+        <AppBreadcrumb />
+      </div>
+      
       {/* Hero Section Compacta */}
       <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
         <div 
@@ -1214,7 +1220,7 @@ const ProducerDashboard = () => {
               Gerencie seus fretes, acompanhe propostas e monitore o desempenho
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-              <CreateFreightModal 
+              <CreateFreightWizardModal 
                 onFreightCreated={fetchFreights}
                 userProfile={profile}
               />
@@ -1452,7 +1458,7 @@ const ProducerDashboard = () => {
                   <p className="text-muted-foreground mb-6 max-w-sm">
                     Você não possui fretes abertos no momento. Crie um novo frete para começar.
                   </p>
-                  <CreateFreightModal 
+                  <CreateFreightWizardModal 
                     onFreightCreated={fetchFreights}
                     userProfile={profile}
                   />

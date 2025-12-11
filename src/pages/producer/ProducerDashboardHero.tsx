@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Users, Star, Wrench } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import CreateFreightModal from '@/components/CreateFreightModal';
+import { CreateFreightWizardModal } from '@/components/freight-wizard';
 
 interface ProducerDashboardHeroProps {
   profile: any;
@@ -38,7 +38,7 @@ export const ProducerDashboardHero: React.FC<ProducerDashboardHeroProps> = ({
               Gerencie seus fretes, acompanhe propostas e monitore o desempenho
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-              <CreateFreightModal 
+              <CreateFreightWizardModal 
                 onFreightCreated={onFreightCreated}
                 userProfile={profile}
               />
