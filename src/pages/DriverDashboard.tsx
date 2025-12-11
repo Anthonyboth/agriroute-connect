@@ -2,30 +2,18 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatsCard } from '@/components/ui/stats-card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FreightCard } from '@/components/FreightCard';
-import { VehicleManager } from '@/components/VehicleManager';
 import { FreightDetails } from '@/components/FreightDetails';
-import { DriverAvailabilityCalendar } from '@/components/DriverAvailabilityCalendar';
-import { UserCityManager } from '@/components/UserCityManager';
-import { DriverAvailabilityAreasManager } from '@/components/DriverAvailabilityAreasManager';
-import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
-import { SmartFreightMatcher } from '@/components/SmartFreightMatcher';
-import { ServiceTypeManager } from '@/components/ServiceTypeManager';
-import { MatchIntelligentDemo } from '@/components/MatchIntelligentDemo';
-import { AdvancedFreightSearch } from '@/components/AdvancedFreightSearch';
 import { MyAssignmentCard } from '@/components/MyAssignmentCard';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
 import { PageDOMErrorBoundary } from '@/components/PageDOMErrorBoundary';
 
-import { DriverPayouts } from '@/components/DriverPayouts';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
 import FreightCheckinModal from '@/components/FreightCheckinModal';
-import FreightCheckinsViewer from '@/components/FreightCheckinsViewer';
 import FreightWithdrawalModal from '@/components/FreightWithdrawalModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,22 +21,15 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Calendar, Eye, EyeOff, X, Banknote, Star, MessageSquare, AlertTriangle, Users } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Brain, Settings, Play, DollarSign, Package, Banknote, Star, MessageSquare, AlertTriangle, Users, Wrench, X } from 'lucide-react';
 import { useFreightGPSMonitoring } from '@/hooks/useFreightGPSMonitoring';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { TrackingConsentModal } from '@/components/TrackingConsentModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Wrench, Send } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ServiceRegionSelector } from '@/components/ServiceRegionSelector';
-import { DriverRegionManager } from '@/components/DriverRegionManager';
 import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { isFinalStatus } from '@/lib/freight-status';
-import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
-import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { ServicesModal } from '@/components/ServicesModal';
-import { UnifiedHistory } from '@/components/UnifiedHistory';
+import UnifiedLocationManager from '@/components/UnifiedLocationManager';
 import { CompanyDriverBadge } from '@/components/CompanyDriverBadge';
 import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { UnifiedTrackingControl } from '@/components/UnifiedTrackingControl';
@@ -56,24 +37,34 @@ import { ServiceRequestInProgressCard } from '@/components/ServiceRequestInProgr
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { AutoRatingModal } from '@/components/AutoRatingModal';
 import { useDriverPermissions } from '@/hooks/useDriverPermissions';
-import { normalizeServiceType, type CanonicalServiceType } from '@/lib/service-type-normalization';
-import { UnifiedChatHub } from '@/components/UnifiedChatHub';
+import { normalizeServiceType } from '@/lib/service-type-normalization';
 import { debounce } from '@/lib/utils';
-import { FRETES_IA_LABEL, AREAS_IA_LABEL, AI_ABBR, SISTEMA_IA_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
+import { FRETES_IA_LABEL, AREAS_IA_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
 import { DriverProposalDetailsModal } from '@/components/DriverProposalDetailsModal';
-import { DriverAffiliationsManager } from '@/components/DriverAffiliationsManager';
-import { DriverPerformanceDashboard } from '@/components/dashboards/DriverPerformanceDashboard';
-import { DriverExpenseManager } from '@/components/driver/DriverExpenseManager';
-import { DriverFinancialReport } from '@/components/driver/DriverFinancialReport';
 
 // Sub-components refatorados
-import { DriverDashboardHero } from './driver/DriverDashboardHero';
-import { DriverDashboardStats } from './driver/DriverDashboardStats';
-import { DriverOngoingTab } from './driver/DriverOngoingTab';
-import { DriverProposalsTab } from './driver/DriverProposalsTab';
-import { DriverPaymentsTab } from './driver/DriverPaymentsTab';
-import { DriverDashboardModals } from './driver/DriverDashboardModals';
-import type { Freight, Proposal } from './driver/types';
+import { 
+  DriverDashboardHero,
+  DriverDashboardStats,
+  DriverOngoingTab,
+  DriverProposalsTab,
+  DriverPaymentsTab,
+  DriverDashboardModals,
+  DriverAvailableTab,
+  DriverScheduledTab,
+  DriverAreasTab,
+  DriverCitiesTab,
+  DriverServicesTab,
+  DriverVehiclesTab,
+  DriverAdvancesTab,
+  DriverRatingsTab,
+  DriverChatTab,
+  DriverHistoryTab,
+  DriverAffiliationsTab,
+  DriverReportsTab,
+  type Freight, 
+  type Proposal 
+} from './driver';
 
 // LocalProposal type removed - using imported Proposal from ./driver/types
 
@@ -2255,24 +2246,12 @@ const DriverDashboard = () => {
           )}
           
           <TabsContent value="available" className="space-y-4">
-            <SafeListWrapper>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Fretes Disponíveis com IA</h3>
-                <AdvancedFreightSearch
-                  onSearch={(filters) => {
-                    console.log('Advanced search filters:', filters);
-                    // Apply advanced filters to freight search
-                    fetchAvailableFreights();
-                  }}
-                  userRole="MOTORISTA"
-                />
-              </div>
-              <SmartFreightMatcher 
-                key={`freight-matcher-${profile?.id || 'loading'}`}
-                onFreightAction={handleFreightAction}
-                onCountsChange={({ total }) => setAvailableCountUI(total)}
-              />
-            </SafeListWrapper>
+            <DriverAvailableTab
+              profileId={profile?.id}
+              onFreightAction={handleFreightAction}
+              onCountsChange={({ total }) => setAvailableCountUI(total)}
+              onFetchAvailable={fetchAvailableFreights}
+            />
           </TabsContent>
 
           <TabsContent value="ongoing" className="space-y-3">
@@ -2440,27 +2419,23 @@ const DriverDashboard = () => {
           </TabsContent>
 
           <TabsContent value="scheduled">
-            <ScheduledFreightsManager />
+            <DriverScheduledTab />
           </TabsContent>
 
 
           <TabsContent value="calendar" className="space-y-4">
-            <SafeListWrapper>
-              <DriverAvailabilityAreasManager
+            <DriverAreasTab
               driverId={profile?.id}
               onFreightAction={handleFreightAction}
               canAcceptFreights={canAcceptFreights}
               isAffiliated={isAffiliated}
               companyId={companyId}
-              />
-            </SafeListWrapper>
+            />
           </TabsContent>
 
           <TabsContent value="cities" className="space-y-4">
-            <UserCityManager 
-              userRole="MOTORISTA"
+            <DriverCitiesTab
               onCitiesUpdate={() => {
-                // Atualizar fretes disponíveis quando cidades forem atualizadas
                 fetchAvailableFreights();
                 toast.success('Configuração de cidades atualizada!');
               }}
@@ -2468,19 +2443,7 @@ const DriverDashboard = () => {
           </TabsContent>
 
           <TabsContent value="services">
-            <SafeListWrapper>
-              <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Tipos de Serviços</h3>
-                <ServiceTypeManager />
-              </div>
-              
-              
-              <div className="border-t pt-6">
-              <MatchIntelligentDemo />
-                </div>
-              </div>
-            </SafeListWrapper>
+            <DriverServicesTab />
           </TabsContent>
 
           <TabsContent value="my-trips" className="space-y-6">
@@ -2686,7 +2649,7 @@ const DriverDashboard = () => {
           </TabsContent>
 
           <TabsContent value="vehicles" className="space-y-4">
-            <VehicleManager driverProfile={profile} />
+            <DriverVehiclesTab driverProfile={profile} />
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4">
@@ -2796,56 +2759,27 @@ const DriverDashboard = () => {
           </TabsContent>
 
           <TabsContent value="advances" className="space-y-4">
-            <DriverPayouts driverId={profile?.id || ''} />
+            <DriverAdvancesTab driverId={profile?.id || ''} />
           </TabsContent>
 
           <TabsContent value="ratings" className="mt-6">
-            <SafeListWrapper>
-              <PendingRatingsPanel
-              userRole="MOTORISTA"
-              userProfileId={profile?.id || ''}
-              />
-            </SafeListWrapper>
+            <DriverRatingsTab userProfileId={profile?.id || ''} />
           </TabsContent>
 
           <TabsContent value="chat" className="mt-6">
-            <SafeListWrapper>
-              <UnifiedChatHub
-                userProfileId={profile?.id || ''}
-                userRole="MOTORISTA"
-              />
-            </SafeListWrapper>
+            <DriverChatTab userProfileId={profile?.id || ''} />
           </TabsContent>
 
           <TabsContent value="historico" className="mt-6">
-            <SafeListWrapper>
-              <UnifiedHistory userRole="MOTORISTA" />
-            </SafeListWrapper>
+            <DriverHistoryTab />
           </TabsContent>
 
           <TabsContent value="affiliations" className="mt-6">
-            <SafeListWrapper>
-              <DriverAffiliationsManager />
-            </SafeListWrapper>
+            <DriverAffiliationsTab />
           </TabsContent>
 
           <TabsContent value="reports" className="mt-6">
-            <SafeListWrapper>
-              <div className="space-y-6">
-                {/* Formulário para registrar despesas */}
-                <DriverExpenseManager driverId={profile?.id || ''} />
-                
-                <Separator />
-                
-                {/* Dashboard de Performance */}
-                <DriverPerformanceDashboard driverId={profile?.id || ''} />
-                
-                <Separator />
-                
-                {/* Relatório Financeiro Completo */}
-                <DriverFinancialReport driverId={profile?.id || ''} />
-              </div>
-            </SafeListWrapper>
+            <DriverReportsTab driverId={profile?.id || ''} />
           </TabsContent>
 
         </Tabs>
