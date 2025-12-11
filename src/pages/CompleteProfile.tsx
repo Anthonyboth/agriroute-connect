@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
@@ -21,6 +21,7 @@ import { AddressLocationInput } from '@/components/AddressLocationInput';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
 import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building, Plus, X, Shield } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { WizardProgress } from '@/components/wizard/WizardProgress';
 import { validateDocument } from '@/utils/cpfValidator';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { 
