@@ -110,7 +110,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
 
   const handleAddCity = async () => {
     if (!selectedCity?.id) {
-      toast.error('Digite e selecione uma cidade da lista');
+      toast.error('Selecione uma cidade da lista de sugestões. Digite o nome e clique na opção desejada.');
       return;
     }
 
@@ -128,6 +128,14 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
     }
 
     try {
+      console.log('[UserCityManager] Adicionando cidade:', {
+        userId: user.id,
+        cityId: selectedCity.id,
+        cityName: selectedCity.city,
+        type: selectedType,
+        radius,
+        userRole
+      });
 
       // Buscar service_types atuais do perfil para prestadores
       let profileServiceTypes: string[] = [];

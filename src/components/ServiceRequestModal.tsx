@@ -427,14 +427,17 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
                   <Button type="submit" disabled={loading} className="flex-1">
                     {loading ? 'Enviando...' : 'Solicitar Serviço'}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowRegisterForm(true)}
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    Criar Conta
-                  </Button>
+                  {/* Mostrar botão de criar conta APENAS para usuários não logados */}
+                  {!profile && (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setShowRegisterForm(true)}
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Criar Conta
+                    </Button>
+                  )}
                 </div>
               </form>
             </>

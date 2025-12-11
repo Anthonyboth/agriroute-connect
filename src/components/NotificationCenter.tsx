@@ -642,14 +642,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
                   <Button
-                    variant="ghost"
+                    variant="default"
                     size="sm"
                     onClick={markAllAsRead}
                     disabled={markingAllRead}
-                    className="h-8 text-xs gap-1.5"
+                    className="h-8 text-xs gap-1.5 bg-primary hover:bg-primary/90"
                   >
                     <MailCheck className={`h-3.5 w-3.5 ${markingAllRead ? 'animate-pulse' : ''}`} />
-                    Marcar lidas
+                    Marcar todas lidas
                   </Button>
                 )}
                 <Button

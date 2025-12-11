@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FreightCard } from '@/components/FreightCard';
 import { CreateFreightWizardModal } from '@/components/freight-wizard';
-import { AppBreadcrumb } from '@/components/navigation/AppBreadcrumb';
 import { EditFreightModal } from '@/components/EditFreightModal';
 import { ScheduledFreightsManager } from '@/components/ScheduledFreightsManager';
 import { SubscriptionExpiryNotification } from '@/components/SubscriptionExpiryNotification';
@@ -1198,11 +1197,6 @@ const ProducerDashboard = () => {
         userProfile={profile}
         notifications={unreadCount}
       />
-      
-      {/* Breadcrumb Navigation */}
-      <div className="container mx-auto px-4 py-2">
-        <AppBreadcrumb />
-      </div>
       
       {/* Hero Section Compacta */}
       <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">

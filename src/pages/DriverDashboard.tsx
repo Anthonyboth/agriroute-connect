@@ -42,7 +42,6 @@ import { debounce } from '@/lib/utils';
 import { fetchBatchCheckins } from '@/hooks/useBatchCheckins';
 import { FRETES_IA_LABEL, AREAS_IA_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
 import { DriverProposalDetailsModal } from '@/components/DriverProposalDetailsModal';
-import { AppBreadcrumb } from '@/components/navigation/AppBreadcrumb';
 
 // Sub-components refatorados
 import { 
@@ -1966,12 +1965,6 @@ const DriverDashboard = () => {
           userProfile={profile}
           notifications={unreadCount}
         />
-
-      {/* Breadcrumb Navigation */}
-      <div className="container mx-auto px-4 py-2">
-        <AppBreadcrumb />
-      </div>
-
       {/* Hero Section Compacto */}
       <DriverDashboardHero
         profileName={profile?.full_name}
