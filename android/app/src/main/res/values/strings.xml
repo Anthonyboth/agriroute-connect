@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">agriroute-connect</string>
-    <string name="title_activity_main">agriroute-connect</string>
+    <string name="app_name">AgriRoute</string>
+    <string name="title_activity_main">AgriRoute</string>
     <string name="package_name">app.lovable.f2dbc20153194f90a3cc8dd215bbebba</string>
     <string name="custom_url_scheme">app.lovable.f2dbc20153194f90a3cc8dd215bbebba</string>
 </resources>
