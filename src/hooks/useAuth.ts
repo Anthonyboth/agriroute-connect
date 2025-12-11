@@ -382,7 +382,9 @@ export const useAuth = () => {
       if (hasFixedActiveModeRef.current) return;
       
       if (profile?.role === 'MOTORISTA_AFILIADO' && profile?.active_mode === 'TRANSPORTADORA') {
-        console.log('🔧 Corrigindo active_mode de motorista afiliado...');
+        if (import.meta.env.DEV) {
+          console.log('🔧 Corrigindo active_mode de motorista afiliado...');
+        }
         hasFixedActiveModeRef.current = true; // ✅ Marcar como executado
         
         try {
@@ -392,14 +394,20 @@ export const useAuth = () => {
             .eq('id', profile.id);
 
           if (error) {
-            console.error('Erro ao corrigir active_mode:', error);
+            if (import.meta.env.DEV) {
+              console.error('Erro ao corrigir active_mode:', error);
+            }
           } else {
-            console.log('✅ active_mode corrigido');
+            if (import.meta.env.DEV) {
+              console.log('✅ active_mode corrigido');
+            }
             // Atualizar estado local para evitar redirects
             setProfile((p) => p ? { ...p, active_mode: null } : p);
           }
         } catch (error) {
-          console.error('Erro ao corrigir active_mode:', error);
+          if (import.meta.env.DEV) {
+            console.error('Erro ao corrigir active_mode:', error);
+          }
         }
       }
     };
@@ -425,7 +433,9 @@ export const useAuth = () => {
 
         // ✅ ETAPA 4: Limpar cooldown e forçar fetch no SIGNED_IN
         if (event === 'SIGNED_IN' && session?.user) {
-          console.log('🟢 [useAuth] SIGNED_IN event - limpando cooldown e forçando fetch');
+          if (import.meta.env.DEV) {
+            console.log('🟢 [useAuth] SIGNED_IN event - limpando cooldown e forçando fetch');
+          }
           sessionStorage.removeItem('profile_fetch_cooldown_until');
           
           // Validate UUID format

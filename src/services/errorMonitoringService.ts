@@ -48,7 +48,9 @@ export class ErrorMonitoringService {
       });
 
       const data = await response.json();
-      console.log('[ErrorMonitoringService] Notificação Telegram:', data);
+      if (import.meta.env.DEV) {
+        console.log('[ErrorMonitoringService] Notificação Telegram:', data);
+      }
       return data?.success || false;
     } catch (error) {
       console.error('[ErrorMonitoringService] Falha ao notificar Telegram:', error);
@@ -62,13 +64,17 @@ export class ErrorMonitoringService {
   }
 
   async reportUserPanelError(report: ErrorReport): Promise<{ notified: boolean; errorLogId?: string }> {
-    console.log('[ErrorMonitoringService] Reportando erro de painel:', report.errorMessage);
+    if (import.meta.env.DEV) {
+      console.log('[ErrorMonitoringService] Reportando erro de painel:', report.errorMessage);
+    }
 
     // SEMPRE notificar no Telegram primeiro
     const telegramNotified = await this.notifyTelegram(report);
 
     if (!this.isOnline) {
-      console.log('[ErrorMonitoringService] Offline - adicionando à fila');
+      if (import.meta.env.DEV) {
+        console.log('[ErrorMonitoringService] Offline - adicionando à fila');
+      }
       this.errorQueue.push(report);
       return { notified: telegramNotified };
     }
@@ -95,7 +101,9 @@ export class ErrorMonitoringService {
   }
 
   async captureError(error: Error, context?: any): Promise<{ notified: boolean; errorLogId?: string }> {
-    console.log('[ErrorMonitoringService] Erro capturado:', error.message);
+    if (import.meta.env.DEV) {
+      console.log('[ErrorMonitoringService] Erro capturado:', error.message);
+    }
 
     const errorCategory = this.classifyError(error);
     const correctionResult = await this.attemptAutoCorrection(error, errorCategory);
@@ -138,7 +146,9 @@ export class ErrorMonitoringService {
     const isUserFacingError = context?.userFacing === true || this.isUserPanelRoute(window.location.pathname);
     
     if (isUserFacingError) {
-      console.log('[ErrorMonitoringService] Erro de painel detectado');
+      if (import.meta.env.DEV) {
+        console.log('[ErrorMonitoringService] Erro de painel detectado');
+      }
       const result = await this.reportUserPanelError(errorReport);
       return { ...result, notified: telegramNotified || result.notified };
     }
@@ -249,7 +259,9 @@ export class ErrorMonitoringService {
   }
 
   private async processOfflineQueue(): Promise<void> {
-    console.log(`[ErrorMonitoringService] Processando fila offline (${this.errorQueue.length} itens)`);
+    if (import.meta.env.DEV) {
+      console.log(`[ErrorMonitoringService] Processando fila offline (${this.errorQueue.length} itens)`);
+    }
 
     while (this.errorQueue.length > 0 && this.isOnline) {
       const report = this.errorQueue.shift();
