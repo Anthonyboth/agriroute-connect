@@ -1,3 +1,4 @@
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,7 @@ interface ServiceRequestInProgressCardProps {
   onFinishService: (id: string) => void;
 }
 
-export const ServiceRequestInProgressCard = ({ 
+const ServiceRequestInProgressCardComponent = ({ 
   request, 
   onMarkOnTheWay, 
   onFinishService 
@@ -374,3 +375,14 @@ export const ServiceRequestInProgressCard = ({
     </Card>
   );
 };
+
+// ✅ PHASE 1: Memoização para evitar re-renders desnecessários em listas
+export const ServiceRequestInProgressCard = React.memo(ServiceRequestInProgressCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.request.id === nextProps.request.id &&
+    prevProps.request.status === nextProps.request.status &&
+    prevProps.request.estimated_price === nextProps.request.estimated_price &&
+    prevProps.onMarkOnTheWay === nextProps.onMarkOnTheWay &&
+    prevProps.onFinishService === nextProps.onFinishService
+  );
+});
