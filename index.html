@@ -24,9 +24,15 @@
     <meta name="msapplication-TileColor" content="#10b981">
     <meta name="msapplication-config" content="/browserconfig.xml">
     
-    <!-- FIRST: Preload LCP hero image - MUST be before everything else -->
+    <!-- Early resource hints for critical assets - reduces request chain latency -->
     <link rel="preload" as="image" href="/hero-truck-night-moon.webp" 
           fetchpriority="high" type="image/webp">
+    
+    <!-- Preload critical CSS to reduce chain depth -->
+    <link rel="preload" as="style" href="/src/index.css">
+    
+    <!-- modulepreload for faster JS module loading - Vite replaces these at build -->
+    <link rel="modulepreload" href="/src/main.tsx">
     
     <!-- Preconnect to critical origins - reduces DNS/TLS latency -->
     <link rel="preconnect" href="https://shnvtxejjecbnztdbbbl.supabase.co" crossorigin>
