@@ -10,6 +10,10 @@ export class ErrorMonitoringService {
   private autoCorrector: ErrorAutoCorrector;
   private errorQueue: ErrorReport[] = [];
   private isOnline = navigator.onLine;
+  
+  // ✅ Correção 3: Throttling global para evitar spam
+  private errorThrottle: Map<string, number> = new Map();
+  private readonly THROTTLE_MS = 60000; // 1 minuto entre erros do mesmo tipo
 
   private constructor() {
     this.autoCorrector = ErrorAutoCorrector.getInstance();
@@ -32,17 +36,45 @@ export class ErrorMonitoringService {
     return ErrorMonitoringService.instance;
   }
 
+  // ✅ Correção 3: Verificar se deve aplicar throttle
+  private shouldThrottle(errorKey: string): boolean {
+    const lastTime = this.errorThrottle.get(errorKey);
+    const now = Date.now();
+    
+    if (lastTime && now - lastTime < this.THROTTLE_MS) {
+      if (import.meta.env.DEV) {
+        console.log(`[ErrorMonitoringService] Throttle aplicado para: ${errorKey}`);
+      }
+      return true;
+    }
+    
+    this.errorThrottle.set(errorKey, now);
+    return false;
+  }
+
+  // ✅ Gerar chave única para throttle baseada no tipo de erro
+  private getThrottleKey(report: ErrorReport): string {
+    return `${report.errorType}_${report.errorMessage?.substring(0, 50) || 'unknown'}`;
+  }
+
   /**
    * Notificar TODOS os erros diretamente no Telegram
    * SEM deduplicação, SEM verificação de role
    */
   private async notifyTelegram(report: ErrorReport): Promise<boolean> {
+    // ✅ Correção 3: Aplicar throttling
+    const throttleKey = this.getThrottleKey(report);
+    if (this.shouldThrottle(throttleKey)) {
+      return false;
+    }
+
     try {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/telegram-error-notifier`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY
+          'apikey': SUPABASE_ANON_KEY,
+          'X-Skip-Error-Monitoring': 'true' // ✅ Correção 2: Header para evitar loop
         },
         body: JSON.stringify(report)
       });
@@ -53,7 +85,8 @@ export class ErrorMonitoringService {
       }
       return data?.success || false;
     } catch (error) {
-      console.error('[ErrorMonitoringService] Falha ao notificar Telegram:', error);
+      // ✅ Não propagar erro para evitar loop infinito
+      console.debug('[ErrorMonitoringService] Falha ao notificar Telegram (suprimido):', error);
       return false;
     }
   }
