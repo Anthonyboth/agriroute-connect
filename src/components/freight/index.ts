@@ -1,0 +1,25 @@
+// Freight domain components - barrel export
+export { FreightCard } from '../FreightCard';
+export { FreightInProgressCard } from '../FreightInProgressCard';
+export { FreightDetails } from '../FreightDetails';
+export { FreightHistory } from '../FreightHistory';
+export { FreightChat } from '../FreightChat';
+export { FreightStatusTracker } from '../FreightStatusTracker';
+export { FreightStatusHistory } from '../FreightStatusHistory';
+export { FreightTrackingPanel } from '../FreightTrackingPanel';
+export { default as FreightCheckinsViewer } from '../FreightCheckinsViewer';
+export { FreightFilters } from '../FreightFilters';
+export { FreightAnalyticsDashboard } from '../FreightAnalyticsDashboard';
+export { FreightReportExporter } from '../FreightReportExporter';
+export { FreightShareCard } from '../FreightShareCard';
+export { default as FreightLimitTracker } from '../FreightLimitTracker';
+export { FreightPaymentModal } from '../FreightPaymentModal';
+export { FreightRatingModal } from '../FreightRatingModal';
+export { FreightAdvanceModal } from '../FreightAdvanceModal';
+export { FreightAssignmentsList } from '../FreightAssignmentsList';
+export { ScheduledFreightsManager } from '../ScheduledFreightsManager';
+export { ScheduledFreightCard } from '../ScheduledFreightCard';
+export { ScheduledFreightDetailsModal } from '../ScheduledFreightDetailsModal';
+export { default as OptimizedFreightCard } from '../OptimizedFreightCard';
+export { default as CreateFreightModal } from '../CreateFreightModal';
+export { EditFreightModal } from '../EditFreightModal';
