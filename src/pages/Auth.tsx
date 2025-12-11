@@ -433,24 +433,14 @@ const Auth = () => {
             }
             
             console.log('🟢 [LOGIN DEBUG] Rota de destino:', targetRoute);
-            console.log('🟢 [LOGIN DEBUG] Chamando navigate para:', targetRoute);
             
             setLoading(false);
             
-            // Forçar navegação com replace
-            navigate(targetRoute, { replace: true });
-            
-            console.log('🟢 [LOGIN DEBUG] Navigate chamado - aguardando redirecionamento...');
-            
-            // Fallback: se navigate falhar, usar window.location
-            setTimeout(() => {
-              console.log('🟡 [LOGIN DEBUG] Timeout de 1s atingido - verificando se ainda na página /auth');
-              if (window.location.pathname === '/auth') {
-                console.log('🟡 [LOGIN DEBUG] Ainda em /auth - usando window.location.href como fallback');
-                window.location.href = targetRoute;
-              }
-            }, 1000);
-            
+            // ✅ CORREÇÃO CRÍTICA: Usar window.location.href diretamente
+            // O navigate() não funciona corretamente porque o RedirectIfAuthed
+            // intercepta e mostra ComponentLoader enquanto aguarda profile
+            console.log('🟢 [LOGIN DEBUG] Redirecionando via window.location.href para:', targetRoute);
+            window.location.href = targetRoute;
             return;
           }
           
