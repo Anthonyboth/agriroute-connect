@@ -1120,90 +1120,80 @@ export const ServiceProviderDashboard: React.FC = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full overflow-x-auto pb-2">
             <TabsList className="inline-flex h-12 items-center justify-center rounded-xl bg-white/80 backdrop-blur-sm shadow-md border border-gray-200/50 dark:bg-gray-900/80 dark:border-gray-700/50 p-1.5 text-muted-foreground min-w-fit">
-              <TabsTrigger 
+            <TabsTrigger 
                 value="pending" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <Brain className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Disponível</span>
-                <span className="sm:hidden">Disp</span>
+                Disponível
               </TabsTrigger>
               <TabsTrigger 
                 value="accepted" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <Play className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Em Andamento</span>
-                <span className="sm:hidden">Ativo</span>
+                Em Andamento
               </TabsTrigger>
               <TabsTrigger 
                 value="completed" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Concluídos</span>
-                <span className="sm:hidden">Ok</span>
+                Concluídos
               </TabsTrigger>
               <TabsTrigger 
                 value="services" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <Settings className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Serviços</span>
-                <span className="sm:hidden">Serv</span>
+                Serviços
               </TabsTrigger>
               <TabsTrigger 
                 value="payouts" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <Banknote className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Saldo</span>
-                <span className="sm:hidden">Saldo</span>
+                Saldo
               </TabsTrigger>
               <TabsTrigger 
                 value="ratings" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <Star className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Avaliações</span>
-                <span className="sm:hidden">Aval</span>
+                Avaliações
               </TabsTrigger>
               <TabsTrigger 
                 value="cities" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <MapPin className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Cidades</span>
-                <span className="sm:hidden">Cid</span>
+                Cidades
               </TabsTrigger>
               <TabsTrigger 
                 value="history" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Histórico</span>
-                <span className="sm:hidden">Hist</span>
+                Histórico
               </TabsTrigger>
               <TabsTrigger 
                 value="chat" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <MessageSquare className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Chat</span>
-                <span className="sm:hidden">Chat</span>
+                Chat
                 {chatUnreadCount > 0 && (
                   <Badge variant="destructive" className="ml-1 h-4 px-1 text-xs">
                     {chatUnreadCount}
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="reports" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
                 <TrendingUp className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Relatórios</span>
-                <span className="sm:hidden">Relat</span>
+                Relatórios
               </TabsTrigger>
             </TabsList>
           </div>

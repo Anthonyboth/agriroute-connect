@@ -37,13 +37,12 @@ export const PendingServiceRatingsPanel: React.FC = () => {
     if (!profile) return;
 
     try {
-      // Buscar serviços completos primeiro (sem joins para evitar erro 400)
+      // Buscar serviços COMPLETED - permitir client_id nulo para serviços aceitos diretamente
       const { data: services, error } = await supabase
         .from('service_requests')
         .select('id, service_type, updated_at, client_id, provider_id')
         .eq('status', 'COMPLETED')
         .or(`client_id.eq.${profile.id},provider_id.eq.${profile.id}`)
-        .not('client_id', 'is', null)
         .not('provider_id', 'is', null)
         .order('updated_at', { ascending: false });
 
@@ -85,6 +84,11 @@ export const PendingServiceRatingsPanel: React.FC = () => {
       // Filtrar serviços pendentes SEM consultas adicionais ao banco
       const pending: PendingService[] = services
         .filter(service => {
+          // Se não tem client_id, só o provider pode avaliar (não há cliente para avaliar)
+          if (!service.client_id) {
+            // Provider não precisa avaliar se não há cliente
+            return false;
+          }
           const isClient = service.client_id === profile.id;
           const ratingType = isClient ? 'CLIENT_TO_PROVIDER' : 'PROVIDER_TO_CLIENT';
           const key = `${service.id}_${ratingType}`;
@@ -94,9 +98,9 @@ export const PendingServiceRatingsPanel: React.FC = () => {
           id: service.id,
           service_type: service.service_type,
           updated_at: service.updated_at,
-          client_id: service.client_id,
+          client_id: service.client_id || '',
           provider_id: service.provider_id,
-          client_name: profilesMap.get(service.client_id) || 'Cliente',
+          client_name: service.client_id ? (profilesMap.get(service.client_id) || 'Cliente') : 'Cliente não cadastrado',
           provider_name: profilesMap.get(service.provider_id) || 'Prestador',
         }));
 
