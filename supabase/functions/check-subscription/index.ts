@@ -49,13 +49,45 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ 
+        error: "No authorization header provided",
+        subscribed: false,
+        subscription_tier: 'FREE'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    
+    // Handle session expiration gracefully - return 401 instead of 500
+    if (userError) {
+      logStep("Auth error (session may have expired)", { error: userError.message });
+      return new Response(JSON.stringify({ 
+        error: "Session expired",
+        code: "SESSION_EXPIRED",
+        subscribed: false,
+        subscription_tier: 'FREE'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+    
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
+    if (!user?.email) {
+      return new Response(JSON.stringify({ 
+        error: "User not authenticated",
+        subscribed: false,
+        subscription_tier: 'FREE'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
 
     logStep("User authenticated", { userId: user.id, email: user.email });
 
