@@ -38,8 +38,8 @@ export function AppBreadcrumb({ className, showHome = true }: AppBreadcrumbProps
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter((x) => x);
 
-  // Não mostrar breadcrumb na landing page
-  if (pathnames.length === 0) {
+  // Não mostrar breadcrumb na landing page OU em páginas de dashboard (segurança - esconder tipo de usuário)
+  if (pathnames.length === 0 || pathnames[0] === 'dashboard') {
     return null;
   }
 
