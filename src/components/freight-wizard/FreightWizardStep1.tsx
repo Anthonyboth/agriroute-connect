@@ -61,15 +61,20 @@ export function FreightWizardStep1({
 
       {/* Origem */}
       <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-        <div className="flex items-center justify-between">
-          <Label className="text-base font-semibold flex items-center gap-2">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Label className="text-base font-semibold flex items-center gap-2 flex-1">
             <span className="w-6 h-6 rounded-full bg-green-500 text-white text-xs flex items-center justify-center">A</span>
             Origem
           </Label>
           <LocationFillButton
-            onLocationFilled={(address, lat, lng) => {
+            onLocationFilled={(address, lat, lng, locationData) => {
               onInputChange('origin_lat', lat);
               onInputChange('origin_lng', lng);
+              if (locationData) {
+                if (locationData.city) onInputChange('origin_city', locationData.city);
+                if (locationData.state) onInputChange('origin_state', locationData.state);
+                if (locationData.neighborhood) onInputChange('origin_neighborhood', locationData.neighborhood);
+              }
             }}
           />
         </div>
