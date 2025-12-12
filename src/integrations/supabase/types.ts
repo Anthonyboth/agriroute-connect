@@ -2868,6 +2868,7 @@ export type Database = {
           problem_description: string | null
           producer_id: string
           prospect_user_id: string | null
+          reference_number: number | null
           required_trucks: number
           route_geom: unknown
           route_waypoints: Json | null
@@ -2953,6 +2954,7 @@ export type Database = {
           problem_description?: string | null
           producer_id: string
           prospect_user_id?: string | null
+          reference_number?: number | null
           required_trucks?: number
           route_geom?: unknown
           route_waypoints?: Json | null
@@ -3038,6 +3040,7 @@ export type Database = {
           problem_description?: string | null
           producer_id?: string
           prospect_user_id?: string | null
+          reference_number?: number | null
           required_trucks?: number
           route_geom?: unknown
           route_waypoints?: Json | null
@@ -5502,6 +5505,7 @@ export type Database = {
           provider_id: string | null
           provider_notes: string | null
           provider_rating: number | null
+          reference_number: number | null
           service_radius_km: number | null
           service_type: string
           state: string | null
@@ -5546,6 +5550,7 @@ export type Database = {
           provider_id?: string | null
           provider_notes?: string | null
           provider_rating?: number | null
+          reference_number?: number | null
           service_radius_km?: number | null
           service_type: string
           state?: string | null
@@ -5590,6 +5595,7 @@ export type Database = {
           provider_id?: string | null
           provider_notes?: string | null
           provider_rating?: number | null
+          reference_number?: number | null
           service_radius_km?: number | null
           service_type?: string
           state?: string | null
@@ -8042,6 +8048,7 @@ export type Database = {
           problem_description: string | null
           producer_id: string
           prospect_user_id: string | null
+          reference_number: number | null
           required_trucks: number
           route_geom: unknown
           route_waypoints: Json | null
@@ -8136,6 +8143,7 @@ export type Database = {
           problem_description: string | null
           producer_id: string
           prospect_user_id: string | null
+          reference_number: number | null
           required_trucks: number
           route_geom: unknown
           route_waypoints: Json | null
