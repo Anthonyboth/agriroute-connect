@@ -250,7 +250,9 @@ export function CreateFreightWizard({
       setCurrentStep(2);
     } catch (error: any) {
       logWizardDebug('STEP1_NEXT_ERROR', { error: error.message });
-      throw error;
+      // NÃO propagar o erro - tratar graciosamente e permitir continuar
+      toast.error('Erro ao calcular distância, mas você pode continuar');
+      setCurrentStep(2);
     }
   };
 

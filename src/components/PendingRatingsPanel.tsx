@@ -45,7 +45,7 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
       console.log('[PendingRatingsPanel] 👤 User Profile ID:', userProfileId);
       console.log('[PendingRatingsPanel] 🎭 User Role:', userRole);
       
-      // Get freights that are DELIVERED but user hasn't rated yet
+      // Get freights that are DELIVERED/COMPLETED but user hasn't rated yet
       const { data: freights, error: freightsError } = await supabase
         .from('freights')
         .select(`
@@ -61,7 +61,7 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
           producer_profiles:profiles!freights_producer_id_fkey(full_name),
           driver_profiles:profiles!freights_driver_id_fkey(full_name)
         `)
-        .eq('status', 'DELIVERED')
+        .in('status', ['DELIVERED', 'COMPLETED', 'DELIVERED_PENDING_CONFIRMATION'])
         .or(`producer_id.eq.${userProfileId},driver_id.eq.${userProfileId}`);
 
       if (freightsError) {

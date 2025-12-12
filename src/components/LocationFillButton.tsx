@@ -3,9 +3,21 @@ import { Button } from '@/components/ui/button';
 import { MapPin, Loader2 } from 'lucide-react';
 import { useLocationPermission } from '@/hooks/useLocationPermission';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+interface LocationData {
+  address: string;
+  lat: number;
+  lng: number;
+  city?: string;
+  state?: string;
+  neighborhood?: string;
+  street?: string;
+  cep?: string;
+}
 
 interface LocationFillButtonProps {
-  onLocationFilled: (address: string, lat?: number, lng?: number) => void;
+  onLocationFilled: (address: string, lat?: number, lng?: number, locationData?: LocationData) => void;
   className?: string;
   size?: 'default' | 'sm' | 'lg';
   variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive';
@@ -44,7 +56,33 @@ export const LocationFillButton: React.FC<LocationFillButtonProps> = ({
 
       const { latitude, longitude } = position.coords;
 
-      // Using coordinates directly for security (no external API calls)
+      // Tentar geocodificação reversa
+      try {
+        const { data, error } = await supabase.functions.invoke('reverse-geocode', {
+          body: { lat: latitude, lng: longitude }
+        });
+
+        if (!error && data) {
+          const locationData: LocationData = {
+            address: data.formatted_address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+            lat: latitude,
+            lng: longitude,
+            city: data.city,
+            state: data.state,
+            neighborhood: data.neighborhood,
+            street: data.street,
+            cep: data.cep
+          };
+          
+          onLocationFilled(locationData.address, latitude, longitude, locationData);
+          toast.success(`Localização: ${data.city || 'Coordenadas'} preenchida!`);
+          return;
+        }
+      } catch (geocodeError) {
+        console.warn('Geocodificação reversa falhou, usando coordenadas:', geocodeError);
+      }
+
+      // Fallback: usar coordenadas diretamente
       const simpleAddress = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
       onLocationFilled(simpleAddress, latitude, longitude);
       toast.success('Coordenadas preenchidas!');
@@ -63,14 +101,14 @@ export const LocationFillButton: React.FC<LocationFillButtonProps> = ({
       size={size}
       onClick={handleFillCurrentLocation}
       disabled={loading}
-      className={className}
+      className={`gap-2 ${className}`}
     >
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <MapPin className="h-4 w-4" />
       )}
-      {loading ? 'Obtendo...' : 'Usar Localização Atual'}
+      <span className="hidden sm:inline">{loading ? 'Obtendo...' : 'Usar GPS'}</span>
     </Button>
   );
 };

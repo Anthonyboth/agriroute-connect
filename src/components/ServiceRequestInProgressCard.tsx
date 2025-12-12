@@ -313,15 +313,69 @@ const ServiceRequestInProgressCardComponent = ({
         )}
 
         {/* ===== SEÇÃO: OBSERVAÇÕES ADICIONAIS ===== */}
-        {request.additional_info && (
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-            <h4 className="font-bold text-base flex items-center gap-2 text-gray-700 dark:text-gray-300 mb-2">
-              <FileText className="h-5 w-5" />
-              OBSERVAÇÕES ADICIONAIS
-            </h4>
-            <p className="text-base leading-relaxed">{request.additional_info}</p>
-          </div>
-        )}
+        {request.additional_info && (() => {
+          // Parse JSON if needed
+          let parsedInfo: any = null;
+          try {
+            parsedInfo = typeof request.additional_info === 'string' 
+              ? JSON.parse(request.additional_info) 
+              : request.additional_info;
+          } catch { 
+            // Se não for JSON, mostrar como texto
+            parsedInfo = null;
+          }
+          
+          // Se é objeto JSON, renderizar formatado
+          if (parsedInfo && typeof parsedInfo === 'object') {
+            return (
+              <div className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700 space-y-3">
+                <h4 className="font-bold text-base flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                  <FileText className="h-5 w-5" />
+                  INFORMAÇÕES ADICIONAIS
+                </h4>
+                {parsedInfo.origin_address && (
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-green-600 mt-0.5" />
+                    <div>
+                      <span className="text-sm text-muted-foreground">Origem: </span>
+                      <span className="font-medium">{parsedInfo.origin_address}</span>
+                    </div>
+                  </div>
+                )}
+                {parsedInfo.destination_address && (
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-red-600 mt-0.5" />
+                    <div>
+                      <span className="text-sm text-muted-foreground">Destino: </span>
+                      <span className="font-medium">{parsedInfo.destination_address}</span>
+                    </div>
+                  </div>
+                )}
+                {parsedInfo.preferred_time && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm text-muted-foreground">Horário: </span>
+                    <span className="font-medium">{parsedInfo.preferred_time}</span>
+                  </div>
+                )}
+                {parsedInfo.notes && (
+                  <p className="text-sm text-muted-foreground">{parsedInfo.notes}</p>
+                )}
+              </div>
+            );
+          }
+          
+          // Se é texto simples
+          return (
+            <div className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+              <h4 className="font-bold text-base flex items-center gap-2 text-gray-700 dark:text-gray-300 mb-2">
+                <FileText className="h-5 w-5" />
+                OBSERVAÇÕES ADICIONAIS
+              </h4>
+              <p className="text-base leading-relaxed">{request.additional_info}</p>
+            </div>
+          );
+        })()}
 
         <Separator className="my-4" />
 
@@ -347,30 +401,33 @@ const ServiceRequestInProgressCardComponent = ({
         </div>
       </CardContent>
 
-      <CardFooter className="flex gap-3 pt-4 pb-5">
-        {/* Botão "A Caminho" - apenas para usuários cadastrados */}
-        {request.status === 'ACCEPTED' && request.client_id && (
+      <CardFooter className="flex flex-col gap-3 pt-4 pb-5">
+        {/* Linha 1: Botões principais */}
+        <div className="flex gap-3 w-full">
+          {/* Botão "A Caminho" - apenas para usuários cadastrados */}
+          {request.status === 'ACCEPTED' && request.client_id && (
+            <Button
+              variant="default"
+              size="lg"
+              className="flex-1 bg-orange-500 hover:bg-orange-600"
+              onClick={() => onMarkOnTheWay(request.id)}
+            >
+              <Navigation className="h-5 w-5 mr-2" />
+              A Caminho
+            </Button>
+          )}
+
+          {/* Botão "Encerrar" - sempre disponível */}
           <Button
             variant="default"
             size="lg"
-            className="flex-1 bg-orange-500 hover:bg-orange-600 text-lg py-4"
-            onClick={() => onMarkOnTheWay(request.id)}
+            className="flex-1 bg-green-600 hover:bg-green-700"
+            onClick={() => onFinishService(request.id)}
           >
-            <Navigation className="h-5 w-5 mr-2" />
-            A Caminho
+            <CheckCircle className="h-5 w-5 mr-2" />
+            {isGuestUser ? 'Encerrar' : 'Concluir'}
           </Button>
-        )}
-
-        {/* Botão "Encerrar" - sempre disponível */}
-        <Button
-          variant="default"
-          size="lg"
-          className="flex-1 bg-green-600 hover:bg-green-700 text-lg py-4"
-          onClick={() => onFinishService(request.id)}
-        >
-          <CheckCircle className="h-5 w-5 mr-2" />
-          {isGuestUser ? 'Encerrar Serviço' : 'Concluir Serviço'}
-        </Button>
+        </div>
       </CardFooter>
     </Card>
   );
