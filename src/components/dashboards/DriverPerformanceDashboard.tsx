@@ -61,7 +61,23 @@ export const DriverPerformanceDashboard = ({ driverId }: DriverPerformanceDashbo
     );
   }
 
-  if (!performance || performance.totalFreights === 0) {
+  // Se não há dados mas o hook carregou, verificar se temos alguma info
+  const hasAnyData = performance && (
+    performance.totalFreights > 0 || 
+    performance.totalRevenue > 0 || 
+    performance.totalRatings > 0
+  );
+
+  if (!performance) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <p>Não foi possível carregar os dados</p>
+        <p className="text-sm mt-2">Tente novamente mais tarde</p>
+      </div>
+    );
+  }
+
+  if (!hasAnyData) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         <p>Dados de performance não disponíveis</p>

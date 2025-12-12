@@ -80,9 +80,30 @@ export const useNotifications = () => {
     }
   }, [profile, fetchUnreadCount]);
 
+  // Função para marcar todas como lidas
+  const markAllAsRead = useCallback(async () => {
+    if (!profile) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', profile.id)
+        .eq('read', false);
+      
+      if (error) throw error;
+      
+      setUnreadCount(0);
+      console.log('[useNotifications] Todas notificações marcadas como lidas');
+    } catch (error) {
+      console.error('[useNotifications] Erro ao marcar como lidas:', error);
+    }
+  }, [profile]);
+
   return {
     unreadCount,
     loading,
-    refreshCount: fetchUnreadCount
+    refreshCount: fetchUnreadCount,
+    markAllAsRead
   };
 };
