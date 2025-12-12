@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -609,76 +609,31 @@ const CompanyDashboard = () => {
           </div>
         )}
 
-        {/* Navegação por Tabs */}
-        {isMobile || isTablet ? (
-          <div className="mb-6">
-            <div className="grid grid-cols-2 gap-2">
-              {COMPANY_TABS.slice(0, 6).map((tab) => {
-                const Icon = tab.icon;
-                const isActive = tab.value === activeTab;
-                
-                return (
-                  <Button
-                    key={tab.value}
-                    variant={isActive ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setActiveTab(tab.value)}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 px-2 py-2 min-w-0",
-                      isActive && "font-semibold"
-                    )}
-                  >
-                    <Icon className="h-4 w-4 flex-shrink-0" />
-                    <span className="whitespace-nowrap text-xs">{tab.shortLabel}</span>
-                    {tab.badge && tab.badge > 0 && (
-                      <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs flex-shrink-0">
-                        {tab.badge}
-                      </Badge>
-                    )}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <div className="relative mb-6">
-            <div 
-              ref={tabsScrollRef}
-              className="flex gap-2 overflow-x-auto overflow-y-hidden scroll-smooth pb-2 px-1"
-            >
+        {/* Navegação por Tabs com Scroll Horizontal - igual aos outros dashboards */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="w-full overflow-x-auto pb-2 mb-6">
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
               {COMPANY_TABS.map((tab) => {
                 const Icon = tab.icon;
-                const isActive = tab.value === activeTab;
-                
                 return (
-                  <Button
+                  <TabsTrigger
                     key={tab.value}
-                    variant={isActive ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setActiveTab(tab.value)}
-                    className={cn(
-                      "inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium min-w-[120px] flex-shrink-0 gap-2 transition-all duration-200",
-                      isActive 
-                        ? "bg-primary text-primary-foreground shadow-md border-2 border-primary" 
-                        : "bg-card hover:bg-muted border border-border hover:scale-105"
-                    )}
+                    value={tab.value}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                   >
-                    <Icon className="h-4 w-4" />
-                    <span>{tab.label}</span>
+                    <Icon className="h-3 w-3 mr-1" />
+                    <span className="hidden sm:inline" translate="no">{tab.label}</span>
+                    <span className="sm:hidden" translate="no">{tab.shortLabel}</span>
                     {tab.badge && tab.badge > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
-                      >
+                      <Badge variant="destructive" className="ml-1 h-4 px-1 text-xs">
                         {tab.badge}
                       </Badge>
                     )}
-                  </Button>
+                  </TabsTrigger>
                 );
               })}
-            </div>
+            </TabsList>
           </div>
-        )}
 
         {/* Botão Mural de Avisos */}
         <div className="container mx-auto px-4 mb-6">
@@ -703,7 +658,6 @@ const CompanyDashboard = () => {
           />
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsContent value="overview" className="mt-6">
             <CompanyDashboardComponent onNavigateToReport={handleNavigateToReport} />
           </TabsContent>
