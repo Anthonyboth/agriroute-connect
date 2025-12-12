@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, VisuallyHidden } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, Download } from 'lucide-react';
 import { useVehiclePhotos, VehiclePhoto, PHOTO_TYPES } from '@/hooks/useVehiclePhotos';
@@ -99,7 +99,10 @@ export const VehiclePhotoExpandedGallery: React.FC<VehiclePhotoExpandedGalleryPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 bg-black/95 border-none">
+      <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 bg-black/95 border-none" aria-label="Galeria de Fotos do Veículo">
+        <VisuallyHidden>
+          <DialogTitle>Galeria de Fotos do Veículo</DialogTitle>
+        </VisuallyHidden>
         <div className="relative w-full h-full flex flex-col">
           {/* Header */}
           <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between">
