@@ -140,9 +140,9 @@ const Header: React.FC<HeaderProps> = ({
     <>
       <header className="bg-card/95 backdrop-blur-sm border-b border-border/50 shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-3 sm:px-4">
-          <div className="flex items-center justify-between h-14 sm:h-16">
-            {/* Logo + Badge */}
-            <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center h-14 sm:h-16 w-full">
+            {/* Logo + Badge - Left side */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <div className="p-1.5 rounded-lg bg-primary/10">
                   <Leaf className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
@@ -156,6 +156,9 @@ const Header: React.FC<HeaderProps> = ({
                 {getRoleBadge(user?.role, userProfile?.active_mode)}
               </Badge>
             </div>
+            
+            {/* Spacer - pushes navigation to right */}
+            <div className="flex-1" />
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
