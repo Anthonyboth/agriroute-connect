@@ -67,6 +67,31 @@ const WIZARD_STEPS = [
   { id: 4, title: 'Revisar', description: 'Confirmar dados', icon: <Check className="h-4 w-4" /> },
 ];
 
+// Debug logging helper - envia para console e Telegram
+const logWizardDebug = async (action: string, details: Record<string, any> = {}) => {
+  const logData = {
+    timestamp: new Date().toISOString(),
+    action,
+    ...details
+  };
+  console.log('[FreightWizard DEBUG]', action, logData);
+  
+  // Enviar para Telegram via ErrorMonitoringService
+  try {
+    const service = ErrorMonitoringService.getInstance();
+    await service.captureError(
+      new Error(`[FreightWizard] ${action}`),
+      {
+        module: 'CreateFreightWizard',
+        function_name: action,
+        metadata: logData
+      }
+    );
+  } catch (e) {
+    console.warn('[FreightWizard DEBUG] Falha ao enviar para Telegram:', e);
+  }
+};
+
 export function CreateFreightWizard({
   onFreightCreated,
   userProfile,
@@ -84,6 +109,24 @@ export function CreateFreightWizard({
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
 
   const isModalOpen = externalIsOpen !== undefined ? externalIsOpen : open;
+
+  // Log quando o componente monta
+  useEffect(() => {
+    logWizardDebug('COMPONENT_MOUNTED', { guestMode, hasInitialData: !!initialData });
+    return () => {
+      logWizardDebug('COMPONENT_UNMOUNTED', { currentStep });
+    };
+  }, []);
+
+  // Log quando o modal abre/fecha
+  useEffect(() => {
+    logWizardDebug('MODAL_STATE_CHANGE', { isModalOpen, currentStep });
+  }, [isModalOpen]);
+
+  // Log quando o step muda
+  useEffect(() => {
+    logWizardDebug('STEP_CHANGED', { currentStep, formData: { origin: formData.origin_city, destination: formData.destination_city } });
+  }, [currentStep]);
 
   const { hasDraft, lastSaved, saveDraft, clearDraft, restoreDraft } = useFreightDraft(
     userProfile?.id,
@@ -104,10 +147,12 @@ export function CreateFreightWizard({
   }, [formData, guestMode, isModalOpen, initialData, saveDraft]);
 
   const handleInputChange = (field: string, value: any) => {
+    logWizardDebug('INPUT_CHANGE', { field, valueType: typeof value, currentStep });
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleModalClose = () => {
+    logWizardDebug('MODAL_CLOSE_TRIGGERED', { currentStep, hasExternalOnClose: !!externalOnClose });
     if (externalOnClose) {
       externalOnClose();
     } else {
@@ -196,20 +241,38 @@ export function CreateFreightWizard({
   };
 
   const handleStep1Next = async () => {
-    const distance = await calculateDistance();
-    await calculateAnttPrice(distance);
-    setCurrentStep(2);
+    logWizardDebug('STEP1_NEXT_START', { origin: formData.origin_city, destination: formData.destination_city });
+    try {
+      const distance = await calculateDistance();
+      logWizardDebug('STEP1_DISTANCE_CALCULATED', { distance });
+      await calculateAnttPrice(distance);
+      logWizardDebug('STEP1_NEXT_SUCCESS', { newStep: 2 });
+      setCurrentStep(2);
+    } catch (error: any) {
+      logWizardDebug('STEP1_NEXT_ERROR', { error: error.message });
+      throw error;
+    }
   };
 
   const handleStep2Next = async () => {
-    if (calculatedDistance > 0) {
-      await calculateAnttPrice(calculatedDistance);
+    logWizardDebug('STEP2_NEXT_START', { cargoType: formData.cargo_type, weight: formData.weight });
+    try {
+      if (calculatedDistance > 0) {
+        await calculateAnttPrice(calculatedDistance);
+      }
+      logWizardDebug('STEP2_NEXT_SUCCESS', { newStep: 3 });
+      setCurrentStep(3);
+    } catch (error: any) {
+      logWizardDebug('STEP2_NEXT_ERROR', { error: error.message });
+      throw error;
     }
-    setCurrentStep(3);
   };
 
   const handleSubmit = async () => {
+    logWizardDebug('SUBMIT_START', { guestMode, hasUserProfile: !!userProfile?.id });
+    
     if (!guestMode && !userProfile?.id) {
+      logWizardDebug('SUBMIT_BLOCKED_NO_USER', {});
       toast.error('Faça login como produtor para criar um frete.');
       return;
     }
