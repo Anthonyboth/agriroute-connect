@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, VisuallyHidden } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Plus, X, Camera, ImageIcon, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
@@ -248,7 +248,10 @@ export const VehiclePhotoGallery: React.FC<VehiclePhotoGalleryProps> = ({
 
       {/* Modal de visualização ampliada */}
       <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
-        <DialogContent className="max-w-3xl p-0 bg-black/95 border-none">
+        <DialogContent className="max-w-3xl p-0 bg-black/95 border-none" aria-label="Visualização de Foto do Veículo">
+          <VisuallyHidden>
+            <DialogTitle>Visualização de Foto do Veículo</DialogTitle>
+          </VisuallyHidden>
           <div className="relative">
             {/* Navegação */}
             {photos.length > 1 && (
