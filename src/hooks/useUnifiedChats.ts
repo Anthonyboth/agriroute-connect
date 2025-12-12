@@ -241,7 +241,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
       }
 
       // 2. SERVIÇOS - Query refatorada em 3 etapas
-      if (['PRODUTOR', 'PRESTADOR_SERVICO'].includes(userRole)) {
+      if (['PRODUTOR', 'PRESTADOR_SERVICO', 'PRESTADOR_SERVICOS'].includes(userRole)) {
         // Etapa 1: Buscar serviços básicos do usuário
         const { data: userServices, error: servicesError } = await supabase
           .from('service_requests')

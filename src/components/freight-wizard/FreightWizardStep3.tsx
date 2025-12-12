@@ -114,24 +114,24 @@ export function FreightWizardStep3({
         </div>
       </div>
 
-      {/* Quantidade de Carretas */}
+      {/* Quantidade de Veículos - Entrada livre */}
       <div className="space-y-2">
         <Label htmlFor="required_trucks">Quantidade de Veículos</Label>
-        <Select
-          value={formData.required_trucks}
-          onValueChange={(value) => onInputChange('required_trucks', value)}
-        >
-          <SelectTrigger id="required_trucks">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {[1, 2, 3, 4, 5].map((num) => (
-              <SelectItem key={num} value={String(num)}>
-                {num} {num === 1 ? 'veículo' : 'veículos'}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Input
+          id="required_trucks"
+          type="number"
+          min="1"
+          step="1"
+          value={formData.required_trucks || '1'}
+          onChange={(e) => {
+            const value = parseInt(e.target.value) || 1;
+            onInputChange('required_trucks', String(Math.max(1, value)));
+          }}
+          placeholder="Digite a quantidade"
+        />
+        <p className="text-xs text-muted-foreground">
+          Informe quantos veículos são necessários para este frete
+        </p>
       </div>
 
       {/* Datas */}

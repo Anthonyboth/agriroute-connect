@@ -81,7 +81,24 @@ export const ServiceProviderReportsDashboard = ({ providerId }: ServiceProviderR
     );
   }
 
-  if (!performance || performance.totalServices === 0) {
+  // Se não há dados mas o hook carregou, verificar se temos alguma info
+  const hasAnyData = performance && (
+    performance.totalServices > 0 || 
+    performance.totalRevenue > 0 || 
+    performance.totalRatings > 0
+  );
+
+  if (!performance) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+        <p>Não foi possível carregar os dados</p>
+        <p className="text-sm mt-2">Tente novamente mais tarde</p>
+      </div>
+    );
+  }
+
+  if (!hasAnyData) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
