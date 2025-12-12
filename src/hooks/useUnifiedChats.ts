@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -33,7 +33,6 @@ export interface ChatConversation {
 
 export const useUnifiedChats = (userProfileId: string, userRole: string) => {
   const queryClient = useQueryClient();
-  const [conversations, setConversations] = useState<ChatConversation[]>([]);
 
   // Buscar todas as conversas baseado no perfil
   const { data: rawConversations = [], isLoading } = useQuery({
@@ -780,16 +779,12 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
     },
   });
 
-  useEffect(() => {
-    setConversations(rawConversations);
-  }, [rawConversations]);
-
-  const totalUnread = conversations
+  const totalUnread = rawConversations
     .filter((c) => !c.isClosed)
     .reduce((sum, c) => sum + c.unreadCount, 0);
 
   return {
-    conversations,
+    conversations: rawConversations,
     isLoading,
     totalUnread,
     closeConversation,

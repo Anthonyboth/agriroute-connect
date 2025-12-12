@@ -113,14 +113,14 @@ export function FreightWizardStep2({
         <div className="space-y-2">
           <Label htmlFor="vehicle_type">Tipo de Veículo (opcional)</Label>
           <Select
-            value={formData.vehicle_type_required || ''}
-            onValueChange={(value) => onInputChange('vehicle_type_required', value)}
+            value={formData.vehicle_type_required || '__any__'}
+            onValueChange={(value) => onInputChange('vehicle_type_required', value === '__any__' ? '' : value)}
           >
             <SelectTrigger id="vehicle_type">
               <SelectValue placeholder="Qualquer veículo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Qualquer veículo</SelectItem>
+              <SelectItem value="__any__">Qualquer veículo</SelectItem>
               {VEHICLE_TYPES_URBAN.map((type) => (
                 <SelectItem key={type.value} value={type.value}>
                   {type.label}
