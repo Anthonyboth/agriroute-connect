@@ -18,6 +18,21 @@ const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3
 export const DriverPerformanceDashboard = ({ driverId }: DriverPerformanceDashboardProps) => {
   const [period, setPeriod] = useState<'1m' | '3m' | '6m' | '1y' | 'all'>('3m');
 
+  // Guard: Se driverId estiver vazio, mostrar loading
+  if (!driverId) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <Skeleton className="h-[400px] w-full" />
+      </div>
+    );
+  }
+
   // Calculate date range
   const endDate = new Date();
   const startDate = new Date();
@@ -46,10 +61,11 @@ export const DriverPerformanceDashboard = ({ driverId }: DriverPerformanceDashbo
     );
   }
 
-  if (!performance) {
+  if (!performance || performance.totalFreights === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Dados de performance não disponíveis
+        <p>Dados de performance não disponíveis</p>
+        <p className="text-sm mt-2">Complete alguns fretes para ver suas estatísticas</p>
       </div>
     );
   }

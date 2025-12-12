@@ -66,13 +66,32 @@ export const useDriverExpenses = (driverId: string | undefined) => {
     enabled: !!driverId,
   });
 
-  // Buscar ganhos (fretes concluídos)
+  // Buscar ganhos (fretes concluídos) - busca diretamente da tabela freights
   const { data: earnings, isLoading: earningsLoading } = useQuery({
     queryKey: ['driver-earnings', driverId],
     queryFn: async () => {
       if (!driverId) return [];
       
-      const { data, error } = await supabase
+      // Buscar da tabela freights (principal fonte de dados)
+      const { data: freightsData, error: freightsError } = await supabase
+        .from('freights')
+        .select(`
+          id,
+          price,
+          distance_km,
+          origin_city,
+          destination_city,
+          delivery_date,
+          created_at
+        `)
+        .eq('driver_id', driverId)
+        .in('status', ['DELIVERED', 'COMPLETED', 'DELIVERED_PENDING_CONFIRMATION'])
+        .order('delivery_date', { ascending: false });
+      
+      if (freightsError) throw freightsError;
+      
+      // Também buscar de freight_assignments para garantir dados completos
+      const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('freight_assignments')
         .select(`
           id,
@@ -80,17 +99,44 @@ export const useDriverExpenses = (driverId: string | undefined) => {
           delivered_at,
           created_at,
           freights:freight_id (
+            id,
             distance_km,
             origin_city,
             destination_city
           )
         `)
         .eq('driver_id', driverId)
-        .eq('status', 'COMPLETED')
+        .in('status', ['DELIVERED', 'COMPLETED'])
         .order('delivered_at', { ascending: false });
       
-      if (error) throw error;
-      return data || [];
+      if (assignmentsError) throw assignmentsError;
+      
+      // Combinar dados - freights tem prioridade
+      const earningsFromFreights = (freightsData || []).map(f => ({
+        id: f.id,
+        agreed_price: f.price,
+        delivered_at: f.delivery_date,
+        created_at: f.created_at,
+        freights: {
+          distance_km: f.distance_km,
+          origin_city: f.origin_city,
+          destination_city: f.destination_city
+        }
+      }));
+      
+      // Adicionar assignments que não estão em freights (evitar duplicados)
+      const freightIds = new Set(freightsData?.map(f => f.id) || []);
+      const earningsFromAssignments = (assignmentsData || [])
+        .filter(a => a.freights && !freightIds.has((a.freights as any).id))
+        .map(a => ({
+          id: a.id,
+          agreed_price: a.agreed_price,
+          delivered_at: a.delivered_at,
+          created_at: a.created_at,
+          freights: a.freights
+        }));
+      
+      return [...earningsFromFreights, ...earningsFromAssignments];
     },
     enabled: !!driverId,
   });
