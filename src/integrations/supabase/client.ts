@@ -16,9 +16,10 @@ const isPublicPage = typeof window !== 'undefined' &&
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: sessionStorage, // Changed from localStorage for better security against XSS attacks
+    storage: localStorage, // Usar localStorage para manter sessão persistente
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true,
   },
   realtime: isPublicPage ? {
     // Disable realtime on public pages to prevent console errors

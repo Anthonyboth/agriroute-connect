@@ -112,7 +112,16 @@ export function FreightWizardStep1({
       )}
 
       <div className="flex justify-end pt-4">
-        <Button onClick={onNext} disabled={!canProceed} size="lg">
+        <Button 
+          type="button" 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onNext();
+          }} 
+          disabled={!canProceed} 
+          size="lg"
+        >
           Continuar
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
