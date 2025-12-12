@@ -45,8 +45,25 @@ export const useServiceProviderPerformance = (providerId: string, startDate?: Da
   return useQuery({
     queryKey: ['service-provider-performance', providerId, startDate, endDate],
     queryFn: async (): Promise<ServiceProviderPerformanceData> => {
-      if (!providerId) {
-        throw new Error('Provider ID é obrigatório');
+      if (!providerId || providerId.trim() === '') {
+        // Retornar dados vazios em vez de lançar erro
+        return {
+          providerId: '',
+          providerName: 'Prestador',
+          totalServices: 0,
+          completedServices: 0,
+          cancelledServices: 0,
+          inProgressServices: 0,
+          averageRating: 0,
+          totalRatings: 0,
+          totalRevenue: 0,
+          averageServiceTime: 0,
+          completionRate: 0,
+          serviceTypeDistribution: [],
+          monthlyStats: [],
+          recentServices: [],
+          topCities: []
+        };
       }
 
       // Fetch service requests

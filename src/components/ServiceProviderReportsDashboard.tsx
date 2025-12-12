@@ -38,6 +38,21 @@ const getStatusVariant = (status: string): "default" | "secondary" | "destructiv
 export const ServiceProviderReportsDashboard = ({ providerId }: ServiceProviderReportsDashboardProps) => {
   const [period, setPeriod] = useState<'1m' | '3m' | '6m' | '1y' | 'all'>('3m');
 
+  // Guard: Se providerId estiver vazio, mostrar loading
+  if (!providerId) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <Skeleton className="h-[400px] w-full" />
+      </div>
+    );
+  }
+
   // Calculate date range
   const endDate = new Date();
   const startDate = new Date();
@@ -66,7 +81,7 @@ export const ServiceProviderReportsDashboard = ({ providerId }: ServiceProviderR
     );
   }
 
-  if (!performance) {
+  if (!performance || performance.totalServices === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />

@@ -54,8 +54,27 @@ const formatBRL = (value: number) => {
 };
 
 export const DriverFinancialReport: React.FC<DriverFinancialReportProps> = ({ driverId }) => {
-  const { expenses, financialSummary, isLoading, deleteExpense } = useDriverExpenses(driverId);
+  const { expenses, earnings, financialSummary, isLoading, deleteExpense } = useDriverExpenses(driverId);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+
+  // Guard: Se driverId estiver vazio, mostrar loading
+  if (!driverId) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="pt-6">
+                <Skeleton className="h-4 w-20 mb-2" />
+                <Skeleton className="h-8 w-28" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

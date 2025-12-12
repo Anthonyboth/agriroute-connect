@@ -96,13 +96,29 @@ export const useDriverPerformance = (driverId: string, startDate?: Date, endDate
 
       if (freightsError) throw freightsError;
 
-      // Fetch ratings
-      const { data: ratings, error: ratingsError } = await supabase
-        .from('freight_ratings')
-        .select('rating, comment, created_at, freight_id')
-        .in('freight_id', freights?.map(f => f.id) || []);
-
-      if (ratingsError) throw ratingsError;
+      // Fetch ratings - tentar freight_ratings primeiro, depois ratings
+      let ratings: { rating: number; comment?: string; created_at: string; freight_id?: string }[] = [];
+      
+      const freightIds = freights?.map(f => f.id) || [];
+      if (freightIds.length > 0) {
+        // Tentar buscar de freight_ratings
+        const { data: freightRatingsData } = await supabase
+          .from('freight_ratings')
+          .select('rating, comment, created_at, freight_id')
+          .in('freight_id', freightIds);
+        
+        if (freightRatingsData && freightRatingsData.length > 0) {
+          ratings = freightRatingsData;
+        } else {
+          // Fallback para tabela ratings (rated_user_id = driverId)
+          const { data: ratingsData } = await supabase
+            .from('ratings')
+            .select('rating, comment, created_at, freight_id')
+            .eq('rated_user_id', driverId);
+          
+          ratings = ratingsData || [];
+        }
+      }
 
       // Fetch driver profile
       const { data: driverProfile, error: profileError } = await supabase
@@ -115,11 +131,13 @@ export const useDriverPerformance = (driverId: string, startDate?: Date, endDate
 
       // Calculate stats
       const totalFreights = freights?.length || 0;
-      const completedFreights = freights?.filter(f => f.status === 'COMPLETED' || f.status === 'DELIVERED').length || 0;
+      const completedFreights = freights?.filter(f => 
+        f.status === 'COMPLETED' || f.status === 'DELIVERED' || f.status === 'DELIVERED_PENDING_CONFIRMATION'
+      ).length || 0;
       const cancelledFreights = freights?.filter(f => f.status === 'CANCELLED').length || 0;
       
       const totalRevenue = freights
-        ?.filter(f => f.status === 'COMPLETED' || f.status === 'DELIVERED')
+        ?.filter(f => f.status === 'COMPLETED' || f.status === 'DELIVERED' || f.status === 'DELIVERED_PENDING_CONFIRMATION')
         .reduce((sum, f) => sum + (Number(f.price) || 0), 0) || 0;
 
       const averageRating = ratings?.length 
