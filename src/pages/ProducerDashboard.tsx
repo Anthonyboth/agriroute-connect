@@ -1026,30 +1026,41 @@ const ProducerDashboard = () => {
         .eq('id', freightId)
         .single();
 
-      if (freightError) throw freightError;
+      if (freightError) {
+        console.error('Erro ao buscar frete:', freightError);
+        toast.error('Erro ao buscar dados do frete. Tente novamente.');
+        return;
+      }
 
       // Verificar se o frete tem um motorista atribuído
-      if (!freightData.driver_id) {
+      if (!freightData?.driver_id) {
         toast.error('Este frete ainda não foi aceito por um motorista');
         return;
       }
 
-      // Buscar dados do driver
+      // Buscar dados do driver com tratamento melhorado
       const { data: driverData, error: driverError } = await supabase
         .from('profiles')
-        .select('user_id')
+        .select('user_id, full_name')
         .eq('id', freightData.driver_id)
         .maybeSingle();
 
       if (driverError) {
         console.error('Erro ao buscar dados do motorista:', driverError);
-        toast.error('Erro ao buscar dados do motorista');
-        return;
+        toast.error('Erro ao buscar dados do motorista. O pagamento será registrado sem notificação.');
       }
 
-      if (!driverData) {
-        console.error('Motorista não encontrado com ID:', freightData.driver_id);
-        toast.error('Motorista não encontrado no sistema');
+      // Verificar se já existe um pagamento pendente para este frete
+      const { data: existingPayment } = await supabase
+        .from('external_payments')
+        .select('id, status')
+        .eq('freight_id', freightId)
+        .eq('producer_id', profile?.id)
+        .in('status', ['proposed', 'pending'])
+        .maybeSingle();
+
+      if (existingPayment) {
+        toast.info('Já existe uma confirmação de pagamento pendente para este frete.');
         return;
       }
 
@@ -1069,34 +1080,41 @@ const ProducerDashboard = () => {
         .select()
         .single();
 
-      if (paymentError) throw paymentError;
+      if (paymentError) {
+        // Tratar erro de constraint única
+        if (paymentError.code === '23505') {
+          toast.info('Já existe uma confirmação de pagamento para este frete.');
+          return;
+        }
+        throw paymentError;
+      }
 
-      // Enviar notificação para o motorista
+      // Enviar notificação para o motorista (apenas se tiver user_id)
       if (driverData?.user_id) {
-        const { error: notificationError } = await supabase.functions.invoke('send-notification', {
-          body: {
-            user_id: driverData.user_id,
-            title: 'Confirmação de Pagamento',
-            message: `Produtor confirmou o pagamento de R$ ${amount.toLocaleString('pt-BR')}. Confirme o recebimento.`,
-            type: 'payment_confirmation',
-            data: {
-              freight_id: freightId,
-              payment_id: paymentData.id,
-              amount: amount
+        try {
+          await supabase.functions.invoke('send-notification', {
+            body: {
+              user_id: driverData.user_id,
+              title: 'Confirmação de Pagamento',
+              message: `Produtor confirmou o pagamento de R$ ${amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}. Confirme o recebimento.`,
+              type: 'payment_confirmation',
+              data: {
+                freight_id: freightId,
+                payment_id: paymentData.id,
+                amount: amount
+              }
             }
-          }
-        });
-
-        if (notificationError) {
-          console.error('Erro ao enviar notificação:', notificationError);
+          });
+        } catch (notifError) {
+          console.warn('Notificação não enviada, mas pagamento registrado:', notifError);
         }
       }
 
       toast.success('Pagamento confirmado! Aguardando confirmação do motorista.');
       fetchExternalPayments();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao confirmar pagamento:', error);
-      toast.error('Erro ao confirmar pagamento');
+      toast.error(error.message || 'Erro ao confirmar pagamento. Tente novamente.');
     } finally {
       setPaymentLoading(false);
     }

@@ -1,11 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 let refreshInterval: NodeJS.Timeout | null = null;
-const REDIRECT_COOLDOWN_KEY = 'last_auth_redirect';
-const COOLDOWN_MS = 60000; // 60 segundos
 let isInitialized = false;
 
+/**
+ * Inicia o refresh de sessão silencioso
+ * NUNCA faz logout automático - apenas renova token quando necessário
+ * O usuário só sai quando clica em "Sair"
+ */
 export function startSessionRefresh() {
   // Prevenir inicialização duplicada
   if (isInitialized) {
@@ -14,59 +16,38 @@ export function startSessionRefresh() {
   
   isInitialized = true;
   
-  // Verificar sessão a cada 5 minutos
+  // Verificar sessão a cada 30 minutos (aumentado de 5 para evitar checks excessivos)
   refreshInterval = setInterval(async () => {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       
+      // Se não há sessão ou erro, apenas logar - NÃO fazer logout automático
       if (error || !session) {
-        console.error('[SessionRefresh] ❌ Sessão inválida ou erro ao obter sessão:', error);
-        stopSessionRefresh();
-        
-        // Verificar cooldown para evitar múltiplos redirects
-        const lastRedirect = sessionStorage.getItem(REDIRECT_COOLDOWN_KEY);
-        const now = Date.now();
-        
-        if (lastRedirect && now - parseInt(lastRedirect) < COOLDOWN_MS) {
-          console.log('[SessionRefresh] ⏸️ Redirect em cooldown, aguardando...');
-          return;
-        }
-        
-        sessionStorage.setItem(REDIRECT_COOLDOWN_KEY, now.toString());
-        
-        toast.error('Sessão perdida. Redirecionando para login...', {
-          duration: 3000,
-        });
-        
-        // Redirect para login após 3s
-        setTimeout(() => {
-          window.location.href = '/auth';
-        }, 3000);
-        
+        console.log('[SessionRefresh] Sessão não encontrada, aguardando ação do usuário');
         return;
       }
       
-      // Renovar sessão se estiver próxima de expirar (< 10 minutos)
+      // Renovar sessão se estiver próxima de expirar (< 30 minutos)
       const expiresIn = (session.expires_at || 0) - Math.floor(Date.now() / 1000);
       
-      if (expiresIn < 600) { // 10 minutos
-        console.log('[SessionRefresh] Renovando sessão preventivamente...');
+      if (expiresIn < 1800) { // 30 minutos
+        console.log('[SessionRefresh] Renovando sessão silenciosamente...');
         
         const { error: refreshError } = await supabase.auth.refreshSession();
         
         if (refreshError) {
-          console.error('[SessionRefresh] Erro ao renovar:', refreshError);
-          stopSessionRefresh();
-          window.location.href = '/auth';
+          console.warn('[SessionRefresh] Erro ao renovar (silencioso):', refreshError.message);
+          // NÃO fazer redirect - deixar usuário continuar usando
         } else {
-          console.log('[SessionRefresh] Sessão renovada com sucesso');
+          console.log('[SessionRefresh] ✅ Sessão renovada com sucesso');
         }
       }
       
     } catch (err) {
-      console.error('[SessionRefresh] Erro crítico:', err);
+      console.warn('[SessionRefresh] Erro (silencioso):', err);
+      // NÃO fazer redirect - deixar usuário continuar usando
     }
-  }, 5 * 60 * 1000); // A cada 5 minutos
+  }, 30 * 60 * 1000); // A cada 30 minutos
 }
 
 export function stopSessionRefresh() {
@@ -75,13 +56,4 @@ export function stopSessionRefresh() {
     refreshInterval = null;
     isInitialized = false;
   }
-  
-  // ✅ Limpar qualquer estado remanescente
-  try {
-    const keys = Object.keys(localStorage).filter(k => k.startsWith('device_reg_'));
-    if (keys.length > 0 && !localStorage.getItem('sb-shnvtxejjecbnztdbbbl-auth-token')) {
-      // Só limpar se não houver sessão ativa
-      keys.forEach(k => localStorage.removeItem(k));
-    }
-  } catch {}
 }

@@ -1553,7 +1553,14 @@ export const ServiceProviderDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4">
-            <ServiceProviderReportsDashboard providerId={getProviderProfileId() || ''} />
+            {providerId ? (
+              <ServiceProviderReportsDashboard providerId={providerId} />
+            ) : (
+              <Card className="p-8 text-center">
+                <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <p className="text-muted-foreground">Carregando dados do perfil...</p>
+              </Card>
+            )}
           </TabsContent>
 
         </Tabs>

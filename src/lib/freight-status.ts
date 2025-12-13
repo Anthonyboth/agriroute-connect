@@ -57,34 +57,29 @@ export const isFinalStatus = (status: string): boolean => {
 };
 
 export const getFreightStatusLabel = (status: string): string => {
-  switch (status) {
-    case 'OPEN':
-      return 'Aberto';
-    case 'IN_NEGOTIATION':
-      return 'Em Negociação';
-    case 'ACCEPTED':
-      return 'Aceito';
-    case 'LOADING':
-      return 'A Caminho da Coleta';
-    case 'LOADED':
-      return 'Carregado';
-    case 'IN_TRANSIT':
-      return 'Em Transporte';
-    case 'DELIVERED':
-      return 'Entregue';
-    case 'DELIVERED_PENDING_CONFIRMATION':
-      return 'Entrega Reportada';
-    case 'CANCELLED':
-      return 'Cancelado';
-    case 'REJECTED':
-      return 'Rejeitado';
-    case 'PENDING':
-      return 'Pendente';
-    case 'COMPLETED':
-      return 'Concluído';
-    default:
-      return status;
-  }
+  const statusLabels: Record<string, string> = {
+    'OPEN': 'Aberto',
+    'IN_NEGOTIATION': 'Em Negociação',
+    'ACCEPTED': 'Aceito',
+    'LOADING': 'A Caminho da Coleta',
+    'LOADED': 'Carregado',
+    'IN_TRANSIT': 'Em Transporte',
+    'DELIVERED': 'Entregue',
+    'DELIVERED_PENDING_CONFIRMATION': 'Aguardando Confirmação',
+    'CANCELLED': 'Cancelado',
+    'REJECTED': 'Rejeitado',
+    'PENDING': 'Pendente',
+    'COMPLETED': 'Concluído',
+    'UNLOADING': 'Descarregando',
+    'WAITING': 'Aguardando',
+    'CONFIRMED': 'Confirmado',
+    'WAITING_DRIVER': 'Aguardando Motorista',
+    'WAITING_PRODUCER': 'Aguardando Produtor',
+    'EXPIRED': 'Expirado'
+  };
+  
+  // Retorna a tradução ou formata o status removendo underscores
+  return statusLabels[status] || status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 };
 
 export const getFreightStatusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {

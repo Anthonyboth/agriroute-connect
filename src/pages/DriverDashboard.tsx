@@ -1192,6 +1192,24 @@ const DriverDashboard = () => {
   // Função para confirmar recebimento de pagamento e disparar avaliação
   const confirmPaymentReceived = async (payment: { id: string; freight_id: string; producer_id: string }) => {
     try {
+      // Verificar se o pagamento existe e está no status correto
+      const { data: existingPayment, error: checkError } = await supabase
+        .from('external_payments')
+        .select('id, status')
+        .eq('id', payment.id)
+        .single();
+
+      if (checkError || !existingPayment) {
+        toast.error('Pagamento não encontrado. Atualize a página e tente novamente.');
+        return;
+      }
+
+      if (existingPayment.status === 'confirmed') {
+        toast.info('Este pagamento já foi confirmado anteriormente.');
+        fetchPendingPayments();
+        return;
+      }
+
       const { error } = await supabase
         .from('external_payments')
         .update({ 
@@ -1201,32 +1219,40 @@ const DriverDashboard = () => {
         })
         .eq('id', payment.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao confirmar pagamento:', error);
+        toast.error('Erro ao confirmar recebimento. Tente novamente.');
+        return;
+      }
 
       toast.success('Recebimento confirmado com sucesso!');
       fetchPendingPayments();
 
       // Disparar modal de avaliação do produtor
       if (payment.freight_id && payment.producer_id) {
-        const { data: producerProfile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', payment.producer_id)
-          .single();
+        try {
+          const { data: producerProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', payment.producer_id)
+            .single();
 
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('show-freight-rating', {
-            detail: {
-              freightId: payment.freight_id,
-              ratedUserId: payment.producer_id,
-              ratedUserName: producerProfile?.full_name || 'Produtor'
-            }
-          }));
-        }, 500);
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('show-freight-rating', {
+              detail: {
+                freightId: payment.freight_id,
+                ratedUserId: payment.producer_id,
+                ratedUserName: producerProfile?.full_name || 'Produtor'
+              }
+            }));
+          }, 500);
+        } catch (ratingError) {
+          console.warn('Erro ao buscar dados para avaliação:', ratingError);
+        }
       }
     } catch (error) {
-      console.error('Error confirming payment:', error);
-      toast.error('Erro ao confirmar recebimento');
+      console.error('Erro ao confirmar recebimento:', error);
+      toast.error('Erro ao confirmar recebimento. Tente novamente.');
     }
   };
 

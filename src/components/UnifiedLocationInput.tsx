@@ -6,11 +6,10 @@ import { cn } from '@/lib/utils';
 import { ZipCodeService } from '@/services/zipCodeService';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 export interface LocationData {
   city: string;
@@ -284,21 +283,22 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
           )}
         </div>
         
-        {/* Tooltip de ajuda à direita */}
+        {/* Popover de ajuda à direita (clique para ver) */}
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger type="button">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button type="button" className="p-1 hover:bg-muted rounded-full transition-colors">
                 <Info className="h-4 w-4 text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Digite o CEP (mínimo 5 dígitos) ou nome da cidade</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Pressione ENTER para buscar CEP incompleto
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="top" className="w-64 text-sm">
+              <p className="font-medium mb-1">Como usar:</p>
+              <p>Digite o CEP (mínimo 5 dígitos) ou nome da cidade</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                💡 Pressione ENTER para buscar CEP incompleto
+              </p>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
       
