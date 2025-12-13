@@ -174,9 +174,9 @@ export const RouteRentabilityReport: React.FC<RouteRentabilityReportProps> = ({ 
         
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-600">
-              <TrendingDown className="h-5 w-5" />
-              5 Rotas com Menor Rentabilidade
+            <CardTitle className="flex items-center gap-2 text-orange-600 whitespace-normal break-words">
+              <TrendingDown className="h-5 w-5 shrink-0" />
+              <span>5 Rotas com Menor Rentabilidade</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">

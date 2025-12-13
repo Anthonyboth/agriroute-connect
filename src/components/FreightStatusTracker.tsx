@@ -49,7 +49,7 @@ interface FreightStatusTrackerProps {
   assignmentId?: string; // Track which assignment is being updated
 }
 
-// Fallback para traduzir status quando não encontrado no fluxo
+// Fallback para traduzir status quando não encontrado no fluxo - SEMPRE retorna português
 const getStatusLabelFallback = (status: string): string => {
   const labels: Record<string, string> = {
     'OPEN': 'Aberto',
@@ -59,13 +59,17 @@ const getStatusLabelFallback = (status: string): string => {
     'LOADED': 'Carregado',
     'IN_TRANSIT': 'Em Transporte',
     'DELIVERED': 'Entregue',
-    'DELIVERED_PENDING_CONFIRMATION': 'Entrega Reportada',
+    'DELIVERED_PENDING_CONFIRMATION': 'Aguardando Confirmação',
     'CANCELLED': 'Cancelado',
     'COMPLETED': 'Concluído',
     'REJECTED': 'Rejeitado',
-    'PENDING': 'Pendente'
+    'PENDING': 'Pendente',
+    'UNLOADING': 'Descarregando',
+    'WAITING': 'Aguardando',
+    'CONFIRMED': 'Confirmado'
   };
-  return labels[status] || status;
+  // Retorna a tradução ou formata o status removendo underscores
+  return labels[status] || status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 };
 
 export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({

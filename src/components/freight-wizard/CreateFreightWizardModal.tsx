@@ -61,7 +61,11 @@ export function CreateFreightWizardModal({
           )}
         </DialogTrigger>
       )}
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] overflow-y-auto p-0"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>Criar Novo Frete</DialogTitle>
         </DialogHeader>
