@@ -457,19 +457,20 @@ export const useAuth = () => {
           setLoading(false);
 
           const onAuthPage = window.location.pathname === '/auth';
-          const shouldForceLogin = event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED';
 
-          if (shouldForceLogin && !onAuthPage) {
+          // APENAS redirecionar em SIGNED_OUT explícito (usuário clicou sair)
+          // TOKEN_REFRESHED sem sessão: NÃO redireciona - tenta renovar silenciosamente
+          if (event === 'SIGNED_OUT' && !onAuthPage) {
             try {
               const path = window.location.pathname + window.location.search + window.location.hash;
               localStorage.setItem('redirect_after_login', path);
             } catch {}
             setTimeout(() => {
-              try { toast.error('Sua sessão expirou. Faça login novamente.'); } catch {}
+              try { toast.error('Você saiu da conta.'); } catch {}
               window.location.replace('/auth');
             }, 0);
           }
-          // USER_UPDATED sem session: não redirecionar, aguardar próximo evento
+          // USER_UPDATED ou TOKEN_REFRESHED sem session: não redirecionar, aguardar próximo evento
           return;
         }
         
