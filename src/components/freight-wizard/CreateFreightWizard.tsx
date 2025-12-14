@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+// Dialog removido - controlado por CreateFreightWizardModal
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
@@ -367,116 +367,108 @@ export function CreateFreightWizard({
     }
   };
 
+  // Conteúdo do wizard SEM Dialog (o Dialog é controlado por CreateFreightWizardModal)
   return (
-    <Dialog open={isModalOpen} onOpenChange={externalOnClose || setOpen}>
-      {!guestMode && (
-        <DialogTrigger asChild>
-          <Button className="bg-green-600 hover:bg-green-700">
-            <Plus className="mr-2 h-4 w-4" />
-            Criar Novo Frete
+    <div className="flex flex-col h-full max-h-[85vh]">
+      {/* Header */}
+      <div className="p-4 border-b flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">{guestMode ? 'Solicitar Frete' : 'Criar Novo Frete'}</h2>
+          <p className="text-sm text-muted-foreground">Preencha os dados em etapas simples</p>
+        </div>
+        {!guestMode && userProfile?.role === 'PRODUTOR' && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowSaveTemplateDialog(true);
+            }}
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Modelo
           </Button>
-        </DialogTrigger>
-      )}
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <DialogTitle>{guestMode ? 'Solicitar Frete' : 'Criar Novo Frete'}</DialogTitle>
-              <DialogDescription>
-                Preencha os dados do frete em etapas simples
-              </DialogDescription>
-            </div>
-            {!guestMode && userProfile?.role === 'PRODUTOR' && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSaveTemplateDialog(true)}
-                className="ml-2"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Modelo
-              </Button>
-            )}
-          </div>
-        </DialogHeader>
-
-        {/* Wizard Progress */}
-        <div className="px-2 pt-4">
-          <WizardProgress 
-            steps={WIZARD_STEPS} 
-            currentStep={currentStep} 
-            variant="compact"
-          />
-        </div>
-
-        {/* Draft Alert */}
-        {!guestMode && hasDraft && !initialData && currentStep === 1 && (
-          <Alert className="mx-2 mt-2">
-            <Info className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <div>
-                <strong>Rascunho encontrado</strong>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Salvo {lastSaved && format(lastSaved, "d 'de' MMM 'às' HH:mm", { locale: ptBR })}
-                </p>
-              </div>
-              <Button type="button" size="sm" variant="default" onClick={handleRestoreDraft}>
-                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                Restaurar
-              </Button>
-            </AlertDescription>
-          </Alert>
         )}
+      </div>
 
-        <SaveTemplateDialog
-          open={showSaveTemplateDialog}
-          onOpenChange={setShowSaveTemplateDialog}
-          onSave={handleSaveAsTemplate}
+      {/* Wizard Progress */}
+      <div className="px-4 pt-4">
+        <WizardProgress 
+          steps={WIZARD_STEPS} 
+          currentStep={currentStep} 
+          variant="compact"
         />
+      </div>
 
-        {/* Step Content */}
-        <div className="overflow-y-auto flex-1 p-4">
-          {currentStep === 1 && (
-            <FreightWizardStep1
-              formData={formData}
-              onInputChange={handleInputChange}
-              onNext={handleStep1Next}
-              guestMode={guestMode}
-            />
-          )}
-          {currentStep === 2 && (
-            <FreightWizardStep2
-              formData={formData}
-              onInputChange={handleInputChange}
-              onNext={handleStep2Next}
-              onBack={() => setCurrentStep(1)}
-            />
-          )}
-          {currentStep === 3 && (
-            <FreightWizardStep3
-              formData={formData}
-              onInputChange={handleInputChange}
-              onNext={() => setCurrentStep(4)}
-              onBack={() => setCurrentStep(2)}
-              calculatedAnttPrice={calculatedAnttPrice}
-              calculatedDistance={calculatedDistance}
-            />
-          )}
-          {currentStep === 4 && (
-            <FreightWizardStep4
-              formData={formData}
-              onBack={() => setCurrentStep(3)}
-              onSubmit={handleSubmit}
-              loading={loading}
-              calculatedAnttPrice={calculatedAnttPrice}
-              calculatedDistance={calculatedDistance}
-              guestMode={guestMode}
-            />
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+      {/* Draft Alert */}
+      {!guestMode && hasDraft && !initialData && currentStep === 1 && (
+        <Alert className="mx-4 mt-2">
+          <Info className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <div>
+              <strong>Rascunho encontrado</strong>
+              <p className="text-xs text-muted-foreground mt-1">
+                Salvo {lastSaved && format(lastSaved, "d 'de' MMM 'às' HH:mm", { locale: ptBR })}
+              </p>
+            </div>
+            <Button type="button" size="sm" variant="default" onClick={handleRestoreDraft}>
+              <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+              Restaurar
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Step Content */}
+      <div className="overflow-y-auto flex-1 p-4">
+        {currentStep === 1 && (
+          <FreightWizardStep1
+            formData={formData}
+            onInputChange={handleInputChange}
+            onNext={handleStep1Next}
+            guestMode={guestMode}
+          />
+        )}
+        {currentStep === 2 && (
+          <FreightWizardStep2
+            formData={formData}
+            onInputChange={handleInputChange}
+            onNext={handleStep2Next}
+            onBack={() => setCurrentStep(1)}
+          />
+        )}
+        {currentStep === 3 && (
+          <FreightWizardStep3
+            formData={formData}
+            onInputChange={handleInputChange}
+            onNext={() => setCurrentStep(4)}
+            onBack={() => setCurrentStep(2)}
+            calculatedAnttPrice={calculatedAnttPrice}
+            calculatedDistance={calculatedDistance}
+          />
+        )}
+        {currentStep === 4 && (
+          <FreightWizardStep4
+            formData={formData}
+            onBack={() => setCurrentStep(3)}
+            onSubmit={handleSubmit}
+            loading={loading}
+            calculatedAnttPrice={calculatedAnttPrice}
+            calculatedDistance={calculatedDistance}
+            guestMode={guestMode}
+          />
+        )}
+      </div>
+
+      {/* SaveTemplateDialog */}
+      <SaveTemplateDialog
+        open={showSaveTemplateDialog}
+        onOpenChange={setShowSaveTemplateDialog}
+        onSave={handleSaveAsTemplate}
+      />
+    </div>
   );
 }
 

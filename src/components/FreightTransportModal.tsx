@@ -160,16 +160,14 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
         open={guestFreightModal}
         onOpenChange={(open) => {
           setGuestFreightModal(open);
-          if (!open) {
-            // Não fecha o FreightTransportModal quando fecha o wizard
-          }
         }}
         onFreightCreated={() => {
           setGuestFreightModal(false);
-          onClose(); // Fecha tudo após criar o frete
+          onClose();
         }}
         userProfile={null}
         trigger={null}
+        guestMode={true}
       />
     </>
   );
