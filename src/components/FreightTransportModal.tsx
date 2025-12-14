@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import GuestServiceModal from './GuestServiceModal';
-import CreateFreightModal from './CreateFreightModal';
+import { CreateFreightWizardModal } from './freight-wizard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -155,15 +155,21 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
         />
       )}
 
-      {/* CreateFreightModal para FRETE_RURAL */}
-      <CreateFreightModal
-        isOpen={guestFreightModal}
-        onClose={() => setGuestFreightModal(false)}
+      {/* CreateFreightWizardModal para FRETE_RURAL - Novo Wizard */}
+      <CreateFreightWizardModal
+        open={guestFreightModal}
+        onOpenChange={(open) => {
+          setGuestFreightModal(open);
+          if (!open) {
+            // Não fecha o FreightTransportModal quando fecha o wizard
+          }
+        }}
         onFreightCreated={() => {
           setGuestFreightModal(false);
+          onClose(); // Fecha tudo após criar o frete
         }}
         userProfile={null}
-        guestMode={true}
+        trigger={null}
       />
     </>
   );

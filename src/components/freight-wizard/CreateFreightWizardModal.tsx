@@ -11,6 +11,7 @@ interface CreateFreightWizardModalProps {
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  guestMode?: boolean;
 }
 
 export function CreateFreightWizardModal({ 
@@ -19,7 +20,8 @@ export function CreateFreightWizardModal({
   trigger,
   defaultOpen = false,
   open: controlledOpen,
-  onOpenChange
+  onOpenChange,
+  guestMode = false
 }: CreateFreightWizardModalProps) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   
@@ -65,6 +67,8 @@ export function CreateFreightWizardModal({
         className="max-w-4xl max-h-[90vh] overflow-y-auto p-0"
         onClick={(e) => e.stopPropagation()}
         onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className="sr-only">
           <DialogTitle>Criar Novo Frete</DialogTitle>
@@ -74,6 +78,7 @@ export function CreateFreightWizardModal({
           onFreightCreated={handleSuccess}
           onClose={handleClose}
           isOpen={open}
+          guestMode={guestMode}
         />
       </DialogContent>
     </Dialog>
