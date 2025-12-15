@@ -51,6 +51,8 @@ export function CreateFreightWizardModal({
     }
   }, [defaultOpen, isControlled]);
 
+  console.log('[CreateFreightWizardModal] RENDER - open:', open, 'guestMode:', guestMode);
+  
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger !== null && (
