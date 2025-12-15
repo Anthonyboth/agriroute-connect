@@ -17,7 +17,7 @@ import { calculateFreightPrice, convertWeightToKg } from '@/lib/freight-calculat
 import { cargoRequiresAxles } from '@/lib/cargo-types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ErrorMonitoringService } from '@/services/errorMonitoringService';
+
 
 interface CreateFreightWizardProps {
   onFreightCreated: () => void;
@@ -67,29 +67,9 @@ const WIZARD_STEPS = [
   { id: 4, title: 'Revisar', description: 'Confirmar dados', icon: <Check className="h-4 w-4" /> },
 ];
 
-// Debug logging helper - envia para console e Telegram
-const logWizardDebug = async (action: string, details: Record<string, any> = {}) => {
-  const logData = {
-    timestamp: new Date().toISOString(),
-    action,
-    ...details
-  };
-  console.log('[FreightWizard DEBUG]', action, logData);
-  
-  // Enviar para Telegram via ErrorMonitoringService
-  try {
-    const service = ErrorMonitoringService.getInstance();
-    await service.captureError(
-      new Error(`[FreightWizard] ${action}`),
-      {
-        module: 'CreateFreightWizard',
-        function_name: action,
-        metadata: logData
-      }
-    );
-  } catch (e) {
-    console.warn('[FreightWizard DEBUG] Falha ao enviar para Telegram:', e);
-  }
+// Debug logging helper - simplificado (apenas console local)
+const logWizardDebug = (action: string, details: Record<string, any> = {}) => {
+  console.log('[FreightWizard]', action, details);
 };
 
 export function CreateFreightWizard({
