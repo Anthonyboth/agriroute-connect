@@ -423,9 +423,6 @@ export function CreateFreightWizard({
 
       {/* Step Content */}
       <div className="overflow-y-auto flex-1 p-4">
-        <div className="bg-primary/10 text-primary text-xs p-2 rounded mb-2 font-mono">
-          DEBUG: CreateFreightWizard Step {currentStep} | guestMode: {String(guestMode)}
-        </div>
         {currentStep === 1 && (
           <FreightWizardStep1
             formData={formData}
