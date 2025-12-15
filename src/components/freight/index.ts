@@ -21,5 +21,5 @@ export { ScheduledFreightsManager } from '../ScheduledFreightsManager';
 export { ScheduledFreightCard } from '../ScheduledFreightCard';
 export { ScheduledFreightDetailsModal } from '../ScheduledFreightDetailsModal';
 export { default as OptimizedFreightCard } from '../OptimizedFreightCard';
-export { default as CreateFreightModal } from '../CreateFreightModal';
+// CreateFreightModal deprecated - use CreateFreightWizardModal from freight-wizard
 export { EditFreightModal } from '../EditFreightModal';

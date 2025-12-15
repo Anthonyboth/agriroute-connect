@@ -25,7 +25,7 @@ import {
   FileText
 } from 'lucide-react';
 import { FreightTemplatesTab } from './freight-templates/FreightTemplatesTab';
-import CreateFreightModal from './CreateFreightModal';
+import { CreateFreightWizardModal } from './freight-wizard';
 import { FreightChat } from './FreightChat';
 import { getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
@@ -474,15 +474,15 @@ export const FreightHistory: React.FC = () => {
       </Card>
       
       {showCreateFreightModal && profile && (
-        <CreateFreightModal
+        <CreateFreightWizardModal
           onFreightCreated={handleFreightCreated}
           userProfile={profile}
-          isOpen={showCreateFreightModal}
-          onClose={() => {
-            setShowCreateFreightModal(false);
-            setTemplateData(null);
+          open={showCreateFreightModal}
+          onOpenChange={(open) => {
+            setShowCreateFreightModal(open);
+            if (!open) setTemplateData(null);
           }}
-          initialData={templateData}
+          trigger={null}
         />
       )}
 
