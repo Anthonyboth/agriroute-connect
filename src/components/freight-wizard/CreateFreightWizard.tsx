@@ -392,8 +392,31 @@ export function CreateFreightWizard({
     <div className="flex flex-col h-full max-h-[85vh]">
       {/* Header */}
       <div className="p-4 border-b">
-        <h2 className="text-lg font-semibold">{guestMode ? 'Solicitar Frete' : 'Criar Novo Frete'}</h2>
-        <p className="text-sm text-muted-foreground">Preencha os dados em etapas simples</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold">{guestMode ? 'Solicitar Frete' : 'Criar Novo Frete'}</h2>
+            <p className="text-sm text-muted-foreground">Preencha os dados em etapas simples</p>
+          </div>
+        </div>
+
+        {!guestMode && userProfile?.role === 'PRODUTOR' && (
+          <div className="mt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowSaveTemplateDialog(true);
+              }}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Salvar modelo
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Wizard Progress */}
