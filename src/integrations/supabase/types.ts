@@ -2866,7 +2866,7 @@ export type Database = {
           price: number
           price_per_km: number | null
           problem_description: string | null
-          producer_id: string
+          producer_id: string | null
           prospect_user_id: string | null
           reference_number: number | null
           required_trucks: number
@@ -2952,7 +2952,7 @@ export type Database = {
           price: number
           price_per_km?: number | null
           problem_description?: string | null
-          producer_id: string
+          producer_id?: string | null
           prospect_user_id?: string | null
           reference_number?: number | null
           required_trucks?: number
@@ -3038,7 +3038,7 @@ export type Database = {
           price?: number
           price_per_km?: number | null
           problem_description?: string | null
-          producer_id?: string
+          producer_id?: string | null
           prospect_user_id?: string | null
           reference_number?: number | null
           required_trucks?: number
@@ -8046,7 +8046,7 @@ export type Database = {
           price: number
           price_per_km: number | null
           problem_description: string | null
-          producer_id: string
+          producer_id: string | null
           prospect_user_id: string | null
           reference_number: number | null
           required_trucks: number
@@ -8141,7 +8141,7 @@ export type Database = {
           price: number
           price_per_km: number | null
           problem_description: string | null
-          producer_id: string
+          producer_id: string | null
           prospect_user_id: string | null
           reference_number: number | null
           required_trucks: number
