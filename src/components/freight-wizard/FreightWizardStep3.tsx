@@ -27,7 +27,8 @@ export function FreightWizardStep3({
     ? !!formData.price 
     : !!formData.price_per_km;
 
-  const canProceed = hasPrice && formData.pickup_date;
+  // delivery_date é obrigatório no banco (NOT NULL)
+  const canProceed = hasPrice && formData.pickup_date && formData.delivery_date;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -153,7 +154,7 @@ export function FreightWizardStep3({
         <div className="space-y-2">
           <Label htmlFor="delivery_date" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Previsão de Entrega
+            Previsão de Entrega *
           </Label>
           <Input
             id="delivery_date"
@@ -161,7 +162,13 @@ export function FreightWizardStep3({
             value={formData.delivery_date}
             onChange={(e) => onInputChange('delivery_date', e.target.value)}
             min={formData.pickup_date || new Date().toISOString().split('T')[0]}
+            required
           />
+          {!formData.delivery_date && formData.pickup_date && (
+            <p className="text-xs text-destructive">
+              Data de entrega é obrigatória
+            </p>
+          )}
         </div>
       </div>
 

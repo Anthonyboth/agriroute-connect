@@ -259,6 +259,25 @@ export function CreateFreightWizard({
       return;
     }
 
+    // Validação de campos obrigatórios
+    if (!formData.pickup_date) {
+      toast.error('Data de coleta é obrigatória');
+      setCurrentStep(3);
+      return;
+    }
+
+    if (!formData.delivery_date) {
+      toast.error('Data de entrega é obrigatória');
+      setCurrentStep(3);
+      return;
+    }
+
+    if (!formData.origin_city || !formData.destination_city) {
+      toast.error('Origem e destino são obrigatórios');
+      setCurrentStep(1);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -302,7 +321,7 @@ export function CreateFreightWizard({
         required_trucks: parseInt(formData.required_trucks),
         accepted_trucks: 0,
         pickup_date: formData.pickup_date,
-        delivery_date: formData.delivery_date || null,
+        delivery_date: formData.delivery_date,
         urgency: formData.urgency,
         description: formData.description || null,
         vehicle_type_required: formData.vehicle_type_required || null,
@@ -339,9 +358,23 @@ export function CreateFreightWizard({
       setFormData({ ...formDataInitial });
       setCurrentStep(1);
       onFreightCreated();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating freight:', error);
-      toast.error('Erro ao criar frete');
+      
+      // Mensagens de erro específicas
+      if (error?.message?.includes('delivery_date')) {
+        toast.error('Data de entrega é obrigatória');
+        setCurrentStep(3);
+      } else if (error?.message?.includes('pickup_date')) {
+        toast.error('Data de coleta é obrigatória');
+        setCurrentStep(3);
+      } else if (error?.code === '23502') {
+        // NOT NULL violation
+        toast.error('Preencha todos os campos obrigatórios');
+        setCurrentStep(3);
+      } else {
+        toast.error('Erro ao criar frete. Verifique os dados e tente novamente.');
+      }
     } finally {
       setLoading(false);
     }
