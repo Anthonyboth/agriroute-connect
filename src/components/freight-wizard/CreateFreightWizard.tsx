@@ -317,17 +317,24 @@ export function CreateFreightWizard({
         minimum_antt_price: calculatedAnttPrice,
         price: calculation.totalPrice,
         price_per_km: formData.pricing_type === 'PER_KM' ? parseFloat(formData.price_per_km) : null,
-        pricing_type: formData.pricing_type,
+        // pricing_type removido - não existe no banco
         required_trucks: parseInt(formData.required_trucks),
         accepted_trucks: 0,
         pickup_date: formData.pickup_date,
         delivery_date: formData.delivery_date,
-        urgency: formData.urgency,
+        urgency: formData.urgency as 'LOW' | 'MEDIUM' | 'HIGH',
         description: formData.description || null,
         vehicle_type_required: formData.vehicle_type_required || null,
         vehicle_axles_required: formData.vehicle_axles_required ? parseInt(formData.vehicle_axles_required) : null,
         high_performance: formData.high_performance || false,
-        status: 'OPEN' as const
+        status: 'OPEN' as const,
+        // Guest freight contact info
+        ...(guestMode && {
+          guest_contact_name: formData.guest_name || null,
+          guest_contact_phone: formData.guest_phone || null,
+          guest_contact_email: formData.guest_email || null,
+          guest_contact_document: formData.guest_document || null
+        })
       };
 
       const { data: insertedFreight, error } = await supabase
@@ -384,26 +391,9 @@ export function CreateFreightWizard({
   return (
     <div className="flex flex-col h-full max-h-[85vh]">
       {/* Header */}
-      <div className="p-4 border-b flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">{guestMode ? 'Solicitar Frete' : 'Criar Novo Frete'}</h2>
-          <p className="text-sm text-muted-foreground">Preencha os dados em etapas simples</p>
-        </div>
-        {!guestMode && userProfile?.role === 'PRODUTOR' && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowSaveTemplateDialog(true);
-            }}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Modelo
-          </Button>
-        )}
+      <div className="p-4 border-b">
+        <h2 className="text-lg font-semibold">{guestMode ? 'Solicitar Frete' : 'Criar Novo Frete'}</h2>
+        <p className="text-sm text-muted-foreground">Preencha os dados em etapas simples</p>
       </div>
 
       {/* Wizard Progress */}
