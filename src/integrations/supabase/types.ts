@@ -2828,10 +2828,14 @@ export type Database = {
           destination_address: string
           destination_city: string | null
           destination_city_id: string | null
+          destination_complement: string | null
           destination_geog: unknown
           destination_lat: number | null
           destination_lng: number | null
+          destination_neighborhood: string | null
+          destination_number: string | null
           destination_state: string | null
+          destination_street: string | null
           destination_zip_code: string | null
           distance_km: number | null
           driver_id: string | null
@@ -2851,14 +2855,19 @@ export type Database = {
           is_scheduled: boolean | null
           last_location_update: string | null
           metadata: Json | null
+          min_driver_rating: number | null
           minimum_antt_price: number | null
           origin_address: string
           origin_city: string | null
           origin_city_id: string | null
+          origin_complement: string | null
           origin_geog: unknown
           origin_lat: number | null
           origin_lng: number | null
+          origin_neighborhood: string | null
+          origin_number: string | null
           origin_state: string | null
+          origin_street: string | null
           origin_zip_code: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           pickup_date: string
@@ -2889,6 +2898,7 @@ export type Database = {
             | Database["public"]["Enums"]["vehicle_type"]
             | null
           visibility_filter: string | null
+          visibility_type: string | null
           weight: number
         }
         Insert: {
@@ -2914,10 +2924,14 @@ export type Database = {
           destination_address: string
           destination_city?: string | null
           destination_city_id?: string | null
+          destination_complement?: string | null
           destination_geog?: unknown
           destination_lat?: number | null
           destination_lng?: number | null
+          destination_neighborhood?: string | null
+          destination_number?: string | null
           destination_state?: string | null
+          destination_street?: string | null
           destination_zip_code?: string | null
           distance_km?: number | null
           driver_id?: string | null
@@ -2937,14 +2951,19 @@ export type Database = {
           is_scheduled?: boolean | null
           last_location_update?: string | null
           metadata?: Json | null
+          min_driver_rating?: number | null
           minimum_antt_price?: number | null
           origin_address: string
           origin_city?: string | null
           origin_city_id?: string | null
+          origin_complement?: string | null
           origin_geog?: unknown
           origin_lat?: number | null
           origin_lng?: number | null
+          origin_neighborhood?: string | null
+          origin_number?: string | null
           origin_state?: string | null
+          origin_street?: string | null
           origin_zip_code?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           pickup_date: string
@@ -2975,6 +2994,7 @@ export type Database = {
             | Database["public"]["Enums"]["vehicle_type"]
             | null
           visibility_filter?: string | null
+          visibility_type?: string | null
           weight: number
         }
         Update: {
@@ -3000,10 +3020,14 @@ export type Database = {
           destination_address?: string
           destination_city?: string | null
           destination_city_id?: string | null
+          destination_complement?: string | null
           destination_geog?: unknown
           destination_lat?: number | null
           destination_lng?: number | null
+          destination_neighborhood?: string | null
+          destination_number?: string | null
           destination_state?: string | null
+          destination_street?: string | null
           destination_zip_code?: string | null
           distance_km?: number | null
           driver_id?: string | null
@@ -3023,14 +3047,19 @@ export type Database = {
           is_scheduled?: boolean | null
           last_location_update?: string | null
           metadata?: Json | null
+          min_driver_rating?: number | null
           minimum_antt_price?: number | null
           origin_address?: string
           origin_city?: string | null
           origin_city_id?: string | null
+          origin_complement?: string | null
           origin_geog?: unknown
           origin_lat?: number | null
           origin_lng?: number | null
+          origin_neighborhood?: string | null
+          origin_number?: string | null
           origin_state?: string | null
+          origin_street?: string | null
           origin_zip_code?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           pickup_date?: string
@@ -3061,6 +3090,7 @@ export type Database = {
             | Database["public"]["Enums"]["vehicle_type"]
             | null
           visibility_filter?: string | null
+          visibility_type?: string | null
           weight?: number
         }
         Relationships: [
@@ -8008,10 +8038,14 @@ export type Database = {
           destination_address: string
           destination_city: string | null
           destination_city_id: string | null
+          destination_complement: string | null
           destination_geog: unknown
           destination_lat: number | null
           destination_lng: number | null
+          destination_neighborhood: string | null
+          destination_number: string | null
           destination_state: string | null
+          destination_street: string | null
           destination_zip_code: string | null
           distance_km: number | null
           driver_id: string | null
@@ -8031,14 +8065,19 @@ export type Database = {
           is_scheduled: boolean | null
           last_location_update: string | null
           metadata: Json | null
+          min_driver_rating: number | null
           minimum_antt_price: number | null
           origin_address: string
           origin_city: string | null
           origin_city_id: string | null
+          origin_complement: string | null
           origin_geog: unknown
           origin_lat: number | null
           origin_lng: number | null
+          origin_neighborhood: string | null
+          origin_number: string | null
           origin_state: string | null
+          origin_street: string | null
           origin_zip_code: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           pickup_date: string
@@ -8069,6 +8108,7 @@ export type Database = {
             | Database["public"]["Enums"]["vehicle_type"]
             | null
           visibility_filter: string | null
+          visibility_type: string | null
           weight: number
         }
         SetofOptions: {
@@ -8103,10 +8143,14 @@ export type Database = {
           destination_address: string
           destination_city: string | null
           destination_city_id: string | null
+          destination_complement: string | null
           destination_geog: unknown
           destination_lat: number | null
           destination_lng: number | null
+          destination_neighborhood: string | null
+          destination_number: string | null
           destination_state: string | null
+          destination_street: string | null
           destination_zip_code: string | null
           distance_km: number | null
           driver_id: string | null
@@ -8126,14 +8170,19 @@ export type Database = {
           is_scheduled: boolean | null
           last_location_update: string | null
           metadata: Json | null
+          min_driver_rating: number | null
           minimum_antt_price: number | null
           origin_address: string
           origin_city: string | null
           origin_city_id: string | null
+          origin_complement: string | null
           origin_geog: unknown
           origin_lat: number | null
           origin_lng: number | null
+          origin_neighborhood: string | null
+          origin_number: string | null
           origin_state: string | null
+          origin_street: string | null
           origin_zip_code: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           pickup_date: string
@@ -8164,6 +8213,7 @@ export type Database = {
             | Database["public"]["Enums"]["vehicle_type"]
             | null
           visibility_filter: string | null
+          visibility_type: string | null
           weight: number
         }
         SetofOptions: {

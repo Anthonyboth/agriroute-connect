@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, DollarSign, Calendar } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 
-interface FreightWizardStep3Props {
+interface FreightWizardStep4PriceProps {
   formData: any;
   onInputChange: (field: string, value: any) => void;
   onNext: () => void;
@@ -15,14 +15,14 @@ interface FreightWizardStep3Props {
   calculatedDistance?: number;
 }
 
-export function FreightWizardStep3({ 
+export function FreightWizardStep4Price({ 
   formData, 
   onInputChange, 
   onNext,
   onBack,
   calculatedAnttPrice,
   calculatedDistance
-}: FreightWizardStep3Props) {
+}: FreightWizardStep4PriceProps) {
   const hasPrice = formData.pricing_type === 'FIXED' 
     ? !!formData.price 
     : !!formData.price_per_km;
