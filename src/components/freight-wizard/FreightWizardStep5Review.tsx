@@ -1,12 +1,16 @@
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Check, Loader2, MapPin, Package, DollarSign, Calendar, Truck } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, MapPin, Package, DollarSign, Calendar, Truck, Eye, Home } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CARGO_TYPES } from '@/lib/cargo-types';
 
-interface FreightWizardStep4Props {
+interface FreightWizardStep5ReviewProps {
   formData: any;
+  onInputChange: (field: string, value: any) => void;
   onBack: () => void;
   onSubmit: () => void;
   loading: boolean;
@@ -15,15 +19,16 @@ interface FreightWizardStep4Props {
   guestMode?: boolean;
 }
 
-export function FreightWizardStep4({ 
-  formData, 
+export function FreightWizardStep5Review({ 
+  formData,
+  onInputChange,
   onBack,
   onSubmit,
   loading,
   calculatedAnttPrice,
   calculatedDistance,
   guestMode
-}: FreightWizardStep4Props) {
+}: FreightWizardStep5ReviewProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -60,6 +65,14 @@ export function FreightWizardStep4({
     return 0;
   };
 
+  const formatAddress = (neighborhood: string, street: string, number: string, complement: string) => {
+    const parts = [neighborhood];
+    if (street) parts.push(street);
+    if (number) parts.push(`nº ${number}`);
+    if (complement) parts.push(complement);
+    return parts.join(', ');
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -68,7 +81,7 @@ export function FreightWizardStep4({
         </div>
         <h3 className="text-lg font-semibold">Revisar e Publicar</h3>
         <p className="text-sm text-muted-foreground">
-          Confira os dados antes de publicar o frete
+          Confira os dados e configure a visibilidade
         </p>
       </div>
 
@@ -96,6 +109,30 @@ export function FreightWizardStep4({
                   Distância: ~{calculatedDistance.toFixed(0)} km
                 </p>
               )}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Endereços */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Home className="h-4 w-4" />
+              Endereços
+            </div>
+            <div className="pl-6 space-y-2 text-sm">
+              <div>
+                <span className="text-muted-foreground">Origem:</span>
+                <p className="font-medium">
+                  {formatAddress(formData.origin_neighborhood, formData.origin_street, formData.origin_number, formData.origin_complement) || '-'}
+                </p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Destino:</span>
+                <p className="font-medium">
+                  {formatAddress(formData.destination_neighborhood, formData.destination_street, formData.destination_number, formData.destination_complement) || '-'}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -203,6 +240,78 @@ export function FreightWizardStep4({
                 <p className="text-sm">{formData.description}</p>
               </div>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Visibilidade do Frete */}
+      <Card>
+        <CardContent className="p-4 space-y-4">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Eye className="h-4 w-4" />
+            Visibilidade do Frete
+          </div>
+          
+          <RadioGroup 
+            value={formData.visibility_type || 'ALL'} 
+            onValueChange={(value) => onInputChange('visibility_type', value)}
+            className="space-y-3"
+          >
+            <div className="flex items-start space-x-3">
+              <RadioGroupItem value="ALL" id="visibility_all" className="mt-1" />
+              <div>
+                <Label htmlFor="visibility_all" className="font-medium cursor-pointer">
+                  Todos os motoristas e transportadoras
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Qualquer motorista ou transportadora poderá ver e se candidatar
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start space-x-3">
+              <RadioGroupItem value="TRANSPORTADORAS_ONLY" id="visibility_transportadoras" className="mt-1" />
+              <div>
+                <Label htmlFor="visibility_transportadoras" className="font-medium cursor-pointer">
+                  Somente transportadoras
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Apenas transportadoras verificadas poderão ver este frete
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start space-x-3">
+              <RadioGroupItem value="RATING_MINIMUM" id="visibility_rating" className="mt-1" />
+              <div>
+                <Label htmlFor="visibility_rating" className="font-medium cursor-pointer">
+                  Motoristas com avaliação mínima
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Apenas motoristas com uma avaliação mínima poderão ver
+                </p>
+              </div>
+            </div>
+          </RadioGroup>
+
+          {formData.visibility_type === 'RATING_MINIMUM' && (
+            <div className="pl-6 space-y-2">
+              <Label>Avaliação Mínima</Label>
+              <Select
+                value={formData.min_driver_rating || '4'}
+                onValueChange={(value) => onInputChange('min_driver_rating', value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">⭐ 3 estrelas ou mais</SelectItem>
+                  <SelectItem value="3.5">⭐ 3.5 estrelas ou mais</SelectItem>
+                  <SelectItem value="4">⭐ 4 estrelas ou mais</SelectItem>
+                  <SelectItem value="4.5">⭐ 4.5 estrelas ou mais</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           )}
         </CardContent>
       </Card>

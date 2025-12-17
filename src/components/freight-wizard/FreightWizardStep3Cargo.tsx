@@ -7,19 +7,19 @@ import { WeightInput } from '@/components/WeightInput';
 import { CARGO_CATEGORIES, getCargoTypesByCategory, cargoRequiresAxles, AXLE_OPTIONS, VEHICLE_TYPES_URBAN } from '@/lib/cargo-types';
 import { Checkbox } from '@/components/ui/checkbox';
 
-interface FreightWizardStep2Props {
+interface FreightWizardStep3CargoProps {
   formData: any;
   onInputChange: (field: string, value: any) => void;
   onNext: () => void;
   onBack: () => void;
 }
 
-export function FreightWizardStep2({ 
+export function FreightWizardStep3Cargo({ 
   formData, 
   onInputChange, 
   onNext,
   onBack
-}: FreightWizardStep2Props) {
+}: FreightWizardStep3CargoProps) {
   const showAxlesSelector = formData.cargo_type && cargoRequiresAxles(formData.cargo_type);
   
   const canProceed = formData.cargo_type && formData.weight && 
