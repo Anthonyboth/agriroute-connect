@@ -74,11 +74,42 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       }
 
       // Normalizar producer e driver (podem vir como arrays)
-      const normalizedFreight = {
+      let normalizedFreight = {
         ...data,
         producer: Array.isArray(data.producer) ? data.producer[0] : data.producer,
         driver: Array.isArray(data.driver) ? data.driver[0] : data.driver,
       };
+      
+      // ✅ CORREÇÃO BUG 1: Buscar produtor secundariamente se JOIN falhou
+      if (data.producer_id && (!normalizedFreight.producer || !normalizedFreight.producer.full_name)) {
+        console.log('[FreightDetails] Producer JOIN vazio, buscando diretamente...');
+        const { data: producerData } = await supabase
+          .from('profiles')
+          .select('id, full_name, contact_phone, role')
+          .eq('id', data.producer_id)
+          .maybeSingle();
+        
+        if (producerData) {
+          normalizedFreight = { ...normalizedFreight, producer: producerData };
+          console.log('[FreightDetails] Produtor encontrado:', producerData.full_name);
+        } else {
+          // Verificar se existe guest info no metadata ou como fallback
+          const guestInfo = (data as any).guest_name || (data.metadata as any)?.guest_name;
+          const guestPhone = (data as any).guest_phone || (data.metadata as any)?.guest_phone;
+          
+          if (guestInfo) {
+            normalizedFreight = { 
+              ...normalizedFreight, 
+              producer: { 
+                id: null, 
+                full_name: guestInfo, 
+                contact_phone: guestPhone || null,
+                role: 'GUEST' 
+              } 
+            };
+          }
+        }
+      }
       
       setFreight(normalizedFreight);
 

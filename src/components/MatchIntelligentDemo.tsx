@@ -87,9 +87,10 @@ export const MatchIntelligentDemo: React.FC = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    // ✅ CORREÇÃO CSS: Card com largura total e centralizado
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader className="text-center sm:text-left">
+        <CardTitle className="flex items-center justify-center sm:justify-start gap-2">
           <Brain className="h-5 w-5 text-primary" />
           Como Funciona o Match Inteligente
         </CardTitle>

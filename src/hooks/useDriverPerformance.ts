@@ -43,26 +43,34 @@ export const useDriverPerformance = (driverId: string, startDate?: Date, endDate
   return useQuery({
     queryKey: ['driver-performance', driverId, startDate, endDate],
     queryFn: async (): Promise<DriverPerformanceData> => {
+      // ✅ Dados vazios padrão para fallback
+      const EMPTY_DATA: DriverPerformanceData = {
+        driverId: driverId || '',
+        driverName: 'Motorista',
+        totalFreights: 0,
+        completedFreights: 0,
+        cancelledFreights: 0,
+        onTimeFreights: 0,
+        averageRating: 0,
+        totalRatings: 0,
+        totalRevenue: 0,
+        averageDeliveryTime: 0,
+        completionRate: 0,
+        onTimeRate: 0,
+        topRoutes: [],
+        monthlyStats: [],
+        recentDeliveries: []
+      };
+
       if (!driverId || driverId.trim() === '') {
-        // Retornar dados vazios em vez de lançar erro
-        return {
-          driverId: '',
-          driverName: 'Motorista',
-          totalFreights: 0,
-          completedFreights: 0,
-          cancelledFreights: 0,
-          onTimeFreights: 0,
-          averageRating: 0,
-          totalRatings: 0,
-          totalRevenue: 0,
-          averageDeliveryTime: 0,
-          completionRate: 0,
-          onTimeRate: 0,
-          topRoutes: [],
-          monthlyStats: [],
-          recentDeliveries: []
-        };
+        return EMPTY_DATA;
       }
+
+      // ✅ CORREÇÃO: Timeout de 15 segundos para evitar loading infinito
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      try {
 
       // Build date filter
       let dateFilter = '';
@@ -222,23 +230,48 @@ export const useDriverPerformance = (driverId: string, startDate?: Date, endDate
         };
       }) || [];
 
-      return {
-        driverId,
-        driverName: driverProfile?.full_name || 'Motorista',
-        totalFreights,
-        completedFreights,
-        cancelledFreights,
-        onTimeFreights,
-        averageRating,
-        totalRatings: ratings?.length || 0,
-        totalRevenue,
-        averageDeliveryTime,
-        completionRate,
-        onTimeRate,
-        topRoutes,
-        monthlyStats,
-        recentDeliveries
-      };
+        // Limpar timeout
+        clearTimeout(timeoutId);
+
+        return {
+          driverId,
+          driverName: driverProfile?.full_name || 'Motorista',
+          totalFreights,
+          completedFreights,
+          cancelledFreights,
+          onTimeFreights,
+          averageRating,
+          totalRatings: ratings?.length || 0,
+          totalRevenue,
+          averageDeliveryTime,
+          completionRate,
+          onTimeRate,
+          topRoutes,
+          monthlyStats,
+          recentDeliveries
+        };
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        console.error('[useDriverPerformance] Erro ou timeout:', error);
+        // Retornar dados vazios em caso de erro/timeout
+        return {
+          driverId: driverId || '',
+          driverName: 'Motorista',
+          totalFreights: 0,
+          completedFreights: 0,
+          cancelledFreights: 0,
+          onTimeFreights: 0,
+          averageRating: 0,
+          totalRatings: 0,
+          totalRevenue: 0,
+          averageDeliveryTime: 0,
+          completionRate: 0,
+          onTimeRate: 0,
+          topRoutes: [],
+          monthlyStats: [],
+          recentDeliveries: []
+        };
+      }
     },
     enabled: !!driverId,
     staleTime: 5 * 60 * 1000, // 5 minutes

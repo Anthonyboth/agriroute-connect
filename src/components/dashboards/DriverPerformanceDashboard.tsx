@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDriverPerformance } from '@/hooks/useDriverPerformance';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Star, TrendingUp, CheckCircle, Clock, MapPin, Package, Calendar } from 'lucide-react';
+import { Star, TrendingUp, CheckCircle, Clock, MapPin, Package, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
 import { formatBRL, formatDate } from '@/lib/formatters';
 import { getFreightStatusLabel } from '@/lib/freight-status';
 
@@ -15,23 +16,22 @@ interface DriverPerformanceDashboardProps {
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
+// ✅ Skeleton para cards de métricas individuais
+const MetricCardSkeleton = () => (
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="h-4 w-4" />
+    </CardHeader>
+    <CardContent>
+      <Skeleton className="h-8 w-16 mb-2" />
+      <Skeleton className="h-3 w-20" />
+    </CardContent>
+  </Card>
+);
+
 export const DriverPerformanceDashboard = ({ driverId }: DriverPerformanceDashboardProps) => {
   const [period, setPeriod] = useState<'1m' | '3m' | '6m' | '1y' | 'all'>('3m');
-
-  // Guard: Se driverId estiver vazio, mostrar loading
-  if (!driverId) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
-        </div>
-        <Skeleton className="h-[400px] w-full" />
-      </div>
-    );
-  }
 
   // Calculate date range
   const endDate = new Date();
@@ -41,50 +41,68 @@ export const DriverPerformanceDashboard = ({ driverId }: DriverPerformanceDashbo
   else if (period === '6m') startDate.setMonth(startDate.getMonth() - 6);
   else if (period === '1y') startDate.setFullYear(startDate.getFullYear() - 1);
 
-  const { data: performance, isLoading } = useDriverPerformance(
+  const { data: performance, isLoading, isError, refetch } = useDriverPerformance(
     driverId,
     period === 'all' ? undefined : startDate,
     period === 'all' ? undefined : endDate
   );
 
+  const handleRetry = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  // Guard: Se driverId estiver vazio, mostrar estado vazio
+  if (!driverId) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
+        <p className="text-muted-foreground">ID do motorista não fornecido</p>
+        <p className="text-sm text-muted-foreground/70 mt-1">Não é possível carregar relatórios</p>
+      </div>
+    );
+  }
+
+  // ✅ Loading com skeleton individual para cada card
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-10 w-80" />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32" />
+            <MetricCardSkeleton key={i} />
           ))}
         </div>
-        <Skeleton className="h-[400px] w-full" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card><CardContent className="p-6"><Skeleton className="h-[300px]" /></CardContent></Card>
+          <Card><CardContent className="p-6"><Skeleton className="h-[300px]" /></CardContent></Card>
+        </div>
       </div>
     );
   }
 
-  // Se não há dados mas o hook carregou, verificar se temos alguma info
-  const hasAnyData = performance && (
-    performance.totalFreights > 0 || 
-    performance.totalRevenue > 0 || 
-    performance.totalRatings > 0
-  );
-
-  if (!performance) {
+  // ✅ Estado de erro com botão de retry
+  if (isError || !performance) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <p>Não foi possível carregar os dados</p>
-        <p className="text-sm mt-2">Tente novamente mais tarde</p>
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <AlertCircle className="h-12 w-12 text-destructive/50 mb-4" />
+        <p className="text-muted-foreground font-medium">Não foi possível carregar os dados</p>
+        <p className="text-sm text-muted-foreground/70 mt-1 mb-4">Verifique sua conexão e tente novamente</p>
+        <Button onClick={handleRetry} variant="outline" className="gap-2">
+          <RefreshCw className="h-4 w-4" />
+          Tentar novamente
+        </Button>
       </div>
     );
   }
 
-  if (!hasAnyData) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        <p>Dados de performance não disponíveis</p>
-        <p className="text-sm mt-2">Complete alguns fretes para ver suas estatísticas</p>
-      </div>
-    );
-  }
+  // ✅ Estado vazio mostra cards com valores zerados
+  const hasAnyData = performance.totalFreights > 0 || performance.totalRevenue > 0 || performance.totalRatings > 0;
 
   // Prepare status distribution for pie chart
   const statusData = [
