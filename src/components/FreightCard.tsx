@@ -132,6 +132,25 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       }
 
       // Se tem cadastro, proceder com aceite normal
+      // Se já existe atribuição ativa para este frete (motorista), não chamar edge function (evita 409)
+      if (!isTransportCompany && profile?.id) {
+        const { data: existingAssignment } = await supabase
+          .from('freight_assignments')
+          .select('id,status')
+          .eq('freight_id', freight.id)
+          .eq('driver_id', profile.id)
+          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION', 'UNLOADING'])
+          .maybeSingle();
+
+        if (existingAssignment) {
+          toast.info('Você já aceitou este frete', {
+            description: 'Esse frete já está em andamento na sua conta.',
+          });
+          onAction?.('accept');
+          return;
+        }
+      }
+
       const { data: acceptData, error: acceptError } = await supabase.functions.invoke(
         'accept-freight-multiple',
         {

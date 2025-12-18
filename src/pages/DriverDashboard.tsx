@@ -1774,6 +1774,32 @@ const DriverDashboard = () => {
             return;
           }
 
+          // Se já existe uma atribuição ativa para este frete, tratar como idempotente (evita 409)
+          const activeStatuses = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION', 'UNLOADING'];
+
+          let assignmentQuery = supabase
+            .from('freight_assignments')
+            .select('id,status')
+            .eq('freight_id', freightId)
+            .in('status', activeStatuses);
+
+          // Motorista: checa por driver_id | Transportadora: checa por company_id
+          if (isTransportCompany && transportCompanyData?.id) {
+            assignmentQuery = assignmentQuery.eq('company_id', transportCompanyData.id);
+          } else {
+            assignmentQuery = assignmentQuery.eq('driver_id', profile.id);
+          }
+
+          const { data: existingAssignment } = await assignmentQuery.maybeSingle();
+
+          if (existingAssignment) {
+            toast.info('Você já aceitou este frete', {
+              description: 'Abrindo seus fretes em andamento…',
+            });
+            setActiveTab('ongoing');
+            return;
+          }
+
           // Aceitação direta: não bloquear por proposta existente
           // Aceitar via Edge Function (bypass RLS com service role)
           const { data: acceptData, error: acceptError } = await (supabase as any).functions.invoke('accept-freight-multiple', {
