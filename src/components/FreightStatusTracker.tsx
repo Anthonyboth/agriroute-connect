@@ -162,6 +162,18 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
     }
 
     setLoading(true);
+    
+    // ✅ CORREÇÃO BUG 2: Timeout de segurança para destravar botão após 30 segundos
+    const loadingTimeout = setTimeout(() => {
+      console.warn('[FreightStatusTracker] Timeout de 30s atingido - destravando botão');
+      setLoading(false);
+      toast({
+        title: "Tempo esgotado",
+        description: "A operação demorou muito. Verifique se o status foi atualizado e tente novamente.",
+        variant: "destructive",
+      });
+    }, 30000);
+    
     try {
       // ✅ Preflight check já é feito no helper, mas mantemos aqui para feedback imediato
       const { data: freightData } = await supabase
@@ -176,6 +188,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           description: "Este frete já foi entregue ou está aguardando confirmação. Não é possível atualizar o status.",
           variant: "destructive",
         });
+        clearTimeout(loadingTimeout);
         setLoading(false);
         return;
       }
@@ -197,6 +210,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           description: "Este status já foi registrado recentemente.",
           variant: "destructive",
         });
+        clearTimeout(loadingTimeout);
         setLoading(false);
         return;
       }
@@ -220,6 +234,8 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
         assignmentId // ✅ Passa assignmentId para sincronizar status
       });
 
+      clearTimeout(loadingTimeout);
+
       if (!ok) {
         // Helper já mostrou toast e disparou eventos - apenas encerrar
         setLoading(false);
@@ -229,18 +245,23 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       setNotes('');
       await fetchStatusHistory();
       
+      // ✅ CORREÇÃO BUG 3: Forçar atualização visual imediata
+      toast({
+        title: "✅ Status atualizado",
+        description: `Progresso atualizado para: ${newStatus.replace(/_/g, ' ')}`,
+      });
+      
       // Notificar o parent para atualizar UI sem recarregar tudo
       if (onStatusUpdated) {
         onStatusUpdated(newStatus);
-      } else {
-        await fetchStatusHistory();
       }
 
     } catch (error: any) {
       console.error('Error updating freight status:', error);
+      clearTimeout(loadingTimeout);
       toast({
         title: "Erro ao atualizar status",
-        description: "Não foi possível atualizar o status. Verifique suas permissões e tente novamente.",
+        description: error?.message || "Não foi possível atualizar o status. Verifique suas permissões e tente novamente.",
         variant: "destructive",
       });
     } finally {
