@@ -1,3 +1,4 @@
+// Force rebuild: 2025-12-17T21:15:00Z - 5-step wizard modal
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';

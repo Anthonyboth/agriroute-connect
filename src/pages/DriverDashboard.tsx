@@ -1774,16 +1774,16 @@ const DriverDashboard = () => {
             return;
           }
 
-          // Se já existe uma atribuição ativa para este frete, tratar como idempotente (evita 409)
-          const activeStatuses = ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION', 'UNLOADING'];
+          // Status usados pela Edge Function accept-freight-multiple (linha 257)
+          const activeStatuses = ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'] as const;
 
+          // 1) Verificar se já existe atribuição ativa para ESTE frete (evita 409)
           let assignmentQuery = supabase
             .from('freight_assignments')
             .select('id,status')
             .eq('freight_id', freightId)
             .in('status', activeStatuses);
 
-          // Motorista: checa por driver_id | Transportadora: checa por company_id
           if (isTransportCompany && transportCompanyData?.id) {
             assignmentQuery = assignmentQuery.eq('company_id', transportCompanyData.id);
           } else {
@@ -1798,6 +1798,34 @@ const DriverDashboard = () => {
             });
             setActiveTab('ongoing');
             return;
+          }
+
+          // 2) Motorista autônomo: verificar se já tem QUALQUER frete ativo (Edge Function linha 342-386)
+          if (!isTransportCompany && profile?.id) {
+            // Checar freights.driver_id
+            const { data: activeFreights } = await supabase
+              .from('freights')
+              .select('id, cargo_type')
+              .eq('driver_id', profile.id)
+              .in('status', activeStatuses);
+
+            // Checar freight_assignments.driver_id
+            const { data: activeAssignments } = await supabase
+              .from('freight_assignments')
+              .select('id, freight_id')
+              .eq('driver_id', profile.id)
+              .in('status', activeStatuses);
+
+            const totalActive = (activeFreights?.length || 0) + (activeAssignments?.length || 0);
+
+            if (totalActive > 0) {
+              const currentCargo = activeFreights?.[0]?.cargo_type || 'Carga';
+              toast.error('Você já possui um frete em andamento', {
+                description: `Complete a entrega atual (${currentCargo}) antes de aceitar um novo frete.`,
+              });
+              setActiveTab('ongoing');
+              return;
+            }
           }
 
           // Aceitação direta: não bloquear por proposta existente
