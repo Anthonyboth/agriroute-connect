@@ -1785,30 +1785,23 @@ const DriverDashboard = () => {
           if (acceptError) {
             console.error('[handleFreightAction] Error details:', {
               message: acceptError.message,
-              context: acceptError.context,
-              status: acceptError.context?.status,
-              statusText: acceptError.context?.statusText,
-              body: acceptError.context?.body
+              acceptData,
+              context: acceptError.context
             });
             
-            // Parse error body if it's a string (JSON from edge function)
-            let errorBody = acceptError.context?.body;
-            if (typeof errorBody === 'string') {
-              try {
-                errorBody = JSON.parse(errorBody);
-              } catch (e) {
-                // Not JSON, use as is
+            // Supabase JS v2: error response body may be in acceptData OR error.context
+            let errorBody = acceptData;
+            if (!errorBody && acceptError.context?.body) {
+              errorBody = acceptError.context.body;
+              if (typeof errorBody === 'string') {
+                try { errorBody = JSON.parse(errorBody); } catch (e) { /* ignore */ }
               }
             }
             
-            // Extract user-friendly message from edge function response
-            const errorMsg = errorBody?.error 
-              || (acceptError as any)?.context?.response?.error 
-              || (acceptError as any)?.message 
-              || 'Falha ao aceitar o frete';
+            // Extract user-friendly message
+            const errorMsg = errorBody?.error || acceptError.message || 'Falha ao aceitar o frete';
             const errorDetails = errorBody?.details || '';
             
-            // Show toast with details instead of throwing (prevents blank screen)
             toast.error(errorMsg, { description: errorDetails });
             return;
           }
