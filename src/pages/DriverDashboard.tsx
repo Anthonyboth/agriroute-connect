@@ -1799,9 +1799,39 @@ const DriverDashboard = () => {
             }
             
             // Extract user-friendly message
-            const errorMsg = errorBody?.error || acceptError.message || 'Falha ao aceitar o frete';
-            const errorDetails = errorBody?.details || '';
-            
+            let errorMsg = errorBody?.error || acceptError.message || 'Falha ao aceitar o frete';
+            let errorDetails = errorBody?.details || '';
+
+            const alreadyAccepted =
+              typeof errorMsg === 'string' &&
+              (errorMsg.includes('active assignment') || errorMsg.includes('already have an active assignment'));
+
+            if (alreadyAccepted) {
+              toast.info('Você já aceitou este frete', {
+                description:
+                  'Você já tem uma carreta aceita para este frete. Abrindo seus fretes em andamento…',
+              });
+
+              // Atualizar listas e ir para "Em Andamento" (comportamento idempotente)
+              queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
+              queryClient.invalidateQueries({ queryKey: ['available-freights'] });
+              queryClient.invalidateQueries({ queryKey: ['driver-proposals'] });
+              queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
+              await queryClient.refetchQueries({ queryKey: ['driver-assignments'] });
+              fetchOngoingFreights();
+              fetchMyProposals();
+              setActiveTab('ongoing');
+              return;
+            }
+
+            // ✅ PT-BR fallback (evitar inglês na UI)
+            if (
+              typeof errorMsg === 'string' &&
+              (errorMsg.includes('Edge function returned 409') || errorMsg.includes('409'))
+            ) {
+              errorMsg = 'Não foi possível aceitar o frete';
+            }
+
             toast.error(errorMsg, { description: errorDetails });
             return;
           }

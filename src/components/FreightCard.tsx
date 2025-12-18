@@ -132,54 +132,65 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       }
 
       // Se tem cadastro, proceder com aceite normal
-      const { data, error } = await supabase.functions.invoke(
+      const { data: acceptData, error: acceptError } = await supabase.functions.invoke(
         'accept-freight-multiple',
         {
-          body: { 
+          body: {
             freight_id: freight.id,
-            num_trucks: numTrucks
-          }
+            num_trucks: numTrucks,
+          },
         }
       );
 
-      if (error) {
-        // Extract detailed error information from edge function response
-        const errorResponse = (error as any)?.context?.response;
-        const errorMsg = errorResponse?.error || (error as any)?.message || 'Não foi possível aceitar o frete';
-        const errorDetails = errorResponse?.details;
-        
-        // Show detailed message if available
-        if (errorDetails) {
-          toast.error(errorMsg, { description: errorDetails });
-        } else {
-          toast.error(errorMsg);
+      if (acceptError) {
+        // Supabase JS v2: o body do erro pode vir em `acceptData` ou `error.context.body`
+        let errorBody: any = acceptData;
+        if (!errorBody && (acceptError as any)?.context?.body) {
+          errorBody = (acceptError as any).context.body;
         }
+        if (typeof errorBody === 'string') {
+          try {
+            errorBody = JSON.parse(errorBody);
+          } catch {
+            // ignore
+          }
+        }
+
+        let title = errorBody?.error || acceptError.message || 'Não foi possível aceitar o frete';
+        let description = errorBody?.details;
+
+        const alreadyAccepted =
+          typeof title === 'string' &&
+          (title.includes('active assignment') || title.includes('already have an active assignment'));
+
+        if (alreadyAccepted) {
+          toast.info('Você já aceitou este frete', {
+            description: 'Esse frete já está em andamento na sua conta.',
+          });
+          onAction?.('accept');
+          return;
+        }
+
+        // ✅ PT-BR fallback (evitar inglês na UI)
+        if (typeof title === 'string' && (title.includes('Edge function returned 409') || title.includes('409'))) {
+          title = 'Não foi possível aceitar o frete';
+        }
+
+        toast.error(title, description ? { description } : undefined);
         return;
       }
 
       const label = freight.service_type === 'FRETE_MOTO' ? 'frete' : 'carreta';
-      toast.success(
-        `${numTrucks} ${label}${numTrucks > 1 ? 's' : ''} aceita${numTrucks > 1 ? 's' : ''} com sucesso!`
-      );
+      toast.success(`${numTrucks} ${label}${numTrucks > 1 ? 's' : ''} aceita${numTrucks > 1 ? 's' : ''} com sucesso!`);
 
       onAction?.('accept');
     } catch (error: any) {
       console.error('Error accepting freight:', error);
-      
-      // Extract detailed error information
-      const errorResponse = (error as any)?.context?.response;
-      const errorMessage = errorResponse?.error 
-        || error?.message 
-        || error?.error 
-        || "Erro ao aceitar frete";
-      const errorDetails = errorResponse?.details;
-      
-      // Show detailed message if available
-      if (errorDetails) {
-        toast.error(errorMessage, { description: errorDetails });
-      } else {
-        toast.error(errorMessage);
-      }
+
+      // fallback: nunca quebrar a tela por erro de edge function
+      toast.error('Não foi possível aceitar o frete', {
+        description: 'Tente novamente em alguns instantes.'
+      });
     }
   };
 
