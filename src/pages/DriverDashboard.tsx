@@ -1788,17 +1788,33 @@ const DriverDashboard = () => {
               context: acceptError.context,
               status: acceptError.context?.status,
               statusText: acceptError.context?.statusText,
-              response: acceptError.context?.response
+              body: acceptError.context?.body
             });
             
+            // Parse error body if it's a string (JSON from edge function)
+            let errorBody = acceptError.context?.body;
+            if (typeof errorBody === 'string') {
+              try {
+                errorBody = JSON.parse(errorBody);
+              } catch (e) {
+                // Not JSON, use as is
+              }
+            }
+            
             // Extract user-friendly message from edge function response
-            const errorMsg = (acceptError as any)?.context?.response?.error 
+            const errorMsg = errorBody?.error 
+              || (acceptError as any)?.context?.response?.error 
               || (acceptError as any)?.message 
               || 'Falha ao aceitar o frete';
-            throw new Error(errorMsg);
+            const errorDetails = errorBody?.details || '';
+            
+            // Show toast with details instead of throwing (prevents blank screen)
+            toast.error(errorMsg, { description: errorDetails });
+            return;
           }
           if (!acceptData?.success) {
-            throw new Error('Falha ao aceitar o frete');
+            toast.error('Falha ao aceitar o frete');
+            return;
           }
 
           toast.success(
