@@ -132,14 +132,17 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       }
 
       // Se tem cadastro, proceder com aceite normal
-      // Se já existe atribuição ativa para este frete (motorista), não chamar edge function (evita 409)
+      // Status usados pela Edge Function accept-freight-multiple (linha 257)
+      const activeStatuses = ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'] as const;
+
+      // 1) Verificar se já existe atribuição ativa para ESTE frete
       if (!isTransportCompany && profile?.id) {
         const { data: existingAssignment } = await supabase
           .from('freight_assignments')
           .select('id,status')
           .eq('freight_id', freight.id)
           .eq('driver_id', profile.id)
-          .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION', 'UNLOADING'])
+          .in('status', activeStatuses)
           .maybeSingle();
 
         if (existingAssignment) {
@@ -147,6 +150,29 @@ export const FreightCard: React.FC<FreightCardProps> = ({
             description: 'Esse frete já está em andamento na sua conta.',
           });
           onAction?.('accept');
+          return;
+        }
+
+        // 2) Motorista autônomo: verificar se já tem QUALQUER frete ativo
+        const { data: activeFreights } = await supabase
+          .from('freights')
+          .select('id, cargo_type')
+          .eq('driver_id', profile.id)
+          .in('status', activeStatuses);
+
+        const { data: activeAssignments } = await supabase
+          .from('freight_assignments')
+          .select('id')
+          .eq('driver_id', profile.id)
+          .in('status', activeStatuses);
+
+        const totalActive = (activeFreights?.length || 0) + (activeAssignments?.length || 0);
+
+        if (totalActive > 0) {
+          const currentCargo = activeFreights?.[0]?.cargo_type || 'Carga';
+          toast.error('Você já possui um frete em andamento', {
+            description: `Complete a entrega atual (${currentCargo}) antes de aceitar um novo frete.`,
+          });
           return;
         }
       }
