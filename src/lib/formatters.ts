@@ -73,6 +73,51 @@ export const formatCurrency = (value: number | null | undefined): string => {
   return formatBRL(value, true);
 };
 
+// ============= PROBLEMA 8: PREÇO POR CARRETA =============
+
+/**
+ * Calcula o preço por carreta (dividindo o total pelo número de carretas)
+ * @param totalPrice - preço total do frete
+ * @param requiredTrucks - número de carretas necessárias
+ * @returns preço por carreta individual
+ */
+export const getPricePerTruck = (
+  totalPrice: number | null | undefined, 
+  requiredTrucks: number | null | undefined
+): number => {
+  if (typeof totalPrice !== 'number' || !Number.isFinite(totalPrice)) return 0;
+  const trucks = Math.max(requiredTrucks || 1, 1);
+  return totalPrice / trucks;
+};
+
+/**
+ * Formata preço por carreta com indicador
+ * @param totalPrice - preço total do frete
+ * @param requiredTrucks - número de carretas
+ * @param showSymbol - mostrar símbolo R$
+ * @returns objeto com preço formatado e indicador se há múltiplas carretas
+ */
+export const formatPricePerTruck = (
+  totalPrice: number | null | undefined,
+  requiredTrucks: number | null | undefined,
+  showSymbol: boolean = true
+): { 
+  pricePerTruck: string; 
+  totalPrice: string; 
+  hasMultipleTrucks: boolean;
+  trucksCount: number;
+} => {
+  const trucks = Math.max(requiredTrucks || 1, 1);
+  const perTruck = getPricePerTruck(totalPrice, trucks);
+  
+  return {
+    pricePerTruck: formatBRL(perTruck, showSymbol),
+    totalPrice: formatBRL(totalPrice, showSymbol),
+    hasMultipleTrucks: trucks > 1,
+    trucksCount: trucks
+  };
+};
+
 // ============= DATAS =============
 
 /**

@@ -30,7 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { toast } from 'sonner';
-import { formatTons, formatKm, formatBRL, formatDate } from '@/lib/formatters';
+import { formatTons, formatKm, formatBRL, formatDate, getPricePerTruck } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 import { AlertTriangle } from 'lucide-react';
@@ -547,7 +547,30 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         <CardFooter className="pt-3 pb-3 flex-shrink-0 mt-auto sticky bottom-0 bg-card/95 backdrop-blur-sm border-t">
           <div className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border border-border/50 min-w-fit">
             <div className="text-left">
-              <p className="font-bold text-xl text-primary whitespace-nowrap">{formatBRL(freight.price, true)}</p>
+              {/* PROBLEMA 8 CORRIGIDO: Mostrar preço POR CARRETA, não total */}
+              {(() => {
+                const requiredTrucks = freight.required_trucks || 1;
+                const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
+                const hasMultipleTrucks = requiredTrucks > 1;
+                
+                return (
+                  <>
+                    <p className="font-bold text-xl text-primary whitespace-nowrap">
+                      {formatBRL(pricePerTruck, true)}
+                      {hasMultipleTrucks && (
+                        <span className="text-xs font-normal text-muted-foreground ml-1">
+                          /carreta
+                        </span>
+                      )}
+                    </p>
+                    {hasMultipleTrucks && (
+                      <p className="text-xs text-muted-foreground">
+                        Total ({requiredTrucks} carretas): {formatBRL(freight.price, true)}
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
               {freight.service_type === 'FRETE_MOTO' ? (
                 <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                   Mínimo: R$ 10,00

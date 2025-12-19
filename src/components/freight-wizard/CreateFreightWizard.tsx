@@ -115,23 +115,23 @@ export function CreateFreightWizard({
     logWizardDebug('STEP_CHANGED', { currentStep, formData: { origin: formData.origin_city, destination: formData.destination_city } });
   }, [currentStep]);
 
-  const { hasDraft, lastSaved, saveDraft, clearDraft, restoreDraft } = useFreightDraft(
+  const { hasDraft, lastSaved, savedStep, saveDraft, clearDraft, restoreDraft } = useFreightDraft(
     userProfile?.id,
     !guestMode && isModalOpen
   );
 
-  // Auto-save draft every 3 seconds
+  // PROBLEMA 9: Auto-save draft every 3 seconds COM currentStep
   useEffect(() => {
     if (!guestMode && isModalOpen && !initialData) {
       const interval = setInterval(() => {
         const hasData = Object.values(formData).some(v => v && v !== '');
         if (hasData) {
-          saveDraft(formData);
+          saveDraft(formData, currentStep); // Salvar etapa atual junto com dados
         }
       }, 3000);
       return () => clearInterval(interval);
     }
-  }, [formData, guestMode, isModalOpen, initialData, saveDraft]);
+  }, [formData, guestMode, isModalOpen, initialData, saveDraft, currentStep]);
 
   const handleInputChange = (field: string, value: any) => {
     logWizardDebug('INPUT_CHANGE', { field, valueType: typeof value, currentStep });
@@ -147,11 +147,27 @@ export function CreateFreightWizard({
     }
   };
 
+  // PROBLEMA 9: Restaurar draft E navegar para etapa correta
   const handleRestoreDraft = () => {
-    const draftData = restoreDraft();
-    if (draftData) {
-      setFormData({ ...formDataInitial, ...draftData });
-      toast.success('Rascunho restaurado');
+    const restored = restoreDraft();
+    if (restored && restored.data) {
+      // 1. Restaurar dados do formulário
+      setFormData({ ...formDataInitial, ...restored.data });
+      
+      // 2. Navegar para a etapa onde o usuário parou
+      const targetStep = restored.currentStep || 1;
+      setCurrentStep(targetStep);
+      
+      // 3. Feedback visual detalhado
+      toast.success(`Rascunho restaurado! Voltando para etapa ${targetStep} de 5`, {
+        duration: 4000,
+        icon: '📂'
+      });
+      
+      logWizardDebug('DRAFT_RESTORED', { 
+        step: targetStep, 
+        fields: Object.keys(restored.data).filter(k => restored.data[k]) 
+      });
     }
   };
 
@@ -463,21 +479,31 @@ export function CreateFreightWizard({
         />
       </div>
 
-      {/* Draft Alert */}
-      {!guestMode && hasDraft && !initialData && currentStep === 1 && (
-        <Alert className="mx-4 mt-2">
+      {/* PROBLEMA 9: Draft Alert melhorado - mostra em qualquer etapa se tiver rascunho de outra etapa */}
+      {!guestMode && hasDraft && !initialData && (
+        <Alert className={`mx-4 mt-2 ${currentStep === 1 ? 'border-primary' : 'border-muted'}`}>
           <Info className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
             <div>
               <strong>Rascunho encontrado</strong>
               <p className="text-xs text-muted-foreground mt-1">
                 Salvo {lastSaved && format(lastSaved, "d 'de' MMM 'às' HH:mm", { locale: ptBR })}
+                {savedStep > 1 && (
+                  <span className="ml-2 text-primary font-medium">
+                    • Etapa {savedStep} de 5
+                  </span>
+                )}
               </p>
             </div>
-            <Button type="button" size="sm" variant="default" onClick={handleRestoreDraft}>
-              <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-              Restaurar
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={clearDraft}>
+                Descartar
+              </Button>
+              <Button type="button" size="sm" variant="default" onClick={handleRestoreDraft}>
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                Restaurar {savedStep > 1 && `(Etapa ${savedStep})`}
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}

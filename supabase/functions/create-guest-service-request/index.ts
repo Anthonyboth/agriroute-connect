@@ -7,10 +7,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Schema de validação
+// PROBLEMA 10 CORRIGIDO: Aceitar qualquer tipo de serviço válido (não apenas enum fixo)
 const GuestServiceRequestSchema = z.object({
   prospect_user_id: z.string().optional().nullable(),
-  service_type: z.enum(['GUINCHO', 'FRETE_MOTO', 'FRETE_URBANO', 'MUDANCA_RESIDENCIAL', 'MUDANCA_COMERCIAL', 'FRETE_VAN']),
+  client_id: z.string().optional().nullable(),
+  service_type: z.string().min(1, 'Tipo de serviço é obrigatório'), // Aceita qualquer string válida
   contact_name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
   contact_phone: z.string().min(10, 'Telefone inválido'),
   contact_email: z.string().email().optional().nullable().transform(val => val === '' ? null : val),
@@ -21,7 +22,9 @@ const GuestServiceRequestSchema = z.object({
   problem_description: z.string().optional().nullable(),
   urgency: z.enum(['LOW', 'MEDIUM', 'HIGH']).default('MEDIUM'),
   city_name: z.string().min(2, 'Cidade é obrigatória'),
+  city_id: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
+  preferred_datetime: z.string().optional().nullable(),
   additional_info: z.any().optional().nullable()
 });
 
@@ -34,10 +37,12 @@ serve(async (req) => {
   try {
     const body = await req.json();
     
+    console.log('[CREATE-GUEST-SERVICE-REQUEST] Received body:', JSON.stringify(body, null, 2));
+    
     // Validar dados de entrada
     const validationResult = GuestServiceRequestSchema.safeParse(body);
     if (!validationResult.success) {
-      console.error('Validation errors:', validationResult.error.errors);
+      console.error('[CREATE-GUEST-SERVICE-REQUEST] Validation errors:', validationResult.error.errors);
       return new Response(
         JSON.stringify({ 
           error: 'Dados inválidos', 
@@ -52,6 +57,8 @@ serve(async (req) => {
 
     const data = validationResult.data;
     
+    console.log('[CREATE-GUEST-SERVICE-REQUEST] Validated data:', JSON.stringify(data, null, 2));
+    
     // Criar cliente Supabase com service_role para bypass RLS
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -63,7 +70,7 @@ serve(async (req) => {
     const { data: serviceRequest, error: insertError } = await supabaseAdmin
       .from('service_requests')
       .insert([{
-        client_id: null, // Guest user - sem client_id
+        client_id: data.client_id || null,
         prospect_user_id: data.prospect_user_id === 'guest_user' ? null : data.prospect_user_id,
         service_type: data.service_type,
         contact_name: data.contact_name,
@@ -77,25 +84,27 @@ serve(async (req) => {
         urgency: data.urgency,
         status: 'OPEN',
         city_name: data.city_name,
+        city_id: data.city_id,
         state: data.state,
+        preferred_datetime: data.preferred_datetime,
         additional_info: data.additional_info ? JSON.stringify(data.additional_info) : null
       }])
       .select()
       .single();
 
     if (insertError) {
-      console.error('Insert error:', insertError);
+      console.error('[CREATE-GUEST-SERVICE-REQUEST] Insert error:', insertError);
       return new Response(
         JSON.stringify({ error: 'Erro ao criar solicitação', details: insertError.message }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    console.log('Service request created:', serviceRequest.id);
+    console.log('[CREATE-GUEST-SERVICE-REQUEST] Service request created:', serviceRequest.id);
 
     // Executar matching espacial automaticamente
     let matchingResult = null;
-    if (serviceRequest?.id && data.location_lat && data.location_lng) {
+    if (serviceRequest?.id) {
       try {
         const matchingResponse = await fetch(
           `${Deno.env.get('SUPABASE_URL')}/functions/v1/service-provider-spatial-matching`,
@@ -110,6 +119,8 @@ serve(async (req) => {
               request_lat: data.location_lat,
               request_lng: data.location_lng,
               service_type: data.service_type,
+              city_name: data.city_name,
+              state: data.state,
               notify_providers: true
             })
           }
@@ -117,12 +128,13 @@ serve(async (req) => {
 
         if (matchingResponse.ok) {
           matchingResult = await matchingResponse.json();
-          console.log('Matching executed:', matchingResult);
+          console.log('[CREATE-GUEST-SERVICE-REQUEST] Matching executed:', matchingResult);
         } else {
-          console.error('Matching error:', await matchingResponse.text());
+          const errorText = await matchingResponse.text();
+          console.error('[CREATE-GUEST-SERVICE-REQUEST] Matching error:', errorText);
         }
       } catch (matchError) {
-        console.error('Matching exception:', matchError);
+        console.error('[CREATE-GUEST-SERVICE-REQUEST] Matching exception:', matchError);
         // Não falhar a request principal por erro no matching
       }
     }
@@ -130,6 +142,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true,
+        id: serviceRequest.id,
         service_request_id: serviceRequest.id,
         matching: matchingResult,
         message: 'Solicitação criada com sucesso!'
@@ -138,7 +151,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Unexpected error:', error);
+    console.error('[CREATE-GUEST-SERVICE-REQUEST] Unexpected error:', error);
     return new Response(
       JSON.stringify({ error: 'Erro interno', details: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
