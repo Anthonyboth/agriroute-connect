@@ -53,7 +53,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     userCategory: null,
     loading: true,
   });
-  const [lastErrorTime, setLastErrorTime] = useState<number>(0);
+  // Removed unused lastErrorTime state
 
   useEffect(() => {
     mountedRef.current = true;
@@ -64,14 +64,6 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const checkSubscription = useCallback(async () => {
     if (!user) {
-      if (!mountedRef.current) return;
-      setState(prev => ({ ...prev, loading: false, subscriptionTier: 'FREE' }));
-      return;
-    }
-
-    // Evitar chamadas se a sessão está expirada
-    const session = await supabase.auth.getSession();
-    if (!session.data.session) {
       if (!mountedRef.current) return;
       setState(prev => ({ ...prev, loading: false, subscriptionTier: 'FREE' }));
       return;
@@ -89,11 +81,46 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
 
     inFlightRef.current = true;
 
-    // Retry logic with exponential backoff for session propagation
-    const retryDelays = [100, 500, 1000]; // Progressive delays
+    // Helper para obter token válido (com refresh se necessário)
+    const getValidAccessToken = async (): Promise<string | null> => {
+      // Primeiro, tentar obter a sessão atual
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (!sessionData.session) {
+        // Sem sessão, tentar refresh
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !refreshData.session) {
+          console.warn('[SubscriptionContext] No valid session after refresh');
+          return null;
+        }
+        return refreshData.session.access_token;
+      }
+      
+      // Verificar se o token está próximo de expirar (< 2 minutos)
+      const expiresAt = sessionData.session.expires_at || 0;
+      const now = Math.floor(Date.now() / 1000);
+      const expiresIn = expiresAt - now;
+      
+      if (expiresIn < 120) {
+        // Token quase expirando, fazer refresh
+        console.log('[SubscriptionContext] Token expiring soon, refreshing...');
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !refreshData.session) {
+          console.warn('[SubscriptionContext] Failed to refresh expiring token');
+          // Usar o token atual mesmo assim
+          return sessionData.session.access_token;
+        }
+        return refreshData.session.access_token;
+      }
+      
+      return sessionData.session.access_token;
+    };
+
+    // Retry logic with session refresh on 401
+    const maxRetries = 2;
     let lastError: any = null;
 
-    for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         if (!mountedRef.current) return;
         
@@ -101,13 +128,41 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
           setState(prev => ({ ...prev, loading: true }));
         }
         
+        // Obter token válido (com refresh automático se necessário)
+        const accessToken = await getValidAccessToken();
+        
+        if (!accessToken) {
+          console.warn('[SubscriptionContext] No valid access token available');
+          break;
+        }
+        
         const { data, error } = await supabase.functions.invoke('check-subscription', {
           headers: {
-            'Authorization': session.data.session?.access_token ? `Bearer ${session.data.session.access_token}` : ''
+            'Authorization': `Bearer ${accessToken}`
           }
         });
         
-        if (error) throw error;
+        // Verificar se retornou SESSION_EXPIRED (401) para tentar refresh
+        if (error || (data && data.code === 'SESSION_EXPIRED')) {
+          const errorMessage = error?.message || data?.error || '';
+          const isSessionError = errorMessage.includes('Session expired') || 
+                                 errorMessage.includes('SESSION_EXPIRED') ||
+                                 data?.code === 'SESSION_EXPIRED';
+          
+          if (isSessionError && attempt < maxRetries - 1) {
+            console.log('[SubscriptionContext] Session expired, forcing refresh...');
+            // Forçar refresh da sessão
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+            
+            if (!refreshError && refreshData.session) {
+              console.log('[SubscriptionContext] Session refreshed, retrying...');
+              await new Promise(resolve => setTimeout(resolve, 300));
+              continue; // Retry com novo token
+            }
+          }
+          
+          if (error) throw error;
+        }
 
         if (!mountedRef.current) return;
         setState({
@@ -124,22 +179,17 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         
       } catch (error) {
         lastError = error;
-        const errorMessage = (error as any)?.message || String(error);
+        console.error(`[SubscriptionContext] Attempt ${attempt + 1} failed:`, error);
         
-        // Check if it's a session propagation error
-        const isSessionPropagationError = errorMessage.includes('session_id') || 
-                                         errorMessage.includes('Session from') ||
-                                         errorMessage.includes('does not exist');
-        
-        // If it's the last attempt or not a propagation error, break
-        if (attempt >= retryDelays.length || !isSessionPropagationError) {
-          console.error(`Subscription check failed after ${attempt + 1} attempts:`, error);
-          break;
+        // Se for 401 e ainda temos tentativas, retry
+        const status = (error as any)?.status ?? (error as any)?.context?.response?.status ?? null;
+        if (status === 401 && attempt < maxRetries - 1) {
+          console.log('[SubscriptionContext] Got 401, will retry after refresh...');
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
         }
         
-        // Wait before next retry
-        await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
-        console.log(`Retrying subscription check (attempt ${attempt + 2}/${retryDelays.length + 1})...`);
+        break;
       }
     }
     
@@ -158,25 +208,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
       userCategory: null
     }));
     
-    // Só notifica o usuário em erros críticos de autenticação E fora da rota /auth
-    // Não notificar em erros de propagação de sessão (500)
-    const status = (lastError as any)?.status ?? (lastError as any)?.context?.response?.status ?? null;
-    if ((status === 401 || status === 403) && location.pathname !== '/auth') {
-      const now = Date.now();
-      if (now - lastErrorTime > 30000) {
-        setLastErrorTime(now);
-        toast.error('Sua sessão expirou. Faça login novamente.', {
-          action: {
-            label: 'Fechar',
-            onClick: () => {},
-          },
-        });
-      }
-    }
-    // Para erros de sessão (500) não notifica para não interromper o fluxo
+    // Não mostrar toast de erro para não interromper o fluxo
+    // O usuário pode continuar usando com tier FREE
+    console.warn('[SubscriptionContext] Using FREE tier due to session/subscription check failure');
     
     inFlightRef.current = false;
-  }, [user, location.pathname, lastErrorTime]);
+  }, [user, location.pathname]);
 
   const createCheckout = useCallback(async (category: string, planType: 'essential' | 'professional') => {
     if (!user) {
