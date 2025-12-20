@@ -950,7 +950,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
 
           {/* Barra de Busca e Filtros */}
           <div className="space-y-4 mb-6">
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -961,40 +961,43 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                 />
               </div>
 
-              <Button
-                variant="outline"
-                onClick={fetchCompatibleFreights}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                Atualizar
-              </Button>
+              <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+                <Button
+                  variant="outline"
+                  onClick={fetchCompatibleFreights}
+                  disabled={loading}
+                  className="flex items-center gap-2 whitespace-nowrap"
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Atualizar</span>
+                </Button>
 
-              <Button
-                variant="secondary"
-                onClick={async () => {
-                  try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    await supabase.functions.invoke('driver-spatial-matching', {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': session?.access_token ? `Bearer ${session.access_token}` : ''
-                      }
-                    });
-                    toast.success('Áreas atualizadas e matches recalculados!');
-                    await fetchCompatibleFreights();
-                  } catch (e: any) {
-                    console.error('Forçar atualização falhou', e);
-                    toast.error('Falha ao forçar atualização.');
-                  }
-                }}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                <MapPin className="h-4 w-4" />
-                Forçar atualização de áreas
-              </Button>
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      await supabase.functions.invoke('driver-spatial-matching', {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': session?.access_token ? `Bearer ${session.access_token}` : ''
+                        }
+                      });
+                      toast.success('Áreas atualizadas e matches recalculados!');
+                      await fetchCompatibleFreights();
+                    } catch (e: any) {
+                      console.error('Forçar atualização falhou', e);
+                      toast.error('Falha ao forçar atualização.');
+                    }
+                  }}
+                  disabled={loading}
+                  className="flex items-center gap-2 whitespace-nowrap"
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span className="hidden sm:inline">Forçar atualização de áreas</span>
+                  <span className="sm:hidden">Atualizar áreas</span>
+                </Button>
+              </div>
             </div>
 
             {/* Filtro de Tipo de Carga */}

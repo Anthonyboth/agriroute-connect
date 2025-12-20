@@ -34,6 +34,7 @@ import { formatTons, formatKm, formatBRL, formatDate, getPricePerTruck } from '@
 import { LABELS } from '@/lib/labels';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 import { AlertTriangle } from 'lucide-react';
+import { getVehicleTypeLabel } from '@/lib/vehicle-types';
 
 interface FreightCardProps {
   freight: {
@@ -56,6 +57,8 @@ interface FreightCardProps {
     service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO';
     required_trucks?: number;
     accepted_trucks?: number;
+    vehicle_type_required?: string;
+    vehicle_axles_required?: number;
   };
   onAction?: (action: 'propose' | 'accept' | 'complete' | 'edit' | 'cancel' | 'request-cancel') => void;
   showActions?: boolean;
@@ -406,6 +409,16 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               >
                 <Truck className="h-3 w-3 mr-1" />
                 {freight.accepted_trucks || 0}/{freight.required_trucks}
+              </Badge>
+            )}
+            
+            {/* Badge de Tipo de Veículo Preferencial - PROBLEMA 6 */}
+            {freight.vehicle_type_required && (
+              <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30 shrink-0">
+                🚛 {getVehicleTypeLabel(freight.vehicle_type_required)}
+                {freight.vehicle_axles_required && freight.vehicle_axles_required > 0 && (
+                  <span className="ml-1">({freight.vehicle_axles_required} eixos)</span>
+                )}
               </Badge>
             )}
           </div>

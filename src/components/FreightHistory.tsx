@@ -376,15 +376,15 @@ export const FreightHistory: React.FC = () => {
                                 {urgencyLabel}
                               </Badge>
                             </div>
-                            <CardDescription>
-                              {formatWeight(freight.weight)} • {freight.distance_km} km
+                            <CardDescription className="text-sm">
+                              {formatWeight(freight.weight)} • {formatKm(freight.distance_km)}
                               {isProducer && freight.driver && ` • Motorista: ${freight.driver.full_name}`}
                               {!isProducer && freight.producer && ` • Produtor: ${freight.producer.full_name}`}
                             </CardDescription>
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-bold text-primary">
-                              R$ {freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              {formatBRL(freight.price, true)}
                             </p>
                           </div>
                         </div>
