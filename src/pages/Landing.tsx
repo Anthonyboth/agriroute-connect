@@ -192,23 +192,38 @@ const Landing: React.FC = () => {
       {/* Header - Fixed height to prevent CLS */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 h-[72px]">
         <div className="container mx-auto px-4 pr-2 sm:pr-4 flex items-center justify-between h-full">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="flex items-center space-x-2">
               <Leaf className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold text-foreground">AgriRoute</span>
+              <span className="text-xl sm:text-2xl font-bold text-foreground">AgriRoute</span>
             </div>
-            <ThemeToggle />
           </div>
-            <div className="flex items-center space-x-2">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/auth')}
-                className="flex-shrink-0"
-              > 
-                Entrar
-              </Button>
-              <MobileMenu onContactClick={() => setContactModal(true)} />
-            </div>
+          
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-6">
+            <a href="#features" className="text-muted-foreground hover:text-foreground transition-smooth">Recursos</a>
+            <button onClick={() => setHowItWorksModal({ isOpen: true })} className="text-muted-foreground hover:text-foreground transition-smooth">Sobre</button>
+            <button onClick={() => setContactModal(true)} className="text-muted-foreground hover:text-foreground transition-smooth">Contato</button>
+          </nav>
+          
+          {/* Actions */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <ThemeToggle />
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/auth')}
+              className="hidden sm:flex"
+            > 
+              Entrar
+            </Button>
+            <Button 
+              onClick={() => openAuthModal('signup')}
+              className="hidden sm:flex gradient-primary"
+            > 
+              Cadastrar-se
+            </Button>
+            <MobileMenu onContactClick={() => setContactModal(true)} />
+          </div>
         </div>
       </header>
 

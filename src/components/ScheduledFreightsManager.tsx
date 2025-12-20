@@ -271,7 +271,7 @@ export const ScheduledFreightsManager: React.FC = () => {
           <div className="space-y-4">
               {/* Busca e Filtros de Urgência */}
               <div className="space-y-4">
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex-1 relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -283,48 +283,55 @@ export const ScheduledFreightsManager: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Filtros de Urgência */}
+                {/* Filtros de Urgência - Responsivo */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground mr-2">Urgência:</span>
-                  <Button
-                    variant={urgencyFilter === 'all' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setUrgencyFilter('all')}
-                  >
-                    Todos ({filteredFreights.length})
-                  </Button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Urgência:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                     <Button
-                    variant={urgencyFilter === 'today' ? 'destructive' : 'outline'}
-                    size="sm"
-                    onClick={() => setUrgencyFilter('today')}
-                  >
-                    🔴 Hoje ({filteredFreights.filter(f => {
-                      const days = getDaysUntilPickup(getEffectiveDate(f));
-                      return days === 0;
-                    }).length})
-                  </Button>
-                  <Button
-                    variant={urgencyFilter === 'tomorrow' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setUrgencyFilter('tomorrow')}
-                    className={urgencyFilter === 'tomorrow' ? 'bg-orange-600 hover:bg-orange-700' : ''}
-                  >
-                    ⚠️ Amanhã ({filteredFreights.filter(f => {
-                      const days = getDaysUntilPickup(getEffectiveDate(f));
-                      return days === 1;
-                    }).length})
-                  </Button>
-                  <Button
-                    variant={urgencyFilter === 'near' ? 'secondary' : 'outline'}
-                    size="sm"
-                    onClick={() => setUrgencyFilter('near')}
-                  >
-                    📅 2-3 dias ({filteredFreights.filter(f => {
-                      const days = getDaysUntilPickup(getEffectiveDate(f));
-                      return days !== null && days >= 2 && days <= 3;
-                    }).length})
-                  </Button>
+                      variant={urgencyFilter === 'all' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setUrgencyFilter('all')}
+                      className="text-xs sm:text-sm"
+                    >
+                      Todos ({filteredFreights.length})
+                    </Button>
+                    <Button
+                      variant={urgencyFilter === 'today' ? 'destructive' : 'outline'}
+                      size="sm"
+                      onClick={() => setUrgencyFilter('today')}
+                      className="text-xs sm:text-sm"
+                    >
+                      🔴 Hoje ({filteredFreights.filter(f => {
+                        const days = getDaysUntilPickup(getEffectiveDate(f));
+                        return days === 0;
+                      }).length})
+                    </Button>
+                    <Button
+                      variant={urgencyFilter === 'tomorrow' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setUrgencyFilter('tomorrow')}
+                      className={`text-xs sm:text-sm ${urgencyFilter === 'tomorrow' ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
+                    >
+                      ⚠️ Amanhã ({filteredFreights.filter(f => {
+                        const days = getDaysUntilPickup(getEffectiveDate(f));
+                        return days === 1;
+                      }).length})
+                    </Button>
+                    <Button
+                      variant={urgencyFilter === 'near' ? 'secondary' : 'outline'}
+                      size="sm"
+                      onClick={() => setUrgencyFilter('near')}
+                      className="text-xs sm:text-sm"
+                    >
+                      📅 2-3 dias ({filteredFreights.filter(f => {
+                        const days = getDaysUntilPickup(getEffectiveDate(f));
+                        return days !== null && days >= 2 && days <= 3;
+                      }).length})
+                    </Button>
+                  </div>
                 </div>
               </div>
 

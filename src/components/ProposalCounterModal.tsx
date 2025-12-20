@@ -23,6 +23,7 @@ interface ProposalCounterModalProps {
   } | null;
   freightPrice: number;
   freightDistance?: number;
+  freightWeight?: number;
   onSuccess?: () => void;
 }
 
@@ -32,13 +33,15 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
   originalProposal,
   freightPrice,
   freightDistance = 0,
+  freightWeight = 0,
   onSuccess
 }) => {
   const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM'>('PER_KM');
+  const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM' | 'PER_TON'>('PER_KM');
   const [counterPrice, setCounterPrice] = useState('');
   const [counterPricePerKm, setCounterPricePerKm] = useState('');
+  const [counterPricePerTon, setCounterPricePerTon] = useState('');
   const [counterMessage, setCounterMessage] = useState('');
   
 
@@ -55,7 +58,12 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
       return;
     }
     
-    const priceValue = pricingType === 'FIXED' ? counterPrice : counterPricePerKm;
+    const priceValue = pricingType === 'FIXED' 
+      ? counterPrice 
+      : pricingType === 'PER_KM' 
+        ? counterPricePerKm 
+        : counterPricePerTon;
+        
     if (!priceValue) {
       toast.error('Informe um valor.');
       return;
@@ -67,7 +75,11 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
       return;
     }
 
-    const finalPrice = pricingType === 'FIXED' ? priceFloat : priceFloat * freightDistance;
+    const finalPrice = pricingType === 'FIXED' 
+      ? priceFloat 
+      : pricingType === 'PER_KM' 
+        ? priceFloat * freightDistance 
+        : priceFloat * freightWeight;
     
     // Validar se o preço final é válido
     if (finalPrice <= 0) {
@@ -142,7 +154,9 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
         const messageContent = pricingType === 'FIXED'
           ? `CONTRA-PROPOSTA: R$ ${finalPrice.toLocaleString('pt-BR')}\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${finalPrice.toLocaleString('pt-BR')}\n\n${counterMessage.trim() || 'Sem observações adicionais'}`
-          : `CONTRA-PROPOSTA POR KM: R$ ${priceFloat.toLocaleString('pt-BR')}/km\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)\n\n${counterMessage.trim() || 'Sem observações adicionais'}`;
+          : pricingType === 'PER_KM'
+            ? `CONTRA-PROPOSTA POR KM: R$ ${priceFloat.toLocaleString('pt-BR')}/km\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)\n\n${counterMessage.trim() || 'Sem observações adicionais'}`
+            : `CONTRA-PROPOSTA POR TONELADA: R$ ${priceFloat.toLocaleString('pt-BR')}/ton\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${priceFloat.toLocaleString('pt-BR')}/ton (Total: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightWeight} toneladas)\n\n${counterMessage.trim() || 'Sem observações adicionais'}`;
 
         const { error } = await supabase
           .from('freight_messages')
@@ -178,6 +192,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
     setPricingType('PER_KM');
     setCounterPrice('');
     setCounterPricePerKm('');
+    setCounterPricePerTon('');
     setCounterMessage('');
   };
 
@@ -226,20 +241,27 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             {/* Pricing Type */}
             <div className="space-y-1">
               <Label className="text-sm">Tipo de Cobrança</Label>
-              <Select value={pricingType} onValueChange={(value: 'FIXED' | 'PER_KM') => setPricingType(value)}>
+              <Select value={pricingType} onValueChange={(value: 'FIXED' | 'PER_KM' | 'PER_TON') => setPricingType(value)}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Selecione o tipo de cobrança" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
-                  <SelectItem value="FIXED">Valor Fixo</SelectItem>
+                  <SelectItem value="PER_KM">Por Quilômetro (R$/km)</SelectItem>
+                  <SelectItem value="FIXED">Valor Fixo (R$)</SelectItem>
+                  <SelectItem value="PER_TON">Por Tonelada (R$/ton)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Counter Offer */}
             <div className="space-y-1">
-              <Label className="text-sm">{pricingType === 'FIXED' ? 'Sua Contra-Proposta (R$) *' : 'Valor por KM (R$) *'}</Label>
+              <Label className="text-sm">
+                {pricingType === 'FIXED' 
+                  ? 'Sua Contra-Proposta (R$) *' 
+                  : pricingType === 'PER_KM' 
+                    ? 'Valor por KM (R$) *' 
+                    : 'Valor por Tonelada (R$) *'}
+              </Label>
               
               {pricingType === 'FIXED' ? (
                 <Input
@@ -252,7 +274,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                   required
                   className="h-9"
                 />
-              ) : (
+              ) : pricingType === 'PER_KM' ? (
                 <Input
                   type="number"
                   placeholder="Digite o valor por km"
@@ -263,17 +285,37 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                   required
                   className="h-9"
                 />
+              ) : (
+                <Input
+                  type="number"
+                  placeholder="Digite o valor por tonelada"
+                  value={counterPricePerTon}
+                  onChange={(e) => setCounterPricePerTon(e.target.value)}
+                  step="0.01"
+                  min="0.01"
+                  required
+                  className="h-9"
+                />
               )}
 
               <div className="text-xs text-muted-foreground">
                 {pricingType === 'FIXED' ? (
                   `Sugestão: Valor entre R$ ${freightPrice.toLocaleString()} e R$ ${originalProposal.proposed_price.toLocaleString()}`
-                ) : (
+                ) : pricingType === 'PER_KM' ? (
                   <>
                     Distância do frete: {freightDistance} km
                     {counterPricePerKm && (
-                      <div className="mt-1 font-medium">
+                      <div className="mt-1 font-medium text-primary">
                         Total calculado: R$ {(parseFloat(counterPricePerKm) * freightDistance).toLocaleString()}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    Peso do frete: {freightWeight} toneladas
+                    {counterPricePerTon && (
+                      <div className="mt-1 font-medium text-primary">
+                        Total calculado: R$ {(parseFloat(counterPricePerTon) * freightWeight).toLocaleString()}
                       </div>
                     )}
                   </>
@@ -295,7 +337,8 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
             {/* Price Comparison */}
             {((pricingType === 'FIXED' && counterPrice && !isNaN(parseFloat(counterPrice))) || 
-              (pricingType === 'PER_KM' && counterPricePerKm && !isNaN(parseFloat(counterPricePerKm)))) && (
+              (pricingType === 'PER_KM' && counterPricePerKm && !isNaN(parseFloat(counterPricePerKm))) ||
+              (pricingType === 'PER_TON' && counterPricePerTon && !isNaN(parseFloat(counterPricePerTon)))) && (
               <div className="p-2 bg-primary/5 rounded-lg border border-primary/20">
                 <h4 className="font-semibold mb-1 text-sm">Comparação de Valores</h4>
                 <div className="space-y-1 text-xs">
@@ -312,7 +355,9 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                     <span>
                       {pricingType === 'FIXED' 
                         ? `R$ ${parseFloat(counterPrice).toLocaleString()}`
-                        : `R$ ${parseFloat(counterPricePerKm).toLocaleString()}/km (Total: R$ ${(parseFloat(counterPricePerKm) * freightDistance).toLocaleString()})`
+                        : pricingType === 'PER_KM'
+                          ? `R$ ${parseFloat(counterPricePerKm).toLocaleString()}/km (Total: R$ ${(parseFloat(counterPricePerKm) * freightDistance).toLocaleString()})`
+                          : `R$ ${parseFloat(counterPricePerTon).toLocaleString()}/ton (Total: R$ ${(parseFloat(counterPricePerTon) * freightWeight).toLocaleString()})`
                       }
                     </span>
                   </div>
@@ -333,7 +378,9 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
               loading || 
               (pricingType === 'FIXED' 
                 ? !counterPrice 
-                : !counterPricePerKm || !freightDistance || freightDistance <= 0)
+                : pricingType === 'PER_KM'
+                  ? !counterPricePerKm || !freightDistance || freightDistance <= 0
+                  : !counterPricePerTon || !freightWeight || freightWeight <= 0)
             } 
             className="gradient-primary"
             size="sm"
