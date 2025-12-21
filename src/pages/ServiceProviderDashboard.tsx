@@ -81,9 +81,12 @@ const ServiceProviderDashboard = () => {
       />
       
       <div className="provider-theme">
-        <div className="container mx-auto p-4 space-y-4">
-          {/* Botão Mural de Avisos */}
-          <div className="mb-6">
+        {/* Dashboard Principal */}
+        <ServiceDashboard />
+        
+        {/* Mural de Avisos - Posicionado APÓS métricas (Problema 10) */}
+        <div className="container mx-auto px-4 pb-4">
+          <div className="mt-6">
             <Button
               variant="outline"
               onClick={() => {
@@ -104,8 +107,6 @@ const ServiceProviderDashboard = () => {
               ignoreDismissals={manualOpen}
             />
           </div>
-
-          <ServiceDashboard />
         </div>
       </div>
     </div>

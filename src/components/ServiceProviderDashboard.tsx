@@ -1392,15 +1392,66 @@ export const ServiceProviderDashboard: React.FC = () => {
                         </Badge>
                       </div>
                       
-                       <div className="space-y-2 mb-3">
-                         <p className="text-sm text-muted-foreground">
-                           <strong>Problema:</strong> {request.problem_description}
-                         </p>
-                         <p className="text-sm text-muted-foreground">
-                           <MapPin className="inline h-3 w-3 mr-1" />
-                           {getDisplayLocation(request)}
-                         </p>
-                         {/* DADOS DE CONTATO - Apenas para solicitações aceitas pelo prestador */}
+                       {/* Problema 8: Card organizado com todas as informações */}
+                       <div className="space-y-3 mb-4">
+                         {/* Descrição do problema */}
+                         <div className="bg-muted/50 rounded-lg p-3">
+                           <p className="text-sm text-muted-foreground">
+                             <strong className="text-foreground">Problema:</strong> {request.problem_description}
+                           </p>
+                         </div>
+                         
+                         {/* Grid de informações organizadas */}
+                         <div className="grid grid-cols-2 gap-3">
+                           {/* Localização */}
+                           <div className="space-y-1">
+                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Localização</p>
+                             <p className="text-sm flex items-start gap-1">
+                               <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
+                               <span>{getDisplayLocation(request)}</span>
+                             </p>
+                             {request.location_address && request.location_address !== getDisplayLocation(request) && (
+                               <p className="text-xs text-muted-foreground pl-4">
+                                 {request.location_address}
+                               </p>
+                             )}
+                           </div>
+                           
+                           {/* Data/Hora */}
+                           <div className="space-y-1">
+                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Data/Hora</p>
+                             <p className="text-sm flex items-center gap-1">
+                               <Calendar className="h-3.5 w-3.5 text-primary" />
+                               {request.accepted_at 
+                                 ? new Date(request.accepted_at).toLocaleDateString('pt-BR')
+                                 : new Date(request.created_at).toLocaleDateString('pt-BR')}
+                             </p>
+                             <p className="text-xs text-muted-foreground pl-4">
+                               {request.accepted_at 
+                                 ? new Date(request.accepted_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                                 : new Date(request.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                             </p>
+                           </div>
+                         </div>
+                         
+                         {/* Valor e Status de Pagamento */}
+                         <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg border border-green-200/50">
+                           <div>
+                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Valor do Serviço</p>
+                             <p className="text-lg font-bold text-green-600">
+                               <DollarSign className="inline h-4 w-4" />
+                               {request.estimated_price 
+                                 ? request.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+                                 : 'A combinar'}
+                             </p>
+                           </div>
+                           <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                             <Clock className="h-3 w-3 mr-1" />
+                             Aguardando
+                           </Badge>
+                         </div>
+                         
+                         {/* Contato do Cliente */}
                          {request.provider_id && (request.status === 'ACCEPTED' || request.status === 'IN_PROGRESS') && (
                            <ContactInfoCard
                              requesterName={request.profiles?.full_name || request.contact_name}
@@ -1408,11 +1459,6 @@ export const ServiceProviderDashboard: React.FC = () => {
                              requesterPhone={request.profiles?.phone}
                              showWhatsApp={true}
                            />
-                         )}
-                         {request.estimated_price && (
-                           <p className="text-sm font-medium text-green-600">
-                             Valor: R$ {request.estimated_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                           </p>
                          )}
                        </div>
                       

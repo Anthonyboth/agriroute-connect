@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { StarRating } from '@/components/StarRating';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, User, MapPin, Phone, Mail, Calendar, Award, Trash2 } from 'lucide-react';
+import { Camera, User, MapPin, Phone, Mail, Calendar, Award, Trash2, Star } from 'lucide-react';
 import { ProfilePhotoUpload } from '@/components/ProfilePhotoUpload';
 import { StructuredAddressForm } from '@/components/StructuredAddressForm';
 import { formatAddress, Address } from '@/lib/address-utils';
@@ -302,39 +302,90 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className="flex flex-col items-center gap-2">
-              <Avatar className="h-12 w-12">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+        {/* Problema 4: Header estilo Instagram com capa */}
+        <div className="relative">
+          {/* Capa/Banner */}
+          <div className="h-32 bg-gradient-to-r from-primary via-accent to-warning rounded-t-lg" />
+          
+          {/* Foto de perfil circular grande */}
+          <div className="absolute -bottom-14 left-6 flex items-end gap-4">
+            <div className="relative">
+              <Avatar className="h-28 w-28 border-4 border-background shadow-lg">
                 <AvatarImage key={currentPhotoUrl} src={currentPhotoUrl || user?.profile_photo_url || undefined} />
-                <AvatarFallback className="gradient-primary text-primary-foreground">
+                <AvatarFallback className="gradient-primary text-primary-foreground text-2xl font-bold">
                   {getUserInitials(user?.full_name)}
                 </AvatarFallback>
               </Avatar>
               {editMode && (
-                <ProfilePhotoUpload
-                  currentPhotoUrl={currentPhotoUrl}
-                  onUploadComplete={handlePhotoUploadComplete}
-                  userName={user?.full_name || ''}
-                  size="sm"
-                />
+                <div className="absolute -bottom-1 -right-1">
+                  <ProfilePhotoUpload
+                    currentPhotoUrl={currentPhotoUrl}
+                    onUploadComplete={handlePhotoUploadComplete}
+                    userName={user?.full_name || ''}
+                    size="sm"
+                  />
+                </div>
               )}
             </div>
+          </div>
+          
+          {/* Botão de edição no canto superior direito */}
+          <div className="absolute top-3 right-3">
+            <Button
+              variant={editMode ? "destructive" : "secondary"}
+              size="sm"
+              onClick={() => setEditMode(!editMode)}
+              className="shadow-lg"
+            >
+              {editMode ? 'Cancelar' : 'Editar Perfil'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Info do usuário e stats estilo rede social */}
+        <div className="pt-16 px-6 pb-4">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold">{user?.full_name}</h2>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">
+              <p className="text-sm text-muted-foreground">{user?.email || 'Email não informado'}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant="secondary" className="text-xs">
                   {getRoleBadge(user?.role)}
                 </Badge>
-                <Badge className={getStatusColor(user?.status)}>
+                <Badge className={`text-xs ${getStatusColor(user?.status)}`}>
                   {getStatusText(user?.status)}
                 </Badge>
               </div>
             </div>
-          </DialogTitle>
-          <DialogDescription>
-            Visualize e edite as informações do seu perfil
+            
+            {/* Stats estilo Instagram */}
+            <div className="flex gap-6 md:gap-8">
+              <div className="text-center">
+                <p className="text-xl font-bold text-foreground">{user?.total_ratings || 0}</p>
+                <p className="text-xs text-muted-foreground">Avaliações</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-bold text-foreground flex items-center justify-center gap-1">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  {user?.rating ? user.rating.toFixed(1) : '0.0'}
+                </p>
+                <p className="text-xs text-muted-foreground">Nota Média</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-bold text-foreground">
+                  {user?.created_at ? new Date(user.created_at).getFullYear() : 'N/A'}
+                </p>
+                <p className="text-xs text-muted-foreground">Membro desde</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogHeader className="px-6 pb-2 border-t pt-4">
+          <DialogTitle className="text-base font-semibold">Informações do Perfil</DialogTitle>
+          <DialogDescription className="text-sm">
+            Visualize e edite suas informações pessoais
           </DialogDescription>
         </DialogHeader>
 
