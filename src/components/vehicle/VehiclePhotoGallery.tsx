@@ -53,7 +53,7 @@ export const VehiclePhotoGallery: React.FC<VehiclePhotoGalleryProps> = ({
 
     setIsUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
       const fileName = `${vehicleId}/${Date.now()}_${selectedPhotoType}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
@@ -67,11 +67,36 @@ export const VehiclePhotoGallery: React.FC<VehiclePhotoGalleryProps> = ({
         .getPublicUrl(fileName);
 
       await addPhoto.mutateAsync({ photoUrl: publicUrl, photoType: selectedPhotoType });
+      toast.success('Foto enviada com sucesso!');
       setShowUploadModal(false);
       setSelectedPhotoType('geral');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro no upload:', error);
-      toast.error('Erro ao enviar foto');
+      
+      // Problema 2: Mensagens de erro específicas
+      let errorMessage = 'Erro ao enviar foto';
+      
+      if (error?.message?.includes('Payload too large') || error?.statusCode === 413) {
+        errorMessage = 'Arquivo muito grande. Reduza o tamanho da imagem (máx. 10MB).';
+      } else if (error?.message?.includes('Invalid file type') || error?.message?.includes('mime')) {
+        errorMessage = 'Formato não suportado. Use JPG, PNG ou WebP.';
+      } else if (error?.message?.includes('network') || error?.name === 'NetworkError') {
+        errorMessage = 'Sem conexão com internet. Verifique sua rede e tente novamente.';
+      } else if (error?.statusCode === 401 || error?.message?.includes('auth')) {
+        errorMessage = 'Sessão expirada. Faça login novamente.';
+      } else if (error?.statusCode === 500) {
+        errorMessage = 'Erro no servidor. Tente novamente em alguns minutos.';
+      } else if (error?.message) {
+        errorMessage = `Erro: ${error.message}`;
+      }
+      
+      toast.error(errorMessage, {
+        description: 'Clique para tentar novamente',
+        action: {
+          label: 'Tentar novamente',
+          onClick: () => fileInputRef.current?.click()
+        }
+      });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
