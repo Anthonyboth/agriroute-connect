@@ -26,7 +26,9 @@
     
     <!-- Early resource hints for critical assets - reduces request chain latency -->
     <link rel="preload" as="image" href="/hero-truck-night-moon.webp" 
-          fetchpriority="high" type="image/webp">
+          fetchpriority="high" type="image/webp"
+          imagesrcset="/hero-truck-night-moon.webp 1920w"
+          imagesizes="100vw">
     
     <!-- Preload critical CSS to reduce chain depth -->
     <link rel="preload" as="style" href="/src/index.css">
