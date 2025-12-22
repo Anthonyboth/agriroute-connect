@@ -34,8 +34,8 @@ export function CompanyFinancialDashboard({ companyId, companyName = 'Empresa' }
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  // Query real data from financial_transactions table
-  const { data: transactions = [], isLoading, error } = useQuery({
+  // Query real data from financial_transactions table with timeout
+  const { data: transactions = [], isLoading, error, isError } = useQuery({
     queryKey: ['financial-transactions', companyId, period],
     queryFn: async () => {
       const now = new Date();
@@ -61,12 +61,16 @@ export function CompanyFinancialDashboard({ companyId, companyName = 'Empresa' }
         .select('*')
         .eq('company_id', companyId)
         .gte('created_at', startDate.toISOString())
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
       return data as Transaction[];
     },
     enabled: !!companyId,
+    staleTime: 30000, // Cache por 30 segundos
+    refetchInterval: 60000, // Polling a cada 60s em vez de WebSocket
+    retry: 2,
   });
 
   // Calculate summary
@@ -201,7 +205,31 @@ export function CompanyFinancialDashboard({ companyId, companyName = 'Empresa' }
   };
 
   if (isLoading) {
-    return <div className="text-center py-8">Carregando dados financeiros...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Carregando dados financeiros...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <Card className="border-destructive/50">
+          <CardContent className="py-8 text-center">
+            <p className="text-destructive mb-4">Erro ao carregar dados financeiros</p>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Tentar novamente
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

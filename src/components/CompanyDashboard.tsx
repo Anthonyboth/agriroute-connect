@@ -10,7 +10,7 @@ import { ANTTValidation } from './ANTTValidation';
 import { SafeListWrapper } from './SafeListWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Truck, MapPin, RefreshCw, BarChart, Package } from 'lucide-react';
+import { Truck, MapPin, RefreshCw, BarChart, Package, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { isInProgressFreight, isScheduledFreight } from '@/utils/freightDateHelpers';
@@ -346,12 +346,54 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
         </CardContent>
       </Card>
 
-      {/* Motoristas Ativos */}
+      {/* Motoristas Afiliados */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Truck className="h-5 w-5 text-purple-600" />
-            Motoristas Ativos
+            <Users className="h-5 w-5 text-purple-600" />
+            Motoristas Afiliados ({drivers?.length || 0})
+          </CardTitle>
+          <CardDescription>
+            Todos os motoristas vinculados à sua transportadora
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!drivers || drivers.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              Nenhum motorista afiliado. Convide motoristas na aba "Motoristas".
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {drivers.map((driver: any) => {
+                const isActive = activeDriversList.some(d => d.id === driver.driver_profile_id);
+                return (
+                  <div key={driver.id} className="flex items-center justify-between p-4 border rounded-lg bg-card hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${isActive ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
+                        {driver.driver?.full_name?.charAt(0) || '?'}
+                      </div>
+                      <div>
+                        <p className="font-medium">{driver.driver?.full_name || 'Motorista'}</p>
+                        <p className="text-xs text-muted-foreground">{driver.driver?.contact_phone || 'Sem telefone'}</p>
+                      </div>
+                    </div>
+                    <Badge variant={isActive ? 'default' : 'secondary'}>
+                      {isActive ? 'Em Frete' : 'Disponível'}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Motoristas em Frete (antigo "Motoristas Ativos") */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Truck className="h-5 w-5 text-blue-600" />
+            Motoristas em Frete
           </CardTitle>
           <CardDescription>
             Motoristas com fretes em andamento
@@ -360,7 +402,7 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
         <CardContent>
           {activeDriversList.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              Nenhum motorista ativo no momento
+              Nenhum motorista com frete em andamento
             </p>
           ) : (
             <div className="space-y-3">
@@ -374,7 +416,7 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
                         <p className="text-xs text-muted-foreground">{driver.phone}</p>
                       )}
                     </div>
-                    <Badge variant="secondary">
+                    <Badge variant="default" className="bg-green-600">
                       {driver.activeFreights} {driver.activeFreights === 1 ? 'frete' : 'fretes'}
                     </Badge>
                   </div>

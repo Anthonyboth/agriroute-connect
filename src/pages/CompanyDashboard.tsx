@@ -87,7 +87,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
   },
   { value: 'marketplace', label: FRETES_IA_LABEL, shortLabel: FRETES_IA_LABEL, icon: Brain, badge: undefined },
   { value: 'drivers', label: 'Motoristas', shortLabel: 'Motoristas', icon: Users, badge: undefined },
-  { value: 'performance', label: 'Performance', shortLabel: 'Performance', icon: TrendingUp, badge: undefined },
+  
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck, badge: undefined },
   { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínculos', icon: Link2, badge: undefined },
   { value: 'freights', label: 'Fretes', shortLabel: 'Fretes', icon: Package, badge: undefined },
@@ -540,57 +540,71 @@ const CompanyDashboard = () => {
           className="absolute inset-0 bg-cover bg-center opacity-30 animate-fade-in"
           style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
         />
-        {/* Overlay escuro para melhorar legibilidade */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background/70" />
+        {/* Overlay verde para melhor contraste - seguindo padrão do DriverDashboard */}
+        <div className="absolute inset-0 bg-primary/80" />
         <div className="container relative z-10 mx-auto px-4">
-          <div className="max-w-5xl mx-auto text-center space-y-4">
-            <Badge variant="default" className="mb-1">
-              <Building2 className="h-3 w-3 mr-1" />
-              Transportadora
-            </Badge>
+          <div className="max-w-5xl mx-auto space-y-4">
+            {/* Hero layout: Logo e título à esquerda, info da empresa à direita */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="text-center md:text-left">
+                <Badge variant="secondary" className="mb-2 bg-background/20 text-primary-foreground border-primary-foreground/30">
+                  <Building2 className="h-3 w-3 mr-1" />
+                  Transportadora
+                </Badge>
+                
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-primary-foreground">
+                  Painel de Gerenciamento
+                </h1>
+              </div>
+              
+              {/* Info da empresa no canto direito */}
+              <div className="text-center md:text-right bg-background/10 backdrop-blur-sm rounded-lg p-4 border border-primary-foreground/20">
+                <h2 className="text-lg font-bold text-primary-foreground">
+                  {company?.company_name || 'Transportadora'}
+                </h2>
+                <p className="text-sm text-primary-foreground/80">
+                  CNPJ: {company?.company_cnpj || 'Não informado'}
+                </p>
+                <Badge variant={company?.status === 'APPROVED' ? 'default' : 'secondary'} className="mt-2 bg-background/20 text-primary-foreground">
+                  {company?.status === 'APPROVED' ? '✓ Aprovada' : 'Pendente'}
+                </Badge>
+              </div>
+            </div>
             
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-shadow-lg">
-              Painel de Gerenciamento
-            </h1>
-            
-            <p className="text-base text-muted-foreground max-w-2xl mx-auto">
-              {company?.company_name || 'Transportadora'}
-            </p>
-            
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex flex-wrap justify-center gap-2 mt-4">
               <Button 
                 onClick={() => setActiveTab('marketplace')}
-                className="gradient-primary text-primary-foreground font-semibold rounded-full px-6 py-2.5 w-full sm:w-auto shadow-glow hover:scale-105 transition-bounce"
+                className="bg-background text-primary hover:bg-background/90 font-semibold rounded-full px-6 py-2.5 w-full sm:w-auto shadow-lg hover:scale-105 transition-all"
               >
                 <Brain className="mr-2 h-5 w-5" />
                 {FRETES_IA_LABEL}
               </Button>
               
               <Button 
-                variant="default"
+                variant="outline"
                 size="sm"
                 onClick={() => setActiveTab('overview')}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-transparent border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
               >
                 <Building2 className="mr-1 h-4 w-4" />
                 Visão Geral
               </Button>
               
               <Button 
-                variant="default"
+                variant="outline"
                 size="sm"
                 onClick={() => setActiveTab('fleet')}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-transparent border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
               >
                 <Truck className="mr-1 h-4 w-4" />
                 Frota
               </Button>
               
               <Button 
-                variant="default"
+                variant="outline"
                 size="sm"
                 onClick={() => setServicesModalOpen(true)}
-                className="bg-background text-primary hover:bg-background/90 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
+                className="bg-transparent border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 font-medium rounded-full px-4 py-2 w-full sm:w-auto"
               >
                 <Wrench className="mr-1 h-4 w-4" />
                 Solicitar Serviços
@@ -670,11 +684,6 @@ const CompanyDashboard = () => {
             <CompanyDriverManager />
           </TabsContent>
 
-          <TabsContent value="performance" className="mt-6">
-            <Suspense fallback={<ChartLoader />}>
-              <CompanyDriverPerformanceDashboard companyId={company.id} />
-            </Suspense>
-          </TabsContent>
 
           <TabsContent value="fleet" className="mt-6">
             <div className="space-y-6">
