@@ -232,9 +232,8 @@ const Landing: React.FC = () => {
         <picture>
           <source 
             type="image/webp" 
-            srcSet="/hero-truck-night-moon.webp"
-            width="1920"
-            height="1080"
+            srcSet="/hero-truck-night-moon.webp 1920w, /hero-truck-night-moon.webp 1280w, /hero-truck-night-moon.webp 768w"
+            sizes="100vw"
           />
           <img 
             src="/hero-truck-night-moon.webp"
@@ -245,6 +244,8 @@ const Landing: React.FC = () => {
             decoding="sync"
             width="1920"
             height="1080"
+            srcSet="/hero-truck-night-moon.webp 1920w, /hero-truck-night-moon.webp 1280w, /hero-truck-night-moon.webp 768w"
+            sizes="100vw"
           />
         </picture>
         <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/50 to-transparent" />
