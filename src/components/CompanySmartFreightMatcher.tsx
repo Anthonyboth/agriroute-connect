@@ -60,17 +60,17 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     try {
       console.log('🔍 [FRETES I.A] Buscando fretes para company:', company.id);
       
-      // Query simplificada: apenas colunas de freights, sem joins com profiles
+      // Query simplificada: buscar fretes OPEN disponíveis para transportadoras
       const { data: freightsData, error: freightsError } = await supabase
         .from('freights')
         .select(`
           id, cargo_type, weight, origin_address, destination_address, origin_city, origin_state,
           destination_city, destination_state, pickup_date, delivery_date, price, urgency, status,
-          distance_km, minimum_antt_price, service_type, required_trucks, accepted_trucks, created_at
+          distance_km, minimum_antt_price, service_type, required_trucks, accepted_trucks, created_at, company_id
         `)
-        .is('company_id', null)
-        .in('status', ['OPEN', 'ACCEPTED', 'IN_NEGOTIATION'])
-        .order('created_at', { ascending: false });
+        .eq('status', 'OPEN')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (freightsError) throw freightsError;
 
@@ -155,6 +155,13 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       setLoading(false);
     }
   }, [company?.id, drivers?.length]);
+
+  // Carregar fretes automaticamente ao montar
+  React.useEffect(() => {
+    if (company?.id) {
+      fetchCompatibleFreights();
+    }
+  }, [company?.id, fetchCompatibleFreights]);
 
   const handleAssignFreight = async (freightId: string, driverId: string) => {
     try {

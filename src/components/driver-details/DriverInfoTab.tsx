@@ -28,10 +28,18 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
   const cnhInputRef = useRef<HTMLInputElement>(null);
   const selfieInputRef = useRef<HTMLInputElement>(null);
 
-  // Extrair dados do motorista corretamente
-  const driver = driverData?.driver || driverData;
+  // Extrair dados do motorista - suporte para diferentes estruturas de dados
+  const driver = driverData?.driver || driverData?.driver_profile || driverData;
+  const affiliationData = driverData?.driver ? driverData : null;
 
-  if (!driver) {
+  console.log('📋 [DriverInfoTab] Dados recebidos:', { 
+    hasDriver: !!driver, 
+    driverId: driver?.id,
+    driverName: driver?.full_name,
+    affiliationStatus: affiliationData?.status
+  });
+
+  if (!driver || !driver.id) {
     return (
       <Card>
         <CardContent className="py-8">
@@ -39,7 +47,7 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
             <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
             <h3 className="text-lg font-semibold mb-2">Motorista não encontrado</h3>
             <p className="text-sm text-muted-foreground">
-              Os dados deste motorista não estão disponíveis.
+              Os dados deste motorista não estão disponíveis. Tente recarregar a página.
             </p>
           </div>
         </CardContent>
@@ -200,11 +208,11 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
             {/* Informações Principais */}
             <div className="flex-1 space-y-3">
               <div className="flex items-start justify-between">
-                <div>
+              <div>
                   <h3 className="text-2xl font-bold">{driver.full_name || 'Nome não informado'}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={driverData?.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                      {driverData?.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <Badge variant={affiliationData?.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                      {affiliationData?.status === 'ACTIVE' ? 'Ativo' : affiliationData?.status === 'PENDING' ? 'Pendente' : 'Inativo'}
                     </Badge>
                     {driver.role && (
                       <Badge variant="outline">{driver.role}</Badge>

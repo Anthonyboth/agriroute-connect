@@ -116,18 +116,31 @@ export const VehicleAssignmentModal = ({
         toast.success('Vínculo atualizado com sucesso');
       } else {
         // MODO DE CRIAÇÃO
-        // Verificar se já existe vínculo ativo
-        const { data: existing } = await supabase
+        // Verificar se motorista já tem vínculo ativo com outro veículo
+        const { data: existingDriverAssignment } = await supabase
           .from('company_vehicle_assignments')
-          .select('id')
+          .select('id, vehicle_id')
           .eq('company_id', companyId)
           .eq('driver_profile_id', selectedDriver)
+          .is('removed_at', null)
+          .maybeSingle();
+
+        if (existingDriverAssignment) {
+          toast.error('Este motorista já possui um vínculo ativo com outro veículo. Remova o vínculo anterior primeiro.');
+          return;
+        }
+
+        // Verificar se veículo já está vinculado a outro motorista
+        const { data: existingVehicleAssignment } = await supabase
+          .from('company_vehicle_assignments')
+          .select('id, driver_profile_id')
+          .eq('company_id', companyId)
           .eq('vehicle_id', selectedVehicle)
           .is('removed_at', null)
           .maybeSingle();
 
-        if (existing) {
-          toast.error('Este vínculo já existe');
+        if (existingVehicleAssignment) {
+          toast.error('Este veículo já está vinculado a outro motorista. Remova o vínculo anterior primeiro.');
           return;
         }
 
