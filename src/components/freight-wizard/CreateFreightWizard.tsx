@@ -115,7 +115,16 @@ export function CreateFreightWizard({
     logWizardDebug('STEP_CHANGED', { currentStep, formData: { origin: formData.origin_city, destination: formData.destination_city } });
   }, [currentStep]);
 
-  const { hasDraft, lastSaved, savedStep, saveDraft, clearDraft, restoreDraft } = useFreightDraft(
+  const { 
+    hasDraft, 
+    showDraftPrompt,
+    lastSaved, 
+    savedStep, 
+    saveDraft, 
+    clearDraft, 
+    restoreDraft,
+    dismissDraftPrompt
+  } = useFreightDraft(
     userProfile?.id,
     !guestMode && isModalOpen
   );
@@ -479,8 +488,8 @@ export function CreateFreightWizard({
         />
       </div>
 
-      {/* PROBLEMA 9: Draft Alert melhorado - mostra em qualquer etapa se tiver rascunho de outra etapa */}
-      {!guestMode && hasDraft && !initialData && (
+      {/* Draft Alert: oferecer apenas se veio do storage (rascunho antigo) */}
+      {!guestMode && showDraftPrompt && hasDraft && !initialData && (
         <Alert className={`mx-4 mt-2 ${currentStep === 1 ? 'border-primary' : 'border-muted'}`}>
           <Info className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
@@ -496,10 +505,31 @@ export function CreateFreightWizard({
               </p>
             </div>
             <div className="flex gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={clearDraft}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  clearDraft();
+                  dismissDraftPrompt();
+                  toast.success('Rascunho descartado com sucesso');
+                }}
+              >
                 Descartar
               </Button>
-              <Button type="button" size="sm" variant="default" onClick={handleRestoreDraft}>
+              <Button
+                type="button"
+                size="sm"
+                variant="default"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleRestoreDraft();
+                  dismissDraftPrompt();
+                }}
+              >
                 <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
                 Restaurar {savedStep > 1 && `(Etapa ${savedStep})`}
               </Button>
