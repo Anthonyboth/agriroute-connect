@@ -74,10 +74,11 @@ async function compressImage(file: File, quality: number = 0.8): Promise<File> {
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              const compressedFile = new File([blob], file.name, {
+              // Create a new file from the blob
+              const compressedFile = new window.File([blob], file.name, {
                 type: 'image/jpeg',
                 lastModified: Date.now(),
-              });
+              }) as File;
               resolve(compressedFile);
             } else {
               resolve(file);
