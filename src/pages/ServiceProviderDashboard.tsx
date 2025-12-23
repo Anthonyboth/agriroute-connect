@@ -1,53 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ServiceProviderDashboard as ServiceDashboard } from '@/components/ServiceProviderDashboard';
 import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
-import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
-import { Button } from '@/components/ui/button';
 
 const ServiceProviderDashboard = () => {
   const { profile, signOut } = useAuth();
   const { unreadCount } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
-  const [isMuralOpen, setIsMuralOpen] = useState(false);
-  const [manualOpen, setManualOpen] = useState(false);
-
-  useEffect(() => {
-    const dismissedAt = localStorage.getItem('mural_dismissed_at');
-    const now = new Date();
-    let timeoutId: number | undefined;
-
-    if (dismissedAt) {
-      const dismissed = new Date(dismissedAt);
-      const nextShow = new Date(dismissed);
-      nextShow.setDate(nextShow.getDate() + 1);
-      nextShow.setHours(7, 0, 0, 0);
-
-      if (now < nextShow) {
-        setIsMuralOpen(false);
-        timeoutId = window.setTimeout(() => {
-          localStorage.removeItem('mural_dismissed_at');
-          setManualOpen(false);
-          setIsMuralOpen(true);
-        }, nextShow.getTime() - now.getTime());
-      } else {
-        localStorage.removeItem('mural_dismissed_at');
-        setManualOpen(false);
-        setIsMuralOpen(true);
-      }
-    } else {
-      setManualOpen(false);
-      setIsMuralOpen(true);
-    }
-
-    return () => {
-      if (timeoutId) window.clearTimeout(timeoutId);
-    };
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -81,33 +44,8 @@ const ServiceProviderDashboard = () => {
       />
       
       <div className="provider-theme">
-        {/* Dashboard Principal */}
+        {/* Dashboard Principal - Mural de Avisos já está incluído inline dentro do componente */}
         <ServiceDashboard />
-        
-        {/* Mural de Avisos - Posicionado APÓS métricas (Problema 10) */}
-        <div className="container mx-auto px-4 pb-4">
-          <div className="mt-6">
-            <Button
-              variant="outline"
-              onClick={() => {
-                const newState = !isMuralOpen;
-                setIsMuralOpen(newState);
-                setManualOpen(newState);
-              }}
-              className="mb-3 flex items-center gap-2"
-            >
-              <span>📢</span> Mural de Avisos
-            </Button>
-            <SystemAnnouncementsBoard
-              isOpen={isMuralOpen}
-              onClose={() => {
-                setIsMuralOpen(false);
-                setManualOpen(false);
-              }}
-              ignoreDismissals={manualOpen}
-            />
-          </div>
-        </div>
       </div>
     </div>
   );
