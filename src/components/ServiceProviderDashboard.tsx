@@ -70,7 +70,9 @@ import { UserCityManager } from '@/components/UserCityManager';
 import { ServiceHistory } from '@/components/ServiceHistory';
 import { ServiceProviderReportsDashboard } from '@/components/ServiceProviderReportsDashboard';
 import { PendingServiceRatingsPanel } from '@/components/PendingServiceRatingsPanel';
+import { RatingsHistoryPanel } from '@/components/RatingsHistoryPanel';
 import { ServicesModal } from '@/components/ServicesModal';
+import { SystemAnnouncementsBoardInline } from '@/components/SystemAnnouncementsBoardInline';
 import { normalizeServiceType } from '@/lib/pt-br-validator';
 
 interface ServiceRequest {
@@ -1256,6 +1258,9 @@ export const ServiceProviderDashboard: React.FC = () => {
                 </p>
               )}
             </div>
+
+            {/* PROBLEMA 5: Mural de Avisos reposicionado - APÓS busca, ANTES dos cards */}
+            <SystemAnnouncementsBoardInline />
             
             {filteredRequests.length > 0 ? (
               <div className="space-y-4">
@@ -1571,8 +1576,12 @@ export const ServiceProviderDashboard: React.FC = () => {
             <ServiceProviderPayouts providerId={getProviderProfileId() || ''} />
           </TabsContent>
 
-          <TabsContent value="ratings" className="space-y-4">
+          <TabsContent value="ratings" className="space-y-6">
+            {/* Avaliações Pendentes (para fazer) */}
             <PendingServiceRatingsPanel />
+            
+            {/* Histórico Completo de Avaliações Recebidas */}
+            <RatingsHistoryPanel />
           </TabsContent>
 
           <TabsContent value="cities" className="space-y-4">
