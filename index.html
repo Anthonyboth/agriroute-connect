@@ -30,11 +30,9 @@
           imagesrcset="/hero-truck-night-moon.webp 1920w"
           imagesizes="100vw">
     
-    <!-- Preload critical CSS to reduce chain depth -->
-    <link rel="preload" as="style" href="/src/index.css">
     
-    <!-- modulepreload for faster JS module loading - Vite replaces these at build -->
-    <link rel="modulepreload" href="/src/main.tsx">
+    <!-- Note: Avoid preloading dev-only /src/* assets in production to prevent MIME-type console errors. -->
+
     
     <!-- Preconnect to critical origins - reduces DNS/TLS latency -->
     <link rel="preconnect" href="https://shnvtxejjecbnztdbbbl.supabase.co" crossorigin>

@@ -27,20 +27,38 @@ export const GlobalAnnouncementBar = () => {
 
   useEffect(() => {
     fetchActiveAnnouncement();
-    
-    // Subscrição para atualizações em tempo real
-    const channel = supabase
-      .channel('global-announcements')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'system_announcements' },
-        () => {
-          fetchActiveAnnouncement();
-        }
-      )
-      .subscribe();
+
+    const isPublicPath = typeof window !== 'undefined' && (
+      window.location.pathname === '/' ||
+      window.location.pathname.startsWith('/auth') ||
+      ['/about', '/privacy', '/terms', '/cookies', '/plans', '/services', '/help', '/careers', '/status'].includes(window.location.pathname)
+    );
+
+    // On public pages, avoid Realtime subscriptions (WebSocket errors hurt Lighthouse) and use light polling instead.
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let pollId: number | null = null;
+
+    if (!isPublicPath) {
+      // Subscrição para atualizações em tempo real (somente em áreas autenticadas/operacionais)
+      channel = supabase
+        .channel('global-announcements')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'system_announcements' },
+          () => {
+            fetchActiveAnnouncement();
+          }
+        )
+        .subscribe();
+    } else {
+      pollId = window.setInterval(() => {
+        fetchActiveAnnouncement();
+      }, 60_000);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
+      if (pollId) window.clearInterval(pollId);
     };
   }, []);
 
