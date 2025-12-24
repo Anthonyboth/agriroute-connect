@@ -86,16 +86,15 @@ const AddressForm: React.FC<AddressFormProps> = ({
         <div className="space-y-1">
           <Label htmlFor={`${prefix}-city`} className="text-xs">Cidade *</Label>
           <CitySelector
-            selectedCityId={address.city_id}
-            onCityChange={(cityId, cityName, state, lat, lng) => {
-              onUpdate(`${prefix}.city_id`, cityId);
-              onUpdate(`${prefix}.city`, cityName);
-              onUpdate(`${prefix}.state`, state);
-              onUpdate(`${prefix}.lat`, lat);
-              onUpdate(`${prefix}.lng`, lng);
+            value={address.city ? { city: address.city, state: address.state, id: address.city_id, lat: address.lat, lng: address.lng } : undefined}
+            onChange={(cityData) => {
+              onUpdate(`${prefix}.city_id`, cityData.id);
+              onUpdate(`${prefix}.city`, cityData.city);
+              onUpdate(`${prefix}.state`, cityData.state);
+              onUpdate(`${prefix}.lat`, cityData.lat);
+              onUpdate(`${prefix}.lng`, cityData.lng);
             }}
             placeholder="Digite a cidade"
-            defaultState={address.state}
           />
         </div>
 
