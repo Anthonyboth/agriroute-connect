@@ -229,25 +229,21 @@ const Landing: React.FC = () => {
 
       {/* Hero Section - Fixed height to prevent CLS */}
       <section className="hero-section relative h-screen w-full flex items-center justify-center overflow-hidden">
-        <picture>
-          <source 
-            type="image/webp" 
-            srcSet="/hero-truck-night-moon.webp 1920w, /hero-truck-night-moon.webp 1280w, /hero-truck-night-moon.webp 768w"
-            sizes="100vw"
-          />
-          <img 
-            src="/hero-truck-night-moon.webp"
-            alt="Logística agrícola moderna - caminhão transportando carga agrícola"
-            className="absolute inset-0 w-full h-full object-cover"
-            loading="eager"
-            fetchPriority="high"
-            decoding="sync"
-            width="1920"
-            height="1080"
-            srcSet="/hero-truck-night-moon.webp 1920w, /hero-truck-night-moon.webp 1280w, /hero-truck-night-moon.webp 768w"
-            sizes="100vw"
-          />
-        </picture>
+        {/* Hero background with inline placeholder for faster LCP */}
+        <div 
+          className="absolute inset-0 bg-[#1a1a2e]"
+          aria-hidden="true"
+        />
+        <img 
+          src="/hero-truck-night-moon.webp"
+          alt="Logística agrícola moderna - caminhão transportando carga agrícola"
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+          width="1920"
+          height="1080"
+        />
         <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/50 to-transparent" />
         
         <div className="hero-content relative z-10 container mx-auto px-6 md:px-8 text-center max-w-5xl">
