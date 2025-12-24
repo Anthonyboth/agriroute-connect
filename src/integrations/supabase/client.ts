@@ -14,6 +14,7 @@ const isPublicPage = typeof window !== 'undefined' &&
     path => window.location.pathname === path || window.location.pathname.startsWith('/auth')
   );
 
+// Create client with realtime disabled on public pages to prevent WebSocket errors
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage, // Usar localStorage para manter sessão persistente
@@ -21,17 +22,15 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
-  realtime: isPublicPage ? {
-    // Disable realtime on public pages to prevent console errors
+  realtime: {
     params: {
-      eventsPerSecond: 0
-    }
-  } : {
-    params: {
-      eventsPerSecond: 10
+      eventsPerSecond: isPublicPage ? 0 : 10
     },
-    timeout: 30000,
-    heartbeatIntervalMs: 30000
+    // Disable automatic connection on public pages
+    ...(isPublicPage ? {} : {
+      timeout: 30000,
+      heartbeatIntervalMs: 30000
+    })
   },
   global: {
     headers: {
@@ -39,6 +38,12 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     }
   }
 });
+
+// Disable realtime channels on public pages to prevent WebSocket console errors
+if (isPublicPage && typeof window !== 'undefined') {
+  // Remove all channels to prevent WebSocket connection attempts
+  supabase.removeAllChannels();
+}
 
 /**
  * Função para notificar erros no Telegram
