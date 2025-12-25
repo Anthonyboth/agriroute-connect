@@ -16,6 +16,7 @@ export type PeriodPreset = '7d' | '30d' | '90d' | 'custom';
 export interface ChartDataPoint {
   name: string;
   value: number;
+  [key: string]: unknown;
 }
 
 export interface MonthlyDataPoint {
@@ -29,6 +30,7 @@ export interface RouteData {
   count: number;
   total_revenue?: number;
   total_value?: number;
+  [key: string]: unknown;
 }
 
 export interface DriverRankingData {
@@ -36,6 +38,7 @@ export interface DriverRankingData {
   trips: number;
   avg_rating: number;
   total_spent: number;
+  [key: string]: unknown;
 }
 
 export interface ProviderRankingData {
@@ -43,6 +46,7 @@ export interface ProviderRankingData {
   services: number;
   avg_rating: number;
   total_spent: number;
+  [key: string]: unknown;
 }
 
 // ==========================================
@@ -81,6 +85,7 @@ export interface ProducerSpendingByMonth {
   month: string;
   freight_spending: number;
   service_spending: number;
+  [key: string]: unknown;
 }
 
 export interface ProducerReportCharts {
