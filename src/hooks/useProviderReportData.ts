@@ -25,6 +25,7 @@ const DEFAULT_SUMMARY: ProviderReportSummary = {
     in_progress: 0,
     total_revenue: 0,
     avg_revenue: 0,
+    avg_price: 0,
   },
   ratings: {
     average: 0,
@@ -36,6 +37,7 @@ const DEFAULT_SUMMARY: ProviderReportSummary = {
     one_star: 0,
   },
   conversion_rate: 0,
+  cancellation_rate: 0,
   avg_service_time_hours: 0,
 };
 
@@ -43,8 +45,11 @@ const DEFAULT_CHARTS: ProviderReportCharts = {
   revenue_by_month: [],
   by_status: [],
   by_category: [],
+  by_service_type: [],
   ratings_trend: [],
+  ratings_distribution: [],
   by_day_of_week: [],
+  top_cities: [],
   emergency_vs_regular: { emergency: 0, regular: 0 },
 };
 

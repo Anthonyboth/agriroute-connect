@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw, DollarSign, Truck, MapPin, Star, Fuel, Clock } from 'lucide-react';
+import { AlertCircle, RefreshCw, DollarSign, Wrench, Star, TrendingUp, Percent, Clock } from 'lucide-react';
 import { subDays, endOfDay, startOfDay } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
-import { useDriverReportData } from '@/hooks/useDriverReportData';
+import { useProviderReportData } from '@/hooks/useProviderReportData';
 import { 
   ReportPeriodFilter, 
   ReportKPICards, 
@@ -16,20 +16,29 @@ import {
 } from '@/components/reports';
 import type { DateRange } from '@/types/reports';
 
-interface DriverReportsTabProps {
-  driverId?: string;
+interface ProviderReportsTabProps {
+  providerId?: string;
 }
 
-export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) => {
-  const { user } = useAuth();
-  const profileId = driverId || user?.id;
+export const ProviderReportsTab: React.FC<ProviderReportsTabProps> = ({ providerId }) => {
+  const { user, profile, profiles } = useAuth();
+  
+  // Encontrar ID do perfil de prestador
+  const getProviderProfileId = () => {
+    if (providerId) return providerId;
+    if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
+    const alt = (profiles || []).find((p: any) => p.role === 'PRESTADOR_SERVICOS');
+    return alt?.id as string | undefined;
+  };
+  
+  const profileId = getProviderProfileId();
   
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfDay(subDays(new Date(), 30)),
     to: endOfDay(new Date()),
   });
 
-  const { summary, charts, isLoading, isError, refetch } = useDriverReportData(
+  const { summary, charts, isLoading, isError, refetch } = useProviderReportData(
     profileId,
     dateRange
   );
@@ -41,24 +50,17 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
     return [
       {
         title: 'Receita Total',
-        value: summary.freights?.total_revenue || 0,
+        value: summary.services?.total_revenue || 0,
         format: 'currency',
-        subtitle: `${summary.freights?.completed || 0} fretes concluídos`,
+        subtitle: `${summary.services?.completed || 0} serviços concluídos`,
         icon: DollarSign,
       },
       {
-        title: 'Total de Fretes',
-        value: summary.freights?.total || 0,
+        title: 'Total de Serviços',
+        value: summary.services?.total || 0,
         format: 'number',
-        subtitle: `${summary.freights?.in_transit || 0} em trânsito`,
-        icon: Truck,
-      },
-      {
-        title: 'Distância Percorrida',
-        value: summary.distance?.total_km || 0,
-        format: 'distance',
-        subtitle: `Média ${(summary.distance?.avg_per_freight || 0).toFixed(0)} km/frete`,
-        icon: MapPin,
+        subtitle: `${summary.services?.pending || 0} pendentes`,
+        icon: Wrench,
       },
       {
         title: 'Avaliação Média',
@@ -68,17 +70,22 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
         icon: Star,
       },
       {
-        title: 'Total de Despesas',
-        value: summary.expenses?.total || 0,
-        format: 'currency',
-        subtitle: `Combustível: ${formatBRL(summary.expenses?.fuel || 0)}`,
-        icon: Fuel,
+        title: 'Taxa de Conversão',
+        value: summary.conversion_rate || 0,
+        format: 'percent',
+        icon: TrendingUp,
+      },
+      {
+        title: 'Taxa de Cancelamento',
+        value: summary.cancellation_rate || 0,
+        format: 'percent',
+        icon: Percent,
       },
       {
         title: 'Receita Média',
-        value: summary.freights?.avg_revenue || 0,
+        value: summary.services?.avg_price || 0,
         format: 'currency',
-        subtitle: 'por frete',
+        subtitle: 'por serviço',
         icon: Clock,
       },
     ];
@@ -98,23 +105,24 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
         valueFormatter: formatBRL,
       },
       {
-        title: 'Fretes por Status',
+        title: 'Serviços por Status',
         type: 'pie',
         data: charts.by_status || [],
         dataKeys: [{ key: 'value', label: 'Quantidade' }],
       },
       {
-        title: 'Tipos de Carga',
+        title: 'Tipos de Serviço',
         type: 'bar',
-        data: (charts.by_cargo_type || []).slice(0, 5),
+        data: (charts.by_service_type || []).slice(0, 5),
         dataKeys: [{ key: 'value', label: 'Quantidade' }],
         xAxisKey: 'name',
       },
       {
-        title: 'Despesas por Categoria',
-        type: 'pie',
-        data: charts.expenses_by_type || [],
-        dataKeys: [{ key: 'value', label: 'Valor' }],
+        title: 'Avaliações por Nota',
+        type: 'bar',
+        data: charts.ratings_distribution || [],
+        dataKeys: [{ key: 'value', label: 'Quantidade' }],
+        xAxisKey: 'name',
       },
     ];
   }, [charts]);
@@ -130,22 +138,21 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
         data: kpiCards.map(k => ({ label: k.title, value: k.value })),
       },
       {
-        title: 'Principais Rotas',
+        title: 'Tipos de Serviço',
         type: 'table' as const,
-        data: charts.top_routes || [],
+        data: charts.by_service_type || [],
         columns: [
-          { key: 'origin', label: 'Origem' },
-          { key: 'destination', label: 'Destino' },
-          { key: 'count', label: 'Viagens' },
+          { key: 'name', label: 'Tipo' },
+          { key: 'value', label: 'Quantidade' },
         ],
       },
       {
-        title: 'Estados Mais Frequentes',
+        title: 'Principais Cidades',
         type: 'table' as const,
-        data: charts.top_states || [],
+        data: charts.top_cities || [],
         columns: [
-          { key: 'name', label: 'Estado' },
-          { key: 'value', label: 'Viagens' },
+          { key: 'name', label: 'Cidade' },
+          { key: 'value', label: 'Serviços' },
         ],
       },
     ];
@@ -179,11 +186,11 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle className="text-lg">Relatórios do Motorista</CardTitle>
+            <CardTitle className="text-lg">Relatórios do Prestador</CardTitle>
             <div className="flex items-center gap-2 flex-wrap">
               <ReportPeriodFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
               <ReportExportButton
-                reportTitle="Relatório do Motorista"
+                reportTitle="Relatório do Prestador"
                 dateRange={dateRange}
                 sections={exportSections}
                 disabled={isLoading}
@@ -202,23 +209,20 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
       {/* Rankings */}
       {!isLoading && charts && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Principais Rotas */}
+          {/* Principais Cidades */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Principais Rotas</CardTitle>
+              <CardTitle className="text-base">Principais Cidades</CardTitle>
             </CardHeader>
             <CardContent>
-              {(charts.top_routes?.length || 0) === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma rota encontrada</p>
+              {(charts.top_cities?.length || 0) === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma cidade encontrada</p>
               ) : (
                 <div className="space-y-3">
-                  {charts.top_routes?.map((route, idx) => (
+                  {charts.top_cities?.map((city, idx) => (
                     <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{route.origin} → {route.destination}</p>
-                        <p className="text-sm text-muted-foreground">{route.count} viagens</p>
-                      </div>
-                      <p className="font-semibold">{formatBRL(route.total_revenue || 0)}</p>
+                      <p className="font-medium">{city.name}</p>
+                      <p className="font-semibold">{city.value} serviços</p>
                     </div>
                   ))}
                 </div>
@@ -226,20 +230,20 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
             </CardContent>
           </Card>
 
-          {/* Estados Mais Frequentes */}
+          {/* Tipos de Serviço */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Estados Mais Frequentes</CardTitle>
+              <CardTitle className="text-base">Tipos de Serviço Mais Frequentes</CardTitle>
             </CardHeader>
             <CardContent>
-              {(charts.top_states?.length || 0) === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhum estado encontrado</p>
+              {(charts.by_service_type?.length || 0) === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhum serviço encontrado</p>
               ) : (
                 <div className="space-y-3">
-                  {charts.top_states?.map((state, idx) => (
+                  {charts.by_service_type?.slice(0, 5).map((service, idx) => (
                     <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                      <p className="font-medium">{state.name}</p>
-                      <p className="font-semibold">{state.value} viagens</p>
+                      <p className="font-medium">{service.name}</p>
+                      <p className="font-semibold">{service.value} serviços</p>
                     </div>
                   ))}
                 </div>
@@ -252,4 +256,4 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
   );
 };
 
-export default DriverReportsTab;
+export default ProviderReportsTab;

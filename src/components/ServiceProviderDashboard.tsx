@@ -69,6 +69,7 @@ import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderS
 import { UserCityManager } from '@/components/UserCityManager';
 import { ServiceHistory } from '@/components/ServiceHistory';
 import { ServiceProviderReportsDashboard } from '@/components/ServiceProviderReportsDashboard';
+import { ProviderReportsTab } from '@/pages/provider/ProviderReportsTab';
 import { PendingServiceRatingsPanel } from '@/components/PendingServiceRatingsPanel';
 import { RatingsHistoryPanel } from '@/components/RatingsHistoryPanel';
 import { ServicesModal } from '@/components/ServicesModal';
@@ -1608,14 +1609,7 @@ export const ServiceProviderDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4">
-            {providerId ? (
-              <ServiceProviderReportsDashboard providerId={providerId} />
-            ) : (
-              <Card className="p-8 text-center">
-                <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                <p className="text-muted-foreground">Carregando dados do perfil...</p>
-              </Card>
-            )}
+            <ProviderReportsTab />
           </TabsContent>
 
         </Tabs>

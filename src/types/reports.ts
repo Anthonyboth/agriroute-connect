@@ -147,17 +147,22 @@ export interface DriverRevenueByMonth {
   freights: number;
   revenue: number;
   km: number;
+  [key: string]: unknown;
 }
 
 export interface RatingsTrend {
   month: string;
   avg_rating: number;
   count: number;
+  [key: string]: unknown;
 }
 
 export interface StateData {
   state: string;
+  name: string;
   count: number;
+  value: number;
+  [key: string]: unknown;
 }
 
 export interface DriverReportCharts {
@@ -186,9 +191,10 @@ export interface ProviderServicesSummary {
 }
 
 export interface ProviderReportSummary {
-  services: ProviderServicesSummary;
+  services: ProviderServicesSummary & { avg_price?: number };
   ratings: RatingsSummary;
   conversion_rate: number;
+  cancellation_rate: number;
   avg_service_time_hours: number;
 }
 
@@ -196,18 +202,21 @@ export interface ProviderRevenueByMonth {
   month: string;
   services: number;
   revenue: number;
+  [key: string]: unknown;
 }
 
 export interface DayOfWeekData {
   day_num: number;
   day_name: string;
   count: number;
+  [key: string]: unknown;
 }
 
 export interface CategoryData {
   name: string;
   value: number;
   revenue: number;
+  [key: string]: unknown;
 }
 
 export interface EmergencyVsRegular {
@@ -219,8 +228,11 @@ export interface ProviderReportCharts {
   revenue_by_month: ProviderRevenueByMonth[];
   by_status: ChartDataPoint[];
   by_category: CategoryData[];
+  by_service_type: ChartDataPoint[];
   ratings_trend: RatingsTrend[];
+  ratings_distribution: ChartDataPoint[];
   by_day_of_week: DayOfWeekData[];
+  top_cities: ChartDataPoint[];
   emergency_vs_regular: EmergencyVsRegular;
 }
 
@@ -261,14 +273,17 @@ export interface CompanyRevenueByMonth {
   month: string;
   freights: number;
   revenue: number;
+  [key: string]: unknown;
 }
 
 export interface DriverPerformanceData {
   driver_name: string;
   freights: number;
+  trips: number;
   completed: number;
   revenue: number;
   avg_rating: number;
+  [key: string]: unknown;
 }
 
 export interface OwnVsThirdParty {
