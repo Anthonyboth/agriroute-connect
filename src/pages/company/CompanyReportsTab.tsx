@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw, DollarSign, Truck, MapPin, Star, Fuel, Clock } from 'lucide-react';
+import { AlertCircle, RefreshCw, DollarSign, Truck, Users, TrendingUp, Percent, Clock } from 'lucide-react';
 import { subDays, endOfDay, startOfDay } from 'date-fns';
-import { useAuth } from '@/hooks/useAuth';
-import { useDriverReportData } from '@/hooks/useDriverReportData';
+import { useTransportCompany } from '@/hooks/useTransportCompany';
+import { useCompanyReportData } from '@/hooks/useCompanyReportData';
 import { 
   ReportPeriodFilter, 
   ReportKPICards, 
@@ -16,21 +16,16 @@ import {
 } from '@/components/reports';
 import type { DateRange } from '@/types/reports';
 
-interface DriverReportsTabProps {
-  driverId?: string;
-}
-
-export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) => {
-  const { user } = useAuth();
-  const profileId = driverId || user?.id;
+export const CompanyReportsTab: React.FC = () => {
+  const { company, isLoadingCompany } = useTransportCompany();
   
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfDay(subDays(new Date(), 30)),
     to: endOfDay(new Date()),
   });
 
-  const { summary, charts, isLoading, isError, refetch } = useDriverReportData(
-    profileId,
+  const { summary, charts, isLoading, isError, refetch } = useCompanyReportData(
+    company?.id,
     dateRange
   );
 
@@ -50,36 +45,34 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
         title: 'Total de Fretes',
         value: summary.freights?.total || 0,
         format: 'number',
-        subtitle: `${summary.freights?.in_transit || 0} em trânsito`,
+        subtitle: `${summary.freights?.active || 0} ativos`,
         icon: Truck,
       },
       {
-        title: 'Distância Percorrida',
-        value: summary.distance?.total_km || 0,
-        format: 'distance',
-        subtitle: `Média ${(summary.distance?.avg_per_freight || 0).toFixed(0)} km/frete`,
-        icon: MapPin,
-      },
-      {
-        title: 'Avaliação Média',
-        value: summary.ratings?.average || 0,
+        title: 'Motoristas',
+        value: summary.drivers?.total || 0,
         format: 'number',
-        subtitle: `${summary.ratings?.total || 0} avaliações`,
-        icon: Star,
+        subtitle: `${summary.drivers?.active || 0} ativos`,
+        icon: Users,
       },
       {
-        title: 'Total de Despesas',
-        value: summary.expenses?.total || 0,
-        format: 'currency',
-        subtitle: `Combustível: ${formatBRL(summary.expenses?.fuel || 0)}`,
-        icon: Fuel,
+        title: 'Veículos',
+        value: summary.vehicles?.total || 0,
+        format: 'number',
+        subtitle: `${summary.vehicles?.active || 0} ativos`,
+        icon: Truck,
       },
       {
-        title: 'Receita Média',
-        value: summary.freights?.avg_revenue || 0,
-        format: 'currency',
-        subtitle: 'por frete',
+        title: 'Taxa de Atraso',
+        value: summary.delay_rate || 0,
+        format: 'percent',
         icon: Clock,
+      },
+      {
+        title: 'Taxa de Cancelamento',
+        value: summary.cancellation_rate || 0,
+        format: 'percent',
+        icon: Percent,
       },
     ];
   }, [summary]);
@@ -111,10 +104,15 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
         xAxisKey: 'name',
       },
       {
-        title: 'Despesas por Categoria',
-        type: 'pie',
-        data: charts.expenses_by_type || [],
-        dataKeys: [{ key: 'value', label: 'Valor' }],
+        title: 'Desempenho por Motorista',
+        type: 'horizontal-bar',
+        data: (charts.drivers_performance || []).map(d => ({
+          name: d.driver_name || 'Desconhecido',
+          value: d.trips || 0,
+          revenue: d.revenue || 0,
+        })),
+        dataKeys: [{ key: 'value', label: 'Viagens' }],
+        xAxisKey: 'name',
       },
     ];
   }, [charts]);
@@ -130,32 +128,32 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
         data: kpiCards.map(k => ({ label: k.title, value: k.value })),
       },
       {
-        title: 'Principais Rotas',
+        title: 'Desempenho por Motorista',
         type: 'table' as const,
-        data: charts.top_routes || [],
+        data: charts.drivers_performance || [],
         columns: [
-          { key: 'origin', label: 'Origem' },
-          { key: 'destination', label: 'Destino' },
-          { key: 'count', label: 'Viagens' },
-        ],
-      },
-      {
-        title: 'Estados Mais Frequentes',
-        type: 'table' as const,
-        data: charts.top_states || [],
-        columns: [
-          { key: 'name', label: 'Estado' },
-          { key: 'value', label: 'Viagens' },
+          { key: 'driver_name', label: 'Motorista' },
+          { key: 'trips', label: 'Viagens' },
+          { key: 'revenue', label: 'Receita' },
         ],
       },
     ];
   }, [summary, charts, kpiCards]);
 
-  if (!profileId) {
+  if (isLoadingCompany) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <RefreshCw className="h-12 w-12 text-muted-foreground/50 mb-4 animate-spin" />
+        <p className="text-muted-foreground">Carregando dados da empresa...</p>
+      </div>
+    );
+  }
+
+  if (!company?.id) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
-        <p className="text-muted-foreground">Usuário não autenticado</p>
+        <p className="text-muted-foreground">Empresa não encontrada</p>
       </div>
     );
   }
@@ -179,11 +177,11 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle className="text-lg">Relatórios do Motorista</CardTitle>
+            <CardTitle className="text-lg">Relatórios da Transportadora</CardTitle>
             <div className="flex items-center gap-2 flex-wrap">
               <ReportPeriodFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
               <ReportExportButton
-                reportTitle="Relatório do Motorista"
+                reportTitle="Relatório da Transportadora"
                 dateRange={dateRange}
                 sections={exportSections}
                 disabled={isLoading}
@@ -202,23 +200,23 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
       {/* Rankings */}
       {!isLoading && charts && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Principais Rotas */}
+          {/* Desempenho por Motorista */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Principais Rotas</CardTitle>
+              <CardTitle className="text-base">Desempenho por Motorista</CardTitle>
             </CardHeader>
             <CardContent>
-              {(charts.top_routes?.length || 0) === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma rota encontrada</p>
+              {(charts.drivers_performance?.length || 0) === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhum motorista encontrado</p>
               ) : (
                 <div className="space-y-3">
-                  {charts.top_routes?.map((route, idx) => (
+                  {charts.drivers_performance?.map((driver, idx) => (
                     <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
-                        <p className="font-medium">{route.origin} → {route.destination}</p>
-                        <p className="text-sm text-muted-foreground">{route.count} viagens</p>
+                        <p className="font-medium">{driver.driver_name}</p>
+                        <p className="text-sm text-muted-foreground">{driver.trips} viagens</p>
                       </div>
-                      <p className="font-semibold">{formatBRL(route.total_revenue || 0)}</p>
+                      <p className="font-semibold">{formatBRL(driver.revenue || 0)}</p>
                     </div>
                   ))}
                 </div>
@@ -226,24 +224,22 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
             </CardContent>
           </Card>
 
-          {/* Estados Mais Frequentes */}
+          {/* Próprios vs Terceiros */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Estados Mais Frequentes</CardTitle>
+              <CardTitle className="text-base">Motoristas Próprios vs Terceiros</CardTitle>
             </CardHeader>
             <CardContent>
-              {(charts.top_states?.length || 0) === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhum estado encontrado</p>
-              ) : (
-                <div className="space-y-3">
-                  {charts.top_states?.map((state, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                      <p className="font-medium">{state.name}</p>
-                      <p className="font-semibold">{state.value} viagens</p>
-                    </div>
-                  ))}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <p className="font-medium">Motoristas Próprios</p>
+                  <p className="font-semibold">{charts.own_vs_third_party?.own || 0} fretes</p>
                 </div>
-              )}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <p className="font-medium">Motoristas Terceiros</p>
+                  <p className="font-semibold">{charts.own_vs_third_party?.third_party || 0} fretes</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -252,4 +248,4 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
   );
 };
 
-export default DriverReportsTab;
+export default CompanyReportsTab;

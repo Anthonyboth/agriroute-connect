@@ -35,6 +35,7 @@ import { Wrench } from 'lucide-react';
 import { AdvancedFreightFilters, FreightFilters } from '@/components/AdvancedFreightFilters';
 import { FreightReportExporter } from '@/components/FreightReportExporter';
 import { useFreightReportData } from '@/hooks/useFreightReportData';
+import { ProducerReportsTab } from '@/pages/producer/ProducerReportsTab';
 import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
@@ -1751,49 +1752,9 @@ const ProducerDashboard = () => {
             />
           </TabsContent>
 
-          
+
           <TabsContent value="reports" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <CardTitle className="text-base sm:text-lg">Relatórios e Analytics de Fretes</CardTitle>
-                  <FreightReportExporter 
-                    data={reportData}
-                    reportTitle="Relatório de Fretes - Produtor"
-                  />
-                </div>
-              </CardHeader>
-            </Card>
-            
-            <AdvancedFreightFilters
-              onFilterChange={setFilters}
-              currentFilters={filters}
-            />
-            
-            <Suspense fallback={<ChartLoader />}>
-              <FreightAnalyticsDashboard
-                freights={filteredFreights}
-                timeRange={timeRange}
-                onTimeRangeChange={setTimeRange}
-              />
-            </Suspense>
-            
-            <Separator className="my-8" />
-            
-            <Suspense fallback={<ChartLoader />}>
-              <PeriodComparisonDashboard
-                freights={filteredFreights}
-                comparisonType="month"
-              />
-            </Suspense>
-            
-            <Separator className="my-8" />
-            
-            <Suspense fallback={<ChartLoader />}>
-              <RouteRentabilityReport
-                freights={filteredFreights}
-              />
-            </Suspense>
+            <ProducerReportsTab />
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4">

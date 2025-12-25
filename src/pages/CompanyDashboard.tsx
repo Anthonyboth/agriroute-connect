@@ -67,6 +67,7 @@ import { ServicesModal } from '@/components/ServicesModal';
 const CompanyAnalyticsDashboard = lazy(() => import('@/components/CompanyAnalyticsDashboard').then(m => ({ default: m.CompanyAnalyticsDashboard })));
 const CompanyDriverPerformanceDashboard = lazy(() => import('@/components/dashboards/CompanyDriverPerformanceDashboard').then(m => ({ default: m.CompanyDriverPerformanceDashboard })));
 const CompanyFinancialDashboard = lazy(() => import('@/components/CompanyFinancialDashboard').then(m => ({ default: m.CompanyFinancialDashboard })));
+const CompanyReportsTab = lazy(() => import('@/pages/company/CompanyReportsTab').then(m => ({ default: m.CompanyReportsTab })));
 
 // Loading fallback for chart components
 const ChartLoader = () => (
@@ -863,12 +864,7 @@ const CompanyDashboard = () => {
           {/* Aba de Relatórios Analytics */}
           <TabsContent value="reports" className="mt-6">
             <Suspense fallback={<ChartLoader />}>
-              <CompanyAnalyticsDashboard
-                assignments={myAssignments}
-                drivers={drivers || []}
-                timeRange={timeRange}
-                onTimeRangeChange={setTimeRange}
-              />
+              <CompanyReportsTab />
             </Suspense>
           </TabsContent>
         </Tabs>
