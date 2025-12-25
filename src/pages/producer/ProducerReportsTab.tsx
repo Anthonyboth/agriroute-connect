@@ -1,147 +1,261 @@
-import React, { Suspense, lazy, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Loader2 } from 'lucide-react';
-import { AdvancedFreightFilters, FreightFilters } from '@/components/AdvancedFreightFilters';
-import { FreightReportExporter } from '@/components/FreightReportExporter';
-import { useFreightReportData } from '@/hooks/useFreightReportData';
-import type { ProducerFreight, ProducerFilters } from './types';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle, RefreshCw, DollarSign, Truck, Wrench, Clock, TrendingUp, Package } from 'lucide-react';
+import { subDays, endOfDay, startOfDay } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
+import { useProducerReportData } from '@/hooks/useProducerReportData';
+import { 
+  ReportPeriodFilter, 
+  ReportKPICards, 
+  ReportCharts, 
+  ReportExportButton,
+  formatBRL,
+  type KPICardData,
+  type ChartConfig 
+} from '@/components/reports';
+import type { DateRange } from '@/types/reports';
 
-const FreightAnalyticsDashboard = lazy(() => 
-  import('@/components/FreightAnalyticsDashboard').then(m => ({ default: m.FreightAnalyticsDashboard }))
-);
-const PeriodComparisonDashboard = lazy(() => 
-  import('@/components/PeriodComparisonDashboard').then(m => ({ default: m.PeriodComparisonDashboard }))
-);
-const RouteRentabilityReport = lazy(() => 
-  import('@/components/RouteRentabilityReport').then(m => ({ default: m.RouteRentabilityReport }))
-);
-
-const ChartLoader = () => (
-  <div className="flex items-center justify-center p-12 min-h-[300px]">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    <span className="ml-2 text-muted-foreground">Carregando gráficos...</span>
-  </div>
-);
-
-interface ProducerReportsTabProps {
-  freights: ProducerFreight[];
-}
-
-export const ProducerReportsTab: React.FC<ProducerReportsTabProps> = ({
-  freights,
-}) => {
-  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
-  const [filters, setFilters] = useState<FreightFilters>({
-    sortBy: 'date',
-    sortOrder: 'desc'
+export const ProducerReportsTab: React.FC = () => {
+  const { user } = useAuth();
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: startOfDay(subDays(new Date(), 30)),
+    to: endOfDay(new Date()),
   });
 
-  const filteredFreights = useMemo(() => {
-    let result = [...freights];
+  const { summary, charts, isLoading, isError, refetch } = useProducerReportData(
+    user?.id,
+    dateRange
+  );
+
+  // KPIs
+  const kpiCards: KPICardData[] = useMemo(() => {
+    if (!summary) return [];
     
-    if (filters.status?.length) {
-      result = result.filter(f => filters.status!.includes(f.status));
-    }
+    const totalSpent = (summary.freights?.total_spent || 0) + (summary.services?.total_spent || 0);
     
-    if (filters.dateRange) {
-      result = result.filter(f => {
-        const date = new Date(f.pickup_date);
-        return date >= filters.dateRange!.start && date <= filters.dateRange!.end;
-      });
-    }
+    return [
+      {
+        title: 'Total Gasto',
+        value: totalSpent,
+        format: 'currency',
+        subtitle: 'Fretes + Serviços',
+        icon: DollarSign,
+      },
+      {
+        title: 'Total de Fretes',
+        value: summary.freights?.total || 0,
+        format: 'number',
+        subtitle: `${summary.freights?.completed || 0} concluídos`,
+        icon: Truck,
+      },
+      {
+        title: 'Total de Serviços',
+        value: summary.services?.total || 0,
+        format: 'number',
+        subtitle: `${summary.services?.completed || 0} concluídos`,
+        icon: Wrench,
+      },
+      {
+        title: 'Ticket Médio Frete',
+        value: summary.freights?.avg_price || 0,
+        format: 'currency',
+        icon: TrendingUp,
+      },
+      {
+        title: 'Ticket Médio Serviço',
+        value: summary.services?.avg_price || 0,
+        format: 'currency',
+        icon: Package,
+      },
+      {
+        title: 'Tempo Médio Conclusão',
+        value: `${(summary.avg_completion_time_hours || 0).toFixed(1)}h`,
+        icon: Clock,
+      },
+    ];
+  }, [summary]);
+
+  // Charts
+  const chartConfigs: ChartConfig[] = useMemo(() => {
+    if (!charts) return [];
     
-    if (filters.priceRange) {
-      result = result.filter(f => 
-        f.price >= filters.priceRange!.min && 
-        f.price <= filters.priceRange!.max
-      );
-    }
+    return [
+      {
+        title: 'Gastos por Mês',
+        type: 'bar',
+        data: charts.spending_by_month || [],
+        dataKeys: [
+          { key: 'freight_spending', label: 'Fretes' },
+          { key: 'service_spending', label: 'Serviços' },
+        ],
+        xAxisKey: 'month',
+        valueFormatter: formatBRL,
+      },
+      {
+        title: 'Fretes por Status',
+        type: 'pie',
+        data: charts.by_status || [],
+        dataKeys: [{ key: 'value', label: 'Quantidade' }],
+      },
+      {
+        title: 'Tipos de Carga',
+        type: 'bar',
+        data: (charts.by_cargo_type || []).slice(0, 5),
+        dataKeys: [{ key: 'value', label: 'Quantidade' }],
+        xAxisKey: 'name',
+      },
+      {
+        title: 'Top Motoristas',
+        type: 'horizontal-bar',
+        data: (charts.top_drivers || []).map(d => ({
+          name: d.driver_name,
+          trips: d.trips,
+          rating: d.avg_rating,
+        })),
+        dataKeys: [{ key: 'trips', label: 'Viagens' }],
+        xAxisKey: 'name',
+      },
+    ];
+  }, [charts]);
+
+  // Export sections
+  const exportSections = useMemo(() => {
+    if (!summary || !charts) return [];
     
-    if (filters.distanceRange) {
-      result = result.filter(f => 
-        (f.distance_km || 0) >= filters.distanceRange!.min && 
-        (f.distance_km || 0) <= filters.distanceRange!.max
-      );
-    }
-    
-    if (filters.cargoType?.length) {
-      result = result.filter(f => filters.cargoType!.includes(f.cargo_type));
-    }
-    
-    if (filters.urgency?.length) {
-      result = result.filter(f => f.urgency && filters.urgency!.includes(f.urgency));
-    }
-    
-    result.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (filters.sortBy) {
-        case 'date':
-          comparison = new Date(a.pickup_date).getTime() - new Date(b.pickup_date).getTime();
-          break;
-        case 'price':
-          comparison = a.price - b.price;
-          break;
-        case 'distance':
-          comparison = (a.distance_km || 0) - (b.distance_km || 0);
-          break;
-        case 'status':
-          comparison = a.status.localeCompare(b.status);
-          break;
-      }
-      
-      return filters.sortOrder === 'asc' ? comparison : -comparison;
-    });
-    
-    return result;
-  }, [freights, filters]);
-  
-  const reportData = useFreightReportData(filteredFreights);
+    return [
+      {
+        title: 'Resumo Geral',
+        type: 'kpi' as const,
+        data: kpiCards.map(k => ({ label: k.title, value: k.value })),
+      },
+      {
+        title: 'Top Motoristas',
+        type: 'table' as const,
+        data: charts.top_drivers || [],
+        columns: [
+          { key: 'driver_name', label: 'Motorista' },
+          { key: 'trips', label: 'Viagens' },
+          { key: 'avg_rating', label: 'Avaliação' },
+        ],
+      },
+      {
+        title: 'Principais Rotas',
+        type: 'table' as const,
+        data: charts.top_routes || [],
+        columns: [
+          { key: 'origin', label: 'Origem' },
+          { key: 'destination', label: 'Destino' },
+          { key: 'count', label: 'Viagens' },
+        ],
+      },
+    ];
+  }, [summary, charts, kpiCards]);
+
+  if (!user?.id) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
+        <p className="text-muted-foreground">Usuário não autenticado</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="h-12 w-12 text-destructive/50 mb-4" />
+        <p className="text-muted-foreground font-medium">Erro ao carregar relatórios</p>
+        <Button onClick={() => refetch()} variant="outline" className="mt-4 gap-2">
+          <RefreshCw className="h-4 w-4" />
+          Tentar novamente
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <CardTitle className="text-base sm:text-lg">Relatórios e Analytics de Fretes</CardTitle>
-            <FreightReportExporter 
-              data={reportData}
-              reportTitle="Relatório de Fretes - Produtor"
-            />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <CardTitle className="text-lg">Relatórios do Produtor</CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <ReportPeriodFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+              <ReportExportButton
+                reportTitle="Relatório do Produtor"
+                dateRange={dateRange}
+                sections={exportSections}
+                disabled={isLoading}
+              />
+            </div>
           </div>
         </CardHeader>
       </Card>
-      
-      <AdvancedFreightFilters
-        onFilterChange={setFilters}
-        currentFilters={filters}
-      />
-      
-      <Suspense fallback={<ChartLoader />}>
-        <FreightAnalyticsDashboard
-          freights={filteredFreights}
-          timeRange={timeRange}
-          onTimeRangeChange={setTimeRange}
-        />
-      </Suspense>
-      
-      <Separator className="my-8" />
-      
-      <Suspense fallback={<ChartLoader />}>
-        <PeriodComparisonDashboard
-          freights={filteredFreights}
-          comparisonType="month"
-        />
-      </Suspense>
-      
-      <Separator className="my-8" />
-      
-      <Suspense fallback={<ChartLoader />}>
-        <RouteRentabilityReport
-          freights={filteredFreights}
-        />
-      </Suspense>
+
+      {/* KPIs */}
+      <ReportKPICards cards={kpiCards} isLoading={isLoading} columns={6} />
+
+      {/* Charts */}
+      <ReportCharts charts={chartConfigs} isLoading={isLoading} columns={2} />
+
+      {/* Rankings */}
+      {!isLoading && charts && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Prestadores */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Top Prestadores de Serviço</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(charts.top_providers?.length || 0) === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhum prestador encontrado</p>
+              ) : (
+                <div className="space-y-3">
+                  {charts.top_providers?.map((provider, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{provider.provider_name}</p>
+                        <p className="text-sm text-muted-foreground">{provider.services} serviços</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{formatBRL(provider.total_spent)}</p>
+                        <p className="text-sm text-muted-foreground">⭐ {provider.avg_rating.toFixed(1)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Principais Rotas */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Principais Rotas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(charts.top_routes?.length || 0) === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma rota encontrada</p>
+              ) : (
+                <div className="space-y-3">
+                  {charts.top_routes?.map((route, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{route.origin} → {route.destination}</p>
+                        <p className="text-sm text-muted-foreground">{route.count} viagens</p>
+                      </div>
+                      <p className="font-semibold">{formatBRL(route.total_value || 0)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
