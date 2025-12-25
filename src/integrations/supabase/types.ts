@@ -7292,6 +7292,14 @@ export type Database = {
         Returns: string
       }
       generate_invite_code: { Args: never; Returns: string }
+      get_company_report_charts: {
+        Args: { p_company_id: string; p_end_at: string; p_start_at: string }
+        Returns: Json
+      }
+      get_company_report_summary: {
+        Args: { p_company_id: string; p_end_at: string; p_start_at: string }
+        Returns: Json
+      }
       get_compatible_freights_for_driver: {
         Args: { p_driver_id: string }
         Returns: {
@@ -7375,6 +7383,14 @@ export type Database = {
       }
       get_current_profile_id: { Args: never; Returns: string }
       get_current_user_safe: { Args: never; Returns: string }
+      get_driver_report_charts: {
+        Args: { p_end_at: string; p_profile_id: string; p_start_at: string }
+        Returns: Json
+      }
+      get_driver_report_summary: {
+        Args: { p_end_at: string; p_profile_id: string; p_start_at: string }
+        Returns: Json
+      }
       get_email_by_document: { Args: { p_doc: string }; Returns: string }
       get_failed_login_attempts: {
         Args: { min_failures?: number; since_timestamp: string }
@@ -7537,6 +7553,22 @@ export type Database = {
           total_fretes: number
           total_usuarios: number
         }[]
+      }
+      get_producer_report_charts: {
+        Args: { p_end_at: string; p_profile_id: string; p_start_at: string }
+        Returns: Json
+      }
+      get_producer_report_summary: {
+        Args: { p_end_at: string; p_profile_id: string; p_start_at: string }
+        Returns: Json
+      }
+      get_provider_report_charts: {
+        Args: { p_end_at: string; p_profile_id: string; p_start_at: string }
+        Returns: Json
+      }
+      get_provider_report_summary: {
+        Args: { p_end_at: string; p_profile_id: string; p_start_at: string }
+        Returns: Json
       }
       get_provider_service_requests: {
         Args: { provider_profile_id: string }
