@@ -21,8 +21,9 @@ interface DriverReportsTabProps {
 }
 
 export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) => {
-  const { user } = useAuth();
-  const profileId = driverId || user?.id;
+  const { profile } = useAuth();
+  // Use driverId prop se passado, senão usa profile.id (nunca user.id pois RPC espera profiles.id)
+  const profileId = driverId || profile?.id;
   
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfDay(subDays(new Date(), 30)),
