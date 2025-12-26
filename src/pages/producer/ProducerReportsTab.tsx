@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, RefreshCw, DollarSign, Truck, Wrench, Clock, TrendingUp, Package } from 'lucide-react';
 import { subDays, endOfDay, startOfDay } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,14 +17,24 @@ import {
 import type { DateRange } from '@/types/reports';
 
 export const ProducerReportsTab: React.FC = () => {
-  const { user } = useAuth();
+  const { profile, profiles } = useAuth();
+
+  // Encontrar ID do perfil de produtor (RPC espera profiles.id, não auth.user.id)
+  const getProducerProfileId = () => {
+    if (profile?.role === 'PRODUTOR') return profile.id;
+    const alt = (profiles || []).find((p: any) => p.role === 'PRODUTOR');
+    return alt?.id as string | undefined;
+  };
+
+  const profileId = getProducerProfileId();
+
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfDay(subDays(new Date(), 30)),
     to: endOfDay(new Date()),
   });
 
   const { summary, charts, isLoading, isError, refetch } = useProducerReportData(
-    user?.id,
+    profileId,
     dateRange
   );
 
@@ -153,11 +162,11 @@ export const ProducerReportsTab: React.FC = () => {
     ];
   }, [summary, charts, kpiCards]);
 
-  if (!user?.id) {
+  if (!profileId) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
-        <p className="text-muted-foreground">Usuário não autenticado</p>
+        <p className="text-muted-foreground">Perfil de produtor não encontrado</p>
       </div>
     );
   }
