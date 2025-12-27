@@ -245,10 +245,11 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
       setNotes('');
       await fetchStatusHistory();
       
-      // ✅ CORREÇÃO BUG 3: Forçar atualização visual imediata
+      // ✅ CORREÇÃO P4: Usar tradução PT-BR para o status
+      const statusLabel = getStatusLabelFallback(newStatus);
       toast({
         title: "✅ Status atualizado",
-        description: `Progresso atualizado para: ${newStatus.replace(/_/g, ' ')}`,
+        description: `Progresso atualizado para: ${statusLabel}`,
       });
       
       // Notificar o parent para atualizar UI sem recarregar tudo
@@ -429,7 +430,7 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
               disabled={loading}
               className="w-full"
             >
-              {loading ? 'Atualizando...' : `Marcar como ${nextStatus.label}`}
+              {loading ? 'Atualizando...' : `Atualizar para ${nextStatus.label}`}
             </Button>
           </CardContent>
         </Card>

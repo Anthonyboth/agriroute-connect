@@ -92,7 +92,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
   { value: 'fleet', label: 'Frota', shortLabel: 'Frota', icon: Truck, badge: undefined },
   { value: 'assignments', label: 'Vínculos', shortLabel: 'Vínculos', icon: Link2, badge: undefined },
   { value: 'freights', label: 'Fretes', shortLabel: 'Fretes', icon: Package, badge: undefined },
-  { value: 'scheduled', label: 'Agendamentos', shortLabel: 'Agend', icon: Calendar, badge: undefined },
+  { value: 'scheduled', label: 'Agendamentos', shortLabel: 'Agendamentos', icon: Calendar, badge: undefined },
   { 
     value: 'active', 
     label: 'Em Andamento', 
@@ -100,12 +100,12 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
     icon: Navigation,
     badge: activeCount > 0 ? activeCount : undefined
   },
-  { value: 'proposals', label: 'Propostas', shortLabel: 'Prop', icon: FileText, badge: undefined },
-  { value: 'services', label: 'Serviços', shortLabel: 'Serv', icon: Wrench, badge: undefined },
-  { value: 'payments', label: 'Pagamentos', shortLabel: 'Pag', icon: DollarSign, badge: undefined },
-  { value: 'cities', label: 'Cidades', shortLabel: 'Cid', icon: MapPin, badge: undefined },
-  { value: 'ratings', label: 'Avaliações', shortLabel: 'Aval', icon: Star, badge: undefined },
-  { value: 'history', label: 'Histórico', shortLabel: 'Hist', icon: Clock, badge: undefined },
+  { value: 'proposals', label: 'Propostas', shortLabel: 'Propostas', icon: FileText, badge: undefined },
+  { value: 'services', label: 'Serviços', shortLabel: 'Serviços', icon: Wrench, badge: undefined },
+  { value: 'payments', label: 'Pagamentos', shortLabel: 'Pagamentos', icon: DollarSign, badge: undefined },
+  { value: 'cities', label: 'Cidades', shortLabel: 'Cidades', icon: MapPin, badge: undefined },
+  { value: 'ratings', label: 'Avaliações', shortLabel: 'Avaliações', icon: Star, badge: undefined },
+  { value: 'history', label: 'Histórico', shortLabel: 'Histórico', icon: Clock, badge: undefined },
   { 
     value: 'chat', 
     label: 'Chat Interno', 
@@ -113,7 +113,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
     icon: MessageSquare,
     badge: chatCount > 0 ? chatCount : undefined
   },
-  { value: 'reports', label: 'Relatórios', shortLabel: 'Rel', icon: BarChart, badge: undefined }
+  { value: 'reports', label: 'Relatórios', shortLabel: 'Relatórios', icon: BarChart, badge: undefined }
 ];
 
 const CompanyDashboard = () => {
@@ -558,17 +558,14 @@ const CompanyDashboard = () => {
                 </h1>
               </div>
               
-              {/* Info da empresa no canto direito */}
+              {/* Info da empresa no canto direito - P8: Removido badge "Aprovada", organizado layout */}
               <div className="text-center md:text-right bg-background/10 backdrop-blur-sm rounded-lg p-4 border border-primary-foreground/20">
                 <h2 className="text-lg font-bold text-primary-foreground">
                   {company?.company_name || 'Transportadora'}
                 </h2>
                 <p className="text-sm text-primary-foreground/80">
-                  CNPJ: {company?.company_cnpj || 'Não informado'}
+                  CNPJ: {company?.company_cnpj?.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') || 'Não informado'}
                 </p>
-                <Badge variant={company?.status === 'APPROVED' ? 'default' : 'secondary'} className="mt-2 bg-background/20 text-primary-foreground">
-                  {company?.status === 'APPROVED' ? '✓ Aprovada' : 'Pendente'}
-                </Badge>
               </div>
             </div>
             
