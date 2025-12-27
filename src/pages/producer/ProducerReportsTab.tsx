@@ -17,16 +17,10 @@ import {
 import type { DateRange } from '@/types/reports';
 
 export const ProducerReportsTab: React.FC = () => {
-  const { profile, profiles } = useAuth();
+  const { profile } = useAuth();
 
-  // Encontrar ID do perfil de produtor (RPC espera profiles.id, não auth.user.id)
-  const getProducerProfileId = () => {
-    if (profile?.role === 'PRODUTOR') return profile.id;
-    const alt = (profiles || []).find((p: any) => p.role === 'PRODUTOR');
-    return alt?.id as string | undefined;
-  };
-
-  const profileId = getProducerProfileId();
+  // RPC espera profiles.id do produtor logado
+  const profileId = profile?.role === 'PRODUTOR' ? profile.id : undefined;
 
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfDay(subDays(new Date(), 30)),

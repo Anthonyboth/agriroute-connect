@@ -21,18 +21,11 @@ interface ProviderReportsTabProps {
 }
 
 export const ProviderReportsTab: React.FC<ProviderReportsTabProps> = ({ providerId }) => {
-  const { user, profile, profiles } = useAuth();
-  
-  // Encontrar ID do perfil de prestador
-  const getProviderProfileId = () => {
-    if (providerId) return providerId;
-    if (profile?.role === 'PRESTADOR_SERVICOS') return profile.id;
-    const alt = (profiles || []).find((p: any) => p.role === 'PRESTADOR_SERVICOS');
-    return alt?.id as string | undefined;
-  };
-  
-  const profileId = getProviderProfileId();
-  
+  const { profile } = useAuth();
+
+  // RPC espera profiles.id do prestador logado (ou providerId quando o componente é usado em contexto admin)
+  const profileId = providerId ?? (profile?.role === 'PRESTADOR_SERVICOS' ? profile.id : undefined);
+
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfDay(subDays(new Date(), 30)),
     to: endOfDay(new Date()),
@@ -46,7 +39,10 @@ export const ProviderReportsTab: React.FC<ProviderReportsTabProps> = ({ provider
   // KPIs
   const kpiCards: KPICardData[] = useMemo(() => {
     if (!summary) return [];
-    
+
+    const avgServicePrice =
+      (summary.services as any)?.avg_price ?? (summary.services as any)?.avg_revenue ?? 0;
+
     return [
       {
         title: 'Receita Total',
@@ -77,13 +73,13 @@ export const ProviderReportsTab: React.FC<ProviderReportsTabProps> = ({ provider
       },
       {
         title: 'Taxa de Cancelamento',
-        value: summary.cancellation_rate || 0,
+        value: (summary as any).cancellation_rate || 0,
         format: 'percent',
         icon: Percent,
       },
       {
         title: 'Receita Média',
-        value: summary.services?.avg_price || 0,
+        value: avgServicePrice,
         format: 'currency',
         subtitle: 'por serviço',
         icon: Clock,
@@ -94,7 +90,13 @@ export const ProviderReportsTab: React.FC<ProviderReportsTabProps> = ({ provider
   // Charts
   const chartConfigs: ChartConfig[] = useMemo(() => {
     if (!charts) return [];
-    
+
+    // Alguns RPCs retornam `by_category` (legado) ao invés de `by_service_type`
+    const serviceTypeData =
+      (charts.by_service_type && charts.by_service_type.length > 0
+        ? charts.by_service_type
+        : (charts as any).by_category) || [];
+
     return [
       {
         title: 'Receita por Mês',
@@ -113,7 +115,7 @@ export const ProviderReportsTab: React.FC<ProviderReportsTabProps> = ({ provider
       {
         title: 'Tipos de Serviço',
         type: 'bar',
-        data: (charts.by_service_type || []).slice(0, 5),
+        data: (serviceTypeData || []).slice(0, 5),
         dataKeys: [{ key: 'value', label: 'Quantidade' }],
         xAxisKey: 'name',
       },
@@ -130,7 +132,12 @@ export const ProviderReportsTab: React.FC<ProviderReportsTabProps> = ({ provider
   // Export sections
   const exportSections = useMemo(() => {
     if (!summary || !charts) return [];
-    
+
+    const serviceTypeData =
+      (charts.by_service_type && charts.by_service_type.length > 0
+        ? charts.by_service_type
+        : (charts as any).by_category) || [];
+
     return [
       {
         title: 'Resumo Geral',
@@ -140,7 +147,7 @@ export const ProviderReportsTab: React.FC<ProviderReportsTabProps> = ({ provider
       {
         title: 'Tipos de Serviço',
         type: 'table' as const,
-        data: charts.by_service_type || [],
+        data: serviceTypeData,
         columns: [
           { key: 'name', label: 'Tipo' },
           { key: 'value', label: 'Quantidade' },
