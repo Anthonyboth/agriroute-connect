@@ -53,9 +53,19 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
   
   const timeAgo = useLastUpdate(lastUpdateTime);
 
+  // P10: Usar ref para evitar múltiplas chamadas simultâneas
+  const fetchingRef = React.useRef(false);
+  
   const fetchCompatibleFreights = useCallback(async () => {
     if (!company?.id) return;
-
+    
+    // P10: Evitar chamadas simultâneas
+    if (fetchingRef.current) {
+      console.log('⏳ [FRETES I.A] Fetch já em andamento, ignorando...');
+      return;
+    }
+    
+    fetchingRef.current = true;
     setLoading(true);
     try {
       console.log('🔍 [FRETES I.A] Buscando fretes para company:', company.id);
@@ -153,8 +163,9 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       setMatchingStats({ total: 0, matched: 0, assigned: 0 });
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
-  }, [company?.id, drivers?.length]);
+  }, [company?.id]);
 
   // Carregar fretes automaticamente ao montar
   React.useEffect(() => {
@@ -235,17 +246,15 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
 
         <CardContent>
           {/* Informações da Empresa */}
+          {/* P10: Informações da empresa simplificadas */}
           <div className="bg-secondary/30 p-4 rounded-lg mb-6">
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-semibold mb-1">{company?.company_name}</h4>
                 <p className="text-sm text-muted-foreground">
-                  CNPJ: {company?.company_cnpj} • {drivers?.filter(d => d.status === 'ACTIVE').length || 0} motoristas ativos
+                  CNPJ: {company?.company_cnpj?.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') || 'Não informado'} • {drivers?.filter(d => d.status === 'ACTIVE').length || 0} motoristas ativos
                 </p>
               </div>
-              <Badge variant={company?.status === 'APPROVED' ? 'default' : 'secondary'}>
-                {company?.status === 'APPROVED' ? 'Aprovada' : 'Pendente'}
-              </Badge>
             </div>
           </div>
 

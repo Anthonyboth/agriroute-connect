@@ -437,6 +437,15 @@ export const FreightHistory: React.FC = () => {
                           </div>
                         )}
 
+                        {/* P5: Mostrar motivo do cancelamento se existir */}
+                        {freight.status === 'CANCELLED' && (freight as any).cancellation_reason && (
+                          <div className="pt-2 border-t">
+                            <p className="text-xs text-destructive">
+                              <strong>Motivo:</strong> {(freight as any).cancellation_reason}
+                            </p>
+                          </div>
+                        )}
+
                         <div className="flex gap-2 pt-2">
                           <Button
                             variant="outline"
@@ -445,11 +454,11 @@ export const FreightHistory: React.FC = () => {
                             className="flex-1"
                           >
                             <MessageSquare className="h-4 w-4 mr-2" />
-                            Chat
+                            Conversa
                           </Button>
                           
-                          {/* Botão Reabrir Frete - apenas para produtores em fretes DELIVERED */}
-                          {profile?.role === 'PRODUTOR' && freight.status === 'DELIVERED' && (
+                          {/* Botão Reabrir Frete - para produtores em fretes DELIVERED ou CANCELLED */}
+                          {profile?.role === 'PRODUTOR' && ['DELIVERED', 'CANCELLED'].includes(freight.status) && (
                             <Button
                               variant="secondary"
                               size="sm"
@@ -457,7 +466,7 @@ export const FreightHistory: React.FC = () => {
                               disabled={reopening}
                               className="flex-1"
                             >
-                              <RefreshCw className="h-4 w-4 mr-2" />
+                              <RefreshCw className={`h-4 w-4 mr-2 ${reopening ? 'animate-spin' : ''}`} />
                               Reabrir Frete
                             </Button>
                           )}

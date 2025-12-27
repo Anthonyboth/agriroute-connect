@@ -22,7 +22,7 @@ export function getErrorMessage(error: any): string {
     return 'Não é possível realizar esta operação devido a dependências';
   }
   
-  // Unique constraint violations
+  // Unique constraint violations - P9: Tratamento específico para vínculos
   if (message.includes('unique constraint') || message.includes('duplicate key')) {
     if (message.includes('idx_profiles_document_unique') || error?.code === '23505') {
       return 'Este CPF/CNPJ já está em uso em outro cadastro';
@@ -35,6 +35,10 @@ export function getErrorMessage(error: any): string {
     }
     if (message.includes('freight_assignments_freight_id_driver_id_key')) {
       return 'Este motorista já está atribuído a este frete.';
+    }
+    // P9: Tratamento específico para vínculos de veículo-motorista
+    if (message.includes('company_vehicle_assignments')) {
+      return 'Já existe um vínculo entre este motorista e veículo. Remova o vínculo anterior para criar um novo.';
     }
     return 'Este registro já existe no sistema';
   }

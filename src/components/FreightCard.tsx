@@ -156,23 +156,36 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           return;
         }
 
-        // 2) Motorista autônomo: verificar se já tem QUALQUER frete ativo
+        // 2) Motorista autônomo: verificar se já tem QUALQUER frete EM ANDAMENTO (não agendado)
+        const today = new Date().toISOString().split('T')[0];
+        
         const { data: activeFreights } = await supabase
           .from('freights')
-          .select('id, cargo_type')
+          .select('id, cargo_type, pickup_date')
           .eq('driver_id', profile.id)
           .in('status', activeStatuses);
 
         const { data: activeAssignments } = await supabase
           .from('freight_assignments')
-          .select('id')
+          .select('id, freight:freights(pickup_date)')
           .eq('driver_id', profile.id)
           .in('status', activeStatuses);
 
-        const totalActive = (activeFreights?.length || 0) + (activeAssignments?.length || 0);
+        // Filtrar apenas fretes com data de coleta <= hoje (em andamento, não agendados)
+        const inProgressFreights = (activeFreights || []).filter(f => {
+          const pickupDate = f.pickup_date?.split('T')[0];
+          return pickupDate && pickupDate <= today;
+        });
 
-        if (totalActive > 0) {
-          const currentCargo = activeFreights?.[0]?.cargo_type || 'Carga';
+        const inProgressAssignments = (activeAssignments || []).filter(a => {
+          const pickupDate = (a.freight as any)?.pickup_date?.split('T')[0];
+          return pickupDate && pickupDate <= today;
+        });
+
+        const totalInProgress = inProgressFreights.length + inProgressAssignments.length;
+
+        if (totalInProgress > 0) {
+          const currentCargo = inProgressFreights[0]?.cargo_type || 'Carga';
           toast.error('Você já possui um frete em andamento', {
             description: `Complete a entrega atual (${currentCargo}) antes de aceitar um novo frete.`,
           });
@@ -443,7 +456,15 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               ) : freight.service_type === 'MUDANCA' ? (
                 <span className="text-muted-foreground">Residencial</span>
               ) : (
-                <span className="text-muted-foreground">{formatTons(freight.weight)}</span>
+                <span className="text-muted-foreground">
+                  {formatTons(freight.weight)}
+                  {freight.vehicle_type_required && (
+                    <span className="ml-1">• {getVehicleTypeLabel(freight.vehicle_type_required)}</span>
+                  )}
+                  {freight.vehicle_axles_required && freight.vehicle_axles_required > 0 && (
+                    <span className="ml-1">({freight.vehicle_axles_required} eixos)</span>
+                  )}
+                </span>
               )}
               <span className="text-muted-foreground" title={
                 ((freight as any).origin_lat && (freight as any).origin_lng && 
@@ -560,23 +581,46 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         <CardFooter className="pt-3 pb-3 flex-shrink-0 mt-auto sticky bottom-0 bg-card/95 backdrop-blur-sm border-t">
           <div className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border border-border/50 min-w-fit">
             <div className="text-left">
-              {/* PROBLEMA 8 CORRIGIDO: Mostrar preço POR CARRETA, não total */}
+              {/* P2 CORRIGIDO: Mostrar apenas valor unitário para motoristas/transportadoras */}
               {(() => {
                 const requiredTrucks = freight.required_trucks || 1;
                 const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
                 const hasMultipleTrucks = requiredTrucks > 1;
+                const isProducer = profile?.role === 'PRODUTOR';
+                
+                // Determinar tipo de pagamento (por KM, por TON, ou fixo)
+                const paymentType = (freight as any).payment_type;
+                const valuePerKm = (freight as any).value_per_km;
+                const valuePerTon = (freight as any).value_per_ton;
                 
                 return (
                   <>
-                    <p className="font-bold text-xl text-primary whitespace-nowrap">
-                      {formatBRL(pricePerTruck, true)}
-                      {hasMultipleTrucks && (
-                        <span className="text-xs font-normal text-muted-foreground ml-1">
-                          /carreta
-                        </span>
-                      )}
-                    </p>
-                    {hasMultipleTrucks && (
+                    {/* Exibir valor baseado no tipo de pagamento */}
+                    {paymentType === 'PER_KM' && valuePerKm ? (
+                      <p className="font-bold text-xl text-primary whitespace-nowrap">
+                        {formatBRL(valuePerKm, true)}
+                        <span className="text-xs font-normal text-muted-foreground ml-1">/KM</span>
+                      </p>
+                    ) : paymentType === 'PER_TON' && valuePerTon ? (
+                      <p className="font-bold text-xl text-primary whitespace-nowrap">
+                        {formatBRL(valuePerTon, true)}
+                        <span className="text-xs font-normal text-muted-foreground ml-1">/TON</span>
+                      </p>
+                    ) : (
+                      <p className="font-bold text-xl text-primary whitespace-nowrap">
+                        {formatBRL(pricePerTruck, true)}
+                        {hasMultipleTrucks && (
+                          <span className="text-xs font-normal text-muted-foreground ml-1">
+                            /carreta
+                          </span>
+                        )}
+                        {!hasMultipleTrucks && paymentType === 'FIXED' && (
+                          <span className="text-xs font-normal text-muted-foreground ml-1">FIXO</span>
+                        )}
+                      </p>
+                    )}
+                    {/* Total só aparece para PRODUTOR */}
+                    {hasMultipleTrucks && isProducer && (
                       <p className="text-xs text-muted-foreground">
                         Total ({requiredTrucks} carretas): {formatBRL(freight.price, true)}
                       </p>

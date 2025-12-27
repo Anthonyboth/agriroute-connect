@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { getErrorMessage } from '@/lib/error-handler';
 
 interface VehicleAssignmentModalProps {
   companyId: string;
@@ -181,7 +182,9 @@ export const VehicleAssignmentModal = ({
       handleClose();
     } catch (error: any) {
       console.error('Erro ao salvar vínculo:', error);
-      toast.error(error.message || 'Erro ao salvar vínculo');
+      // P9: Usar error-handler para mensagens em português
+      const errorMessage = getErrorMessage(error);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -292,7 +295,7 @@ export const VehicleAssignmentModal = ({
             </Button>
             <Button onClick={handleSubmit} disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Criar Vínculo
+              {editingAssignment ? 'Atualizar Vínculo' : 'Criar Vínculo'}
             </Button>
           </div>
         </div>
