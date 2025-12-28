@@ -9,14 +9,14 @@ import { getCachedProfile, setCachedProfile } from '@/lib/profile-cache';
 export interface UserProfile {
   id: string;
   user_id: string;
-  email: string;
+  email?: string;
   full_name: string;
   phone: string;
   document: string;
-  role: 'PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'ADMIN' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA'; // Mantido por compatibilidade
-  roles: string[]; // NOVO: Array de roles do user_roles
+  role: 'PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'ADMIN' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA'; // derivado de active_mode para compatibilidade
+  roles: string[]; // Array de roles do user_roles (ex: admin)
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  active_mode?: string | null; // Mantido por compatibilidade
+  active_mode?: string | null;
   selfie_url?: string;
   document_photo_url?: string;
   cnh_photo_url?: string;
@@ -133,8 +133,8 @@ export const useAuth = () => {
           const { data, error } = await supabase
             .from('profiles')
             .select(`
-              id, user_id, full_name, phone, document, email,
-              role, status, active_mode, service_types,
+              id, user_id, full_name, phone, document,
+              status, active_mode, service_types,
               base_city_name, base_state, base_city_id,
               created_at, updated_at, cpf_cnpj, rntrc,
               antt_number, cooperative, rating,
@@ -177,20 +177,25 @@ export const useAuth = () => {
                     .from('user_roles')
                     .select('role')
                     .eq('user_id', p.user_id);
-                  
+
                   if (error) throw error;
                   return data;
                 },
                 {
-                  timeoutMs: 5000,  // ✅ 5 segundos
+                  timeoutMs: 5000,
                   operationName: 'fetchUserRoles',
-                  retries: 0
+                  retries: 0,
                 }
               );
-              
+
+              const roles = rolesData?.map((r: any) => r.role) || [];
+              const derivedRole = (p?.active_mode || 'PRODUTOR') as any;
+
               return {
                 ...p,
-                roles: rolesData?.map(r => r.role) || []
+                roles,
+                role: derivedRole,
+                email: '',
               };
             } catch (error) {
               // ✅ Se falhar, continua com roles vazio (fallback silencioso)
@@ -199,9 +204,14 @@ export const useAuth = () => {
                 console.warn(`[useAuth] Erro ao buscar roles para ${p.user_id}:`, error);
                 lastErrorLogAt.current = now;
               }
+
+              const derivedRole = (p?.active_mode || 'PRODUTOR') as any;
+
               return {
                 ...p,
-                roles: []
+                roles: [],
+                role: derivedRole,
+                email: '',
               };
             }
           })
@@ -316,7 +326,7 @@ export const useAuth = () => {
         phone: meta.phone || '',
         document: meta.document || '',
         cpf_cnpj: meta.document || '',
-        role: resolvedRole,
+        active_mode: resolvedRole, // mantém compatibilidade com telas que dependem do "role"
         status: 'PENDING' as any,
       };
       
