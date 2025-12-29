@@ -443,6 +443,45 @@ export type Database = {
           },
         ]
       }
+      badge_types: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          is_active: boolean | null
+          name: string
+          requirement_type: string
+          requirement_value: number
+          xp_reward: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          icon: string
+          id: string
+          is_active?: boolean | null
+          name: string
+          requirement_type: string
+          requirement_value?: number
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       balance_transactions: {
         Row: {
           amount: number
@@ -1225,6 +1264,45 @@ export type Database = {
           },
         ]
       }
+      driver_badges: {
+        Row: {
+          badge_type_id: string
+          driver_id: string
+          earned_at: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          badge_type_id: string
+          driver_id: string
+          earned_at?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          badge_type_id?: string
+          driver_id?: string
+          earned_at?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_badges_badge_type_id_fkey"
+            columns: ["badge_type_id"]
+            isOneToOne: false
+            referencedRelation: "badge_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_badges_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_checkins: {
         Row: {
           checked_at: string
@@ -1336,6 +1414,44 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      driver_levels: {
+        Row: {
+          created_at: string
+          current_xp: number
+          driver_id: string
+          id: string
+          level: number
+          total_xp: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_xp?: number
+          driver_id: string
+          id?: string
+          level?: number
+          total_xp?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_xp?: number
+          driver_id?: string
+          id?: string
+          level?: number
+          total_xp?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_levels_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1519,6 +1635,48 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      driver_rewards: {
+        Row: {
+          driver_id: string
+          expires_at: string | null
+          id: string
+          redeemed_at: string
+          reward_id: string
+          status: string
+        }
+        Insert: {
+          driver_id: string
+          expires_at?: string | null
+          id?: string
+          redeemed_at?: string
+          reward_id: string
+          status?: string
+        }
+        Update: {
+          driver_id?: string
+          expires_at?: string | null
+          id?: string
+          redeemed_at?: string
+          reward_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_rewards_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_rewards_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       driver_service_areas: {
         Row: {
@@ -4087,6 +4245,53 @@ export type Database = {
         }
         Relationships: []
       }
+      premium_subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          features: Json | null
+          id: string
+          plan_type: string
+          profile_id: string | null
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          features?: Json | null
+          id?: string
+          plan_type?: string
+          profile_id?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          features?: Json | null
+          id?: string
+          plan_type?: string
+          profile_id?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "premium_subscriptions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_plans: {
         Row: {
           created_at: string
@@ -4824,6 +5029,101 @@ export type Database = {
           updated_at?: string
           user_id?: string
           uses?: number
+        }
+        Relationships: []
+      }
+      report_exports: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          date_range_from: string | null
+          date_range_to: string | null
+          error_message: string | null
+          file_size_bytes: number | null
+          file_url: string | null
+          format: string
+          id: string
+          metadata: Json | null
+          profile_id: string | null
+          report_type: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          date_range_from?: string | null
+          date_range_to?: string | null
+          error_message?: string | null
+          file_size_bytes?: number | null
+          file_url?: string | null
+          format: string
+          id?: string
+          metadata?: Json | null
+          profile_id?: string | null
+          report_type: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          date_range_from?: string | null
+          date_range_to?: string | null
+          error_message?: string | null
+          file_size_bytes?: number | null
+          file_url?: string | null
+          format?: string
+          id?: string
+          metadata?: Json | null
+          profile_id?: string | null
+          report_type?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_exports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rewards: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+          name: string
+          required_level: number | null
+          required_xp: number | null
+          reward_type: string
+          value: number | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          required_level?: number | null
+          required_xp?: number | null
+          reward_type: string
+          value?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          required_level?: number | null
+          required_xp?: number | null
+          reward_type?: string
+          value?: number | null
         }
         Relationships: []
       }
