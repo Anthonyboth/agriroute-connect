@@ -248,3 +248,6 @@ verify_jwt = false
 
 [functions.create-guest-service-request]
 verify_jwt = false
+
+[functions.export-report]
+verify_jwt = true
