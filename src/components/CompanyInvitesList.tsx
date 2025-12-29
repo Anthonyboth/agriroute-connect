@@ -16,7 +16,7 @@ export const CompanyInvitesList: React.FC = () => {
         .from('profiles')
         .select('id')
         .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
+        .maybeSingle();
 
       if (!profileData) return [];
 
@@ -24,7 +24,7 @@ export const CompanyInvitesList: React.FC = () => {
         .from('transport_companies')
         .select('id')
         .eq('profile_id', profileData.id)
-        .single();
+        .maybeSingle();
 
       if (!companyData) return [];
 

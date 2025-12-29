@@ -74,8 +74,9 @@ export const AdminValidationPanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
 
-  // Verificar se é admin
-  if (!profile || profile.role !== 'ADMIN') {
+  // Verificar se é admin - usar roles array ou hasRole
+  const isAdmin = profile?.roles?.includes('admin') || profile?.role === 'ADMIN';
+  if (!profile || !isAdmin) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -326,7 +327,7 @@ export const AdminValidationPanel: React.FC = () => {
                       <div className="space-y-2">
                         <div>
                           <h3 className="font-semibold text-lg">{profile.full_name}</h3>
-                          <p className="text-muted-foreground">{profile.role}</p>
+                          <p className="text-muted-foreground">{profile.role || 'N/A'}</p>
                         </div>
                         
                         <div className="flex flex-wrap gap-2">

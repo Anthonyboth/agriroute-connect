@@ -161,11 +161,16 @@ export const DriverReportsTab: React.FC<DriverReportsTabProps> = ({ driverId }) 
     );
   }
 
-  if (isError) {
+  // ✅ Se isError mas não temos dados, mostrar estado vazio ao invés de erro
+  // Isso evita "Erro ao carregar relatórios" quando RPC simplesmente não retornou nada
+  const hasData = summary && (summary.freights?.total || 0) > 0;
+
+  if (isError && !summary) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <AlertCircle className="h-12 w-12 text-destructive/50 mb-4" />
-        <p className="text-muted-foreground font-medium">Erro ao carregar relatórios</p>
+        <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
+        <p className="text-muted-foreground font-medium">Nenhum dado encontrado</p>
+        <p className="text-sm text-muted-foreground mt-2">Tente ajustar o período ou verifique se há fretes registrados.</p>
         <Button onClick={() => refetch()} variant="outline" className="mt-4 gap-2">
           <RefreshCw className="h-4 w-4" />
           Tentar novamente

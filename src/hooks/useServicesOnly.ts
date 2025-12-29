@@ -13,9 +13,12 @@ export const useServicesOnly = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchServices = useCallback(async () => {
-    // Validar role
-    if (!profile?.id || profile.role !== 'PRESTADOR_SERVICOS') {
-      console.warn('[useServicesOnly] Role inválido:', profile?.role);
+    // Validar role - usar active_mode ao invés de role
+    const activeMode = profile?.active_mode || profile?.role;
+    if (!profile?.id || activeMode !== 'PRESTADOR_SERVICOS') {
+      if (import.meta.env.DEV) {
+        console.warn('[useServicesOnly] Role/mode inválido:', activeMode);
+      }
       setServices([]);
       setLoading(false);
       return;

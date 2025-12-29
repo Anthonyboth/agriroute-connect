@@ -496,10 +496,10 @@ const CompanyDashboard = () => {
 
   if (!profile) return null;
 
-  if (!company && !profiles.find(p => p.role === 'TRANSPORTADORA')) {
+  if (!company && !profiles.find(p => p.active_mode === 'TRANSPORTADORA' || p.role === 'TRANSPORTADORA')) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-        <Header user={profile ? { ...profile, name: profile.full_name, role: profile.role as any } : undefined} onLogout={signOut} />
+        <Header user={profile ? { ...profile, name: profile.full_name, role: (profile.active_mode || profile.role) as any } : undefined} onLogout={signOut} />
         <div className="container mx-auto px-4 py-8">
           <Card className="max-w-2xl mx-auto">
             <CardHeader>

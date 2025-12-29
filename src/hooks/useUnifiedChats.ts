@@ -177,7 +177,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                 participants.push({
                   id: freight.driver_id,
                   name: driverProfile.full_name || 'Motorista',
-                  role: driverProfile.role || 'MOTORISTA',
+                  role: driverProfile.active_mode || 'MOTORISTA',
                 });
               }
               if (company) {

@@ -36,7 +36,7 @@ export const useDriverAffiliations = () => {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!profile?.id && (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO'),
+    enabled: !!profile?.id && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile?.active_mode || profile?.role || ''),
     staleTime: 5 * 60 * 1000, // 5 minutos
     refetchOnMount: false, // ✅ Evitar refetch desnecessário
   });

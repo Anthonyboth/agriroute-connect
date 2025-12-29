@@ -62,11 +62,11 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         .from('freights')
         .select(`
           *,
-          producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, role),
-          driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, role)
+          producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, active_mode),
+          driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, active_mode)
         `)
         .eq('id', freightId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Erro ao buscar frete:', error.message, error.details);

@@ -146,7 +146,7 @@ const [location, setLocation] = useState<{ lat: number; lng: number; address: st
         requires_counterpart_confirmation: selectedType?.requiresCounterpart || false,
         status: selectedType?.requiresCounterpart ? 'PENDING' : 'CONFIRMED',
         metadata: {
-          user_role: currentUserProfile.role,
+          user_role: currentUserProfile.active_mode || currentUserProfile.role || 'UNKNOWN',
           user_name: currentUserProfile.full_name
         }
       };
