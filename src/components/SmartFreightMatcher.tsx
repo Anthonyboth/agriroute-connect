@@ -94,7 +94,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
     const currentFetchId = ++fetchIdRef.current;
     updateLockRef.current = true;
     
-    const isCompany = profile.role === 'TRANSPORTADORA';
+    // Usar active_mode ao invés de role
+    const activeMode = profile?.active_mode || profile?.role;
+    const isCompany = activeMode === 'TRANSPORTADORA';
     setLoading(true);
     
     // ✅ Cancelar fetch anterior se existir

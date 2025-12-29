@@ -299,7 +299,7 @@ const OptimizedHeader = memo<OptimizedHeaderProps>(({
         onCreateProfile={handleCreateProfile}
         currentProfile={userProfile ? {
           id: userProfile.id,
-          role: userProfile.role,
+          role: userProfile.active_mode || userProfile.role,
           full_name: userProfile.full_name,
           status: userProfile.status,
           profile_photo_url: userProfile.profile_photo_url
@@ -310,7 +310,7 @@ const OptimizedHeader = memo<OptimizedHeaderProps>(({
         <AddProfileModal
           isOpen={showAddProfile}
           onClose={handleCloseAddProfile}
-          currentRole={userProfile.role}
+          currentRole={userProfile.active_mode || userProfile.role}
           onProfileAdded={handleProfileAdded}
         />
       )}

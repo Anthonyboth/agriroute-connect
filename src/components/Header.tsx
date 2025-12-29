@@ -413,7 +413,7 @@ const Header: React.FC<HeaderProps> = ({
         onCreateProfile={() => setShowAddProfile(true)}
         currentProfile={userProfile ? {
           id: userProfile.id,
-          role: userProfile.role,
+          role: userProfile.active_mode || userProfile.role,
           full_name: userProfile.full_name,
           status: userProfile.status,
           profile_photo_url: userProfile.profile_photo_url
@@ -424,7 +424,7 @@ const Header: React.FC<HeaderProps> = ({
         <AddProfileModal
           isOpen={showAddProfile}
           onClose={() => setShowAddProfile(false)}
-          currentRole={userProfile.role}
+          currentRole={userProfile.active_mode || userProfile.role}
           onProfileAdded={() => {
             setShowAddProfile(false);
             setShowAccountSwitcher(false);

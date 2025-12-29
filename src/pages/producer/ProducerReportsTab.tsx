@@ -20,7 +20,9 @@ export const ProducerReportsTab: React.FC = () => {
   const { profile } = useAuth();
 
   // RPC espera profiles.id do produtor logado
-  const profileId = profile?.role === 'PRODUTOR' ? profile.id : undefined;
+  // Tratamento defensivo: verificar se profile existe antes de acessar
+  const activeMode = profile?.active_mode || profile?.role;
+  const profileId = (activeMode === 'PRODUTOR' && profile?.id) ? profile.id : undefined;
 
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfDay(subDays(new Date(), 30)),
@@ -165,11 +167,15 @@ export const ProducerReportsTab: React.FC = () => {
     );
   }
 
-  if (isError) {
+  // ✅ Se isError mas não temos dados, mostrar estado vazio ao invés de erro
+  const hasData = summary && ((summary.freights?.total || 0) > 0 || (summary.services?.total || 0) > 0);
+
+  if (isError && !summary) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <AlertCircle className="h-12 w-12 text-destructive/50 mb-4" />
-        <p className="text-muted-foreground font-medium">Erro ao carregar relatórios</p>
+        <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
+        <p className="text-muted-foreground font-medium">Nenhum dado encontrado</p>
+        <p className="text-sm text-muted-foreground mt-2">Tente ajustar o período ou verifique se há fretes/serviços registrados.</p>
         <Button onClick={() => refetch()} variant="outline" className="mt-4 gap-2">
           <RefreshCw className="h-4 w-4" />
           Tentar novamente

@@ -44,9 +44,9 @@ export const PerformanceMetrics = () => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('id, role')
+        .select('id, active_mode')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!profile) return;
 
@@ -68,10 +68,11 @@ export const PerformanceMetrics = () => {
           startDate.setMonth(endDate.getMonth() - 6);
       }
 
-      // Fetch freight data based on user role
+      // Fetch freight data based on user role (usando active_mode)
       let freightQuery = supabase.from('freights').select('*');
+      const activeMode = profile.active_mode || '';
       
-      if (profile.role === 'MOTORISTA') {
+      if (activeMode === 'MOTORISTA' || activeMode === 'MOTORISTA_AFILIADO') {
         freightQuery = freightQuery.eq('driver_id', profile.id);
       } else {
         freightQuery = freightQuery.eq('producer_id', profile.id);

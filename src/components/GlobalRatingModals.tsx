@@ -55,7 +55,7 @@ export const GlobalRatingModals: React.FC = () => {
         .from('service_requests')
         .select('client_id, provider_id')
         .eq('id', serviceRequestId)
-        .single();
+        .maybeSingle();
 
       const ratingType = serviceData?.client_id === profile.id 
         ? 'CLIENT_TO_PROVIDER' 
@@ -127,7 +127,7 @@ export const GlobalRatingModals: React.FC = () => {
         .from('freights')
         .select('producer_id, driver_id')
         .eq('id', freightId)
-        .single();
+        .maybeSingle();
 
       const ratingType = freightData?.producer_id === profile.id 
         ? 'PRODUCER_TO_DRIVER' 

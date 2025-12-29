@@ -14,9 +14,12 @@ export const useFreightsOnly = (companyId?: string) => {
   const [loading, setLoading] = useState(true);
 
   const fetchFreights = useCallback(async () => {
-    // Validar role
-    if (!profile?.id || !['MOTORISTA', 'TRANSPORTADORA'].includes(profile.role)) {
-      console.warn('[useFreightsOnly] Role inválido:', profile?.role);
+    // Validar role - usar active_mode ao invés de role
+    const activeMode = profile?.active_mode || profile?.role;
+    if (!profile?.id || !['MOTORISTA', 'TRANSPORTADORA', 'MOTORISTA_AFILIADO'].includes(activeMode || '')) {
+      if (import.meta.env.DEV) {
+        console.warn('[useFreightsOnly] Role/mode inválido:', activeMode);
+      }
       setFreights([]);
       setLoading(false);
       return;
