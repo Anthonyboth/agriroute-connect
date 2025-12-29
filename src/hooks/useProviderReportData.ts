@@ -58,10 +58,29 @@ export function useProviderReportData(
   dateRange: DateRange
 ): UseProviderReportDataResult {
   
+  // DEV LOGS - Diagnóstico (Fase 7 - Item 13)
+  if (import.meta.env.DEV) {
+    console.log('[useProviderReportData] 📊 Parâmetros:', {
+      profileId,
+      dateRangeFrom: dateRange.from?.toISOString(),
+      dateRangeTo: dateRange.to?.toISOString(),
+      timestamp: new Date().toISOString()
+    });
+  }
+
   const summaryQuery = useQuery({
     queryKey: ['provider-report-summary', profileId, dateRange.from, dateRange.to],
     queryFn: async () => {
-      if (!profileId) return DEFAULT_SUMMARY;
+      if (!profileId) {
+        if (import.meta.env.DEV) {
+          console.warn('[useProviderReportData] ⚠️ profileId não fornecido');
+        }
+        return DEFAULT_SUMMARY;
+      }
+      
+      if (import.meta.env.DEV) {
+        console.log('[useProviderReportData] 🔄 Chamando RPC get_provider_report_summary...', { profileId });
+      }
       
       const { data, error } = await supabase.rpc('get_provider_report_summary', {
         p_profile_id: profileId,
@@ -69,7 +88,17 @@ export function useProviderReportData(
         p_end_at: dateRange.to.toISOString(),
       });
       
-      if (error) throw error;
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('[useProviderReportData] ❌ Erro RPC summary:', error);
+        }
+        throw error;
+      }
+      
+      if (import.meta.env.DEV) {
+        console.log('[useProviderReportData] ✅ Summary recebido:', data);
+      }
+      
       return (data as unknown as ProviderReportSummary) || DEFAULT_SUMMARY;
     },
     enabled: !!profileId,
@@ -80,7 +109,16 @@ export function useProviderReportData(
   const chartsQuery = useQuery({
     queryKey: ['provider-report-charts', profileId, dateRange.from, dateRange.to],
     queryFn: async () => {
-      if (!profileId) return DEFAULT_CHARTS;
+      if (!profileId) {
+        if (import.meta.env.DEV) {
+          console.warn('[useProviderReportData] ⚠️ profileId não fornecido para charts');
+        }
+        return DEFAULT_CHARTS;
+      }
+      
+      if (import.meta.env.DEV) {
+        console.log('[useProviderReportData] 🔄 Chamando RPC get_provider_report_charts...', { profileId });
+      }
       
       const { data, error } = await supabase.rpc('get_provider_report_charts', {
         p_profile_id: profileId,
@@ -88,13 +126,31 @@ export function useProviderReportData(
         p_end_at: dateRange.to.toISOString(),
       });
       
-      if (error) throw error;
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('[useProviderReportData] ❌ Erro RPC charts:', error);
+        }
+        throw error;
+      }
+      
+      if (import.meta.env.DEV) {
+        console.log('[useProviderReportData] ✅ Charts recebido:', data);
+      }
+      
       return (data as unknown as ProviderReportCharts) || DEFAULT_CHARTS;
     },
     enabled: !!profileId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
+
+  // DEV LOG - Estado final
+  if (import.meta.env.DEV && (summaryQuery.isError || chartsQuery.isError)) {
+    console.error('[useProviderReportData] ❌ Erro geral:', {
+      summaryError: summaryQuery.error,
+      chartsError: chartsQuery.error
+    });
+  }
 
   return {
     summary: summaryQuery.data || null,

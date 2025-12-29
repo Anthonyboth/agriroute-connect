@@ -11,7 +11,7 @@ export interface DateRange {
   to: Date;
 }
 
-export type PeriodPreset = '7d' | '30d' | '90d' | 'custom';
+export type PeriodPreset = '7d' | '30d' | '90d' | 'all' | 'custom';
 
 export interface ChartDataPoint {
   name: string;
