@@ -63,10 +63,29 @@ export function useDriverReportData(
   dateRange: DateRange
 ): UseDriverReportDataResult {
   
+  // DEV LOGS - Diagnóstico (Fase 7 - Item 13)
+  if (import.meta.env.DEV) {
+    console.log('[useDriverReportData] 📊 Parâmetros:', {
+      profileId,
+      dateRangeFrom: dateRange.from?.toISOString(),
+      dateRangeTo: dateRange.to?.toISOString(),
+      timestamp: new Date().toISOString()
+    });
+  }
+
   const summaryQuery = useQuery({
     queryKey: ['driver-report-summary', profileId, dateRange.from, dateRange.to],
     queryFn: async () => {
-      if (!profileId) return DEFAULT_SUMMARY;
+      if (!profileId) {
+        if (import.meta.env.DEV) {
+          console.warn('[useDriverReportData] ⚠️ profileId não fornecido');
+        }
+        return DEFAULT_SUMMARY;
+      }
+      
+      if (import.meta.env.DEV) {
+        console.log('[useDriverReportData] 🔄 Chamando RPC get_driver_report_summary...', { profileId });
+      }
       
       const { data, error } = await supabase.rpc('get_driver_report_summary', {
         p_profile_id: profileId,
@@ -74,7 +93,17 @@ export function useDriverReportData(
         p_end_at: dateRange.to.toISOString(),
       });
       
-      if (error) throw error;
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('[useDriverReportData] ❌ Erro RPC summary:', error);
+        }
+        throw error;
+      }
+      
+      if (import.meta.env.DEV) {
+        console.log('[useDriverReportData] ✅ Summary recebido:', data);
+      }
+      
       return (data as unknown as DriverReportSummary) || DEFAULT_SUMMARY;
     },
     enabled: !!profileId,
@@ -85,7 +114,16 @@ export function useDriverReportData(
   const chartsQuery = useQuery({
     queryKey: ['driver-report-charts', profileId, dateRange.from, dateRange.to],
     queryFn: async () => {
-      if (!profileId) return DEFAULT_CHARTS;
+      if (!profileId) {
+        if (import.meta.env.DEV) {
+          console.warn('[useDriverReportData] ⚠️ profileId não fornecido para charts');
+        }
+        return DEFAULT_CHARTS;
+      }
+      
+      if (import.meta.env.DEV) {
+        console.log('[useDriverReportData] 🔄 Chamando RPC get_driver_report_charts...', { profileId });
+      }
       
       const { data, error } = await supabase.rpc('get_driver_report_charts', {
         p_profile_id: profileId,
@@ -93,13 +131,31 @@ export function useDriverReportData(
         p_end_at: dateRange.to.toISOString(),
       });
       
-      if (error) throw error;
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('[useDriverReportData] ❌ Erro RPC charts:', error);
+        }
+        throw error;
+      }
+      
+      if (import.meta.env.DEV) {
+        console.log('[useDriverReportData] ✅ Charts recebido:', data);
+      }
+      
       return (data as unknown as DriverReportCharts) || DEFAULT_CHARTS;
     },
     enabled: !!profileId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
+
+  // DEV LOG - Estado final
+  if (import.meta.env.DEV && (summaryQuery.isError || chartsQuery.isError)) {
+    console.error('[useDriverReportData] ❌ Erro geral:', {
+      summaryError: summaryQuery.error,
+      chartsError: chartsQuery.error
+    });
+  }
 
   return {
     summary: summaryQuery.data || null,

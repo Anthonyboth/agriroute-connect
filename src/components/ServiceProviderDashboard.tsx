@@ -68,7 +68,7 @@ import { RegionalFreightFilter } from '@/components/RegionalFreightFilter';
 import { ServiceProviderServiceTypeManager } from '@/components/ServiceProviderServiceTypeManager';
 import { UserCityManager } from '@/components/UserCityManager';
 import { ServiceHistory } from '@/components/ServiceHistory';
-import { ServiceProviderReportsDashboard } from '@/components/ServiceProviderReportsDashboard';
+// ServiceProviderReportsDashboard removido - usando ProviderReportsTab
 import { ProviderReportsTab } from '@/pages/provider/ProviderReportsTab';
 import { PendingServiceRatingsPanel } from '@/components/PendingServiceRatingsPanel';
 import { RatingsHistoryPanel } from '@/components/RatingsHistoryPanel';
