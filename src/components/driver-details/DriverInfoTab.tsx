@@ -58,17 +58,46 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
   const handleUploadPhoto = async (file: File, photoType: 'profile' | 'cnh' | 'selfie') => {
     if (!driver?.id) return;
     
+    // Validações de arquivo
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Formato inválido. Use JPG, PNG ou WEBP.');
+      return;
+    }
+    
+    if (file.size > maxSize) {
+      toast.error('Arquivo muito grande. Máximo: 10MB.');
+      return;
+    }
+    
     setUploadingPhoto(photoType);
     
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${driver.id}/${photoType}_${Date.now()}.${fileExt}`;
+      
+      console.log('[Upload] Iniciando upload:', { photoType, fileName, fileSize: file.size });
       
       const { error: uploadError } = await supabase.storage
         .from('driver-documents')
         .upload(fileName, file, { upsert: true });
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('[Upload] Erro no storage:', uploadError);
+        
+        // Mensagens específicas para erros comuns
+        if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('not found')) {
+          toast.error('Erro de configuração do sistema. Contate o suporte.');
+          return;
+        }
+        if (uploadError.message?.includes('Payload too large') || uploadError.message?.includes('size')) {
+          toast.error('Arquivo muito grande. Máximo: 10MB.');
+          return;
+        }
+        throw uploadError;
+      }
       
       const { data: { publicUrl } } = supabase.storage
         .from('driver-documents')
@@ -86,10 +115,18 @@ export const DriverInfoTab = ({ driverData, companyId }: DriverInfoTabProps) => 
       if (updateError) throw updateError;
       
       queryClient.invalidateQueries({ queryKey: ['company-drivers'] });
-      toast.success('Foto atualizada com sucesso!');
-    } catch (error) {
-      console.error('Erro ao fazer upload:', error);
-      toast.error('Erro ao fazer upload da foto');
+      toast.success('Foto enviada com sucesso!');
+    } catch (error: any) {
+      console.error('[Upload] Erro completo:', error);
+      
+      // Mensagens específicas por tipo de erro
+      if (error?.message?.includes('row-level security') || error?.message?.includes('RLS')) {
+        toast.error('Sem permissão para upload. Verifique se está logado.');
+      } else if (error?.message?.includes('network') || error?.code === 'NETWORK_ERROR') {
+        toast.error('Erro de conexão. Verifique sua internet e tente novamente.');
+      } else {
+        toast.error('Erro ao enviar foto. Tente novamente.');
+      }
     } finally {
       setUploadingPhoto(null);
     }

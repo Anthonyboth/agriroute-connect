@@ -673,12 +673,36 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
         }
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unified-chats'] });
-      toast.success('Conversa fechada');
+    onMutate: async ({ id, type }) => {
+      // Cancelar queries em andamento
+      await queryClient.cancelQueries({ queryKey: ['unified-chats', userProfileId, userRole] });
+      
+      // Salvar estado anterior para rollback
+      const previousData = queryClient.getQueryData(['unified-chats', userProfileId, userRole]);
+      
+      // Atualização otimista: marcar conversa como fechada imediatamente
+      queryClient.setQueryData(['unified-chats', userProfileId, userRole], (old: ChatConversation[] | undefined) => {
+        if (!old) return old;
+        return old.map((conv: ChatConversation) => 
+          conv.id === id ? { ...conv, isClosed: true } : conv
+        );
+      });
+      
+      return { previousData };
     },
-    onError: () => {
+    onSuccess: () => {
+      toast.success('Conversa movida para Fechadas');
+    },
+    onError: (err, variables, context) => {
+      // Rollback em caso de erro
+      if (context?.previousData) {
+        queryClient.setQueryData(['unified-chats', userProfileId, userRole], context.previousData);
+      }
       toast.error('Erro ao fechar conversa');
+    },
+    onSettled: () => {
+      // Sempre invalidar para garantir sincronização com servidor
+      queryClient.invalidateQueries({ queryKey: ['unified-chats'] });
     },
   });
 

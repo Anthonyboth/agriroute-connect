@@ -59,12 +59,16 @@ export const UnifiedLocationInput: React.FC<UnifiedLocationInputProps> = ({
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Inicializar inputValue apenas uma vez
+  // Sincronizar inputValue com value externo
   useEffect(() => {
-    if (value && !inputValue) {
+    if (value && value !== inputValue) {
       setInputValue(value);
+      // Se valor externo foi setado, marcar como válido
+      if (value.includes(',')) {
+        setValidLocation(true);
+      }
     }
-  }, []);
+  }, [value]);
 
   // Detectar tipo de input
   const detectInputType = (val: string): InputType => {
