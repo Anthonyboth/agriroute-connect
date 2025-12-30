@@ -429,19 +429,52 @@ export function CreateFreightWizard({
       setCurrentStep(1);
       onFreightCreated();
     } catch (error: any) {
-      console.error('Error creating freight:', error);
+      console.error('[FreightWizard] Erro ao criar frete:', error);
       
-      if (error?.message?.includes('delivery_date')) {
-        toast.error('Data de entrega é obrigatória');
+      // Extrair mensagem do erro
+      const errorMessage = error?.message || '';
+      const errorCode = error?.code || '';
+      const errorDetails = error?.details || '';
+      
+      // Mapear erros específicos para mensagens claras em português
+      if (errorMessage.includes('delivery_date') || errorDetails.includes('delivery_date')) {
+        toast.error('Data de entrega é obrigatória. Preencha na etapa 4.');
         setCurrentStep(4);
-      } else if (error?.message?.includes('pickup_date')) {
-        toast.error('Data de coleta é obrigatória');
+      } else if (errorMessage.includes('pickup_date') || errorDetails.includes('pickup_date')) {
+        toast.error('Data de coleta é obrigatória. Preencha na etapa 4.');
         setCurrentStep(4);
-      } else if (error?.code === '23502') {
-        toast.error('Preencha todos os campos obrigatórios');
+      } else if (errorMessage.includes('origin') || errorDetails.includes('origin')) {
+        toast.error('Origem é obrigatória. Verifique a etapa 1.');
+        setCurrentStep(1);
+      } else if (errorMessage.includes('destination') || errorDetails.includes('destination')) {
+        toast.error('Destino é obrigatório. Verifique a etapa 1.');
+        setCurrentStep(1);
+      } else if (errorMessage.includes('neighborhood') || errorDetails.includes('neighborhood')) {
+        toast.error('Bairro/Fazenda é obrigatório. Preencha na etapa 2.');
+        setCurrentStep(2);
+      } else if (errorMessage.includes('cargo_type') || errorDetails.includes('cargo_type')) {
+        toast.error('Tipo de carga é obrigatório. Preencha na etapa 3.');
+        setCurrentStep(3);
+      } else if (errorMessage.includes('weight') || errorDetails.includes('weight')) {
+        toast.error('Peso da carga é obrigatório. Preencha na etapa 3.');
+        setCurrentStep(3);
+      } else if (errorMessage.includes('price') || errorDetails.includes('price')) {
+        toast.error('Valor do frete é obrigatório. Preencha na etapa 4.');
         setCurrentStep(4);
+      } else if (errorCode === '23502') {
+        // Campo NOT NULL violado - mostrar campos faltando
+        toast.error('Campos obrigatórios faltando. Verifique todas as etapas.');
+      } else if (errorCode === '23503') {
+        // Foreign key violation
+        toast.error('Erro de referência. Recarregue a página e tente novamente.');
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        toast.error('Erro de conexão. Verifique sua internet e tente novamente.');
       } else {
-        toast.error('Erro ao criar frete. Verifique os dados e tente novamente.');
+        // Erro genérico com mais detalhes
+        const displayMessage = errorMessage.length > 100 
+          ? 'Erro ao criar frete. Verifique os dados e tente novamente.'
+          : errorMessage || 'Erro ao criar frete. Verifique os dados e tente novamente.';
+        toast.error(displayMessage);
       }
     } finally {
       setLoading(false);

@@ -73,7 +73,7 @@ import { ProviderReportsTab } from '@/pages/provider/ProviderReportsTab';
 import { PendingServiceRatingsPanel } from '@/components/PendingServiceRatingsPanel';
 import { RatingsHistoryPanel } from '@/components/RatingsHistoryPanel';
 import { ServicesModal } from '@/components/ServicesModal';
-import { SystemAnnouncementsBoardInline } from '@/components/SystemAnnouncementsBoardInline';
+import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { normalizeServiceType } from '@/lib/pt-br-validator';
 
 interface ServiceRequest {
@@ -1261,7 +1261,7 @@ export const ServiceProviderDashboard: React.FC = () => {
             </div>
 
             {/* PROBLEMA 5: Mural de Avisos reposicionado - APÓS busca, ANTES dos cards */}
-            <SystemAnnouncementsBoardInline />
+            <SystemAnnouncementsBoard isOpen={false} onClose={() => {}} />
             
             {filteredRequests.length > 0 ? (
               <div className="space-y-4">

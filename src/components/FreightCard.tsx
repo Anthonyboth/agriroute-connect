@@ -588,23 +588,23 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 const hasMultipleTrucks = requiredTrucks > 1;
                 const isProducer = profile?.role === 'PRODUTOR';
                 
-                // Determinar tipo de pagamento (por KM, por TON, ou fixo)
-                const paymentType = (freight as any).payment_type;
-                const valuePerKm = (freight as any).value_per_km;
-                const valuePerTon = (freight as any).value_per_ton;
+                // Determinar tipo de pagamento - campo correto é pricing_type
+                const pricingType = (freight as any).pricing_type || (freight as any).payment_type;
+                const valuePerKm = (freight as any).price_per_km || (freight as any).value_per_km;
+                const valuePerTon = (freight as any).price_per_ton || (freight as any).value_per_ton;
                 
                 return (
                   <>
-                    {/* Exibir valor baseado no tipo de pagamento */}
-                    {paymentType === 'PER_KM' && valuePerKm ? (
+                    {/* Exibir valor baseado no tipo de precificação */}
+                    {pricingType === 'PER_KM' && valuePerKm ? (
                       <p className="font-bold text-xl text-primary whitespace-nowrap">
                         {formatBRL(valuePerKm, true)}
-                        <span className="text-xs font-normal text-muted-foreground ml-1">/KM</span>
+                        <span className="text-xs font-normal text-muted-foreground ml-1">/km</span>
                       </p>
-                    ) : paymentType === 'PER_TON' && valuePerTon ? (
+                    ) : pricingType === 'PER_TON' && (valuePerTon || (freight.weight && freight.price)) ? (
                       <p className="font-bold text-xl text-primary whitespace-nowrap">
-                        {formatBRL(valuePerTon, true)}
-                        <span className="text-xs font-normal text-muted-foreground ml-1">/TON</span>
+                        {formatBRL(valuePerTon || (freight.price / (freight.weight / 1000)), true)}
+                        <span className="text-xs font-normal text-muted-foreground ml-1">/ton</span>
                       </p>
                     ) : (
                       <p className="font-bold text-xl text-primary whitespace-nowrap">
@@ -614,8 +614,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                             /carreta
                           </span>
                         )}
-                        {!hasMultipleTrucks && paymentType === 'FIXED' && (
-                          <span className="text-xs font-normal text-muted-foreground ml-1">FIXO</span>
+                        {!hasMultipleTrucks && pricingType === 'FIXED' && (
+                          <span className="text-xs font-normal text-muted-foreground ml-1">fixo</span>
                         )}
                       </p>
                     )}

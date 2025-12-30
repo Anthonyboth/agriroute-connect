@@ -39,8 +39,6 @@ import { useUnreadChatsCount } from '@/hooks/useUnifiedChats';
 import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
 import { AdvancedVehicleManager } from '@/components/AdvancedVehicleManager';
 import { CompanyVehiclesList } from '@/components/CompanyVehiclesList';
-import { ServiceVehicleForm } from '@/components/ServiceVehicleForm';
-import { CompanyServiceVehiclesManager } from '@/components/CompanyServiceVehiclesManager';
 import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { useDriverPermissions } from '@/hooks/useDriverPermissions';
 import { cn } from '@/lib/utils';
@@ -101,7 +99,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
     badge: activeCount > 0 ? activeCount : undefined
   },
   { value: 'proposals', label: 'Propostas', shortLabel: 'Propostas', icon: FileText, badge: undefined },
-  { value: 'services', label: 'Serviços', shortLabel: 'Serviços', icon: Wrench, badge: undefined },
+  
   { value: 'payments', label: 'Pagamentos', shortLabel: 'Pagamentos', icon: DollarSign, badge: undefined },
   { value: 'cities', label: 'Cidades', shortLabel: 'Cidades', icon: MapPin, badge: undefined },
   { value: 'ratings', label: 'Avaliações', shortLabel: 'Avaliações', icon: Star, badge: undefined },
@@ -215,7 +213,7 @@ const CompanyDashboard = () => {
   };
 
   const [editingVehicle, setEditingVehicle] = useState<any>(null);
-  const [editingServiceVehicle, setEditingServiceVehicle] = useState<any>(null);
+  
 
   const handleAddVehicle = async (vehicleData: any) => {
     if (!company?.id || !profile?.id) {
@@ -812,27 +810,6 @@ const CompanyDashboard = () => {
             <CompanyProposalsManager />
           </TabsContent>
 
-          <TabsContent value="services" className="mt-6">
-            <div className="space-y-6">
-              <ServiceVehicleForm
-                companyId={company.id}
-                onSuccess={() => refetchCompany()}
-                editingVehicle={editingServiceVehicle}
-                onEditComplete={() => setEditingServiceVehicle(null)}
-              />
-              
-              <div className="pt-6 border-t">
-                <CompanyServiceVehiclesManager
-                  companyId={company.id}
-                  onEdit={(vehicle) => {
-                    setEditingServiceVehicle(vehicle);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  onDelete={handleDeleteVehicle}
-                />
-              </div>
-            </div>
-          </TabsContent>
 
           <TabsContent value="payments" className="mt-6">
             <Suspense fallback={<ChartLoader />}>
