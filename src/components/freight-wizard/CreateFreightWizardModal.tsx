@@ -64,7 +64,7 @@ export function CreateFreightWizardModal({
         </DialogTrigger>
       )}
       <DialogContent 
-        className="max-w-4xl max-h-[90vh] overflow-y-auto p-0"
+        className="max-w-4xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col p-0"
         onClick={(e) => e.stopPropagation()}
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}

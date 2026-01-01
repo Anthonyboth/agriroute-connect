@@ -501,7 +501,7 @@ export function CreateFreightWizard({
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[85vh]">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="p-4 border-b">
         <div className="flex items-start justify-between gap-3">
@@ -590,8 +590,8 @@ export function CreateFreightWizard({
         </Alert>
       )}
 
-      {/* Step Content */}
-      <div className="overflow-y-auto flex-1 p-4">
+      {/* Step Content - SCROLLABLE */}
+      <div className="flex-1 overflow-y-auto min-h-0 p-4">
         {currentStep === 1 && (
           <FreightWizardStep1
             formData={formData}

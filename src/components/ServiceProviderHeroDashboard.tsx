@@ -252,7 +252,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
             size="sm"
             icon={<TrendingUp className="h-5 w-5" />}
             label="Saldo"
-            value={showEarnings ? 'R$ 0,00' : '****'}
+            value={showEarnings ? `R$ ${stats.total_earnings.toFixed(2).replace('.', ',')}` : '****'}
             iconColor="text-blue-600"
             className="shadow-sm"
             actionButton={
@@ -263,7 +263,8 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
                   e.stopPropagation();
                   toggleEarnings();
                 }}
-                className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                aria-label={showEarnings ? 'Ocultar saldo' : 'Mostrar saldo'}
               >
                 {showEarnings ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </Button>
