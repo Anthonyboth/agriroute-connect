@@ -1056,7 +1056,7 @@ export const ServiceProviderDashboard: React.FC = () => {
 
       <div className="container max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {/* Stats Cards Premium - Navegáveis */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatsCard
             size="sm"
             icon={<Clock className="h-5 w-5" />}
@@ -1096,13 +1096,13 @@ export const ServiceProviderDashboard: React.FC = () => {
               ? new Intl.NumberFormat('pt-BR', { 
                   style: 'currency', 
                   currency: 'BRL',
-                  notation: 'compact',
-                  maximumFractionDigits: 0
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
                 }).format(totalEarnings)
               : '****'
             }
-            onClick={() => setActiveTab('earnings')}
-            className="hover:shadow-lg hover:shadow-warning/30 hover:scale-105 transition-all duration-300 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80"
+            onClick={() => setActiveTab('payouts')}
+            className="hover:shadow-lg hover:shadow-blue-200 hover:scale-105 transition-all duration-300 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80"
             actionButton={
               <Button
                 variant="ghost"
@@ -1112,6 +1112,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                   toggleEarnings();
                 }}
                 className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                aria-label={showEarnings ? 'Ocultar saldo' : 'Mostrar saldo'}
               >
                 {showEarnings ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
               </Button>
@@ -1289,8 +1290,8 @@ export const ServiceProviderDashboard: React.FC = () => {
                         </div>
                         
                         <div className="space-y-2 mb-3">
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            <strong>Problema:</strong> {request.problem_description}
+                          <p className="text-sm text-muted-foreground whitespace-normal break-words">
+                            <strong>Problema:</strong> {request.problem_description || 'Não especificado'}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             <MapPin className="inline h-3 w-3 mr-1" />

@@ -25,7 +25,7 @@ export const ServiceWizardModal: React.FC<ServiceWizardModalProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-2xl h-[90vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col p-0">
         <ServiceWizard
           serviceType={serviceType}
           onClose={onClose}
