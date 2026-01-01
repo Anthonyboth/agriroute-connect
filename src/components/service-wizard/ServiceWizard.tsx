@@ -401,8 +401,8 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
         />
       </div>
 
-      {/* Step Content - SCROLLABLE */}
-      <div className="flex-1 overflow-y-auto min-h-0 p-4">
+      {/* Step Content - SCROLLABLE com barra visível */}
+      <div className="flex-1 overflow-y-auto min-h-0 p-4 scroll-area">
         {renderStep()}
       </div>
 

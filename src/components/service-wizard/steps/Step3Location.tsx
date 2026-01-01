@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { ServiceFormData, ServiceType, AddressData } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Home, Building } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CitySelector } from '@/components/CitySelector';
 
@@ -15,11 +14,6 @@ interface Step3Props {
   requiresDestination: boolean;
 }
 
-const BRAZILIAN_STATES = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 
-  'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 
-  'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-];
 
 interface AddressFormProps {
   prefix: 'origin' | 'destination';
@@ -53,36 +47,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label htmlFor={`${prefix}-cep`} className="text-xs">CEP</Label>
-            <Input
-              id={`${prefix}-cep`}
-              value={address.cep}
-              onChange={(e) => onUpdate(`${prefix}.cep`, formatCEP(e.target.value))}
-              placeholder="00000-000"
-              maxLength={9}
-              className="h-9"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${prefix}-state`} className="text-xs">Estado *</Label>
-            <Select 
-              value={address.state} 
-              onValueChange={(value) => onUpdate(`${prefix}.state`, value)}
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="UF" />
-              </SelectTrigger>
-              <SelectContent>
-                {BRAZILIAN_STATES.map((state) => (
-                  <SelectItem key={state} value={state}>{state}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
+        {/* Cidade - campo principal unificado (preenche estado automaticamente) */}
         <div className="space-y-1">
           <Label htmlFor={`${prefix}-city`} className="text-xs">Cidade *</Label>
           <CitySelector
@@ -94,7 +59,25 @@ const AddressForm: React.FC<AddressFormProps> = ({
               onUpdate(`${prefix}.lat`, cityData.lat);
               onUpdate(`${prefix}.lng`, cityData.lng);
             }}
-            placeholder="Digite a cidade"
+            placeholder="Digite o nome da cidade"
+          />
+          {address.state && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Estado: {address.state}
+            </p>
+          )}
+        </div>
+
+        {/* CEP opcional */}
+        <div className="space-y-1">
+          <Label htmlFor={`${prefix}-cep`} className="text-xs">CEP (opcional)</Label>
+          <Input
+            id={`${prefix}-cep`}
+            value={address.cep}
+            onChange={(e) => onUpdate(`${prefix}.cep`, formatCEP(e.target.value))}
+            placeholder="00000-000"
+            maxLength={9}
+            className="h-9"
           />
         </div>
 
