@@ -120,7 +120,7 @@ const GuestServiceModal: React.FC<GuestServiceModalProps> = ({
   if (selectedSubService) {
     return (
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col p-6">
+        <DialogContent className="max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col p-0">
           <ServiceWizard
             serviceType={selectedSubService}
             onClose={onClose}
