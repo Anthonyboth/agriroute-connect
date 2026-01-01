@@ -281,11 +281,21 @@ export function CreateFreightWizard({
   };
 
   const handleSubmit = async () => {
-    logWizardDebug('SUBMIT_START', { guestMode, hasUserProfile: !!userProfile?.id });
+    logWizardDebug('SUBMIT_START', { guestMode, hasUserProfile: !!userProfile?.id, role: userProfile?.role });
     
     if (!guestMode && !userProfile?.id) {
       logWizardDebug('SUBMIT_BLOCKED_NO_USER', {});
       toast.error('Faça login como produtor para criar um frete.');
+      return;
+    }
+    
+    // ✅ PROBLEMA 3: Validar que o usuário é produtor antes de tentar criar
+    if (!guestMode && userProfile?.role !== 'PRODUTOR') {
+      logWizardDebug('SUBMIT_BLOCKED_WRONG_ROLE', { role: userProfile?.role });
+      toast.error('Apenas produtores podem criar fretes. Verifique seu perfil.', {
+        duration: 5000,
+        description: `Seu perfil atual é: ${userProfile?.role || 'desconhecido'}`
+      });
       return;
     }
 
@@ -435,6 +445,15 @@ export function CreateFreightWizard({
       const errorMessage = error?.message || '';
       const errorCode = error?.code || '';
       const errorDetails = error?.details || '';
+      
+      // ✅ PROBLEMA 3: Tratamento específico para erro de RLS
+      if (errorMessage.includes('row-level security') || errorMessage.includes('row level security')) {
+        toast.error('Erro de permissão: você precisa estar logado como produtor para criar fretes.', {
+          duration: 5000,
+          description: 'Faça login novamente ou entre em contato com o suporte.'
+        });
+        return;
+      }
       
       // Mapear erros específicos para mensagens claras em português
       if (errorMessage.includes('delivery_date') || errorDetails.includes('delivery_date')) {

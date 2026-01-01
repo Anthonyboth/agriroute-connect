@@ -413,13 +413,24 @@ const AuthedLanding = () => {
   }
   
   // ✅ Usuário autenticado: redirecionar para painel apropriado
+  // ✅ PROBLEMA 5: Debug log para diagnóstico de redirecionamento
+  console.log('[AuthedLanding] Redirecionando usuário:', { 
+    role: profile?.role, 
+    active_mode: profile?.active_mode,
+    isCompany,
+    profileId: profile?.id 
+  });
+  
   // Redirecionar transportadoras
   if (isCompany) {
     return <Navigate to="/dashboard/company" replace />;
   }
   
+  // ✅ PROBLEMA 5: Usar active_mode se disponível, senão role
+  const effectiveRole = profile?.active_mode || profile?.role;
+  
   let to = "/";
-  switch (profile?.role) {
+  switch (effectiveRole) {
     case 'ADMIN':
       to = '/admin';
       break;

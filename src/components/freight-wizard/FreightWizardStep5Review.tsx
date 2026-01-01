@@ -56,13 +56,44 @@ export function FreightWizardStep5Review({
   };
 
   const calculateTotalPrice = () => {
+    const trucks = parseInt(formData.required_trucks || '1');
+    
     if (formData.pricing_type === 'FIXED') {
-      return parseFloat(formData.price || 0) * parseInt(formData.required_trucks || 1);
+      return parseFloat(formData.price || 0) * trucks;
     }
+    
+    if (formData.pricing_type === 'PER_TON') {
+      const weight = parseFloat(formData.weight || 0);
+      return parseFloat(formData.price_per_km || 0) * weight * trucks;
+    }
+    
+    // PER_KM
     if (calculatedDistance) {
-      return parseFloat(formData.price_per_km || 0) * calculatedDistance * parseInt(formData.required_trucks || 1);
+      return parseFloat(formData.price_per_km || 0) * calculatedDistance * trucks;
     }
     return 0;
+  };
+  
+  const getPricingLabel = () => {
+    switch (formData.pricing_type) {
+      case 'FIXED':
+        return 'Valor fixo';
+      case 'PER_TON':
+        return 'Por tonelada';
+      default:
+        return 'Por km';
+    }
+  };
+  
+  const getPricingValue = () => {
+    if (formData.pricing_type === 'FIXED') {
+      return formatCurrency(parseFloat(formData.price || 0));
+    }
+    const value = formatCurrency(parseFloat(formData.price_per_km || 0));
+    if (formData.pricing_type === 'PER_TON') {
+      return `${value}/ton`;
+    }
+    return `${value}/km`;
   };
 
   const formatAddress = (neighborhood: string, street: string, number: string, complement: string) => {
@@ -173,12 +204,10 @@ export function FreightWizardStep5Review({
             <div className="pl-6 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">
-                  {formData.pricing_type === 'FIXED' ? 'Valor fixo' : 'Por km'}:
+                  {getPricingLabel()}:
                 </span>
                 <span className="font-medium">
-                  {formData.pricing_type === 'FIXED' 
-                    ? formatCurrency(parseFloat(formData.price || 0))
-                    : `${formatCurrency(parseFloat(formData.price_per_km || 0))}/km`}
+                  {getPricingValue()}
                 </span>
               </div>
               <div className="flex items-center justify-between text-lg">
