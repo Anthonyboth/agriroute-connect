@@ -43,7 +43,7 @@ const ROLE_TO_DASHBOARD: Record<string, string> = {
   'MOTORISTA': '/dashboard/driver',
   'MOTORISTA_AFILIADO': '/dashboard/driver',
   'PRODUTOR': '/dashboard/producer',
-  'PRESTADOR_SERVICOS': '/dashboard/provider',
+  'PRESTADOR_SERVICOS': '/dashboard/service-provider',
   'TRANSPORTADORA': '/dashboard/company'
 };
 
