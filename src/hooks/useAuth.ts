@@ -133,7 +133,7 @@ export const useAuth = () => {
           const { data, error } = await supabase
             .from('profiles')
             .select(`
-              id, user_id, full_name, phone, document,
+              id, user_id, full_name, phone, document, role,
               status, active_mode, service_types,
               base_city_name, base_state, base_city_id,
               created_at, updated_at, cpf_cnpj, rntrc,
@@ -189,7 +189,8 @@ export const useAuth = () => {
               );
 
               const roles = rolesData?.map((r: any) => r.role) || [];
-              const derivedRole = (p?.active_mode || 'PRODUTOR') as any;
+              // ✅ PRIORIZAR profiles.role (campo real) sobre active_mode
+              const derivedRole = (p?.role || p?.active_mode || 'PRODUTOR') as any;
 
               return {
                 ...p,
@@ -205,7 +206,8 @@ export const useAuth = () => {
                 lastErrorLogAt.current = now;
               }
 
-              const derivedRole = (p?.active_mode || 'PRODUTOR') as any;
+              // ✅ PRIORIZAR profiles.role (campo real) sobre active_mode
+              const derivedRole = (p?.role || p?.active_mode || 'PRODUTOR') as any;
 
               return {
                 ...p,
