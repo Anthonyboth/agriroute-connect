@@ -175,6 +175,46 @@ export const ServiceProviderDashboard: React.FC = () => {
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [selectedChatRequest, setSelectedChatRequest] = useState<ServiceRequest | null>(null);
   
+  // Mural de avisos - padronizado
+  const [isMuralOpen, setIsMuralOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+
+  useEffect(() => {
+    const dismissedAt = localStorage.getItem('mural_dismissed_at');
+    const now = new Date();
+    let timeoutId: number | undefined;
+
+    if (dismissedAt) {
+      const dismissed = new Date(dismissedAt);
+      const nextShow = new Date(dismissed);
+      nextShow.setDate(nextShow.getDate() + 1);
+      nextShow.setHours(7, 0, 0, 0);
+
+      if (now < nextShow) {
+        setIsMuralOpen(false);
+        // Programa reabertura automática às 07:00
+        timeoutId = window.setTimeout(() => {
+          localStorage.removeItem('mural_dismissed_at');
+          setManualOpen(false);
+          setIsMuralOpen(true);
+        }, nextShow.getTime() - now.getTime());
+      } else {
+        // Já passou das 07:00: limpa flag e abre
+        localStorage.removeItem('mural_dismissed_at');
+        setManualOpen(false);
+        setIsMuralOpen(true);
+      }
+    } else {
+      // Sem flag de dismiss: aberto por padrão
+      setManualOpen(false);
+      setIsMuralOpen(true);
+    }
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, []);
+  
   // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [serviceToCancel, setServiceToCancel] = useState<ServiceRequest | null>(null);
@@ -1261,8 +1301,29 @@ export const ServiceProviderDashboard: React.FC = () => {
               )}
             </div>
 
-            {/* PROBLEMA 5: Mural de Avisos reposicionado - APÓS busca, ANTES dos cards */}
-            <SystemAnnouncementsBoard isOpen={false} onClose={() => {}} />
+            {/* Mural de Avisos - Padronizado */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mb-2"
+              onClick={() => {
+                setManualOpen(true);
+                setIsMuralOpen(true);
+              }}
+            >
+              📢 Mural de Avisos
+            </Button>
+
+            <SystemAnnouncementsBoard
+              isOpen={isMuralOpen}
+              onClose={() => {
+                setIsMuralOpen(false);
+                if (!manualOpen) {
+                  localStorage.setItem('mural_dismissed_at', new Date().toISOString());
+                }
+              }}
+              ignoreDismissals={manualOpen}
+            />
             
             {filteredRequests.length > 0 ? (
               <div className="space-y-4">

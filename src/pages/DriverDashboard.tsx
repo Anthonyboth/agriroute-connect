@@ -1307,6 +1307,13 @@ const DriverDashboard = () => {
   useEffect(() => {
     const loadData = async () => {
       if (!profile?.id || !isMountedRef.current) return;
+      
+      // ✅ CORREÇÃO: Não carregar dados se não for motorista (evita erros 403)
+      if (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO') {
+        console.log('[DriverDashboard] ⚠️ Usuário não é motorista, ignorando fetch de dados');
+        return;
+      }
+      
       if (isMountedRef.current) setLoading(true);
       
       console.log('[DriverDashboard] 🚀 Perfil:', { 
@@ -1358,7 +1365,7 @@ const DriverDashboard = () => {
     };
 
     loadData();
-  }, [profile?.id, canSeeFreights, mustUseChat]);
+  }, [profile?.id, profile?.role, canSeeFreights, mustUseChat]);
 
   // Listener para redirecionar para histórico quando frete for movido
   useEffect(() => {

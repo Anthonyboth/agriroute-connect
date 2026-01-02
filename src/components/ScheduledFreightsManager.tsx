@@ -93,46 +93,70 @@ export const ScheduledFreightsManager: React.FC = () => {
             'IDs:', freightsData.map(f => `${f.id.slice(0,8)}(${f.pickup_date})`));
           
         } else if (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO') {
-          // Tentar RPC primeiro
-          const { data: rpcData, error: rpcErr } = await supabase.rpc('get_freights_for_driver', { 
-            p_driver_id: profile.id 
-          });
+          // ✅ CORRIGIDO: Sempre buscar via freight_assignments para fretes aceitos
+          console.log('🔍 [MOTORISTA] Buscando fretes aceitos via freight_assignments...');
           
-          if (!rpcErr && rpcData) {
-            console.log('📊 [MOTORISTA RPC] Total buscado:', rpcData.length);
-            freightsData = rpcData.filter((f: any) => 
-              !FINAL_STATUSES.includes(f.status) && 
-              isScheduledFreight(f.pickup_date || f.scheduled_date, f.status)
-            );
-            console.log('✅ [MOTORISTA RPC] Após filtro scheduled:', freightsData.length,
-              'IDs:', freightsData.map(f => `${f.id.slice(0,8)}(${f.pickup_date})`));
-          } else {
-            // Fallback: buscar via freight_assignments
-            console.warn('⚠️ RPC falhou, usando fallback freight_assignments');
-            const { data: assigns } = await supabase
-              .from('freight_assignments')
-              .select('freight_id')
-              .eq('driver_id', profile.id)
-              .in('status', ['ACCEPTED']);
+          // Buscar assignments aceitos do motorista
+          const { data: assigns, error: assignError } = await supabase
+            .from('freight_assignments')
+            .select('freight_id')
+            .eq('driver_id', profile.id)
+            .in('status', ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT']);
+          
+          if (assignError) {
+            console.error('Erro ao buscar assignments:', assignError);
+          }
+          
+          const assignmentIds = (assigns || []).map(a => a.freight_id);
+          console.log('📋 [MOTORISTA] Assignments encontrados:', assignmentIds.length);
+          
+          // Buscar fretes via assignments
+          if (assignmentIds.length > 0) {
+            const { data: assignedFreights, error: freightError } = await supabase
+              .from('freights')
+              .select('*')
+              .in('id', assignmentIds);
             
-            const ids = (assigns || []).map(a => a.freight_id);
-            if (ids.length > 0) {
-              const { data: freights } = await supabase
-                .from('freights')
-                .select('*')
-                .in('id', ids);
+            if (!freightError && assignedFreights) {
+              console.log('📊 [MOTORISTA ASSIGNMENTS] Total buscado:', assignedFreights.length);
               
-              const allFreights = freights || [];
-              console.log('📊 [MOTORISTA FALLBACK] Total buscado:', allFreights.length);
-              
-              freightsData = allFreights.filter((f: any) => 
+              const assignedScheduled = assignedFreights.filter((f: any) => 
                 !FINAL_STATUSES.includes(f.status) && 
                 isScheduledFreight(f.pickup_date || f.scheduled_date, f.status)
               );
-              console.log('✅ [MOTORISTA FALLBACK] Após filtro scheduled:', freightsData.length,
-                'IDs:', freightsData.map(f => `${f.id.slice(0,8)}(${f.pickup_date})`));
+              console.log('✅ [MOTORISTA ASSIGNMENTS] Após filtro scheduled:', assignedScheduled.length);
+              freightsData = [...freightsData, ...assignedScheduled];
             }
           }
+          
+          // Também tentar RPC para fretes disponíveis (não aceitos ainda)
+          try {
+            const { data: rpcData, error: rpcErr } = await supabase.rpc('get_freights_for_driver', { 
+              p_driver_id: profile.id 
+            });
+            
+            if (!rpcErr && rpcData && rpcData.length > 0) {
+              console.log('📊 [MOTORISTA RPC] Fretes disponíveis:', rpcData.length);
+              
+              const rpcScheduled = rpcData.filter((f: any) => 
+                !FINAL_STATUSES.includes(f.status) && 
+                isScheduledFreight(f.pickup_date || f.scheduled_date, f.status)
+              );
+              
+              // Adicionar apenas os que não estão já na lista
+              const existingIds = new Set(freightsData.map((f: any) => f.id));
+              const newFromRpc = rpcScheduled.filter((f: any) => !existingIds.has(f.id));
+              console.log('✅ [MOTORISTA RPC] Novos após dedup:', newFromRpc.length);
+              
+              freightsData = [...freightsData, ...newFromRpc];
+            }
+          } catch (rpcError) {
+            console.warn('⚠️ RPC falhou (não bloqueante):', rpcError);
+          }
+          
+          console.log('📦 [MOTORISTA] Total final de fretes agendados:', freightsData.length,
+            'IDs:', freightsData.map((f: any) => `${f.id.slice(0,8)}(${f.pickup_date})`)
+          );
           
         } else if (profile.role === 'TRANSPORTADORA') {
           const result: any = await supabase
