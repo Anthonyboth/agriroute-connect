@@ -482,7 +482,7 @@ const [pricePerKm, setPricePerKm] = useState('');
         )}
 
         <div className="space-y-4">
-          {originalProposal && hasDistance && (
+          {hasDistance && (
             <div className="space-y-2">
               <Label>Tipo de Cobrança</Label>
               <Select value={pricingType} onValueChange={(value: 'FIXED' | 'PER_KM') => setPricingType(value)}>
@@ -491,9 +491,7 @@ const [pricePerKm, setPricePerKm] = useState('');
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="FIXED">Valor Fixo</SelectItem>
-                  <SelectItem value="PER_KM" disabled={!hasDistance}>
-                    Por Quilômetro {!hasDistance && "(Indisponível)"}
-                  </SelectItem>
+                  <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
                 </SelectContent>
               </Select>
             </div>
