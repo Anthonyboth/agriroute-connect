@@ -815,7 +815,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         pollInterval = null;
       }
     };
-  }, [profile?.id, user?.id, fetchCompatibleFreights, isUpdating]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, user?.id, isUpdating]);
 
   // ✅ Memoizar lista filtrada para evitar re-renders desnecessários
   const filteredFreights = useMemo(() => {
