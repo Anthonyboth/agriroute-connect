@@ -165,14 +165,15 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       setLoading(false);
       fetchingRef.current = false;
     }
-  }, [company?.id]);
+  }, [company?.id, drivers?.length]);
 
-  // Carregar fretes automaticamente ao montar
+  // Carregar fretes automaticamente ao montar - SEM fetchCompatibleFreights nas deps para evitar loop
   React.useEffect(() => {
     if (company?.id) {
       fetchCompatibleFreights();
     }
-  }, [company?.id, fetchCompatibleFreights]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [company?.id]);
 
   const handleAssignFreight = async (freightId: string, driverId: string) => {
     try {
