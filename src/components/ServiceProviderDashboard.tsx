@@ -49,7 +49,8 @@ import {
   X,
   Banknote,
   Shield,
-  Users
+  Users,
+  Navigation
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -1738,7 +1739,7 @@ export const ServiceProviderDashboard: React.FC = () => {
                     <MapPin className="h-4 w-4" />
                     Localização
                   </h4>
-                  <div className="text-sm bg-muted p-3 rounded-lg space-y-1">
+                  <div className="text-sm bg-muted p-3 rounded-lg space-y-2">
                     <p className="font-medium">{getDisplayLocation(selectedRequest)}</p>
                     {selectedRequest.location_address && 
                      selectedRequest.location_address !== getDisplayLocation(selectedRequest) && (
@@ -1746,6 +1747,26 @@ export const ServiceProviderDashboard: React.FC = () => {
                         Local específico: {selectedRequest.location_address}
                       </p>
                     )}
+                    {/* Botão Abrir no Mapa */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2 gap-2"
+                      onClick={() => {
+                        let url: string;
+                        if (selectedRequest.location_lat && selectedRequest.location_lng) {
+                          url = `https://www.google.com/maps/search/?api=1&query=${selectedRequest.location_lat},${selectedRequest.location_lng}`;
+                        } else if (selectedRequest.location_address) {
+                          url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedRequest.location_address)}`;
+                        } else {
+                          url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getDisplayLocation(selectedRequest))}`;
+                        }
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      <Navigation className="h-4 w-4" />
+                      Abrir no Mapa
+                    </Button>
                   </div>
                 </div>
 
