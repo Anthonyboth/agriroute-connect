@@ -8,6 +8,7 @@ export const useTransportCompany = () => {
   const queryClient = useQueryClient();
 
   // Verificar se o usuário é uma transportadora
+  // ✅ REMOVIDA mutação de dentro do queryFn para evitar loop infinito
   const { data: company, isLoading: isLoadingCompany } = useQuery({
     queryKey: ['transport-company', profile?.id],
     queryFn: async () => {
@@ -21,26 +22,11 @@ export const useTransportCompany = () => {
       
       if (error) throw error;
       
-      // ✅ Se existe company mas role não é TRANSPORTADORA, corrigir
-      if (data && profile.role !== 'TRANSPORTADORA') {
-        console.log('🔧 [useTransportCompany] Corrigindo role para TRANSPORTADORA');
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ role: 'TRANSPORTADORA' })
-          .eq('id', profile.id);
-        
-        if (updateError) {
-          console.error('❌ [useTransportCompany] Erro ao atualizar role:', updateError);
-        } else {
-          console.log('✅ [useTransportCompany] Role atualizado para TRANSPORTADORA');
-          // Refetch profile
-          queryClient.invalidateQueries({ queryKey: ['profile'] });
-        }
-      }
-      
       return data;
     },
     enabled: !!profile?.id,
+    staleTime: 5 * 60 * 1000, // Cache por 5 minutos
+    gcTime: 10 * 60 * 1000,
   });
 
   // Buscar motoristas afiliados

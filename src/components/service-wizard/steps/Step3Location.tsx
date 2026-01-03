@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Home, Building } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CitySelector } from '@/components/CitySelector';
+import { LocationFillButton } from '@/components/LocationFillButton';
 
 interface Step3Props {
   formData: ServiceFormData;
@@ -49,7 +50,35 @@ const AddressForm: React.FC<AddressFormProps> = ({
       <CardContent className="space-y-3">
         {/* Cidade - campo principal unificado (preenche estado automaticamente) */}
         <div className="space-y-1">
-          <Label htmlFor={`${prefix}-city`} className="text-xs">Cidade *</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor={`${prefix}-city`} className="text-xs">Cidade *</Label>
+            <LocationFillButton
+              size="sm"
+              variant="ghost"
+              className="h-6 text-xs"
+              onLocationFilled={(address, lat, lng, locationData) => {
+                if (locationData?.city) {
+                  onUpdate(`${prefix}.city`, locationData.city);
+                }
+                if (locationData?.state) {
+                  onUpdate(`${prefix}.state`, locationData.state);
+                }
+                if (lat && lng) {
+                  onUpdate(`${prefix}.lat`, lat);
+                  onUpdate(`${prefix}.lng`, lng);
+                }
+                if (locationData?.street) {
+                  onUpdate(`${prefix}.street`, locationData.street);
+                }
+                if (locationData?.neighborhood) {
+                  onUpdate(`${prefix}.neighborhood`, locationData.neighborhood);
+                }
+                if (locationData?.cep) {
+                  onUpdate(`${prefix}.cep`, locationData.cep);
+                }
+              }}
+            />
+          </div>
           <CitySelector
             value={address.city ? { city: address.city, state: address.state, id: address.city_id, lat: address.lat, lng: address.lng } : undefined}
             onChange={(cityData) => {
@@ -60,6 +89,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
               onUpdate(`${prefix}.lng`, cityData.lng);
             }}
             placeholder="Digite o nome da cidade"
+            label=""
           />
           {address.state && (
             <p className="text-xs text-muted-foreground mt-1">

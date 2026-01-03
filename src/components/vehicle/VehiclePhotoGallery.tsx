@@ -3,11 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, VisuallyHidden } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Plus, X, Camera, ImageIcon, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
+import { Plus, X, Camera, ImageIcon, ChevronLeft, ChevronRight, Upload, ExternalLink } from 'lucide-react';
 import { useVehiclePhotos, PHOTO_TYPES, VehiclePhoto } from '@/hooks/useVehiclePhotos';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { StorageImage } from '@/components/ui/storage-image';
 
 interface VehiclePhotoGalleryProps {
   vehicleId: string;
@@ -170,7 +171,7 @@ export const VehiclePhotoGallery: React.FC<VehiclePhotoGalleryProps> = ({
             className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer bg-muted"
             onClick={() => openPhotoViewer(photo, index)}
           >
-            <img
+            <StorageImage
               src={photo.photo_url}
               alt={getPhotoTypeLabel(photo.photo_type)}
               className="w-full h-full object-cover transition-transform group-hover:scale-105"
@@ -298,11 +299,22 @@ export const VehiclePhotoGallery: React.FC<VehiclePhotoGalleryProps> = ({
 
             {/* Imagem */}
             {selectedPhoto && (
-              <img
+              <StorageImage
                 src={selectedPhoto.photo_url}
                 alt={getPhotoTypeLabel(selectedPhoto.photo_type)}
                 className="w-full max-h-[80vh] object-contain"
               />
+            )}
+
+            {/* Botão abrir em nova aba */}
+            {selectedPhoto && (
+              <button
+                onClick={() => window.open(selectedPhoto.photo_url, '_blank')}
+                className="absolute top-2 left-2 w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center"
+                title="Abrir em nova aba"
+              >
+                <ExternalLink className="h-4 w-4 text-white" />
+              </button>
             )}
 
             {/* Info da foto */}
