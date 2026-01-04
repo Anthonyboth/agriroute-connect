@@ -63,9 +63,8 @@ export function MobileMenu({ onContactClick }: MobileMenuProps) {
           
           <div className="border-t pt-4 mt-2 flex flex-col gap-3">
             <Button 
-              variant="ghost" 
               onClick={() => handleNavigation('/auth')}
-              className="w-full justify-start text-base"
+              className="w-full justify-start text-base bg-orange-500 hover:bg-orange-600 text-white"
             >
               Entrar
             </Button>

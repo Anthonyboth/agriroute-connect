@@ -148,7 +148,15 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
     <TooltipProvider>
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-green-500 to-green-600 text-white overflow-hidden">
+      <div className="relative text-white overflow-hidden">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
+        />
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-primary/75" />
+        
         <div className="relative container mx-auto px-4 py-12 md:py-16">
           <div className="text-center">
             <h1 className="text-3xl md:text-4xl font-bold mb-4">
