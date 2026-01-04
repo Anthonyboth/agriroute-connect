@@ -29,7 +29,7 @@ export const ProviderReportsTab: React.FC<ProviderReportsTabProps> = ({ provider
   const profileId = providerId ?? ((activeMode === 'PRESTADOR_SERVICOS' && profile?.id) ? profile.id : undefined);
 
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: startOfDay(subDays(new Date(), 30)),
+    from: startOfDay(subDays(new Date(), 365)), // Período padrão de 1 ano para capturar mais histórico
     to: endOfDay(new Date()),
   });
 

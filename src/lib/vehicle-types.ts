@@ -40,12 +40,28 @@ export const VEHICLE_TYPES: VehicleTypeInfo[] = [
     specs: 'Caminhão + 2 reboques longos para máxima capacidade'
   },
   {
+    value: 'BICACAMBA',
+    label: 'Bicaçamba',
+    weight: '50t',
+    weightTons: 50,
+    axles: 5,
+    specs: 'Caminhão com duas caçambas para transporte de materiais a granel'
+  },
+  {
     value: 'CAMINHAO_3_4',
     label: 'Caminhão 3/4',
     weight: '6t',
     weightTons: 6,
     axles: 2,
     specs: 'Transporte urbano e regional de cargas médias'
+  },
+  {
+    value: 'CAMINHAO_CACAMBA',
+    label: 'Caminhão Caçamba',
+    weight: '25t',
+    weightTons: 25,
+    axles: 3,
+    specs: 'Caminhão com caçamba basculante para materiais a granel'
   },
   {
     value: 'CAMINHAO_TRUCK',
