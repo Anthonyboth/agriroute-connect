@@ -66,7 +66,9 @@ export const AXLE_OPTIONS = [
 // Tipos de veículos para fretes não-rurais (sem ANTT)
 export const VEHICLE_TYPES_URBAN = [
   { value: 'VUC', label: 'VUC - Veículo Urbano de Carga' },
-  { value: 'TRUCK', label: 'Caminhão 3/4' },
+  { value: 'CAMINHAO_3_4', label: 'Caminhão 3/4' },
+  { value: 'CAMINHAO_CACAMBA', label: 'Caminhão Caçamba' },
+  { value: 'BICACAMBA', label: 'Bicaçamba' },
   { value: 'CARRETA_BAU', label: 'Carreta Baú' },
   { value: 'CARRETA_GADO', label: 'Carreta Boiadeira' },
   { value: 'CARRETA_REFRIGERADA', label: 'Carreta Refrigerada' },

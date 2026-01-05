@@ -210,9 +210,8 @@ const Landing: React.FC = () => {
           <div className="flex items-center space-x-2 sm:space-x-3">
             <ThemeToggle />
             <Button 
-              variant="ghost" 
               onClick={() => navigate('/auth')}
-              className="hidden sm:flex"
+              className="hidden sm:flex bg-orange-500 hover:bg-orange-600 text-white"
             > 
               Entrar
             </Button>

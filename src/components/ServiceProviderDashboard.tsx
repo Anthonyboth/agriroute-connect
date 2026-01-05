@@ -1047,13 +1047,13 @@ export const ServiceProviderDashboard: React.FC = () => {
 
   return (
     <div className="bg-background">
-      {/* Hero Section Moderno */}
+      {/* Hero Section - Padronizado com ProducerDashboard */}
       <section className="relative min-h-[280px] flex items-center justify-center overflow-hidden animate-fade-in">
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat blur-[2px]"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-accent/85 to-warning/80 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-primary/75" />
         <div className="relative z-10 w-full">
           <div className="container mx-auto px-4 text-center text-primary-foreground">
             <h1 className="text-2xl md:text-3xl font-bold mb-2">
