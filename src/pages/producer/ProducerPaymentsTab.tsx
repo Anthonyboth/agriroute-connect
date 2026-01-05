@@ -59,7 +59,7 @@ export const ProducerPaymentsTab: React.FC<ProducerPaymentsTabProps> = ({
                     </div>
                     <div className="flex flex-col gap-2">
                       <Button
-                        onClick={() => onConfirmExternalPayment(payment.freight_id, payment.amount)}
+                        onClick={() => onConfirmPaymentMade(payment.id)}
                         size="sm"
                         disabled={paymentLoading}
                       >

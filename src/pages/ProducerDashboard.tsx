@@ -1789,7 +1789,7 @@ const ProducerDashboard = () => {
                           </div>
                           <div className="flex flex-col gap-2">
                             <Button
-                              onClick={() => handleConfirmExternalPayment(payment.freight_id, payment.amount)}
+                              onClick={() => confirmPaymentMade(payment.id)}
                               size="sm"
                               disabled={paymentLoading}
                             >
