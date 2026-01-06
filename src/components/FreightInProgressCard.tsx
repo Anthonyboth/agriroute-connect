@@ -3,18 +3,27 @@
  * 
  * Card padronizado para fretes em andamento.
  * Usado em múltiplos dashboards (Produtor, Motorista, Transportadora).
+ * Inclui abas para Detalhes e Mapa em tempo real.
  */
 
-import React from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Truck, Clock, ArrowRight, Calendar, AlertTriangle, Bike } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MapPin, Truck, Clock, ArrowRight, Calendar, AlertTriangle, Bike, Map, FileText, Loader2 } from 'lucide-react';
 import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
 import { formatKm, formatBRL, formatTons, formatDate } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 import { getDaysUntilPickup, getPickupDateBadge } from '@/utils/freightDateHelpers';
+
+// Lazy load do mapa para performance
+const FreightRealtimeMap = lazy(() => 
+  import('@/components/freight/FreightRealtimeMap').then(module => ({ 
+    default: module.FreightRealtimeMap 
+  }))
+);
 
 interface FreightInProgressCardProps {
   freight: {
@@ -42,6 +51,11 @@ interface FreightInProgressCardProps {
       isCritical: boolean;
       displayText: string;
     };
+    // Campos de tracking
+    current_lat?: number;
+    current_lng?: number;
+    last_location_update?: string;
+    tracking_status?: string;
   };
   onViewDetails?: () => void;
   onRequestCancel?: () => void;
@@ -56,6 +70,9 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   showActions = true,
   highlightFreightId,
 }) => {
+  const [activeTab, setActiveTab] = useState<string>('details');
+  const [mapMounted, setMapMounted] = useState(false);
+
   // GPS precision indicator
   const precisionInfo = React.useMemo(() => {
     const originReal = freight.origin_lat !== null && freight.origin_lat !== undefined && 
@@ -80,12 +97,23 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
 
   const isHighlighted = highlightFreightId === freight.id;
 
+  // Verificar se o frete está em andamento (permite mapa)
+  const isInProgress = ['em_transito', 'in_transit', 'in_progress', 'aceito', 'accepted', 'carregando', 'loading'].includes(freight.status?.toLowerCase() || '');
+
+  // Handler para quando a aba mapa é selecionada
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'map' && !mapMounted) {
+      setMapMounted(true);
+    }
+  };
+
   return (
     <Card className={cn(
-      "h-full flex flex-col border-l-4 hover:shadow-lg transition-all overflow-x-auto",
+      "h-full flex flex-col border-l-4 hover:shadow-lg transition-all overflow-hidden",
       isHighlighted ? "border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 shadow-xl animate-pulse" : "border-l-primary"
     )}>
-      <CardHeader className="pb-4 min-h-[120px] overflow-x-auto">
+      <CardHeader className="pb-2 min-h-[100px] overflow-x-auto">
         <div className="min-w-fit">
           {/* Origem → Destino */}
           <div className="flex items-center gap-2 mb-2">
@@ -179,60 +207,114 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-4 h-full pt-0 overflow-hidden">
-        {/* Grid de informações */}
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="min-w-0">
-            <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
-              {LABELS.MOTORISTA_LABEL}
-            </p>
-            <p className="text-foreground truncate whitespace-nowrap">
-              {freight.driver_profiles?.full_name || LABELS.AGUARDANDO_MOTORISTA}
-            </p>
-          </div>
-          <div className="min-w-0">
-            <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
-              {LABELS.PESO_LABEL}
-            </p>
-            <p className="text-foreground truncate whitespace-nowrap">
-              {formatTons(freight.weight)}
-            </p>
-          </div>
-        </div>
+      <CardContent className="flex flex-col gap-2 flex-1 pt-0 overflow-hidden">
+        {/* Abas: Detalhes e Mapa */}
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col">
+          <TabsList className="grid w-full grid-cols-2 h-9">
+            <TabsTrigger value="details" className="text-xs flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Detalhes
+            </TabsTrigger>
+            <TabsTrigger 
+              value="map" 
+              className="text-xs flex items-center gap-1.5"
+              disabled={!isInProgress}
+            >
+              <Map className="h-3.5 w-3.5" />
+              Mapa
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Botões de ação */}
-        {showActions && (
-          <div className="mt-auto grid grid-cols-2 gap-3">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onViewDetails}
-              className="w-full"
-            >
-              {LABELS.VER_DETALHES}
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={onRequestCancel}
-              className="w-full"
-            >
-              {LABELS.SOLICITAR_CANCELAMENTO}
-            </Button>
-          </div>
-        )}
+          <TabsContent value="details" className="flex-1 flex flex-col mt-2">
+            {/* Grid de informações */}
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="min-w-0">
+                <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
+                  {LABELS.MOTORISTA_LABEL}
+                </p>
+                <p className="text-foreground truncate whitespace-nowrap">
+                  {freight.driver_profiles?.full_name || LABELS.AGUARDANDO_MOTORISTA}
+                </p>
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-xs text-muted-foreground whitespace-nowrap">
+                  {LABELS.PESO_LABEL}
+                </p>
+                <p className="text-foreground truncate whitespace-nowrap">
+                  {formatTons(freight.weight)}
+                </p>
+              </div>
+            </div>
+
+            {/* Botões de ação */}
+            {showActions && (
+              <div className="mt-auto grid grid-cols-2 gap-3 pt-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onViewDetails}
+                  className="w-full"
+                >
+                  {LABELS.VER_DETALHES}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={onRequestCancel}
+                  className="w-full"
+                >
+                  {LABELS.SOLICITAR_CANCELAMENTO}
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="map" className="flex-1 mt-2">
+            {mapMounted && (
+              <Suspense fallback={
+                <div className="flex items-center justify-center h-[280px] bg-muted/30 rounded-lg">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <span className="text-sm">Carregando mapa...</span>
+                  </div>
+                </div>
+              }>
+                <FreightRealtimeMap
+                  freightId={freight.id}
+                  originLat={freight.origin_lat}
+                  originLng={freight.origin_lng}
+                  destinationLat={freight.destination_lat}
+                  destinationLng={freight.destination_lng}
+                  initialDriverLat={freight.current_lat}
+                  initialDriverLng={freight.current_lng}
+                  lastLocationUpdate={freight.last_location_update}
+                />
+              </Suspense>
+            )}
+            {!mapMounted && (
+              <div className="flex items-center justify-center h-[280px] bg-muted/30 rounded-lg">
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <Map className="h-8 w-8 opacity-50" />
+                  <span className="text-sm">Clique para carregar o mapa</span>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
 };
 
-// ✅ PHASE 1: Memoização para evitar re-renders desnecessários em listas
+// ✅ Memoização para evitar re-renders desnecessários em listas
 export const FreightInProgressCard = React.memo(FreightInProgressCardComponent, (prevProps, nextProps) => {
   // Comparador customizado para evitar re-renders desnecessários
   return (
     prevProps.freight.id === nextProps.freight.id &&
     prevProps.freight.status === nextProps.freight.status &&
     prevProps.freight.price === nextProps.freight.price &&
+    prevProps.freight.current_lat === nextProps.freight.current_lat &&
+    prevProps.freight.current_lng === nextProps.freight.current_lng &&
     prevProps.showActions === nextProps.showActions &&
     prevProps.highlightFreightId === nextProps.highlightFreightId &&
     prevProps.onViewDetails === nextProps.onViewDetails &&

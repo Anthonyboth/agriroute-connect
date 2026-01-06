@@ -25,6 +25,11 @@ export interface ProducerFreight {
   destination_lat?: number;
   destination_lng?: number;
   accepted_trucks?: number;
+  // Campos de tracking em tempo real
+  current_lat?: number;
+  current_lng?: number;
+  last_location_update?: string;
+  tracking_status?: string;
   profiles?: {
     id: string;
     full_name: string;
