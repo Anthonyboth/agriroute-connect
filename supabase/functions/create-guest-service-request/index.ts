@@ -7,11 +7,48 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// PROBLEMA 10 CORRIGIDO: Aceitar qualquer tipo de serviço válido (não apenas enum fixo)
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 5; // Max 5 requests per minute per IP
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function getClientIP(req: Request): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+         req.headers.get('x-real-ip') || 
+         'unknown';
+}
+
+function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  
+  // Clean up old entries periodically
+  if (rateLimitMap.size > 1000) {
+    for (const [key, value] of rateLimitMap.entries()) {
+      if (now > value.resetTime) {
+        rateLimitMap.delete(key);
+      }
+    }
+  }
+  
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true };
+  }
+  
+  if (entry.count >= MAX_REQUESTS_PER_WINDOW) {
+    return { allowed: false, retryAfter: Math.ceil((entry.resetTime - now) / 1000) };
+  }
+  
+  entry.count++;
+  return { allowed: true };
+}
+
+// Schema validation
 const GuestServiceRequestSchema = z.object({
   prospect_user_id: z.string().optional().nullable(),
   client_id: z.string().optional().nullable(),
-  service_type: z.string().min(1, 'Tipo de serviço é obrigatório'), // Aceita qualquer string válida
+  service_type: z.string().min(1, 'Tipo de serviço é obrigatório'),
   contact_name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
   contact_phone: z.string().min(10, 'Telefone inválido'),
   contact_email: z.string().email().optional().nullable().transform(val => val === '' ? null : val),
@@ -34,10 +71,32 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limiting check
+  const clientIP = getClientIP(req);
+  const rateLimitResult = checkRateLimit(clientIP);
+  
+  if (!rateLimitResult.allowed) {
+    console.warn(`[CREATE-GUEST-SERVICE-REQUEST] Rate limit exceeded for IP: ${clientIP}`);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Muitas solicitações. Tente novamente em breve.',
+        retryAfter: rateLimitResult.retryAfter 
+      }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Retry-After': String(rateLimitResult.retryAfter)
+        }, 
+        status: 429 
+      }
+    );
+  }
+
   try {
     const body = await req.json();
     
-    console.log('[CREATE-GUEST-SERVICE-REQUEST] Received body:', JSON.stringify(body, null, 2));
+    console.log('[CREATE-GUEST-SERVICE-REQUEST] Received request from IP:', clientIP);
     
     // Validar dados de entrada
     const validationResult = GuestServiceRequestSchema.safeParse(body);
@@ -57,9 +116,7 @@ serve(async (req) => {
 
     const data = validationResult.data;
     
-    console.log('[CREATE-GUEST-SERVICE-REQUEST] Validated data:', JSON.stringify(data, null, 2));
-    
-    // Criar cliente Supabase com service_role para bypass RLS
+    // Create admin client
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
