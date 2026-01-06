@@ -47,6 +47,46 @@ if (isPublicPage && typeof window !== 'undefined') {
 }
 
 /**
+ * Sanitize error data to remove sensitive information in production
+ */
+function sanitizeErrorData(data: Record<string, any>): Record<string, any> {
+  // In development, return full data
+  if (import.meta.env.DEV) {
+    return data;
+  }
+  
+  // In production, sanitize sensitive fields
+  const sanitized = { ...data };
+  
+  // Remove stack traces in production
+  if (sanitized.errorStack) {
+    sanitized.errorStack = '[REDACTED IN PRODUCTION]';
+  }
+  
+  // Sanitize URL to remove query parameters
+  if (sanitized.metadata?.url) {
+    try {
+      const url = new URL(sanitized.metadata.url);
+      sanitized.metadata.url = `${url.origin}${url.pathname}`;
+    } catch {
+      sanitized.metadata.url = '[REDACTED]';
+    }
+  }
+  
+  // Remove internal file paths
+  if (sanitized.metadata?.filename) {
+    sanitized.metadata.filename = '[REDACTED]';
+  }
+  
+  // Simplify user agent
+  if (sanitized.metadata?.userAgent) {
+    sanitized.metadata.userAgent = '[BROWSER]';
+  }
+  
+  return sanitized;
+}
+
+/**
  * Função para notificar erros no Telegram
  * Chamada para TODOS os erros, sem exceções
  */
@@ -60,8 +100,9 @@ async function notifyErrorToTelegram(errorData: {
   metadata?: Record<string, any>;
 }) {
   try {
-    // Usar fetch direto para evitar dependência circular
-    // Adicionar header para que o useErrorMonitoring ignore erros desta chamada
+    // Sanitize data before sending
+    const sanitizedData = sanitizeErrorData(errorData);
+    
     await fetch(`${SUPABASE_URL}/functions/v1/telegram-error-notifier`, {
       method: 'POST',
       headers: {
@@ -69,11 +110,10 @@ async function notifyErrorToTelegram(errorData: {
         'apikey': SUPABASE_PUBLISHABLE_KEY,
         'X-Skip-Error-Monitoring': 'true'
       },
-      body: JSON.stringify(errorData)
+      body: JSON.stringify(sanitizedData)
     });
   } catch (e) {
     // Fail silently - não queremos loops infinitos de erro
-    // NÃO logar nada aqui para evitar loops
   }
 }
 
