@@ -35,7 +35,8 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
   const [isOnline, setIsOnline] = useState(false);
   
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastUpdateRef = useRef<number>(0); // Debounce para updates extremos
 
   // Função para atualizar estado de tempo
   const updateTimeState = useCallback(() => {
@@ -105,6 +106,12 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
 
     console.log('[useFreightRealtimeLocation] Setting up realtime subscription for freight:', freightId);
 
+    // Cleanup de canal existente antes de criar novo (evita duplicação em hot reload)
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
     const channel = supabase
       .channel(`freight-realtime-${freightId}`)
       .on(
@@ -116,6 +123,14 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
           filter: `id=eq.${freightId}`
         },
         (payload) => {
+          // Debounce: ignorar updates muito frequentes (<800ms)
+          const now = Date.now();
+          if (now - lastUpdateRef.current < 800) {
+            console.log('[useFreightRealtimeLocation] Update debounced');
+            return;
+          }
+          lastUpdateRef.current = now;
+
           console.log('[useFreightRealtimeLocation] Realtime update received:', payload);
           
           const newData = payload.new as {
@@ -124,7 +139,7 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
             last_location_update?: string;
           };
 
-          if (newData.current_lat && newData.current_lng) {
+          if (typeof newData.current_lat === 'number' && typeof newData.current_lng === 'number') {
             setDriverLocation(prev => {
               // Só atualiza se a posição mudou
               if (prev?.lat === newData.current_lat && prev?.lng === newData.current_lng) {

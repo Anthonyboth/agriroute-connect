@@ -111,7 +111,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   return (
     <Card className={cn(
       "h-full flex flex-col border-l-4 hover:shadow-lg transition-all overflow-hidden",
-      isHighlighted ? "border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 shadow-xl animate-pulse" : "border-l-primary"
+      isHighlighted ? "border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 shadow-xl ring-2 ring-yellow-400" : "border-l-primary"
     )}>
       <CardHeader className="pb-2 min-h-[100px] overflow-x-auto">
         <div className="min-w-fit">
@@ -140,7 +140,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
               </div>
               <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap shrink-0" title={precisionInfo.tooltip}>
                 <MapPin className="h-3.5 w-3.5 text-primary" />
-                <span>{formatKm(parseFloat(String(freight.distance_km).replace(/[^\d.]/g, '')) || 0)}</span>
+                <span>{formatKm(typeof freight.distance_km === 'number' ? freight.distance_km : 0)}</span>
                 <span className="text-[10px]">{precisionInfo.icon}</span>
               </div>
               <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded text-xs font-medium whitespace-nowrap shrink-0">
@@ -307,8 +307,8 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
 };
 
 // ✅ Memoização para evitar re-renders desnecessários em listas
+// Não comparar callbacks (onViewDetails, onRequestCancel) pois são instáveis quando inline
 export const FreightInProgressCard = React.memo(FreightInProgressCardComponent, (prevProps, nextProps) => {
-  // Comparador customizado para evitar re-renders desnecessários
   return (
     prevProps.freight.id === nextProps.freight.id &&
     prevProps.freight.status === nextProps.freight.status &&
@@ -316,8 +316,7 @@ export const FreightInProgressCard = React.memo(FreightInProgressCardComponent, 
     prevProps.freight.current_lat === nextProps.freight.current_lat &&
     prevProps.freight.current_lng === nextProps.freight.current_lng &&
     prevProps.showActions === nextProps.showActions &&
-    prevProps.highlightFreightId === nextProps.highlightFreightId &&
-    prevProps.onViewDetails === nextProps.onViewDetails &&
-    prevProps.onRequestCancel === nextProps.onRequestCancel
+    prevProps.highlightFreightId === nextProps.highlightFreightId
+    // Removidos onViewDetails e onRequestCancel - callbacks inline quebram memo
   );
 });
