@@ -1,0 +1,182 @@
+/**
+ * src/hooks/useFreightRealtimeLocation.ts
+ * 
+ * Hook para subscription realtime da localização do motorista.
+ * Gerencia estado de conexão, cálculo de online/offline e cleanup.
+ */
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { isDriverOnline, getSecondsSinceUpdate } from '@/lib/map-utils';
+
+interface DriverLocation {
+  lat: number;
+  lng: number;
+}
+
+interface UseFreightRealtimeLocationResult {
+  driverLocation: DriverLocation | null;
+  lastUpdate: Date | null;
+  isOnline: boolean;
+  secondsAgo: number;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const OFFLINE_THRESHOLD_MS = 90000; // 90 segundos
+const REFRESH_INTERVAL_MS = 5000; // Atualizar secondsAgo a cada 5s
+
+export function useFreightRealtimeLocation(freightId: string | null): UseFreightRealtimeLocationResult {
+  const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [secondsAgo, setSecondsAgo] = useState<number>(Infinity);
+  const [isOnline, setIsOnline] = useState(false);
+  
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Função para atualizar estado de tempo
+  const updateTimeState = useCallback(() => {
+    if (lastUpdate) {
+      const seconds = getSecondsSinceUpdate(lastUpdate);
+      setSecondsAgo(seconds);
+      setIsOnline(isDriverOnline(lastUpdate, OFFLINE_THRESHOLD_MS));
+    } else {
+      setSecondsAgo(Infinity);
+      setIsOnline(false);
+    }
+  }, [lastUpdate]);
+
+  // Buscar localização inicial
+  useEffect(() => {
+    if (!freightId) {
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchInitialLocation = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const { data, error: fetchError } = await supabase
+          .from('freights')
+          .select('current_lat, current_lng, last_location_update')
+          .eq('id', freightId)
+          .single();
+
+        if (fetchError) {
+          console.error('[useFreightRealtimeLocation] Fetch error:', fetchError);
+          setError('Erro ao buscar localização');
+          return;
+        }
+
+        if (data?.current_lat && data?.current_lng) {
+          setDriverLocation({ lat: data.current_lat, lng: data.current_lng });
+        }
+
+        if (data?.last_location_update) {
+          setLastUpdate(new Date(data.last_location_update));
+        }
+
+        console.log('[useFreightRealtimeLocation] Initial location loaded:', {
+          freightId,
+          lat: data?.current_lat,
+          lng: data?.current_lng,
+          lastUpdate: data?.last_location_update
+        });
+
+      } catch (err) {
+        console.error('[useFreightRealtimeLocation] Unexpected error:', err);
+        setError('Erro inesperado');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInitialLocation();
+  }, [freightId]);
+
+  // Subscription Realtime
+  useEffect(() => {
+    if (!freightId) return;
+
+    console.log('[useFreightRealtimeLocation] Setting up realtime subscription for freight:', freightId);
+
+    const channel = supabase
+      .channel(`freight-realtime-${freightId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'freights',
+          filter: `id=eq.${freightId}`
+        },
+        (payload) => {
+          console.log('[useFreightRealtimeLocation] Realtime update received:', payload);
+          
+          const newData = payload.new as {
+            current_lat?: number;
+            current_lng?: number;
+            last_location_update?: string;
+          };
+
+          if (newData.current_lat && newData.current_lng) {
+            setDriverLocation(prev => {
+              // Só atualiza se a posição mudou
+              if (prev?.lat === newData.current_lat && prev?.lng === newData.current_lng) {
+                return prev;
+              }
+              return { lat: newData.current_lat!, lng: newData.current_lng! };
+            });
+          }
+
+          if (newData.last_location_update) {
+            setLastUpdate(new Date(newData.last_location_update));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[useFreightRealtimeLocation] Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('[useFreightRealtimeLocation] Successfully subscribed to freight updates');
+        }
+      });
+
+    channelRef.current = channel;
+
+    return () => {
+      console.log('[useFreightRealtimeLocation] Cleaning up subscription for freight:', freightId);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [freightId]);
+
+  // Atualizar secondsAgo periodicamente
+  useEffect(() => {
+    updateTimeState();
+    
+    refreshIntervalRef.current = setInterval(updateTimeState, REFRESH_INTERVAL_MS);
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = null;
+      }
+    };
+  }, [updateTimeState]);
+
+  return {
+    driverLocation,
+    lastUpdate,
+    isOnline,
+    secondsAgo,
+    isLoading,
+    error
+  };
+}
