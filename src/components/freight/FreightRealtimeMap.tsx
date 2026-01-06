@@ -82,22 +82,30 @@ const FreightRealtimeMapComponent: React.FC<FreightRealtimeMapProps> = ({
 
         // Centro inicial: localização do motorista ou centro do Brasil
         const initialCenter = driverLocation || 
-          (originLat && originLng ? { lat: originLat, lng: originLng } : { lat: -14.235, lng: -51.925 });
+          (typeof originLat === 'number' && typeof originLng === 'number' ? { lat: originLat, lng: originLng } : { lat: -14.235, lng: -51.925 });
 
         mapRef.current = new Map(mapContainerRef.current, {
           center: initialCenter,
           zoom: 10,
-          mapId: 'AGRIROUTE_REALTIME_MAP',
+          // mapId removido - requer configuração no Google Cloud Console
           styles: RURAL_MAP_STYLE,
           disableDefaultUI: false,
           zoomControl: true,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
+          gestureHandling: 'greedy', // Melhora UX em mobile
         });
 
         setMapLoaded(true);
         console.log('[FreightRealtimeMap] Map initialized successfully');
+
+        // Ajustar bounds após carregar, se já houver dados
+        setTimeout(() => {
+          if (driverLocation || (typeof originLat === 'number') || (typeof destinationLat === 'number')) {
+            handleFitBounds();
+          }
+        }, 0);
 
       } catch (err) {
         console.error('[FreightRealtimeMap] Error initializing map:', err);
@@ -182,7 +190,8 @@ const FreightRealtimeMapComponent: React.FC<FreightRealtimeMapProps> = ({
 
     const points: google.maps.LatLngLiteral[] = [];
 
-    if (originLat && originLng) {
+    // Usar typeof para evitar falso negativo quando lat/lng = 0
+    if (typeof originLat === 'number' && typeof originLng === 'number') {
       points.push({ lat: originLat, lng: originLng });
     }
 
@@ -190,7 +199,7 @@ const FreightRealtimeMapComponent: React.FC<FreightRealtimeMapProps> = ({
       points.push(driverLocation);
     }
 
-    if (destinationLat && destinationLng) {
+    if (typeof destinationLat === 'number' && typeof destinationLng === 'number') {
       points.push({ lat: destinationLat, lng: destinationLng });
     }
 
@@ -230,9 +239,9 @@ const FreightRealtimeMapComponent: React.FC<FreightRealtimeMapProps> = ({
     if (!mapRef.current) return;
 
     const bounds = calculateBounds([
-      originLat && originLng ? { lat: originLat, lng: originLng } : null,
+      typeof originLat === 'number' && typeof originLng === 'number' ? { lat: originLat, lng: originLng } : null,
       driverLocation,
-      destinationLat && destinationLng ? { lat: destinationLat, lng: destinationLng } : null,
+      typeof destinationLat === 'number' && typeof destinationLng === 'number' ? { lat: destinationLat, lng: destinationLng } : null,
     ]);
 
     if (bounds) {
