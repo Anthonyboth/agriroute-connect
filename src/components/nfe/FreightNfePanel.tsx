@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NfeScannerDialog } from './NfeScannerDialog';
-import { ManifestationDialog } from './ManifestationDialog';
+import { AssistedManifestationDialog } from './AssistedManifestationDialog';
 import { NfeCard } from './NfeCard';
 import { useNfe } from '@/hooks/useNfe';
 import { NFeDocument } from '@/types/nfe';
@@ -129,7 +129,7 @@ export function FreightNfePanel({ freightId, autoLoad = true }: FreightNfePanelP
       />
 
       {selectedNfe && (
-        <ManifestationDialog
+        <AssistedManifestationDialog
           open={showManifestation}
           onClose={() => {
             setShowManifestation(false);
