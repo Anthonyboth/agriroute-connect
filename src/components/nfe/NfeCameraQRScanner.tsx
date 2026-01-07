@@ -51,7 +51,7 @@ export function NfeCameraQRScanner({ open, onClose, onScan }: NfeCameraQRScanner
       const formats = mode === 'qr' ? qrFormats : barcodeFormats;
       
       if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode(containerIdRef.current, { formatsToSupport: formats });
+        scannerRef.current = new Html5Qrcode(containerIdRef.current, { formatsToSupport: formats, verbose: false });
       }
 
       await scannerRef.current.start(
