@@ -2133,6 +2133,71 @@ export type Database = {
           },
         ]
       }
+      fiscal_compliance_logs: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          freight_id: string | null
+          id: string
+          metadata: Json | null
+          nfe_access_key: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          freight_id?: string | null
+          id?: string
+          metadata?: Json | null
+          nfe_access_key?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          freight_id?: string | null
+          id?: string
+          metadata?: Json | null
+          nfe_access_key?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_compliance_logs_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_responsibility_acceptances: {
+        Row: {
+          accepted_at: string | null
+          id: string
+          ip_address: unknown
+          term_version: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          id?: string
+          ip_address?: unknown
+          term_version?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          id?: string
+          ip_address?: unknown
+          term_version?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       flexible_freight_proposals: {
         Row: {
           created_at: string
@@ -4229,11 +4294,14 @@ export type Database = {
           issuer_name: string
           manifestation_date: string | null
           manifestation_justification: string | null
+          manifestation_mode: string | null
           manifestation_type: string | null
           number: string
+          portal_redirect_at: string | null
           series: string
           status: string
           updated_at: string | null
+          user_declaration_at: string | null
           value: number
         }
         Insert: {
@@ -4247,11 +4315,14 @@ export type Database = {
           issuer_name: string
           manifestation_date?: string | null
           manifestation_justification?: string | null
+          manifestation_mode?: string | null
           manifestation_type?: string | null
           number: string
+          portal_redirect_at?: string | null
           series: string
           status?: string
           updated_at?: string | null
+          user_declaration_at?: string | null
           value: number
         }
         Update: {
@@ -4265,11 +4336,14 @@ export type Database = {
           issuer_name?: string
           manifestation_date?: string | null
           manifestation_justification?: string | null
+          manifestation_mode?: string | null
           manifestation_type?: string | null
           number?: string
+          portal_redirect_at?: string | null
           series?: string
           status?: string
           updated_at?: string | null
+          user_declaration_at?: string | null
           value?: number
         }
         Relationships: [
