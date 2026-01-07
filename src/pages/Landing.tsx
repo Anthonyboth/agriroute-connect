@@ -202,7 +202,7 @@ const Landing: React.FC = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
             <a href="#features" className="text-muted-foreground hover:text-foreground transition-smooth">Recursos</a>
-            <button onClick={() => setHowItWorksModal({ isOpen: true })} className="text-muted-foreground hover:text-foreground transition-smooth">Sobre</button>
+            <button onClick={() => navigate('/about')} className="text-muted-foreground hover:text-foreground transition-smooth">Sobre</button>
             <button onClick={() => setContactModal(true)} className="text-muted-foreground hover:text-foreground transition-smooth">Contato</button>
           </nav>
           
