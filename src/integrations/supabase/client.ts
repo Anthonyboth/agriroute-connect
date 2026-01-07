@@ -120,7 +120,8 @@ async function notifyErrorToTelegram(errorData: {
 }
 
 // Capturar e NOTIFICAR erros (não suprimir)
-if (typeof window !== 'undefined') {
+// Defer error monitoring setup to not block TTI on initial load
+if (typeof window !== 'undefined' && !isPublicPage) {
   const isWebSocketError = (message: string) => {
     return (message.includes('WebSocket') || message.includes('websocket')) &&
            (message.includes('ERR_NAME_NOT_RESOLVED') || 
