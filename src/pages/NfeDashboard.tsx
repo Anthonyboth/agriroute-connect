@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NfeScannerDialog } from '@/components/nfe/NfeScannerDialog';
-import { ManifestationDialog } from '@/components/nfe/ManifestationDialog';
+import { AssistedManifestationDialog } from '@/components/nfe/AssistedManifestationDialog';
 import { NfeCard } from '@/components/nfe/NfeCard';
 import { useNfe } from '@/hooks/useNfe';
 import { NFeDocument } from '@/types/nfe';
@@ -144,7 +144,7 @@ export default function NfeDashboard() {
         />
 
         {selectedNfe && (
-          <ManifestationDialog
+          <AssistedManifestationDialog
             open={showManifestation}
             onClose={() => {
               setShowManifestation(false);
