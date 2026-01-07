@@ -2514,6 +2514,72 @@ export type Database = {
           },
         ]
       }
+      freight_delay_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          detected_at: string | null
+          freight_id: string
+          id: string
+          location_lat: number | null
+          location_lng: number | null
+          message: string
+          metadata: Json | null
+          notified_at: string | null
+          notified_producer: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          detected_at?: string | null
+          freight_id: string
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          message: string
+          metadata?: Json | null
+          notified_at?: string | null
+          notified_producer?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          detected_at?: string | null
+          freight_id?: string
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          message?: string
+          metadata?: Json | null
+          notified_at?: string | null
+          notified_producer?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_delay_alerts_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_delay_alerts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_matches: {
         Row: {
           created_at: string | null
@@ -2866,6 +2932,163 @@ export type Database = {
           },
         ]
       }
+      freight_route_history: {
+        Row: {
+          accuracy: number | null
+          altitude: number | null
+          captured_at: string
+          created_at: string | null
+          distance_from_start_km: number | null
+          distance_to_destination_km: number | null
+          driver_profile_id: string
+          freight_id: string
+          heading: number | null
+          id: string
+          lat: number
+          lng: number
+          segment_index: number | null
+          speed: number | null
+        }
+        Insert: {
+          accuracy?: number | null
+          altitude?: number | null
+          captured_at?: string
+          created_at?: string | null
+          distance_from_start_km?: number | null
+          distance_to_destination_km?: number | null
+          driver_profile_id: string
+          freight_id: string
+          heading?: number | null
+          id?: string
+          lat: number
+          lng: number
+          segment_index?: number | null
+          speed?: number | null
+        }
+        Update: {
+          accuracy?: number | null
+          altitude?: number | null
+          captured_at?: string
+          created_at?: string | null
+          distance_from_start_km?: number | null
+          distance_to_destination_km?: number | null
+          driver_profile_id?: string
+          freight_id?: string
+          heading?: number | null
+          id?: string
+          lat?: number
+          lng?: number
+          segment_index?: number | null
+          speed?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_route_history_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_route_history_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freight_sanitary_documents: {
+        Row: {
+          animal_count: number | null
+          created_at: string | null
+          created_by: string | null
+          destination_property: string | null
+          document_number: string | null
+          document_type: string
+          expiry_date: string | null
+          file_url: string | null
+          freight_id: string
+          id: string
+          issue_date: string | null
+          issuing_agency: string | null
+          notes: string | null
+          ocr_confidence: number | null
+          ocr_extracted_data: Json | null
+          origin_property: string | null
+          updated_at: string | null
+          validated_at: string | null
+          validated_by: string | null
+          validation_status: string | null
+        }
+        Insert: {
+          animal_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          destination_property?: string | null
+          document_number?: string | null
+          document_type: string
+          expiry_date?: string | null
+          file_url?: string | null
+          freight_id: string
+          id?: string
+          issue_date?: string | null
+          issuing_agency?: string | null
+          notes?: string | null
+          ocr_confidence?: number | null
+          ocr_extracted_data?: Json | null
+          origin_property?: string | null
+          updated_at?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_status?: string | null
+        }
+        Update: {
+          animal_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          destination_property?: string | null
+          document_number?: string | null
+          document_type?: string
+          expiry_date?: string | null
+          file_url?: string | null
+          freight_id?: string
+          id?: string
+          issue_date?: string | null
+          issuing_agency?: string | null
+          notes?: string | null
+          ocr_confidence?: number | null
+          ocr_extracted_data?: Json | null
+          origin_property?: string | null
+          updated_at?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_sanitary_documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_sanitary_documents_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_sanitary_documents_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_status_history: {
         Row: {
           changed_by: string
@@ -2969,6 +3192,7 @@ export type Database = {
           allow_counter_proposals: boolean | null
           cancellation_reason: string | null
           cancelled_at: string | null
+          cargo_category: string | null
           cargo_category_antt: string | null
           cargo_type: string
           commission_amount: number | null
@@ -2980,6 +3204,7 @@ export type Database = {
           current_lng: number | null
           date_range_end: string | null
           date_range_start: string | null
+          delay_alert_status: string | null
           delivery_date: string
           delivery_observations: string | null
           description: string | null
@@ -2998,6 +3223,10 @@ export type Database = {
           distance_km: number | null
           driver_id: string | null
           drivers_assigned: string[] | null
+          estimated_arrival_at: string | null
+          eta_average_speed_kmh: number | null
+          eta_calculated_at: string | null
+          eta_remaining_distance_km: number | null
           extra_fees: number | null
           extra_fees_description: string | null
           fiscal_documents_url: string | null
@@ -3037,8 +3266,10 @@ export type Database = {
           prospect_user_id: string | null
           reference_number: number | null
           required_trucks: number
+          requires_sanitary_docs: boolean | null
           route_geom: unknown
           route_waypoints: Json | null
+          sanitary_compliance_status: string | null
           scheduled_date: string | null
           service_radius_km: number | null
           service_type: string | null
@@ -3065,6 +3296,7 @@ export type Database = {
           allow_counter_proposals?: boolean | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          cargo_category?: string | null
           cargo_category_antt?: string | null
           cargo_type: string
           commission_amount?: number | null
@@ -3076,6 +3308,7 @@ export type Database = {
           current_lng?: number | null
           date_range_end?: string | null
           date_range_start?: string | null
+          delay_alert_status?: string | null
           delivery_date: string
           delivery_observations?: string | null
           description?: string | null
@@ -3094,6 +3327,10 @@ export type Database = {
           distance_km?: number | null
           driver_id?: string | null
           drivers_assigned?: string[] | null
+          estimated_arrival_at?: string | null
+          eta_average_speed_kmh?: number | null
+          eta_calculated_at?: string | null
+          eta_remaining_distance_km?: number | null
           extra_fees?: number | null
           extra_fees_description?: string | null
           fiscal_documents_url?: string | null
@@ -3133,8 +3370,10 @@ export type Database = {
           prospect_user_id?: string | null
           reference_number?: number | null
           required_trucks?: number
+          requires_sanitary_docs?: boolean | null
           route_geom?: unknown
           route_waypoints?: Json | null
+          sanitary_compliance_status?: string | null
           scheduled_date?: string | null
           service_radius_km?: number | null
           service_type?: string | null
@@ -3161,6 +3400,7 @@ export type Database = {
           allow_counter_proposals?: boolean | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          cargo_category?: string | null
           cargo_category_antt?: string | null
           cargo_type?: string
           commission_amount?: number | null
@@ -3172,6 +3412,7 @@ export type Database = {
           current_lng?: number | null
           date_range_end?: string | null
           date_range_start?: string | null
+          delay_alert_status?: string | null
           delivery_date?: string
           delivery_observations?: string | null
           description?: string | null
@@ -3190,6 +3431,10 @@ export type Database = {
           distance_km?: number | null
           driver_id?: string | null
           drivers_assigned?: string[] | null
+          estimated_arrival_at?: string | null
+          eta_average_speed_kmh?: number | null
+          eta_calculated_at?: string | null
+          eta_remaining_distance_km?: number | null
           extra_fees?: number | null
           extra_fees_description?: string | null
           fiscal_documents_url?: string | null
@@ -3229,8 +3474,10 @@ export type Database = {
           prospect_user_id?: string | null
           reference_number?: number | null
           required_trucks?: number
+          requires_sanitary_docs?: boolean | null
           route_geom?: unknown
           route_waypoints?: Json | null
+          sanitary_compliance_status?: string | null
           scheduled_date?: string | null
           service_radius_km?: number | null
           service_type?: string | null
@@ -7320,6 +7567,15 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      calculate_freight_eta: {
+        Args: {
+          p_current_lat: number
+          p_current_lng: number
+          p_current_speed_kmh?: number
+          p_freight_id: string
+        }
+        Returns: Json
+      }
       can_manage_company: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
@@ -7406,6 +7662,10 @@ export type Database = {
       decrypt_sensitive_data: {
         Args: { encrypted_data: string; key?: string }
         Returns: string
+      }
+      detect_freight_delay_alerts: {
+        Args: { p_freight_id: string }
+        Returns: Json
       }
       detect_suspicious_access: {
         Args: { rows_accessed: number; table_accessed: string }
@@ -8165,6 +8425,17 @@ export type Database = {
         }
         Returns: string
       }
+      insert_route_point: {
+        Args: {
+          p_accuracy?: number
+          p_freight_id: string
+          p_heading?: number
+          p_lat: number
+          p_lng: number
+          p_speed?: number
+        }
+        Returns: Json
+      }
       is_admin: { Args: never; Returns: boolean }
       is_affiliated_driver: { Args: { p_profile_id: string }; Returns: boolean }
       is_company_driver: {
@@ -8353,6 +8624,7 @@ export type Database = {
           allow_counter_proposals: boolean | null
           cancellation_reason: string | null
           cancelled_at: string | null
+          cargo_category: string | null
           cargo_category_antt: string | null
           cargo_type: string
           commission_amount: number | null
@@ -8364,6 +8636,7 @@ export type Database = {
           current_lng: number | null
           date_range_end: string | null
           date_range_start: string | null
+          delay_alert_status: string | null
           delivery_date: string
           delivery_observations: string | null
           description: string | null
@@ -8382,6 +8655,10 @@ export type Database = {
           distance_km: number | null
           driver_id: string | null
           drivers_assigned: string[] | null
+          estimated_arrival_at: string | null
+          eta_average_speed_kmh: number | null
+          eta_calculated_at: string | null
+          eta_remaining_distance_km: number | null
           extra_fees: number | null
           extra_fees_description: string | null
           fiscal_documents_url: string | null
@@ -8421,8 +8698,10 @@ export type Database = {
           prospect_user_id: string | null
           reference_number: number | null
           required_trucks: number
+          requires_sanitary_docs: boolean | null
           route_geom: unknown
           route_waypoints: Json | null
+          sanitary_compliance_status: string | null
           scheduled_date: string | null
           service_radius_km: number | null
           service_type: string | null
@@ -8458,6 +8737,7 @@ export type Database = {
           allow_counter_proposals: boolean | null
           cancellation_reason: string | null
           cancelled_at: string | null
+          cargo_category: string | null
           cargo_category_antt: string | null
           cargo_type: string
           commission_amount: number | null
@@ -8469,6 +8749,7 @@ export type Database = {
           current_lng: number | null
           date_range_end: string | null
           date_range_start: string | null
+          delay_alert_status: string | null
           delivery_date: string
           delivery_observations: string | null
           description: string | null
@@ -8487,6 +8768,10 @@ export type Database = {
           distance_km: number | null
           driver_id: string | null
           drivers_assigned: string[] | null
+          estimated_arrival_at: string | null
+          eta_average_speed_kmh: number | null
+          eta_calculated_at: string | null
+          eta_remaining_distance_km: number | null
           extra_fees: number | null
           extra_fees_description: string | null
           fiscal_documents_url: string | null
@@ -8526,8 +8811,10 @@ export type Database = {
           prospect_user_id: string | null
           reference_number: number | null
           required_trucks: number
+          requires_sanitary_docs: boolean | null
           route_geom: unknown
           route_waypoints: Json | null
+          sanitary_compliance_status: string | null
           scheduled_date: string | null
           service_radius_km: number | null
           service_type: string | null
