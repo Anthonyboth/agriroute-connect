@@ -23,15 +23,17 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
-  realtime: {
+  realtime: isPublicPage ? {
+    // Completely disable realtime on public pages
     params: {
-      eventsPerSecond: isPublicPage ? 0 : 10
+      eventsPerSecond: 0
+    }
+  } : {
+    params: {
+      eventsPerSecond: 10
     },
-    // Disable automatic connection on public pages
-    ...(isPublicPage ? {} : {
-      timeout: 30000,
-      heartbeatIntervalMs: 30000
-    })
+    timeout: 30000,
+    heartbeatIntervalMs: 30000
   },
   global: {
     headers: {
@@ -40,10 +42,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Disable realtime channels on public pages to prevent WebSocket console errors
+// Completely disable realtime on public pages to prevent WebSocket console errors
 if (isPublicPage && typeof window !== 'undefined') {
-  // Remove all channels to prevent WebSocket connection attempts
-  supabase.removeAllChannels();
+  // Disconnect realtime to prevent WebSocket connection attempts
+  supabase.realtime.disconnect();
 }
 
 /**
