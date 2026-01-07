@@ -53,68 +53,44 @@ export function useNfe() {
     }
   }, []);
 
-  const manifestNfe = useCallback(async (payload: NFeManifestationPayload): Promise<boolean> => {
-    console.log('[NFE] 🔄 Iniciando manifestNfe');
-    console.log('[NFE] 📋 Payload:', payload);
-    
+  // Manifestação assistida - apenas atualiza status declaratório (sem integração SEFAZ)
+  const confirmAssistedManifestation = useCallback(async (payload: NFeManifestationPayload): Promise<boolean> => {
+    console.log('[NFE] 🔄 Iniciando manifestação assistida');
     setLoading(true);
     setError(null);
 
     try {
-      const { data, error: manifestError } = await supabase.functions.invoke('nfe-manifest', {
-        body: payload,
+      const { data, error: updateError } = await supabase.functions.invoke('nfe-update-status', {
+        body: {
+          access_key: payload.access_key,
+          manifestation_type: payload.manifestation_type,
+          manifestation_mode: 'assisted',
+          freight_id: payload.freight_id,
+        },
       });
 
-      console.log('[NFE] 📦 Resposta nfe-manifest:', { data, error: manifestError });
+      if (updateError) throw updateError;
 
-      if (manifestError) {
-        throw manifestError;
+      if (!data?.success) {
+        throw new Error(data?.error || 'Falha ao atualizar status');
       }
 
-      if (!data.success) {
-        // Traduzir erro SEFAZ
-        const sefazCode = data.sefaz_code || data.code;
-        const translated = translateSefazError(sefazCode, data.error);
-        
-        // Mostrar toast com ação se for erro retryable
-        if (sefazCode && isRetryableError(sefazCode)) {
-          toast.error(translated.message, {
-            description: translated.action,
-            action: {
-              label: 'Tentar novamente',
-              onClick: () => manifestNfe(payload),
-            },
-          });
-        } else {
-          toast.error(translated.message, {
-            description: translated.action,
-          });
-        }
-        
-        setError(translated.message);
-        return false;
-      }
-
-      console.log('[NFE] ✅ NFe manifestada com sucesso');
-      
-      // Mensagem específica por tipo de manifestação
-      const messageByType: Record<ManifestationType, string> = {
-        'ciencia': 'Ciência da operação registrada',
-        'confirmacao': 'Operação confirmada com sucesso',
-        'desconhecimento': 'Desconhecimento registrado',
-        'nao_realizada': 'Operação não realizada registrada',
+      const typeLabels: Record<ManifestationType, string> = {
+        ciencia: 'Ciência da Operação',
+        confirmacao: 'Confirmação da Operação',
+        desconhecimento: 'Desconhecimento da Operação',
+        nao_realizada: 'Operação Não Realizada',
       };
-      
-      toast.success(messageByType[payload.manifestation_type] || 'NF-e manifestada com sucesso', {
-        description: data.protocol ? `Protocolo: ${data.protocol}` : undefined,
+
+      toast.success('Manifestação registrada!', {
+        description: `Status: ${typeLabels[payload.manifestation_type]}`,
       });
-      
+
       return true;
     } catch (err: any) {
-      console.error('[NFE] 💥 Exception:', err);
-      const errorMessage = err.message || 'Erro ao manifestar NF-e';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      console.error('[NFE] Erro:', err);
+      setError(err.message || 'Erro ao registrar');
+      toast.error(err.message || 'Tente novamente.');
       return false;
     } finally {
       setLoading(false);
@@ -160,7 +136,7 @@ export function useNfe() {
     loading,
     error,
     scanNfe,
-    manifestNfe,
+    confirmAssistedManifestation,
     listNfes,
     clearError: () => setError(null),
   };

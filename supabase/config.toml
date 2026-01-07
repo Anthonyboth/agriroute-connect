@@ -225,7 +225,7 @@ verify_jwt = false
 [functions.nfe-scan]
 verify_jwt = true
 
-[functions.nfe-manifest]
+[functions.nfe-update-status]
 verify_jwt = true
 
 [functions.nfe-list]

@@ -11,6 +11,9 @@ export interface NFeDocument {
   manifestation_type?: ManifestationType;
   manifestation_date?: string;
   manifestation_justification?: string;
+  manifestation_mode?: 'assisted' | 'legacy';
+  portal_redirect_at?: string;
+  user_declaration_at?: string;
   freight_id?: string;
   created_by: string;
   created_at: string;
