@@ -233,16 +233,25 @@ const Landing: React.FC = () => {
           className="absolute inset-0 bg-[#1a1a2e]"
           aria-hidden="true"
         />
-        <img 
-          src="/hero-truck-night-moon.webp"
-          alt="Logística agrícola moderna - caminhão transportando carga agrícola"
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-          fetchPriority="high"
-          decoding="async"
-          width="1920"
-          height="1080"
-        />
+        <picture>
+          <source
+            media="(max-width: 640px)"
+            srcSet="/hero-truck-night-moon-mobile.webp"
+            type="image/webp"
+          />
+          <img 
+            src="/hero-truck-night-moon.webp"
+            srcSet="/hero-truck-night-moon-mobile.webp 640w, /hero-truck-night-moon.webp 1920w"
+            sizes="100vw"
+            alt="Logística agrícola moderna - caminhão transportando carga agrícola"
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+            width="1920"
+            height="1080"
+          />
+        </picture>
         <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/50 to-transparent" />
         
         <div className="hero-content relative z-10 container mx-auto px-6 md:px-8 text-center max-w-5xl">
