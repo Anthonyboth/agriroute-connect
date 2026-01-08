@@ -1017,6 +1017,85 @@ export type Database = {
           },
         ]
       }
+      compliance_audit_events: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          actor_role: string | null
+          created_at: string
+          device_info: Json | null
+          event_category: string
+          event_data: Json
+          event_type: string
+          freight_id: string | null
+          gps_location: Json | null
+          id: string
+          ip_address: unknown
+          livestock_compliance_id: string | null
+          new_state: Json | null
+          previous_state: Json | null
+          user_agent: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          created_at?: string
+          device_info?: Json | null
+          event_category: string
+          event_data?: Json
+          event_type: string
+          freight_id?: string | null
+          gps_location?: Json | null
+          id?: string
+          ip_address?: unknown
+          livestock_compliance_id?: string | null
+          new_state?: Json | null
+          previous_state?: Json | null
+          user_agent?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          created_at?: string
+          device_info?: Json | null
+          event_category?: string
+          event_data?: Json
+          event_type?: string
+          freight_id?: string | null
+          gps_location?: Json | null
+          id?: string
+          ip_address?: unknown
+          livestock_compliance_id?: string | null
+          new_state?: Json | null
+          previous_state?: Json | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_audit_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_audit_events_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_audit_events_livestock_compliance_id_fkey"
+            columns: ["livestock_compliance_id"]
+            isOneToOne: false
+            referencedRelation: "livestock_freight_compliance"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       convites_motoristas: {
         Row: {
           criado_em: string
@@ -3646,6 +3725,208 @@ export type Database = {
         }
         Relationships: []
       }
+      gta_assisted_drafts: {
+        Row: {
+          additional_data: Json | null
+          animal_category: string | null
+          animal_count: number
+          animal_species: string
+          created_at: string
+          destination_property_data: Json | null
+          destination_uf: string
+          freight_id: string | null
+          gta_uploaded_at: string | null
+          id: string
+          origin_property_data: Json | null
+          origin_uf: string
+          portal_url_used: string | null
+          redirected_to_portal_at: string | null
+          status: string | null
+          transport_purpose: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          additional_data?: Json | null
+          animal_category?: string | null
+          animal_count: number
+          animal_species: string
+          created_at?: string
+          destination_property_data?: Json | null
+          destination_uf: string
+          freight_id?: string | null
+          gta_uploaded_at?: string | null
+          id?: string
+          origin_property_data?: Json | null
+          origin_uf: string
+          portal_url_used?: string | null
+          redirected_to_portal_at?: string | null
+          status?: string | null
+          transport_purpose: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          additional_data?: Json | null
+          animal_category?: string | null
+          animal_count?: number
+          animal_species?: string
+          created_at?: string
+          destination_property_data?: Json | null
+          destination_uf?: string
+          freight_id?: string | null
+          gta_uploaded_at?: string | null
+          id?: string
+          origin_property_data?: Json | null
+          origin_uf?: string
+          portal_url_used?: string | null
+          redirected_to_portal_at?: string | null
+          status?: string | null
+          transport_purpose?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gta_assisted_drafts_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gta_assisted_drafts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gta_ocr_validations: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          extracted_data: Json
+          extraction_errors: Json | null
+          fraud_indicators: Json | null
+          id: string
+          livestock_compliance_id: string | null
+          ocr_raw_text: string | null
+          risk_score: number | null
+          sanitary_document_id: string | null
+          validated_at: string
+          validated_by: string | null
+          validation_result: Json
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          extracted_data?: Json
+          extraction_errors?: Json | null
+          fraud_indicators?: Json | null
+          id?: string
+          livestock_compliance_id?: string | null
+          ocr_raw_text?: string | null
+          risk_score?: number | null
+          sanitary_document_id?: string | null
+          validated_at?: string
+          validated_by?: string | null
+          validation_result?: Json
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          extracted_data?: Json
+          extraction_errors?: Json | null
+          fraud_indicators?: Json | null
+          id?: string
+          livestock_compliance_id?: string | null
+          ocr_raw_text?: string | null
+          risk_score?: number | null
+          sanitary_document_id?: string | null
+          validated_at?: string
+          validated_by?: string | null
+          validation_result?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gta_ocr_validations_livestock_compliance_id_fkey"
+            columns: ["livestock_compliance_id"]
+            isOneToOne: false
+            referencedRelation: "livestock_freight_compliance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gta_ocr_validations_sanitary_document_id_fkey"
+            columns: ["sanitary_document_id"]
+            isOneToOne: false
+            referencedRelation: "freight_sanitary_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gta_ocr_validations_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gta_state_rules: {
+        Row: {
+          additional_requirements: Json | null
+          created_at: string
+          gta_format: string
+          id: string
+          is_active: boolean | null
+          issuing_agency_code: string
+          issuing_agency_name: string
+          issuing_agency_url: string | null
+          max_validity_hours: number
+          portal_url: string | null
+          requires_gta: boolean
+          special_notes: string | null
+          state_name: string
+          uf: string
+          updated_at: string
+        }
+        Insert: {
+          additional_requirements?: Json | null
+          created_at?: string
+          gta_format: string
+          id?: string
+          is_active?: boolean | null
+          issuing_agency_code: string
+          issuing_agency_name: string
+          issuing_agency_url?: string | null
+          max_validity_hours?: number
+          portal_url?: string | null
+          requires_gta?: boolean
+          special_notes?: string | null
+          state_name: string
+          uf: string
+          updated_at?: string
+        }
+        Update: {
+          additional_requirements?: Json | null
+          created_at?: string
+          gta_format?: string
+          id?: string
+          is_active?: boolean | null
+          issuing_agency_code?: string
+          issuing_agency_name?: string
+          issuing_agency_url?: string | null
+          max_validity_hours?: number
+          portal_url?: string | null
+          requires_gta?: boolean
+          special_notes?: string | null
+          state_name?: string
+          uf?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       guest_requests: {
         Row: {
           city_name: string | null
@@ -3785,6 +4066,179 @@ export type Database = {
             columns: ["freight_id"]
             isOneToOne: false
             referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_qr_codes: {
+        Row: {
+          access_count: number
+          created_at: string
+          expires_at: string
+          freight_id: string
+          generated_at: string
+          id: string
+          is_active: boolean
+          last_accessed_at: string | null
+          last_accessed_by_ip: unknown
+          livestock_compliance_id: string | null
+          qr_code_data: Json
+          qr_code_hash: string
+          updated_at: string
+        }
+        Insert: {
+          access_count?: number
+          created_at?: string
+          expires_at: string
+          freight_id: string
+          generated_at?: string
+          id?: string
+          is_active?: boolean
+          last_accessed_at?: string | null
+          last_accessed_by_ip?: unknown
+          livestock_compliance_id?: string | null
+          qr_code_data?: Json
+          qr_code_hash: string
+          updated_at?: string
+        }
+        Update: {
+          access_count?: number
+          created_at?: string
+          expires_at?: string
+          freight_id?: string
+          generated_at?: string
+          id?: string
+          is_active?: boolean
+          last_accessed_at?: string | null
+          last_accessed_by_ip?: unknown
+          livestock_compliance_id?: string | null
+          qr_code_data?: Json
+          qr_code_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_qr_codes_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_qr_codes_livestock_compliance_id_fkey"
+            columns: ["livestock_compliance_id"]
+            isOneToOne: false
+            referencedRelation: "livestock_freight_compliance"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      livestock_freight_compliance: {
+        Row: {
+          animal_breed: string | null
+          animal_category: string | null
+          animal_count: number
+          animal_species: string
+          approved_at: string | null
+          approved_by: string | null
+          blocked_at: string | null
+          blocked_by: string | null
+          blocking_reasons: Json | null
+          compliance_checklist: Json | null
+          compliance_status: string
+          created_at: string
+          destination_property_code: string | null
+          destination_property_name: string | null
+          fraud_indicators: Json | null
+          freight_id: string
+          gta_document_id: string | null
+          id: string
+          nfe_document_id: string | null
+          origin_property_code: string | null
+          origin_property_name: string | null
+          risk_score: number | null
+          transport_purpose: string
+          updated_at: string
+        }
+        Insert: {
+          animal_breed?: string | null
+          animal_category?: string | null
+          animal_count: number
+          animal_species: string
+          approved_at?: string | null
+          approved_by?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          blocking_reasons?: Json | null
+          compliance_checklist?: Json | null
+          compliance_status?: string
+          created_at?: string
+          destination_property_code?: string | null
+          destination_property_name?: string | null
+          fraud_indicators?: Json | null
+          freight_id: string
+          gta_document_id?: string | null
+          id?: string
+          nfe_document_id?: string | null
+          origin_property_code?: string | null
+          origin_property_name?: string | null
+          risk_score?: number | null
+          transport_purpose: string
+          updated_at?: string
+        }
+        Update: {
+          animal_breed?: string | null
+          animal_category?: string | null
+          animal_count?: number
+          animal_species?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          blocking_reasons?: Json | null
+          compliance_checklist?: Json | null
+          compliance_status?: string
+          created_at?: string
+          destination_property_code?: string | null
+          destination_property_name?: string | null
+          fraud_indicators?: Json | null
+          freight_id?: string
+          gta_document_id?: string | null
+          id?: string
+          nfe_document_id?: string | null
+          origin_property_code?: string | null
+          origin_property_name?: string | null
+          risk_score?: number | null
+          transport_purpose?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "livestock_freight_compliance_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "livestock_freight_compliance_blocked_by_fkey"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "livestock_freight_compliance_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: true
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "livestock_freight_compliance_gta_document_id_fkey"
+            columns: ["gta_document_id"]
+            isOneToOne: false
+            referencedRelation: "freight_sanitary_documents"
             referencedColumns: ["id"]
           },
         ]
@@ -7699,6 +8153,10 @@ export type Database = {
         Args: { p_ip_address: string }
         Returns: Json
       }
+      check_livestock_compliance: {
+        Args: { p_freight_id: string }
+        Returns: Json
+      }
       check_low_ratings: { Args: never; Returns: undefined }
       check_mutual_ratings_complete: {
         Args: { freight_id_param: string }
@@ -8541,6 +8999,18 @@ export type Database = {
       is_trusted_entity: {
         Args: { p_entity_type: string; p_entity_value: string }
         Returns: boolean
+      }
+      log_compliance_event: {
+        Args: {
+          p_event_category: string
+          p_event_data?: Json
+          p_event_type: string
+          p_freight_id: string
+          p_livestock_compliance_id: string
+          p_new_state?: Json
+          p_previous_state?: Json
+        }
+        Returns: string
       }
       log_security_event: {
         Args: {
