@@ -7,13 +7,80 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 
+// Paleta de cores AgriRoute - cores vibrantes e harmonizadas
 const CHART_COLORS = [
-  'hsl(var(--chart-1))',
-  'hsl(var(--chart-2))',
-  'hsl(var(--chart-3))',
-  'hsl(var(--chart-4))',
-  'hsl(var(--chart-5))',
+  '#2E7D32', // Verde primário (agricultura)
+  '#FF9800', // Laranja (destaque)
+  '#1976D2', // Azul (confiança)
+  '#8D6E63', // Marrom (terra)
+  '#7B1FA2', // Roxo (premium)
+  '#00796B', // Teal (natureza)
+  '#C62828', // Vermelho (urgência)
+  '#F9A825', // Amarelo (atenção)
 ];
+
+// Mapeamento de labels técnicos para português
+const LABEL_MAP: Record<string, string> = {
+  // Tipos de carga
+  'adubo_fertilizante': 'Adubo/Fertilizante',
+  'graos': 'Grãos',
+  'gado': 'Gado',
+  'gado_vivo': 'Gado Vivo',
+  'aves': 'Aves',
+  'suinos': 'Suínos',
+  'leite': 'Leite',
+  'frutas': 'Frutas',
+  'legumes': 'Legumes',
+  'cana': 'Cana-de-Açúcar',
+  'soja': 'Soja',
+  'milho': 'Milho',
+  'algodao': 'Algodão',
+  'cafe': 'Café',
+  'madeira': 'Madeira',
+  'maquinario': 'Maquinário',
+  'equipamentos': 'Equipamentos',
+  'insumos': 'Insumos',
+  'outros': 'Outros',
+  // Status de fretes
+  'OPEN': 'Aberto',
+  'ACCEPTED': 'Aceito',
+  'IN_TRANSIT': 'Em Trânsito',
+  'DELIVERED': 'Entregue',
+  'CANCELLED': 'Cancelado',
+  'PENDING': 'Pendente',
+  'COMPLETED': 'Concluído',
+  // Meses
+  'jan': 'Janeiro',
+  'fev': 'Fevereiro',
+  'mar': 'Março',
+  'abr': 'Abril',
+  'mai': 'Maio',
+  'jun': 'Junho',
+  'jul': 'Julho',
+  'ago': 'Agosto',
+  'set': 'Setembro',
+  'out': 'Outubro',
+  'nov': 'Novembro',
+  'dez': 'Dezembro',
+};
+
+/**
+ * Formata labels técnicos para exibição amigável
+ */
+const formatChartLabel = (label: string): string => {
+  if (!label) return '';
+  
+  // Verifica mapeamento direto
+  const lowerLabel = label.toLowerCase();
+  if (LABEL_MAP[lowerLabel]) return LABEL_MAP[lowerLabel];
+  if (LABEL_MAP[label]) return LABEL_MAP[label];
+  
+  // Formatação automática: snake_case → Title Case
+  return label
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+    .trim();
+};
 
 interface ChartDataPoint {
   name?: string;
@@ -102,28 +169,47 @@ const RenderChart: React.FC<{ config: ChartConfig }> = ({ config }) => {
       );
 
     case 'bar':
+      // Formatar labels dos dados
+      const formattedBarData = data.map(item => ({
+        ...item,
+        [xAxisKey]: formatChartLabel(String(item[xAxisKey] || ''))
+      }));
+      
       return (
         <ResponsiveContainer width="100%" height={height}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey={xAxisKey} className="text-xs" />
-            <YAxis className="text-xs" />
+          <BarChart data={formattedBarData}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.5} />
+            <XAxis 
+              dataKey={xAxisKey} 
+              className="text-xs" 
+              tick={{ fontSize: 11 }}
+              tickFormatter={(value) => formatChartLabel(String(value))}
+            />
+            <YAxis className="text-xs" tick={{ fontSize: 11 }} />
             <Tooltip 
-              formatter={(value: number) => valueFormatter(value)}
+              formatter={(value: number, name: string) => [
+                valueFormatter(value),
+                formatChartLabel(name)
+              ]}
+              labelFormatter={(label) => formatChartLabel(String(label))}
               contentStyle={{ 
                 backgroundColor: 'hsl(var(--card))', 
                 border: '1px solid hsl(var(--border))',
-                borderRadius: '6px'
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                padding: '8px 12px'
               }}
+              labelStyle={{ fontWeight: 600, marginBottom: '4px' }}
             />
-            <Legend />
+            <Legend formatter={(value) => formatChartLabel(String(value))} />
             {dataKeys.map((dk, index) => (
               <Bar
                 key={dk.key}
                 dataKey={dk.key}
-                name={dk.label}
+                name={formatChartLabel(dk.label)}
                 fill={dk.color || CHART_COLORS[index % CHART_COLORS.length]}
                 radius={[4, 4, 0, 0]}
+                animationDuration={800}
               />
             ))}
           </BarChart>
@@ -159,29 +245,53 @@ const RenderChart: React.FC<{ config: ChartConfig }> = ({ config }) => {
       );
 
     case 'pie':
+      // Formatar dados do pie chart
+      const formattedPieData = data.map(item => ({
+        ...item,
+        name: formatChartLabel(String(item.name || ''))
+      }));
+      
       return (
         <ResponsiveContainer width="100%" height={height}>
           <PieChart>
             <Pie
-              data={data}
+              data={formattedPieData}
               cx="50%"
               cy="50%"
-              labelLine={false}
+              labelLine={true}
               label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              outerRadius={80}
+              outerRadius={90}
+              innerRadius={30}
               dataKey={dataKeys[0]?.key || 'value'}
+              animationDuration={800}
+              animationEasing="ease-out"
             >
-              {data.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+              {formattedPieData.map((_, index) => (
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={CHART_COLORS[index % CHART_COLORS.length]}
+                  strokeWidth={2}
+                  stroke="hsl(var(--background))"
+                />
               ))}
             </Pie>
             <Tooltip 
-              formatter={(value: number) => valueFormatter(value)}
+              formatter={(value: number, name: string) => [
+                valueFormatter(value),
+                formatChartLabel(name)
+              ]}
               contentStyle={{ 
                 backgroundColor: 'hsl(var(--card))', 
                 border: '1px solid hsl(var(--border))',
-                borderRadius: '6px'
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                padding: '8px 12px'
               }}
+              labelStyle={{ fontWeight: 600, marginBottom: '4px' }}
+            />
+            <Legend 
+              formatter={(value) => formatChartLabel(String(value))}
+              wrapperStyle={{ paddingTop: '20px' }}
             />
           </PieChart>
         </ResponsiveContainer>
