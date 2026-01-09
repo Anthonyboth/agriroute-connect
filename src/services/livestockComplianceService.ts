@@ -232,7 +232,7 @@ export async function updateComplianceStatus(
 
   const { error } = await supabase
     .from('livestock_freight_compliance')
-    .update(updateData)
+    .update(updateData as unknown as LivestockComplianceUpdate)
     .eq('id', complianceId);
 
   if (error) {
