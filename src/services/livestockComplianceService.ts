@@ -191,13 +191,24 @@ export async function updateComplianceStatus(
   status: LivestockComplianceStatus,
   additionalData?: Partial<LivestockFreightCompliance>
 ): Promise<void> {
+  const updateData: Record<string, unknown> = {
+    compliance_status: status,
+    updated_at: new Date().toISOString(),
+  };
+  
+  if (additionalData) {
+    Object.entries(additionalData).forEach(([key, value]) => {
+      if ((key === 'blocking_reasons' || key === 'fraud_indicators') && Array.isArray(value)) {
+        updateData[key] = value as unknown as Json;
+      } else {
+        updateData[key] = value;
+      }
+    });
+  }
+
   const { error } = await supabase
     .from('livestock_freight_compliance')
-    .update({
-      compliance_status: status,
-      ...additionalData,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq('id', complianceId);
 
   if (error) {
