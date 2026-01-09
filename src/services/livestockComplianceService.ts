@@ -1,7 +1,7 @@
 // Serviço de Compliance Pecuário - Motor de Regras e Validações
 
 import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
+import type { Database, Json } from '@/integrations/supabase/types';
 import type {
   GTAStateRule,
   LivestockFreightCompliance,
@@ -24,6 +24,12 @@ import type {
 let stateRulesCache: Map<string, GTAStateRule> | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+type LivestockComplianceUpdate = Database['public']['Tables']['livestock_freight_compliance']['Update'];
+
+function toJson(value: unknown): Json {
+  return JSON.parse(JSON.stringify(value)) as Json;
+}
 
 async function getStateRulesCache(): Promise<Map<string, GTAStateRule>> {
   const now = Date.now();
@@ -191,24 +197,40 @@ export async function updateComplianceStatus(
   status: LivestockComplianceStatus,
   additionalData?: Partial<LivestockFreightCompliance>
 ): Promise<void> {
-  const updateData: Record<string, unknown> = {
+  const updateData: LivestockComplianceUpdate = {
     compliance_status: status,
     updated_at: new Date().toISOString(),
   };
-  
+
   if (additionalData) {
-    Object.entries(additionalData).forEach(([key, value]) => {
-      if ((key === 'blocking_reasons' || key === 'fraud_indicators') && Array.isArray(value)) {
-        updateData[key] = value as unknown as Json;
-      } else {
-        updateData[key] = value;
-      }
-    });
+    // Separar campos JSON para conversão segura
+    const {
+      blocking_reasons,
+      fraud_indicators,
+      compliance_checklist,
+      ...rest
+    } = additionalData as Partial<LivestockFreightCompliance> & {
+      blocking_reasons?: unknown;
+      fraud_indicators?: unknown;
+      compliance_checklist?: unknown;
+    };
+
+    Object.assign(updateData, rest as unknown as LivestockComplianceUpdate);
+
+    if (blocking_reasons !== undefined) {
+      updateData.blocking_reasons = toJson(blocking_reasons);
+    }
+    if (fraud_indicators !== undefined) {
+      updateData.fraud_indicators = toJson(fraud_indicators);
+    }
+    if (compliance_checklist !== undefined) {
+      updateData.compliance_checklist = toJson(compliance_checklist);
+    }
   }
 
   const { error } = await supabase
     .from('livestock_freight_compliance')
-    .update(updateData as Record<string, Json | string | number | boolean | null>)
+    .update(updateData)
     .eq('id', complianceId);
 
   if (error) {
