@@ -209,14 +209,16 @@ export async function updateComplianceStatus(
       fraud_indicators,
       compliance_checklist,
       ...rest
-    } = additionalData as Partial<LivestockFreightCompliance> & {
-      blocking_reasons?: unknown;
-      fraud_indicators?: unknown;
-      compliance_checklist?: unknown;
-    };
+    } = additionalData;
 
-    Object.assign(updateData, rest as unknown as LivestockComplianceUpdate);
+    // Atribuir campos não-JSON diretamente
+    for (const [key, value] of Object.entries(rest)) {
+      if (value !== undefined && key !== 'id' && key !== 'freight_id' && key !== 'created_at') {
+        (updateData as any)[key] = value;
+      }
+    }
 
+    // Converter campos JSON
     if (blocking_reasons !== undefined) {
       updateData.blocking_reasons = toJson(blocking_reasons);
     }
