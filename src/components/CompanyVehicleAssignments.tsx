@@ -146,24 +146,25 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Vínculos Motorista-Veículo</CardTitle>
-              <CardDescription>
+    <div className="space-y-4 max-w-full overflow-x-hidden">
+      <Card className="w-full">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-base sm:text-lg">Vínculos Motorista-Veículo</CardTitle>
+              <CardDescription className="text-sm line-clamp-2">
                 Gerencie quais veículos estão vinculados a cada motorista
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto">
               <AssignmentReportExporter 
                 assignments={assignments || []} 
                 companyName="Transportadora"
               />
-              <Button onClick={() => setIsModalOpen(true)}>
+              <Button onClick={() => setIsModalOpen(true)} className="flex-1 sm:flex-none">
                 <Plus className="mr-2 h-4 w-4" />
-                Novo Vínculo
+                <span className="hidden xs:inline">Novo Vínculo</span>
+                <span className="xs:hidden">Novo</span>
               </Button>
             </div>
           </div>
@@ -189,7 +190,7 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
               </Button>
             </div>
           ) : (
-            <div className="space-y-2 mt-4">
+          <div className="space-y-2 mt-4">
               {filteredAssignments.map((assignment: any) => {
                 const driver = assignment.driver_profiles;
                 const vehicle = assignment.vehicles;
@@ -197,53 +198,56 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
                 return (
                   <div
                     key={assignment.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border hover:bg-muted/50 transition-colors"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-muted/30 border hover:bg-muted/50 transition-colors"
                   >
                     {/* Motorista */}
-                    <div className="flex items-center gap-3 min-w-[200px]">
+                    <div className="flex items-center gap-3 w-full sm:w-auto sm:flex-1 sm:min-w-0">
                       <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <User className="h-4 w-4 text-primary" />
                       </div>
-                      <div>
-                        <p className="font-medium text-sm">{driver?.full_name || 'Motorista'}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{driver?.full_name || 'Motorista'}</p>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          {driver?.phone || '-'}
+                          <Phone className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{driver?.phone || '-'}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Veículo */}
-                    <div className="flex items-center gap-3 min-w-[220px]">
+                    <div className="flex items-center gap-3 w-full sm:w-auto sm:flex-1 sm:min-w-0">
                       <div className="h-9 w-9 rounded-lg bg-secondary/50 flex items-center justify-center shrink-0">
                         <Truck className="h-4 w-4 text-secondary-foreground" />
                       </div>
-                      <div>
-                        <p className="font-mono font-medium text-sm">{vehicle?.license_plate || '-'}</p>
-                        <p className="text-xs text-muted-foreground">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono font-medium text-sm truncate">{vehicle?.license_plate || '-'}</p>
+                        <p className="text-xs text-muted-foreground truncate">
                           {getVehicleTypeLabel(vehicle?.vehicle_type)} • {vehicle?.max_capacity_tons}t
                         </p>
                       </div>
                     </div>
 
                     {/* Status e Ações */}
-                    <div className="flex items-center gap-3">
-                      {assignment.is_primary && (
-                        <Badge variant="default" className="gap-1">
-                          <Star className="h-3 w-3" />
-                          Principal
-                        </Badge>
-                      )}
-                      {driver?.rating > 0 && (
-                        <Badge variant="secondary" className="gap-1">
-                          <Star className="h-3 w-3 fill-current" />
-                          {driver.rating.toFixed(1)}
-                        </Badge>
-                      )}
-                      <div className="flex gap-1">
+                    <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {assignment.is_primary && (
+                          <Badge variant="default" className="gap-1 text-xs">
+                            <Star className="h-3 w-3" />
+                            <span className="hidden xs:inline">Principal</span>
+                          </Badge>
+                        )}
+                        {driver?.rating > 0 && (
+                          <Badge variant="secondary" className="gap-1 text-xs">
+                            <Star className="h-3 w-3 fill-current" />
+                            {driver.rating.toFixed(1)}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-8 w-8 p-0"
                           onClick={() => setEditingAssignment({
                             id: assignment.id,
                             driver_profile_id: driver?.id,
@@ -258,6 +262,7 @@ export const CompanyVehicleAssignments = ({ companyId }: CompanyVehicleAssignmen
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-8 w-8 p-0"
                           onClick={() => setAssignmentToRemove(assignment.id)}
                           title="Remover vínculo"
                         >
