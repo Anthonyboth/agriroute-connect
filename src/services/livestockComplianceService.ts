@@ -393,16 +393,18 @@ export async function validateCompliance(
   };
 
   // Atualizar compliance no banco
+  const updatePayload: LivestockComplianceUpdate = {
+    compliance_status: status,
+    risk_score: risk.score,
+    compliance_checklist: toJson(checklist),
+    blocking_reasons: toJson(blockingReasons),
+    fraud_indicators: toJson(fraudIndicators),
+    updated_at: new Date().toISOString(),
+  };
+
   await supabase
     .from('livestock_freight_compliance')
-    .update({
-      compliance_status: status,
-      risk_score: risk.score,
-      compliance_checklist: checklist as unknown as Json,
-      blocking_reasons: blockingReasons as unknown as Json,
-      fraud_indicators: fraudIndicators as unknown as Json,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq('id', compliance.id);
 
   return {
