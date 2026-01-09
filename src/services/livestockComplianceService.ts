@@ -208,7 +208,7 @@ export async function updateComplianceStatus(
 
   const { error } = await supabase
     .from('livestock_freight_compliance')
-    .update(updateData)
+    .update(updateData as Record<string, Json | string | number | boolean | null>)
     .eq('id', complianceId);
 
   if (error) {
