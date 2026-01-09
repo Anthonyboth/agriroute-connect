@@ -114,7 +114,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
         .from('freight_proposals')
         .select(`
           *,
-          freight:freights(*),
+          freight:freights(*, weight),
           driver:profiles!freight_proposals_driver_id_fkey(
             id,
             full_name,
@@ -826,6 +826,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
         } : null}
         freightPrice={counterProposalOpen.proposal?.freight?.price || 0}
         freightDistance={counterProposalOpen.proposal?.freight?.distance_km || 0}
+        freightWeight={(counterProposalOpen.proposal?.freight as any)?.weight ? (counterProposalOpen.proposal?.freight as any).weight / 1000 : 0}
         onSuccess={() => {
           fetchProposals();
           toast.success('Contraproposta enviada com sucesso!');
