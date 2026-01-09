@@ -1183,13 +1183,24 @@ const ProducerDashboard = () => {
         .from('external_payments')
         .update({ 
           status: 'paid_by_producer',
+          confirmed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', paymentId);
 
       if (error) throw error;
 
+      // ✅ Atualizar estado local imediatamente para remover da lista
+      setExternalPayments(prev => 
+        prev.map(p => p.id === paymentId 
+          ? { ...p, status: 'paid_by_producer', confirmed_at: new Date().toISOString() }
+          : p
+        )
+      );
+
       toast.success('Pagamento confirmado! Aguardando confirmação do motorista.');
+      
+      // Buscar dados atualizados em background
       fetchExternalPayments();
     } catch (error) {
       console.error('Erro ao confirmar pagamento:', error);

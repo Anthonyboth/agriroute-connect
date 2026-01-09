@@ -76,9 +76,25 @@ export const useNotifications = () => {
         }
       );
 
-      return cleanup;
+      // ✅ Polling adicional para garantir atualização
+      const pollInterval = setInterval(fetchUnreadCount, 60000); // A cada 60 segundos
+
+      return () => {
+        cleanup();
+        clearInterval(pollInterval);
+      };
     }
   }, [profile, fetchUnreadCount]);
+
+  // ✅ Função para decrementar contador localmente (otimista)
+  const decrementCount = useCallback((amount: number = 1) => {
+    setUnreadCount(prev => Math.max(0, prev - amount));
+  }, []);
+
+  // ✅ Função para incrementar contador localmente
+  const incrementCount = useCallback((amount: number = 1) => {
+    setUnreadCount(prev => prev + amount);
+  }, []);
 
   // Função para marcar todas como lidas
   const markAllAsRead = useCallback(async () => {
@@ -97,13 +113,41 @@ export const useNotifications = () => {
       console.log('[useNotifications] Todas notificações marcadas como lidas');
     } catch (error) {
       console.error('[useNotifications] Erro ao marcar como lidas:', error);
+      // Refetch em caso de erro para sincronizar
+      fetchUnreadCount();
     }
-  }, [profile]);
+  }, [profile, fetchUnreadCount]);
+
+  // ✅ Função para marcar uma única notificação como lida
+  const markAsRead = useCallback(async (notificationId: string) => {
+    if (!profile) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId)
+        .eq('user_id', profile.id);
+      
+      if (error) throw error;
+      
+      // Atualização otimista
+      decrementCount(1);
+      console.log('[useNotifications] Notificação marcada como lida:', notificationId);
+    } catch (error) {
+      console.error('[useNotifications] Erro ao marcar notificação:', error);
+      // Refetch em caso de erro
+      fetchUnreadCount();
+    }
+  }, [profile, decrementCount, fetchUnreadCount]);
 
   return {
     unreadCount,
     loading,
     refreshCount: fetchUnreadCount,
-    markAllAsRead
+    markAllAsRead,
+    markAsRead,
+    decrementCount,
+    incrementCount
   };
 };

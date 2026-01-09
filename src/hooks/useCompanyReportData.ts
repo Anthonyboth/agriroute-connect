@@ -165,7 +165,12 @@ export function useCompanyReportData(
   const combinedQuery = useQuery({
     queryKey: ['company-report-combined', companyId, dateRange.from, dateRange.to],
     queryFn: async () => {
-      if (!companyId) return { summary: DEFAULT_SUMMARY, charts: DEFAULT_CHARTS };
+      if (!companyId) {
+        console.log('[CompanyReports] Sem companyId, retornando dados vazios');
+        return { summary: DEFAULT_SUMMARY, charts: DEFAULT_CHARTS };
+      }
+      
+      console.log('[CompanyReports] Buscando dados para empresa:', companyId);
       
       // Tentar usar RPC primeiro
       try {
@@ -184,6 +189,7 @@ export function useCompanyReportData(
 
         // Se ambos funcionarem, usar os dados
         if (!summaryResult.error && !chartsResult.error && summaryResult.data && chartsResult.data) {
+          console.log('[CompanyReports] RPC sucesso:', { summary: summaryResult.data, charts: chartsResult.data });
           return {
             summary: (summaryResult.data as unknown as CompanyReportSummary) || DEFAULT_SUMMARY,
             charts: (chartsResult.data as unknown as CompanyReportCharts) || DEFAULT_CHARTS,
@@ -191,16 +197,22 @@ export function useCompanyReportData(
         }
         
         // Se houver erro, usar fallback
-        console.warn('RPC failed, using fallback:', summaryResult.error || chartsResult.error);
-        return await fetchReportDataFallback(companyId, dateRange);
+        console.warn('[CompanyReports] RPC falhou, usando fallback:', summaryResult.error || chartsResult.error);
+        const fallbackData = await fetchReportDataFallback(companyId, dateRange);
+        console.log('[CompanyReports] Fallback resultado:', fallbackData);
+        return fallbackData;
       } catch (error) {
-        console.warn('RPC exception, using fallback:', error);
-        return await fetchReportDataFallback(companyId, dateRange);
+        console.warn('[CompanyReports] RPC exception, usando fallback:', error);
+        const fallbackData = await fetchReportDataFallback(companyId, dateRange);
+        console.log('[CompanyReports] Fallback resultado:', fallbackData);
+        return fallbackData;
       }
     },
     enabled: !!companyId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   return {

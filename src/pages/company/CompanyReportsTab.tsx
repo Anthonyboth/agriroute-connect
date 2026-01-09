@@ -161,17 +161,39 @@ export const CompanyReportsTab: React.FC = () => {
   // ✅ Se isError mas não temos dados, mostrar estado vazio ao invés de erro
   const hasData = summary && (summary.freights?.total || 0) > 0;
 
-  if (isError && !summary) {
+  if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
-        <p className="text-muted-foreground font-medium">Nenhum dado encontrado</p>
-        <p className="text-sm text-muted-foreground mt-2">Tente ajustar o período ou verifique se há fretes registrados.</p>
-        <Button onClick={() => refetch()} variant="outline" className="mt-4 gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Tentar novamente
-        </Button>
-      </div>
+      <Card className="p-8">
+        <div className="flex flex-col items-center justify-center text-center">
+          <AlertCircle className="h-12 w-12 text-yellow-500 mb-4" />
+          <h3 className="font-medium text-lg mb-2">Erro ao carregar relatórios</h3>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md">
+            Não foi possível carregar os dados dos relatórios. Isso pode ser um problema temporário.
+          </p>
+          <Button onClick={() => refetch()} variant="outline" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Tentar novamente
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!hasData && !isLoading) {
+    return (
+      <Card className="p-8">
+        <div className="flex flex-col items-center justify-center text-center">
+          <Truck className="h-12 w-12 text-muted-foreground/50 mb-4" />
+          <h3 className="font-medium text-lg mb-2">Nenhum dado encontrado</h3>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md">
+            Não há fretes registrados no período selecionado. Tente ajustar as datas ou aguarde novos fretes serem cadastrados.
+          </p>
+          <Button onClick={() => refetch()} variant="outline" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Atualizar
+          </Button>
+        </div>
+      </Card>
     );
   }
 
