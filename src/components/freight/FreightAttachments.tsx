@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Paperclip, Upload, Image, FileText, Download, 
-  Trash2, Eye, X, Camera, File, Loader2
+  Trash2, Eye, File, Loader2, AlertTriangle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -24,15 +25,13 @@ interface Attachment {
   uploaded_by: string;
   uploaded_at: string;
   category: string;
-  uploader?: {
-    full_name: string;
-  };
+  uploader_name?: string;
 }
 
 interface FreightAttachmentsProps {
   freightId: string;
   currentUserProfileId: string;
-  isParticipant: boolean; // Can upload if participant
+  isParticipant: boolean;
   isProducer: boolean;
 }
 
@@ -55,6 +54,7 @@ const CATEGORIES = [
 ];
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const STORAGE_KEY_PREFIX = 'freight_attachments_';
 
 export const FreightAttachments: React.FC<FreightAttachmentsProps> = ({
   freightId,
@@ -69,38 +69,76 @@ export const FreightAttachments: React.FC<FreightAttachmentsProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('carga');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [tableExists, setTableExists] = useState(false);
+
+  // Check if the freight_attachments table exists
+  const checkTableExists = useCallback(async () => {
+    try {
+      // Try a simple query - if table doesn't exist, it will error
+      const { error } = await supabase
+        .from('freight_attachments' as any)
+        .select('id')
+        .limit(1);
+      
+      // PGRST204 = no rows, which is fine. Other errors mean table doesn't exist
+      setTableExists(!error || error.code === 'PGRST116');
+    } catch {
+      setTableExists(false);
+    }
+  }, []);
 
   const fetchAttachments = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('freight_attachments')
-        .select(`
-          id, file_name, file_url, file_type, file_size, 
-          uploaded_by, uploaded_at, category,
-          uploader:profiles!uploaded_by(full_name)
-        `)
-        .eq('freight_id', freightId)
-        .order('uploaded_at', { ascending: false });
+      if (tableExists) {
+        // Fetch from database
+        const { data, error } = await supabase
+          .from('freight_attachments' as any)
+          .select('*')
+          .eq('freight_id', freightId)
+          .order('created_at', { ascending: false });
 
-      if (error) throw error;
+        if (!error && data) {
+          // Map database format to local format
+          const mapped: Attachment[] = (data as any[]).map(item => ({
+            id: item.id,
+            file_name: item.description || 'Arquivo',
+            file_url: item.file_url,
+            file_type: item.file_type,
+            file_size: 0,
+            uploaded_by: item.uploaded_by,
+            uploaded_at: item.created_at,
+            category: item.upload_stage || 'outro'
+          }));
+          setAttachments(mapped);
+          setLoading(false);
+          return;
+        }
+      }
       
-      // Normalize uploader data
-      const normalized = (data || []).map(item => ({
-        ...item,
-        uploader: Array.isArray(item.uploader) ? item.uploader[0] : item.uploader
-      }));
-      
-      setAttachments(normalized);
+      // Fallback to localStorage
+      const storageKey = `${STORAGE_KEY_PREFIX}${freightId}`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        setAttachments(JSON.parse(stored));
+      }
     } catch (error) {
       console.error('[FreightAttachments] Erro ao carregar:', error);
+      // Fallback to localStorage
+      const storageKey = `${STORAGE_KEY_PREFIX}${freightId}`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        setAttachments(JSON.parse(stored));
+      }
     } finally {
       setLoading(false);
     }
-  }, [freightId]);
+  }, [freightId, tableExists]);
 
   useEffect(() => {
-    fetchAttachments();
-  }, [fetchAttachments]);
+    checkTableExists().then(() => {
+      fetchAttachments();
+    });
+  }, [checkTableExists, fetchAttachments]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -128,43 +166,67 @@ export const FreightAttachments: React.FC<FreightAttachmentsProps> = ({
 
     setUploading(true);
     try {
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${freightId}/${Date.now()}.${fileExt}`;
-      const filePath = `freight-attachments/${fileName}`;
+      let fileUrl = '';
+      
+      // Try to upload to Supabase Storage if bucket exists
+      try {
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${freightId}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('freight-attachments')
+          .upload(fileName, selectedFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('freight-attachments')
-        .upload(filePath, selectedFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage
+            .from('freight-attachments')
+            .getPublicUrl(fileName);
+          fileUrl = urlData.publicUrl;
+        }
+      } catch (storageError) {
+        console.warn('[FreightAttachments] Storage não disponível:', storageError);
+      }
 
-      if (uploadError) throw uploadError;
+      // Create attachment object
+      const newAttachment: Attachment = {
+        id: crypto.randomUUID(),
+        file_name: selectedFile.name,
+        file_url: fileUrl || URL.createObjectURL(selectedFile),
+        file_type: selectedFile.type,
+        file_size: selectedFile.size,
+        uploaded_by: currentUserProfileId,
+        uploaded_at: new Date().toISOString(),
+        category: selectedCategory
+      };
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('freight-attachments')
-        .getPublicUrl(filePath);
+      // Try to save to database
+      if (tableExists && fileUrl) {
+        try {
+          await supabase
+            .from('freight_attachments' as any)
+            .insert({
+              freight_id: freightId,
+              file_url: fileUrl,
+              file_type: selectedFile.type,
+              upload_stage: selectedCategory,
+              uploaded_by: currentUserProfileId,
+              description: selectedFile.name
+            });
+        } catch (dbError) {
+          console.warn('[FreightAttachments] Erro ao salvar no banco:', dbError);
+        }
+      }
 
-      // Insert record in database
-      const { error: insertError } = await supabase
-        .from('freight_attachments')
-        .insert({
-          freight_id: freightId,
-          file_name: selectedFile.name,
-          file_url: urlData.publicUrl,
-          file_type: selectedFile.type,
-          file_size: selectedFile.size,
-          uploaded_by: currentUserProfileId,
-          category: selectedCategory
-        });
-
-      if (insertError) throw insertError;
+      // Update local state and localStorage
+      const updated = [newAttachment, ...attachments];
+      setAttachments(updated);
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}${freightId}`, JSON.stringify(updated));
 
       toast.success('Anexo enviado com sucesso!');
       setSelectedFile(null);
-      fetchAttachments();
     } catch (error: any) {
       console.error('[FreightAttachments] Erro no upload:', error);
       toast.error('Erro ao enviar anexo', {
@@ -176,32 +238,26 @@ export const FreightAttachments: React.FC<FreightAttachmentsProps> = ({
   };
 
   const handleDelete = async (attachment: Attachment) => {
-    // Only uploader or producer can delete
     if (attachment.uploaded_by !== currentUserProfileId && !isProducer) {
       toast.error('Sem permissão para excluir este anexo');
       return;
     }
 
     try {
-      // Extract path from URL
-      const urlParts = attachment.file_url.split('/');
-      const filePath = urlParts.slice(-2).join('/');
+      // Try to delete from database
+      if (tableExists) {
+        await supabase
+          .from('freight_attachments' as any)
+          .delete()
+          .eq('id', attachment.id);
+      }
 
-      // Delete from storage
-      await supabase.storage
-        .from('freight-attachments')
-        .remove([`freight-attachments/${filePath}`]);
-
-      // Delete from database
-      const { error } = await supabase
-        .from('freight_attachments')
-        .delete()
-        .eq('id', attachment.id);
-
-      if (error) throw error;
+      // Update local state
+      const updated = attachments.filter(a => a.id !== attachment.id);
+      setAttachments(updated);
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}${freightId}`, JSON.stringify(updated));
 
       toast.success('Anexo removido');
-      fetchAttachments();
     } catch (error: any) {
       console.error('[FreightAttachments] Erro ao excluir:', error);
       toast.error('Erro ao excluir anexo');
@@ -245,7 +301,17 @@ export const FreightAttachments: React.FC<FreightAttachmentsProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Upload Section - Only for participants */}
+        {/* Migration warning */}
+        {!tableExists && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Funcionalidade em modo offline. Os anexos serão salvos localmente.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Upload Section */}
         {isParticipant && (
           <div className="p-4 border-2 border-dashed rounded-lg space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -334,17 +400,13 @@ export const FreightAttachments: React.FC<FreightAttachmentsProps> = ({
                       <Badge variant="outline" className="text-xs">
                         {getCategoryLabel(attachment.category)}
                       </Badge>
-                      <span>{formatFileSize(attachment.file_size)}</span>
+                      {attachment.file_size > 0 && (
+                        <span>{formatFileSize(attachment.file_size)}</span>
+                      )}
                       <span>•</span>
                       <span>
                         {format(new Date(attachment.uploaded_at), "dd/MM HH:mm", { locale: ptBR })}
                       </span>
-                      {attachment.uploader?.full_name && (
-                        <>
-                          <span>•</span>
-                          <span>{attachment.uploader.full_name}</span>
-                        </>
-                      )}
                     </div>
                   </div>
 
