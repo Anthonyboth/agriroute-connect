@@ -5,23 +5,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Settings, Calculator, AlertTriangle, Check, 
   DollarSign, Scale, Truck, Info
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface NegotiationRules {
   enforceAnttMinimum: boolean;
-  anttFlexPercentage: number; // Allow % below ANTT
+  anttFlexPercentage: number;
   includeToll: boolean;
-  tollEstimate: number; // Estimated toll value
-  pricePerTon: number; // Minimum per ton
-  minPricePerKm: number; // Minimum per km
-  showBreakdown: boolean; // Show calculation breakdown to users
+  tollEstimate: number;
+  pricePerTon: number;
+  minPricePerKm: number;
+  showBreakdown: boolean;
 }
 
 interface NegotiationRulesModalProps {
@@ -39,6 +37,8 @@ const DEFAULT_RULES: NegotiationRules = {
   minPricePerKm: 0,
   showBreakdown: true
 };
+
+const STORAGE_KEY_PREFIX = 'negotiation_rules_';
 
 export const NegotiationRulesModal: React.FC<NegotiationRulesModalProps> = ({
   isOpen,
@@ -58,24 +58,12 @@ export const NegotiationRulesModal: React.FC<NegotiationRulesModalProps> = ({
   const loadRules = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('producer_negotiation_rules')
-        .select('*')
-        .eq('producer_id', producerId)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') throw error;
-
-      if (data) {
-        setRules({
-          enforceAnttMinimum: data.enforce_antt_minimum ?? true,
-          anttFlexPercentage: data.antt_flex_percentage ?? 0,
-          includeToll: data.include_toll ?? false,
-          tollEstimate: data.toll_estimate ?? 0,
-          pricePerTon: data.price_per_ton ?? 0,
-          minPricePerKm: data.min_price_per_km ?? 0,
-          showBreakdown: data.show_breakdown ?? true
-        });
+      // Load from localStorage (table doesn't exist yet)
+      const storageKey = `${STORAGE_KEY_PREFIX}${producerId}`;
+      const stored = localStorage.getItem(storageKey);
+      
+      if (stored) {
+        setRules(JSON.parse(stored));
       }
     } catch (error) {
       console.error('[NegotiationRulesModal] Erro ao carregar:', error);
@@ -87,23 +75,9 @@ export const NegotiationRulesModal: React.FC<NegotiationRulesModalProps> = ({
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('producer_negotiation_rules')
-        .upsert({
-          producer_id: producerId,
-          enforce_antt_minimum: rules.enforceAnttMinimum,
-          antt_flex_percentage: rules.anttFlexPercentage,
-          include_toll: rules.includeToll,
-          toll_estimate: rules.tollEstimate,
-          price_per_ton: rules.pricePerTon,
-          min_price_per_km: rules.minPricePerKm,
-          show_breakdown: rules.showBreakdown,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'producer_id'
-        });
-
-      if (error) throw error;
+      // Save to localStorage
+      const storageKey = `${STORAGE_KEY_PREFIX}${producerId}`;
+      localStorage.setItem(storageKey, JSON.stringify(rules));
 
       toast.success('Regras de negociação salvas!');
       onClose();
@@ -117,7 +91,12 @@ export const NegotiationRulesModal: React.FC<NegotiationRulesModalProps> = ({
     }
   };
 
-  const validateProposal = (proposedPrice: number, anttMinimum: number, weightTons: number, distanceKm: number): { valid: boolean; issues: string[]; suggestions: string[] } => {
+  const validateProposal = (
+    proposedPrice: number, 
+    anttMinimum: number, 
+    weightTons: number, 
+    distanceKm: number
+  ): { valid: boolean; issues: string[]; suggestions: string[] } => {
     const issues: string[] = [];
     const suggestions: string[] = [];
 
@@ -383,22 +362,21 @@ export const validateProposalWithRules = async (
   distanceKm: number
 ): Promise<{ valid: boolean; issues: string[]; suggestions: string[] }> => {
   try {
-    const { data } = await supabase
-      .from('producer_negotiation_rules')
-      .select('*')
-      .eq('producer_id', producerId)
-      .maybeSingle();
-
-    if (!data) {
+    // Load rules from localStorage
+    const storageKey = `${STORAGE_KEY_PREFIX}${producerId}`;
+    const stored = localStorage.getItem(storageKey);
+    
+    if (!stored) {
       return { valid: true, issues: [], suggestions: [] };
     }
 
+    const rules: NegotiationRules = JSON.parse(stored);
     const issues: string[] = [];
     const suggestions: string[] = [];
 
     // Check ANTT minimum
-    if (data.enforce_antt_minimum && anttMinimum > 0) {
-      const minAllowed = anttMinimum * (1 - (data.antt_flex_percentage || 0) / 100);
+    if (rules.enforceAnttMinimum && anttMinimum > 0) {
+      const minAllowed = anttMinimum * (1 - (rules.anttFlexPercentage || 0) / 100);
       if (proposedPrice < minAllowed) {
         issues.push(`Valor abaixo do mínimo ANTT (R$ ${minAllowed.toFixed(2)})`);
         suggestions.push(`Aumente para pelo menos R$ ${minAllowed.toFixed(2)}`);
@@ -406,19 +384,19 @@ export const validateProposalWithRules = async (
     }
 
     // Check price per ton
-    if (data.price_per_ton > 0 && weightTons > 0) {
-      const minByTon = data.price_per_ton * weightTons;
+    if (rules.pricePerTon > 0 && weightTons > 0) {
+      const minByTon = rules.pricePerTon * weightTons;
       if (proposedPrice < minByTon) {
-        issues.push(`Abaixo de R$ ${data.price_per_ton}/ton`);
+        issues.push(`Abaixo de R$ ${rules.pricePerTon}/ton`);
         suggestions.push(`Mínimo por tonelagem: R$ ${minByTon.toFixed(2)}`);
       }
     }
 
     // Check price per km
-    if (data.min_price_per_km > 0 && distanceKm > 0) {
-      const minByKm = data.min_price_per_km * distanceKm;
+    if (rules.minPricePerKm > 0 && distanceKm > 0) {
+      const minByKm = rules.minPricePerKm * distanceKm;
       if (proposedPrice < minByKm) {
-        issues.push(`Abaixo de R$ ${data.min_price_per_km}/km`);
+        issues.push(`Abaixo de R$ ${rules.minPricePerKm}/km`);
         suggestions.push(`Mínimo por km: R$ ${minByKm.toFixed(2)}`);
       }
     }
