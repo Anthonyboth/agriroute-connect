@@ -34,13 +34,50 @@ export interface AdditionalRequirement {
 // COMPLIANCE DE CARGA VIVA
 // =====================================================
 
+// Status com semântica jurídica (MAPA-grade)
 export type LivestockComplianceStatus = 
   | 'pending' 
   | 'documents_required' 
   | 'validating' 
-  | 'approved' 
-  | 'blocked' 
-  | 'expired';
+  | 'approved'        // mantido para compatibilidade -> internamente = COMPLIANT
+  | 'blocked'         // mantido para compatibilidade -> internamente = NON_COMPLIANT
+  | 'expired'
+  | 'COMPLIANT'       // Em conformidade (semântica jurídica)
+  | 'NON_COMPLIANT';  // Não conforme (semântica jurídica)
+
+// Mapeamento de status para UI com semântica jurídica correta
+export const COMPLIANCE_STATUS_LABELS: Record<LivestockComplianceStatus, string> = {
+  pending: 'Pendente',
+  documents_required: 'Documentação necessária',
+  validating: 'Em validação',
+  approved: 'Em conformidade (assistido)',
+  blocked: 'Não conforme (documentação irregular)',
+  expired: 'Expirado',
+  COMPLIANT: 'Em conformidade (assistido)',
+  NON_COMPLIANT: 'Não conforme (documentação irregular)',
+};
+
+// Cores para badges de status
+export const COMPLIANCE_STATUS_COLORS: Record<LivestockComplianceStatus, string> = {
+  pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+  documents_required: 'bg-orange-100 text-orange-800 border-orange-300',
+  validating: 'bg-blue-100 text-blue-800 border-blue-300',
+  approved: 'bg-green-100 text-green-800 border-green-300',
+  blocked: 'bg-red-100 text-red-800 border-red-300',
+  expired: 'bg-gray-100 text-gray-800 border-gray-300',
+  COMPLIANT: 'bg-green-100 text-green-800 border-green-300',
+  NON_COMPLIANT: 'bg-red-100 text-red-800 border-red-300',
+};
+
+// Verificar se status permite transporte
+export function isComplianceApproved(status: LivestockComplianceStatus): boolean {
+  return status === 'approved' || status === 'COMPLIANT';
+}
+
+// Verificar se status é bloqueante
+export function isComplianceBlocking(status: LivestockComplianceStatus): boolean {
+  return status === 'blocked' || status === 'NON_COMPLIANT' || status === 'expired';
+}
 
 export type AnimalSpecies = 
   | 'bovinos' 
@@ -357,7 +394,7 @@ export const BOVINE_CATEGORIES = [
 ] as const;
 
 // =====================================================
-// DISCLAIMERS LEGAIS
+// DISCLAIMERS LEGAIS (MAPA-GRADE)
 // =====================================================
 
 export const LEGAL_DISCLAIMERS = {
@@ -370,4 +407,45 @@ export const LEGAL_DISCLAIMERS = {
   USER_RESPONSIBILITY: 'O usuário declara que todas as informações e documentos anexados são verdadeiros, válidos e atuais, assumindo integral responsabilidade civil, administrativa e penal.',
   
   AI_PREVENTIVE: 'As validações realizadas por inteligência artificial têm caráter preventivo e não substituem a verificação oficial.',
+  
+  NO_OFFICIAL_VALIDATION: 'Este sistema NÃO realiza validação oficial de documentos sanitários. O status apresentado é apenas indicativo para fins de organização operacional.',
+  
+  COMPLIANCE_DISCLAIMER: 'A conformidade indicada refere-se à verificação interna de documentação anexada. Não substitui fiscalização oficial nem tem valor administrativo.',
 } as const;
+
+// =====================================================
+// REGRAS INTERESTADUAIS
+// =====================================================
+
+export interface InterstateRule {
+  id: string;
+  origin_uf: string;
+  destination_uf: string;
+  animal_species: string | null;
+  allowed: boolean;
+  requires_additional_docs: boolean;
+  additional_docs_list: string[] | null;
+  notes: string | null;
+  effective_from: string;
+  effective_until: string | null;
+  is_active: boolean;
+}
+
+export interface InterstateRuleCheck {
+  allowed: boolean;
+  requiresAdditionalDocs: boolean;
+  additionalDocs?: string[];
+  notes?: string;
+  ruleFound: boolean;
+}
+
+// =====================================================
+// ALERTAS DE VENCIMENTO
+// =====================================================
+
+export interface ExpiryAlert {
+  hasAlert: boolean;
+  hoursRemaining: number | null;
+  message: string | null;
+  severity: 'warning' | 'critical' | null;
+}

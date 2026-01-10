@@ -90,6 +90,7 @@ const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
 const CompanyDashboard = lazy(() => import("./pages/CompanyDashboard"));
 const ServiceProviderDashboard = lazy(() => import("./pages/ServiceProviderDashboard"));
 const NfeDashboard = lazy(() => import("./pages/NfeDashboard"));
+const InspectionView = lazy(() => import("./pages/InspectionView"));
 import { AlertCircle } from 'lucide-react';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
 
@@ -858,6 +859,12 @@ const App = () => {
                         <Route path="/cadastro-motorista-afiliado" element={
                           <Suspense fallback={<ComponentLoader />}> 
                             {React.createElement(lazy(() => import('./pages/AffiliatedDriverSignup')))}
+                          </Suspense>
+                        } />
+                        {/* Página pública de fiscalização via QR Code */}
+                        <Route path="/fiscalizacao" element={
+                          <Suspense fallback={<ComponentLoader />}> 
+                            <InspectionView />
                           </Suspense>
                         } />
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

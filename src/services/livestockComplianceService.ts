@@ -15,6 +15,9 @@ import type {
   ComplianceChecklist,
   BlockingReason,
   InspectionQRData,
+  InterstateRuleCheck,
+  ExpiryAlert,
+  isComplianceApproved,
 } from '@/types/livestock-compliance';
 
 // =====================================================
@@ -740,4 +743,155 @@ function generateSecureHash(): string {
     result += chars[array[i] % chars.length];
   }
   return result;
+}
+
+// =====================================================
+// FUNÇÕES - REGRAS INTERESTADUAIS (MAPA-GRADE)
+// =====================================================
+
+/**
+ * Verifica regras de trânsito interestadual
+ * Usa a RPC check_interstate_transit_rules criada no banco
+ */
+export async function checkInterstateRules(
+  originUf: string,
+  destinationUf: string,
+  species: string = 'bovinos'
+): Promise<InterstateRuleCheck> {
+  try {
+    const { data, error } = await supabase.rpc('check_interstate_transit_rules', {
+      p_origin_uf: originUf.toUpperCase(),
+      p_destination_uf: destinationUf.toUpperCase(),
+      p_species: species,
+    });
+
+    if (error) {
+      console.error('Erro ao verificar regras interestaduais:', error);
+      return { allowed: true, requiresAdditionalDocs: false, ruleFound: false };
+    }
+
+    // Cast para tipo esperado
+    const result = data as { 
+      allowed?: boolean; 
+      requires_additional_docs?: boolean; 
+      additional_docs_list?: string[];
+      notes?: string;
+      rule_found?: boolean;
+    } | null;
+
+    return {
+      allowed: result?.allowed ?? true,
+      requiresAdditionalDocs: result?.requires_additional_docs ?? false,
+      additionalDocs: result?.additional_docs_list ?? undefined,
+      notes: result?.notes ?? undefined,
+      ruleFound: result?.rule_found ?? false,
+    };
+  } catch (err) {
+    console.error('Erro ao verificar regras interestaduais:', err);
+    return { allowed: true, requiresAdditionalDocs: false, ruleFound: false };
+  }
+}
+
+/**
+ * Verifica alertas de vencimento de GTA
+ * Retorna alerta se documento vence em menos de 72 horas
+ */
+export async function checkExpiryAlerts(freightId: string): Promise<ExpiryAlert> {
+  try {
+    const compliance = await getFreightCompliance(freightId);
+    
+    if (!compliance?.gta_document_id) {
+      return { hasAlert: false, hoursRemaining: null, message: null, severity: null };
+    }
+
+    const { data: gtaDoc } = await supabase
+      .from('freight_sanitary_documents')
+      .select('expiry_date')
+      .eq('id', compliance.gta_document_id)
+      .single();
+
+    if (!gtaDoc?.expiry_date) {
+      return { hasAlert: false, hoursRemaining: null, message: null, severity: null };
+    }
+
+    const expiryDate = new Date(gtaDoc.expiry_date);
+    const now = new Date();
+    const hoursRemaining = (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    if (hoursRemaining <= 0) {
+      return {
+        hasAlert: true,
+        hoursRemaining: 0,
+        message: 'GTA VENCIDA - Documentação irregular',
+        severity: 'critical',
+      };
+    }
+
+    if (hoursRemaining <= 72) {
+      return {
+        hasAlert: true,
+        hoursRemaining: Math.floor(hoursRemaining),
+        message: `GTA vencerá em ${Math.floor(hoursRemaining)} horas`,
+        severity: hoursRemaining <= 24 ? 'critical' : 'warning',
+      };
+    }
+
+    return { 
+      hasAlert: false, 
+      hoursRemaining: Math.floor(hoursRemaining), 
+      message: null, 
+      severity: null 
+    };
+  } catch (err) {
+    console.error('Erro ao verificar alertas de vencimento:', err);
+    return { hasAlert: false, hoursRemaining: null, message: null, severity: null };
+  }
+}
+
+/**
+ * Gera hash contextual anti-replay para QR Code de fiscalização
+ * Vincula hash ao freightId e expiração para evitar reutilização
+ */
+export async function generateContextualHash(
+  freightId: string,
+  expiresAt: Date
+): Promise<string> {
+  const payload = `${freightId}:${expiresAt.toISOString()}:${crypto.randomUUID()}`;
+  const encoder = new TextEncoder();
+  const data = encoder.encode(payload);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Executa verificação de expiração de compliance (chamada manual)
+ * Normalmente executado via edge function cron
+ */
+export async function runComplianceExpiryCheck(): Promise<{
+  success: boolean;
+  recordsExpired: number;
+}> {
+  try {
+    const { data, error } = await supabase.rpc('run_compliance_expiry_check');
+
+    if (error) {
+      console.error('Erro ao executar verificação de expiração:', error);
+      return { success: false, recordsExpired: 0 };
+    }
+
+    // Cast para tipo esperado
+    const result = data as { 
+      success?: boolean; 
+      records_expired?: number; 
+    } | null;
+
+    return {
+      success: result?.success ?? false,
+      recordsExpired: result?.records_expired ?? 0,
+    };
+  } catch (err) {
+    console.error('Erro ao executar verificação de expiração:', err);
+    return { success: false, recordsExpired: 0 };
+  }
 }

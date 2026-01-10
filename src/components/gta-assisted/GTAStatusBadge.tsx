@@ -44,12 +44,12 @@ const statusConfig: Record<LivestockComplianceStatus, {
     className: 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30',
   },
   approved: {
-    label: 'Aprovado',
+    label: 'Em Conformidade',
     icon: CheckCircle2,
     className: 'bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30',
   },
   blocked: {
-    label: 'Bloqueado',
+    label: 'Não Conforme',
     icon: XCircle,
     className: 'bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30',
   },
@@ -57,6 +57,16 @@ const statusConfig: Record<LivestockComplianceStatus, {
     label: 'Expirado',
     icon: AlertTriangle,
     className: 'bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-500/30',
+  },
+  COMPLIANT: {
+    label: 'Em Conformidade',
+    icon: CheckCircle2,
+    className: 'bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30',
+  },
+  NON_COMPLIANT: {
+    label: 'Não Conforme',
+    icon: XCircle,
+    className: 'bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30',
   },
 };
 
