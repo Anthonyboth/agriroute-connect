@@ -41,12 +41,12 @@ export const PlatformStatsSection: React.FC = () => {
       value: stats.activeDrivers || 0,
     },
     {
-      label: 'Toneladas Transportadas',
-      value: formatTonsCompactFromKg(stats.totalWeight || 0),
+      label: 'Prestadores Cadastrados',
+      value: stats.activeProviders || 0,
     },
     {
-      label: 'Avaliação Média',
-      value: `${(stats.averageRating || 0).toFixed(1)}★`,
+      label: 'Toneladas Transportadas',
+      value: formatTonsCompactFromKg(stats.totalWeight || 0),
     },
   ];
 

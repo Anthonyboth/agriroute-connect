@@ -10,6 +10,7 @@ interface OptimizedStats {
   averageRating: number;
   activeDrivers: number;
   activeProducers: number;
+  activeProviders: number;
   completedFreights: number;
   loading: boolean;
 }
@@ -23,14 +24,21 @@ export const useOptimizedStats = () => {
     queryKey: ['system-stats'],
     queryFn: async () => {
       // Usar RPC SECURITY DEFINER para funcionar sem autenticação
-      const { data, error } = await supabase.rpc('get_platform_stats');
+      const [statsResult, providersResult] = await Promise.all([
+        supabase.rpc('get_platform_stats'),
+        supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'PRESTADOR_SERVICOS')
+          .eq('status', 'APPROVED')
+      ]);
       
-      if (error) {
-        console.error('[useOptimizedStats] Erro ao buscar stats:', error);
-        throw error;
+      if (statsResult.error) {
+        console.error('[useOptimizedStats] Erro ao buscar stats:', statsResult.error);
+        throw statsResult.error;
       }
 
-      const row = Array.isArray(data) ? data[0] : data;
+      const row = Array.isArray(statsResult.data) ? statsResult.data[0] : statsResult.data;
 
       return {
         totalUsers: Number(row?.total_usuarios ?? 0),
@@ -39,6 +47,7 @@ export const useOptimizedStats = () => {
         averageRating: Number(row?.avaliacao_media ?? 0),
         activeDrivers: Number(row?.motoristas ?? 0),
         activeProducers: Number(row?.produtores ?? 0),
+        activeProviders: providersResult.count ?? 0,
         completedFreights: Number(row?.fretes_entregues ?? 0)
       };
     },
@@ -56,6 +65,7 @@ export const useOptimizedStats = () => {
     averageRating: data?.averageRating || 0,
     activeDrivers: data?.activeDrivers || 0,
     activeProducers: data?.activeProducers || 0,
+    activeProviders: data?.activeProviders || 0,
     completedFreights: data?.completedFreights || 0,
     loading: isLoading
   };
