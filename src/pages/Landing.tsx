@@ -86,7 +86,7 @@ import Star from 'lucide-react/dist/esm/icons/star';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 import Leaf from 'lucide-react/dist/esm/icons/leaf';
 import Shield from 'lucide-react/dist/esm/icons/shield';
-import Clock from 'lucide-react/dist/esm/icons/clock';
+import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Wrench from 'lucide-react/dist/esm/icons/wrench';
 
 const Landing: React.FC = () => {
@@ -180,9 +180,9 @@ const Landing: React.FC = () => {
       description: 'Pagamentos protegidos e contratos digitais para sua tranquilidade.'
     },
     {
-      icon: Clock,
-      title: 'Entrega Pontual',
-      description: 'Otimização de rotas para garantir entregas no prazo.'
+      icon: FileText,
+      title: 'Documentação Eletrônica',
+      description: 'Emissão assistida de MDF-e, CT-e, GT-a e NF-e para serviços prestados.'
     }
   ];
 
