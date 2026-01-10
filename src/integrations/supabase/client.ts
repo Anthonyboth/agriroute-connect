@@ -15,22 +15,17 @@ const isPublicPage = typeof window !== 'undefined' &&
     path => window.location.pathname === path || window.location.pathname.startsWith('/auth')
   );
 
-// Create client with realtime disabled on public pages to prevent WebSocket errors
+// Create Supabase client with realtime configuration
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage, // Usar localStorage para manter sessão persistente
+    storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
-  realtime: isPublicPage ? {
-    // Completely disable realtime on public pages
+  realtime: {
     params: {
-      eventsPerSecond: 0
-    }
-  } : {
-    params: {
-      eventsPerSecond: 10
+      eventsPerSecond: isPublicPage ? 0 : 10
     },
     timeout: 30000,
     heartbeatIntervalMs: 30000
@@ -44,8 +39,13 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 // Completely disable realtime on public pages to prevent WebSocket console errors
 if (isPublicPage && typeof window !== 'undefined') {
-  // Disconnect realtime to prevent WebSocket connection attempts
-  supabase.realtime.disconnect();
+  // Remove all channels and disconnect immediately to prevent connection attempts
+  try {
+    supabase.removeAllChannels();
+    supabase.realtime.disconnect();
+  } catch {
+    // Silently handle any disconnection errors
+  }
 }
 
 /**
