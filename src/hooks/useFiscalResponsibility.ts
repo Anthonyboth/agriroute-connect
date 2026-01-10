@@ -24,10 +24,15 @@ export function useFiscalResponsibility() {
       // First check localStorage for quick response
       const localAccepted = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (localAccepted) {
-        const parsed = JSON.parse(localAccepted);
-        if (parsed.version === TERM_VERSION) {
-          setState({ accepted: true, loading: false, acceptedAt: parsed.acceptedAt });
-          return;
+        try {
+          const parsed = JSON.parse(localAccepted);
+          if (parsed.version === TERM_VERSION) {
+            setState({ accepted: true, loading: false, acceptedAt: parsed.acceptedAt });
+            return;
+          }
+        } catch {
+          // Invalid localStorage data, continue to database check
+          localStorage.removeItem(LOCAL_STORAGE_KEY);
         }
       }
 
@@ -83,13 +88,16 @@ export function useFiscalResponsibility() {
 
       const acceptedAt = new Date().toISOString();
 
+      // Get client info for audit
+      const userAgent = navigator.userAgent;
+
       const { error } = await supabase
         .from('fiscal_responsibility_acceptances')
         .upsert({
           user_id: user.id,
           accepted_at: acceptedAt,
           term_version: TERM_VERSION,
-          user_agent: navigator.userAgent,
+          user_agent: userAgent,
         });
 
       if (error) {
@@ -108,31 +116,76 @@ export function useFiscalResponsibility() {
         acceptedAt,
       }));
 
-      // Log the action
+      // Log the action in audit trail
       await supabase.from('fiscal_compliance_logs').insert({
         user_id: user.id,
-        action_type: 'term_accepted',
-        metadata: { term_version: TERM_VERSION },
+        action_type: 'fiscal_term_accepted',
+        metadata: { 
+          term_version: TERM_VERSION,
+          accepted_at: acceptedAt,
+        },
       });
+
+      // Also log in compliance_audit_events if table exists
+      try {
+        await supabase.from('compliance_audit_events').insert({
+          event_type: 'fiscal_term_accepted',
+          event_category: 'fiscal',
+          actor_id: user.id,
+          event_data: {
+            term_version: TERM_VERSION,
+            accepted_at: acceptedAt,
+          },
+          user_agent: userAgent,
+        });
+      } catch {
+        // Table might not exist yet, ignore
+      }
 
       setState({ accepted: true, loading: false, acceptedAt });
 
       toast({
         title: 'Termo aceito',
-        description: 'Você aceitou o termo de responsabilidade fiscal.',
+        description: 'O termo de responsabilidade fiscal foi aceito com sucesso.',
       });
 
       return true;
     } catch (error) {
       console.error('[FISCAL] Error in acceptTerm:', error);
+      toast({
+        title: 'Erro',
+        description: 'Ocorreu um erro inesperado. Tente novamente.',
+        variant: 'destructive',
+      });
       return false;
     }
   }, [toast]);
+
+  // Clear acceptance (for testing/admin purposes)
+  const clearAcceptance = useCallback(async (): Promise<boolean> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+
+      await supabase
+        .from('fiscal_responsibility_acceptances')
+        .delete()
+        .eq('user_id', user.id);
+
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      setState({ accepted: false, loading: false });
+      return true;
+    } catch (error) {
+      console.error('[FISCAL] Error clearing acceptance:', error);
+      return false;
+    }
+  }, []);
 
   return {
     ...state,
     acceptTerm,
     checkAcceptance,
+    clearAcceptance,
     termVersion: TERM_VERSION,
   };
 }
