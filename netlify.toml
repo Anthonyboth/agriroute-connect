@@ -7,36 +7,37 @@
   to = "/index.html"
   status = 200
 
-# Security headers for all pages
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    X-XSS-Protection = "1; mode=block"
+# IMPORTANT: Specific rules MUST come BEFORE generic rules for proper precedence
 
-# Immutable assets - 1 year cache (Vite adds hash to filenames)
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Hero LCP image - aggressive caching + preload hint
-[[headers]]
-  for = "/hero-truck-night-moon.webp"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, s-maxage=31536000, immutable"
-    Link = "</hero-truck-night-moon.webp>; rel=preload; as=image; type=image/webp"
-
-# Immutable hashed assets - 1 year cache with CDN directive
+# Immutable hashed JS assets - 1 year cache with CDN directive
 [[headers]]
   for = "/assets/*.js"
   [headers.values]
     Cache-Control = "public, max-age=31536000, s-maxage=31536000, immutable"
+    X-Content-Type-Options = "nosniff"
 
+# Immutable hashed CSS assets - 1 year cache
 [[headers]]
   for = "/assets/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, s-maxage=31536000, immutable"
+    X-Content-Type-Options = "nosniff"
+
+# All assets fallback - 1 year cache
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Content-Type-Options = "nosniff"
+
+# Hero LCP images - aggressive caching
+[[headers]]
+  for = "/hero-truck-night-moon.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, s-maxage=31536000, immutable"
+
+[[headers]]
+  for = "/hero-truck-night-moon-mobile.webp"
   [headers.values]
     Cache-Control = "public, max-age=31536000, s-maxage=31536000, immutable"
 
@@ -61,6 +62,11 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+[[headers]]
+  for = "/*.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 # Fonts - long cache
 [[headers]]
   for = "/*.woff2"
@@ -71,6 +77,22 @@
   for = "/*.woff"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.ttf"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Manifest and config - medium cache (1 day)
+[[headers]]
+  for = "/site.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/browserconfig.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
 
 # Service Worker - no cache to ensure updates
 [[headers]]
@@ -83,22 +105,22 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
-# HTML - short cache for quick updates
+# HTML - no cache for quick updates
 [[headers]]
   for = "/index.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
-    # Note: CSS preload removed because Vite adds hash to filename (index-[hash].css)
-    # Hero image preload is handled via HTML <link rel="preload"> tag
-    Link = "</hero-truck-night-moon.webp>; rel=preload; as=image; type=image/webp"
-
-# Manifest and config - medium cache
-[[headers]]
-  for = "/site.webmanifest"
-  [headers.values]
-    Cache-Control = "public, max-age=86400"
 
 [[headers]]
-  for = "/browserconfig.xml"
+  for = "/"
   [headers.values]
-    Cache-Control = "public, max-age=86400"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Security headers for all pages (LAST - lowest priority, applies to unmatched)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
