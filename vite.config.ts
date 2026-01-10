@@ -90,30 +90,77 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // ✅ SIMPLIFICADO - apenas separações seguras para evitar circular dependencies
+          // ✅ OTIMIZADO v2 - split mais granular para reduzir unused JS
           
-          // Core React + Router (crítico, sempre necessário)
-          if (id.includes('node_modules/react') || id.includes('react-router') || id.includes('react-dom')) {
-            return 'react-vendor';
+          // Core React (mínimo necessário para boot)
+          if (id.includes('node_modules/react-dom')) {
+            return 'react-dom';
+          }
+          if (id.includes('node_modules/react/') || id.includes('node_modules/scheduler')) {
+            return 'react-core';
           }
           
-          // Supabase - carrega apenas quando autenticado
+          // React Router - separado (usado após hidratação)
+          if (id.includes('react-router')) {
+            return 'react-router';
+          }
+          
+          // Supabase - carrega apenas quando autenticado (defer)
+          if (id.includes('@supabase/realtime') || id.includes('@supabase/functions')) {
+            return 'supabase-realtime';
+          }
           if (id.includes('@supabase')) {
-            return 'supabase-vendor';
+            return 'supabase-core';
           }
           
-          // UI components - separado para melhor cache
-          if (id.includes('@radix-ui') || id.includes('lucide-react')) {
-            return 'ui-vendor';
+          // ✅ Radix UI split por uso: críticos vs deferrable
+          // Críticos: usados na landing page (dialog, popover, tooltip, slot)
+          if (id.includes('@radix-ui/react-dialog') || 
+              id.includes('@radix-ui/react-popover') ||
+              id.includes('@radix-ui/react-tooltip') ||
+              id.includes('@radix-ui/react-slot') ||
+              id.includes('@radix-ui/react-portal') ||
+              id.includes('@radix-ui/react-presence') ||
+              id.includes('@radix-ui/react-primitive')) {
+            return 'ui-core';
           }
           
-          // REMOVIDO: charts-vendor, forms-vendor, query-vendor
-          // Deixar o Vite agrupar automaticamente para evitar circular dependencies
+          // Forms: select, checkbox, radio, label (defer)
+          if (id.includes('@radix-ui/react-select') || 
+              id.includes('@radix-ui/react-checkbox') ||
+              id.includes('@radix-ui/react-radio-group') ||
+              id.includes('@radix-ui/react-label') ||
+              id.includes('@radix-ui/react-switch')) {
+            return 'ui-forms';
+          }
+          
+          // Navigation: tabs, accordion, collapsible, navigation-menu (defer)
+          if (id.includes('@radix-ui/react-tabs') || 
+              id.includes('@radix-ui/react-accordion') ||
+              id.includes('@radix-ui/react-collapsible') ||
+              id.includes('@radix-ui/react-navigation-menu') ||
+              id.includes('@radix-ui/react-menubar')) {
+            return 'ui-navigation';
+          }
+          
+          // Other UI components (defer)
+          if (id.includes('@radix-ui')) {
+            return 'ui-extras';
+          }
+          
+          // Lucide icons - split by size
+          if (id.includes('lucide-react')) {
+            return 'icons';
+          }
+          
+          // TanStack Query - defer (usado após autenticação)
+          if (id.includes('@tanstack/react-query')) {
+            return 'query-vendor';
+          }
         }
       }
-      // REMOVIDO: treeshake agressivo - estava quebrando bibliotecas com side effects
     },
-    cssCodeSplit: true, // Split CSS por rota para melhor cache
+    cssCodeSplit: true,
     minify: 'terser',
     terserOptions: {
       compress: {
