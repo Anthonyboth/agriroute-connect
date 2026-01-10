@@ -3,11 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Package, Truck, CheckCircle, Clock, Navigation } from 'lucide-react';
+import { MapPin, Package, Truck, CheckCircle, Clock, Navigation, Map } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-helpers';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { FreightRealtimeMap } from '@/components/freight/FreightRealtimeMap';
 
 const DEFAULT_FLOW = [
   { key: 'ACCEPTED', label: 'Aceito', icon: CheckCircle },
@@ -47,6 +48,11 @@ interface FreightStatusTrackerProps {
   onStatusUpdated?: (newStatus: string) => void;
   companyId?: string; // Allow company to update status
   assignmentId?: string; // Track which assignment is being updated
+  // Props for realtime map
+  originLat?: number;
+  originLng?: number;
+  destinationLat?: number;
+  destinationLng?: number;
 }
 
 // Fallback para traduzir status quando não encontrado no fluxo - SEMPRE retorna português
@@ -80,7 +86,11 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
   freightServiceType,
   onStatusUpdated,
   companyId,
-  assignmentId
+  assignmentId,
+  originLat,
+  originLng,
+  destinationLat,
+  destinationLng
 }) => {
   const { toast } = useToast();
   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
@@ -404,6 +414,30 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* Realtime Map - Show when freight is in transit */}
+      {['LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'].includes(currentStatus) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Map className="h-5 w-5" />
+              Mapa de Acompanhamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FreightRealtimeMap
+              freightId={freightId}
+              originLat={originLat}
+              originLng={originLng}
+              destinationLat={destinationLat}
+              destinationLng={destinationLng}
+            />
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              📍 Localização em tempo real do motorista
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Driver Controls */}
       {isDriver && nextStatus && !isCurrentStatusFinal && (

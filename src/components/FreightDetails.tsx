@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw } from 'lucide-react';
+import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw, ChevronRight } from 'lucide-react';
 import { FreightChat } from './FreightChat';
 import { FreightStatusTracker } from './FreightStatusTracker';
 import { FreightStatusHistory } from './FreightStatusHistory';
@@ -14,6 +14,7 @@ import { FreightPaymentModal } from './FreightPaymentModal';
 import { FreightAssignmentsList } from './FreightAssignmentsList';
 import { ManifestoModal } from './ManifestoModal';
 import { FreightNfePanel } from './nfe/FreightNfePanel';
+import { PublicProfileModal } from './profile/PublicProfileModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { format } from 'date-fns';
@@ -51,6 +52,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [advances, setAdvances] = useState<any[]>([]);
   const [movingToHistory, setMovingToHistory] = useState(false);
   const [manifestoModalOpen, setManifestoModalOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState<{ open: boolean; userId: string; userType: 'driver' | 'producer'; userName: string }>({ open: false, userId: '', userType: 'driver', userName: '' });
 
   // Status order for calculating effective status
   const statusOrder = ['OPEN','IN_NEGOTIATION','ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION','DELIVERED','COMPLETED','CANCELLED','REJECTED','PENDING'];
@@ -474,7 +476,14 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="flex items-center justify-between">
+            <div 
+              className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-2 -m-2 rounded-lg transition-colors"
+              onClick={() => {
+                if (freight.producer?.id) {
+                  setProfileModalOpen({ open: true, userId: freight.producer.id, userType: 'producer', userName: freight.producer.full_name || '' });
+                }
+              }}
+            >
               <div>
                 {loading ? (
                   <p className="text-sm text-muted-foreground">Carregando...</p>
@@ -492,16 +501,19 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                   </>
                 )}
               </div>
-              {canRate() && isDriver && freight.producer?.full_name && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleOpenRating(freight.producer)}
-                >
-                  <Star className="h-3 w-3 mr-1" />
-                  Avaliar
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {canRate() && isDriver && freight.producer?.full_name && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => { e.stopPropagation(); handleOpenRating(freight.producer); }}
+                  >
+                    <Star className="h-3 w-3 mr-1" />
+                    Avaliar
+                  </Button>
+                )}
+                {freight.producer?.id && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -515,7 +527,14 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="flex items-center justify-between">
+              <div 
+                className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-2 -m-2 rounded-lg transition-colors"
+                onClick={() => {
+                  if (freight.driver?.id) {
+                    setProfileModalOpen({ open: true, userId: freight.driver.id, userType: 'driver', userName: freight.driver.full_name || '' });
+                  }
+                }}
+              >
                 <div>
                   <p className="font-medium text-sm">{freight.driver?.full_name}</p>
                   {freight.driver?.contact_phone && (
@@ -525,16 +544,19 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
                     </p>
                   )}
                 </div>
-                {canRate() && isProducer && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleOpenRating(freight.driver)}
-                  >
-                    <Star className="h-3 w-3 mr-1" />
-                    Avaliar
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {canRate() && isProducer && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => { e.stopPropagation(); handleOpenRating(freight.driver); }}
+                    >
+                      <Star className="h-3 w-3 mr-1" />
+                      Avaliar
+                    </Button>
+                  )}
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -882,6 +904,10 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
               currentUserProfile={currentUserProfile}
               isDriver={isDriver}
               freightServiceType={freight?.service_type}
+              originLat={freight?.origin_lat}
+              originLng={freight?.origin_lng}
+              destinationLat={freight?.destination_lat}
+              destinationLng={freight?.destination_lng}
               onStatusUpdated={(newStatus) => {
                 // Atualizar estado local do frete
                 setFreight((prev: any) => prev ? { ...prev, status: newStatus } : prev);
@@ -985,6 +1011,15 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         open={manifestoModalOpen}
         onClose={() => setManifestoModalOpen(false)}
         freightId={freightId}
+      />
+
+      {/* Modal de Perfil Público */}
+      <PublicProfileModal
+        isOpen={profileModalOpen.open}
+        onClose={() => setProfileModalOpen({ open: false, userId: '', userType: 'driver', userName: '' })}
+        userId={profileModalOpen.userId}
+        userType={profileModalOpen.userType}
+        userName={profileModalOpen.userName}
       />
     </div>
   );

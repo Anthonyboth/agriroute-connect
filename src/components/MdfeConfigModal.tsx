@@ -38,7 +38,6 @@ export const MdfeConfigModal: React.FC<MdfeConfigModalProps> = ({
     uf: '',
     cep: '',
     serie_mdfe: '1',
-    cne_test: '7120-1/00',
   });
 
   // Carregar config existente quando modal abrir
@@ -58,7 +57,6 @@ export const MdfeConfigModal: React.FC<MdfeConfigModalProps> = ({
         uf: config.uf || '',
         cep: config.cep || '',
         serie_mdfe: config.serie_mdfe || '1',
-        cne_test: config.cne_test || '7120-1/00',
       });
     }
   }, [open, config]);
@@ -279,26 +277,14 @@ export const MdfeConfigModal: React.FC<MdfeConfigModalProps> = ({
             <div className="space-y-4">
               <h4 className="font-semibold text-sm">⚙️ Configurações Técnicas</h4>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="serie_mdfe">Série MDFe</Label>
-                  <Input
-                    id="serie_mdfe"
-                    placeholder="1"
-                    value={formData.serie_mdfe}
-                    onChange={(e) => handleChange('serie_mdfe', e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="cne_test">CNE Test</Label>
-                  <Input
-                    id="cne_test"
-                    placeholder="7120-1/00"
-                    value={formData.cne_test}
-                    onChange={(e) => handleChange('cne_test', e.target.value)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="serie_mdfe">Série MDFe</Label>
+                <Input
+                  id="serie_mdfe"
+                  placeholder="1"
+                  value={formData.serie_mdfe}
+                  onChange={(e) => handleChange('serie_mdfe', e.target.value)}
+                />
               </div>
             </div>
           </div>
