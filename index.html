@@ -24,11 +24,11 @@
     <meta name="msapplication-TileColor" content="#10b981">
     <meta name="msapplication-config" content="/browserconfig.xml">
     
-    <!-- Early resource hints for critical assets - reduces request chain latency -->
+    <!-- LCP image preload - mobile first for immediate discovery -->
+    <link rel="preload" as="image" href="/hero-truck-night-moon-mobile.webp" 
+          fetchpriority="high" type="image/webp" media="(max-width: 640px)">
     <link rel="preload" as="image" href="/hero-truck-night-moon.webp" 
-          fetchpriority="high" type="image/webp"
-          imagesrcset="/hero-truck-night-moon-mobile.webp 640w, /hero-truck-night-moon.webp 1920w"
-          imagesizes="100vw">
+          fetchpriority="high" type="image/webp" media="(min-width: 641px)">
     
     
     <!-- Note: Avoid preloading dev-only /src/* assets in production to prevent MIME-type console errors. -->
