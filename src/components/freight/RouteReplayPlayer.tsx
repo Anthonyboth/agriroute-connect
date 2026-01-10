@@ -25,6 +25,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { RURAL_MAP_STYLE, createTruckMarkerElement } from '@/lib/map-utils';
 import { cn } from '@/lib/utils';
+import { GOOGLE_MAPS_API_KEY, getGoogleMapsErrorMessage } from '@/config/googleMaps';
 
 interface RouteReplayPlayerProps {
   freightId: string;
@@ -76,14 +77,13 @@ export function RouteReplayPlayer({
 
     const initMap = async () => {
       try {
-        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-        if (!apiKey) {
+        if (!GOOGLE_MAPS_API_KEY) {
           setMapError('API Key não configurada');
           return;
         }
 
         const loader = new Loader({
-          apiKey,
+          apiKey: GOOGLE_MAPS_API_KEY,
           version: 'weekly',
           libraries: ['marker'],
         });
@@ -164,8 +164,9 @@ export function RouteReplayPlayer({
 
         setMapLoaded(true);
       } catch (err) {
-        console.error('[RouteReplayPlayer] Error:', err);
-        setMapError('Erro ao carregar mapa');
+        const errorMessage = getGoogleMapsErrorMessage(err);
+        console.error('[RouteReplayPlayer] Error:', errorMessage, err);
+        setMapError(errorMessage);
       }
     };
 

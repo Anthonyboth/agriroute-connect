@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { safeClearChildren, optionalRemove } from '@/utils/domUtils';
+import { GOOGLE_MAPS_API_KEY, getGoogleMapsErrorMessage } from '@/config/googleMaps';
 
 interface GoogleMapProps {
   center?: { lat: number; lng: number };
@@ -81,14 +82,12 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
     const initializeMap = async () => {
       try {
-        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-        
-        if (!apiKey) {
+        if (!GOOGLE_MAPS_API_KEY) {
           throw new Error('Google Maps API key not configured');
         }
         
         const loader = new Loader({
-          apiKey,
+          apiKey: GOOGLE_MAPS_API_KEY,
           version: "weekly",
           libraries: ["places"]
         });
@@ -101,7 +100,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         map.current = new Map(mapRef.current, {
           center,
           zoom,
-          mapId: "DEMO_MAP_ID",
         });
 
         // Adicionar listener de click se fornecido
@@ -140,7 +138,8 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           }
         });
       } catch (error) {
-        console.error("Erro ao carregar o Google Maps:", error);
+        const errorMessage = getGoogleMapsErrorMessage(error);
+        console.error("Erro ao carregar o Google Maps:", errorMessage, error);
         
         if (!mounted || !mapRef.current) return;
 
@@ -152,15 +151,15 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         container.className = 'flex items-center justify-center h-full bg-muted rounded-lg';
         
         const innerDiv = document.createElement('div');
-        innerDiv.className = 'text-center';
+        innerDiv.className = 'text-center p-4';
         
         const title = document.createElement('p');
-        title.className = 'text-muted-foreground';
+        title.className = 'text-muted-foreground font-medium';
         title.textContent = 'Mapa indisponível';
         
         const subtitle = document.createElement('p');
-        subtitle.className = 'text-sm text-muted-foreground';
-        subtitle.textContent = 'Configure a chave da API do Google Maps';
+        subtitle.className = 'text-sm text-muted-foreground mt-1';
+        subtitle.textContent = errorMessage;
         
         innerDiv.appendChild(title);
         innerDiv.appendChild(subtitle);
