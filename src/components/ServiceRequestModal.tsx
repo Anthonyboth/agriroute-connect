@@ -34,14 +34,16 @@ const ServiceRequestModal: React.FC<ServiceRequestModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col p-0">
-        <ServiceWizard
-          serviceType={serviceType}
-          onClose={onClose}
-          catalogServiceId={serviceId}
-          catalogServiceLabel={serviceLabel}
-          catalogServiceDescription={serviceDescription}
-        />
+      <DialogContent className="max-w-2xl h-[90vh] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+        <div className="flex flex-col h-full min-h-0 overflow-hidden">
+          <ServiceWizard
+            serviceType={serviceType}
+            onClose={onClose}
+            catalogServiceId={serviceId}
+            catalogServiceLabel={serviceLabel}
+            catalogServiceDescription={serviceDescription}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );

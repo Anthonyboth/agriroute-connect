@@ -182,7 +182,27 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
     } catch (error: any) {
       console.error('Erro ao enviar contra-proposta:', error);
-      toast.error('Erro ao enviar contra-proposta. Tente novamente.');
+      
+      // Mostrar erro específico para o usuário
+      let errorMessage = 'Erro ao enviar contra-proposta.';
+      
+      if (error?.message) {
+        if (error.message.includes('Você já enviou')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('Sua proposta já foi aceita')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('permissão')) {
+          errorMessage = 'Você não tem permissão para enviar contra-proposta neste frete.';
+        } else if (error.message.includes('RLS') || error.message.includes('row-level security')) {
+          errorMessage = 'Erro de permissão. Verifique se você está participando deste frete.';
+        } else if (error.message.includes('Timeout')) {
+          errorMessage = 'A operação demorou muito. Tente novamente.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

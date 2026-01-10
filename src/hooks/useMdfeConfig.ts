@@ -17,7 +17,6 @@ export interface MdfeConfig {
   uf?: string;
   cep?: string;
   serie_mdfe?: string;
-  cne_test?: string;
   created_at?: string;
   updated_at?: string;
 }
