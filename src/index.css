@@ -219,10 +219,12 @@
   /* AgriRoute utility classes */
   .gradient-primary {
     background: var(--gradient-primary);
+    color: hsl(0 0% 100%) !important;
   }
   
   .gradient-hero {
     background: var(--gradient-hero);
+    color: hsl(0 0% 100%) !important;
   }
   
   .gradient-card {
