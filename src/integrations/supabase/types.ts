@@ -3803,6 +3803,54 @@ export type Database = {
           },
         ]
       }
+      gta_interstate_rules: {
+        Row: {
+          additional_docs_list: string[] | null
+          allowed: boolean | null
+          animal_species: string | null
+          created_at: string | null
+          destination_uf: string
+          effective_from: string | null
+          effective_until: string | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          origin_uf: string
+          requires_additional_docs: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          additional_docs_list?: string[] | null
+          allowed?: boolean | null
+          animal_species?: string | null
+          created_at?: string | null
+          destination_uf: string
+          effective_from?: string | null
+          effective_until?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          origin_uf: string
+          requires_additional_docs?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          additional_docs_list?: string[] | null
+          allowed?: boolean | null
+          animal_species?: string | null
+          created_at?: string | null
+          destination_uf?: string
+          effective_from?: string | null
+          effective_until?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          origin_uf?: string
+          requires_additional_docs?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       gta_ocr_validations: {
         Row: {
           confidence_score: number | null
@@ -8045,6 +8093,30 @@ export type Database = {
           },
         ]
       }
+      inspection_qr_public: {
+        Row: {
+          expires_at: string | null
+          generated_at: string | null
+          is_active: boolean | null
+          qr_code_data: Json | null
+          qr_code_hash: string | null
+        }
+        Insert: {
+          expires_at?: string | null
+          generated_at?: string | null
+          is_active?: boolean | null
+          qr_code_data?: Json | null
+          qr_code_hash?: string | null
+        }
+        Update: {
+          expires_at?: string | null
+          generated_at?: string | null
+          is_active?: boolean | null
+          qr_code_data?: Json | null
+          qr_code_hash?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_service_request: {
@@ -8151,6 +8223,14 @@ export type Database = {
       check_expired_documents: { Args: never; Returns: undefined }
       check_guest_validation_rate_limit: {
         Args: { p_ip_address: string }
+        Returns: Json
+      }
+      check_interstate_transit_rules: {
+        Args: {
+          p_destination_uf: string
+          p_origin_uf: string
+          p_species?: string
+        }
         Returns: Json
       }
       check_livestock_compliance: {
@@ -8272,6 +8352,7 @@ export type Database = {
           service_compatibility_score: number
         }[]
       }
+      expire_livestock_compliance: { Args: never; Returns: number }
       find_company_by_cnpj: {
         Args: { p_cnpj: string }
         Returns: {
@@ -9088,6 +9169,7 @@ export type Database = {
       }
       process_telegram_queue: { Args: never; Returns: Json }
       reopen_freight: { Args: { p_freight_id: string }; Returns: string }
+      run_compliance_expiry_check: { Args: never; Returns: Json }
       sanitize_document: { Args: { doc: string }; Returns: string }
       save_zip_to_cache: {
         Args: {
@@ -9428,6 +9510,14 @@ export type Database = {
         | "LOADED"
         | "DELIVERED_PENDING_CONFIRMATION"
         | "COMPLETED"
+      livestock_species_enum:
+        | "bovinos"
+        | "suinos"
+        | "equinos"
+        | "caprinos"
+        | "ovinos"
+        | "aves"
+        | "outros"
       mdfe_documento_tipo: "NFE" | "CTE" | "NFCE"
       mdfe_emitter_type: "PRODUCER" | "DRIVER" | "COMPANY"
       mdfe_modo_emissao: "NORMAL" | "CONTINGENCIA_FSDA"
@@ -9457,6 +9547,11 @@ export type Database = {
         | "CONSULTORIA_RURAL"
         | "VETERINARIO"
         | "OUTROS"
+      sanitary_compliance_status_enum:
+        | "PENDING"
+        | "COMPLIANT"
+        | "NON_COMPLIANT"
+        | "EXPIRED"
       service_category:
         | "rodotrem"
         | "carreta"
@@ -9672,6 +9767,15 @@ export const Constants = {
         "DELIVERED_PENDING_CONFIRMATION",
         "COMPLETED",
       ],
+      livestock_species_enum: [
+        "bovinos",
+        "suinos",
+        "equinos",
+        "caprinos",
+        "ovinos",
+        "aves",
+        "outros",
+      ],
       mdfe_documento_tipo: ["NFE", "CTE", "NFCE"],
       mdfe_emitter_type: ["PRODUCER", "DRIVER", "COMPANY"],
       mdfe_modo_emissao: ["NORMAL", "CONTINGENCIA_FSDA"],
@@ -9702,6 +9806,12 @@ export const Constants = {
         "CONSULTORIA_RURAL",
         "VETERINARIO",
         "OUTROS",
+      ],
+      sanitary_compliance_status_enum: [
+        "PENDING",
+        "COMPLIANT",
+        "NON_COMPLIANT",
+        "EXPIRED",
       ],
       service_category: [
         "rodotrem",
