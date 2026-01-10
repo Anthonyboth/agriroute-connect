@@ -14,7 +14,8 @@ import { FreightPaymentModal } from './FreightPaymentModal';
 import { FreightAssignmentsList } from './FreightAssignmentsList';
 import { ManifestoModal } from './ManifestoModal';
 import { FreightNfePanel } from './nfe/FreightNfePanel';
-import { PublicProfileModal } from './profile/PublicProfileModal';
+import { ParticipantProfileModal } from './freight/ParticipantProfileModal';
+import { FreightParticipantCard } from './freight/FreightParticipantCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { format } from 'date-fns';
@@ -64,8 +65,8 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         .from('freights')
         .select(`
           *,
-          producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, active_mode),
-          driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, active_mode)
+          producer:profiles!freights_producer_id_fkey(id, full_name, contact_phone, active_mode, profile_photo_url, selfie_url, rating, total_ratings),
+          driver:profiles!freights_driver_id_fkey(id, full_name, contact_phone, active_mode, profile_photo_url, selfie_url, rating, total_ratings)
         `)
         .eq('id', freightId)
         .maybeSingle();
@@ -468,100 +469,84 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
 
       {/* Participants */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <User className="h-4 w-4" />
-              Produtor
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div 
-              className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-2 -m-2 rounded-lg transition-colors"
-              onClick={() => {
-                if (freight.producer?.id) {
-                  setProfileModalOpen({ open: true, userId: freight.producer.id, userType: 'producer', userName: freight.producer.full_name || '' });
-                }
-              }}
-            >
-              <div>
-                {loading ? (
-                  <p className="text-sm text-muted-foreground">Carregando...</p>
-                ) : !freight.producer || !freight.producer.full_name ? (
-                  <p className="font-medium text-sm text-muted-foreground">Solicitante sem cadastro</p>
-                ) : (
-                  <>
-                    <p className="font-medium text-sm">{freight.producer.full_name}</p>
-                    {freight.producer.contact_phone && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {freight.producer.contact_phone}
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {canRate() && isDriver && freight.producer?.full_name && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => { e.stopPropagation(); handleOpenRating(freight.producer); }}
-                  >
-                    <Star className="h-3 w-3 mr-1" />
-                    Avaliar
-                  </Button>
-                )}
-                {freight.producer?.id && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {freight.driver && (
+        {/* Card do Produtor */}
+        {freight.producer?.id ? (
+          <FreightParticipantCard
+            participantId={freight.producer.id}
+            participantType="producer"
+            name={freight.producer.full_name || 'Produtor'}
+            avatarUrl={freight.producer.profile_photo_url || freight.producer.selfie_url}
+            rating={freight.producer.rating || 0}
+            totalRatings={freight.producer.total_ratings || 0}
+            onClick={() => {
+              setProfileModalOpen({ 
+                open: true, 
+                userId: freight.producer.id, 
+                userType: 'producer', 
+                userName: freight.producer.full_name || '' 
+              });
+            }}
+          />
+        ) : (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Truck className="h-4 w-4" />
-                Motorista
+                <User className="h-4 w-4" />
+                Produtor
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div 
-                className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-2 -m-2 rounded-lg transition-colors"
-                onClick={() => {
-                  if (freight.driver?.id) {
-                    setProfileModalOpen({ open: true, userId: freight.driver.id, userType: 'driver', userName: freight.driver.full_name || '' });
-                  }
-                }}
-              >
-                <div>
-                  <p className="font-medium text-sm">{freight.driver?.full_name}</p>
-                  {freight.driver?.contact_phone && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Phone className="h-3 w-3" />
-                      {freight.driver.contact_phone}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {canRate() && isProducer && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => { e.stopPropagation(); handleOpenRating(freight.driver); }}
-                    >
-                      <Star className="h-3 w-3 mr-1" />
-                      Avaliar
-                    </Button>
-                  )}
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
+              <p className="text-sm text-muted-foreground">Solicitante sem cadastro</p>
             </CardContent>
           </Card>
         )}
+
+        {/* Card do Motorista */}
+        {freight.driver?.id && (
+          <FreightParticipantCard
+            participantId={freight.driver.id}
+            participantType="driver"
+            name={freight.driver.full_name || 'Motorista'}
+            avatarUrl={freight.driver.profile_photo_url || freight.driver.selfie_url}
+            rating={freight.driver.rating || 0}
+            totalRatings={freight.driver.total_ratings || 0}
+            onClick={() => {
+              setProfileModalOpen({ 
+                open: true, 
+                userId: freight.driver.id, 
+                userType: 'driver', 
+                userName: freight.driver.full_name || '' 
+              });
+            }}
+          />
+        )}
       </div>
+
+      {/* Botões de Avaliação (separados dos cards) */}
+      {canRate() && (
+        <div className="flex flex-wrap gap-2">
+          {isDriver && freight.producer?.full_name && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleOpenRating(freight.producer)}
+            >
+              <Star className="h-3 w-3 mr-1" />
+              Avaliar Produtor
+            </Button>
+          )}
+          {isProducer && freight.driver?.full_name && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleOpenRating(freight.driver)}
+            >
+              <Star className="h-3 w-3 mr-1" />
+              Avaliar Motorista
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Advance Request Notifications */}
       {isProducer && advances && advances.filter(advance => advance.status === 'PENDING').length > 0 && (
@@ -1014,7 +999,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       />
 
       {/* Modal de Perfil Público */}
-      <PublicProfileModal
+      <ParticipantProfileModal
         isOpen={profileModalOpen.open}
         onClose={() => setProfileModalOpen({ open: false, userId: '', userType: 'driver', userName: '' })}
         userId={profileModalOpen.userId}
