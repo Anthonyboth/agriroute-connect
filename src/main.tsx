@@ -1,6 +1,10 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { installAutoRecoveryHandlers, clearRecoveryCounters } from './utils/pwaRecovery'
+
+// Instalar handlers de auto-recuperação para erros de chunk/PWA ANTES de qualquer coisa
+installAutoRecoveryHandlers();
 
 if (typeof window !== 'undefined') {
   (window as any).__domErrors = (window as any).__domErrors || [];
@@ -21,6 +25,17 @@ if (typeof window !== 'undefined') {
     if (msg.includes('insertBefore') || msg.includes('removeChild')) {
       (window as any).__domErrors.push(msg);
     }
+  });
+  
+  // Marcar que o app montou com sucesso (para watchdog)
+  window.addEventListener('DOMContentLoaded', () => {
+    // Se chegou aqui sem erros de chunk, limpar contadores de recuperação
+    setTimeout(() => {
+      if (document.getElementById('root')?.children.length > 0) {
+        clearRecoveryCounters();
+        (window as any).__APP_MOUNTED__ = true;
+      }
+    }, 3000);
   });
 }
 
