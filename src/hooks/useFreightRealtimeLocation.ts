@@ -62,9 +62,10 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
         setIsLoading(true);
         setError(null);
 
+        // Buscar frete com driver_id para fallback
         const { data, error: fetchError } = await supabase
           .from('freights')
-          .select('current_lat, current_lng, last_location_update')
+          .select('current_lat, current_lng, last_location_update, driver_id')
           .eq('id', freightId)
           .single();
 
@@ -72,6 +73,32 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
           console.error('[useFreightRealtimeLocation] Fetch error:', fetchError);
           setError('Erro ao buscar localização');
           return;
+        }
+
+        // FALLBACK: Se frete não tem localização, buscar do perfil do motorista
+        if ((!data?.current_lat || !data?.current_lng) && data?.driver_id) {
+          console.log('[useFreightRealtimeLocation] Freight location null, fetching from driver profile...');
+          
+          const { data: driverProfile } = await supabase
+            .from('profiles')
+            .select('current_location_lat, current_location_lng, last_gps_update')
+            .eq('id', data.driver_id)
+            .single();
+
+          if (driverProfile?.current_location_lat && driverProfile?.current_location_lng) {
+            setDriverLocation({ 
+              lat: driverProfile.current_location_lat, 
+              lng: driverProfile.current_location_lng 
+            });
+            if (driverProfile.last_gps_update) {
+              setLastUpdate(new Date(driverProfile.last_gps_update));
+            }
+            console.log('[useFreightRealtimeLocation] Using driver profile location:', {
+              lat: driverProfile.current_location_lat,
+              lng: driverProfile.current_location_lng
+            });
+            return;
+          }
         }
 
         if (data?.current_lat && data?.current_lng) {

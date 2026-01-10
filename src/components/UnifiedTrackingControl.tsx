@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { Navigation, MapPin, Power, PowerOff, Info } from 'lucide-react';
+import { Navigation, MapPin, Power, PowerOff, Info, AlertTriangle, Ban, Clock, FileWarning } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveFreight } from '@/hooks/useActiveFreight';
 import { checkPermissionSafe, requestPermissionSafe, watchPositionSafe } from '@/utils/location';
@@ -18,6 +18,7 @@ export const UnifiedTrackingControl = () => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hasUserGesture, setHasUserGesture] = useState(false);
+  const [showPenaltyModal, setShowPenaltyModal] = useState(false);
 
   // Registrar user gesture para auto-tracking
   useEffect(() => {
@@ -108,7 +109,16 @@ export const UnifiedTrackingControl = () => {
     }
   };
 
-  const stopTracking = () => {
+  const handleStopRequest = () => {
+    // Se tem frete ativo, mostrar modal de penalidade antes
+    if (hasActiveFreight) {
+      setShowPenaltyModal(true);
+      return;
+    }
+    executeStopTracking();
+  };
+
+  const executeStopTracking = () => {
     if (watchId) {
       if (typeof watchId.clear === 'function') {
         watchId.clear();
@@ -117,8 +127,27 @@ export const UnifiedTrackingControl = () => {
       }
       setWatchId(null);
       setIsTracking(false);
+      setShowPenaltyModal(false);
       toast.info('Rastreamento pausado');
     }
+  };
+
+  const confirmStopWithPenalty = () => {
+    // Registrar incidente no banco
+    if (profile?.id && activeFreightId) {
+      supabase.from('incident_logs').insert({
+        freight_id: activeFreightId,
+        incident_type: 'GPS_DISABLED',
+        description: 'Motorista desativou rastreamento manualmente durante frete ativo',
+        user_id: profile.id,
+        severity: 'HIGH',
+        auto_generated: false
+      }).then(() => {
+        console.log('[UnifiedTrackingControl] Incident logged for GPS disable');
+      });
+    }
+    executeStopTracking();
+    toast.warning('Incidente registrado: rastreamento desativado durante frete ativo');
   };
 
   const updateLocation = async (coords: GeolocationCoordinates) => {
@@ -191,7 +220,7 @@ export const UnifiedTrackingControl = () => {
           </Badge>
           
           <Button
-            onClick={isTracking ? stopTracking : () => startTracking(false)}
+            onClick={isTracking ? handleStopRequest : () => startTracking(false)}
             variant={isTracking ? "destructive" : "default"}
             size="sm"
             className="whitespace-nowrap"
@@ -266,7 +295,7 @@ export const UnifiedTrackingControl = () => {
 
             {/* Botão de ação */}
             <Button
-              onClick={isTracking ? stopTracking : () => startTracking(false)}
+              onClick={isTracking ? handleStopRequest : () => startTracking(false)}
               variant={isTracking ? "destructive" : "default"}
               className="w-full"
             >
@@ -283,6 +312,67 @@ export const UnifiedTrackingControl = () => {
               )}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Penalidade por desativar rastreamento durante frete ativo */}
+      <Dialog open={showPenaltyModal} onOpenChange={setShowPenaltyModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Atenção: Rastreamento Obrigatório
+            </DialogTitle>
+            <DialogDescription>
+              Durante um frete em andamento, o rastreamento é obrigatório por questões de segurança e compliance.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 py-4">
+            <Alert variant="destructive">
+              <FileWarning className="h-4 w-4" />
+              <AlertTitle>Desativar o rastreamento pode resultar em:</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                  <li className="flex items-center gap-2">
+                    <Ban className="h-3 w-3 flex-shrink-0" />
+                    <span>Multa de R$ 50,00</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Clock className="h-3 w-3 flex-shrink-0" />
+                    <span>Suspensão temporária da conta</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <FileWarning className="h-3 w-3 flex-shrink-0" />
+                    <span>Registro de incidente no histórico</span>
+                  </li>
+                </ul>
+              </AlertDescription>
+            </Alert>
+
+            <p className="text-sm text-muted-foreground text-center">
+              O produtor e a plataforma dependem da sua localização para garantir a segurança da carga.
+            </p>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              variant="default" 
+              onClick={() => setShowPenaltyModal(false)}
+              className="w-full sm:w-auto"
+            >
+              <Navigation className="h-4 w-4 mr-2" />
+              Manter Ativo
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmStopWithPenalty}
+              className="w-full sm:w-auto"
+            >
+              <PowerOff className="h-4 w-4 mr-2" />
+              Desativar mesmo assim
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
