@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
+import { GOOGLE_MAPS_API_KEY } from '@/config/googleMaps';
 
 interface DriverLocationMapProps {
   lat: number;
@@ -13,15 +14,13 @@ export const DriverLocationMap = ({ lat, lng, driverName }: DriverLocationMapPro
   const [marker, setMarker] = useState<google.maps.Marker | null>(null);
 
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    
-    if (!apiKey) {
+    if (!GOOGLE_MAPS_API_KEY) {
       console.error('Google Maps API key not configured');
       return;
     }
     
     const loader = new Loader({
-      apiKey,
+      apiKey: GOOGLE_MAPS_API_KEY,
       version: 'weekly',
       libraries: ['places'],
     });

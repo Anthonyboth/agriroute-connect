@@ -19,6 +19,7 @@ import {
   formatSecondsAgo 
 } from '@/lib/map-utils';
 import { cn } from '@/lib/utils';
+import { GOOGLE_MAPS_API_KEY, getGoogleMapsErrorMessage } from '@/config/googleMaps';
 
 interface FreightRealtimeMapProps {
   freightId: string;
@@ -62,15 +63,13 @@ const FreightRealtimeMapComponent: React.FC<FreightRealtimeMapProps> = ({
 
     const initMap = async () => {
       try {
-        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-        
-        if (!apiKey) {
+        if (!GOOGLE_MAPS_API_KEY) {
           setMapError('API Key do Google Maps não configurada');
           return;
         }
 
         const loader = new Loader({
-          apiKey,
+          apiKey: GOOGLE_MAPS_API_KEY,
           version: 'weekly',
           libraries: ['marker']
         });
@@ -108,8 +107,9 @@ const FreightRealtimeMapComponent: React.FC<FreightRealtimeMapProps> = ({
         }, 0);
 
       } catch (err) {
-        console.error('[FreightRealtimeMap] Error initializing map:', err);
-        setMapError('Erro ao carregar o mapa');
+        const errorMessage = getGoogleMapsErrorMessage(err);
+        console.error('[FreightRealtimeMap] Error initializing map:', errorMessage, err);
+        setMapError(errorMessage);
       }
     };
 
