@@ -1,12 +1,22 @@
-# Security headers
-/*
-  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: SAMEORIGIN
-  Referrer-Policy: strict-origin-when-cross-origin
+# Immutable hashed assets in /assets/ folder - 1 year cache (HIGHEST PRIORITY)
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+  Vary: Accept-Encoding
 
-# Don't cache HTML files (always get fresh content)
-/*.html
+# Hero LCP image - aggressive caching
+/hero-truck-night-moon.webp
+  Cache-Control: public, max-age=31536000, immutable
+  Vary: Accept-Encoding
+
+# Service Worker files - no cache to ensure updates
+/registerSW.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+# HTML files - no cache (always get fresh content)
+/index.html
   Cache-Control: public, max-age=0, must-revalidate
   Vary: Accept-Encoding
 
@@ -14,12 +24,7 @@
   Cache-Control: public, max-age=0, must-revalidate
   Vary: Accept-Encoding
 
-# Cache ALL assets in /assets/ folder for 1 year (immutable - files have content hashes)
-/assets/*
-  Cache-Control: public, max-age=31536000, immutable
-  Vary: Accept-Encoding
-
-# Cache root-level static files for 1 year
+# Root-level static assets - 1 year cache
 /*.js
   Cache-Control: public, max-age=31536000, immutable
   Vary: Accept-Encoding
@@ -28,7 +33,7 @@
   Cache-Control: public, max-age=31536000, immutable
   Vary: Accept-Encoding
 
-# Cache images for 1 year
+# Images - 1 year cache
 /*.webp
   Cache-Control: public, max-age=31536000, immutable
 
@@ -50,7 +55,7 @@
 /*.gif
   Cache-Control: public, max-age=31536000, immutable
 
-# Cache fonts for 1 year
+# Fonts - 1 year cache
 /*.woff2
   Cache-Control: public, max-age=31536000, immutable
 
@@ -63,7 +68,7 @@
 /*.otf
   Cache-Control: public, max-age=31536000, immutable
 
-# Cache manifest and config files for 1 day
+# Manifest and config files - 1 day cache
 /*.webmanifest
   Cache-Control: public, max-age=86400
 
@@ -75,3 +80,10 @@
 
 /*.json
   Cache-Control: public, max-age=86400
+
+# Security headers for all pages (LAST - lowest priority)
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
