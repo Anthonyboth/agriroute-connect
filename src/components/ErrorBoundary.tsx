@@ -1,8 +1,9 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Trash2, Copy } from 'lucide-react';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
+import { isChunkLoadError, hardResetPWA, getDiagnosticInfo } from '@/utils/pwaRecovery';
 
 interface Props {
   children: ReactNode;
@@ -15,6 +16,9 @@ interface State {
   notified?: boolean;
   errorLogId?: string;
   retrying?: boolean;
+  isChunkError?: boolean;
+  isClearing?: boolean;
+  diagnosticCopied?: boolean;
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -23,7 +27,8 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    const isChunk = isChunkLoadError(error);
+    return { hasError: true, error, isChunkError: isChunk };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -115,12 +120,90 @@ class ErrorBoundary extends Component<Props, State> {
     window.location.reload();
   };
 
+  private handleClearCache = async () => {
+    this.setState({ isClearing: true });
+    try {
+      await hardResetPWA('error_boundary_manual');
+    } catch (e) {
+      // Se falhar, pelo menos recarrega
+      window.location.reload();
+    }
+  };
+
+  private handleCopyDiagnostic = async () => {
+    try {
+      const info = await getDiagnosticInfo();
+      info.error = this.state.error?.message;
+      info.errorStack = this.state.error?.stack?.slice(0, 500);
+      await navigator.clipboard.writeText(JSON.stringify(info, null, 2));
+      this.setState({ diagnosticCopied: true });
+      setTimeout(() => this.setState({ diagnosticCopied: false }), 2000);
+    } catch (e) {
+      console.error('Falha ao copiar diagnóstico:', e);
+    }
+  };
+
   public render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
+      // UI especial para erros de chunk/PWA
+      if (this.state.isChunkError) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-background p-4">
+            <Card className="max-w-md w-full">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-full">
+                    <RefreshCw className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <CardTitle>Atualização Detectada</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground">
+                  Uma nova versão do app foi publicada. Vamos limpar o cache para recuperar.
+                </p>
+                
+                <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 p-3 text-sm text-blue-800 dark:text-blue-200">
+                  💡 Isso acontece quando há uma atualização enquanto você usava o app.
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    onClick={this.handleClearCache}
+                    disabled={this.state.isClearing}
+                    className="w-full"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {this.state.isClearing ? 'Limpando...' : 'Limpar Cache e Recarregar'}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={this.handleReset}
+                    className="w-full"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Apenas Recarregar
+                  </Button>
+                  <Button 
+                    variant="ghost"
+                    onClick={this.handleCopyDiagnostic}
+                    className="w-full text-muted-foreground"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    {this.state.diagnosticCopied ? '✓ Copiado!' : 'Copiar Diagnóstico'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      }
+
+      // UI padrão para outros erros
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
           <Card className="max-w-md w-full">
@@ -175,19 +258,30 @@ class ErrorBoundary extends Component<Props, State> {
                 </details>
               )}
               
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={this.handleReset}
+                    className="flex-1"
+                  >
+                    Tentar Novamente
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.location.href = '/'}
+                    className="flex-1"
+                  >
+                    Ir para Início
+                  </Button>
+                </div>
                 <Button 
-                  onClick={this.handleReset}
-                  className="flex-1"
+                  variant="ghost"
+                  onClick={this.handleClearCache}
+                  disabled={this.state.isClearing}
+                  className="w-full text-muted-foreground"
                 >
-                  Tentar Novamente
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => window.location.href = '/'}
-                  className="flex-1"
-                >
-                  Ir para Início
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {this.state.isClearing ? 'Limpando...' : 'Limpar Cache do App'}
                 </Button>
               </div>
             </CardContent>

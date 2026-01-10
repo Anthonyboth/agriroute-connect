@@ -211,12 +211,28 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,jpg,webp,avif}'],
+        // ✅ REMOVIDO html do globPatterns para evitar servir HTML antigo que aponta para chunks inexistentes
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff2,jpg,webp,avif}'],
         maximumFileSizeToCacheInBytes: 5000000,
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
+        // ✅ Navegação (HTML) usa NetworkFirst com fallback rápido
+        navigateFallback: null, // Desabilita fallback offline para HTML
         runtimeCaching: [
+          // ✅ NOVO: HTML/Navegação sempre busca da rede primeiro
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 10 // 10 minutos
+              },
+              networkTimeoutSeconds: 3,
+            }
+          },
           {
             urlPattern: /^https:\/\/shnvtxejjecbnztdbbbl\.supabase\.co\/.*/i,
             handler: 'NetworkFirst',
