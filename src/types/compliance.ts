@@ -50,11 +50,16 @@ export interface FreightComplianceData {
   hasLiveAnimals: boolean;
   gtaIssued: boolean;
   gtaNumber?: string;
+  gtaValidUntil?: string;
   
   // Cargo info
   cargoType?: 'graos' | 'insumos' | 'gado' | 'leite' | 'madeira' | 'outros';
   originState?: string;
   destinationState?: string;
+  
+  // Freight info
+  freightId?: string;
+  freightStatus?: string;
 }
 
 // Regras por tipo de carga
@@ -72,6 +77,8 @@ export const SEFAZ_LINKS = {
   portalNfe: 'https://www.nfe.fazenda.gov.br/portal/principal.aspx',
   manifestacao: 'https://www.nfe.fazenda.gov.br/portal/manifestacaoDestinatario.aspx',
   consultaNfe: 'https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx',
+  portalCte: 'https://www.cte.fazenda.gov.br/portal/principal.aspx',
+  consultaCte: 'https://www.cte.fazenda.gov.br/portal/consultaRecaptcha.aspx',
 } as const;
 
 // Tipos de manifestação assistida
@@ -83,4 +90,79 @@ export interface AssistedManifestationData {
   portalRedirectAt?: string;
   userDeclarationAt?: string;
   manifestationMode: 'assisted';
+  justification?: string;
+}
+
+// ========== GTA Types ==========
+export interface GTADocument {
+  id: string;
+  documentNumber: string;
+  issueDate: string;
+  expiryDate: string;
+  originState: string;
+  destinationState: string;
+  originProperty?: string;
+  destinationProperty?: string;
+  animalCount: number;
+  animalSpecies: string;
+  issuingAgency: string;
+  model: string;
+  status: 'valid' | 'expired' | 'cancelled';
+  freightId?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface GTAStateRule {
+  id: string;
+  stateCode: string;
+  stateName: string;
+  gtaPortalUrl: string;
+  validityDays: number;
+  requiresVeterinaryInspection: boolean;
+  requiresTransitVisa: boolean;
+  allowsDigitalGta: boolean;
+  notes?: string;
+}
+
+// ========== Audit Types ==========
+export interface ComplianceAuditEvent {
+  id: string;
+  eventType: string;
+  eventCategory: 'nfe' | 'cte' | 'gta' | 'fiscal' | 'system';
+  actorId: string;
+  actorName?: string;
+  actorRole?: string;
+  freightId?: string;
+  eventData: Record<string, any>;
+  previousState?: Record<string, any>;
+  newState?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  gpsLocation?: {
+    lat: number;
+    lng: number;
+  };
+  createdAt: string;
+}
+
+// ========== Fiscal Term Types ==========
+export interface FiscalResponsibilityAcceptance {
+  id: string;
+  userId: string;
+  acceptedAt: string;
+  termVersion: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+// ========== Compliance Summary ==========
+export interface FreightComplianceSummary {
+  freightId: string;
+  overallStatus: ComplianceStatus;
+  nfeStatus: 'complete' | 'pending' | 'missing';
+  cteStatus: 'complete' | 'pending' | 'not_required' | 'missing';
+  gtaStatus: 'valid' | 'expired' | 'not_required' | 'missing';
+  issues: ComplianceIssue[];
+  lastCheckedAt: string;
 }

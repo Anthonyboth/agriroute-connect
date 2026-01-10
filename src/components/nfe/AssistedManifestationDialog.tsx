@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,10 +11,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useFiscalResponsibility } from '@/hooks/useFiscalResponsibility';
+import { FiscalResponsibilityModal } from '@/components/legal/FiscalResponsibilityModal';
 import { SEFAZ_LINKS, type AssistedManifestationType } from '@/types/compliance';
-import { MANIFESTATION_OPTIONS } from '@/types/nfe';
+import { MANIFESTATION_OPTIONS, ManifestationType } from '@/types/nfe';
 import { 
   Copy, 
   ExternalLink, 
@@ -25,7 +29,12 @@ import {
   XCircle,
   ChevronRight,
   ChevronLeft,
+  Shield,
+  Clock,
+  FileText,
+  Info,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AssistedManifestationDialogProps {
   open: boolean;
@@ -35,9 +44,9 @@ interface AssistedManifestationDialogProps {
   onSuccess: () => void;
 }
 
-type Step = 'intro' | 'copy' | 'portal' | 'type' | 'confirm';
+type Step = 'responsibility' | 'intro' | 'copy' | 'portal' | 'type' | 'justification' | 'confirm';
 
-const STEP_ORDER: Step[] = ['intro', 'copy', 'portal', 'type', 'confirm'];
+const STEP_ORDER: Step[] = ['responsibility', 'intro', 'copy', 'portal', 'type', 'justification', 'confirm'];
 
 const manifestationIcons = {
   ciencia: Eye,
@@ -55,19 +64,46 @@ export function AssistedManifestationDialog({
 }: AssistedManifestationDialogProps) {
   const [currentStep, setCurrentStep] = useState<Step>('intro');
   const [manifestationType, setManifestationType] = useState<AssistedManifestationType>('ciencia');
+  const [justification, setJustification] = useState('');
   const [copied, setCopied] = useState(false);
   const [portalOpened, setPortalOpened] = useState(false);
+  const [portalOpenedAt, setPortalOpenedAt] = useState<Date | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showFiscalModal, setShowFiscalModal] = useState(false);
   const { toast } = useToast();
 
-  const currentStepIndex = STEP_ORDER.indexOf(currentStep);
+  const { accepted: fiscalAccepted, loading: fiscalLoading, acceptTerm } = useFiscalResponsibility();
+
+  // Verificar se o termo fiscal foi aceito ao abrir
+  useEffect(() => {
+    if (open && !fiscalLoading && !fiscalAccepted) {
+      setShowFiscalModal(true);
+    }
+  }, [open, fiscalLoading, fiscalAccepted]);
+
+  // Get step index (skip responsibility if already accepted)
+  const getActiveSteps = (): Step[] => {
+    if (fiscalAccepted) {
+      return STEP_ORDER.filter(s => s !== 'responsibility');
+    }
+    return STEP_ORDER;
+  };
+
+  const activeSteps = getActiveSteps();
+  const currentStepIndex = activeSteps.indexOf(currentStep);
+
+  // Check if justification is required
+  const selectedOption = MANIFESTATION_OPTIONS.find(o => o.value === manifestationType);
+  const requiresJustification = selectedOption?.requiresJustification || false;
 
   const resetState = () => {
-    setCurrentStep('intro');
+    setCurrentStep(fiscalAccepted ? 'intro' : 'responsibility');
     setManifestationType('ciencia');
+    setJustification('');
     setCopied(false);
     setPortalOpened(false);
+    setPortalOpenedAt(null);
     setConfirmed(false);
     setLoading(false);
   };
@@ -77,17 +113,37 @@ export function AssistedManifestationDialog({
     onClose();
   };
 
+  const handleFiscalAccept = async () => {
+    const success = await acceptTerm();
+    if (success) {
+      setShowFiscalModal(false);
+      setCurrentStep('intro');
+    }
+  };
+
   const goNext = () => {
-    const nextIndex = currentStepIndex + 1;
-    if (nextIndex < STEP_ORDER.length) {
-      setCurrentStep(STEP_ORDER[nextIndex]);
+    let nextStep = activeSteps[currentStepIndex + 1];
+    
+    // Skip justification step if not required
+    if (nextStep === 'justification' && !requiresJustification) {
+      nextStep = 'confirm';
+    }
+    
+    if (nextStep) {
+      setCurrentStep(nextStep);
     }
   };
 
   const goBack = () => {
-    const prevIndex = currentStepIndex - 1;
-    if (prevIndex >= 0) {
-      setCurrentStep(STEP_ORDER[prevIndex]);
+    let prevStep = activeSteps[currentStepIndex - 1];
+    
+    // Skip justification step if not required
+    if (prevStep === 'justification' && !requiresJustification) {
+      prevStep = 'type';
+    }
+    
+    if (prevStep) {
+      setCurrentStep(prevStep);
     }
   };
 
@@ -122,6 +178,7 @@ export function AssistedManifestationDialog({
   const openPortal = async () => {
     window.open(SEFAZ_LINKS.manifestacao, '_blank');
     setPortalOpened(true);
+    setPortalOpenedAt(new Date());
     
     // Log action and update database
     const { data: { user } } = await supabase.auth.getUser();
@@ -160,13 +217,14 @@ export function AssistedManifestationDialog({
           manifestation_type: manifestationType,
           manifestation_date: new Date().toISOString(),
           manifestation_mode: 'assisted',
+          manifestation_justification: justification || null,
           user_declaration_at: new Date().toISOString(),
         })
         .eq('access_key', nfeAccessKey);
 
       if (updateError) throw updateError;
 
-      // Log the action
+      // Log the action with full audit trail
       await supabase.from('fiscal_compliance_logs').insert({
         user_id: user.id,
         action_type: 'manifestation_declared',
@@ -175,12 +233,15 @@ export function AssistedManifestationDialog({
         metadata: { 
           manifestation_type: manifestationType,
           manifestation_mode: 'assisted',
+          justification: justification || null,
+          portal_opened_at: portalOpenedAt?.toISOString(),
+          sefaz_event_code: selectedOption?.sefazCode,
         },
       });
 
       toast({
         title: 'Manifestação registrada!',
-        description: 'O status da NF-e foi atualizado com sucesso.',
+        description: `${selectedOption?.label} registrada com sucesso.`,
       });
 
       handleClose();
@@ -201,49 +262,93 @@ export function AssistedManifestationDialog({
     return key.replace(/(.{4})/g, '$1 ').trim();
   };
 
+  const canProceed = (): boolean => {
+    switch (currentStep) {
+      case 'responsibility': return fiscalAccepted;
+      case 'intro': return true;
+      case 'copy': return copied;
+      case 'portal': return portalOpened;
+      case 'type': return !!manifestationType;
+      case 'justification': return !requiresJustification || justification.trim().length >= 15;
+      case 'confirm': return confirmed;
+      default: return false;
+    }
+  };
+
   const renderStep = () => {
     switch (currentStep) {
+      case 'responsibility':
+        return (
+          <div className="space-y-4">
+            <Alert variant="default" className="bg-primary/5 border-primary/20">
+              <Shield className="h-4 w-4 text-primary" />
+              <AlertDescription>
+                <strong>Termo de Responsabilidade:</strong> Antes de continuar, 
+                você precisa aceitar o termo de responsabilidade fiscal.
+              </AlertDescription>
+            </Alert>
+            <Button onClick={() => setShowFiscalModal(true)} className="w-full">
+              <Shield className="h-4 w-4 mr-2" />
+              Ver e Aceitar Termo
+            </Button>
+          </div>
+        );
+
       case 'intro':
         return (
           <div className="space-y-4">
             <Alert>
-              <AlertTriangle className="h-4 w-4" />
+              <Info className="h-4 w-4" />
               <AlertDescription>
-                <strong>Importante:</strong> A manifestação será feita por você diretamente no 
-                Portal Nacional da NF-e. O AgriRoute apenas auxilia no processo.
+                <strong>Manifestação Assistida:</strong> Você realizará a manifestação 
+                diretamente no Portal Nacional da NF-e. O AgriRoute apenas auxilia no processo.
               </AlertDescription>
             </Alert>
             
-            <div className="bg-muted p-4 rounded-lg space-y-2">
-              <h4 className="font-medium">O que é a Manifestação Assistida?</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Você será direcionado ao portal oficial da SEFAZ</li>
-                <li>• A manifestação é feita com seu login gov.br ou certificado</li>
-                <li>• O AgriRoute registra que você realizou a manifestação</li>
-                <li>• Nenhum dado fiscal é transmitido pelo app</li>
-              </ul>
+            <div className="bg-muted p-4 rounded-lg space-y-3">
+              <h4 className="font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Como funciona?
+              </h4>
+              <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+                <li>Copie a chave de acesso da NF-e</li>
+                <li>Acesse o Portal Nacional da NF-e (SEFAZ)</li>
+                <li>Faça login com gov.br ou certificado digital</li>
+                <li>Realize a manifestação no portal</li>
+                <li>Volte aqui e confirme a operação</li>
+              </ol>
             </div>
+
+            <Alert variant="default" className="bg-warning/10 border-warning/20">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <AlertDescription className="text-sm">
+                Nenhum certificado digital, senha ou dado fiscal será 
+                armazenado ou transmitido pelo AgriRoute.
+              </AlertDescription>
+            </Alert>
           </div>
         );
 
       case 'copy':
         return (
           <div className="space-y-4">
-            <Label>Chave de Acesso da NF-e</Label>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm break-all">
+            <Label>Chave de Acesso da NF-e (44 dígitos)</Label>
+            <div className="bg-muted p-4 rounded-lg font-mono text-sm break-all border">
               {formatAccessKey(nfeAccessKey)}
             </div>
             <Button 
               onClick={copyToClipboard} 
               variant={copied ? 'secondary' : 'default'}
               className="w-full"
+              size="lg"
             >
               <Copy className="h-4 w-4 mr-2" />
-              {copied ? 'Chave Copiada!' : 'Copiar Chave'}
+              {copied ? '✓ Chave Copiada!' : 'Copiar Chave de Acesso'}
             </Button>
             {copied && (
-              <p className="text-sm text-success text-center">
-                ✓ Chave copiada para a área de transferência
+              <p className="text-sm text-success text-center flex items-center justify-center gap-1">
+                <CheckCircle className="h-4 w-4" />
+                Chave copiada para a área de transferência
               </p>
             )}
           </div>
@@ -253,12 +358,13 @@ export function AssistedManifestationDialog({
         return (
           <div className="space-y-4">
             <div className="bg-muted p-4 rounded-lg space-y-3">
-              <h4 className="font-medium">Passos no Portal da SEFAZ:</h4>
+              <h4 className="font-medium">No Portal da SEFAZ, você deve:</h4>
               <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
-                <li>Faça login com gov.br ou certificado digital</li>
-                <li>Cole a chave da NF-e no campo indicado</li>
-                <li>Escolha o tipo de manifestação desejado</li>
-                <li>Confirme a operação no portal</li>
+                <li>Fazer login com gov.br ou certificado digital</li>
+                <li>Acessar "Manifestação do Destinatário"</li>
+                <li>Colar a chave da NF-e copiada</li>
+                <li>Escolher o tipo de manifestação</li>
+                <li>Confirmar a operação</li>
               </ol>
             </div>
             
@@ -266,15 +372,22 @@ export function AssistedManifestationDialog({
               onClick={openPortal} 
               variant={portalOpened ? 'secondary' : 'default'}
               className="w-full"
+              size="lg"
             >
               <ExternalLink className="h-4 w-4 mr-2" />
-              {portalOpened ? 'Portal Aberto' : 'Abrir Portal da SEFAZ'}
+              {portalOpened ? '✓ Portal Aberto' : 'Abrir Portal Nacional da NF-e'}
             </Button>
             
             {portalOpened && (
-              <p className="text-sm text-muted-foreground text-center">
-                O portal foi aberto em uma nova aba. Realize a manifestação e volte aqui.
-              </p>
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  O portal foi aberto em uma nova aba.
+                </p>
+                <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Realize a manifestação e volte aqui para confirmar.
+                </p>
+              </div>
             )}
           </div>
         );
@@ -282,7 +395,7 @@ export function AssistedManifestationDialog({
       case 'type':
         return (
           <div className="space-y-4">
-            <Label>Qual tipo de manifestação você realizou?</Label>
+            <Label>Qual manifestação você realizou no portal?</Label>
             <RadioGroup 
               value={manifestationType} 
               onValueChange={(v) => setManifestationType(v as AssistedManifestationType)}
@@ -293,26 +406,65 @@ export function AssistedManifestationDialog({
                 return (
                   <div 
                     key={option.value}
-                    className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors ${
+                    className={cn(
+                      "flex items-start space-x-3 p-3 rounded-lg border transition-colors cursor-pointer",
                       manifestationType === option.value 
                         ? 'border-primary bg-primary/5' 
                         : 'border-border hover:bg-muted/50'
-                    }`}
+                    )}
+                    onClick={() => setManifestationType(option.value)}
                   >
                     <RadioGroupItem value={option.value} id={option.value} className="mt-1" />
                     <div className="flex-1">
                       <Label htmlFor={option.value} className="flex items-center gap-2 cursor-pointer">
-                        <Icon className={`h-4 w-4 ${option.color}`} />
+                        <Icon className={cn("h-4 w-4", option.color)} />
                         <span className="font-medium">{option.label}</span>
+                        <span className="text-xs text-muted-foreground">({option.sefazCode})</span>
                       </Label>
                       <p className="text-sm text-muted-foreground mt-1">
                         {option.description}
                       </p>
+                      {option.requiresJustification && (
+                        <p className="text-xs text-warning mt-1">
+                          ⚠️ Requer justificativa
+                        </p>
+                      )}
                     </div>
                   </div>
                 );
               })}
             </RadioGroup>
+          </div>
+        );
+
+      case 'justification':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="justification">
+                Justificativa (obrigatória para {selectedOption?.label})
+              </Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Informe o motivo da manifestação. Mínimo 15 caracteres.
+              </p>
+            </div>
+            <Textarea
+              id="justification"
+              placeholder="Descreva o motivo da manifestação..."
+              value={justification}
+              onChange={(e) => setJustification(e.target.value)}
+              className="min-h-[100px]"
+            />
+            <div className="flex justify-between text-xs">
+              <span className={cn(
+                justification.length < 15 ? 'text-warning' : 'text-success'
+              )}>
+                {justification.length < 15 
+                  ? `Faltam ${15 - justification.length} caracteres` 
+                  : '✓ Justificativa válida'}
+              </span>
+              <span className="text-muted-foreground">{justification.length} caracteres</span>
+            </div>
           </div>
         );
 
@@ -327,8 +479,24 @@ export function AssistedManifestationDialog({
             </Alert>
 
             <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
-              <p><strong>Chave:</strong> {nfeAccessKey.slice(0, 20)}...</p>
-              <p><strong>Tipo:</strong> {MANIFESTATION_OPTIONS.find(o => o.value === manifestationType)?.label}</p>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Chave:</span>
+                <span className="font-mono">{nfeAccessKey.slice(0, 20)}...</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tipo:</span>
+                <span className="font-medium">{selectedOption?.label}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Código SEFAZ:</span>
+                <span className="font-mono">{selectedOption?.sefazCode}</span>
+              </div>
+              {justification && (
+                <div className="pt-2 border-t">
+                  <span className="text-muted-foreground">Justificativa:</span>
+                  <p className="text-sm mt-1">{justification}</p>
+                </div>
+              )}
             </div>
 
             <div className="flex items-start space-x-2 p-3 border rounded-lg">
@@ -337,9 +505,10 @@ export function AssistedManifestationDialog({
                 checked={confirmed}
                 onCheckedChange={(checked) => setConfirmed(checked === true)}
               />
-              <label htmlFor="confirm-manifestation" className="text-sm cursor-pointer">
-                Confirmo que realizei a manifestação da NF-e no Portal Nacional da NF-e e 
-                estou ciente da minha responsabilidade fiscal.
+              <label htmlFor="confirm-manifestation" className="text-sm cursor-pointer leading-relaxed">
+                Confirmo que realizei a manifestação <strong>{selectedOption?.label}</strong> no 
+                Portal Nacional da NF-e e estou ciente da minha responsabilidade fiscal 
+                conforme o termo aceito anteriormente.
               </label>
             </div>
           </div>
@@ -347,72 +516,65 @@ export function AssistedManifestationDialog({
     }
   };
 
-  const canProceed = () => {
-    switch (currentStep) {
-      case 'intro': return true;
-      case 'copy': return copied;
-      case 'portal': return portalOpened;
-      case 'type': return !!manifestationType;
-      case 'confirm': return confirmed;
-    }
-  };
+  // Calculate progress
+  const progressPercent = ((currentStepIndex + 1) / activeSteps.length) * 100;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-primary" />
-            Manifestação Assistida
-          </DialogTitle>
-          <DialogDescription>
-            Etapa {currentStepIndex + 1} de {STEP_ORDER.length}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open && !showFiscalModal} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-primary" />
+              Manifestação Assistida
+            </DialogTitle>
+            <DialogDescription>
+              Etapa {currentStepIndex + 1} de {activeSteps.length}
+            </DialogDescription>
+          </DialogHeader>
 
-        {/* Progress bar */}
-        <div className="flex gap-1">
-          {STEP_ORDER.map((_, index) => (
-            <div 
-              key={index}
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                index <= currentStepIndex ? 'bg-primary' : 'bg-muted'
-              }`}
-            />
-          ))}
-        </div>
+          {/* Progress bar */}
+          <Progress value={progressPercent} className="h-1" />
 
-        <div className="py-4">
-          {renderStep()}
-        </div>
+          <div className="py-4">
+            {renderStep()}
+          </div>
 
-        <div className="flex justify-between gap-2">
-          {currentStepIndex > 0 ? (
-            <Button variant="outline" onClick={goBack}>
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Voltar
-            </Button>
-          ) : (
-            <Button variant="outline" onClick={handleClose}>
-              Cancelar
-            </Button>
-          )}
+          <div className="flex justify-between gap-2">
+            {currentStepIndex > 0 ? (
+              <Button variant="outline" onClick={goBack}>
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Voltar
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={handleClose}>
+                Cancelar
+              </Button>
+            )}
 
-          {currentStep === 'confirm' ? (
-            <Button 
-              onClick={handleConfirmManifestation}
-              disabled={!canProceed() || loading}
-            >
-              {loading ? 'Registrando...' : 'Confirmar Manifestação'}
-            </Button>
-          ) : (
-            <Button onClick={goNext} disabled={!canProceed()}>
-              Próximo
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+            {currentStep === 'confirm' ? (
+              <Button 
+                onClick={handleConfirmManifestation}
+                disabled={!canProceed() || loading}
+              >
+                {loading ? 'Registrando...' : 'Confirmar Manifestação'}
+              </Button>
+            ) : (
+              <Button onClick={goNext} disabled={!canProceed()}>
+                Próximo
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fiscal Responsibility Modal */}
+      <FiscalResponsibilityModal
+        open={showFiscalModal}
+        onAccept={handleFiscalAccept}
+        loading={fiscalLoading}
+      />
+    </>
   );
 }
