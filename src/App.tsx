@@ -58,7 +58,11 @@ if (typeof window !== 'undefined' && 'connection' in navigator) {
   }
 }
 
+// Import lazyWithRetry for robust module loading
+import { lazyWithRetry } from '@/utils/lazyWithRetry';
+
 // Lazy load all page components except Landing (needed for initial render)
+// Using lazyWithRetry for critical dashboard pages to handle network/cache failures
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ConfirmEmail = lazy(() => import("./pages/ConfirmEmail"));
@@ -85,14 +89,40 @@ const ServicePaymentSuccess = lazy(() => import("./pages/ServicePaymentSuccess")
 const ServicePaymentCancel = lazy(() => import("./pages/ServicePaymentCancel"));
 const CompanyInviteAccept = lazy(() => import("./pages/CompanyInviteAccept"));
 const AffiliateSignup = lazy(() => import("./pages/AffiliateSignup"));
-const AdminPanel = lazy(() => import("./pages/AdminPanel"));
+const AdminPanel = lazyWithRetry(() => import("./pages/AdminPanel"), { retries: 3 });
 const AdminAnnouncementsManager = lazy(() => import("./pages/AdminAnnouncementsManager"));
 const AdminMaintenancePanel = lazy(() => import("./pages/AdminMaintenancePanel"));
-const ProducerDashboard = lazy(() => import("./pages/ProducerDashboard"));
-const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
-const CompanyDashboard = lazy(() => import("./pages/CompanyDashboard"));
-const ServiceProviderDashboard = lazy(() => import("./pages/ServiceProviderDashboard"));
-const NfeDashboard = lazy(() => import("./pages/NfeDashboard"));
+
+// ✅ CRITICAL DASHBOARDS: Use lazyWithRetry with 3 retries for robustness
+const ProducerDashboard = lazyWithRetry(() => import("./pages/ProducerDashboard"), { 
+  retries: 3, 
+  delay: 1000,
+  onError: (error, attempt) => {
+    console.error(`[ProducerDashboard] Load failed (attempt ${attempt + 1}):`, error.message);
+  }
+});
+const DriverDashboard = lazyWithRetry(() => import("./pages/DriverDashboard"), { 
+  retries: 3, 
+  delay: 1000,
+  onError: (error, attempt) => {
+    console.error(`[DriverDashboard] Load failed (attempt ${attempt + 1}):`, error.message);
+  }
+});
+const CompanyDashboard = lazyWithRetry(() => import("./pages/CompanyDashboard"), { 
+  retries: 3, 
+  delay: 1000,
+  onError: (error, attempt) => {
+    console.error(`[CompanyDashboard] Load failed (attempt ${attempt + 1}):`, error.message);
+  }
+});
+const ServiceProviderDashboard = lazyWithRetry(() => import("./pages/ServiceProviderDashboard"), { 
+  retries: 3, 
+  delay: 1000,
+  onError: (error, attempt) => {
+    console.error(`[ServiceProviderDashboard] Load failed (attempt ${attempt + 1}):`, error.message);
+  }
+});
+const NfeDashboard = lazyWithRetry(() => import("./pages/NfeDashboard"), { retries: 3 });
 const InspectionView = lazy(() => import("./pages/InspectionView"));
 import { AlertCircle } from 'lucide-react';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
