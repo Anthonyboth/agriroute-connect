@@ -28,6 +28,7 @@ import { SilentCityBootstrap } from './components/SilentCityBootstrap';
 import { ZipCodeService } from './services/zipCodeService';
 import { GlobalAnnouncementBar } from './components/GlobalAnnouncementBar';
 import { FloatingSupportButton } from './components/FloatingSupportButton';
+import { useSplashScreen } from './hooks/useSplashScreen';
 import { PreviewFreshBuildBanner } from './components/PreviewFreshBuildBanner';
 
 // ✅ PERFORMANCE: Prefetch estratégico de rotas críticas
@@ -676,6 +677,12 @@ const AndroidBackButtonHandler = () => {
   return null;
 };
 
+// Component to handle native splash screen on Capacitor
+const NativeSplashHandler = () => {
+  useSplashScreen();
+  return null;
+};
+
 const App = () => {
   React.useEffect(() => {
     // Notificar o overlay que a app pintou
@@ -699,6 +706,7 @@ const App = () => {
                     <DeviceSetup />
                     <SessionManager />
                     <AndroidBackButtonHandler />
+                    <NativeSplashHandler />
                     <ErrorMonitoringSetup />
                     <ZipCodeSyncOnReconnect />
                     <FloatingSupportButton />
