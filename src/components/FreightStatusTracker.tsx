@@ -1,15 +1,28 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Package, Truck, CheckCircle, Clock, Navigation, Map } from 'lucide-react';
+import { MapPin, Package, Truck, CheckCircle, Clock, Navigation, Map, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-helpers';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { FreightRealtimeMapMapLibre as FreightRealtimeMap } from '@/components/freight/FreightRealtimeMapMapLibre';
 
+// ✅ LAZY LOAD: MapLibre is heavy (~200KB), load only when needed
+const FreightRealtimeMap = lazy(() => 
+  import('@/components/freight/FreightRealtimeMapMapLibre').then(module => ({ 
+    default: module.FreightRealtimeMapMapLibre 
+  }))
+);
+
+// Loading fallback for map
+const MapLoader = () => (
+  <div className="flex items-center justify-center h-[300px] bg-muted rounded-lg">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <span className="ml-2 text-muted-foreground">Carregando mapa...</span>
+  </div>
+);
 const DEFAULT_FLOW = [
   { key: 'ACCEPTED', label: 'Aceito', icon: CheckCircle },
   { key: 'LOADING', label: 'A caminho da coleta', icon: Package },
@@ -425,13 +438,15 @@ export const FreightStatusTracker: React.FC<FreightStatusTrackerProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <FreightRealtimeMap
-              freightId={freightId}
-              originLat={originLat}
-              originLng={originLng}
-              destinationLat={destinationLat}
-              destinationLng={destinationLng}
-            />
+            <Suspense fallback={<MapLoader />}>
+              <FreightRealtimeMap
+                freightId={freightId}
+                originLat={originLat}
+                originLng={originLng}
+                destinationLat={destinationLat}
+                destinationLng={destinationLng}
+              />
+            </Suspense>
             <p className="text-xs text-muted-foreground mt-2 text-center">
               📍 Localização em tempo real do motorista
             </p>
