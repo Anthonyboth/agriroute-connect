@@ -10,10 +10,15 @@ const config: CapacitorConfig = {
   // },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      // Manter splash visível por mais tempo para garantir WebView pronta
+      launchShowDuration: 3000,
       launchAutoHide: false,
+      // Cor verde AgriRoute - DEVE ser idêntica ao LaunchScreen.storyboard
       backgroundColor: '#16a34a',
       showSpinner: false,
+      // iOS: usar launch screen nativo como splash (elimina gap)
+      launchFadeOutDuration: 500,
+      // Android settings
       androidScaleType: 'CENTER_CROP',
       splashFullScreen: true,
       splashImmersive: true
@@ -37,7 +42,9 @@ const config: CapacitorConfig = {
     allowMixedContent: true
   },
   ios: {
-    contentInset: 'automatic'
+    contentInset: 'automatic',
+    // Usar o mesmo background do splash para eliminar flash preto
+    backgroundColor: '#16a34a'
   }
 };
 
