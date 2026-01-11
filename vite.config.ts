@@ -243,7 +243,7 @@ export default defineConfig(({ mode }) => ({
     dedupe: [
       'react', 
       'react-dom',
-      // Deduplicate Radix UI primitives to avoid version mismatches
+      // Deduplicate ALL Radix UI packages to prevent version mismatches
       '@radix-ui/primitive',
       '@radix-ui/react-primitive',
       '@radix-ui/react-compose-refs',
@@ -254,6 +254,17 @@ export default defineConfig(({ mode }) => ({
       '@radix-ui/react-use-callback-ref',
       '@radix-ui/react-use-controllable-state',
       '@radix-ui/react-use-layout-effect',
+      // Additional internal packages for complete stability
+      '@radix-ui/react-collection',
+      '@radix-ui/react-direction',
+      '@radix-ui/react-dismissable-layer',
+      '@radix-ui/react-focus-scope',
+      '@radix-ui/react-focus-guards',
+      '@radix-ui/react-portal',
+      '@radix-ui/react-roving-focus',
+      '@radix-ui/react-visually-hidden',
+      '@radix-ui/react-arrow',
+      '@radix-ui/react-popper',
     ],
   },
   optimizeDeps: {
