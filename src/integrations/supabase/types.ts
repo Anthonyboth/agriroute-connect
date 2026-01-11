@@ -408,6 +408,76 @@ export type Database = {
         }
         Relationships: []
       }
+      auditoria_eventos: {
+        Row: {
+          codigo_regra: string
+          created_at: string | null
+          descricao: string
+          empresa_id: string | null
+          evidencias: Json | null
+          frete_id: string | null
+          id: string
+          notas_resolucao: string | null
+          resolvido: boolean | null
+          resolvido_at: string | null
+          resolvido_por: string | null
+          severidade: string
+          tipo: string
+        }
+        Insert: {
+          codigo_regra: string
+          created_at?: string | null
+          descricao: string
+          empresa_id?: string | null
+          evidencias?: Json | null
+          frete_id?: string | null
+          id?: string
+          notas_resolucao?: string | null
+          resolvido?: boolean | null
+          resolvido_at?: string | null
+          resolvido_por?: string | null
+          severidade: string
+          tipo: string
+        }
+        Update: {
+          codigo_regra?: string
+          created_at?: string | null
+          descricao?: string
+          empresa_id?: string | null
+          evidencias?: Json | null
+          frete_id?: string | null
+          id?: string
+          notas_resolucao?: string | null
+          resolvido?: boolean | null
+          resolvido_at?: string | null
+          resolvido_por?: string | null
+          severidade?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_eventos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_eventos_frete_id_fkey"
+            columns: ["frete_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_eventos_resolvido_por_fkey"
+            columns: ["resolvido_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auto_confirm_logs: {
         Row: {
           confirmed_at: string | null
@@ -1140,6 +1210,87 @@ export type Database = {
             columns: ["usado_por"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ctes: {
+        Row: {
+          ambiente: string | null
+          authorized_at: string | null
+          chave: string | null
+          created_at: string | null
+          dacte_url: string | null
+          empresa_id: string | null
+          frete_id: string | null
+          id: string
+          mensagem_erro: string | null
+          modelo: string | null
+          numero: string | null
+          payload_envio: Json
+          referencia: string
+          resposta_sefaz: Json | null
+          serie: string | null
+          status: string | null
+          tentativas: number | null
+          updated_at: string | null
+          xml_url: string | null
+        }
+        Insert: {
+          ambiente?: string | null
+          authorized_at?: string | null
+          chave?: string | null
+          created_at?: string | null
+          dacte_url?: string | null
+          empresa_id?: string | null
+          frete_id?: string | null
+          id?: string
+          mensagem_erro?: string | null
+          modelo?: string | null
+          numero?: string | null
+          payload_envio: Json
+          referencia: string
+          resposta_sefaz?: Json | null
+          serie?: string | null
+          status?: string | null
+          tentativas?: number | null
+          updated_at?: string | null
+          xml_url?: string | null
+        }
+        Update: {
+          ambiente?: string | null
+          authorized_at?: string | null
+          chave?: string | null
+          created_at?: string | null
+          dacte_url?: string | null
+          empresa_id?: string | null
+          frete_id?: string | null
+          id?: string
+          mensagem_erro?: string | null
+          modelo?: string | null
+          numero?: string | null
+          payload_envio?: Json
+          referencia?: string
+          resposta_sefaz?: Json | null
+          serie?: string | null
+          status?: string | null
+          tentativas?: number | null
+          updated_at?: string | null
+          xml_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ctes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ctes_frete_id_fkey"
+            columns: ["frete_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
             referencedColumns: ["id"]
           },
         ]
@@ -1964,6 +2115,80 @@ export type Database = {
           },
         ]
       }
+      empresas_fiscais: {
+        Row: {
+          ambiente_fiscal: string | null
+          ativo: boolean | null
+          cnpj: string
+          created_at: string | null
+          endereco_bairro: string | null
+          endereco_cep: string | null
+          endereco_logradouro: string | null
+          endereco_numero: string | null
+          id: string
+          inscricao_estadual: string | null
+          municipio: string
+          municipio_ibge: string
+          nome_fantasia: string | null
+          onboarding_completo: boolean | null
+          razao_social: string
+          rntrc: string | null
+          transport_company_id: string | null
+          uf: string
+          updated_at: string | null
+        }
+        Insert: {
+          ambiente_fiscal?: string | null
+          ativo?: boolean | null
+          cnpj: string
+          created_at?: string | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_logradouro?: string | null
+          endereco_numero?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          municipio: string
+          municipio_ibge: string
+          nome_fantasia?: string | null
+          onboarding_completo?: boolean | null
+          razao_social: string
+          rntrc?: string | null
+          transport_company_id?: string | null
+          uf: string
+          updated_at?: string | null
+        }
+        Update: {
+          ambiente_fiscal?: string | null
+          ativo?: boolean | null
+          cnpj?: string
+          created_at?: string | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_logradouro?: string | null
+          endereco_numero?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          municipio?: string
+          municipio_ibge?: string
+          nome_fantasia?: string | null
+          onboarding_completo?: boolean | null
+          razao_social?: string
+          rntrc?: string | null
+          transport_company_id?: string | null
+          uf?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresas_fiscais_transport_company_id_fkey"
+            columns: ["transport_company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       error_logs: {
         Row: {
           auto_correction_action: string | null
@@ -2276,6 +2501,44 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      fiscalizacao_logs: {
+        Row: {
+          created_at: string | null
+          freight_id: string | null
+          id: string
+          ip_address: unknown
+          placa: string
+          response_data: Json | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          freight_id?: string | null
+          id?: string
+          ip_address?: unknown
+          placa: string
+          response_data?: Json | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          freight_id?: string | null
+          id?: string
+          ip_address?: unknown
+          placa?: string
+          response_data?: Json | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscalizacao_logs_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       flexible_freight_proposals: {
         Row: {
@@ -8909,6 +9172,7 @@ export type Database = {
           vehicle_info: string
         }[]
       }
+      get_compliance_kpis: { Args: { p_empresa_id?: string }; Returns: Json }
       get_current_profile_id: { Args: never; Returns: string }
       get_current_user_safe: { Args: never; Returns: string }
       get_driver_report_charts: {
@@ -8928,6 +9192,7 @@ export type Database = {
           ip_addresses: string[]
         }[]
       }
+      get_fiscalizacao_data: { Args: { p_placa: string }; Returns: Json }
       get_freights_for_driver: {
         Args: { p_driver_id: string }
         Returns: {
@@ -9538,6 +9803,13 @@ export type Database = {
       }
       process_telegram_queue: { Args: never; Returns: Json }
       reopen_freight: { Args: { p_freight_id: string }; Returns: string }
+      run_antifraud_rules: {
+        Args: { p_freight_id: string }
+        Returns: {
+          alerts_created: number
+          risk_score: number
+        }[]
+      }
       run_compliance_expiry_check: { Args: never; Returns: Json }
       sanitize_document: { Args: { doc: string }; Returns: string }
       save_zip_to_cache: {
