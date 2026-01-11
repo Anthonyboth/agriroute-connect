@@ -114,63 +114,10 @@ export default defineConfig(({ mode }) => ({
             return 'supabase-core';
           }
           
-          // ✅ Radix UI primitives - MUST be bundled together to avoid "f is not a function"
-          // These are shared dependencies used by multiple Radix UI components
-          if (id.includes('@radix-ui/primitive') ||
-              id.includes('@radix-ui/react-compose-refs') ||
-              id.includes('@radix-ui/react-context') ||
-              id.includes('@radix-ui/react-id') ||
-              id.includes('@radix-ui/react-presence') ||
-              id.includes('@radix-ui/react-use-callback-ref') ||
-              id.includes('@radix-ui/react-use-controllable-state') ||
-              id.includes('@radix-ui/react-use-layout-effect') ||
-              id.includes('@radix-ui/react-use-escape-keydown') ||
-              id.includes('@radix-ui/react-use-previous') ||
-              id.includes('@radix-ui/react-use-size') ||
-              id.includes('@radix-ui/react-dismissable-layer') ||
-              id.includes('@radix-ui/react-focus-scope') ||
-              id.includes('@radix-ui/react-focus-guards') ||
-              id.includes('@radix-ui/react-roving-focus') ||
-              id.includes('@radix-ui/react-collection') ||
-              id.includes('@radix-ui/react-direction') ||
-              id.includes('@radix-ui/react-visually-hidden') ||
-              id.includes('@radix-ui/react-arrow')) {
-            return 'radix-primitives';
-          }
-          
-          // ✅ Radix UI críticos: usados na landing page (dialog, popover, tooltip, slot)
-          if (id.includes('@radix-ui/react-dialog') || 
-              id.includes('@radix-ui/react-popover') ||
-              id.includes('@radix-ui/react-tooltip') ||
-              id.includes('@radix-ui/react-slot') ||
-              id.includes('@radix-ui/react-portal') ||
-              id.includes('@radix-ui/react-primitive')) {
-            return 'ui-core';
-          }
-          
-          // Forms: select, checkbox, radio, label, slider (defer)
-          // ✅ Slider MUST be with forms to share React context properly
-          if (id.includes('@radix-ui/react-select') || 
-              id.includes('@radix-ui/react-checkbox') ||
-              id.includes('@radix-ui/react-radio-group') ||
-              id.includes('@radix-ui/react-label') ||
-              id.includes('@radix-ui/react-switch') ||
-              id.includes('@radix-ui/react-slider')) {
-            return 'ui-forms';
-          }
-          
-          // Navigation: tabs, accordion, collapsible, navigation-menu (defer)
-          if (id.includes('@radix-ui/react-tabs') || 
-              id.includes('@radix-ui/react-accordion') ||
-              id.includes('@radix-ui/react-collapsible') ||
-              id.includes('@radix-ui/react-navigation-menu') ||
-              id.includes('@radix-ui/react-menubar')) {
-            return 'ui-navigation';
-          }
-          
-          // Other UI components (defer)
+          // ✅ TODOS os componentes Radix UI em um ÚNICO chunk
+          // Isso evita o erro "f is not a function" causado por fragmentação de contexto React
           if (id.includes('@radix-ui')) {
-            return 'ui-extras';
+            return 'ui-vendor';
           }
           
           // Lucide icons - split by size
