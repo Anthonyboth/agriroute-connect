@@ -227,6 +227,14 @@
     color: hsl(0 0% 100%) !important;
   }
   
+  /* Texto com gradiente hero - para títulos transparentes */
+  .text-gradient-hero {
+    background: var(--gradient-hero);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  
   .gradient-card {
     background: var(--gradient-card);
   }

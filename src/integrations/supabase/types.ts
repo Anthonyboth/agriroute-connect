@@ -9360,6 +9360,7 @@ export type Database = {
           fretes_entregues: number
           motoristas: number
           peso_total: number
+          prestadores: number
           produtores: number
           total_fretes: number
           total_usuarios: number

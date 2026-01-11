@@ -24,14 +24,8 @@ export const useOptimizedStats = () => {
     queryKey: ['system-stats'],
     queryFn: async () => {
       // Usar RPC SECURITY DEFINER para funcionar sem autenticação
-      const [statsResult, providersResult] = await Promise.all([
-        supabase.rpc('get_platform_stats'),
-        supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'PRESTADOR_SERVICOS')
-          .eq('status', 'APPROVED')
-      ]);
+      // Usar apenas o RPC SECURITY DEFINER que já inclui todos os dados
+      const statsResult = await supabase.rpc('get_platform_stats');
       
       if (statsResult.error) {
         console.error('[useOptimizedStats] Erro ao buscar stats:', statsResult.error);
@@ -47,7 +41,7 @@ export const useOptimizedStats = () => {
         averageRating: Number(row?.avaliacao_media ?? 0),
         activeDrivers: Number(row?.motoristas ?? 0),
         activeProducers: Number(row?.produtores ?? 0),
-        activeProviders: providersResult.count ?? 0,
+        activeProviders: Number(row?.prestadores ?? 0),
         completedFreights: Number(row?.fretes_entregues ?? 0)
       };
     },
