@@ -689,12 +689,7 @@ const App = () => {
       <ErrorBoundary>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <QueryClientProvider client={queryClient}>
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true
-            }}
-          >
+          <BrowserRouter>
             <RatingProviderErrorBoundary>
               <RatingProvider>
                 <TooltipProvider>
