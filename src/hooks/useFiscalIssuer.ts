@@ -127,16 +127,18 @@ export function useFiscalIssuer() {
       if (data) {
         setIssuer(data);
         
-        // Fetch certificate
-        const { data: certData } = await supabase
+        // Fetch certificate - cast through unknown since schema may differ
+        const certQuery = supabase
           .from('fiscal_certificates')
           .select('*')
           .eq('issuer_id', data.id)
-          .eq('is_active', true)
-          .maybeSingle() as unknown as { data: FiscalCertificate | null; error: any };
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const certResult = await (certQuery as unknown as Promise<{ data: FiscalCertificate | null; error: unknown }>);
         
-        if (certData) {
-          setCertificate(certData);
+        if (certResult.data) {
+          setCertificate(certResult.data);
         }
 
         // Fetch wallet
