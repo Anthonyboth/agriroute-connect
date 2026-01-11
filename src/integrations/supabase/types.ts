@@ -9824,7 +9824,7 @@ export type Database = {
         Returns: string
       }
       decrypt_sensitive_data: {
-        Args: { encrypted_data: string; key?: string }
+        Args: { encrypted_data: string; key: string }
         Returns: string
       }
       detect_eta_worsening: {
@@ -9859,7 +9859,7 @@ export type Database = {
       }
       encrypt_document: { Args: { doc: string }; Returns: string }
       encrypt_sensitive_data: {
-        Args: { data: string; key?: string }
+        Args: { data: string; key: string }
         Returns: string
       }
       ensure_current_user_role: {
