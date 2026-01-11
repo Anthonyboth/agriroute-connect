@@ -220,6 +220,163 @@ export type Database = {
           },
         ]
       }
+      antifraud_nfe_events: {
+        Row: {
+          created_at: string
+          details: Json
+          device_fingerprint: string | null
+          emission_id: string | null
+          evidence: Json | null
+          id: string
+          ip_address: unknown
+          issuer_id: string
+          location_lat: number | null
+          location_lng: number | null
+          resolution_action: string | null
+          resolution_notes: string | null
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          rule_code: string
+          rule_id: string
+          score_impact: number
+          severity: string
+          status: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          device_fingerprint?: string | null
+          emission_id?: string | null
+          evidence?: Json | null
+          id?: string
+          ip_address?: unknown
+          issuer_id: string
+          location_lat?: number | null
+          location_lng?: number | null
+          resolution_action?: string | null
+          resolution_notes?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_code: string
+          rule_id: string
+          score_impact: number
+          severity: string
+          status?: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          device_fingerprint?: string | null
+          emission_id?: string | null
+          evidence?: Json | null
+          id?: string
+          ip_address?: unknown
+          issuer_id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          resolution_action?: string | null
+          resolution_notes?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_code?: string
+          rule_id?: string
+          score_impact?: number
+          severity?: string
+          status?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "antifraud_nfe_events_emission_id_fkey"
+            columns: ["emission_id"]
+            isOneToOne: false
+            referencedRelation: "nfe_emissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "antifraud_nfe_events_issuer_id_fkey"
+            columns: ["issuer_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_issuers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "antifraud_nfe_events_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "antifraud_nfe_events_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "antifraud_nfe_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      antifraud_nfe_rules: {
+        Row: {
+          auto_action: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          parameters: Json | null
+          rule_code: string
+          rule_name: string
+          score_impact: number
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          auto_action?: string | null
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          parameters?: Json | null
+          rule_code: string
+          rule_name: string
+          score_impact?: number
+          severity: string
+          updated_at?: string
+        }
+        Update: {
+          auto_action?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          parameters?: Json | null
+          rule_code?: string
+          rule_name?: string
+          score_impact?: number
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "antifraud_nfe_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       antt_freight_prices: {
         Row: {
           base_price: number
@@ -2115,6 +2272,121 @@ export type Database = {
           },
         ]
       }
+      emission_packages: {
+        Row: {
+          available_from: string | null
+          available_until: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          discount_percentage: number | null
+          display_order: number | null
+          emissions_count: number
+          id: string
+          is_active: boolean
+          is_featured: boolean | null
+          name: string
+          price_per_emission: number
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          available_from?: string | null
+          available_until?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          display_order?: number | null
+          emissions_count: number
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean | null
+          name: string
+          price_per_emission: number
+          total_price: number
+          updated_at?: string
+        }
+        Update: {
+          available_from?: string | null
+          available_until?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          display_order?: number | null
+          emissions_count?: number
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean | null
+          name?: string
+          price_per_emission?: number
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emission_packages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emission_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          emission_id: string
+          error_history: Json | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          priority: number | null
+          queue_status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          emission_id: string
+          error_history?: Json | null
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          priority?: number | null
+          queue_status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          emission_id?: string
+          error_history?: Json | null
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          priority?: number | null
+          queue_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emission_queue_emission_id_fkey"
+            columns: ["emission_id"]
+            isOneToOne: true
+            referencedRelation: "nfe_emissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas_fiscais: {
         Row: {
           ambiente_fiscal: string | null
@@ -2437,6 +2709,111 @@ export type Database = {
           },
         ]
       }
+      fiscal_certificates: {
+        Row: {
+          certificate_type: string
+          created_at: string
+          encryption_key_id: string | null
+          id: string
+          is_expired: boolean | null
+          is_valid: boolean | null
+          issuer_cn: string | null
+          issuer_id: string
+          last_used_at: string | null
+          password_hash: string | null
+          purchase_amount: number | null
+          purchase_date: string | null
+          purchase_order_id: string | null
+          purchase_provider: string | null
+          purchased_via_platform: boolean | null
+          serial_number: string | null
+          status: string
+          storage_path: string | null
+          subject_cn: string | null
+          subject_document: string | null
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          usage_count: number | null
+          valid_from: string | null
+          valid_until: string | null
+          validation_error: string | null
+        }
+        Insert: {
+          certificate_type?: string
+          created_at?: string
+          encryption_key_id?: string | null
+          id?: string
+          is_expired?: boolean | null
+          is_valid?: boolean | null
+          issuer_cn?: string | null
+          issuer_id: string
+          last_used_at?: string | null
+          password_hash?: string | null
+          purchase_amount?: number | null
+          purchase_date?: string | null
+          purchase_order_id?: string | null
+          purchase_provider?: string | null
+          purchased_via_platform?: boolean | null
+          serial_number?: string | null
+          status?: string
+          storage_path?: string | null
+          subject_cn?: string | null
+          subject_document?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          usage_count?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+          validation_error?: string | null
+        }
+        Update: {
+          certificate_type?: string
+          created_at?: string
+          encryption_key_id?: string | null
+          id?: string
+          is_expired?: boolean | null
+          is_valid?: boolean | null
+          issuer_cn?: string | null
+          issuer_id?: string
+          last_used_at?: string | null
+          password_hash?: string | null
+          purchase_amount?: number | null
+          purchase_date?: string | null
+          purchase_order_id?: string | null
+          purchase_provider?: string | null
+          purchased_via_platform?: boolean | null
+          serial_number?: string | null
+          status?: string
+          storage_path?: string | null
+          subject_cn?: string | null
+          subject_document?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          usage_count?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+          validation_error?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_certificates_issuer_id_fkey"
+            columns: ["issuer_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_issuers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_certificates_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fiscal_compliance_logs: {
         Row: {
           action_type: string
@@ -2475,6 +2852,132 @@ export type Database = {
           },
         ]
       }
+      fiscal_issuers: {
+        Row: {
+          activated_at: string | null
+          address_complement: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_street: string | null
+          address_zip_code: string | null
+          block_reason: string | null
+          blocked_at: string | null
+          blocked_by: string | null
+          city: string
+          city_ibge_code: string | null
+          cnae_code: string | null
+          cnae_description: string | null
+          created_at: string
+          document_number: string
+          document_type: string
+          fiscal_environment: string
+          id: string
+          legal_name: string
+          municipal_registration: string | null
+          onboarding_completed: boolean | null
+          onboarding_completed_at: string | null
+          onboarding_step: number | null
+          profile_id: string
+          sefaz_status: string | null
+          sefaz_validated_at: string | null
+          sefaz_validation_response: Json | null
+          state_registration: string | null
+          status: string
+          status_reason: string | null
+          tax_regime: string
+          trade_name: string | null
+          uf: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_street?: string | null
+          address_zip_code?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          city: string
+          city_ibge_code?: string | null
+          cnae_code?: string | null
+          cnae_description?: string | null
+          created_at?: string
+          document_number: string
+          document_type: string
+          fiscal_environment?: string
+          id?: string
+          legal_name: string
+          municipal_registration?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_completed_at?: string | null
+          onboarding_step?: number | null
+          profile_id: string
+          sefaz_status?: string | null
+          sefaz_validated_at?: string | null
+          sefaz_validation_response?: Json | null
+          state_registration?: string | null
+          status?: string
+          status_reason?: string | null
+          tax_regime: string
+          trade_name?: string | null
+          uf: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_street?: string | null
+          address_zip_code?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          city?: string
+          city_ibge_code?: string | null
+          cnae_code?: string | null
+          cnae_description?: string | null
+          created_at?: string
+          document_number?: string
+          document_type?: string
+          fiscal_environment?: string
+          id?: string
+          legal_name?: string
+          municipal_registration?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_completed_at?: string | null
+          onboarding_step?: number | null
+          profile_id?: string
+          sefaz_status?: string | null
+          sefaz_validated_at?: string | null
+          sefaz_validation_response?: Json | null
+          state_registration?: string | null
+          status?: string
+          status_reason?: string | null
+          tax_regime?: string
+          trade_name?: string | null
+          uf?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_issuers_blocked_by_fkey"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_issuers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fiscal_responsibility_acceptances: {
         Row: {
           accepted_at: string | null
@@ -2501,6 +3004,198 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      fiscal_terms_acceptances: {
+        Row: {
+          accepted_at: string
+          created_at: string
+          device_fingerprint: string | null
+          id: string
+          ip_address: unknown
+          issuer_id: string | null
+          location_lat: number | null
+          location_lng: number | null
+          profile_id: string
+          term_hash: string
+          term_type: string
+          term_version: string
+          user_agent: string | null
+        }
+        Insert: {
+          accepted_at?: string
+          created_at?: string
+          device_fingerprint?: string | null
+          id?: string
+          ip_address?: unknown
+          issuer_id?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          profile_id: string
+          term_hash: string
+          term_type: string
+          term_version: string
+          user_agent?: string | null
+        }
+        Update: {
+          accepted_at?: string
+          created_at?: string
+          device_fingerprint?: string | null
+          id?: string
+          ip_address?: unknown
+          issuer_id?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          profile_id?: string
+          term_hash?: string
+          term_type?: string
+          term_version?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_terms_acceptances_issuer_id_fkey"
+            columns: ["issuer_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_issuers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_terms_acceptances_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_wallet: {
+        Row: {
+          available_balance: number
+          created_at: string
+          emissions_count: number
+          id: string
+          issuer_id: string | null
+          last_credit_at: string | null
+          last_emission_at: string | null
+          profile_id: string
+          reserved_balance: number
+          total_credited: number
+          total_debited: number
+          updated_at: string
+        }
+        Insert: {
+          available_balance?: number
+          created_at?: string
+          emissions_count?: number
+          id?: string
+          issuer_id?: string | null
+          last_credit_at?: string | null
+          last_emission_at?: string | null
+          profile_id: string
+          reserved_balance?: number
+          total_credited?: number
+          total_debited?: number
+          updated_at?: string
+        }
+        Update: {
+          available_balance?: number
+          created_at?: string
+          emissions_count?: number
+          id?: string
+          issuer_id?: string | null
+          last_credit_at?: string | null
+          last_emission_at?: string | null
+          profile_id?: string
+          reserved_balance?: number
+          total_credited?: number
+          total_debited?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_wallet_issuer_id_fkey"
+            columns: ["issuer_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_issuers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_wallet_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_wallet_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          payment_method: string | null
+          reference_id: string | null
+          reference_type: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          transaction_type: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          transaction_type: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          transaction_type?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_wallet_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_wallet"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fiscalizacao_logs: {
         Row: {
@@ -5484,6 +6179,231 @@ export type Database = {
             columns: ["freight_id"]
             isOneToOne: false
             referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfe_emissions: {
+        Row: {
+          access_key: string | null
+          antifraud_events: Json | null
+          antifraud_score: number | null
+          antifraud_status: string | null
+          authorization_date: string | null
+          canceled_by: string | null
+          cancellation_date: string | null
+          cancellation_justification: string | null
+          cancellation_protocol: string | null
+          cfop: string
+          correction_letters: Json | null
+          created_at: string
+          created_by: string
+          danfe_url: string | null
+          emission_context: Json | null
+          emission_cost: number
+          emission_paid: boolean | null
+          error_code: string | null
+          error_message: string | null
+          fiscal_environment: string
+          focus_nfe_ref: string | null
+          focus_nfe_response: Json | null
+          freight_id: string | null
+          id: string
+          internal_ref: string
+          issue_date: string | null
+          issuer_address: Json
+          issuer_document: string
+          issuer_id: string
+          issuer_ie: string | null
+          issuer_name: string
+          items: Json
+          model: string
+          number: number | null
+          operation_nature: string
+          payment_data: Json | null
+          payment_method: string | null
+          recipient_address: Json | null
+          recipient_document: string | null
+          recipient_document_type: string | null
+          recipient_email: string | null
+          recipient_ie: string | null
+          recipient_name: string
+          recipient_phone: string | null
+          rejection_reason: string | null
+          sefaz_protocol: string | null
+          sefaz_response: Json | null
+          sefaz_status_code: string | null
+          sefaz_status_message: string | null
+          series: number | null
+          status: string
+          status_history: Json | null
+          totals: Json
+          transport_data: Json | null
+          transport_mode: number | null
+          updated_at: string
+          wallet_id: string | null
+          wallet_transaction_id: string | null
+          xml_signed_hash: string | null
+          xml_url: string | null
+        }
+        Insert: {
+          access_key?: string | null
+          antifraud_events?: Json | null
+          antifraud_score?: number | null
+          antifraud_status?: string | null
+          authorization_date?: string | null
+          canceled_by?: string | null
+          cancellation_date?: string | null
+          cancellation_justification?: string | null
+          cancellation_protocol?: string | null
+          cfop: string
+          correction_letters?: Json | null
+          created_at?: string
+          created_by: string
+          danfe_url?: string | null
+          emission_context?: Json | null
+          emission_cost?: number
+          emission_paid?: boolean | null
+          error_code?: string | null
+          error_message?: string | null
+          fiscal_environment?: string
+          focus_nfe_ref?: string | null
+          focus_nfe_response?: Json | null
+          freight_id?: string | null
+          id?: string
+          internal_ref: string
+          issue_date?: string | null
+          issuer_address: Json
+          issuer_document: string
+          issuer_id: string
+          issuer_ie?: string | null
+          issuer_name: string
+          items?: Json
+          model?: string
+          number?: number | null
+          operation_nature: string
+          payment_data?: Json | null
+          payment_method?: string | null
+          recipient_address?: Json | null
+          recipient_document?: string | null
+          recipient_document_type?: string | null
+          recipient_email?: string | null
+          recipient_ie?: string | null
+          recipient_name: string
+          recipient_phone?: string | null
+          rejection_reason?: string | null
+          sefaz_protocol?: string | null
+          sefaz_response?: Json | null
+          sefaz_status_code?: string | null
+          sefaz_status_message?: string | null
+          series?: number | null
+          status?: string
+          status_history?: Json | null
+          totals: Json
+          transport_data?: Json | null
+          transport_mode?: number | null
+          updated_at?: string
+          wallet_id?: string | null
+          wallet_transaction_id?: string | null
+          xml_signed_hash?: string | null
+          xml_url?: string | null
+        }
+        Update: {
+          access_key?: string | null
+          antifraud_events?: Json | null
+          antifraud_score?: number | null
+          antifraud_status?: string | null
+          authorization_date?: string | null
+          canceled_by?: string | null
+          cancellation_date?: string | null
+          cancellation_justification?: string | null
+          cancellation_protocol?: string | null
+          cfop?: string
+          correction_letters?: Json | null
+          created_at?: string
+          created_by?: string
+          danfe_url?: string | null
+          emission_context?: Json | null
+          emission_cost?: number
+          emission_paid?: boolean | null
+          error_code?: string | null
+          error_message?: string | null
+          fiscal_environment?: string
+          focus_nfe_ref?: string | null
+          focus_nfe_response?: Json | null
+          freight_id?: string | null
+          id?: string
+          internal_ref?: string
+          issue_date?: string | null
+          issuer_address?: Json
+          issuer_document?: string
+          issuer_id?: string
+          issuer_ie?: string | null
+          issuer_name?: string
+          items?: Json
+          model?: string
+          number?: number | null
+          operation_nature?: string
+          payment_data?: Json | null
+          payment_method?: string | null
+          recipient_address?: Json | null
+          recipient_document?: string | null
+          recipient_document_type?: string | null
+          recipient_email?: string | null
+          recipient_ie?: string | null
+          recipient_name?: string
+          recipient_phone?: string | null
+          rejection_reason?: string | null
+          sefaz_protocol?: string | null
+          sefaz_response?: Json | null
+          sefaz_status_code?: string | null
+          sefaz_status_message?: string | null
+          series?: number | null
+          status?: string
+          status_history?: Json | null
+          totals?: Json
+          transport_data?: Json | null
+          transport_mode?: number | null
+          updated_at?: string
+          wallet_id?: string | null
+          wallet_transaction_id?: string | null
+          xml_signed_hash?: string | null
+          xml_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfe_emissions_canceled_by_fkey"
+            columns: ["canceled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_emissions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_emissions_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_emissions_issuer_id_fkey"
+            columns: ["issuer_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_issuers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_emissions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_wallet"
             referencedColumns: ["id"]
           },
         ]
