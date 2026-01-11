@@ -254,3 +254,12 @@ verify_jwt = true
 
 [functions.expire-compliance]
 verify_jwt = false
+
+[functions.cte-polling]
+verify_jwt = false
+
+[functions.cte-emitir]
+verify_jwt = true
+
+[functions.cte-consultar]
+verify_jwt = true
