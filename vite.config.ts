@@ -90,7 +90,8 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // ✅ OTIMIZADO v2 - split mais granular para reduzir unused JS
+          // ✅ OTIMIZADO v3 - split mais granular para reduzir unused JS
+          // Corrigido para evitar "f is not a function" em chunks Radix UI
           
           // Core React (mínimo necessário para boot)
           if (id.includes('node_modules/react-dom')) {
@@ -113,14 +114,36 @@ export default defineConfig(({ mode }) => ({
             return 'supabase-core';
           }
           
-          // ✅ Radix UI split por uso: críticos vs deferrable
-          // Críticos: usados na landing page (dialog, popover, tooltip, slot)
+          // ✅ Radix UI primitives - MUST be bundled together to avoid "f is not a function"
+          // These are shared dependencies used by multiple Radix UI components
+          if (id.includes('@radix-ui/primitive') ||
+              id.includes('@radix-ui/react-compose-refs') ||
+              id.includes('@radix-ui/react-context') ||
+              id.includes('@radix-ui/react-id') ||
+              id.includes('@radix-ui/react-presence') ||
+              id.includes('@radix-ui/react-use-callback-ref') ||
+              id.includes('@radix-ui/react-use-controllable-state') ||
+              id.includes('@radix-ui/react-use-layout-effect') ||
+              id.includes('@radix-ui/react-use-escape-keydown') ||
+              id.includes('@radix-ui/react-use-previous') ||
+              id.includes('@radix-ui/react-use-size') ||
+              id.includes('@radix-ui/react-dismissable-layer') ||
+              id.includes('@radix-ui/react-focus-scope') ||
+              id.includes('@radix-ui/react-focus-guards') ||
+              id.includes('@radix-ui/react-roving-focus') ||
+              id.includes('@radix-ui/react-collection') ||
+              id.includes('@radix-ui/react-direction') ||
+              id.includes('@radix-ui/react-visually-hidden') ||
+              id.includes('@radix-ui/react-arrow')) {
+            return 'radix-primitives';
+          }
+          
+          // ✅ Radix UI críticos: usados na landing page (dialog, popover, tooltip, slot)
           if (id.includes('@radix-ui/react-dialog') || 
               id.includes('@radix-ui/react-popover') ||
               id.includes('@radix-ui/react-tooltip') ||
               id.includes('@radix-ui/react-slot') ||
               id.includes('@radix-ui/react-portal') ||
-              id.includes('@radix-ui/react-presence') ||
               id.includes('@radix-ui/react-primitive')) {
             return 'ui-core';
           }
@@ -267,7 +290,21 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ['react', 'react-dom'],
+    dedupe: [
+      'react', 
+      'react-dom',
+      // Deduplicate Radix UI primitives to avoid version mismatches
+      '@radix-ui/primitive',
+      '@radix-ui/react-primitive',
+      '@radix-ui/react-compose-refs',
+      '@radix-ui/react-context',
+      '@radix-ui/react-id',
+      '@radix-ui/react-presence',
+      '@radix-ui/react-slot',
+      '@radix-ui/react-use-callback-ref',
+      '@radix-ui/react-use-controllable-state',
+      '@radix-ui/react-use-layout-effect',
+    ],
   },
   optimizeDeps: {
     include: [
