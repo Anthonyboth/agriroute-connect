@@ -272,6 +272,41 @@ export function useFiscal() {
     }
   }, []);
 
+  const cancelarCTe = useCallback(async (
+    cteId: string,
+    justificativa: string
+  ): Promise<{ success: boolean; message?: string } | null> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Validar justificativa localmente antes de enviar
+      if (!justificativa || justificativa.length < 15 || justificativa.length > 255) {
+        throw new Error('A justificativa deve ter entre 15 e 255 caracteres');
+      }
+
+      const { data, error: fnError } = await supabase.functions.invoke('cte-cancelar', {
+        body: { cte_id: cteId, justificativa },
+      });
+
+      if (fnError) throw fnError;
+
+      if (data.error) {
+        throw new Error(data.message || data.error);
+      }
+
+      toast.success('CT-e cancelado com sucesso');
+      return { success: true, message: data.message };
+    } catch (err: any) {
+      const message = err.message || 'Erro ao cancelar CT-e';
+      setError(message);
+      toast.error(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const resolverAlerta = useCallback(async (
     alertaId: string,
     notas?: string
@@ -317,6 +352,7 @@ export function useFiscal() {
     error,
     emitirCTe,
     consultarCTe,
+    cancelarCTe,
     executarAntifraude,
     obterKPIsCompliance,
     listarCTes,
