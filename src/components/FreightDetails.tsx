@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw, ChevronRight } from 'lucide-react';
+import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw, ChevronRight, FileCheck } from 'lucide-react';
 import { FreightChat } from './FreightChat';
 import { FreightStatusTracker } from './FreightStatusTracker';
 import { FreightStatusHistory } from './FreightStatusHistory';
@@ -27,6 +27,8 @@ import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { useAutoRating } from '@/hooks/useAutoRating';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatKm } from '@/lib/formatters';
+import { CTeEmitirDialog } from './fiscal/CTeEmitirDialog';
+import { isFeatureEnabled } from '@/config/featureFlags';
 
 interface FreightDetailsProps {
   freightId: string;
@@ -54,6 +56,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [movingToHistory, setMovingToHistory] = useState(false);
   const [manifestoModalOpen, setManifestoModalOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState<{ open: boolean; userId: string; userType: 'driver' | 'producer'; userName: string }>({ open: false, userId: '', userType: 'driver', userName: '' });
+  const [cteModalOpen, setCteModalOpen] = useState(false);
 
   // Status order for calculating effective status
   const statusOrder = ['OPEN','IN_NEGOTIATION','ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION','DELIVERED','COMPLETED','CANCELLED','REJECTED','PENDING'];
@@ -195,6 +198,12 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
 
   const isProducer = currentUserProfile?.role === 'PRODUTOR';
   const isDriver = ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(currentUserProfile?.role);
+  const isTransportadora = currentUserProfile?.role === 'TRANSPORTADORA';
+  
+  // CT-e pode ser emitido por transportadoras em fretes carregados, em trânsito ou entregues
+  const canEmitCTe = isFeatureEnabled('enable_cte_emission') && 
+    isTransportadora && 
+    ['LOADED', 'IN_TRANSIT', 'DELIVERED', 'DELIVERED_PENDING_CONFIRMATION'].includes(freight?.status);
   
   // Verificar se é participante (produtor, motorista direto, ou tem assignment ativo)
   const [hasActiveAssignment, setHasActiveAssignment] = useState(false);
@@ -522,31 +531,46 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         )}
       </div>
 
-      {/* Botões de Avaliação (separados dos cards) */}
-      {canRate() && (
-        <div className="flex flex-wrap gap-2">
-          {isDriver && freight.producer?.full_name && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleOpenRating(freight.producer)}
-            >
-              <Star className="h-3 w-3 mr-1" />
-              Avaliar Produtor
-            </Button>
-          )}
-          {isProducer && freight.driver?.full_name && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleOpenRating(freight.driver)}
-            >
-              <Star className="h-3 w-3 mr-1" />
-              Avaliar Motorista
-            </Button>
-          )}
-        </div>
-      )}
+      {/* Botões de Ação: Avaliação e CT-e */}
+      <div className="flex flex-wrap gap-2">
+        {/* Botões de Avaliação */}
+        {canRate() && (
+          <>
+            {isDriver && freight.producer?.full_name && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleOpenRating(freight.producer)}
+              >
+                <Star className="h-3 w-3 mr-1" />
+                Avaliar Produtor
+              </Button>
+            )}
+            {isProducer && freight.driver?.full_name && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleOpenRating(freight.driver)}
+              >
+                <Star className="h-3 w-3 mr-1" />
+                Avaliar Motorista
+              </Button>
+            )}
+          </>
+        )}
+
+        {/* Botão Emitir CT-e para Transportadoras */}
+        {canEmitCTe && (
+          <Button
+            size="sm"
+            variant="default"
+            onClick={() => setCteModalOpen(true)}
+          >
+            <FileCheck className="h-3 w-3 mr-1" />
+            Emitir CT-e
+          </Button>
+        )}
+      </div>
 
       {/* Advance Request Notifications */}
       {isProducer && advances && advances.filter(advance => advance.status === 'PENDING').length > 0 && (
@@ -1005,6 +1029,17 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         userId={profileModalOpen.userId}
         userType={profileModalOpen.userType}
         userName={profileModalOpen.userName}
+      />
+
+      {/* Modal de Emissão de CT-e */}
+      <CTeEmitirDialog
+        open={cteModalOpen}
+        onOpenChange={setCteModalOpen}
+        freightId={freightId}
+        onSuccess={() => {
+          setCteModalOpen(false);
+          fetchFreightDetails();
+        }}
       />
     </div>
   );

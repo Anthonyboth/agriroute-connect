@@ -1,8 +1,8 @@
 // Feature flags para controle de funcionalidades do AgriRoute
 
 export const FEATURE_FLAGS = {
-  // CT-e - Emissão futura (desligado por padrão)
-  enable_cte_emission: false,
+  // CT-e - Emissão habilitada para produção
+  enable_cte_emission: true,
   
   // GTA - Rastreamento
   enable_gta_tracking: true,
