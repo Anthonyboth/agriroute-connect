@@ -263,3 +263,27 @@ verify_jwt = true
 
 [functions.cte-consultar]
 verify_jwt = true
+
+[functions.mdfe-transmitir]
+verify_jwt = true
+
+[functions.mdfe-consultar-sefaz]
+verify_jwt = true
+
+[functions.mdfe-transmitir-evento]
+verify_jwt = true
+
+[functions.mdfe-polling]
+verify_jwt = false
+
+[functions.mdfe-emitir]
+verify_jwt = true
+
+[functions.mdfe-encerrar]
+verify_jwt = true
+
+[functions.mdfe-cancelar]
+verify_jwt = true
+
+[functions.mdfe-gerar-dacte]
+verify_jwt = true

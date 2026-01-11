@@ -80,7 +80,47 @@ serve(async (req) => {
       throw new Error('Não é possível encerrar um MDFe cancelado');
     }
 
-    // Generate encerramento event XML
+    // If MDFe was transmitted to SEFAZ, use the event transmission function
+    if (mdfe.referencia_focus) {
+      console.log(`[MDFe Encerrar] Transmitindo encerramento para SEFAZ...`);
+      
+      try {
+        const eventoResponse = await supabaseClient.functions.invoke('mdfe-transmitir-evento', {
+          body: {
+            mdfe_id,
+            tipo_evento: 'ENCERRAMENTO',
+            uf_encerramento: uf_encerramento || mdfe.uf_fim,
+            municipio_codigo_encerramento: municipio_codigo_encerramento || mdfe.municipio_descarregamento_codigo,
+          },
+        });
+
+        const eventoResult = eventoResponse.data;
+        
+        if (!eventoResult?.success) {
+          throw new Error(eventoResult?.mensagem || eventoResult?.error || 'Erro ao encerrar na SEFAZ');
+        }
+
+        console.log(`[MDFe Encerrar] MDFe ${mdfe_id} encerrado com sucesso via SEFAZ`);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'MDFe encerrado com sucesso na SEFAZ',
+            status: eventoResult.status,
+            dados_sefaz: eventoResult.dados_sefaz,
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+      } catch (transmissaoError) {
+        console.error('[MDFe Encerrar] Erro na transmissão do encerramento:', transmissaoError);
+        throw new Error(`Erro ao encerrar na SEFAZ: ${transmissaoError.message}`);
+      }
+    }
+
+    // Fallback: Local encerramento for contingency MDFe
     const eventoXml = gerarEventoEncerramento(
       mdfe.chave_acesso,
       mdfe.protocolo_autorizacao,
@@ -88,7 +128,7 @@ serve(async (req) => {
       municipio_codigo_encerramento || mdfe.municipio_descarregamento_codigo
     );
 
-    // Update MDFe status
+    // Update MDFe status locally
     const { error: updateError } = await supabaseClient
       .from('mdfe_manifestos')
       .update({
@@ -108,15 +148,15 @@ serve(async (req) => {
       tipo_operacao: 'ENCERRAMENTO',
       xml_enviado: eventoXml,
       sucesso: true,
-      observacao: 'MDFe encerrado localmente. Aguardando transmissão para SEFAZ.',
+      observacao: 'MDFe encerrado localmente (contingência). Transmitir quando disponível.',
     });
 
-    console.log(`[MDFe Encerrar] MDFe ${mdfe_id} encerrado com sucesso`);
+    console.log(`[MDFe Encerrar] MDFe ${mdfe_id} encerrado localmente (contingência)`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'MDFe encerrado com sucesso',
+        message: 'MDFe encerrado localmente. Transmitir para SEFAZ quando disponível.',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

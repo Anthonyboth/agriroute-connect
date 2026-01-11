@@ -281,16 +281,34 @@ serve(async (req) => {
       console.error('[MDFe Emitir] Erro ao gerar DACTE:', dacteError);
     }
 
+    // If not contingency mode, transmit to SEFAZ automatically
+    let transmissaoResult = null;
+    if (modo !== 'CONTINGENCIA') {
+      console.log(`[MDFe Emitir] Transmitindo MDFe para SEFAZ...`);
+      try {
+        const transmissaoResponse = await supabaseClient.functions.invoke('mdfe-transmitir', {
+          body: { mdfe_id: mdfe.id },
+        });
+        transmissaoResult = transmissaoResponse.data;
+        console.log(`[MDFe Emitir] Resultado transmissão:`, transmissaoResult);
+      } catch (transmissaoError) {
+        console.error('[MDFe Emitir] Erro na transmissão:', transmissaoError);
+        transmissaoResult = { error: transmissaoError.message };
+      }
+    }
+
     console.log(`[MDFe Emitir] MDFe ${mdfe.id} emitido com sucesso`);
 
     return new Response(
       JSON.stringify({
         success: true,
         mdfe_id: mdfe.id,
-        chave_acesso: chaveAcesso,
+        chave_acesso: transmissaoResult?.chave || chaveAcesso,
         numero: nextNumero,
         serie: config.serie_mdfe || '1',
-        status: mdfe.status,
+        status: transmissaoResult?.status || mdfe.status,
+        protocolo: transmissaoResult?.protocolo,
+        transmissao: transmissaoResult,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
