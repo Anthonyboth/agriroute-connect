@@ -148,12 +148,14 @@ export default defineConfig(({ mode }) => ({
             return 'ui-core';
           }
           
-          // Forms: select, checkbox, radio, label (defer)
+          // Forms: select, checkbox, radio, label, slider (defer)
+          // ✅ Slider MUST be with forms to share React context properly
           if (id.includes('@radix-ui/react-select') || 
               id.includes('@radix-ui/react-checkbox') ||
               id.includes('@radix-ui/react-radio-group') ||
               id.includes('@radix-ui/react-label') ||
-              id.includes('@radix-ui/react-switch')) {
+              id.includes('@radix-ui/react-switch') ||
+              id.includes('@radix-ui/react-slider')) {
             return 'ui-forms';
           }
           
