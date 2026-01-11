@@ -5016,6 +5016,7 @@ export type Database = {
       }
       mdfe_config: {
         Row: {
+          ambiente_fiscal: string | null
           auto_close_on_delivery: boolean
           auto_emit_on_acceptance: boolean
           bairro: string | null
@@ -5040,6 +5041,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ambiente_fiscal?: string | null
           auto_close_on_delivery?: boolean
           auto_emit_on_acceptance?: boolean
           bairro?: string | null
@@ -5064,6 +5066,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ambiente_fiscal?: string | null
           auto_close_on_delivery?: boolean
           auto_emit_on_acceptance?: boolean
           bairro?: string | null
@@ -5213,6 +5216,7 @@ export type Database = {
       }
       mdfe_manifestos: {
         Row: {
+          ambiente_fiscal: string | null
           chave_acesso: string
           cne_test: string | null
           company_id: string | null
@@ -5225,6 +5229,7 @@ export type Database = {
           emitter_type: Database["public"]["Enums"]["mdfe_emitter_type"]
           freight_id: string
           id: string
+          mensagem_erro: string | null
           modo_emissao: Database["public"]["Enums"]["mdfe_modo_emissao"]
           motivo_cancelamento: string | null
           municipio_carregamento_codigo: string
@@ -5235,6 +5240,8 @@ export type Database = {
           observacoes: string | null
           peso_bruto_kg: number
           protocolo_autorizacao: string | null
+          referencia_focus: string | null
+          resposta_sefaz: Json | null
           serie: string
           status: Database["public"]["Enums"]["mdfe_status"]
           uf_fim: string
@@ -5243,8 +5250,10 @@ export type Database = {
           valor_carga: number
           xml_assinado: string | null
           xml_contingencia: string | null
+          xml_url: string | null
         }
         Insert: {
+          ambiente_fiscal?: string | null
           chave_acesso: string
           cne_test?: string | null
           company_id?: string | null
@@ -5257,6 +5266,7 @@ export type Database = {
           emitter_type: Database["public"]["Enums"]["mdfe_emitter_type"]
           freight_id: string
           id?: string
+          mensagem_erro?: string | null
           modo_emissao?: Database["public"]["Enums"]["mdfe_modo_emissao"]
           motivo_cancelamento?: string | null
           municipio_carregamento_codigo: string
@@ -5267,6 +5277,8 @@ export type Database = {
           observacoes?: string | null
           peso_bruto_kg: number
           protocolo_autorizacao?: string | null
+          referencia_focus?: string | null
+          resposta_sefaz?: Json | null
           serie?: string
           status?: Database["public"]["Enums"]["mdfe_status"]
           uf_fim: string
@@ -5275,8 +5287,10 @@ export type Database = {
           valor_carga: number
           xml_assinado?: string | null
           xml_contingencia?: string | null
+          xml_url?: string | null
         }
         Update: {
+          ambiente_fiscal?: string | null
           chave_acesso?: string
           cne_test?: string | null
           company_id?: string | null
@@ -5289,6 +5303,7 @@ export type Database = {
           emitter_type?: Database["public"]["Enums"]["mdfe_emitter_type"]
           freight_id?: string
           id?: string
+          mensagem_erro?: string | null
           modo_emissao?: Database["public"]["Enums"]["mdfe_modo_emissao"]
           motivo_cancelamento?: string | null
           municipio_carregamento_codigo?: string
@@ -5299,6 +5314,8 @@ export type Database = {
           observacoes?: string | null
           peso_bruto_kg?: number
           protocolo_autorizacao?: string | null
+          referencia_focus?: string | null
+          resposta_sefaz?: Json | null
           serie?: string
           status?: Database["public"]["Enums"]["mdfe_status"]
           uf_fim?: string
@@ -5307,6 +5324,7 @@ export type Database = {
           valor_carga?: number
           xml_assinado?: string | null
           xml_contingencia?: string | null
+          xml_url?: string | null
         }
         Relationships: [
           {
@@ -9881,6 +9899,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["freight_status"]
       }
       trigger_cte_polling: { Args: never; Returns: undefined }
+      trigger_mdfe_polling: { Args: never; Returns: undefined }
       update_freight_status: {
         Args: {
           p_id: string

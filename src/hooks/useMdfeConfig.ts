@@ -14,9 +14,14 @@ export interface MdfeConfig {
   numero?: string;
   bairro?: string;
   municipio?: string;
+  municipio_codigo?: string;
+  municipio_nome?: string;
   uf?: string;
   cep?: string;
+  telefone?: string;
   serie_mdfe?: string;
+  ultimo_numero_mdfe?: number;
+  ambiente_fiscal?: string;
   created_at?: string;
   updated_at?: string;
 }
