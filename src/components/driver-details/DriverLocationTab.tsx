@@ -2,7 +2,7 @@ import { useDriverTracking } from "@/hooks/useDriverTracking";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, MapPin, Clock } from "lucide-react";
-import { DriverLocationMap } from "./DriverLocationMap";
+import { DriverLocationMapMapLibre as DriverLocationMap } from "./DriverLocationMapMapLibre";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";

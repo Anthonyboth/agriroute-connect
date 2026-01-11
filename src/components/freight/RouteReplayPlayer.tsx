@@ -1,10 +1,12 @@
 /**
  * Player de replay visual da rota do frete
  * Permite visualizar o trajeto percorrido pelo motorista
+ * Usando MapLibre GL JS - 100% gratuito
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
@@ -13,19 +15,16 @@ import {
   Play, 
   Pause, 
   RotateCcw, 
-  FastForward, 
-  MapPin, 
   Clock, 
-  Navigation,
   Gauge,
   Route
 } from 'lucide-react';
 import { useRouteHistory, useRouteReplay } from '@/hooks/useRouteHistory';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { RURAL_MAP_STYLE, createTruckMarkerElement } from '@/lib/map-utils';
+import { RURAL_STYLE_INLINE, MAP_COLORS } from '@/config/maplibre';
+import { createTruckMarkerElement, createLocationMarkerElement } from '@/lib/maplibre-utils';
 import { cn } from '@/lib/utils';
-import { GOOGLE_MAPS_API_KEY, getGoogleMapsErrorMessage } from '@/config/googleMaps';
 
 interface RouteReplayPlayerProps {
   freightId: string;
@@ -45,10 +44,8 @@ export function RouteReplayPlayer({
   className,
 }: RouteReplayPlayerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
-  const pathRef = useRef<google.maps.Polyline | null>(null);
-  const progressPathRef = useRef<google.maps.Polyline | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -77,116 +74,153 @@ export function RouteReplayPlayer({
 
     const initMap = async () => {
       try {
-        if (!GOOGLE_MAPS_API_KEY) {
-          setMapError('API Key não configurada');
-          return;
-        }
-
-        const loader = new Loader({
-          apiKey: GOOGLE_MAPS_API_KEY,
-          version: 'weekly',
-          libraries: ['marker'],
-        });
-
-        const { Map } = await loader.importLibrary('maps') as google.maps.MapsLibrary;
-        await loader.importLibrary('marker');
-
         if (!mapContainerRef.current) return;
 
         // Centro inicial
         const initialCenter = points[0] || { lat: -14.235, lng: -51.925 };
 
-        mapRef.current = new Map(mapContainerRef.current, {
-          center: initialCenter,
+        const map = new maplibregl.Map({
+          container: mapContainerRef.current,
+          style: RURAL_STYLE_INLINE,
+          center: [initialCenter.lng, initialCenter.lat],
           zoom: 12,
-          styles: RURAL_MAP_STYLE,
-          disableDefaultUI: false,
-          zoomControl: true,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: true,
-          gestureHandling: 'greedy',
         });
 
-        // Criar polyline do trajeto completo
-        const pathCoords = points.map((p) => ({ lat: p.lat, lng: p.lng }));
-        
-        pathRef.current = new google.maps.Polyline({
-          path: pathCoords,
-          geodesic: true,
-          strokeColor: '#94a3b8',
-          strokeOpacity: 0.5,
-          strokeWeight: 4,
-          map: mapRef.current,
-        });
+        // Controles de navegação
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-        // Criar polyline de progresso
-        progressPathRef.current = new google.maps.Polyline({
-          path: [],
-          geodesic: true,
-          strokeColor: '#16a34a',
-          strokeOpacity: 1,
-          strokeWeight: 4,
-          map: mapRef.current,
-        });
-
-        // Criar marker do caminhão
-        const { AdvancedMarkerElement } = await google.maps.importLibrary('marker') as google.maps.MarkerLibrary;
-        
-        markerRef.current = new AdvancedMarkerElement({
-          map: mapRef.current,
-          position: points[0],
-          title: 'Motorista',
-          content: createTruckMarkerElement(),
-        });
-
-        // Markers de origem e destino
-        if (typeof originLat === 'number' && typeof originLng === 'number') {
-          new AdvancedMarkerElement({
-            map: mapRef.current,
-            position: { lat: originLat, lng: originLng },
-            title: 'Origem',
+        map.on('load', () => {
+          // Criar polyline do trajeto completo
+          const pathCoords = points.map((p) => [p.lng, p.lat] as [number, number]);
+          
+          map.addSource('full-route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates: pathCoords,
+              },
+            },
           });
-        }
 
-        if (typeof destinationLat === 'number' && typeof destinationLng === 'number') {
-          new AdvancedMarkerElement({
-            map: mapRef.current,
-            position: { lat: destinationLat, lng: destinationLng },
-            title: 'Destino',
+          map.addLayer({
+            id: 'full-route-line',
+            type: 'line',
+            source: 'full-route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+            },
+            paint: {
+              'line-color': '#94a3b8',
+              'line-width': 4,
+              'line-opacity': 0.5,
+            },
           });
-        }
 
-        // Ajustar bounds
-        const bounds = new google.maps.LatLngBounds();
-        points.forEach((p) => bounds.extend({ lat: p.lat, lng: p.lng }));
-        mapRef.current.fitBounds(bounds, 50);
+          // Criar polyline de progresso
+          map.addSource('progress-route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates: [],
+              },
+            },
+          });
 
-        setMapLoaded(true);
+          map.addLayer({
+            id: 'progress-route-line',
+            type: 'line',
+            source: 'progress-route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+            },
+            paint: {
+              'line-color': MAP_COLORS.primary,
+              'line-width': 4,
+              'line-opacity': 1,
+            },
+          });
+
+          // Markers de origem e destino
+          if (typeof originLat === 'number' && typeof originLng === 'number') {
+            new maplibregl.Marker({ element: createLocationMarkerElement('origin') })
+              .setLngLat([originLng, originLat])
+              .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML('<strong>Origem</strong>'))
+              .addTo(map);
+          }
+
+          if (typeof destinationLat === 'number' && typeof destinationLng === 'number') {
+            new maplibregl.Marker({ element: createLocationMarkerElement('destination') })
+              .setLngLat([destinationLng, destinationLat])
+              .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML('<strong>Destino</strong>'))
+              .addTo(map);
+          }
+
+          // Criar marker do caminhão
+          markerRef.current = new maplibregl.Marker({ element: createTruckMarkerElement(true) })
+            .setLngLat([points[0].lng, points[0].lat])
+            .addTo(map);
+
+          // Ajustar bounds
+          const bounds = new maplibregl.LngLatBounds();
+          points.forEach((p) => bounds.extend([p.lng, p.lat]));
+          map.fitBounds(bounds, { padding: 50 });
+
+          setMapLoaded(true);
+        });
+
+        map.on('error', (e) => {
+          console.error('[RouteReplayPlayer] Map error:', e);
+          setMapError('Erro ao carregar o mapa');
+        });
+
+        mapRef.current = map;
       } catch (err) {
-        const errorMessage = getGoogleMapsErrorMessage(err);
-        console.error('[RouteReplayPlayer] Error:', errorMessage, err);
-        setMapError(errorMessage);
+        console.error('[RouteReplayPlayer] Error:', err);
+        setMapError('Erro ao inicializar o mapa');
       }
     };
 
     initMap();
+
+    return () => {
+      markerRef.current?.remove();
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
   }, [points, mapLoaded, originLat, originLng, destinationLat, destinationLng]);
 
   // Atualizar posição do marker durante replay
   useEffect(() => {
-    if (!mapLoaded || !currentPoint || !markerRef.current || !progressPathRef.current) return;
+    if (!mapLoaded || !currentPoint || !markerRef.current || !mapRef.current) return;
 
     // Atualizar posição do marker
-    markerRef.current.position = { lat: currentPoint.lat, lng: currentPoint.lng };
+    markerRef.current.setLngLat([currentPoint.lng, currentPoint.lat]);
 
     // Atualizar polyline de progresso
-    const progressCoords = points.slice(0, currentIndex + 1).map((p) => ({ lat: p.lat, lng: p.lng }));
-    progressPathRef.current.setPath(progressCoords);
+    const progressCoords = points.slice(0, currentIndex + 1).map((p) => [p.lng, p.lat] as [number, number]);
+    const source = mapRef.current.getSource('progress-route') as maplibregl.GeoJSONSource;
+    if (source) {
+      source.setData({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: progressCoords,
+        },
+      });
+    }
 
     // Centralizar no ponto atual
-    if (mapRef.current && isPlaying) {
-      mapRef.current.panTo({ lat: currentPoint.lat, lng: currentPoint.lng });
+    if (isPlaying) {
+      mapRef.current.panTo([currentPoint.lng, currentPoint.lat]);
     }
   }, [currentPoint, currentIndex, mapLoaded, isPlaying, points]);
 

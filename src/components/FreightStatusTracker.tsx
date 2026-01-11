@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-helpers';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { FreightRealtimeMap } from '@/components/freight/FreightRealtimeMap';
+import { FreightRealtimeMapMapLibre as FreightRealtimeMap } from '@/components/freight/FreightRealtimeMapMapLibre';
 
 const DEFAULT_FLOW = [
   { key: 'ACCEPTED', label: 'Aceito', icon: CheckCircle },
