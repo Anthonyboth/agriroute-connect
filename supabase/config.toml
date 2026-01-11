@@ -290,3 +290,9 @@ verify_jwt = true
 
 [functions.cte-cancelar]
 verify_jwt = true
+
+[functions.fiscal-issuer-register]
+verify_jwt = true
+
+[functions.fiscal-certificate-upload]
+verify_jwt = true
