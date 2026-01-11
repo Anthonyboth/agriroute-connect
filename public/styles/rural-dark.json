@@ -1,0 +1,28 @@
+{
+  "version": 8,
+  "name": "AgriRoute Rural Dark",
+  "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+  "sources": {
+    "osm": {
+      "type": "raster",
+      "tiles": [
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+      ],
+      "tileSize": 256,
+      "attribution": "© OpenStreetMap contributors"
+    }
+  },
+  "layers": [
+    {
+      "id": "osm-base",
+      "type": "raster",
+      "source": "osm",
+      "paint": {
+        "raster-brightness-min": 0.2,
+        "raster-brightness-max": 0.8,
+        "raster-saturation": -0.4,
+        "raster-contrast": 0.3
+      }
+    }
+  ]
+}

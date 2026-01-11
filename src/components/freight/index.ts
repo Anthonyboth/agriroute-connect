@@ -23,3 +23,7 @@ export { ScheduledFreightDetailsModal } from '../ScheduledFreightDetailsModal';
 export { default as OptimizedFreightCard } from '../OptimizedFreightCard';
 // CreateFreightModal deprecated - use CreateFreightWizardModal from freight-wizard
 export { EditFreightModal } from '../EditFreightModal';
+
+// MapLibre-based map components (no Google Maps dependency)
+export { FreightRealtimeMapMapLibre } from './FreightRealtimeMapMapLibre';
+export { RouteReplayPlayerMapLibre } from './RouteReplayPlayerMapLibre';
