@@ -667,6 +667,30 @@ export async function getInspectionData(
   return data.qr_code_data as unknown as InspectionQRData;
 }
 
+/**
+ * Log inspection access from client (LGPD compliant)
+ * Calls the database function to log access with IP and user agent
+ */
+export async function logInspectionAccessClient(
+  qrCodeHash: string,
+  accessGranted: boolean = true,
+  denialReason?: string
+): Promise<void> {
+  try {
+    await supabase.rpc('log_inspection_access', {
+      p_qr_code_hash: qrCodeHash,
+      p_ip_address: null, // Will be captured by the function if available
+      p_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      p_access_granted: accessGranted,
+      p_denial_reason: denialReason || null,
+    });
+    console.log('[livestockComplianceService] Inspection access logged');
+  } catch (error) {
+    console.error('[livestockComplianceService] Error logging inspection access:', error);
+    // Don't throw - logging should not break the main flow
+  }
+}
+
 // =====================================================
 // FUNÇÕES PÚBLICAS - AUDITORIA
 // =====================================================
