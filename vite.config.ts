@@ -207,7 +207,8 @@ export default defineConfig(({ mode }) => ({
     // criticalCssPlugin() - desabilitado por causar falha no build
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'script-defer',
+      // ✅ CRÍTICO: Não injetar registro automático - faremos manualmente para controlar Preview
+      injectRegister: false,
       strategies: 'generateSW',
       includeAssets: ['favicon.ico', 'hero-truck-night-moon.webp', 'apple-touch-icon.png'],
       manifest: {
