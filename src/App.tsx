@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthErrorBoundary } from "@/components/AuthErrorBoundary";
 import { PageDOMErrorBoundary } from "@/components/PageDOMErrorBoundary";
+import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
 import React, { lazy, Suspense } from 'react';
 
 // Import Landing directly (not lazy) - it's the LCP element
@@ -693,6 +694,7 @@ const App = () => {
   }, []);
 
   return (
+    <GlobalErrorBoundary>
     <PageDOMErrorBoundary>
       <ErrorBoundary>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
@@ -889,6 +891,7 @@ const App = () => {
       </ThemeProvider>
     </ErrorBoundary>
     </PageDOMErrorBoundary>
+    </GlobalErrorBoundary>
   );
 };
 
