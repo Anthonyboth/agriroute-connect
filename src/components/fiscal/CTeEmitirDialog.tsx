@@ -42,8 +42,8 @@ interface EmpresaFiscal {
 interface NFeVinculada {
   id: string;
   access_key: string;
-  numero: string;
-  emitente_nome: string;
+  number: string;
+  issuer_name: string;
   selected: boolean;
 }
 
@@ -115,14 +115,19 @@ export function CTeEmitirDialog({
     try {
       const { data: nfesData } = await supabase
         .from('nfe_documents')
-        .select('id, access_key, numero, emitente_nome')
+        .select('id, access_key, number, issuer_name')
         .eq('freight_id', freightId)
-        .eq('manifestation_status', 'confirmed');
+        .eq('manifestation_type', 'confirmed');
 
-      setNfes((nfesData || []).map(nfe => ({
-        ...nfe,
-        selected: true,
-      })));
+      if (nfesData) {
+        setNfes(nfesData.map((nfe) => ({
+          id: nfe.id,
+          access_key: nfe.access_key,
+          number: nfe.number,
+          issuer_name: nfe.issuer_name,
+          selected: true,
+        })));
+      }
     } catch (error) {
       console.error('Erro ao carregar NF-es:', error);
     }
@@ -144,7 +149,7 @@ export function CTeEmitirDialog({
     
     const result = await emitirCTe(freightId, empresaId, nfeChaves);
     
-    if (result?.success) {
+    if (result) {
       onSuccess?.();
       onOpenChange(false);
     }
@@ -223,9 +228,9 @@ export function CTeEmitirDialog({
                       htmlFor={nfe.id}
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
                     >
-                      <span>NF-e {nfe.numero}</span>
+                      <span>NF-e {nfe.number}</span>
                       <span className="text-muted-foreground ml-2">
-                        ({nfe.emitente_nome})
+                        ({nfe.issuer_name})
                       </span>
                     </label>
                   </div>
