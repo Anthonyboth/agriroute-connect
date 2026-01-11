@@ -619,8 +619,8 @@ export async function generateInspectionQR(
       (compliance.compliance_status === 'approved' ? 'valid' : 'invalid') : 'missing',
     compliance_status: compliance?.compliance_status || 'pending',
     risk_score: compliance?.risk_score || 0,
-    driver_name: (freight?.driver as any)?.full_name,
-    vehicle_plate: (freight?.vehicle as any)?.plate,
+    driver_name: driverName,
+    vehicle_plate: undefined, // Vehicle needs to be fetched separately if needed
     generated_at: new Date().toISOString(),
   };
 
