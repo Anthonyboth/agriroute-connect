@@ -2,7 +2,7 @@
 // Modo SOMENTE LEITURA para fiscais
 // LGPD: Logs de acesso registrados automaticamente
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +20,10 @@ import {
   AlertTriangle,
   Clock,
   User,
-  Info
+  Info,
+  Eye
 } from 'lucide-react';
-import { getInspectionData } from '@/services/livestockComplianceService';
+import { getInspectionData, logInspectionAccessClient } from '@/services/livestockComplianceService';
 import type { InspectionQRData } from '@/types/livestock-compliance';
 import { 
   COMPLIANCE_STATUS_LABELS, 
@@ -40,6 +41,20 @@ export default function InspectionView() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<InspectionQRData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [accessLogged, setAccessLogged] = useState(false);
+
+  // Log LGPD-compliant access
+  const logAccess = useCallback(async (qrHash: string, granted: boolean, reason?: string) => {
+    if (accessLogged) return;
+    
+    try {
+      await logInspectionAccessClient(qrHash, granted, reason);
+      setAccessLogged(true);
+      console.log('[InspectionView] Access logged (LGPD compliant)');
+    } catch (err) {
+      console.error('[InspectionView] Failed to log access:', err);
+    }
+  }, [accessLogged]);
 
   useEffect(() => {
     async function fetchData() {
@@ -54,19 +69,27 @@ export default function InspectionView() {
         
         if (!inspectionData) {
           setError('QR Code expirado ou não encontrado');
+          // Log denied access
+          await logAccess(hash, false, 'QR Code expired or not found');
         } else {
           setData(inspectionData);
+          // Log successful access
+          await logAccess(hash, true);
         }
       } catch (err) {
         setError('Erro ao carregar dados de fiscalização');
         console.error(err);
+        // Log error access
+        if (hash) {
+          await logAccess(hash, false, 'Error loading data');
+        }
       } finally {
         setLoading(false);
       }
     }
 
     fetchData();
-  }, [hash]);
+  }, [hash, logAccess]);
 
   if (loading) {
     return (
@@ -287,6 +310,22 @@ export default function InspectionView() {
                 <span>Dados gerados em:</span>
               </div>
               <span>{new Date(data.generated_at).toLocaleString('pt-BR')}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* LGPD Access Indicator */}
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3 text-sm">
+              <Eye className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="font-medium text-blue-800">Acesso registrado (LGPD)</p>
+                <p className="text-xs text-blue-600">
+                  Este acesso foi registrado em conformidade com a Lei Geral de Proteção de Dados.
+                  Informações coletadas: IP, navegador, data/hora.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
