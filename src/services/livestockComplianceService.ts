@@ -324,6 +324,34 @@ export async function validateCompliance(
         riskScore += 40;
       }
 
+      // CORREÇÃO AUDITORIA: OCR < 50% agora é blocking
+      const ocrConfidence = gtaDoc.ocr_confidence as number | null;
+      if (ocrConfidence !== null && ocrConfidence < 50) {
+        blockingReasons.push({
+          type: 'unreadable_document',
+          severity: 'blocking',
+          message: `Documento ilegível - qualidade insuficiente para validação (${ocrConfidence.toFixed(0)}%)`,
+          legal_basis: 'Art. 14 IN MAPA 18/2006 - Documento deve ser legível',
+        });
+        fraudIndicators.push({
+          type: 'low_ocr_confidence',
+          severity: 'critical',
+          message: `OCR com confiança crítica: ${ocrConfidence.toFixed(0)}%`,
+          risk_points: 60,
+          detected_at: new Date().toISOString(),
+        });
+        riskScore += 60;
+      } else if (ocrConfidence !== null && ocrConfidence < 60) {
+        fraudIndicators.push({
+          type: 'low_ocr_confidence',
+          severity: 'medium',
+          message: `Baixa confiança na leitura: ${ocrConfidence.toFixed(0)}%`,
+          risk_points: 20,
+          detected_at: new Date().toISOString(),
+        });
+        riskScore += 20;
+      }
+
       if (gtaDoc.expiry_date) {
         const expiresAt = new Date(gtaDoc.expiry_date);
         const now = new Date();
@@ -461,8 +489,17 @@ export function calculateOCRRiskScore(
   const indicators: FraudIndicator[] = [];
   let score = 0;
 
-  // 1. Confiança do OCR
-  if (confidence < 60) {
+  // 1. Confiança do OCR - CORREÇÃO AUDITORIA: < 50% agora é blocking
+  if (confidence < 50) {
+    indicators.push({
+      type: 'low_ocr_confidence',
+      severity: 'critical',
+      message: `Documento ilegível - confiança muito baixa (${confidence.toFixed(0)}%)`,
+      risk_points: 60,
+      detected_at: new Date().toISOString(),
+    });
+    score += 60;
+  } else if (confidence < 60) {
     indicators.push({
       type: 'low_ocr_confidence',
       severity: 'medium',
