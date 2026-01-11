@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { isDriverOnline, getSecondsSinceUpdate } from '@/lib/map-utils';
+import { isDriverOnline, getSecondsSinceUpdate } from '@/lib/maplibre-utils';
 
 interface DriverLocation {
   lat: number;
