@@ -28,6 +28,7 @@ import { SilentCityBootstrap } from './components/SilentCityBootstrap';
 import { ZipCodeService } from './services/zipCodeService';
 import { GlobalAnnouncementBar } from './components/GlobalAnnouncementBar';
 import { FloatingSupportButton } from './components/FloatingSupportButton';
+import { PreviewFreshBuildBanner } from './components/PreviewFreshBuildBanner';
 
 // ✅ PERFORMANCE: Prefetch estratégico de rotas críticas
 // Só executa em conexões rápidas (não mobile data saver)
@@ -868,6 +869,7 @@ const App = () => {
                     </main>
             <GlobalRatingModals />
             <PermissionPrompts />
+            <PreviewFreshBuildBanner />
             <Toaster />
             <Sonner />
           </SubscriptionProvider>
