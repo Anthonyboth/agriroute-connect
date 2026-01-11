@@ -14,7 +14,7 @@ import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { supabase } from '@/integrations/supabase/client';
 import DocumentUpload from '@/components/DocumentUpload';
 import LocationPermission from '@/components/LocationPermission';
-import GoogleMap from '@/components/GoogleMap';
+import MapLibreMap from '@/components/MapLibreMap';
 import { CameraSelfie } from '@/components/CameraSelfie';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AddressLocationInput } from '@/components/AddressLocationInput';

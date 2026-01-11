@@ -16,7 +16,7 @@ export const UserProfileModal = lazy(() => import('@/components/UserProfileModal
 export const NotificationCenter = lazy(() => import('@/components/NotificationCenter').then(module => ({ default: module.NotificationCenter })));
 
 // Complex Components
-export const GoogleMap = lazy(() => import('@/components/GoogleMap'));
+export const GoogleMap = lazy(() => import('@/components/MapLibreMap'));
 export const SmartFreightMatcher = lazy(() => import('@/components/SmartFreightMatcher').then(m => ({ default: m.SmartFreightMatcher })));
 export const AdvancedFreightSearch = lazy(() => import('@/components/AdvancedFreightSearch').then(m => ({ default: m.AdvancedFreightSearch })));
 export const VehicleManager = lazy(() => import('@/components/VehicleManager').then(m => ({ default: m.VehicleManager })));

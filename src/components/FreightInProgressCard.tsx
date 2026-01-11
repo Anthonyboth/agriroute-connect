@@ -18,10 +18,10 @@ import { LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 import { getDaysUntilPickup, getPickupDateBadge } from '@/utils/freightDateHelpers';
 
-// Lazy load do mapa para performance
+// Lazy load do mapa MapLibre para performance (100% gratuito, sem Google Maps)
 const FreightRealtimeMap = lazy(() => 
-  import('@/components/freight/FreightRealtimeMap').then(module => ({ 
-    default: module.FreightRealtimeMap 
+  import('@/components/freight/FreightRealtimeMapMapLibre').then(module => ({ 
+    default: module.FreightRealtimeMapMapLibre 
   }))
 );
 
