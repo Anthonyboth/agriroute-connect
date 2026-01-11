@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { isLovablePreviewHost } from '@/utils/isLovablePreviewHost';
 
 export const usePushNotifications = () => {
   const { profile } = useAuth();
@@ -11,9 +12,10 @@ export const usePushNotifications = () => {
 
   useEffect(() => {
     // Verificar se o navegador suporta push notifications
-    const supported = 'Notification' in window && 
-                     'serviceWorker' in navigator && 
-                     'PushManager' in window;
+    const supported =
+      'Notification' in window &&
+      'serviceWorker' in navigator &&
+      'PushManager' in window;
     setIsSupported(supported);
 
     if (supported && profile) {
@@ -64,10 +66,10 @@ export const usePushNotifications = () => {
         return;
       }
 
-      // Registrar service worker
+      // Registrar service worker APENAS fora do Preview (Preview pode ficar preso em versões antigas)
       let registration = await navigator.serviceWorker.getRegistration();
-      
-      if (!registration) {
+
+      if (!registration && import.meta.env.PROD && !isLovablePreviewHost()) {
         try {
           registration = await navigator.serviceWorker.register('/sw.js');
           await navigator.serviceWorker.ready;
@@ -77,6 +79,11 @@ export const usePushNotifications = () => {
           toast.error('Erro ao configurar notificações');
           return;
         }
+      }
+
+      if (!registration) {
+        toast.error('Notificações push indisponíveis no Preview. Abra a versão publicada/instalada.');
+        return;
       }
 
       // VAPID public key - deve estar configurada no Supabase
@@ -95,11 +102,11 @@ export const usePushNotifications = () => {
             auth_key: 'pending-vapid-setup',
             user_agent: navigator.userAgent,
             is_active: true,
-            last_used_at: new Date().toISOString()
+            last_used_at: new Date().toISOString(),
           });
 
         if (error) throw error;
-        
+
         setIsSubscribed(true);
         toast.success('Notificações ativadas! (Configure VAPID keys para push real)');
         return;
@@ -108,7 +115,7 @@ export const usePushNotifications = () => {
       // Criar subscription real com VAPID
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
 
       console.log('[PushNotifications] Subscription criada:', subscription.endpoint);
@@ -127,7 +134,7 @@ export const usePushNotifications = () => {
           auth_key: authKey,
           user_agent: navigator.userAgent,
           is_active: true,
-          last_used_at: new Date().toISOString()
+          last_used_at: new Date().toISOString(),
         });
 
       if (error) {
@@ -137,7 +144,7 @@ export const usePushNotifications = () => {
 
       setIsSubscribed(true);
       toast.success('Notificações push ativadas com sucesso! 🔔');
-      
+
       console.log('[PushNotifications] Configuração completa');
     } catch (error) {
       console.error('[PushNotifications] Erro:', error);
@@ -149,14 +156,12 @@ export const usePushNotifications = () => {
 
   // Helper: Converter VAPID key de base64 para Uint8Array
   const urlBase64ToUint8Array = (base64String: string) => {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
-    
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);
-    
+
     for (let i = 0; i < rawData.length; ++i) {
       outputArray[i] = rawData.charCodeAt(i);
     }
@@ -181,7 +186,7 @@ export const usePushNotifications = () => {
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
-      
+
       if (subscription) {
         await subscription.unsubscribe();
       }
@@ -210,6 +215,6 @@ export const usePushNotifications = () => {
     loading,
     subscribe,
     unsubscribe,
-    requestPermission
+    requestPermission,
   };
 };
