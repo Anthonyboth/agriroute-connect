@@ -583,11 +583,21 @@ export async function generateInspectionQR(
       origin_state,
       destination_city,
       destination_state,
-      driver:profiles!freights_driver_id_fkey(full_name),
-      vehicle:vehicles(plate)
+      driver_id
     `)
     .eq('id', freightId)
     .single();
+
+  // Buscar driver separadamente para evitar erro de tipo
+  let driverName = '';
+  if (freight?.driver_id) {
+    const { data: driver } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', freight.driver_id)
+      .single();
+    driverName = driver?.full_name || '';
+  }
 
   // Buscar compliance
   const compliance = await getFreightCompliance(freightId);
