@@ -10183,6 +10183,10 @@ export type Database = {
         | "ENCERRADO"
         | "CANCELADO"
         | "CONTINGENCIA"
+        | "PROCESSANDO"
+        | "PROCESSANDO_ENCERRAMENTO"
+        | "PROCESSANDO_CANCELAMENTO"
+        | "REJEITADO"
       mdfe_tipo_proprietario: "PROPRIO" | "TERCEIRO"
       payment_method: "PIX" | "BOLETO" | "CARTAO" | "DIRETO"
       plan_type: "free" | "essential" | "professional"
@@ -10441,6 +10445,10 @@ export const Constants = {
         "ENCERRADO",
         "CANCELADO",
         "CONTINGENCIA",
+        "PROCESSANDO",
+        "PROCESSANDO_ENCERRAMENTO",
+        "PROCESSANDO_CANCELAMENTO",
+        "REJEITADO",
       ],
       mdfe_tipo_proprietario: ["PROPRIO", "TERCEIRO"],
       payment_method: ["PIX", "BOLETO", "CARTAO", "DIRETO"],
