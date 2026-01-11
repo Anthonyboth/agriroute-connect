@@ -257,7 +257,7 @@ const Landing: React.FC = () => {
         <div className="hero-content relative z-10 container mx-auto px-6 md:px-8 text-center max-w-5xl">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight px-4">
             <span className="text-foreground">Conectando Quem Precisa</span>
-            <span className="block gradient-hero bg-clip-text text-transparent font-extrabold">
+            <span className="block text-gradient-hero font-extrabold">
               a Quem Resolve
             </span>
           </h1>
