@@ -9880,6 +9880,7 @@ export type Database = {
         Args: { p_text: string }
         Returns: Database["public"]["Enums"]["freight_status"]
       }
+      trigger_cte_polling: { Args: never; Returns: undefined }
       update_freight_status: {
         Args: {
           p_id: string
