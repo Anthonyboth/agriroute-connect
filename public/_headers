@@ -1,49 +1,37 @@
-# Immutable hashed assets in /assets/ folder - 1 year cache (HIGHEST PRIORITY)
+# ===========================================
+# CACHE HEADERS - Lovable/Netlify Edge CDN
+# ===========================================
+# Note: More specific paths MUST come before generic paths
+
+# Hashed assets (immutable - 1 year cache)
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
-  Vary: Accept-Encoding
 
-# Hero LCP image - aggressive caching
+# Hero images (immutable - 1 year cache)  
 /hero-truck-night-moon.webp
   Cache-Control: public, max-age=31536000, immutable
-  Vary: Accept-Encoding
 
-# Service Worker files - no cache to ensure updates
-/registerSW.js
-  Cache-Control: public, max-age=0, must-revalidate
+/hero-truck-night-moon-mobile.webp
+  Cache-Control: public, max-age=31536000, immutable
 
+# Service Worker (must revalidate)
 /sw.js
   Cache-Control: public, max-age=0, must-revalidate
 
-# HTML files - no cache (always get fresh content)
-/index.html
+/registerSW.js
   Cache-Control: public, max-age=0, must-revalidate
-  Vary: Accept-Encoding
 
-/
-  Cache-Control: public, max-age=0, must-revalidate
-  Vary: Accept-Encoding
-
-# Root-level static assets - 1 year cache
-/*.js
-  Cache-Control: public, max-age=31536000, immutable
-  Vary: Accept-Encoding
-
-/*.css
-  Cache-Control: public, max-age=31536000, immutable
-  Vary: Accept-Encoding
-
-# Images - 1 year cache
+# Static images (1 year cache)
 /*.webp
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.png
   Cache-Control: public, max-age=31536000, immutable
 
 /*.jpg
   Cache-Control: public, max-age=31536000, immutable
 
 /*.jpeg
-  Cache-Control: public, max-age=31536000, immutable
-
-/*.png
   Cache-Control: public, max-age=31536000, immutable
 
 /*.svg
@@ -55,7 +43,7 @@
 /*.gif
   Cache-Control: public, max-age=31536000, immutable
 
-# Fonts - 1 year cache
+# Fonts (1 year cache)
 /*.woff2
   Cache-Control: public, max-age=31536000, immutable
 
@@ -65,23 +53,24 @@
 /*.ttf
   Cache-Control: public, max-age=31536000, immutable
 
-/*.otf
-  Cache-Control: public, max-age=31536000, immutable
-
-# Manifest and config files - 1 day cache
+# Config files (1 day cache)
 /*.webmanifest
-  Cache-Control: public, max-age=86400
-
-/*.xml
-  Cache-Control: public, max-age=86400
-
-/*.txt
   Cache-Control: public, max-age=86400
 
 /*.json
   Cache-Control: public, max-age=86400
 
-# Security headers for all pages (LAST - lowest priority)
+/*.xml
+  Cache-Control: public, max-age=86400
+
+# HTML (no cache - always fresh)
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Security headers (all paths)
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
