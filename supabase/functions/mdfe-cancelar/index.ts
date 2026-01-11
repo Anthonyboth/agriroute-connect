@@ -84,14 +84,53 @@ serve(async (req) => {
       throw new Error('MDFe só pode ser cancelado até 24 horas após a emissão');
     }
 
-    // Generate cancelamento event XML
+    // If MDFe was transmitted to SEFAZ, use the event transmission function
+    if (mdfe.referencia_focus) {
+      console.log(`[MDFe Cancelar] Transmitindo cancelamento para SEFAZ...`);
+      
+      try {
+        const eventoResponse = await supabaseClient.functions.invoke('mdfe-transmitir-evento', {
+          body: {
+            mdfe_id,
+            tipo_evento: 'CANCELAMENTO',
+            justificativa,
+          },
+        });
+
+        const eventoResult = eventoResponse.data;
+        
+        if (!eventoResult?.success) {
+          throw new Error(eventoResult?.mensagem || eventoResult?.error || 'Erro ao cancelar na SEFAZ');
+        }
+
+        console.log(`[MDFe Cancelar] MDFe ${mdfe_id} cancelado com sucesso via SEFAZ`);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'MDFe cancelado com sucesso na SEFAZ',
+            status: eventoResult.status,
+            dados_sefaz: eventoResult.dados_sefaz,
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+      } catch (transmissaoError) {
+        console.error('[MDFe Cancelar] Erro na transmissão do cancelamento:', transmissaoError);
+        throw new Error(`Erro ao cancelar na SEFAZ: ${transmissaoError.message}`);
+      }
+    }
+
+    // Fallback: Local cancelamento for contingency MDFe
     const eventoXml = gerarEventoCancelamento(
       mdfe.chave_acesso,
       mdfe.protocolo_autorizacao,
       justificativa
     );
 
-    // Update MDFe status
+    // Update MDFe status locally
     const { error: updateError } = await supabaseClient
       .from('mdfe_manifestos')
       .update({
@@ -111,15 +150,15 @@ serve(async (req) => {
       tipo_operacao: 'CANCELAMENTO',
       xml_enviado: eventoXml,
       sucesso: true,
-      observacao: `MDFe cancelado. Motivo: ${justificativa}`,
+      observacao: `MDFe cancelado localmente (contingência). Motivo: ${justificativa}`,
     });
 
-    console.log(`[MDFe Cancelar] MDFe ${mdfe_id} cancelado com sucesso`);
+    console.log(`[MDFe Cancelar] MDFe ${mdfe_id} cancelado localmente (contingência)`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'MDFe cancelado com sucesso',
+        message: 'MDFe cancelado localmente. Transmitir para SEFAZ quando disponível.',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
