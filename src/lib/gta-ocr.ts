@@ -140,13 +140,31 @@ export async function processGTAImage(
 /**
  * Valida se os dados extraídos são minimamente suficientes
  */
+/**
+ * Valida se os dados extraídos são minimamente suficientes
+ * CORREÇÃO AUDITORIA: OCR < 50% agora é BLOCKING, não apenas warning
+ */
 export function validateGTAData(data: GTAOCRResult): {
   isValid: boolean;
   missingFields: string[];
   warnings: string[];
+  isBlocking: boolean;
+  blockingReason?: string;
 } {
   const missingFields: string[] = [];
   const warnings: string[] = [];
+  let isBlocking = false;
+  let blockingReason: string | undefined;
+  
+  // CRÍTICO: Documento ilegível (OCR < 50%) bloqueia o processo
+  if (data.confidence < 50) {
+    isBlocking = true;
+    blockingReason = `Documento ilegível - confiança de leitura muito baixa (${data.confidence.toFixed(0)}%). Envie uma imagem de melhor qualidade.`;
+    missingFields.push('Documento ilegível (confiança < 50%)');
+  } else if (data.confidence < 60) {
+    // Warning para confiança entre 50-60%
+    warnings.push('Baixa confiança no reconhecimento - verifique os dados manualmente');
+  }
   
   if (!data.documentNumber) {
     missingFields.push('Número da GTA');
@@ -164,13 +182,11 @@ export function validateGTAData(data: GTAOCRResult): {
     warnings.push('Data de validade não identificada');
   }
   
-  if (data.confidence < 60) {
-    warnings.push('Baixa confiança no reconhecimento - verifique os dados');
-  }
-  
   return {
-    isValid: missingFields.length === 0,
+    isValid: missingFields.length === 0 && !isBlocking,
     missingFields,
     warnings,
+    isBlocking,
+    blockingReason,
   };
 }
