@@ -50,6 +50,8 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
   originLng,
   destinationLat,
   destinationLng,
+  initialDriverLat,
+  initialDriverLng,
   stops = [],
   showHeatmap = false,
   className,
@@ -73,6 +75,15 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     error 
   } = useFreightRealtimeLocation(freightId);
 
+  // ✅ Localização efetiva do motorista (hook ou props iniciais)
+  const effectiveDriverLocation = useMemo(() => {
+    if (driverLocation) return driverLocation;
+    if (typeof initialDriverLat === 'number' && typeof initialDriverLng === 'number') {
+      return { lat: initialDriverLat, lng: initialDriverLng };
+    }
+    return null;
+  }, [driverLocation, initialDriverLat, initialDriverLng]);
+
   // Coordenadas da rota para polyline
   const routeCoordinates = useMemo(() => {
     const coords: [number, number][] = [];
@@ -81,8 +92,8 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
       coords.push([originLng, originLat]);
     }
     
-    if (driverLocation) {
-      coords.push([driverLocation.lng, driverLocation.lat]);
+    if (effectiveDriverLocation) {
+      coords.push([effectiveDriverLocation.lng, effectiveDriverLocation.lat]);
     }
     
     if (typeof destinationLat === 'number' && typeof destinationLng === 'number') {
@@ -90,7 +101,16 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     }
     
     return coords;
-  }, [originLat, originLng, destinationLat, destinationLng, driverLocation]);
+  }, [originLat, originLng, destinationLat, destinationLng, effectiveDriverLocation]);
+
+  // ✅ Verificar se temos pelo menos uma coordenada válida para exibir o mapa
+  const hasAnyValidCoordinate = useMemo(() => {
+    return (
+      effectiveDriverLocation !== null ||
+      (typeof originLat === 'number' && typeof originLng === 'number') ||
+      (typeof destinationLat === 'number' && typeof destinationLng === 'number')
+    );
+  }, [effectiveDriverLocation, originLat, originLng, destinationLat, destinationLng]);
 
   // Inicializar MapLibre
   useEffect(() => {
@@ -98,12 +118,14 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
 
     const initMap = async () => {
       try {
-        // Centro inicial
-        const initialCenter: [number, number] = driverLocation 
-          ? [driverLocation.lng, driverLocation.lat]
+        // ✅ Centro inicial: prioriza localização do motorista
+        const initialCenter: [number, number] = effectiveDriverLocation 
+          ? [effectiveDriverLocation.lng, effectiveDriverLocation.lat]
           : (typeof originLat === 'number' && typeof originLng === 'number')
             ? [originLng, originLat]
-            : DEFAULT_CENTER;
+            : (typeof destinationLat === 'number' && typeof destinationLng === 'number')
+              ? [destinationLng, destinationLat]
+              : DEFAULT_CENTER;
 
         const map = new maplibregl.Map({
           container: mapContainerRef.current!,
@@ -226,16 +248,16 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     }
   }, [originLat, originLng, destinationLat, destinationLng, mapLoaded]);
 
-  // Atualizar marker do motorista com animação
+  // ✅ Atualizar marker do motorista com animação (usando effectiveDriverLocation)
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded || !driverLocation) return;
+    if (!mapRef.current || !mapLoaded || !effectiveDriverLocation) return;
 
     // Criar marker se não existir
     if (!driverMarkerRef.current) {
       driverMarkerRef.current = new maplibregl.Marker({
         element: createTruckMarkerElement(isOnline),
       })
-        .setLngLat([driverLocation.lng, driverLocation.lat])
+        .setLngLat([effectiveDriverLocation.lng, effectiveDriverLocation.lat])
         .setPopup(
           new maplibregl.Popup({ offset: 25 }).setHTML(
             `<strong>Motorista</strong><br/>${isOnline ? '🟢 Online' : '🔴 Offline'}`
@@ -243,8 +265,8 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         )
         .addTo(mapRef.current);
       
-      previousLocationRef.current = driverLocation;
-      console.log('[FreightRealtimeMapMapLibre] Driver marker created');
+      previousLocationRef.current = effectiveDriverLocation;
+      console.log('[FreightRealtimeMapMapLibre] Driver marker created at:', effectiveDriverLocation);
       return;
     }
 
@@ -257,20 +279,20 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
 
       cancelAnimationRef.current = interpolatePosition(
         previousLocationRef.current,
-        driverLocation,
+        effectiveDriverLocation,
         1000,
         (pos) => {
           driverMarkerRef.current?.setLngLat([pos.lng, pos.lat]);
         },
         () => {
-          previousLocationRef.current = driverLocation;
+          previousLocationRef.current = effectiveDriverLocation;
         }
       );
     } else {
-      driverMarkerRef.current.setLngLat([driverLocation.lng, driverLocation.lat]);
-      previousLocationRef.current = driverLocation;
+      driverMarkerRef.current.setLngLat([effectiveDriverLocation.lng, effectiveDriverLocation.lat]);
+      previousLocationRef.current = effectiveDriverLocation;
     }
-  }, [driverLocation, mapLoaded, isOnline]);
+  }, [effectiveDriverLocation, mapLoaded, isOnline]);
 
   // Atualizar cor do marker baseado no status online/offline
   useEffect(() => {
@@ -299,35 +321,47 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     }
   }, [routeCoordinates, mapLoaded]);
 
-  // Centralizar no motorista
+  // ✅ Centralizar no motorista
   const handleCenterOnDriver = useCallback(() => {
-    if (mapRef.current && driverLocation) {
+    if (mapRef.current && effectiveDriverLocation) {
       mapRef.current.flyTo({
-        center: [driverLocation.lng, driverLocation.lat],
+        center: [effectiveDriverLocation.lng, effectiveDriverLocation.lat],
         zoom: 14,
         duration: 1000,
       });
     }
-  }, [driverLocation]);
+  }, [effectiveDriverLocation]);
 
-  // Ajustar bounds para mostrar tudo
+  // ✅ Ajustar bounds para mostrar tudo (funciona mesmo com alguns pontos nulos)
   const handleFitBounds = useCallback(() => {
     if (!mapRef.current) return;
 
-    const bounds = calculateBounds([
+    const validPoints = [
       typeof originLat === 'number' && typeof originLng === 'number' 
         ? { lat: originLat, lng: originLng } 
         : null,
-      driverLocation,
+      effectiveDriverLocation,
       typeof destinationLat === 'number' && typeof destinationLng === 'number' 
         ? { lat: destinationLat, lng: destinationLng } 
         : null,
-    ]);
+    ].filter(Boolean) as Array<{ lat: number; lng: number }>;
 
+    // Se só tem 1 ponto válido, centralizar nele
+    if (validPoints.length === 1) {
+      mapRef.current.flyTo({
+        center: [validPoints[0].lng, validPoints[0].lat],
+        zoom: 12,
+        duration: 1000,
+      });
+      return;
+    }
+
+    // Se tem 2+ pontos, usar fitBounds
+    const bounds = calculateBounds(validPoints);
     if (bounds) {
       mapRef.current.fitBounds(bounds, { padding: 50 });
     }
-  }, [originLat, originLng, destinationLat, destinationLng, driverLocation]);
+  }, [originLat, originLng, destinationLat, destinationLng, effectiveDriverLocation]);
 
   // Loading state
   if (isLoading) {
@@ -353,8 +387,8 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     );
   }
 
-  // No location fallback
-  if (!driverLocation && !isLoading) {
+  // ✅ No location fallback - só mostra se não tiver NENHUMA coordenada válida
+  if (!hasAnyValidCoordinate && !isLoading) {
     return (
       <div className={cn("flex items-center justify-center h-[280px] bg-muted/30 rounded-lg border-2 border-dashed border-muted", className)}>
         <div className="flex flex-col items-center gap-3 text-muted-foreground p-4 text-center">
@@ -404,7 +438,7 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
           size="sm"
           variant="secondary"
           onClick={handleCenterOnDriver}
-          disabled={!driverLocation}
+          disabled={!effectiveDriverLocation}
           className="h-8 px-2 shadow-md"
           title="Centralizar no motorista"
         >
