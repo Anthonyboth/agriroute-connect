@@ -1,14 +1,33 @@
 import { useState, useEffect } from "react";
-import { Eye, AlertTriangle, CheckCircle, MapPin } from "lucide-react";
+import { Eye, AlertTriangle, CheckCircle, MapPin, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ProducerTrackingViewProps {
   freightId: string;
 }
 
+// ✅ Status que devem mostrar mapa de rastreamento (logística real)
+const TRACKING_ACTIVE_STATUSES = [
+  'LOADING',           // A caminho da coleta
+  'LOADED',            // Carregado
+  'IN_TRANSIT',        // Em Trânsito
+  'DELIVERED_PENDING_CONFIRMATION', // Entrega reportada
+];
+
+// ✅ Status que permitem visualização do mapa (mesmo que offline)
+const MAP_VISIBLE_STATUSES = [
+  'ACCEPTED',          // Aceito (mostra rota planejada)
+  'LOADING',           // A caminho da coleta
+  'LOADED',            // Carregado
+  'IN_TRANSIT',        // Em Trânsito
+  'DELIVERED_PENDING_CONFIRMATION', // Entrega reportada
+];
+
 export function ProducerTrackingView({ freightId }: ProducerTrackingViewProps) {
   const [canTrack, setCanTrack] = useState(false);
+  const [canShowMap, setCanShowMap] = useState(false);
   const [freightStatus, setFreightStatus] = useState<string>('');
+  const [trackingStatus, setTrackingStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,13 +42,17 @@ export function ProducerTrackingView({ freightId }: ProducerTrackingViewProps) {
 
         if (freight) {
           setFreightStatus(freight.status);
-          // Permitir rastreamento se o frete está em status "LOADED" ou superior
-          // e se o rastreamento está ativo
-          const allowedStatuses = ['LOADED', 'IN_TRANSIT', 'DELIVERED'];
-          setCanTrack(
-            allowedStatuses.includes(freight.status) || 
-            freight.tracking_status === 'ACTIVE'
-          );
+          setTrackingStatus(freight.tracking_status);
+          
+          // ✅ NOVA LÓGICA: Tracking ativo se status permite OU tracking_status é ACTIVE
+          const isTrackingActive = 
+            TRACKING_ACTIVE_STATUSES.includes(freight.status) || 
+            freight.tracking_status === 'ACTIVE';
+          
+          setCanTrack(isTrackingActive);
+          
+          // ✅ Mapa visível mesmo em status anteriores (mostra rota planejada)
+          setCanShowMap(MAP_VISIBLE_STATUSES.includes(freight.status));
         }
       } catch (error) {
         console.error('Erro ao verificar permissões de rastreamento:', error);
@@ -64,10 +87,31 @@ export function ProducerTrackingView({ freightId }: ProducerTrackingViewProps) {
 
   if (loading) {
     return (
-      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+      <div className="p-4 bg-muted/30 border border-border rounded-lg">
         <div className="flex items-center gap-2">
-          <Eye className="h-4 w-4 text-gray-600 animate-pulse" />
-          <span className="text-gray-700">Verificando status de rastreamento...</span>
+          <Eye className="h-4 w-4 text-muted-foreground animate-pulse" />
+          <span className="text-muted-foreground">Verificando status de rastreamento...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Status ACEITO: Mostra que o motorista foi designado, mapa com rota planejada
+  if (freightStatus === 'ACCEPTED' && !canTrack) {
+    return (
+      <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+        <div className="flex items-start gap-3">
+          <Truck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+          <div>
+            <div className="font-medium text-foreground mb-2">Motorista Designado</div>
+            <p className="text-sm text-muted-foreground mb-3">
+              O motorista aceitou o frete e está se preparando para a coleta.
+              O rastreamento em tempo real será ativado quando ele iniciar o trajeto.
+            </p>
+            <div className="text-xs text-muted-foreground">
+              <strong>Status atual:</strong> {getStatusLabel(freightStatus)}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -75,27 +119,26 @@ export function ProducerTrackingView({ freightId }: ProducerTrackingViewProps) {
 
   if (!canTrack) {
     return (
-      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+      <div className="p-4 bg-warning/10 border border-warning/20 rounded-lg">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+          <AlertTriangle className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
           <div>
-            <div className="font-medium text-amber-800 mb-2">Rastreamento Não Disponível</div>
-            <p className="text-sm text-amber-700 mb-3">
-              O rastreamento em tempo real será disponibilizado após ambas as partes 
-              confirmarem que a carga foi carregada ("Carregado").
+            <div className="font-medium text-foreground mb-2">Rastreamento Não Disponível</div>
+            <p className="text-sm text-muted-foreground mb-3">
+              O rastreamento em tempo real será disponibilizado após o motorista
+              iniciar a viagem de coleta.
             </p>
             <div className="space-y-2">
-              <div className="text-xs text-amber-600">
+              <div className="text-xs text-muted-foreground">
                 <strong>Status atual:</strong> {getStatusLabel(freightStatus)}
               </div>
-              <div className="text-xs text-amber-600">
+              <div className="text-xs text-muted-foreground">
                 <strong>Próximos passos:</strong>
               </div>
-              <ul className="text-xs text-amber-600 space-y-1 ml-4">
-                <li>• Aguarde o motorista chegar ao local de coleta</li>
-                <li>• Acompanhe o processo de carregamento</li>
-                <li>• Confirme quando a carga estiver carregada</li>
+              <ul className="text-xs text-muted-foreground space-y-1 ml-4">
+                <li>• Aguarde o motorista iniciar a viagem</li>
                 <li>• O rastreamento será ativado automaticamente</li>
+                <li>• Você receberá notificações de progresso</li>
               </ul>
             </div>
           </div>
@@ -105,22 +148,22 @@ export function ProducerTrackingView({ freightId }: ProducerTrackingViewProps) {
   }
 
   return (
-    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+    <div className="p-4 bg-success/10 border border-success/20 rounded-lg">
       <div className="flex items-start gap-3">
-        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+        <CheckCircle className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
         <div>
-          <div className="font-medium text-green-800 mb-2">Rastreamento Ativo</div>
-          <p className="text-sm text-green-700 mb-3">
-            A carga foi carregada e confirmada por ambas as partes. 
-            Você pode acompanhar a localização do seu frete em tempo real.
+          <div className="font-medium text-foreground mb-2">Rastreamento Ativo</div>
+          <p className="text-sm text-muted-foreground mb-3">
+            Você pode acompanhar a localização do seu frete em tempo real
+            através do mapa abaixo.
           </p>
           
-          <div className="mt-3 p-2 bg-white rounded border">
+          <div className="mt-3 p-2 bg-background rounded border border-border">
             <div className="flex items-center gap-2 mb-2">
-              <MapPin className="h-3 w-3 text-green-600" />
-              <span className="text-xs font-medium text-green-800">Status Atual</span>
+              <MapPin className="h-3 w-3 text-success" />
+              <span className="text-xs font-medium text-foreground">Status Atual</span>
             </div>
-            <div className="text-xs text-gray-600">
+            <div className="text-xs text-muted-foreground">
               {getStatusLabel(freightStatus)}
             </div>
           </div>
