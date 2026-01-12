@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BackButton } from '@/components/BackButton';
 import { toast } from 'sonner';
 import { Loader2, Truck } from 'lucide-react';
 import { z } from 'zod';
@@ -181,6 +182,9 @@ export default function AffiliateSignup() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
+          <div className="flex justify-start mb-2">
+            <BackButton to="/auth" />
+          </div>
           <div className="flex justify-center mb-4">
             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
               <Truck className="h-8 w-8 text-primary" />

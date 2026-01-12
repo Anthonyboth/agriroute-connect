@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TransportCompanyDocumentUpload } from '@/components/TransportCompanyDocumentUpload';
+import { BackButton } from '@/components/BackButton';
 import { toast } from 'sonner';
 import { Loader2, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -200,6 +201,7 @@ const TransportCompanyRegistration: React.FC = () => {
     <main className="min-h-screen bg-background px-4 py-10">
       <section className="max-w-2xl mx-auto">
         <header className="mb-6">
+          <BackButton label="Voltar" className="mb-4" />
           <h1 className="text-2xl font-bold">Cadastro de Transportadora</h1>
         </header>
         <Card>

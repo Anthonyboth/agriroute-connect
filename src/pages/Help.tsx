@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate, Link } from 'react-router-dom';
+import { BackButton } from '@/components/BackButton';
 import { ArrowLeft, Search, MessageCircle, Mail, Phone, FileText, Truck, Users, Shield, CreditCard, HelpCircle, Clock, CheckCircle } from 'lucide-react';
 
 const Help = () => {
@@ -174,14 +175,7 @@ const Help = () => {
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar ao Início
-          </Button>
+          <BackButton to="/" />
           <h1 className="text-2xl font-bold">Central de Ajuda</h1>
           <div className="w-24" />
         </div>
