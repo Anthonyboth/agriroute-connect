@@ -9724,6 +9724,10 @@ export type Database = {
         Args: { p_freight_id: string }
         Returns: number
       }
+      can_driver_update_freight_location: {
+        Args: { p_freight_id: string }
+        Returns: boolean
+      }
       can_manage_company: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
@@ -10618,8 +10622,17 @@ export type Database = {
         Args: { p_company_id: string; p_user_id: string }
         Returns: boolean
       }
+      is_company_owner: { Args: { p_company_id: string }; Returns: boolean }
       is_current_user_producer_of_freight: {
         Args: { p_freight_id: string }
+        Returns: boolean
+      }
+      is_driver_assigned_to_freight: {
+        Args: { p_freight_id: string }
+        Returns: boolean
+      }
+      is_driver_of_assignment: {
+        Args: { p_driver_id: string }
         Returns: boolean
       }
       is_driver_visible_for_company: {
@@ -10631,6 +10644,10 @@ export type Database = {
         Returns: boolean
       }
       is_ip_blacklisted: { Args: { check_ip: unknown }; Returns: boolean }
+      is_producer_of_freight: {
+        Args: { p_freight_id: string }
+        Returns: boolean
+      }
       is_profile_owner: {
         Args: { _profile_id: string; _viewer: string }
         Returns: boolean
