@@ -244,6 +244,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       const label = freight.service_type === 'FRETE_MOTO' ? 'frete' : 'carreta';
       toast.success(`${numTrucks} ${label}${numTrucks > 1 ? 's' : ''} aceita${numTrucks > 1 ? 's' : ''} com sucesso!`);
 
+      // ✅ Disparar evento para navegação automática para aba "Em Andamento"
+      window.dispatchEvent(new CustomEvent('freight:accepted', { 
+        detail: { freightId: freight.id } 
+      }));
+
       onAction?.('accept');
     } catch (error: any) {
       console.error('Error accepting freight:', error);
@@ -325,8 +330,10 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         description: 'O frete aparecerá na aba "Em Andamento"'
       });
 
-      // ✅ Disparar evento para navegação
-      window.dispatchEvent(new CustomEvent('navigate-to-tab', { detail: 'active' }));
+      // ✅ Disparar evento para navegação automática para aba "Em Andamento"
+      window.dispatchEvent(new CustomEvent('freight:accepted', { 
+        detail: { freightId: freight.id } 
+      }));
       
       onAction?.('accept');
     } catch (error: any) {
