@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Truck, Clock, ArrowRight, Calendar, AlertTriangle, Bike, Map, FileText, Loader2 } from 'lucide-react';
-import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
+import { getFreightStatusLabel, getFreightStatusVariant, normalizeFreightStatus } from '@/lib/freight-status';
 import { formatKm, formatBRL, formatTons, formatDate } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
@@ -98,7 +98,15 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
   const isHighlighted = highlightFreightId === freight.id;
 
   // Verificar se o frete está em andamento (permite mapa)
-  const isInProgress = ['em_transito', 'in_transit', 'in_progress', 'aceito', 'accepted', 'carregando', 'loading'].includes(freight.status?.toLowerCase() || '');
+  // Inclui LOADED/CARREGADO para que o mapa funcione nesse status também
+  const normalizedStatus = normalizeFreightStatus(freight.status ?? '');
+  const canShowMap = [
+    'ACCEPTED', 
+    'LOADING', 
+    'LOADED', 
+    'IN_TRANSIT', 
+    'DELIVERED_PENDING_CONFIRMATION'
+  ].includes(normalizedStatus);
 
   // Handler para quando a aba mapa é selecionada
   const handleTabChange = (value: string) => {
@@ -218,7 +226,7 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
             <TabsTrigger 
               value="map" 
               className="text-xs flex items-center gap-1.5"
-              disabled={!isInProgress}
+              disabled={!canShowMap}
             >
               <Map className="h-3.5 w-3.5" />
               Mapa
@@ -285,6 +293,10 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                   originLng={freight.origin_lng}
                   destinationLat={freight.destination_lat}
                   destinationLng={freight.destination_lng}
+                  originCity={freight.origin_city}
+                  originState={freight.origin_state}
+                  destinationCity={freight.destination_city}
+                  destinationState={freight.destination_state}
                   initialDriverLat={freight.current_lat}
                   initialDriverLng={freight.current_lng}
                   lastLocationUpdate={freight.last_location_update}

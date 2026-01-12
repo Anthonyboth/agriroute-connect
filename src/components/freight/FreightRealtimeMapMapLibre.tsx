@@ -237,16 +237,24 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
         // Evento de carregamento
         map.on('load', () => {
           // ✅ Adicionar layer para rota planejada (cinza, sempre visível)
+          // IMPORTANTE: Só criar LineString se tiver 2+ pontos, senão usar FeatureCollection vazia
+          const plannedRouteData = plannedRouteCoordinates.length >= 2
+            ? {
+                type: 'Feature' as const,
+                properties: {},
+                geometry: {
+                  type: 'LineString' as const,
+                  coordinates: plannedRouteCoordinates,
+                },
+              }
+            : {
+                type: 'FeatureCollection' as const,
+                features: [],
+              };
+
           map.addSource('planned-route', {
             type: 'geojson',
-            data: {
-              type: 'Feature',
-              properties: {},
-              geometry: {
-                type: 'LineString',
-                coordinates: plannedRouteCoordinates,
-              },
-            },
+            data: plannedRouteData,
           });
 
           map.addLayer({
@@ -266,16 +274,24 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
           });
 
           // ✅ Adicionar source e layer para rota ativa (sobre a planejada)
+          // IMPORTANTE: Só criar LineString se tiver 2+ pontos
+          const routeData = routeCoordinates.length >= 2
+            ? {
+                type: 'Feature' as const,
+                properties: {},
+                geometry: {
+                  type: 'LineString' as const,
+                  coordinates: routeCoordinates,
+                },
+              }
+            : {
+                type: 'FeatureCollection' as const,
+                features: [],
+              };
+
           map.addSource('route', {
             type: 'geojson',
-            data: {
-              type: 'Feature',
-              properties: {},
-              geometry: {
-                type: 'LineString',
-                coordinates: routeCoordinates,
-              },
-            },
+            data: routeData,
           });
 
           map.addLayer({
@@ -463,15 +479,21 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     if (!mapRef.current || !mapLoaded) return;
 
     const plannedSource = mapRef.current.getSource('planned-route') as maplibregl.GeoJSONSource;
-    if (plannedSource && plannedRouteCoordinates.length >= 2) {
-      plannedSource.setData({
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: plannedRouteCoordinates,
-        },
-      });
+    if (plannedSource) {
+      const data = plannedRouteCoordinates.length >= 2
+        ? {
+            type: 'Feature' as const,
+            properties: {},
+            geometry: {
+              type: 'LineString' as const,
+              coordinates: plannedRouteCoordinates,
+            },
+          }
+        : {
+            type: 'FeatureCollection' as const,
+            features: [],
+          };
+      plannedSource.setData(data);
     }
   }, [plannedRouteCoordinates, mapLoaded]);
 
@@ -480,15 +502,21 @@ const FreightRealtimeMapMapLibreComponent: React.FC<FreightRealtimeMapMapLibrePr
     if (!mapRef.current || !mapLoaded) return;
 
     const source = mapRef.current.getSource('route') as maplibregl.GeoJSONSource;
-    if (source && routeCoordinates.length >= 2) {
-      source.setData({
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: routeCoordinates,
-        },
-      });
+    if (source) {
+      const data = routeCoordinates.length >= 2
+        ? {
+            type: 'Feature' as const,
+            properties: {},
+            geometry: {
+              type: 'LineString' as const,
+              coordinates: routeCoordinates,
+            },
+          }
+        : {
+            type: 'FeatureCollection' as const,
+            features: [],
+          };
+      source.setData(data);
     }
   }, [routeCoordinates, mapLoaded]);
 
