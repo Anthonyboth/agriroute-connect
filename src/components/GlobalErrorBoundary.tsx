@@ -17,29 +17,56 @@ interface State {
 }
 
 /**
- * Detect if error is a chunk/module loading error
+ * Detect if error is STRICTLY a chunk/module loading error
+ * Only matches actual dynamic import failures - NOT general runtime errors
  */
 function isChunkLoadError(error: Error): boolean {
   const message = error?.message?.toLowerCase() || '';
-  const stack = error?.stack?.toLowerCase() || '';
   
-  const patterns = [
+  // ONLY patterns that indicate actual chunk loading failures
+  const strictPatterns = [
     'failed to fetch dynamically imported module',
     'loading chunk',
     'loading css chunk',
-    'failed to load module',
-    'unexpected token',
-    'syntaxerror',
+    'failed to load module script',
     'unable to preload css',
-    'f is not a function',
-    'is not a function',
-    'undefined is not an object',
-    'cannot read properties of undefined',
   ];
   
-  return patterns.some(pattern => 
-    message.includes(pattern) || stack.includes(pattern)
-  );
+  return strictPatterns.some(pattern => message.includes(pattern));
+}
+
+// Session storage key for recovery attempts
+const RECOVERY_KEY = 'global_error_recovery_count';
+const RECOVERY_TIMESTAMP_KEY = 'global_error_recovery_ts';
+const MAX_RECOVERY_WINDOW_MS = 60000; // 1 minute window
+
+function getRecoveryCount(): number {
+  try {
+    const ts = sessionStorage.getItem(RECOVERY_TIMESTAMP_KEY);
+    const count = parseInt(sessionStorage.getItem(RECOVERY_KEY) || '0', 10);
+    
+    // Reset if window expired
+    if (ts && Date.now() - parseInt(ts, 10) > MAX_RECOVERY_WINDOW_MS) {
+      sessionStorage.removeItem(RECOVERY_KEY);
+      sessionStorage.removeItem(RECOVERY_TIMESTAMP_KEY);
+      return 0;
+    }
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
+function incrementRecoveryCount(): void {
+  try {
+    const current = getRecoveryCount();
+    sessionStorage.setItem(RECOVERY_KEY, String(current + 1));
+    if (!sessionStorage.getItem(RECOVERY_TIMESTAMP_KEY)) {
+      sessionStorage.setItem(RECOVERY_TIMESTAMP_KEY, String(Date.now()));
+    }
+  } catch {
+    // Ignore storage errors
+  }
 }
 
 /**
@@ -74,11 +101,18 @@ class GlobalErrorBoundary extends Component<Props, State> {
     console.error('🚨 GlobalErrorBoundary caught error:', error);
     console.error('Component stack:', errorInfo.componentStack);
     
-    // Check if this is a recoverable chunk loading error
-    if (isChunkLoadError(error) && this.state.recoveryAttempt < this.MAX_AUTO_RECOVERY) {
-      console.log('🔄 Detected chunk loading error, attempting auto-recovery...');
+    // Check recovery count from session storage (persists across reloads)
+    const sessionRecoveryCount = getRecoveryCount();
+    
+    // Check if this is a recoverable chunk loading error AND we haven't exceeded attempts
+    if (isChunkLoadError(error) && sessionRecoveryCount < this.MAX_AUTO_RECOVERY) {
+      console.log('🔄 Detected chunk loading error, attempting auto-recovery... (attempt', sessionRecoveryCount + 1, ')');
+      incrementRecoveryCount();
       this.attemptAutoRecovery();
     } else {
+      if (sessionRecoveryCount >= this.MAX_AUTO_RECOVERY) {
+        console.log('⛔ Max recovery attempts reached, showing error UI');
+      }
       // Send to error monitoring service (if available)
       this.reportError(error, errorInfo);
     }

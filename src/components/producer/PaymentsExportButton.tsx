@@ -5,11 +5,13 @@ import { Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
 import type { PaymentCardData } from './PaymentCard';
+
+// Types for lazy-loaded libraries
+type JsPDFType = typeof import('jspdf').default;
+type AutoTableType = typeof import('jspdf-autotable').default;
+type XLSXType = typeof import('xlsx');
+type SaveAsType = typeof import('file-saver').saveAs;
 
 interface PaymentsExportButtonProps {
   payments: PaymentCardData[];
@@ -58,6 +60,15 @@ export const PaymentsExportButton: React.FC<PaymentsExportButtonProps> = ({
   const exportToPDF = useCallback(async () => {
     setIsExporting(true);
     try {
+      // Lazy load PDF libraries only when needed
+      const [jsPDFModule, autoTableModule] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable')
+      ]);
+      
+      const jsPDF = jsPDFModule.default as JsPDFType;
+      const autoTable = autoTableModule.default as AutoTableType;
+      
       const doc = new jsPDF();
       let yPosition = 20;
       const summary = calculateSummary();
@@ -143,7 +154,7 @@ export const PaymentsExportButton: React.FC<PaymentsExportButtonProps> = ({
       toast.success('Relatório PDF exportado com sucesso!');
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
-      toast.error('Erro ao exportar PDF');
+      toast.error('Exportação PDF indisponível. Tente novamente.');
     } finally {
       setIsExporting(false);
     }
@@ -152,6 +163,15 @@ export const PaymentsExportButton: React.FC<PaymentsExportButtonProps> = ({
   const exportToExcel = useCallback(async () => {
     setIsExporting(true);
     try {
+      // Lazy load Excel libraries only when needed
+      const [xlsxModule, fileSaverModule] = await Promise.all([
+        import('xlsx'),
+        import('file-saver')
+      ]);
+      
+      const XLSX = xlsxModule as XLSXType;
+      const saveAs = fileSaverModule.saveAs as SaveAsType;
+      
       const workbook = XLSX.utils.book_new();
       const summary = calculateSummary();
 
@@ -204,7 +224,7 @@ export const PaymentsExportButton: React.FC<PaymentsExportButtonProps> = ({
       toast.success('Relatório Excel exportado com sucesso!');
     } catch (error) {
       console.error('Erro ao exportar Excel:', error);
-      toast.error('Erro ao exportar Excel');
+      toast.error('Exportação Excel indisponível. Tente novamente.');
     } finally {
       setIsExporting(false);
     }
