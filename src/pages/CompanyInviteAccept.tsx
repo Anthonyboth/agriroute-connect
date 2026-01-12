@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { BackButton } from '@/components/BackButton';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Truck, Loader2, CheckCircle, XCircle } from 'lucide-react';
@@ -211,6 +212,9 @@ const CompanyInviteAccept: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="max-w-md w-full">
         <CardHeader className="text-center">
+          <div className="flex justify-start mb-2">
+            <BackButton to="/auth" />
+          </div>
           <div className="flex items-center justify-center mb-4">
             <div className="p-3 bg-primary/10 rounded-full">
               <Truck className="h-8 w-8 text-primary" />

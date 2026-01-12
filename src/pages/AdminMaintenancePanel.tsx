@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import { AlertTriangle, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -135,6 +136,7 @@ export default function AdminMaintenancePanel() {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <BackButton label="Voltar" className="mb-4" to="/admin" />
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Painel de Manutenção</h1>
         <p className="text-muted-foreground">Ferramentas administrativas do sistema</p>

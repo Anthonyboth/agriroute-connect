@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Plus, Edit, Archive, Copy, Calendar } from "lucide-react";
 import { AnnouncementForm } from "@/components/admin/AnnouncementForm";
 import { AnnouncementPreview } from "@/components/admin/AnnouncementPreview";
+import { BackButton } from "@/components/BackButton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -118,6 +119,7 @@ export default function AdminAnnouncementsManager() {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <BackButton label="Voltar" className="mb-4" to="/admin" />
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">Gerenciamento de Avisos</h1>

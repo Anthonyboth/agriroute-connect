@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { BackButton } from '@/components/BackButton';
 import { 
   Activity, 
   RefreshCw, 
@@ -106,6 +107,7 @@ export default function DeviceDiagnostics() {
 
   return (
     <div className="container mx-auto py-8 space-y-6">
+      <BackButton label="Voltar" className="mb-2" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">

@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
+import { BackButton } from '@/components/BackButton';
 import { ArrowLeft, Leaf, Cookie, Settings, Eye, Target } from 'lucide-react';
 
 const Cookies = () => {
@@ -74,10 +75,7 @@ const Cookies = () => {
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate('/')} className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </Button>
+          <BackButton to="/" />
           <div className="flex items-center space-x-2">
             <Leaf className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold text-foreground">AgriRoute</span>

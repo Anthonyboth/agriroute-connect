@@ -31,6 +31,7 @@ import { GlobalAnnouncementBar } from './components/GlobalAnnouncementBar';
 import { FloatingSupportButton } from './components/FloatingSupportButton';
 import { useSplashScreen } from './hooks/useSplashScreen';
 import { PreviewFreshBuildBanner } from './components/PreviewFreshBuildBanner';
+import { SwipeNavigationHandler } from './components/SwipeNavigationHandler';
 
 // ✅ PERFORMANCE: Prefetch estratégico de rotas críticas
 // Só executa em conexões rápidas (não mobile data saver)
@@ -743,6 +744,7 @@ const App = () => {
                     <ZipCodeSyncOnReconnect />
                     <FloatingSupportButton />
                     <SilentCityBootstrap />
+                    <SwipeNavigationHandler />
                     <main>
                       <Routes>
                         <Route path="/" element={<AuthedLanding />} />
