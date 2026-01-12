@@ -1161,6 +1161,29 @@ export const ServiceProviderDashboard: React.FC = () => {
           />
         </div>
 
+        {/* Mural de Avisos */}
+        <div className="mb-6">
+          <Button
+            variant="outline"
+            onClick={() => {
+              const newState = !isMuralOpen;
+              setIsMuralOpen(newState);
+              setManualOpen(newState);
+            }}
+            className="mb-3 flex items-center gap-2"
+          >
+            <span>📢</span> Mural de Avisos
+          </Button>
+          <SystemAnnouncementsBoard
+            isOpen={isMuralOpen}
+            onClose={() => {
+              setIsMuralOpen(false);
+              setManualOpen(false);
+            }}
+            ignoreDismissals={manualOpen}
+          />
+        </div>
+
         {/* Tabs Premium */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full overflow-x-auto pb-2">
@@ -1302,30 +1325,6 @@ export const ServiceProviderDashboard: React.FC = () => {
               )}
             </div>
 
-            {/* Mural de Avisos - Padronizado */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full mb-2"
-              onClick={() => {
-                setManualOpen(true);
-                setIsMuralOpen(true);
-              }}
-            >
-              📢 Mural de Avisos
-            </Button>
-
-            <SystemAnnouncementsBoard
-              isOpen={isMuralOpen}
-              onClose={() => {
-                setIsMuralOpen(false);
-                if (!manualOpen) {
-                  localStorage.setItem('mural_dismissed_at', new Date().toISOString());
-                }
-              }}
-              ignoreDismissals={manualOpen}
-            />
-            
             {filteredRequests.length > 0 ? (
               <div className="space-y-4">
                 {filteredRequests.map((request) => (
