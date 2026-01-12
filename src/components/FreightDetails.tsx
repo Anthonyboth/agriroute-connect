@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw, ChevronRight, FileCheck } from 'lucide-react';
+import { MapPin, Package, Clock, User, Truck, MessageCircle, Star, Phone, FileText, CreditCard, DollarSign, Bell, X, RefreshCw, ChevronRight, FileCheck, Shield } from 'lucide-react';
 import { FreightChat } from './FreightChat';
 import { FreightStatusTracker } from './FreightStatusTracker';
 import { FreightStatusHistory } from './FreightStatusHistory';
@@ -29,6 +29,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatKm } from '@/lib/formatters';
 import { CTeEmitirDialog } from './fiscal/CTeEmitirDialog';
 import { isFeatureEnabled } from '@/config/featureFlags';
+import { AntifraudPanel } from './antifraude';
 
 interface FreightDetailsProps {
   freightId: string;
@@ -894,8 +895,8 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       {/* Main Content Tabs - Only for participants */}
       {isParticipant && (
         <Tabs defaultValue={initialTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="status" className="text-sm">Status da Viagem</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="status" className="text-sm">Status</TabsTrigger>
             <TabsTrigger value="chat" className="text-sm">
               <MessageCircle className="h-3 w-3 mr-1" />
               Chat
@@ -903,6 +904,10 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             <TabsTrigger value="nfes" className="text-sm">
               <FileText className="h-3 w-3 mr-1" />
               NF-es
+            </TabsTrigger>
+            <TabsTrigger value="antifraude" className="text-sm">
+              <Shield className="h-3 w-3 mr-1" />
+              Antifraude
             </TabsTrigger>
           </TabsList>
           
@@ -937,6 +942,21 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
           
           <TabsContent value="nfes" forceMount className="mt-4 data-[state=inactive]:hidden">
             <FreightNfePanel freightId={freightId} autoLoad={false} />
+          </TabsContent>
+          
+          <TabsContent value="antifraude" forceMount className="mt-4 data-[state=inactive]:hidden">
+            <AntifraudPanel 
+              freightId={freightId}
+              originCity={freight?.origin_city}
+              destinationCity={freight?.destination_city}
+              driverName={freight?.driver?.full_name}
+              originLat={freight?.origin_lat}
+              originLng={freight?.origin_lng}
+              destinationLat={freight?.destination_lat}
+              destinationLng={freight?.destination_lng}
+              currentLat={freight?.current_lat}
+              currentLng={freight?.current_lng}
+            />
           </TabsContent>
         </Tabs>
       )}

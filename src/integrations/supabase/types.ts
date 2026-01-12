@@ -220,6 +220,71 @@ export type Database = {
           },
         ]
       }
+      antifraud_feedback: {
+        Row: {
+          confirmed_fraud: boolean | null
+          created_at: string | null
+          event_id: string | null
+          feedback_type: string | null
+          freight_id: string | null
+          id: string
+          notes: string | null
+          reviewer_id: string | null
+          stop_event_id: string | null
+        }
+        Insert: {
+          confirmed_fraud?: boolean | null
+          created_at?: string | null
+          event_id?: string | null
+          feedback_type?: string | null
+          freight_id?: string | null
+          id?: string
+          notes?: string | null
+          reviewer_id?: string | null
+          stop_event_id?: string | null
+        }
+        Update: {
+          confirmed_fraud?: boolean | null
+          created_at?: string | null
+          event_id?: string | null
+          feedback_type?: string | null
+          freight_id?: string | null
+          id?: string
+          notes?: string | null
+          reviewer_id?: string | null
+          stop_event_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "antifraud_feedback_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "auditoria_eventos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "antifraud_feedback_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "antifraud_feedback_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "antifraud_feedback_stop_event_id_fkey"
+            columns: ["stop_event_id"]
+            isOneToOne: false
+            referencedRelation: "stop_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       antifraud_nfe_events: {
         Row: {
           created_at: string
@@ -4566,6 +4631,9 @@ export type Database = {
           accepted_by_company: boolean | null
           accepted_trucks: number
           allow_counter_proposals: boolean | null
+          antifraud_analyzed_at: string | null
+          antifraud_level: string | null
+          antifraud_score: number | null
           cancellation_reason: string | null
           cancelled_at: string | null
           cargo_category: string | null
@@ -4647,6 +4715,7 @@ export type Database = {
           required_trucks: number
           requires_sanitary_docs: boolean | null
           risk_score: number | null
+          route_deviation_max_km: number | null
           route_geom: unknown
           route_waypoints: Json | null
           sanitary_compliance_status: string | null
@@ -4658,7 +4727,9 @@ export type Database = {
           toll_cost: number | null
           total_distance_km: number | null
           total_duration_minutes: number | null
+          total_offline_time_minutes: number | null
           total_stop_minutes: number | null
+          total_stop_time_minutes: number | null
           tracking_ended_at: string | null
           tracking_required: boolean | null
           tracking_started_at: string | null
@@ -4677,6 +4748,9 @@ export type Database = {
           accepted_by_company?: boolean | null
           accepted_trucks?: number
           allow_counter_proposals?: boolean | null
+          antifraud_analyzed_at?: string | null
+          antifraud_level?: string | null
+          antifraud_score?: number | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cargo_category?: string | null
@@ -4758,6 +4832,7 @@ export type Database = {
           required_trucks?: number
           requires_sanitary_docs?: boolean | null
           risk_score?: number | null
+          route_deviation_max_km?: number | null
           route_geom?: unknown
           route_waypoints?: Json | null
           sanitary_compliance_status?: string | null
@@ -4769,7 +4844,9 @@ export type Database = {
           toll_cost?: number | null
           total_distance_km?: number | null
           total_duration_minutes?: number | null
+          total_offline_time_minutes?: number | null
           total_stop_minutes?: number | null
+          total_stop_time_minutes?: number | null
           tracking_ended_at?: string | null
           tracking_required?: boolean | null
           tracking_started_at?: string | null
@@ -4788,6 +4865,9 @@ export type Database = {
           accepted_by_company?: boolean | null
           accepted_trucks?: number
           allow_counter_proposals?: boolean | null
+          antifraud_analyzed_at?: string | null
+          antifraud_level?: string | null
+          antifraud_score?: number | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cargo_category?: string | null
@@ -4869,6 +4949,7 @@ export type Database = {
           required_trucks?: number
           requires_sanitary_docs?: boolean | null
           risk_score?: number | null
+          route_deviation_max_km?: number | null
           route_geom?: unknown
           route_waypoints?: Json | null
           sanitary_compliance_status?: string | null
@@ -4880,7 +4961,9 @@ export type Database = {
           toll_cost?: number | null
           total_distance_km?: number | null
           total_duration_minutes?: number | null
+          total_offline_time_minutes?: number | null
           total_stop_minutes?: number | null
+          total_stop_time_minutes?: number | null
           tracking_ended_at?: string | null
           tracking_required?: boolean | null
           tracking_started_at?: string | null
@@ -6494,6 +6577,72 @@ export type Database = {
         }
         Relationships: []
       }
+      offline_incidents: {
+        Row: {
+          created_at: string | null
+          distance_gap_km: number | null
+          driver_id: string | null
+          duration_minutes: number | null
+          ended_at: string | null
+          first_return_lat: number | null
+          first_return_lng: number | null
+          freight_id: string
+          id: string
+          is_suspicious: boolean | null
+          last_known_lat: number | null
+          last_known_lng: number | null
+          notes: string | null
+          started_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          distance_gap_km?: number | null
+          driver_id?: string | null
+          duration_minutes?: number | null
+          ended_at?: string | null
+          first_return_lat?: number | null
+          first_return_lng?: number | null
+          freight_id: string
+          id?: string
+          is_suspicious?: boolean | null
+          last_known_lat?: number | null
+          last_known_lng?: number | null
+          notes?: string | null
+          started_at: string
+        }
+        Update: {
+          created_at?: string | null
+          distance_gap_km?: number | null
+          driver_id?: string | null
+          duration_minutes?: number | null
+          ended_at?: string | null
+          first_return_lat?: number | null
+          first_return_lng?: number | null
+          freight_id?: string
+          id?: string
+          is_suspicious?: boolean | null
+          last_known_lat?: number | null
+          last_known_lng?: number | null
+          notes?: string | null
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offline_incidents_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offline_incidents_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount_paid: number | null
@@ -7537,6 +7686,59 @@ export type Database = {
           },
         ]
       }
+      route_deviations: {
+        Row: {
+          created_at: string | null
+          detected_at: string
+          deviation_km: number
+          expected_lat: number | null
+          expected_lng: number | null
+          freight_id: string
+          id: string
+          lat: number
+          lng: number
+          notes: string | null
+          resolved: boolean | null
+          severity: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          detected_at?: string
+          deviation_km: number
+          expected_lat?: number | null
+          expected_lng?: number | null
+          freight_id: string
+          id?: string
+          lat: number
+          lng: number
+          notes?: string | null
+          resolved?: boolean | null
+          severity?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          detected_at?: string
+          deviation_km?: number
+          expected_lat?: number | null
+          expected_lng?: number | null
+          freight_id?: string
+          id?: string
+          lat?: number
+          lng?: number
+          notes?: string | null
+          resolved?: boolean | null
+          severity?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_deviations_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_alerts: {
         Row: {
           admin_profile_id: string | null
@@ -8334,6 +8536,78 @@ export type Database = {
             columns: ["prospect_user_id"]
             isOneToOne: false
             referencedRelation: "prospect_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stop_events: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          driver_id: string
+          duration_minutes: number | null
+          ended_at: string | null
+          freight_id: string
+          id: string
+          is_known_point: boolean | null
+          known_point_type: string | null
+          lat: number
+          lng: number
+          reason: string | null
+          risk_level: string | null
+          speed_after: number | null
+          speed_before: number | null
+          started_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          driver_id: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          freight_id: string
+          id?: string
+          is_known_point?: boolean | null
+          known_point_type?: string | null
+          lat: number
+          lng: number
+          reason?: string | null
+          risk_level?: string | null
+          speed_after?: number | null
+          speed_before?: number | null
+          started_at: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          driver_id?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          freight_id?: string
+          id?: string
+          is_known_point?: boolean | null
+          known_point_type?: string | null
+          lat?: number
+          lng?: number
+          reason?: string | null
+          risk_level?: string | null
+          speed_after?: number | null
+          speed_before?: number | null
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stop_events_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stop_events_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
             referencedColumns: ["id"]
           },
         ]
@@ -9711,6 +9985,18 @@ export type Database = {
         Returns: number
       }
       calculate_eta_minutes: { Args: { p_freight_id: string }; Returns: number }
+      calculate_freight_antifraud_score: {
+        Args: { p_freight_id: string }
+        Returns: {
+          deviation_km: number
+          high_risk_stops: number
+          level: string
+          offline_minutes: number
+          score: number
+          stop_time_minutes: number
+          stops_count: number
+        }[]
+      }
       calculate_freight_eta: {
         Args: {
           p_current_lat: number
@@ -10618,6 +10904,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_affiliated_driver: { Args: { p_profile_id: string }; Returns: boolean }
+      is_antifraud_viewer: { Args: { _user_id: string }; Returns: boolean }
       is_company_driver: {
         Args: { p_company_id: string; p_user_id: string }
         Returns: boolean
@@ -10848,6 +11135,9 @@ export type Database = {
           accepted_by_company: boolean | null
           accepted_trucks: number
           allow_counter_proposals: boolean | null
+          antifraud_analyzed_at: string | null
+          antifraud_level: string | null
+          antifraud_score: number | null
           cancellation_reason: string | null
           cancelled_at: string | null
           cargo_category: string | null
@@ -10929,6 +11219,7 @@ export type Database = {
           required_trucks: number
           requires_sanitary_docs: boolean | null
           risk_score: number | null
+          route_deviation_max_km: number | null
           route_geom: unknown
           route_waypoints: Json | null
           sanitary_compliance_status: string | null
@@ -10940,7 +11231,9 @@ export type Database = {
           toll_cost: number | null
           total_distance_km: number | null
           total_duration_minutes: number | null
+          total_offline_time_minutes: number | null
           total_stop_minutes: number | null
+          total_stop_time_minutes: number | null
           tracking_ended_at: string | null
           tracking_required: boolean | null
           tracking_started_at: string | null
@@ -10968,6 +11261,9 @@ export type Database = {
           accepted_by_company: boolean | null
           accepted_trucks: number
           allow_counter_proposals: boolean | null
+          antifraud_analyzed_at: string | null
+          antifraud_level: string | null
+          antifraud_score: number | null
           cancellation_reason: string | null
           cancelled_at: string | null
           cargo_category: string | null
@@ -11049,6 +11345,7 @@ export type Database = {
           required_trucks: number
           requires_sanitary_docs: boolean | null
           risk_score: number | null
+          route_deviation_max_km: number | null
           route_geom: unknown
           route_waypoints: Json | null
           sanitary_compliance_status: string | null
@@ -11060,7 +11357,9 @@ export type Database = {
           toll_cost: number | null
           total_distance_km: number | null
           total_duration_minutes: number | null
+          total_offline_time_minutes: number | null
           total_stop_minutes: number | null
+          total_stop_time_minutes: number | null
           tracking_ended_at: string | null
           tracking_required: boolean | null
           tracking_started_at: string | null
