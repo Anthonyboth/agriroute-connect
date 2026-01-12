@@ -1381,6 +1381,28 @@ const DriverDashboard = () => {
     return () => window.removeEventListener('freight:movedToHistory', handleMovedToHistory);
   }, [fetchOngoingFreights]);
 
+  // ✅ Listener para navegação automática para aba "Em Andamento" após aceitar frete
+  useEffect(() => {
+    const handleFreightAccepted = (event: CustomEvent) => {
+      console.log('🎯 Frete aceito, navegando para aba Em Andamento:', event.detail?.freightId);
+      
+      // Invalidar queries e recarregar dados
+      queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['available-freights'] });
+      queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
+      
+      fetchOngoingFreights();
+      fetchMyAssignments();
+      fetchAvailableFreights();
+      
+      // ✅ Navegar para aba "Em Andamento"
+      setActiveTab('ongoing');
+    };
+    
+    window.addEventListener('freight:accepted', handleFreightAccepted as EventListener);
+    return () => window.removeEventListener('freight:accepted', handleFreightAccepted as EventListener);
+  }, [queryClient, fetchOngoingFreights, fetchMyAssignments, fetchAvailableFreights]);
+
   // ✅ CORREÇÃO: Criar versões debounced das funções de fetch
   const debouncedFetchOngoing = useCallback(
     debounce(() => {
