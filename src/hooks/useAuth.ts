@@ -600,8 +600,26 @@ export const useAuth = () => {
 
   const signOut = async () => {
     try {
-      // Limpar perfil salvo no logout
-      localStorage.removeItem('current_profile_id');
+      // Limpar todos os dados do usuário no logout para segurança
+      // Dados de sessão e contexto do usuário
+      const userDataKeys = [
+        'current_profile_id',
+        'current_company_id',
+        'redirect_after_login',
+        // Dados de cache e drafts do usuário
+        'saved_freight_searches',
+        'agriroute_nfe_offline_cache',
+        'freight_draft_data',
+        'freight_attachments_metadata',
+      ];
+      
+      userDataKeys.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          console.warn(`Failed to remove localStorage key: ${key}`, e);
+        }
+      });
 
       // Verificar sessão atual antes de deslogar
       const { data } = await supabase.auth.getSession();
