@@ -4,6 +4,8 @@ import { DollarSign } from 'lucide-react';
 import { PaymentCard, PaymentCardData } from '@/components/producer/PaymentCard';
 import { PaymentsSummary } from '@/components/producer/PaymentsSummary';
 import { PaymentChatModal } from '@/components/producer/PaymentChatModal';
+import { PaymentsExportButton } from '@/components/producer/PaymentsExportButton';
+import { PaymentsFilters, PaymentFilters, usePaymentsFilter } from '@/components/producer/PaymentsFilters';
 import type { FreightPayment } from './types';
 
 interface ProducerPaymentsTabProps {
@@ -26,10 +28,15 @@ export const ProducerPaymentsTab: React.FC<ProducerPaymentsTabProps> = ({
   const [chatModalOpen, setChatModalOpen] = useState(false);
   const [selectedFreightId, setSelectedFreightId] = useState<string | null>(null);
   const [selectedDriverName, setSelectedDriverName] = useState<string>('');
+  const [filters, setFilters] = useState<PaymentFilters>({});
 
-  const proposedPayments = externalPayments.filter(p => p.status === 'proposed');
-  const pendingDriverConfirmation = externalPayments.filter(p => p.status === 'paid_by_producer');
-  const completedPayments = externalPayments.filter(p => p.status === 'completed');
+  // Apply filters to payments
+  const filteredPayments = usePaymentsFilter(externalPayments, filters);
+
+  // Categorize filtered payments
+  const proposedPayments = filteredPayments.filter(p => p.status === 'proposed');
+  const pendingDriverConfirmation = filteredPayments.filter(p => p.status === 'paid_by_producer');
+  const completedPayments = filteredPayments.filter(p => p.status === 'completed');
 
   const handleOpenChat = (freightId: string, driverId: string) => {
     const payment = externalPayments.find(p => p.freight_id === freightId);
@@ -42,18 +49,45 @@ export const ProducerPaymentsTab: React.FC<ProducerPaymentsTabProps> = ({
     onConfirmPaymentMade(paymentId);
   };
 
+  const handleClearFilters = () => {
+    setFilters({});
+  };
+
   const hasPayments = externalPayments.length > 0 || freightPayments.length > 0;
+  const hasFilteredPayments = filteredPayments.length > 0;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+      {/* Header with Export Button */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h3 className="text-lg font-semibold">Pagamentos</h3>
+        <PaymentsExportButton 
+          payments={filteredPayments}
+          dateRange={filters.dateRange}
+          disabled={filteredPayments.length === 0}
+        />
       </div>
 
-      {/* Resumo Financeiro */}
+      {/* Resumo Financeiro - shows original totals */}
       {hasPayments && (
         <PaymentsSummary payments={externalPayments} />
+      )}
+
+      {/* Filtros Avançados */}
+      {hasPayments && (
+        <PaymentsFilters
+          payments={externalPayments}
+          filters={filters}
+          onFiltersChange={setFilters}
+          onClearFilters={handleClearFilters}
+        />
+      )}
+
+      {/* Filtered Results Info */}
+      {hasPayments && filteredPayments.length !== externalPayments.length && (
+        <div className="text-sm text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg">
+          Mostrando {filteredPayments.length} de {externalPayments.length} pagamentos
+        </div>
       )}
       
       <div className="space-y-6">
@@ -126,7 +160,20 @@ export const ProducerPaymentsTab: React.FC<ProducerPaymentsTabProps> = ({
           </div>
         )}
 
-        {/* Estado Vazio */}
+        {/* Estado Vazio - com filtros ativos */}
+        {hasPayments && !hasFilteredPayments && (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <DollarSign className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="font-semibold text-lg mb-2">Nenhum resultado encontrado</h3>
+              <p className="text-muted-foreground max-w-sm">
+                Nenhum pagamento corresponde aos filtros aplicados. Tente ajustar os critérios de busca.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Estado Vazio - sem pagamentos */}
         {!hasPayments && (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
