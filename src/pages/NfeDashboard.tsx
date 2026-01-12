@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NfeScannerDialog } from '@/components/nfe/NfeScannerDialog';
 import { AssistedManifestationDialog } from '@/components/nfe/AssistedManifestationDialog';
 import { NfeCard } from '@/components/nfe/NfeCard';
+import { BackButton } from '@/components/BackButton';
 import { useNfe } from '@/hooks/useNfe';
 import { NFeDocument } from '@/types/nfe';
 import { Plus, Loader2, FileText } from 'lucide-react';
@@ -44,6 +45,7 @@ export default function NfeDashboard() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
+          <BackButton label="Voltar" className="mb-4" />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <FileText className="h-8 w-8 text-primary" />
