@@ -36,6 +36,7 @@ import { AdvancedFreightFilters, FreightFilters } from '@/components/AdvancedFre
 import { FreightReportExporter } from '@/components/FreightReportExporter';
 import { useFreightReportData } from '@/hooks/useFreightReportData';
 import { ProducerReportsTab } from '@/pages/producer/ProducerReportsTab';
+import { ProducerPaymentsTab } from '@/pages/producer/ProducerPaymentsTab';
 import { Separator } from '@/components/ui/separator';
 import { PendingRatingsPanel } from '@/components/PendingRatingsPanel';
 import { ServicesModal } from '@/components/ServicesModal';
@@ -399,7 +400,7 @@ const ProducerDashboard = () => {
     }
   }, [profile?.id, profile?.role]);
 
-  // Buscar pagamentos externos
+  // Buscar pagamentos externos com dados do frete e motorista
   const fetchExternalPayments = useCallback(async () => {
     if (!profile?.id || profile.role !== 'PRODUTOR') {
       return;
@@ -408,7 +409,27 @@ const ProducerDashboard = () => {
     try {
       const { data, error } = await supabase
         .from('external_payments')
-        .select('*')
+        .select(`
+          *,
+          freight:freights(
+            id,
+            cargo_type,
+            origin_city,
+            origin_state,
+            destination_city,
+            destination_state,
+            pickup_date,
+            status,
+            price,
+            distance_km
+          ),
+          driver:profiles!external_payments_driver_id_fkey(
+            id,
+            full_name,
+            contact_phone,
+            profile_photo_url
+          )
+        `)
         .eq('producer_id', profile.id)
         .order('created_at', { ascending: false });
 
@@ -1769,217 +1790,17 @@ const ProducerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Pagamentos</h3>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Pagamentos Externos Solicitados */}
-              {externalPayments.filter(payment => payment.status === 'proposed').length > 0 && (
-                <div className="space-y-4">
-                  <h4 className="text-md font-semibold text-blue-700">Solicitações de Pagamento Recebidas</h4>
-                  {externalPayments.filter(payment => payment.status === 'proposed').map((payment) => (
-                    <Card key={payment.id} className="p-4 border-blue-200 bg-blue-50/50">
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h5 className="font-semibold text-lg">
-                              Solicitação de Pagamento - {payment.freight?.cargo_type || 'Frete'}
-                            </h5>
-                            <p className="text-sm text-muted-foreground">
-                              Valor solicitado: R$ {payment.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Motorista: {payment.driver?.full_name}
-                            </p>
-                            {payment.notes && (
-                              <p className="text-sm mt-2 p-2 bg-gray-100 rounded">
-                                Nota: {payment.notes}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Button
-                              onClick={() => confirmPaymentMade(payment.id)}
-                              size="sm"
-                              disabled={paymentLoading}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Confirmar Pagamento
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-
-              {/* Pagamentos Aguardando Confirmação do Motorista */}
-              {externalPayments.filter(payment => payment.status === 'paid_by_producer').length > 0 && (
-                <div className="space-y-4">
-                  <h4 className="text-md font-semibold text-orange-700">Aguardando Confirmação do Motorista</h4>
-                  {externalPayments.filter(payment => payment.status === 'paid_by_producer').map((payment) => (
-                    <Card key={payment.id} className="p-4 border-orange-200 bg-orange-50/50">
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h5 className="font-semibold text-lg">
-                              Pagamento Confirmado - {payment.freight?.cargo_type || 'Frete'}
-                            </h5>
-                            <p className="text-sm text-muted-foreground">
-                              Valor pago: R$ {payment.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Motorista: {payment.driver?.full_name}
-                            </p>
-                            <p className="text-sm text-orange-600 mt-2">
-                              ⏳ Aguardando confirmação de recebimento do motorista
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                            Pendente Confirmação
-                          </Badge>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-
-              {/* Pagamentos Concluídos */}
-              {(externalPayments.filter(payment => payment.status === 'completed').length > 0 || freightPayments.length > 0) && (
-                <div className="space-y-4">
-                  <h4 className="text-md font-semibold text-green-700">Pagamentos Concluídos</h4>
-                  
-                  {/* Pagamentos Externos Concluídos */}
-                  {externalPayments.filter(payment => payment.status === 'completed').map((payment) => (
-                    <Card key={payment.id} className="p-4 border-green-200 bg-green-50/50">
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h5 className="font-semibold text-lg">
-                              {payment.freight?.cargo_type || 'Frete'}
-                            </h5>
-                            <p className="text-sm text-muted-foreground">
-                              Valor pago: R$ {payment.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Motorista: {payment.driver?.full_name}
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">
-                            ✓ Concluído
-                          </Badge>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-
-                  {/* Pagamentos via Sistema */}
-                  {freightPayments.map((payment) => (
-                    <Card key={payment.id} className="p-4 border-green-200 bg-green-50/50">
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h5 className="font-semibold text-lg">
-                              {payment.freight?.cargo_type || 'Carregamento'}
-                            </h5>
-                            <p className="text-sm text-muted-foreground">
-                              Pagamento de R$ {(payment.amount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Tipo: {payment.payment_type === 'UPFRONT_50_PERCENT' ? '50% Adiantamento' : 'Pagamento Final'}
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">
-                            {payment.status === 'COMPLETED' ? '✓ Concluído' : 'Processando'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-
-              {/* Fretes Entregues Precisando Pagamento Final */}
-              {freights.filter(freight => 
-                freight.status === 'DELIVERED' && 
-                freight.profiles &&
-                !externalPayments.some(payment => 
-                  payment.freight_id === freight.id && 
-                  payment.status === 'completed' &&
-                  payment.amount >= (freight.price * 0.5)
-                )
-              ).length > 0 && (
-                <div className="space-y-4">
-                  <h4 className="text-md font-semibold text-purple-700">Fretes Entregues - Confirmar Pagamento Final</h4>
-                  {freights.filter(freight => 
-                    freight.status === 'DELIVERED' && 
-                    freight.profiles &&
-                    !externalPayments.some(payment => 
-                      payment.freight_id === freight.id && 
-                      payment.status === 'completed' &&
-                      payment.amount >= (freight.price * 0.5)
-                    )
-                  ).map((freight) => {
-                    const paidAmount = freightPayments
-                      .filter(payment => payment.freight_id === freight.id)
-                      .reduce((sum, payment) => sum + (payment.amount / 100), 0);
-                    const remainingAmount = freight.price - paidAmount;
-                    
-                    return (
-                      <Card key={freight.id} className="p-4 border-purple-200 bg-purple-50/50">
-                        <div className="space-y-4">
-                          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                            <div className="min-w-0 flex-1">
-                              <h5 className="font-semibold text-base sm:text-lg truncate">
-                                Frete Entregue - {freight.cargo_type}
-                              </h5>
-                              <p className="text-sm text-muted-foreground">
-                                Valor total: R$ {freight.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Já pago: R$ {paidAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
-                              <p className="text-sm font-semibold">
-                                Restante: R$ {remainingAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                Motorista: {freight.profiles?.full_name}
-                              </p>
-                            </div>
-                            <Button
-                              onClick={() => handleConfirmExternalPayment(freight.id, remainingAmount)}
-                              disabled={paymentLoading}
-                              className="w-full sm:w-auto shrink-0"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Confirmar Pagamento
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Mensagem se não há pagamentos */}
-              {freightPayments.length === 0 && 
-               externalPayments.length === 0 && 
-               freights.filter(freight => freight.status === 'ACCEPTED_BY_DRIVER' && freight.profiles).length === 0 && (
-                <Card className="border-dashed">
-                  <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                    <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="font-semibold text-lg mb-2">Nenhum pagamento encontrado</h3>
-                    <p className="text-muted-foreground">
-                      Não há registros de pagamentos no momento.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+            <ProducerPaymentsTab
+              externalPayments={externalPayments}
+              freightPayments={freightPayments}
+              paymentLoading={paymentLoading}
+              onConfirmExternalPayment={handleConfirmExternalPayment}
+              onConfirmPaymentMade={confirmPaymentMade}
+              onProcessStripePayment={(freightId, amount) => {
+                toast.info('Pagamento via Stripe em desenvolvimento');
+              }}
+              currentUserProfile={profile}
+            />
           </TabsContent>
 
         </Tabs>
