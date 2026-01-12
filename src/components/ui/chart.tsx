@@ -65,6 +65,28 @@ const ChartContainer = React.forwardRef<
 })
 ChartContainer.displayName = "Chart"
 
+// Validate CSS color format to prevent XSS
+const isValidCssColor = (color: string): boolean => {
+  if (!color || typeof color !== 'string') return false;
+  // Allow: hex (#fff, #ffffff), rgb/rgba, hsl/hsla, CSS variables, named colors
+  const validPatterns = [
+    /^#[0-9a-fA-F]{3,8}$/,                    // hex colors
+    /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/,  // rgb()
+    /^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*[\d.]+\s*\)$/, // rgba()
+    /^hsl\(\s*[\d.]+\s*,\s*[\d.]+%?\s*,\s*[\d.]+%?\s*\)$/, // hsl()
+    /^hsla\(\s*[\d.]+\s*,\s*[\d.]+%?\s*,\s*[\d.]+%?\s*,\s*[\d.]+\s*\)$/, // hsla()
+    /^var\(--[a-zA-Z0-9-]+\)$/,               // CSS variables
+    /^[a-zA-Z]+$/,                            // named colors (simple validation)
+  ];
+  return validPatterns.some(pattern => pattern.test(color.trim()));
+};
+
+const sanitizeColor = (color: string): string | null => {
+  if (!color) return null;
+  const trimmed = color.trim();
+  return isValidCssColor(trimmed) ? trimmed : null;
+};
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([_, config]) => config.theme || config.color
@@ -74,25 +96,37 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null
   }
 
+  // Build CSS text safely with validation
+  const cssText = Object.entries(THEMES)
+    .map(([theme, prefix]) => {
+      const colorRules = colorConfig
+        .map(([key, itemConfig]) => {
+          const rawColor =
+            itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+            itemConfig.color;
+          const safeColor = sanitizeColor(rawColor || '');
+          // Only include valid colors, escape the key
+          const safeKey = key.replace(/[^a-zA-Z0-9-_]/g, '');
+          return safeColor ? `  --color-${safeKey}: ${safeColor};` : null;
+        })
+        .filter(Boolean)
+        .join('\n');
+      
+      // Escape the id for use in CSS selector
+      const safeId = id.replace(/[^a-zA-Z0-9-_]/g, '');
+      return colorRules ? `${prefix} [data-chart=${safeId}] {\n${colorRules}\n}` : '';
+    })
+    .filter(Boolean)
+    .join('\n');
+
+  if (!cssText) {
+    return null;
+  }
+
   return (
     <style
       dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
-  })
-  .join("\n")}
-}
-`
-          )
-          .join("\n"),
+        __html: cssText,
       }}
     />
   )
