@@ -10639,6 +10639,7 @@ export type Database = {
         Args: { driver_service_types: string[]; freight_service_type: string }
         Returns: boolean
       }
+      is_service_role: { Args: never; Returns: boolean }
       is_transport_company: { Args: { p_user_id: string }; Returns: boolean }
       is_trusted_entity: {
         Args: { p_entity_type: string; p_entity_value: string }
