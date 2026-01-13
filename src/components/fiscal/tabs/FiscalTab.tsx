@@ -6,17 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   FileText, 
-  Upload, 
   Building2, 
   CheckCircle, 
   AlertTriangle,
-  Truck,
-  FileSpreadsheet,
-  PawPrint,
   Settings,
   Info
 } from 'lucide-react';
-import { useDocumentPermissions, BLOCKED_DOCUMENT_REASONS } from '@/hooks/useDocumentPermissions';
+import { useDocumentPermissions } from '@/hooks/useDocumentPermissions';
 import { FiscalDocumentCards } from './FiscalDocumentCards';
 import { FiscalIssuerSetup } from './FiscalIssuerSetup';
 import { FiscalOnboardingWizard } from '@/components/fiscal/FiscalOnboardingWizard';
@@ -44,7 +40,6 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
         .from('fiscal_issuers')
         .select('*')
         .eq('profile_id', profile.id)
-        .eq('is_active', true)
         .maybeSingle();
         
       if (error && error.code !== 'PGRST116') {
@@ -57,34 +52,35 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
 
   // Buscar documentos recentes
   const { data: recentDocuments } = useQuery({
-    queryKey: ['recent-fiscal-documents', profile?.id],
+    queryKey: ['recent-fiscal-documents', fiscalIssuer?.id],
     queryFn: async () => {
-      if (!profile?.id) return { nfes: 0, ctes: 0, mdfes: 0 };
+      if (!fiscalIssuer?.id) return { nfes: 0, ctes: 0, mdfes: 0 };
       
       const [nfeResult, cteResult] = await Promise.all([
         supabase
           .from('nfe_emissions')
           .select('id', { count: 'exact', head: true })
-          .eq('issuer_id', fiscalIssuer?.id || '')
+          .eq('issuer_id', fiscalIssuer.id)
           .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
         supabase
           .from('ctes')
           .select('id', { count: 'exact', head: true })
-          .eq('empresa_id', fiscalIssuer?.id || '')
+          .eq('empresa_id', fiscalIssuer.id)
           .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
       ]);
       
       return {
         nfes: nfeResult.count || 0,
         ctes: cteResult.count || 0,
-        mdfes: 0, // TODO: Adicionar quando tabela existir
+        mdfes: 0,
       };
     },
     enabled: !!fiscalIssuer?.id,
   });
 
   const hasIssuerConfigured = !!fiscalIssuer;
-  const hasCertificate = !!fiscalIssuer?.certificate_uploaded_at;
+  // Use status field from fiscal_issuers table
+  const hasCertificate = fiscalIssuer?.status === 'ACTIVE' || fiscalIssuer?.sefaz_status === 'validated';
 
   // Determinar status fiscal geral
   const getFiscalStatus = () => {
@@ -217,21 +213,23 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
                 <div className="grid gap-4 md:grid-cols-2">
                   <Card className="p-4">
                     <h4 className="font-medium mb-2">Ambiente SEFAZ</h4>
-                    <Badge variant={fiscalIssuer?.ambiente === 'producao' ? 'default' : 'secondary'}>
-                      {fiscalIssuer?.ambiente === 'producao' ? 'Produção' : 'Homologação'}
+                    <Badge variant={fiscalIssuer?.fiscal_environment === 'producao' ? 'default' : 'secondary'}>
+                      {fiscalIssuer?.fiscal_environment === 'producao' ? 'Produção' : 'Homologação'}
                     </Badge>
                     <p className="text-xs text-muted-foreground mt-2">
-                      {fiscalIssuer?.ambiente === 'producao' 
+                      {fiscalIssuer?.fiscal_environment === 'producao' 
                         ? 'Documentos com validade jurídica' 
                         : 'Ambiente de testes'}
                     </p>
                   </Card>
                   
                   <Card className="p-4">
-                    <h4 className="font-medium mb-2">Série Padrão</h4>
-                    <p className="text-2xl font-bold">{fiscalIssuer?.serie_padrao || '1'}</p>
+                    <h4 className="font-medium mb-2">Status do Emissor</h4>
+                    <Badge variant={fiscalIssuer?.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                      {fiscalIssuer?.status || 'PENDING'}
+                    </Badge>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Série utilizada para numeração dos documentos
+                      Status atual do cadastro fiscal
                     </p>
                   </Card>
                 </div>
@@ -244,8 +242,7 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
       {/* Modal de Onboarding Fiscal */}
       {showOnboarding && (
         <FiscalOnboardingWizard
-          isOpen={showOnboarding}
-          onClose={() => setShowOnboarding(false)}
+          onCancel={() => setShowOnboarding(false)}
           onComplete={() => {
             setShowOnboarding(false);
           }}
