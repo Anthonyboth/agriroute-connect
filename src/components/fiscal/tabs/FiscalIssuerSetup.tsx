@@ -12,9 +12,12 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { CertificateUploadDialog } from '@/components/fiscal/CertificateUploadDialog';
+import type { Database } from '@/integrations/supabase/types';
+
+type FiscalIssuerRow = Database['public']['Tables']['fiscal_issuers']['Row'];
 
 interface FiscalIssuerSetupProps {
-  fiscalIssuer: any;
+  fiscalIssuer: FiscalIssuerRow | null;
   userRole: string;
   onStartOnboarding: () => void;
 }
@@ -46,13 +49,11 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
     );
   }
 
-  const hasCertificate = !!fiscalIssuer.certificate_uploaded_at;
-  const certificateExpiry = fiscalIssuer.certificate_expiry_date 
-    ? new Date(fiscalIssuer.certificate_expiry_date) 
+  // Check certificate status based on sefaz validation
+  const hasCertificate = fiscalIssuer.sefaz_status === 'validated' || fiscalIssuer.status === 'ACTIVE';
+  const sefazValidatedAt = fiscalIssuer.sefaz_validated_at 
+    ? new Date(fiscalIssuer.sefaz_validated_at) 
     : null;
-  const isExpiringSoon = certificateExpiry && 
-    (certificateExpiry.getTime() - Date.now()) < 30 * 24 * 60 * 60 * 1000;
-  const isExpired = certificateExpiry && certificateExpiry < new Date();
 
   return (
     <div className="space-y-6">
@@ -69,8 +70,8 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
                 Informações cadastradas para emissão fiscal
               </CardDescription>
             </div>
-            <Badge variant={fiscalIssuer.is_active ? 'default' : 'secondary'}>
-              {fiscalIssuer.is_active ? 'Ativo' : 'Inativo'}
+            <Badge variant={fiscalIssuer.status === 'ACTIVE' ? 'default' : 'secondary'}>
+              {fiscalIssuer.status === 'ACTIVE' ? 'Ativo' : fiscalIssuer.status || 'Pendente'}
             </Badge>
           </div>
         </CardHeader>
@@ -78,16 +79,16 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-sm text-muted-foreground">Razão Social</p>
-              <p className="font-medium">{fiscalIssuer.razao_social || '-'}</p>
+              <p className="font-medium">{fiscalIssuer.legal_name || '-'}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Nome Fantasia</p>
-              <p className="font-medium">{fiscalIssuer.nome_fantasia || '-'}</p>
+              <p className="font-medium">{fiscalIssuer.trade_name || '-'}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">CNPJ</p>
+              <p className="text-sm text-muted-foreground">Documento</p>
               <p className="font-medium font-mono">
-                {fiscalIssuer.cnpj?.replace(
+                {fiscalIssuer.document_number?.replace(
                   /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
                   '$1.$2.$3/$4-$5'
                 ) || '-'}
@@ -95,16 +96,16 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Inscrição Estadual</p>
-              <p className="font-medium">{fiscalIssuer.inscricao_estadual || '-'}</p>
+              <p className="font-medium">{fiscalIssuer.state_registration || '-'}</p>
             </div>
             <div className="md:col-span-2">
               <p className="text-sm text-muted-foreground">Endereço</p>
               <p className="font-medium">
                 {[
-                  fiscalIssuer.logradouro,
-                  fiscalIssuer.numero,
-                  fiscalIssuer.bairro,
-                  fiscalIssuer.municipio,
+                  fiscalIssuer.address_street,
+                  fiscalIssuer.address_number,
+                  fiscalIssuer.address_neighborhood,
+                  fiscalIssuer.city,
                   fiscalIssuer.uf,
                 ].filter(Boolean).join(', ') || '-'}
               </p>
@@ -121,13 +122,7 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
       </Card>
 
       {/* Certificado Digital */}
-      <Card className={
-        isExpired 
-          ? 'border-red-500/50 bg-red-500/5' 
-          : isExpiringSoon 
-            ? 'border-yellow-500/50 bg-yellow-500/5'
-            : ''
-      }>
+      <Card className={!hasCertificate ? 'border-yellow-500/50 bg-yellow-500/5' : ''}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -140,54 +135,39 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
               </CardDescription>
             </div>
             {hasCertificate ? (
-              isExpired ? (
-                <Badge variant="destructive" className="gap-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  Expirado
-                </Badge>
-              ) : isExpiringSoon ? (
-                <Badge variant="outline" className="gap-1 border-yellow-500 text-yellow-600">
-                  <AlertTriangle className="h-3 w-3" />
-                  Expirando
-                </Badge>
-              ) : (
-                <Badge variant="default" className="gap-1 bg-green-600">
-                  <CheckCircle className="h-3 w-3" />
-                  Válido
-                </Badge>
-              )
+              <Badge variant="default" className="gap-1 bg-green-600">
+                <CheckCircle className="h-3 w-3" />
+                Válido
+              </Badge>
             ) : (
               <Badge variant="secondary">Não configurado</Badge>
             )}
           </div>
         </CardHeader>
         <CardContent>
-          {hasCertificate ? (
+          {hasCertificate && sefazValidatedAt ? (
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <p className="text-sm text-muted-foreground">Enviado em</p>
+                  <p className="text-sm text-muted-foreground">Validado em</p>
                   <p className="font-medium">
-                    {new Date(fiscalIssuer.certificate_uploaded_at).toLocaleDateString('pt-BR')}
+                    {sefazValidatedAt.toLocaleDateString('pt-BR')}
                   </p>
                 </div>
-                {certificateExpiry && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Validade</p>
-                    <p className={`font-medium ${isExpired ? 'text-red-600' : isExpiringSoon ? 'text-yellow-600' : ''}`}>
-                      {certificateExpiry.toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Status SEFAZ</p>
+                  <p className="font-medium text-green-600">
+                    {fiscalIssuer.sefaz_status || 'Validado'}
+                  </p>
+                </div>
               </div>
 
               <Button 
                 variant="outline" 
                 onClick={() => setShowCertUpload(true)}
-                className={isExpired || isExpiringSoon ? 'border-yellow-500 text-yellow-600' : ''}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                {isExpired ? 'Renovar Certificado' : 'Atualizar Certificado'}
+                Atualizar Certificado
               </Button>
             </div>
           ) : (
@@ -206,13 +186,11 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
       </Card>
 
       {/* Dialog de Upload de Certificado */}
-      {showCertUpload && (
-        <CertificateUploadDialog
-          isOpen={showCertUpload}
-          onClose={() => setShowCertUpload(false)}
-          issuerId={fiscalIssuer.id}
-        />
-      )}
+      <CertificateUploadDialog
+        open={showCertUpload}
+        onOpenChange={setShowCertUpload}
+        onSuccess={() => setShowCertUpload(false)}
+      />
     </div>
   );
 };
