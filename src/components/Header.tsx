@@ -162,21 +162,6 @@ const Header: React.FC<HeaderProps> = ({
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
-              {/* NF-es Link */}
-              {['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(user?.role || '') && (
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  className="h-9 px-3 text-muted-foreground hover:text-foreground"
-                  asChild
-                >
-                  <Link to="/nfe-dashboard" className="flex items-center gap-1.5">
-                    <FileText className="h-4 w-4" />
-                    <span className="text-sm">NF-es</span>
-                  </Link>
-                </Button>
-              )}
-              
               {/* Notifications */}
               <Button 
                 variant="ghost" 
@@ -334,21 +319,6 @@ const Header: React.FC<HeaderProps> = ({
 
                     {/* Menu Items */}
                     <div className="flex-1 overflow-y-auto p-2">
-                      {/* NF-es Link for Mobile */}
-                      {['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'TRANSPORTADORA'].includes(user?.role || '') && (
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-start h-11 px-3 mb-1" 
-                          asChild
-                          onClick={() => setIsSheetOpen(false)}
-                        >
-                          <Link to="/nfe-dashboard" className="flex items-center">
-                            <FileText className="mr-3 h-5 w-5 text-muted-foreground" />
-                            NF-es
-                          </Link>
-                        </Button>
-                      )}
-
                       {/* Menu Items */}
                       {menuItems.map((item) => (
                         <Button

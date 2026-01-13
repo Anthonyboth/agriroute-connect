@@ -76,6 +76,8 @@ import { RatingsHistoryPanel } from '@/components/RatingsHistoryPanel';
 import { ServicesModal } from '@/components/ServicesModal';
 import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard';
 import { normalizeServiceType } from '@/lib/pt-br-validator';
+import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
+import { FileText } from 'lucide-react';
 
 interface ServiceRequest {
   id: string;
@@ -1196,6 +1198,13 @@ export const ServiceProviderDashboard: React.FC = () => {
                 Disponível
               </TabsTrigger>
               <TabsTrigger 
+                value="fiscal" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+              >
+                <FileText className="h-3 w-3 mr-1" />
+                Fiscal
+              </TabsTrigger>
+              <TabsTrigger
                 value="accepted" 
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
               >
@@ -1672,6 +1681,10 @@ export const ServiceProviderDashboard: React.FC = () => {
 
           <TabsContent value="reports" className="space-y-4">
             <ProviderReportsTab />
+          </TabsContent>
+
+          <TabsContent value="fiscal" className="space-y-4">
+            <FiscalTab userRole="PRESTADOR_SERVICOS" />
           </TabsContent>
 
         </Tabs>

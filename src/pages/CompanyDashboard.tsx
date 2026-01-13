@@ -60,6 +60,7 @@ import { CompanyVehicleAssignments } from '@/components/CompanyVehicleAssignment
 import { FreightDetails } from '@/components/FreightDetails';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ServicesModal } from '@/components/ServicesModal';
+import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
 
 // ✅ PHASE 2: Lazy load chart-heavy components to reduce initial bundle
 const CompanyAnalyticsDashboard = lazy(() => import('@/components/CompanyAnalyticsDashboard').then(m => ({ default: m.CompanyAnalyticsDashboard })));
@@ -84,6 +85,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
     icon: Building2,
     badge: activeCount > 0 ? activeCount : undefined
   },
+  { value: 'fiscal', label: 'Fiscal', shortLabel: 'Fiscal', icon: FileText, badge: undefined },
   { value: 'marketplace', label: FRETES_IA_LABEL, shortLabel: FRETES_IA_LABEL, icon: Brain, badge: undefined },
   { value: 'drivers', label: 'Motoristas', shortLabel: 'Motoristas', icon: Users, badge: undefined },
   
@@ -670,6 +672,10 @@ const CompanyDashboard = () => {
 
           <TabsContent value="overview" className="mt-6">
             <CompanyDashboardComponent onNavigateToReport={handleNavigateToReport} />
+          </TabsContent>
+
+          <TabsContent value="fiscal" className="mt-6">
+            <FiscalTab userRole="TRANSPORTADORA" />
           </TabsContent>
 
           <TabsContent value="marketplace" className="mt-6">
