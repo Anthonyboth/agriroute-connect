@@ -49,41 +49,51 @@ if (isPublicPage && typeof window !== 'undefined') {
 }
 
 /**
- * Sanitize error data to remove sensitive information in production
+ * Sanitize error data to remove sensitive information
+ * SECURITY: Always sanitize in ALL environments to prevent data leakage
  */
 function sanitizeErrorData(data: Record<string, any>): Record<string, any> {
-  // In development, return full data
-  if (import.meta.env.DEV) {
-    return data;
+  // Always sanitize - never send full data even in development
+  const sanitized: Record<string, any> = {
+    errorType: data.errorType,
+    errorCategory: data.errorCategory,
+    module: data.module,
+    route: data.route,
+    metadata: {
+      timestamp: data.metadata?.timestamp || new Date().toISOString()
+    }
+  };
+  
+  // Sanitize error message - remove sensitive patterns
+  if (data.errorMessage) {
+    sanitized.errorMessage = data.errorMessage
+      // Remove UUIDs
+      .replace(/\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/gi, '[UUID]')
+      // Remove emails
+      .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
+      // Remove JWT tokens
+      .replace(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[JWT]')
+      // Remove API keys patterns
+      .replace(/\b(sk_|pk_|api_|key_)[a-zA-Z0-9]{20,}\b/g, '[API_KEY]')
+      // Limit length
+      .substring(0, 200);
   }
   
-  // In production, sanitize sensitive fields
-  const sanitized = { ...data };
+  // Never include stack traces - they reveal internal structure
+  // errorStack is intentionally omitted
   
-  // Remove stack traces in production
-  if (sanitized.errorStack) {
-    sanitized.errorStack = '[REDACTED IN PRODUCTION]';
-  }
-  
-  // Sanitize URL to remove query parameters
-  if (sanitized.metadata?.url) {
+  // Sanitize URL - only keep origin and pathname without query params
+  if (data.metadata?.url) {
     try {
-      const url = new URL(sanitized.metadata.url);
+      const url = new URL(data.metadata.url);
       sanitized.metadata.url = `${url.origin}${url.pathname}`;
     } catch {
-      sanitized.metadata.url = '[REDACTED]';
+      sanitized.metadata.url = '[INVALID_URL]';
     }
   }
   
-  // Remove internal file paths
-  if (sanitized.metadata?.filename) {
-    sanitized.metadata.filename = '[REDACTED]';
-  }
-  
-  // Simplify user agent
-  if (sanitized.metadata?.userAgent) {
-    sanitized.metadata.userAgent = '[BROWSER]';
-  }
+  // Remove all internal paths and user agents
+  // filename, lineno, colno, userAgent are intentionally omitted
   
   return sanitized;
 }
@@ -195,18 +205,16 @@ if (typeof window !== 'undefined' && !isPublicPage) {
     const errorKey = `window_error_${message.substring(0, 50)}`;
     
     if (shouldNotify(errorKey)) {
+      // SECURITY: Only send minimal, non-sensitive error info
       notifyErrorToTelegram({
         errorType: 'FRONTEND',
         errorCategory: 'CRITICAL',
-        errorMessage: message.substring(0, 500),
-        errorStack: event.error?.stack,
+        errorMessage: message.substring(0, 200),
+        // SECURITY: Never send stack traces - they expose internal structure
         module: 'window-error-handler',
         route: window.location.pathname,
         metadata: {
-          filename: event.filename,
-          lineno: event.lineno,
-          colno: event.colno,
-          userAgent: navigator.userAgent,
+          // SECURITY: Omit filename, lineno, colno, userAgent - they reveal internal info
           url: window.location.href,
           timestamp: new Date().toISOString()
         }
@@ -220,15 +228,16 @@ if (typeof window !== 'undefined' && !isPublicPage) {
     const errorKey = `promise_rejection_${message.substring(0, 50)}`;
     
     if (shouldNotify(errorKey)) {
+      // SECURITY: Only send minimal, non-sensitive error info
       notifyErrorToTelegram({
         errorType: 'FRONTEND',
         errorCategory: 'CRITICAL',
-        errorMessage: `Unhandled Promise Rejection: ${message.substring(0, 400)}`,
-        errorStack: event.reason?.stack,
+        errorMessage: `Unhandled Promise Rejection: ${message.substring(0, 200)}`,
+        // SECURITY: Never send stack traces
         module: 'unhandled-rejection-handler',
         route: window.location.pathname,
         metadata: {
-          userAgent: navigator.userAgent,
+          // SECURITY: Omit userAgent - reveals client info
           url: window.location.href,
           timestamp: new Date().toISOString()
         }
