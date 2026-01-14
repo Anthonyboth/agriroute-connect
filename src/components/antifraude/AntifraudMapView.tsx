@@ -62,7 +62,7 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
       }
     });
 
-    if (points.length === 0) return [-49.2733, -25.4284]; // Default: Curitiba
+    if (points.length === 0) return [-51.925, -14.235]; // Default: Centro do Brasil
 
     const avgLng = points.reduce((sum, p) => sum + p[0], 0) / points.length;
     const avgLat = points.reduce((sum, p) => sum + p[1], 0) / points.length;
@@ -80,12 +80,29 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
       style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       center,
       zoom: 8,
+      pixelRatio: window.devicePixelRatio || 1,
     });
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
+    
+    map.on('load', () => {
+      map.resize();
+    });
+    
     mapRef.current = map;
 
+    // ResizeObserver para containers dinâmicos
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapRef.current) {
+        mapRef.current.resize();
+      }
+    });
+    if (mapContainerRef.current) {
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
     return () => {
+      resizeObserver.disconnect();
       markersRef.current.forEach(m => m.remove());
       map.remove();
       mapRef.current = null;
@@ -288,7 +305,7 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="p-0 relative">
         <div 
           ref={mapContainerRef} 
           className="h-[350px] w-full rounded-b-lg"

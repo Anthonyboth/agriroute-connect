@@ -89,16 +89,37 @@ export const isScheduledFreight = (pickupDate: string | null, status: string): b
 
 /**
  * Verifica se um frete deve ser exibido na aba "Em Andamento"
+ * 
+ * Regra corrigida: 
+ * - Status LOADED, IN_TRANSIT, LOADING, DELIVERED_PENDING_CONFIRMATION = SEMPRE em andamento
+ * - Status ACCEPTED = em andamento se pickup_date <= hoje
+ * 
  * @param pickupDate Data de coleta do frete
  * @param status Status atual do frete
  * @returns true se deve aparecer em "Em Andamento"
  */
 export const isInProgressFreight = (pickupDate: string | null, status: string): boolean => {
+  // Finalizados nunca aparecem em andamento
   if (['CANCELLED', 'DELIVERED', 'COMPLETED'].includes(status)) return false;
-  if (!pickupDate) return ['ACCEPTED', 'LOADING', 'LOADED', 'IN_TRANSIT'].includes(status);
   
-  const classification = classifyFreightByPickupDate(pickupDate);
-  return classification.status === 'today' || classification.status === 'current';
+  // Status que indicam que o frete ESTÁ FISICAMENTE em andamento,
+  // independente da data de coleta (já foi carregado, está em trânsito, etc.)
+  const alwaysInProgressStatuses = ['LOADING', 'LOADED', 'IN_TRANSIT', 'DELIVERED_PENDING_CONFIRMATION'];
+  if (alwaysInProgressStatuses.includes(status)) {
+    return true;
+  }
+  
+  // Status ACCEPTED: depende da data de pickup
+  if (status === 'ACCEPTED') {
+    if (!pickupDate) return true; // Sem data = assume que está em andamento
+    
+    const classification = classifyFreightByPickupDate(pickupDate);
+    // Em andamento se pickup é hoje ou já passou
+    return classification.status === 'today' || classification.status === 'current' || classification.status === 'overdue';
+  }
+  
+  // Outros status (OPEN, etc.) não são "em andamento"
+  return false;
 };
 
 /**

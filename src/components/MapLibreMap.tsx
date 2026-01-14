@@ -45,6 +45,7 @@ const MapLibreMap: React.FC<MapLibreMapProps> = ({
         style: RURAL_STYLE_INLINE,
         center: [center.lng, center.lat],
         zoom,
+        pixelRatio: window.devicePixelRatio || 1,
       });
 
       // Controles de navegação
@@ -52,6 +53,8 @@ const MapLibreMap: React.FC<MapLibreMapProps> = ({
 
       map.on('load', () => {
         setIsLoading(false);
+        // Resize após load para garantir dimensões corretas
+        map.resize();
 
         // Adicionar listener de click se fornecido
         if (onClick) {
@@ -89,21 +92,32 @@ const MapLibreMap: React.FC<MapLibreMapProps> = ({
       });
 
       mapRef.current = map;
+
+      // ResizeObserver para containers dinâmicos (tabs/modais)
+      const resizeObserver = new ResizeObserver(() => {
+        if (mapRef.current) {
+          mapRef.current.resize();
+        }
+      });
+      if (mapContainerRef.current) {
+        resizeObserver.observe(mapContainerRef.current);
+      }
+
+      return () => {
+        resizeObserver.disconnect();
+        // Cleanup markers
+        markersRef.current.forEach((marker) => marker.remove());
+        markersRef.current = [];
+        
+        // Cleanup map
+        mapRef.current?.remove();
+        mapRef.current = null;
+      };
     } catch (err) {
       console.error('[MapLibreMap] Init error:', err);
       setError('Erro ao inicializar o mapa');
       setIsLoading(false);
     }
-
-    return () => {
-      // Cleanup markers
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current = [];
-      
-      // Cleanup map
-      mapRef.current?.remove();
-      mapRef.current = null;
-    };
   }, []);
 
   // Atualizar centro quando mudar

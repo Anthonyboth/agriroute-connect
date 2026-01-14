@@ -6,19 +6,28 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/**
+ * Verifica se o solicitante de um frete tem cadastro completo.
+ * 
+ * IMPORTANTE: Esta função APENAS INFORMA o status do solicitante.
+ * Ela NÃO altera o frete de nenhuma forma (sem efeitos colaterais).
+ */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("[CHECK-FREIGHT-REQUESTER] Function started");
+    console.log("[CHECK-FREIGHT-REQUESTER] Função iniciada");
     
     const { freight_id } = await req.json();
     
     if (!freight_id) {
       return new Response(
-        JSON.stringify({ error: "freight_id is required" }),
+        JSON.stringify({ 
+          success: false,
+          error: "ID do frete é obrigatório" 
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -34,23 +43,28 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser(token);
     
     if (!user) {
-      console.log("[CHECK-FREIGHT-REQUESTER] Unauthorized access attempt");
+      console.log("[CHECK-FREIGHT-REQUESTER] Tentativa de acesso não autorizado");
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ 
+          success: false,
+          error: "Não autorizado" 
+        }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`[CHECK-FREIGHT-REQUESTER] Checking freight ${freight_id} for user ${user.id}`);
+    console.log(`[CHECK-FREIGHT-REQUESTER] Verificando frete ${freight_id} para usuário ${user.id}`);
 
-    // Buscar frete com produtor
+    // Buscar frete com produtor usando FK correto
     const { data: freight, error: freightError } = await supabase
       .from("freights")
       .select(`
         id,
         status,
         producer_id,
-        producer:profiles!producer_id (
+        is_guest_freight,
+        prospect_user_id,
+        producer:profiles!freights_producer_id_fkey (
           id,
           user_id,
           full_name,
@@ -61,81 +75,59 @@ serve(async (req) => {
       .single();
 
     if (freightError || !freight) {
-      console.error(`[CHECK-FREIGHT-REQUESTER] Freight not found - ${freightError?.message}`);
+      console.error(`[CHECK-FREIGHT-REQUESTER] Frete não encontrado - ${freightError?.message}`);
       return new Response(
-        JSON.stringify({ error: "Frete não encontrado" }),
+        JSON.stringify({ 
+          success: false,
+          error: "Frete não encontrado" 
+        }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Determinar tipo de solicitante
     const producer = freight.producer as any;
+    const isGuestFreight = freight.is_guest_freight === true || freight.prospect_user_id != null;
+    const hasProducerId = freight.producer_id != null;
+    const producerExists = producer != null && producer.id != null;
     
-    // Verificar se o produtor tem cadastro (user_id preenchido)
-    const hasRegistration = producer?.user_id != null;
+    // Regra clara:
+    // - É GUEST se: is_guest_freight=true OU prospect_user_id preenchido OU producer_id é null
+    // - É REGISTERED se: producer_id existe E o profile existe
+    const requesterType = (isGuestFreight || !hasProducerId || !producerExists) ? 'GUEST' : 'REGISTERED';
+    const hasRegistration = requesterType === 'REGISTERED';
     
-    console.log(`[CHECK-FREIGHT-REQUESTER] Producer check - {${JSON.stringify({
+    console.log(`[CHECK-FREIGHT-REQUESTER] Resultado da verificação:`, JSON.stringify({
       freight_id,
       producer_id: freight.producer_id,
-      has_user_id: !!producer?.user_id,
+      is_guest_freight: freight.is_guest_freight,
+      prospect_user_id: freight.prospect_user_id,
+      producer_exists: producerExists,
+      requester_type: requesterType,
       has_registration: hasRegistration
-    })}}`);
+    }));
 
-    if (!hasRegistration) {
-      // Produtor sem cadastro: mover frete para histórico
-      console.log(`[CHECK-FREIGHT-REQUESTER] Producer without registration - moving to history`);
-      
-      const { error: updateError } = await supabase
-        .from("freights")
-        .update({
-          status: "CANCELLED",
-          metadata: {
-            history_only: true,
-            cancellation_reason: "REQUESTER_WITHOUT_REGISTRATION",
-            flagged_by: "check-freight-requester",
-            flagged_at: new Date().toISOString()
-          }
-        })
-        .eq("id", freight_id);
-
-      if (updateError) {
-        console.error(`[CHECK-FREIGHT-REQUESTER] Failed to update freight - ${updateError.message}`);
-        return new Response(
-          JSON.stringify({ error: "Erro ao processar verificação" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      console.log(`[CHECK-FREIGHT-REQUESTER] Freight ${freight_id} moved to history`);
-
-      return new Response(
-        JSON.stringify({
-          has_registration: false,
-          action: "history",
-          updated_status: "CANCELLED",
-          reason: "O solicitante não possui cadastro completo"
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Produtor com cadastro: tudo OK
-    console.log(`[CHECK-FREIGHT-REQUESTER] Producer has valid registration`);
-    
+    // IMPORTANTE: Apenas retorna informação, NÃO altera o frete
     return new Response(
       JSON.stringify({
-        has_registration: true,
-        action: "keep_active",
-        producer_status: producer.status
+        success: true,
+        requester: {
+          type: requesterType,
+          has_registration: hasRegistration,
+          producer_id: freight.producer_id,
+          producer_name: producer?.full_name || null,
+          producer_status: producer?.status || null
+        }
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error: any) {
-    console.error("[CHECK-FREIGHT-REQUESTER] Fatal error:", error);
+    console.error("[CHECK-FREIGHT-REQUESTER] Erro fatal:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Erro inesperado",
-        timestamp: new Date().toISOString()
+        success: false,
+        error: "Erro interno ao verificar solicitante"
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
