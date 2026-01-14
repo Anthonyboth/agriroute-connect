@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { FreightTemplatesTab } from './freight-templates/FreightTemplatesTab';
 import { CreateFreightWizardModal } from './freight-wizard';
+import { ReopenFreightModal } from './ReopenFreightModal';
 import { FreightChat } from './FreightChat';
 import { getFreightStatusLabel } from '@/lib/freight-status';
 import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
@@ -65,31 +66,23 @@ export const FreightHistory: React.FC = () => {
   const [selectedFreight, setSelectedFreight] = useState<Freight | null>(null);
   const [showChatDialog, setShowChatDialog] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
-  const [reopening, setReopening] = useState(false);
   const [showCreateFreightModal, setShowCreateFreightModal] = useState(false);
   const [templateData, setTemplateData] = useState<any>(null);
+  
+  // Estado para modal de reabrir frete
+  const [reopenModalOpen, setReopenModalOpen] = useState(false);
+  const [freightToReopen, setFreightToReopen] = useState<Freight | null>(null);
 
-  const handleReopenFreight = async (freightId: string) => {
-    if (reopening) return;
-    
-    setReopening(true);
-    try {
-      const { data, error } = await supabase.rpc('reopen_freight', { 
-        p_freight_id: freightId 
-      });
-      
-      if (error) throw error;
-      
-      toast.success('Frete reaberto com sucesso!');
-      
-      // Atualizar lista
-      fetchFreights();
-    } catch (error: any) {
-      console.error('Erro ao reabrir frete:', error);
-      toast.error(error.message || 'Erro ao reabrir frete');
-    } finally {
-      setReopening(false);
-    }
+  const handleReopenFreight = (freight: Freight) => {
+    setFreightToReopen(freight);
+    setReopenModalOpen(true);
+  };
+
+  const handleReopenSuccess = () => {
+    setReopenModalOpen(false);
+    setFreightToReopen(null);
+    fetchFreights();
+    toast.success('Frete reaberto com sucesso!');
   };
 
   useEffect(() => {
@@ -462,11 +455,10 @@ export const FreightHistory: React.FC = () => {
                             <Button
                               variant="secondary"
                               size="sm"
-                              onClick={() => handleReopenFreight(freight.id)}
-                              disabled={reopening}
+                              onClick={() => handleReopenFreight(freight)}
                               className="flex-1"
                             >
-                              <RefreshCw className={`h-4 w-4 mr-2 ${reopening ? 'animate-spin' : ''}`} />
+                              <RefreshCw className="h-4 w-4 mr-2" />
                               Reabrir Frete
                             </Button>
                           )}
@@ -513,6 +505,19 @@ export const FreightHistory: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal para Reabrir Frete */}
+      {freightToReopen && (
+        <ReopenFreightModal
+          isOpen={reopenModalOpen}
+          onClose={() => {
+            setReopenModalOpen(false);
+            setFreightToReopen(null);
+          }}
+          freight={freightToReopen}
+          onSuccess={handleReopenSuccess}
+        />
+      )}
     </div>
   );
 };

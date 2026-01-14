@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -12,9 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Eye, EyeOff, Truck, Users, Leaf } from 'lucide-react';
+import { Eye, EyeOff, Truck, Users, Leaf, Building2, Wrench } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { validateDocument } from '@/utils/cpfValidator';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -22,110 +22,99 @@ interface AuthModalProps {
   initialTab?: 'login' | 'signup';
 }
 
+type UserRole = 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS';
+
+const userRoles: { value: UserRole; label: string; icon: React.ReactNode; description: string }[] = [
+  { 
+    value: 'PRODUTOR', 
+    label: 'Produtor/Contratante', 
+    icon: <Users className="h-6 w-6" />,
+    description: 'Contrate fretes para suas cargas'
+  },
+  { 
+    value: 'MOTORISTA', 
+    label: 'Motorista', 
+    icon: <Truck className="h-6 w-6" />,
+    description: 'Encontre e aceite fretes'
+  },
+  { 
+    value: 'TRANSPORTADORA', 
+    label: 'Transportadora', 
+    icon: <Building2 className="h-6 w-6" />,
+    description: 'Gerencie sua frota e motoristas'
+  },
+  { 
+    value: 'PRESTADOR_SERVICOS', 
+    label: 'Prestador de Serviços', 
+    icon: <Wrench className="h-6 w-6" />,
+    description: 'Ofereça serviços auxiliares'
+  },
+];
+
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'login' }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [userType, setUserType] = useState<'PRODUTOR' | 'MOTORISTA'>('PRODUTOR');
+  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   
   const [loginForm, setLoginForm] = useState({
     email: '',
     password: ''
   });
-  
-  const [signupForm, setSignupForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    document: '', // CPF ou CNPJ
-    password: ''
-  });
 
   React.useEffect(() => {
     setActiveTab(initialTab);
-  }, [initialTab]);
+    setSelectedRole(null);
+  }, [initialTab, isOpen]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Mock authentication
-    if (loginForm.email && loginForm.password) {
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Redirecionando para o dashboard...",
-      });
-      
-      // Simulate login with mock user type
-      const mockUserType = loginForm.email.includes('producer') ? 'PRODUTOR' : 'MOTORISTA';
-      const dashboardPath = mockUserType === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver';
-      
-      setTimeout(() => {
-        navigate(dashboardPath);
-        onClose();
-      }, 1000);
-    } else {
+    if (!loginForm.email || !loginForm.password) {
       toast({
         title: "Erro no login",
         description: "Preencha todos os campos.",
         variant: "destructive"
       });
+      return;
     }
+    
+    // Redirecionar para a página de auth com parâmetros
+    onClose();
+    navigate('/auth?tab=login');
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate required fields
-    if (!signupForm.document.trim()) {
-      toast({
-        title: "CPF/CNPJ obrigatório",
-        description: "Por favor, preencha o CPF/CNPJ para continuar o cadastro.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleSignupRoleSelect = (role: UserRole) => {
+    setSelectedRole(role);
+  };
 
-    // Validate CPF/CNPJ format
-    if (!validateDocument(signupForm.document)) {
+  const handleProceedToSignup = () => {
+    if (!selectedRole) {
       toast({
-        title: "CPF/CNPJ inválido",
-        description: "Verifique o formato do CPF/CNPJ informado.",
+        title: "Selecione o tipo de conta",
+        description: "Por favor, escolha o tipo de conta que deseja criar.",
         variant: "destructive"
       });
       return;
     }
     
-    if (signupForm.name && signupForm.email && signupForm.password) {
-      toast({
-        title: "Cadastro realizado com sucesso!",
-        description: "Redirecionando para o dashboard...",
-      });
-      
-      const dashboardPath = userType === 'PRODUTOR' ? '/dashboard/producer' : '/dashboard/driver';
-      
-      setTimeout(() => {
-        navigate(dashboardPath);
-        onClose();
-      }, 1000);
-    } else {
-      toast({
-        title: "Erro no cadastro",
-        description: "Preencha todos os campos obrigatórios.",
-        variant: "destructive"
-      });
-    }
+    onClose();
+    navigate(`/auth?tab=signup&role=${selectedRole}`);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-center space-x-2 mb-4">
+          <div className="flex items-center justify-center space-x-2 mb-2">
             <Leaf className="h-8 w-8 text-primary" />
             <DialogTitle className="text-2xl font-bold">AgriRoute</DialogTitle>
           </div>
+          <DialogDescription className="text-center">
+            Plataforma de fretes agrícolas
+          </DialogDescription>
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'login' | 'signup')} className="w-full">
@@ -177,135 +166,51 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
             </form>
             
             <div className="text-center">
-              <Button variant="link" className="text-sm text-muted-foreground">
+              <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate('/auth?tab=forgot')}>
                 Esqueceu sua senha?
               </Button>
             </div>
           </TabsContent>
           
           <TabsContent value="signup" className="space-y-4">
-            {/* User Type Selection */}
             <div className="space-y-3">
-              <Label>Tipo de usuário</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <Card 
-                  className={`cursor-pointer transition-smooth ${
-                    userType === 'PRODUTOR' 
-                      ? 'ring-2 ring-primary bg-primary/5' 
-                      : 'hover:bg-muted/50'
-                  }`}
-                  onClick={() => setUserType('PRODUTOR')}
-                >
-                  <CardContent className="flex flex-col items-center justify-center p-4">
-                    <Users className="h-8 w-8 text-primary mb-2" />
-                    <span className="text-sm font-medium">Produtor/Contratante</span>
-                  </CardContent>
-                </Card>
-                
-                <Card 
-                  className={`cursor-pointer transition-smooth ${
-                    userType === 'MOTORISTA' 
-                      ? 'ring-2 ring-accent bg-accent/5' 
-                      : 'hover:bg-muted/50'
-                  }`}
-                  onClick={() => setUserType('MOTORISTA')}
-                >
-                  <CardContent className="flex flex-col items-center justify-center p-4">
-                    <Truck className="h-8 w-8 text-accent mb-2" />
-                    <span className="text-sm font-medium">Motorista</span>
-                  </CardContent>
-                </Card>
+              <Label className="text-base font-semibold">Escolha o tipo de conta</Label>
+              <p className="text-sm text-muted-foreground">
+                Selecione o perfil que melhor se encaixa com você
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {userRoles.map((role) => (
+                  <Card 
+                    key={role.value}
+                    className={`cursor-pointer transition-all duration-200 ${
+                      selectedRole === role.value 
+                        ? 'ring-2 ring-primary bg-primary/5 shadow-md' 
+                        : 'hover:bg-muted/50 hover:shadow-sm'
+                    }`}
+                    onClick={() => handleSignupRoleSelect(role.value)}
+                  >
+                    <CardContent className="flex flex-col items-center justify-center p-4 text-center">
+                      <div className={`mb-2 ${selectedRole === role.value ? 'text-primary' : 'text-muted-foreground'}`}>
+                        {role.icon}
+                      </div>
+                      <span className="text-sm font-medium">{role.label}</span>
+                      <span className="text-xs text-muted-foreground mt-1">{role.description}</span>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
             
             <Separator />
             
-            <form onSubmit={handleSignup} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome completo</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Seu nome completo"
-                  value={signupForm.name}
-                  onChange={(e) => setSignupForm(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="signup-email">Email</Label>
-                <Input
-                  id="signup-email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={signupForm.email}
-                  onChange={(e) => setSignupForm(prev => ({ ...prev, email: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="(11) 99999-9999"
-                    value={signupForm.phone}
-                    onChange={(e) => setSignupForm(prev => ({ ...prev, phone: e.target.value }))}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="document">
-                    {userType === 'PRODUTOR' ? 'CPF/CNPJ *' : 'CPF *'}
-                  </Label>
-                  <Input
-                    id="document"
-                    type="text"
-                    placeholder={userType === 'PRODUTOR' ? '000.000.000-00 ou 00.000.000/0001-00' : '000.000.000-00'}
-                    value={signupForm.document}
-                    onChange={(e) => setSignupForm(prev => ({ ...prev, document: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="signup-password">Senha</Label>
-                <div className="relative">
-                  <Input
-                    id="signup-password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Crie uma senha forte"
-                    value={signupForm.password}
-                    onChange={(e) => setSignupForm(prev => ({ ...prev, password: e.target.value }))}
-                    required
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-              
-              <Button 
-                type="submit" 
-                className={`w-full ${
-                  userType === 'PRODUTOR' 
-                    ? 'gradient-primary text-primary-foreground' 
-                    : 'bg-accent text-accent-foreground'
-                }`}
-              >
-                Criar Conta
-              </Button>
-            </form>
+            <Button 
+              onClick={handleProceedToSignup}
+              disabled={!selectedRole}
+              className="w-full gradient-primary text-primary-foreground"
+            >
+              Continuar Cadastro
+            </Button>
             
             <div className="text-xs text-muted-foreground text-center">
               Ao criar uma conta, você aceita nossos{' '}
