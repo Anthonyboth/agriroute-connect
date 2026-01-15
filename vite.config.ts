@@ -81,10 +81,58 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
-  // ✅ PERFORMANCE: PostCSS com PurgeCSS - SAFELIST ROBUSTA v2
-  // Preserva todas as classes dinâmicas, variáveis CSS, e componentes de terceiros
+  // ✅ PERFORMANCE: PostCSS com PurgeCSS para reduzir CSS não utilizado
   css: {
     devSourcemap: false, // Disable CSS sourcemaps in dev for faster HMR
+    postcss: {
+      plugins: mode === 'production' ? [
+        purgecss({
+          content: [
+            './index.html',
+            './src/**/*.{js,ts,jsx,tsx}',
+          ],
+          defaultExtractor: (content: string) => content.match(/[\w-/:]+(?<!:)/g) || [],
+          safelist: {
+            standard: [
+              /^html/,
+              /^body/,
+              /^:root/,
+              /^dark/,
+              // Radix UI
+              /^data-/,
+              /\[data-.*\]/,
+              // Tailwind dynamic classes
+              /^bg-/,
+              /^text-/,
+              /^border-/,
+              /^hover:/,
+              /^focus:/,
+              /^active:/,
+              /^disabled:/,
+              /^group-/,
+              /^peer-/,
+              // Animations
+              /^animate-/,
+              /^transition-/,
+              // Responsive
+              /^sm:/,
+              /^md:/,
+              /^lg:/,
+              /^xl:/,
+              /^2xl:/,
+            ],
+            deep: [
+              /radix/,
+              /sonner/,
+              /cmdk/,
+            ],
+            greedy: [
+              /^lucide-/,
+            ]
+          }
+        })
+      ] : [],
+    },
   },
   build: {
     rollupOptions: {
