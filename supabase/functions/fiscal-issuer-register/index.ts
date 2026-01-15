@@ -192,8 +192,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create the fiscal issuer
-    const now = new Date().toISOString();
+    // Create the fiscal issuer - only include columns that exist in the table schema
     const issuerData = {
       profile_id: profile.id,
       issuer_type: data.issuer_type,
@@ -215,9 +214,7 @@ Deno.serve(async (req) => {
       email_fiscal: data.email_fiscal || null,
       telefone_fiscal: data.telefone_fiscal || null,
       status: 'DOCUMENT_VALIDATED',
-      ambiente: 'homologacao',
-      created_at: now,
-      updated_at: now,
+      // Note: 'ambiente' column removed - doesn't exist in schema
     };
 
     const { data: issuer, error: insertError } = await supabase
