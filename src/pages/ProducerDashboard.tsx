@@ -435,10 +435,16 @@ const ProducerDashboard = () => {
         .eq('producer_id', profile.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Silently handle - table may not have data or RLS issue
+        console.warn('Pagamentos externos não disponíveis:', error.message);
+        setExternalPayments([]);
+        return;
+      }
       setExternalPayments(data || []);
     } catch (error) {
-      toast.error('Erro ao carregar pagamentos');
+      console.warn('Erro ao buscar pagamentos externos:', error);
+      setExternalPayments([]);
     }
   }, [profile?.id, profile?.role]);
 
@@ -455,10 +461,17 @@ const ProducerDashboard = () => {
         .eq('payer_id', profile.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Silently ignore if table doesn't exist or RLS error
+        console.warn('Pagamentos de fretes não disponíveis:', error.message);
+        setFreightPayments([]);
+        return;
+      }
       setFreightPayments(data || []);
     } catch (error) {
-      toast.error('Erro ao carregar pagamentos de fretes');
+      // Silent fail - tabela pode não existir
+      console.warn('Erro ao buscar pagamentos:', error);
+      setFreightPayments([]);
     }
   }, [profile?.id, profile?.role]);
 
