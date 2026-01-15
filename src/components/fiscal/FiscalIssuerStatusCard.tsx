@@ -31,42 +31,42 @@ const STATUS_CONFIG: Record<IssuerStatus, {
   icon: React.ElementType;
   action?: string;
 }> = {
-  PENDING: {
+  pending: {
     label: 'Pendente',
     color: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30',
     icon: Clock,
     action: 'Continuar cadastro',
   },
-  DOCUMENT_VALIDATED: {
+  document_validated: {
     label: 'Documentos Validados',
     color: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
     icon: FileText,
     action: 'Enviar certificado',
   },
-  CERTIFICATE_PENDING: {
+  certificate_pending: {
     label: 'Aguardando Certificado',
     color: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30',
     icon: Key,
     action: 'Enviar certificado',
   },
-  CERTIFICATE_UPLOADED: {
+  certificate_uploaded: {
     label: 'Certificado Enviado',
     color: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
     icon: Key,
     action: 'Validar com SEFAZ',
   },
-  SEFAZ_VALIDATED: {
+  sefaz_validated: {
     label: 'Validado pela SEFAZ',
     color: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
     icon: Shield,
     action: 'Aceitar termo',
   },
-  ACTIVE: {
+  active: {
     label: 'Ativo',
     color: 'bg-green-500/20 text-green-700 border-green-500/30',
     icon: CheckCircle2,
   },
-  BLOCKED: {
+  blocked: {
     label: 'Bloqueado',
     color: 'bg-destructive/20 text-destructive border-destructive/30',
     icon: XCircle,
@@ -126,7 +126,7 @@ export function FiscalIssuerStatusCard({
     );
   }
 
-  const statusConfig = STATUS_CONFIG[issuer.status] || STATUS_CONFIG.PENDING;
+  const statusConfig = STATUS_CONFIG[issuer.status] || STATUS_CONFIG.pending;
   const StatusIcon = statusConfig.icon;
 
   return (
@@ -138,7 +138,7 @@ export function FiscalIssuerStatusCard({
             Emissor Fiscal
           </CardTitle>
           <CardDescription>
-            {issuer.razao_social}
+            {issuer.legal_name}
           </CardDescription>
         </div>
         <Button 
@@ -160,12 +160,12 @@ export function FiscalIssuerStatusCard({
             </Badge>
           </div>
           <span className="text-sm text-muted-foreground">
-            {formatDocument(issuer.cpf_cnpj)}
+            {formatDocument(issuer.document_number)}
           </span>
         </div>
 
         {/* Progress (if not active/blocked) */}
-        {issuer.status !== 'ACTIVE' && issuer.status !== 'BLOCKED' && (
+        {issuer.status !== 'active' && issuer.status !== 'blocked' && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Progresso</span>
@@ -224,7 +224,7 @@ export function FiscalIssuerStatusCard({
         )}
 
         {/* Wallet info */}
-        {wallet && issuer.status === 'ACTIVE' && (
+        {wallet && issuer.status === 'active' && (
           <div className="p-3 bg-muted rounded-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -232,25 +232,25 @@ export function FiscalIssuerStatusCard({
                 Saldo Disponível
               </div>
               <span className="font-bold text-lg">
-                {wallet.balance} emissões
+                {wallet.available_balance} emissões
               </span>
             </div>
-            {wallet.total_emissions_used > 0 && (
+            {wallet.total_debited > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
-                {wallet.total_emissions_used} emissões realizadas
+                {wallet.total_debited} emissões realizadas
               </p>
             )}
           </div>
         )}
 
         {/* Blocked reason */}
-        {issuer.status === 'BLOCKED' && issuer.blocked_reason && (
+        {issuer.status === 'blocked' && issuer.block_reason && (
           <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-destructive">Emissor Bloqueado</p>
-                <p className="text-xs text-destructive/80 mt-1">{issuer.blocked_reason}</p>
+                <p className="text-xs text-destructive/80 mt-1">{issuer.block_reason}</p>
               </div>
             </div>
           </div>

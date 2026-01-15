@@ -26,7 +26,7 @@ export function FiscalOnboardingStep4({ onNext, onBack }: FiscalOnboardingStep4P
   const [status, setStatus] = useState<ValidationStatus>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  const isAlreadyValidated = issuer?.status === 'SEFAZ_VALIDATED' || issuer?.status === 'ACTIVE';
+  const isAlreadyValidated = issuer?.status === 'sefaz_validated' || issuer?.status === 'active';
 
   const handleValidate = async () => {
     setStatus('validating');

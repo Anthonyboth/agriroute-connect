@@ -3,35 +3,42 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export type IssuerType = 'CPF' | 'CNPJ' | 'MEI';
-export type IssuerStatus = 'PENDING' | 'DOCUMENT_VALIDATED' | 'CERTIFICATE_PENDING' | 'CERTIFICATE_UPLOADED' | 'SEFAZ_VALIDATED' | 'ACTIVE' | 'BLOCKED';
+export type IssuerStatus = 'pending' | 'document_validated' | 'certificate_pending' | 'certificate_uploaded' | 'sefaz_validated' | 'active' | 'blocked';
 export type FiscalEnvironment = 'homologacao' | 'producao';
 
 export interface FiscalIssuer {
   id: string;
   profile_id: string;
-  issuer_type: IssuerType;
-  cpf_cnpj: string;
-  razao_social: string;
-  nome_fantasia?: string;
-  inscricao_estadual?: string;
-  inscricao_municipal?: string;
-  regime_tributario: string;
-  cnae_principal?: string;
-  endereco_logradouro?: string;
-  endereco_numero?: string;
-  endereco_complemento?: string;
-  endereco_bairro?: string;
-  endereco_cidade?: string;
-  endereco_uf?: string;
-  endereco_cep?: string;
-  endereco_ibge?: string;
-  email_fiscal?: string;
-  telefone_fiscal?: string;
+  document_type: string;
+  document_number: string;
+  legal_name: string;
+  trade_name?: string;
+  state_registration?: string;
+  municipal_registration?: string;
+  tax_regime: string;
+  cnae_code?: string;
+  cnae_description?: string;
+  address_street?: string;
+  address_number?: string;
+  address_complement?: string;
+  address_neighborhood?: string;
+  city: string;
+  uf: string;
+  address_zip_code?: string;
+  city_ibge_code?: string;
+  fiscal_environment: string;
   status: IssuerStatus;
-  ambiente: FiscalEnvironment;
+  status_reason?: string;
+  sefaz_status?: string;
   sefaz_validated_at?: string;
-  blocked_reason?: string;
-  terms_accepted_at?: string;
+  sefaz_validation_response?: any;
+  onboarding_step?: number;
+  onboarding_completed?: boolean;
+  onboarding_completed_at?: string;
+  activated_at?: string;
+  blocked_at?: string;
+  blocked_by?: string;
+  block_reason?: string;
   created_at: string;
   updated_at: string;
 }
@@ -52,11 +59,15 @@ export interface FiscalCertificate {
 
 export interface FiscalWallet {
   id: string;
+  profile_id: string;
   issuer_id: string;
-  balance: number;
-  total_credits_purchased: number;
-  total_emissions_used: number;
-  last_purchase_at?: string;
+  available_balance: number;
+  reserved_balance: number;
+  total_credited: number;
+  total_debited: number;
+  emissions_count: number;
+  last_emission_at?: string;
+  last_credit_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -366,7 +377,7 @@ export function useFiscalIssuer() {
         .from('fiscal_issuers')
         .update({
           terms_accepted_at: new Date().toISOString(),
-          status: issuer.status === 'SEFAZ_VALIDATED' ? 'ACTIVE' : issuer.status,
+          status: issuer.status === 'sefaz_validated' ? 'active' : issuer.status,
           updated_at: new Date().toISOString(),
         } as any)
         .eq('id', issuer.id);
@@ -398,19 +409,19 @@ export function useFiscalIssuer() {
     }
 
     switch (issuer.status) {
-      case 'PENDING':
+      case 'pending':
         return { step: 1, total: 5, label: 'Cadastro pendente', canEmit: false };
-      case 'DOCUMENT_VALIDATED':
+      case 'document_validated':
         return { step: 2, total: 5, label: 'Documentos validados', canEmit: false };
-      case 'CERTIFICATE_PENDING':
+      case 'certificate_pending':
         return { step: 2, total: 5, label: 'Certificado pendente', canEmit: false };
-      case 'CERTIFICATE_UPLOADED':
+      case 'certificate_uploaded':
         return { step: 3, total: 5, label: 'Certificado enviado', canEmit: false };
-      case 'SEFAZ_VALIDATED':
+      case 'sefaz_validated':
         return { step: 4, total: 5, label: 'Validado pela SEFAZ', canEmit: false };
-      case 'ACTIVE':
+      case 'active':
         return { step: 5, total: 5, label: 'Ativo', canEmit: true };
-      case 'BLOCKED':
+      case 'blocked':
         return { step: 0, total: 5, label: 'Bloqueado', canEmit: false };
       default:
         return { step: 0, total: 5, label: 'Desconhecido', canEmit: false };
