@@ -6,6 +6,7 @@
 # Hashed assets (immutable - 1 year cache)
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
 
 # Hero images (immutable - 1 year cache)  
 /hero-truck-night-moon.webp
