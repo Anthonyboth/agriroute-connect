@@ -15,21 +15,34 @@ const isPublicPage = typeof window !== 'undefined' &&
     path => window.location.pathname === path || window.location.pathname.startsWith('/auth')
   );
 
+// Realtime configuration - completely disabled on public pages to prevent WebSocket errors
+const realtimeConfig = isPublicPage ? {
+  // On public pages, use a dummy/disabled configuration
+  params: {
+    eventsPerSecond: 0
+  },
+  // Prevent automatic connection by using long timeouts
+  timeout: 1,
+  heartbeatIntervalMs: 999999999,
+  // Disable reconnect attempts
+  reconnectAfterMs: () => 999999999
+} : {
+  params: {
+    eventsPerSecond: 10
+  },
+  timeout: 30000,
+  heartbeatIntervalMs: 30000
+};
+
 // Create Supabase client with realtime configuration
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: typeof window !== 'undefined' ? localStorage : undefined,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
-  realtime: {
-    params: {
-      eventsPerSecond: isPublicPage ? 0 : 10
-    },
-    timeout: 30000,
-    heartbeatIntervalMs: 30000
-  },
+  realtime: realtimeConfig,
   global: {
     headers: {
       'X-Client-Info': 'agriroute-web'
@@ -37,15 +50,19 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Completely disable realtime on public pages to prevent WebSocket console errors
+// Immediately disconnect realtime on public pages BEFORE any connection attempt
 if (isPublicPage && typeof window !== 'undefined') {
-  // Remove all channels and disconnect immediately to prevent connection attempts
-  try {
-    supabase.removeAllChannels();
-    supabase.realtime.disconnect();
-  } catch {
-    // Silently handle any disconnection errors
-  }
+  // Use queueMicrotask to run immediately after client creation but before any async operations
+  queueMicrotask(() => {
+    try {
+      // Set connection state to closed to prevent reconnection attempts
+      supabase.realtime.setAuth(null);
+      supabase.removeAllChannels();
+      supabase.realtime.disconnect();
+    } catch {
+      // Silently handle any disconnection errors
+    }
+  });
 }
 
 /**
