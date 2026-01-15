@@ -49,14 +49,46 @@ if (isPublicPage && typeof window !== 'undefined') {
 }
 
 /**
+ * Check if a message contains SQL-like syntax that could reveal database structure
+ */
+function containsSqlSyntax(message: string): boolean {
+  const sqlPatterns = [
+    /\b(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN|CREATE|ALTER|DROP|TABLE|COLUMN|INDEX)\b/i,
+    /\b(pg_|information_schema|public\.)\w+/i,
+    /\b(uuid|jsonb?|text|integer|boolean|timestamp)\b/i,
+    /\bviolates\s+(foreign|unique|check)\s+key/i,
+    /\brow-level\s+security/i,
+    /\bpolicy\b.*\b(for|on|using|with\s+check)\b/i
+  ];
+  return sqlPatterns.some(pattern => pattern.test(message));
+}
+
+/**
+ * Whitelist of allowed error categories
+ * SECURITY: Only these categories are sent to external monitoring
+ */
+const ALLOWED_ERROR_CATEGORIES = new Set([
+  'WEBSOCKET',
+  'NETWORK',
+  'AUTH',
+  'VALIDATION',
+  'UNKNOWN'
+]);
+
+/**
  * Sanitize error data to remove sensitive information
  * SECURITY: Always sanitize in ALL environments to prevent data leakage
  */
 function sanitizeErrorData(data: Record<string, any>): Record<string, any> {
+  // Validate error category against whitelist
+  const errorCategory = ALLOWED_ERROR_CATEGORIES.has(data.errorCategory) 
+    ? data.errorCategory 
+    : 'UNKNOWN';
+  
   // Always sanitize - never send full data even in development
   const sanitized: Record<string, any> = {
     errorType: data.errorType,
-    errorCategory: data.errorCategory,
+    errorCategory,
     module: data.module,
     route: data.route,
     metadata: {
@@ -66,7 +98,7 @@ function sanitizeErrorData(data: Record<string, any>): Record<string, any> {
   
   // Sanitize error message - remove sensitive patterns
   if (data.errorMessage) {
-    sanitized.errorMessage = data.errorMessage
+    let message = data.errorMessage
       // Remove UUIDs
       .replace(/\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/gi, '[UUID]')
       // Remove emails
@@ -75,8 +107,20 @@ function sanitizeErrorData(data: Record<string, any>): Record<string, any> {
       .replace(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[JWT]')
       // Remove API keys patterns
       .replace(/\b(sk_|pk_|api_|key_)[a-zA-Z0-9]{20,}\b/g, '[API_KEY]')
+      // Remove phone numbers (Brazilian format)
+      .replace(/\b(\+55\s?)?\(?\d{2}\)?\s?\d{4,5}[-.\s]?\d{4}\b/g, '[PHONE]')
+      // Remove CPF/CNPJ
+      .replace(/\b\d{3}\.?\d{3}\.?\d{3}[-.]?\d{2}\b/g, '[CPF]')
+      .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[-.]?\d{2}\b/g, '[CNPJ]')
       // Limit length
       .substring(0, 200);
+    
+    // SECURITY: If message contains SQL syntax, replace with generic message
+    if (containsSqlSyntax(message)) {
+      message = '[DATABASE_ERROR]';
+    }
+    
+    sanitized.errorMessage = message;
   }
   
   // Never include stack traces - they reveal internal structure
