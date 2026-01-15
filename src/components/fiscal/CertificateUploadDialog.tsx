@@ -17,7 +17,9 @@ import {
   ShieldCheck, 
   FileKey,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useFiscalIssuer } from '@/hooks/useFiscalIssuer';
 import { toast } from 'sonner';
@@ -38,6 +40,7 @@ export function CertificateUploadDialog({
   const [password, setPassword] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,14 +182,25 @@ export function CertificateUploadDialog({
             {/* Password input */}
             <div className="space-y-2">
               <Label htmlFor="cert-password">Senha do Certificado *</Label>
-              <Input
-                id="cert-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                disabled={uploading}
-              />
+              <div className="relative">
+                <Input
+                  id="cert-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  disabled={uploading}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  disabled={uploading}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             {/* Security notice */}

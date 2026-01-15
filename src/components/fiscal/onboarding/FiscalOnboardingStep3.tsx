@@ -13,7 +13,9 @@ import {
   CheckCircle2, 
   AlertTriangle,
   FileKey,
-  ShieldCheck
+  ShieldCheck,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useFiscalIssuer } from '@/hooks/useFiscalIssuer';
 import { toast } from 'sonner';
@@ -30,6 +32,7 @@ export function FiscalOnboardingStep3({ onNext, onBack }: FiscalOnboardingStep3P
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasCertificate = !!certificate;
@@ -193,13 +196,23 @@ export function FiscalOnboardingStep3({ onNext, onBack }: FiscalOnboardingStep3P
             {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="cert-password">Senha do Certificado *</Label>
-              <Input
-                id="cert-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <Input
+                  id="cert-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <p className="text-xs text-muted-foreground">
                 A senha é usada apenas para validar o certificado e NÃO será armazenada.
               </p>

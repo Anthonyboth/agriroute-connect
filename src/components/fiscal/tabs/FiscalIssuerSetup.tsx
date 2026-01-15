@@ -50,7 +50,7 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
   }
 
   // Check certificate status based on sefaz validation
-  const hasCertificate = fiscalIssuer.sefaz_status === 'validated' || fiscalIssuer.status === 'ACTIVE';
+  const hasCertificate = fiscalIssuer.sefaz_status === 'validated' || fiscalIssuer.status === 'active';
   const sefazValidatedAt = fiscalIssuer.sefaz_validated_at 
     ? new Date(fiscalIssuer.sefaz_validated_at) 
     : null;
@@ -70,8 +70,8 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
                 Informações cadastradas para emissão fiscal
               </CardDescription>
             </div>
-            <Badge variant={fiscalIssuer.status === 'ACTIVE' ? 'default' : 'secondary'}>
-              {fiscalIssuer.status === 'ACTIVE' ? 'Ativo' : fiscalIssuer.status || 'Pendente'}
+            <Badge variant={fiscalIssuer.status === 'active' ? 'default' : 'secondary'}>
+              {fiscalIssuer.status === 'active' ? 'Ativo' : fiscalIssuer.status || 'Pendente'}
             </Badge>
           </div>
         </CardHeader>

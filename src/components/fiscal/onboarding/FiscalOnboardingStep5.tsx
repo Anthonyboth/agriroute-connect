@@ -23,7 +23,7 @@ export function FiscalOnboardingStep5({ onComplete, onBack }: FiscalOnboardingSt
   const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
 
-  const isAlreadyAccepted = !!issuer?.terms_accepted_at;
+  const isAlreadyAccepted = issuer?.onboarding_completed === true;
 
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const target = event.target as HTMLDivElement;
