@@ -91,8 +91,8 @@ const RegisterIssuerSchema = z.object({
   endereco_numero: z.string().max(20).optional(),
   endereco_complemento: z.string().max(100).optional(),
   endereco_bairro: z.string().max(100).optional(),
-  endereco_cidade: z.string().max(100).optional(),
-  endereco_uf: z.string().length(2).optional(),
+  endereco_cidade: z.string().min(2, 'Cidade obrigatória').max(100),
+  endereco_uf: z.string().length(2, 'UF obrigatória'),
   endereco_cep: z.string().max(10).optional(),
   endereco_ibge: z.string().max(10).optional(),
   email_fiscal: z.string().email().optional(),
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
     const { data: existingDoc } = await supabase
       .from('fiscal_issuers')
       .select('id')
-      .eq('cpf_cnpj', data.cpf_cnpj)
+      .eq('document_number', data.cpf_cnpj)
       .maybeSingle();
 
     if (existingDoc) {
@@ -192,29 +192,33 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create the fiscal issuer - only include columns that exist in the table schema
+    // Create the fiscal issuer (map frontend fields -> DB schema)
+    const documentType = data.issuer_type === 'MEI' ? 'CNPJ' : data.issuer_type;
+    const taxRegime = data.issuer_type === 'MEI' ? 'mei' : data.regime_tributario;
+
     const issuerData = {
       profile_id: profile.id,
-      issuer_type: data.issuer_type,
-      cpf_cnpj: data.cpf_cnpj,
-      razao_social: data.razao_social,
-      nome_fantasia: data.nome_fantasia || null,
-      inscricao_estadual: data.inscricao_estadual || null,
-      inscricao_municipal: data.inscricao_municipal || null,
-      regime_tributario: data.regime_tributario,
-      cnae_principal: data.cnae_principal || null,
-      endereco_logradouro: data.endereco_logradouro || null,
-      endereco_numero: data.endereco_numero || null,
-      endereco_complemento: data.endereco_complemento || null,
-      endereco_bairro: data.endereco_bairro || null,
-      endereco_cidade: data.endereco_cidade || null,
-      endereco_uf: data.endereco_uf || null,
-      endereco_cep: data.endereco_cep || null,
-      endereco_ibge: data.endereco_ibge || null,
-      email_fiscal: data.email_fiscal || null,
-      telefone_fiscal: data.telefone_fiscal || null,
-      status: 'DOCUMENT_VALIDATED',
-      // Note: 'ambiente' column removed - doesn't exist in schema
+      document_type: documentType,
+      document_number: data.cpf_cnpj,
+      legal_name: data.razao_social,
+      trade_name: data.nome_fantasia || null,
+      state_registration: data.inscricao_estadual || null,
+      municipal_registration: data.inscricao_municipal || null,
+      tax_regime: taxRegime,
+      cnae_code: data.cnae_principal || null,
+      uf: data.endereco_uf,
+      city: data.endereco_cidade,
+      city_ibge_code: data.endereco_ibge || null,
+      address_street: data.endereco_logradouro || null,
+      address_number: data.endereco_numero || null,
+      address_complement: data.endereco_complemento || null,
+      address_neighborhood: data.endereco_bairro || null,
+      address_zip_code: data.endereco_cep || null,
+      sefaz_status: 'not_validated',
+      fiscal_environment: 'homologation',
+      status: 'pending',
+      onboarding_step: 1,
+      onboarding_completed: false,
     };
 
     const { data: issuer, error: insertError } = await supabase
@@ -231,28 +235,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create fiscal wallet with initial balance
-    const { error: walletError } = await supabase
-      .from('fiscal_wallet')
-      .insert({
-        issuer_id: issuer.id,
-        balance: 0,
-        total_credits_purchased: 0,
-        total_emissions_used: 0,
-        created_at: now,
-        updated_at: now,
-      });
-
-    if (walletError) {
-      console.error('[fiscal-issuer-register] Wallet creation error:', walletError);
-      // Non-fatal - wallet can be created later
-    }
+    // Wallet is created automatically by DB trigger (create_wallet_on_issuer_creation)
 
     console.log(`[fiscal-issuer-register] Issuer created: ${issuer.id} for profile ${profile.id}`);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         issuer,
         message: 'Emissor fiscal cadastrado com sucesso'
       }),
