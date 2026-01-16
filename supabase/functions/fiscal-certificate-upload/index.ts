@@ -171,12 +171,12 @@ Deno.serve(async (req) => {
     const validFrom = now.toISOString();
     const validUntil = new Date(now.setFullYear(now.getFullYear() + 1)).toISOString(); // Default 1 year
 
-    // Deactivate any existing active certificates
+    // Deactivate any existing valid certificates
     await supabase
       .from('fiscal_certificates')
-      .update({ is_active: false })
+      .update({ is_valid: false, status: 'revoked' })
       .eq('issuer_id', issuer_id)
-      .eq('is_active', true);
+      .eq('is_valid', true);
 
     // Create certificate record
     const { data: certificate, error: certError } = await supabase
@@ -187,8 +187,11 @@ Deno.serve(async (req) => {
         subject_cn: `Certificado A1 - ${safeFileName}`,
         valid_from: validFrom,
         valid_until: validUntil,
-        is_active: true,
+        is_valid: true,
+        is_expired: false,
+        status: 'active',
         storage_path: storagePath,
+        uploaded_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
       })
       .select()
@@ -230,7 +233,8 @@ Deno.serve(async (req) => {
           certificate_type: certificate.certificate_type,
           valid_from: certificate.valid_from,
           valid_until: certificate.valid_until,
-          is_active: certificate.is_active,
+          is_valid: certificate.is_valid,
+          status: certificate.status,
         },
         message: 'Certificado enviado com sucesso'
       }),
