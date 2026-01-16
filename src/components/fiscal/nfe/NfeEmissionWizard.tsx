@@ -1,31 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { 
-  FileText, 
-  ChevronRight, 
-  ChevronLeft, 
+  FileText,
+  ChevronRight,
+  ChevronLeft,
   Check,
   Building2,
   Package,
   DollarSign,
   Send,
   Loader2,
-  AlertCircle
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+  AlertCircle,
+} from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NfeEmissionWizardProps {
   isOpen: boolean;
@@ -35,141 +28,236 @@ interface NfeEmissionWizardProps {
 }
 
 const STEPS = [
-  { id: 1, title: 'Destinatário', icon: Building2 },
-  { id: 2, title: 'Itens/Serviços', icon: Package },
-  { id: 3, title: 'Valores', icon: DollarSign },
-  { id: 4, title: 'Enviar', icon: Send },
+  { id: 1, title: "Destinatário", icon: Building2 },
+  { id: 2, title: "Itens/Serviços", icon: Package },
+  { id: 3, title: "Valores", icon: DollarSign },
+  { id: 4, title: "Enviar", icon: Send },
 ];
 
-export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
-  isOpen,
-  onClose,
-  fiscalIssuer,
-  freightId,
-}) => {
+function onlyDigits(v: string) {
+  return (v || "").replace(/\D/g, "");
+}
+
+function isCpfCnpjValid(raw: string) {
+  const d = onlyDigits(raw);
+  return d.length === 11 || d.length === 14;
+}
+
+function normalizeUf(uf: string) {
+  const v = (uf || "").trim().toUpperCase();
+  return v.length === 2 ? v : "";
+}
+
+export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, onClose, fiscalIssuer, freightId }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Form data
+
   const [formData, setFormData] = useState({
     // Destinatário
-    dest_cnpj_cpf: '',
-    dest_razao_social: '',
-    dest_ie: '',
-    dest_email: '',
-    dest_telefone: '',
-    dest_logradouro: '',
-    dest_numero: '',
-    dest_bairro: '',
-    dest_municipio: '',
-    dest_uf: '',
-    dest_cep: '',
-    
+    dest_cnpj_cpf: "",
+    dest_razao_social: "",
+    dest_ie: "",
+    dest_email: "",
+    dest_telefone: "",
+    dest_logradouro: "",
+    dest_numero: "",
+    dest_bairro: "",
+    dest_municipio: "",
+    dest_uf: "",
+    dest_cep: "",
+
     // Itens
-    descricao: '',
-    ncm: '',
-    cfop: '5102',
-    unidade: 'UN',
-    quantidade: '1',
-    valor_unitario: '',
-    
+    descricao: "",
+    ncm: "",
+    cfop: "5102",
+    unidade: "UN",
+    quantidade: "1",
+    valor_unitario: "",
+
     // Valores
-    valor_total: '',
-    valor_frete: '0',
-    valor_desconto: '0',
-    informacoes_adicionais: '',
+    valor_total: "",
+    valor_frete: "0",
+    valor_desconto: "0",
+    informacoes_adicionais: "",
   });
 
+  // Reset ao abrir/fechar
+  useEffect(() => {
+    if (!isOpen) return;
+    setCurrentStep(1);
+    setIsSubmitting(false);
+  }, [isOpen]);
+
   const updateField = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Auto-calcular valor total
-    if (field === 'quantidade' || field === 'valor_unitario') {
-      const qty = parseFloat(field === 'quantidade' ? value : formData.quantidade) || 0;
-      const unit = parseFloat(field === 'valor_unitario' ? value : formData.valor_unitario) || 0;
-      setFormData(prev => ({ ...prev, valor_total: (qty * unit).toFixed(2) }));
-    }
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+
+      // Auto-calcular valor total
+      if (field === "quantidade" || field === "valor_unitario") {
+        const qty = parseFloat(field === "quantidade" ? value : next.quantidade) || 0;
+        const unit = parseFloat(field === "valor_unitario" ? value : next.valor_unitario) || 0;
+        next.valor_total = qty > 0 && unit > 0 ? (qty * unit).toFixed(2) : "";
+      }
+      return next;
+    });
   };
+
+  const ambienteLabel = useMemo(() => {
+    // você tem "fiscal_environment" no backend; aqui o objeto parece usar "ambiente"
+    const amb = fiscalIssuer?.ambiente || fiscalIssuer?.fiscal_environment;
+    return amb === "producao" || amb === "production" ? "Produção" : "Homologação";
+  }, [fiscalIssuer]);
 
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return formData.dest_cnpj_cpf && formData.dest_razao_social;
+        return isCpfCnpjValid(formData.dest_cnpj_cpf) && !!formData.dest_razao_social;
       case 2:
-        return formData.descricao && formData.valor_unitario;
+        return !!formData.descricao && !!formData.valor_unitario && parseFloat(formData.valor_unitario) > 0;
       case 3:
-        return formData.valor_total && parseFloat(formData.valor_total) > 0;
+        return !!formData.valor_total && parseFloat(formData.valor_total) > 0;
       default:
         return true;
     }
   };
 
+  // Polling simples: consulta nfe-update-status até final (authorized/rejected/canceled)
+  const pollStatus = async (params: { emission_id?: string; internal_ref?: string }) => {
+    const timeoutMs = 90_000;
+    const intervalMs = 6_000;
+    const start = Date.now();
+
+    while (Date.now() - start < timeoutMs) {
+      const { data, error } = await supabase.functions.invoke("nfe-update-status", {
+        body: params,
+      });
+
+      if (error) {
+        // não aborta imediatamente; pode ser intermitente
+        console.warn("[NFE] Poll error:", error);
+      }
+
+      const item = data?.results?.[0];
+      const status = item?.status;
+
+      if (status === "authorized") {
+        toast.success("NF-e autorizada!", {
+          description: "DANFE e XML disponíveis no painel.",
+        });
+        return { ok: true, status, item };
+      }
+
+      if (status === "rejected") {
+        toast.error("NF-e rejeitada", {
+          description: item?.message || "A SEFAZ rejeitou a nota.",
+        });
+        return { ok: true, status, item };
+      }
+
+      if (status === "canceled") {
+        toast("NF-e cancelada.");
+        return { ok: true, status, item };
+      }
+
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+
+    toast("NF-e em processamento", {
+      description: "Você pode fechar. O status será atualizado automaticamente no painel.",
+    });
+    return { ok: true, status: "processing" };
+  };
+
   const handleSubmit = async () => {
     if (!fiscalIssuer?.id) {
-      toast.error('Emissor fiscal não configurado');
+      toast.error("Emissor fiscal não configurado");
+      return;
+    }
+
+    const doc = onlyDigits(formData.dest_cnpj_cpf);
+    if (!isCpfCnpjValid(doc)) {
+      toast.error("CNPJ/CPF inválido", { description: "Informe 11 (CPF) ou 14 (CNPJ) dígitos." });
+      setCurrentStep(1);
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
       const payload = {
         issuer_id: fiscalIssuer.id,
         freight_id: freightId,
         destinatario: {
-          cnpj_cpf: formData.dest_cnpj_cpf.replace(/\D/g, ''),
-          razao_social: formData.dest_razao_social,
-          ie: formData.dest_ie,
-          email: formData.dest_email,
-          telefone: formData.dest_telefone,
+          cnpj_cpf: doc,
+          razao_social: (formData.dest_razao_social || "").trim(),
+          ie: (formData.dest_ie || "").trim(),
+          email: (formData.dest_email || "").trim(),
+          telefone: onlyDigits(formData.dest_telefone || ""),
           endereco: {
-            logradouro: formData.dest_logradouro,
-            numero: formData.dest_numero,
-            bairro: formData.dest_bairro,
-            municipio: formData.dest_municipio,
-            uf: formData.dest_uf,
-            cep: formData.dest_cep?.replace(/\D/g, ''),
+            logradouro: (formData.dest_logradouro || "").trim(),
+            numero: (formData.dest_numero || "").trim(),
+            bairro: (formData.dest_bairro || "").trim(),
+            municipio: (formData.dest_municipio || "").trim(),
+            uf: normalizeUf(formData.dest_uf) || normalizeUf(fiscalIssuer?.uf) || "",
+            cep: onlyDigits(formData.dest_cep || ""),
           },
         },
-        itens: [{
-          descricao: formData.descricao,
-          ncm: formData.ncm,
-          cfop: formData.cfop,
-          unidade: formData.unidade,
-          quantidade: parseFloat(formData.quantidade),
-          valor_unitario: parseFloat(formData.valor_unitario),
-        }],
+        itens: [
+          {
+            descricao: (formData.descricao || "").trim(),
+            ncm: onlyDigits(formData.ncm || "") || undefined,
+            cfop: onlyDigits(formData.cfop || "") || "5102",
+            unidade: (formData.unidade || "UN").trim().toUpperCase(),
+            quantidade: parseFloat(formData.quantidade),
+            valor_unitario: parseFloat(formData.valor_unitario),
+          },
+        ],
         valores: {
           total: parseFloat(formData.valor_total),
           frete: parseFloat(formData.valor_frete) || 0,
           desconto: parseFloat(formData.valor_desconto) || 0,
         },
-        informacoes_adicionais: formData.informacoes_adicionais,
+        informacoes_adicionais: (formData.informacoes_adicionais || "").trim(),
       };
 
-      const { data, error } = await supabase.functions.invoke('nfe-emitir', {
+      // ✅ CHAMADA CORRETA (PADRONIZE SUA EDGE FUNCTION PARA "nfe-emissao")
+      const { data, error } = await supabase.functions.invoke("nfe-emissao", {
         body: payload,
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
       });
 
-      if (error) throw error;
-
-      if (data?.success) {
-        toast.success('NF-e enviada para autorização!', {
-          description: `Número: ${data.numero || 'Aguardando'}`,
-        });
-        onClose();
-      } else {
-        throw new Error(data?.message || 'Erro ao emitir NF-e');
+      if (error) {
+        // Mostra motivo real (e não "non-2xx")
+        const msg = error.message || "Erro ao chamar o servidor fiscal.";
+        throw new Error(msg);
       }
-    } catch (error: any) {
-      console.error('Erro ao emitir NF-e:', error);
-      toast.error('Erro ao emitir NF-e', {
-        description: error.message || 'Tente novamente',
+
+      if (!data?.success) {
+        throw new Error(data?.message || data?.error || "Falha ao emitir NF-e.");
+      }
+
+      toast.success("NF-e enviada!", {
+        description: data.status === "processing" ? "Aguardando autorização da SEFAZ..." : "Processada.",
+      });
+
+      // Se já veio autorizada/rejeitada, fecha. Se processando, faz polling.
+      const emission_id = data.emission_id;
+      const internal_ref = data.internal_ref;
+
+      if (data.status === "authorized" || data.status === "rejected" || data.status === "canceled") {
+        onClose();
+        return;
+      }
+
+      // 🔥 Polling para sair do "Aguardando" eterno
+      if (emission_id || internal_ref) {
+        await pollStatus({ emission_id, internal_ref });
+      }
+
+      onClose();
+    } catch (err: any) {
+      console.error("[NFE] Erro ao emitir:", err);
+      toast.error("Erro ao emitir NF-e", {
+        description: err?.message || "Tente novamente.",
       });
     } finally {
       setIsSubmitting(false);
@@ -187,28 +275,31 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                 <Input
                   id="dest_cnpj_cpf"
                   value={formData.dest_cnpj_cpf}
-                  onChange={(e) => updateField('dest_cnpj_cpf', e.target.value)}
+                  onChange={(e) => updateField("dest_cnpj_cpf", e.target.value)}
                   placeholder="00.000.000/0000-00"
                 />
+                {formData.dest_cnpj_cpf && !isCpfCnpjValid(formData.dest_cnpj_cpf) && (
+                  <p className="text-xs text-destructive mt-1">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="dest_razao_social">Razão Social *</Label>
                 <Input
                   id="dest_razao_social"
                   value={formData.dest_razao_social}
-                  onChange={(e) => updateField('dest_razao_social', e.target.value)}
-                  placeholder="Nome da empresa"
+                  onChange={(e) => updateField("dest_razao_social", e.target.value)}
+                  placeholder="Nome / Razão Social"
                 />
               </div>
             </div>
-            
+
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="dest_ie">Inscrição Estadual</Label>
                 <Input
                   id="dest_ie"
                   value={formData.dest_ie}
-                  onChange={(e) => updateField('dest_ie', e.target.value)}
+                  onChange={(e) => updateField("dest_ie", e.target.value)}
                   placeholder="Opcional"
                 />
               </div>
@@ -218,8 +309,8 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                   id="dest_email"
                   type="email"
                   value={formData.dest_email}
-                  onChange={(e) => updateField('dest_email', e.target.value)}
-                  placeholder="email@empresa.com"
+                  onChange={(e) => updateField("dest_email", e.target.value)}
+                  placeholder="email@exemplo.com"
                 />
               </div>
             </div>
@@ -230,7 +321,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                 <Input
                   id="dest_logradouro"
                   value={formData.dest_logradouro}
-                  onChange={(e) => updateField('dest_logradouro', e.target.value)}
+                  onChange={(e) => updateField("dest_logradouro", e.target.value)}
                   placeholder="Rua, Avenida..."
                 />
               </div>
@@ -239,7 +330,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                 <Input
                   id="dest_numero"
                   value={formData.dest_numero}
-                  onChange={(e) => updateField('dest_numero', e.target.value)}
+                  onChange={(e) => updateField("dest_numero", e.target.value)}
                   placeholder="123"
                 />
               </div>
@@ -251,7 +342,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                 <Input
                   id="dest_bairro"
                   value={formData.dest_bairro}
-                  onChange={(e) => updateField('dest_bairro', e.target.value)}
+                  onChange={(e) => updateField("dest_bairro", e.target.value)}
                 />
               </div>
               <div>
@@ -259,7 +350,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                 <Input
                   id="dest_municipio"
                   value={formData.dest_municipio}
-                  onChange={(e) => updateField('dest_municipio', e.target.value)}
+                  onChange={(e) => updateField("dest_municipio", e.target.value)}
                 />
               </div>
               <div>
@@ -267,9 +358,9 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                 <Input
                   id="dest_uf"
                   value={formData.dest_uf}
-                  onChange={(e) => updateField('dest_uf', e.target.value.toUpperCase())}
+                  onChange={(e) => updateField("dest_uf", e.target.value.toUpperCase())}
                   maxLength={2}
-                  placeholder="SP"
+                  placeholder={normalizeUf(fiscalIssuer?.uf) || "SP"}
                 />
               </div>
             </div>
@@ -284,8 +375,8 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
               <Textarea
                 id="descricao"
                 value={formData.descricao}
-                onChange={(e) => updateField('descricao', e.target.value)}
-                placeholder="Descreva o serviço ou produto"
+                onChange={(e) => updateField("descricao", e.target.value)}
+                placeholder="Descreva o serviço/produto"
                 rows={3}
               />
             </div>
@@ -296,7 +387,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                 <Input
                   id="ncm"
                   value={formData.ncm}
-                  onChange={(e) => updateField('ncm', e.target.value)}
+                  onChange={(e) => updateField("ncm", e.target.value)}
                   placeholder="00000000"
                 />
               </div>
@@ -305,7 +396,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                 <Input
                   id="cfop"
                   value={formData.cfop}
-                  onChange={(e) => updateField('cfop', e.target.value)}
+                  onChange={(e) => updateField("cfop", e.target.value)}
                   placeholder="5102"
                 />
               </div>
@@ -317,7 +408,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                 <Input
                   id="unidade"
                   value={formData.unidade}
-                  onChange={(e) => updateField('unidade', e.target.value.toUpperCase())}
+                  onChange={(e) => updateField("unidade", e.target.value.toUpperCase())}
                   placeholder="UN"
                 />
               </div>
@@ -327,7 +418,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                   id="quantidade"
                   type="number"
                   value={formData.quantidade}
-                  onChange={(e) => updateField('quantidade', e.target.value)}
+                  onChange={(e) => updateField("quantidade", e.target.value)}
                   min="1"
                 />
               </div>
@@ -338,7 +429,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                   type="number"
                   step="0.01"
                   value={formData.valor_unitario}
-                  onChange={(e) => updateField('valor_unitario', e.target.value)}
+                  onChange={(e) => updateField("valor_unitario", e.target.value)}
                   placeholder="0,00"
                 />
               </div>
@@ -354,7 +445,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground">Valor Total</p>
                   <p className="text-3xl font-bold text-primary">
-                    R$ {parseFloat(formData.valor_total || '0').toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {parseFloat(formData.valor_total || "0").toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               </CardContent>
@@ -368,7 +459,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                   type="number"
                   step="0.01"
                   value={formData.valor_frete}
-                  onChange={(e) => updateField('valor_frete', e.target.value)}
+                  onChange={(e) => updateField("valor_frete", e.target.value)}
                 />
               </div>
               <div>
@@ -378,7 +469,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                   type="number"
                   step="0.01"
                   value={formData.valor_desconto}
-                  onChange={(e) => updateField('valor_desconto', e.target.value)}
+                  onChange={(e) => updateField("valor_desconto", e.target.value)}
                 />
               </div>
             </div>
@@ -388,7 +479,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
               <Textarea
                 id="informacoes_adicionais"
                 value={formData.informacoes_adicionais}
-                onChange={(e) => updateField('informacoes_adicionais', e.target.value)}
+                onChange={(e) => updateField("informacoes_adicionais", e.target.value)}
                 placeholder="Observações que aparecerão na nota"
                 rows={3}
               />
@@ -404,9 +495,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                 <Send className="h-8 w-8 text-primary" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Pronto para Enviar</h3>
-              <p className="text-muted-foreground">
-                Revise os dados abaixo antes de enviar para a SEFAZ
-              </p>
+              <p className="text-muted-foreground">Revise os dados abaixo antes de enviar para a SEFAZ</p>
             </div>
 
             <Card>
@@ -426,7 +515,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Valor Total:</span>
                   <span className="font-bold text-primary">
-                    R$ {parseFloat(formData.valor_total || '0').toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {parseFloat(formData.valor_total || "0").toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </CardContent>
@@ -436,13 +525,11 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
               <div className="flex gap-3">
                 <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                    Ambiente: {fiscalIssuer?.ambiente === 'producao' ? 'Produção' : 'Homologação'}
-                  </p>
+                  <p className="font-medium text-yellow-800 dark:text-yellow-200">Ambiente: {ambienteLabel}</p>
                   <p className="text-yellow-700 dark:text-yellow-300">
-                    {fiscalIssuer?.ambiente === 'producao' 
-                      ? 'Esta nota terá validade jurídica.' 
-                      : 'Esta é uma nota de teste, sem validade fiscal.'}
+                    {ambienteLabel === "Produção"
+                      ? "Esta nota terá validade jurídica."
+                      : "Esta é uma nota de teste, sem validade fiscal."}
                   </p>
                 </div>
               </div>
@@ -460,75 +547,63 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({
             <FileText className="h-5 w-5 text-blue-600" />
             Emitir NF-e
           </DialogTitle>
-          <DialogDescription>
-            Siga os passos para emitir sua Nota Fiscal Eletrônica
-          </DialogDescription>
+          <DialogDescription>Siga os passos para emitir sua Nota Fiscal Eletrônica</DialogDescription>
         </DialogHeader>
 
-        {/* Progress Steps */}
         <div className="flex items-center justify-between mb-6">
           {STEPS.map((step, index) => {
             const Icon = step.icon;
             const isActive = currentStep === step.id;
             const isCompleted = currentStep > step.id;
-            
+
             return (
               <React.Fragment key={step.id}>
                 <div className="flex flex-col items-center">
-                  <div className={`
-                    w-10 h-10 rounded-full flex items-center justify-center transition-colors
-                    ${isCompleted 
-                      ? 'bg-green-600 text-white' 
-                      : isActive 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted text-muted-foreground'}
-                  `}>
+                  <div
+                    className={`
+                      w-10 h-10 rounded-full flex items-center justify-center transition-colors
+                      ${
+                        isCompleted
+                          ? "bg-green-600 text-white"
+                          : isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
+                      }
+                    `}
+                  >
                     {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                   </div>
-                  <span className={`text-xs mt-1 ${isActive ? 'font-medium' : 'text-muted-foreground'}`}>
+                  <span className={`text-xs mt-1 ${isActive ? "font-medium" : "text-muted-foreground"}`}>
                     {step.title}
                   </span>
                 </div>
                 {index < STEPS.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-2 ${
-                    currentStep > step.id ? 'bg-green-600' : 'bg-muted'
-                  }`} />
+                  <div className={`flex-1 h-0.5 mx-2 ${currentStep > step.id ? "bg-green-600" : "bg-muted"}`} />
                 )}
               </React.Fragment>
             );
           })}
         </div>
 
-        {/* Step Content */}
-        <div className="min-h-[300px]">
-          {renderStepContent()}
-        </div>
+        <div className="min-h-[300px]">{renderStepContent()}</div>
 
-        {/* Navigation */}
         <div className="flex justify-between pt-4 border-t">
           <Button
             variant="outline"
-            onClick={() => currentStep > 1 ? setCurrentStep(currentStep - 1) : onClose()}
+            onClick={() => (currentStep > 1 ? setCurrentStep(currentStep - 1) : onClose())}
             disabled={isSubmitting}
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            {currentStep === 1 ? 'Cancelar' : 'Voltar'}
+            {currentStep === 1 ? "Cancelar" : "Voltar"}
           </Button>
-          
+
           {currentStep < 4 ? (
-            <Button
-              onClick={() => setCurrentStep(currentStep + 1)}
-              disabled={!canProceed()}
-            >
+            <Button onClick={() => setCurrentStep(currentStep + 1)} disabled={!canProceed() || isSubmitting}>
               Próximo
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="bg-green-600 hover:bg-green-700"
-            >
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700">
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
