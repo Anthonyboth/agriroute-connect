@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, memo } from "react";
+import React, { useEffect, useMemo, useRef, useState, memo, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -67,12 +67,7 @@ function makeDriverMarkerEl(driver: DriverLocation) {
   const isTransit = !!driver.current_freight_id;
   const isAvail = !!driver.is_available;
 
-  // cores
-  const bg = isTransit
-    ? "#3b82f6" // blue-500
-    : isAvail
-      ? "#22c55e" // green-500
-      : "#64748b"; // slate-500
+  const bg = isTransit ? "#3b82f6" : isAvail ? "#22c55e" : "#64748b"; // blue / green / slate
 
   el.style.width = "26px";
   el.style.height = "26px";
@@ -93,8 +88,7 @@ function makeDriverMarkerEl(driver: DriverLocation) {
 }
 
 /**
- * Fleet GPS Tracking Map
- * Real-time visualization of all company drivers on a map (MapLibre)
+ * Fleet GPS Tracking Map (MapLibre)
  */
 export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
   companyId,
@@ -180,7 +174,6 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
             freight_destination: freight ? `${freight.destination_city}/${freight.destination_state}` : undefined,
           };
         })
-        // só mantém coords válidas
         .filter((d) => isValidNum(d.current_lat) && isValidNum(d.current_lng));
 
       return locations;
@@ -236,7 +229,6 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
     }
   };
 
-  // === Map helpers ===
   const fitAllDrivers = useCallback(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
@@ -270,12 +262,13 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
 
       map.easeTo({ center: [d.current_lng, d.current_lat], zoom: 13, duration: 300 });
       const marker = markersRef.current[driverId];
-      if (marker) marker.togglePopup?.();
+      // popup só aparece se existir
+      marker?.togglePopup?.();
     },
     [filteredDrivers, mapReady],
   );
 
-  // === Init Map (robusto) ===
+  // Init Map (robusto)
   useEffect(() => {
     if (!mapContainerRef.current) return;
     if (mapRef.current) return;
@@ -296,18 +289,19 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
 
       const map = new maplibregl.Map({
         container: mapContainerRef.current,
-        // estilo vetorial leve (ótima nitidez)
         style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
         center: DEFAULT_CENTER,
         zoom: DEFAULT_ZOOM,
-        attributionControl: true,
+        // ✅ importante: NÃO usar true aqui (tipagem)
+        attributionControl: undefined,
         pixelRatio: window.devicePixelRatio || 1,
       });
 
+      // ✅ adiciona attribution control manualmente
+      map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
       map.addControl(new maplibregl.NavigationControl(), "top-right");
 
       map.on("load", () => {
-        // resize em 2 frames (resolve canvas branco em tabs/layout)
         requestAnimationFrame(() => {
           map.resize();
           requestAnimationFrame(() => map.resize());
@@ -316,7 +310,7 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
       });
 
       map.on("error", (e) => {
-        console.error("[FleetGPSTrackingMap] Map error:", e?.error || e);
+        console.error("[FleetGPSTrackingMap] Map error:", (e as any)?.error || e);
       });
 
       mapRef.current = map;
@@ -324,7 +318,7 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
       const ro = new ResizeObserver(() => {
         mapRef.current?.resize();
       });
-      ro.observe(mapContainerRef.current);
+      ro.observe(mapContainerRef.current!);
       roRef.current = ro;
     };
 
@@ -344,12 +338,12 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
     };
   }, []);
 
-  // === Render markers whenever filteredDrivers changes ===
+  // Render markers
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
-    // Remove markers que não existem mais
+    // remove markers que não existem mais
     const nextIds = new Set(filteredDrivers.map((d) => d.id));
     Object.keys(markersRef.current).forEach((id) => {
       if (!nextIds.has(id)) {
@@ -358,7 +352,7 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
       }
     });
 
-    // Upsert markers
+    // upsert markers
     filteredDrivers.forEach((d) => {
       const lng = d.current_lng;
       const lat = d.current_lat;
@@ -388,7 +382,6 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
       const el = makeDriverMarkerEl(d);
       el.addEventListener("click", () => {
         setSelectedDriver(d.id);
-        // centraliza ao clicar no marker
         mapRef.current?.easeTo({ center: [lng, lat], zoom: 13, duration: 250 });
       });
 
@@ -400,15 +393,11 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
       markersRef.current[d.id] = marker;
     });
 
-    // Ajusta bounds na primeira carga / quando filtro muda muito
-    // (evita “mapa vazio” mesmo com 1 ponto)
     fitAllDrivers();
-
-    // garante render
     requestAnimationFrame(() => map.resize());
   }, [filteredDrivers, mapReady, fitAllDrivers]);
 
-  // Quando seleciona um motorista na lista -> centraliza
+  // centraliza quando seleciona
   useEffect(() => {
     if (!selectedDriver) return;
     centerOnSelected(selectedDriver);
@@ -497,7 +486,6 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
               <div className="relative aspect-video rounded-xl overflow-hidden border">
                 <div ref={mapContainerRef} className="absolute inset-0" />
 
-                {/* overlay de vazio */}
                 {!isLoading && filteredDrivers.length === 0 && (
                   <div className="absolute inset-0 flex items-center justify-center bg-muted/40">
                     <div className="text-center p-8">
@@ -510,7 +498,6 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
                   </div>
                 )}
 
-                {/* loading */}
                 {isLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
                     <div className="text-center">
