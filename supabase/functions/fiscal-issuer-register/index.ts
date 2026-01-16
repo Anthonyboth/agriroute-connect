@@ -71,6 +71,8 @@ const RegimeTributarioSchema = z.enum([
   'lucro_real'
 ]);
 
+const FiscalEnvironmentSchema = z.enum(['homologation', 'production']);
+
 const RegisterIssuerSchema = z.object({
   issuer_type: IssuerTypeSchema,
   cpf_cnpj: z.string()
@@ -97,6 +99,7 @@ const RegisterIssuerSchema = z.object({
   endereco_ibge: z.string().max(10).optional(),
   email_fiscal: z.string().email().optional(),
   telefone_fiscal: z.string().max(20).optional(),
+  fiscal_environment: FiscalEnvironmentSchema.optional().default('production'),
 });
 
 Deno.serve(async (req) => {
@@ -215,7 +218,7 @@ Deno.serve(async (req) => {
       address_neighborhood: data.endereco_bairro || null,
       address_zip_code: data.endereco_cep || null,
       sefaz_status: 'not_validated',
-      fiscal_environment: 'homologation',
+      fiscal_environment: data.fiscal_environment || 'production',
       status: 'pending',
       onboarding_step: 1,
       onboarding_completed: false,
