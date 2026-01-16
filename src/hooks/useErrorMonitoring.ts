@@ -56,6 +56,16 @@ export function useErrorMonitoring() {
         
         // Capturar erros HTTP 400-599 de APIs Supabase
         if (!response.ok && urlString.includes('supabase')) {
+          // ✅ Não reportar erros de "conflito" esperados (ex.: regra de negócio)
+          // Evita alarmes/"blank screen" quando a API retorna 409 intencionalmente.
+          const isExpectedIssuerConflict =
+            response.status === 409 &&
+            urlString.includes('/functions/v1/fiscal-issuer-register');
+
+          if (isExpectedIssuerConflict) {
+            return response;
+          }
+
           if (import.meta.env.DEV) {
             console.log('❌ [useErrorMonitoring] Erro HTTP capturado:', response.status);
           }
