@@ -279,7 +279,12 @@ Deno.serve(async (req) => {
         fiscal_environment: issuer.fiscal_environment,
         status: 'processing',
         emission_context: nfePayload,
-        total_value: valores.total,
+        totals: {
+          total_produtos: valores.total,
+          total_frete: valores.frete || 0,
+          total_desconto: valores.desconto || 0,
+          total_nota: valores.total + (valores.frete || 0) - (valores.desconto || 0),
+        },
         recipient_document: destinatario.cnpj_cpf,
         recipient_name: destinatario.razao_social,
         emission_cost: 100, // 100 centavos = R$ 1,00 custo padrão
