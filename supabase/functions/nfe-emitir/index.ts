@@ -150,11 +150,17 @@ Deno.serve(async (req) => {
     }
 
     // Check wallet balance
-    const { data: wallet } = await supabase
+    const { data: wallet, error: walletError } = await supabase
       .from('fiscal_wallet')
       .select('available_balance, reserved_balance')
       .eq('issuer_id', issuer_id)
-      .single();
+      .maybeSingle();
+
+    if (walletError) {
+      console.error('[nfe-emitir] Erro ao buscar carteira fiscal:', walletError);
+    }
+
+    console.log('[nfe-emitir] Wallet:', JSON.stringify({ issuer_id, wallet }));
 
     if (!wallet || wallet.available_balance < 1) {
       return new Response(
