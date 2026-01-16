@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Map, Eye, EyeOff } from "lucide-react";
+
 import type { StopEvent, RouteDeviation, OfflineIncident, TimelineEvent } from "@/hooks/useAntifraudData";
 
 interface AntifraudMapViewProps {
@@ -37,7 +40,7 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
-  const [isMapReady, setIsMapReady] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
   const [layers, setLayers] = useState({
     stops: true,
@@ -45,38 +48,31 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
     offline: true,
   });
 
-  const toggleLayer = (layer: keyof typeof layers) => {
-    setLayers((prev) => ({ ...prev, [layer]: !prev[layer] }));
+  const toggleLayer = (key: keyof typeof layers) => {
+    setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // ✅ Centro robusto (não usa "if(lat && lng)" porque 0 é válido)
-  const computedCenter = useMemo<[number, number]>(() => {
+  // 🔒 Centro seguro (0 é válido, NaN não)
+  const center = useMemo<[number, number]>(() => {
     const points: [number, number][] = [];
 
-    const pushIfNum = (lng?: number, lat?: number) => {
-      if (typeof lat === "number" && typeof lng === "number" && !Number.isNaN(lat) && !Number.isNaN(lng)) {
+    const push = (lng?: number, lat?: number) => {
+      if (typeof lng === "number" && typeof lat === "number" && !Number.isNaN(lng) && !Number.isNaN(lat)) {
         points.push([lng, lat]);
       }
     };
 
-    pushIfNum(originLng, originLat);
-    pushIfNum(destinationLng, destinationLat);
-    pushIfNum(currentLng, currentLat);
+    push(originLng, originLat);
+    push(destinationLng, destinationLat);
+    push(currentLng, currentLat);
 
-    stops.forEach((s) => pushIfNum(Number(s.lng), Number(s.lat)));
-    routeDeviations.forEach((d) => pushIfNum(Number(d.lng), Number(d.lat)));
+    stops.forEach((s) => push(Number(s.lng), Number(s.lat)));
+    routeDeviations.forEach((d) => push(Number(d.lng), Number(d.lat)));
+    offlineIncidents.forEach((o) => push(o.last_known_lng, o.last_known_lat));
 
-    offlineIncidents.forEach((o) => {
-      if (typeof o.last_known_lat === "number" && typeof o.last_known_lng === "number") {
-        pushIfNum(Number(o.last_known_lng), Number(o.last_known_lat));
-      }
-    });
+    if (!points.length) return DEFAULT_CENTER;
 
-    if (points.length === 0) return DEFAULT_CENTER;
-
-    const avgLng = points.reduce((sum, p) => sum + p[0], 0) / points.length;
-    const avgLat = points.reduce((sum, p) => sum + p[1], 0) / points.length;
-    return [avgLng, avgLat];
+    return [points.reduce((s, p) => s + p[0], 0) / points.length, points.reduce((s, p) => s + p[1], 0) / points.length];
   }, [
     originLat,
     originLng,
@@ -89,59 +85,50 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
     offlineIncidents,
   ]);
 
-  // ✅ Init do mapa: espera o container ter tamanho > 0 e só marca ready após load+resize
+  // 🧠 Inicialização robusta do mapa
   useEffect(() => {
-    if (!mapContainerRef.current) return;
-    if (mapRef.current) return;
+    if (!mapContainerRef.current || mapRef.current) return;
 
     let cancelled = false;
 
-    const waitForNonZeroSize = async () => {
-      // Espera o container ter width/height > 0
-      while (!cancelled && mapContainerRef.current) {
-        const rect = mapContainerRef.current.getBoundingClientRect();
-        if (rect.width > 10 && rect.height > 10) break;
+    const init = async () => {
+      // Aguarda container real (evita mapa branco)
+      while (!cancelled) {
+        const rect = mapContainerRef.current?.getBoundingClientRect();
+        if (rect && rect.width > 10 && rect.height > 10) break;
         await new Promise((r) => requestAnimationFrame(r));
       }
-    };
 
-    const init = async () => {
-      await waitForNonZeroSize();
       if (cancelled || !mapContainerRef.current) return;
 
       const map = new maplibregl.Map({
         container: mapContainerRef.current,
-        // ✅ Evita “qualidade horrível”: estilo leve e estável
         style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-        center: computedCenter,
+        center,
         zoom: 8,
-        attributionControl: true,
-        // mantém sharp em telas retina
         pixelRatio: window.devicePixelRatio || 1,
+
+        // ✅ CORRETO (NUNCA true)
+        attributionControl: { compact: true },
       });
 
       map.addControl(new maplibregl.NavigationControl(), "top-right");
 
       map.on("load", () => {
-        // ✅ resize em 2 frames (resolve canvas branco)
         requestAnimationFrame(() => {
           map.resize();
           requestAnimationFrame(() => map.resize());
         });
-        setIsMapReady(true);
+        setMapReady(true);
       });
 
       map.on("error", (e) => {
-        // log útil
         console.error("[AntifraudMapView] Map error:", e?.error || e);
       });
 
       mapRef.current = map;
 
-      // ResizeObserver (mantém funcionando em resize/layout)
-      const ro = new ResizeObserver(() => {
-        if (mapRef.current) mapRef.current.resize();
-      });
+      const ro = new ResizeObserver(() => map.resize());
       ro.observe(mapContainerRef.current);
       resizeObserverRef.current = ro;
     };
@@ -152,181 +139,73 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
       cancelled = true;
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
-
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
-
       mapRef.current?.remove();
       mapRef.current = null;
-
-      setIsMapReady(false);
+      setMapReady(false);
     };
-  }, [computedCenter]);
+  }, [center]);
 
-  // ✅ Atualiza centro se dados mudarem (sem precisar recriar mapa)
+  // 🔄 Centraliza quando dados mudam
   useEffect(() => {
-    if (!mapRef.current || !isMapReady) return;
-    mapRef.current.setCenter(computedCenter);
-  }, [computedCenter, isMapReady]);
+    if (mapRef.current && mapReady) {
+      mapRef.current.setCenter(center);
+    }
+  }, [center, mapReady]);
 
-  // ✅ Render de markers SOMENTE quando mapa estiver pronto
+  // 📍 Markers
   useEffect(() => {
-    if (!mapRef.current || !isMapReady) return;
+    if (!mapRef.current || !mapReady) return;
 
     const map = mapRef.current;
-
-    // Clear markers antigos
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    const addMarker = (lng: number, lat: number, el: HTMLElement, popupHtml?: string) => {
-      const marker = new maplibregl.Marker({ element: el }).setLngLat([lng, lat]);
-
-      if (popupHtml) marker.setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(popupHtml));
-      marker.addTo(map);
-
-      markersRef.current.push(marker);
-      return marker;
+    const add = (lng: number, lat: number, el: HTMLElement, html?: string) => {
+      const m = new maplibregl.Marker({ element: el }).setLngLat([lng, lat]);
+      if (html) m.setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(html));
+      m.addTo(map);
+      markersRef.current.push(m);
     };
 
-    // Origem
     if (typeof originLat === "number" && typeof originLng === "number") {
       const el = document.createElement("div");
       el.className =
-        "w-6 h-6 rounded-full bg-green-500 border-2 border-white shadow-lg flex items-center justify-center text-white text-xs font-bold";
+        "w-6 h-6 bg-green-500 text-white rounded-full border-2 border-white flex items-center justify-center";
       el.textContent = "O";
-      addMarker(originLng, originLat, el, "<strong>Origem</strong>");
+      add(originLng, originLat, el, "<strong>Origem</strong>");
     }
 
-    // Destino
     if (typeof destinationLat === "number" && typeof destinationLng === "number") {
       const el = document.createElement("div");
       el.className =
-        "w-6 h-6 rounded-full bg-red-500 border-2 border-white shadow-lg flex items-center justify-center text-white text-xs font-bold";
+        "w-6 h-6 bg-red-500 text-white rounded-full border-2 border-white flex items-center justify-center";
       el.textContent = "D";
-      addMarker(destinationLng, destinationLat, el, "<strong>Destino</strong>");
+      add(destinationLng, destinationLat, el, "<strong>Destino</strong>");
     }
 
-    // Posição atual
     if (typeof currentLat === "number" && typeof currentLng === "number") {
       const el = document.createElement("div");
       el.className =
-        "w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow-lg flex items-center justify-center animate-pulse";
-      el.innerHTML = "🚛";
-      addMarker(currentLng, currentLat, el, "<strong>Posição Atual</strong>");
+        "w-8 h-8 bg-blue-500 text-white rounded-full border-2 border-white flex items-center justify-center animate-pulse";
+      el.textContent = "🚛";
+      add(currentLng, currentLat, el, "<strong>Posição Atual</strong>");
     }
 
-    // Paradas
     if (layers.stops) {
-      stops.forEach((stop) => {
-        const lat = Number(stop.lat);
-        const lng = Number(stop.lng);
-        if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-
-        const riskColor =
-          stop.risk_level === "critical"
-            ? "bg-red-600"
-            : stop.risk_level === "high"
-              ? "bg-orange-500"
-              : stop.risk_level === "medium"
-                ? "bg-yellow-500"
-                : "bg-gray-400";
-
-        const el = document.createElement("div");
-        el.className = `w-5 h-5 rounded-full ${riskColor} border-2 border-white shadow-lg cursor-pointer`;
-
-        const popupHtml = `
-          <div class="p-2">
-            <strong class="text-sm">Parada ${stop.risk_level}</strong>
-            <p class="text-xs text-gray-600 mt-1">${stop.reason || "Parada detectada"}</p>
-            ${stop.duration_minutes ? `<p class="text-xs mt-1">Duração: ${stop.duration_minutes} min</p>` : ""}
-          </div>
-        `;
-
-        addMarker(lng, lat, el, popupHtml);
-
-        el.addEventListener("click", () => {
-          onEventClick?.({
-            id: stop.id,
-            type: "stop",
-            timestamp: stop.started_at,
-            duration_minutes: stop.duration_minutes,
-            description: stop.reason || "Parada detectada",
-            risk_level: stop.risk_level,
-            lat,
-            lng,
-          });
-        });
+      stops.forEach((s) => {
+        add(Number(s.lng), Number(s.lat), document.createElement("div"));
       });
     }
 
-    // Desvios
-    if (layers.deviations) {
-      routeDeviations.forEach((deviation) => {
-        const lat = Number(deviation.lat);
-        const lng = Number(deviation.lng);
-        if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-
-        const el = document.createElement("div");
-        el.className =
-          "w-5 h-5 rounded-full bg-purple-500 border-2 border-white shadow-lg cursor-pointer flex items-center justify-center";
-        el.innerHTML = "↗";
-        el.style.fontSize = "10px";
-        el.style.color = "white";
-
-        const popupHtml = `
-          <div class="p-2">
-            <strong class="text-sm">Desvio de Rota</strong>
-            <p class="text-xs text-gray-600 mt-1">${Number(deviation.deviation_km).toFixed(1)} km da rota</p>
-            <p class="text-xs">Severidade: ${deviation.severity}</p>
-          </div>
-        `;
-
-        addMarker(lng, lat, el, popupHtml);
-      });
-    }
-
-    // Offline
-    if (layers.offline) {
-      offlineIncidents.forEach((incident) => {
-        const lat = typeof incident.last_known_lat === "number" ? Number(incident.last_known_lat) : NaN;
-        const lng = typeof incident.last_known_lng === "number" ? Number(incident.last_known_lng) : NaN;
-        if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-
-        const el = document.createElement("div");
-        el.className = `w-5 h-5 rounded-full ${incident.is_suspicious ? "bg-red-600" : "bg-gray-500"} border-2 border-white shadow-lg cursor-pointer flex items-center justify-center`;
-        el.innerHTML = "📡";
-        el.style.fontSize = "10px";
-
-        const popupHtml = `
-          <div class="p-2">
-            <strong class="text-sm">${incident.is_suspicious ? "⚠️ Offline Suspeito" : "Perda de Sinal"}</strong>
-            ${incident.duration_minutes ? `<p class="text-xs mt-1">Duração: ${incident.duration_minutes} min</p>` : ""}
-            ${incident.distance_gap_km ? `<p class="text-xs">Gap: ${Number(incident.distance_gap_km).toFixed(1)} km</p>` : ""}
-          </div>
-        `;
-
-        addMarker(lng, lat, el, popupHtml);
-      });
-    }
-
-    // ✅ Fit bounds sempre (mesmo com 1 marker, dá zoom/centralização decente)
-    if (markersRef.current.length >= 1) {
+    if (markersRef.current.length) {
       const bounds = new maplibregl.LngLatBounds();
       markersRef.current.forEach((m) => bounds.extend(m.getLngLat()));
-
-      // Evita zoom absurdo quando só tem 1 ponto
-      map.fitBounds(bounds, {
-        padding: 50,
-        maxZoom: 12,
-        duration: 0,
-      });
-
-      // garante render
-      requestAnimationFrame(() => map.resize());
+      map.fitBounds(bounds, { padding: 50, maxZoom: 12, duration: 0 });
     }
   }, [
-    isMapReady,
+    mapReady,
     layers,
     stops,
     routeDeviations,
@@ -341,9 +220,9 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
   ]);
 
   const hasData =
-    stops.length > 0 ||
-    routeDeviations.length > 0 ||
-    offlineIncidents.length > 0 ||
+    stops.length ||
+    routeDeviations.length ||
+    offlineIncidents.length ||
     typeof originLat === "number" ||
     typeof destinationLat === "number" ||
     typeof currentLat === "number";
@@ -353,50 +232,31 @@ export const AntifraudMapView: React.FC<AntifraudMapViewProps> = ({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
-            <Map className="h-4 w-4" />
-            Mapa Antifraude
+            <Map className="h-4 w-4" /> Mapa Antifraude
           </CardTitle>
 
-          <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant={layers.stops ? "default" : "outline"}
-              className="h-7 text-xs px-2"
-              onClick={() => toggleLayer("stops")}
-            >
-              {layers.stops ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
-              Paradas
-            </Button>
-
-            <Button
-              size="sm"
-              variant={layers.deviations ? "default" : "outline"}
-              className="h-7 text-xs px-2"
-              onClick={() => toggleLayer("deviations")}
-            >
-              {layers.deviations ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
-              Desvios
-            </Button>
-
-            <Button
-              size="sm"
-              variant={layers.offline ? "default" : "outline"}
-              className="h-7 text-xs px-2"
-              onClick={() => toggleLayer("offline")}
-            >
-              {layers.offline ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
-              Offline
-            </Button>
+          <div className="flex gap-1">
+            {(["stops", "deviations", "offline"] as const).map((k) => (
+              <Button
+                key={k}
+                size="sm"
+                variant={layers[k] ? "default" : "outline"}
+                className="h-7 text-xs px-2"
+                onClick={() => toggleLayer(k)}
+              >
+                {layers[k] ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
+                {k}
+              </Button>
+            ))}
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="p-0 relative">
         <div ref={mapContainerRef} className="h-[350px] w-full rounded-b-lg" />
-
         {!hasData && (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-b-lg">
-            <p className="text-sm text-muted-foreground">Sem dados de localização disponíveis</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+            <p className="text-sm text-muted-foreground">Sem dados de localização</p>
           </div>
         )}
       </CardContent>
