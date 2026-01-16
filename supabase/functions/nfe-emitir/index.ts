@@ -269,6 +269,38 @@ Deno.serve(async (req) => {
 
     console.log(`[nfe-emitir] Enviando para Focus NFe...`);
 
+    const issuerAddress = {
+      logradouro: issuer.address_street || '',
+      numero: issuer.address_number || 'SN',
+      bairro: issuer.address_neighborhood || '',
+      municipio: issuer.city || '',
+      codigo_municipio: issuer.city_ibge_code || '',
+      uf: issuer.uf || '',
+      cep: issuer.address_zip_code?.replace(/\D/g, '') || '',
+    };
+
+    const recipientAddress = destinatario.endereco
+      ? {
+          logradouro: destinatario.endereco.logradouro || '',
+          numero: destinatario.endereco.numero || 'SN',
+          bairro: destinatario.endereco.bairro || '',
+          municipio: destinatario.endereco.municipio || '',
+          uf: destinatario.endereco.uf || destUf,
+          cep: destinatario.endereco.cep?.replace(/\D/g, '') || '',
+        }
+      : null;
+
+    const emissionItems = itens.map((item, index) => ({
+      numero_item: index + 1,
+      descricao: item.descricao,
+      ncm: item.ncm || '99999999',
+      cfop: item.cfop || '5102',
+      unidade: item.unidade || 'UN',
+      quantidade: item.quantidade,
+      valor_unitario: item.valor_unitario,
+      valor_total: item.quantidade * item.valor_unitario,
+    }));
+
     // Create emission record BEFORE sending to Focus
     const { data: emission, error: emissionError } = await supabase
       .from('nfe_emissions')
@@ -276,17 +308,30 @@ Deno.serve(async (req) => {
         issuer_id,
         freight_id: freight_id || null,
         internal_ref: internalRef,
-        fiscal_environment: issuer.fiscal_environment,
-        status: 'processing',
-        emission_context: nfePayload,
+        model: '55',
+        operation_nature: nfePayload.natureza_operacao,
+        cfop: (itens?.[0]?.cfop || '5102'),
+        issuer_document: issuer.document_number,
+        issuer_name: issuer.legal_name,
+        issuer_ie: issuer.state_registration || null,
+        issuer_address: issuerAddress,
+        recipient_document_type: destinatario.cnpj_cpf.length === 11 ? 'CPF' : 'CNPJ',
+        recipient_document: destinatario.cnpj_cpf,
+        recipient_name: destinatario.razao_social,
+        recipient_ie: destinatario.ie || null,
+        recipient_email: destinatario.email || null,
+        recipient_phone: destinatario.telefone?.replace(/\D/g, '') || null,
+        recipient_address: recipientAddress,
+        items: emissionItems,
         totals: {
           total_produtos: valores.total,
           total_frete: valores.frete || 0,
           total_desconto: valores.desconto || 0,
           total_nota: valores.total + (valores.frete || 0) - (valores.desconto || 0),
         },
-        recipient_document: destinatario.cnpj_cpf,
-        recipient_name: destinatario.razao_social,
+        fiscal_environment: issuer.fiscal_environment,
+        status: 'processing',
+        emission_context: nfePayload,
         emission_cost: 100, // 100 centavos = R$ 1,00 custo padrão
         created_by: profile.id,
       })
@@ -324,7 +369,7 @@ Deno.serve(async (req) => {
       await supabase
         .from('nfe_emissions')
         .update({
-          status: 'error',
+          status: 'rejected',
           error_message: 'Falha na comunicação com o provedor fiscal',
           updated_at: new Date().toISOString(),
         })
@@ -343,14 +388,15 @@ Deno.serve(async (req) => {
     if (focusData.status === 'autorizado') {
       newStatus = 'authorized';
     } else if (focusData.status === 'cancelado') {
-      newStatus = 'cancelled';
+      newStatus = 'canceled';
     } else if (focusData.status === 'erro_autorizacao' || focusData.status === 'rejeitado') {
-      newStatus = 'denied';
+      newStatus = 'rejected';
       errorMessage = focusData.mensagem_sefaz || focusData.mensagem || 'Erro na autorização';
     } else if (focusData.status === 'processando_autorizacao') {
       newStatus = 'processing';
     } else {
-      newStatus = 'pending';
+      // Para qualquer status inesperado, manter como "processing" (evita violar CHECK constraint)
+      newStatus = 'processing';
     }
 
     // Update emission record
@@ -361,8 +407,8 @@ Deno.serve(async (req) => {
         focus_nfe_ref: internalRef,
         focus_nfe_response: focusData,
         access_key: focusData.chave_nfe || null,
-        number: focusData.numero ? String(focusData.numero) : null,
-        series: focusData.serie ? String(focusData.serie) : null,
+        number: focusData.numero ? Number(focusData.numero) : null,
+        series: focusData.serie ? Number(focusData.serie) : 1,
         sefaz_status_code: focusData.status_sefaz || null,
         sefaz_status_message: focusData.mensagem_sefaz || null,
         sefaz_protocol: focusData.protocolo || null,
@@ -370,7 +416,7 @@ Deno.serve(async (req) => {
         error_message: errorMessage,
         xml_url: focusData.caminho_xml_nota_fiscal || null,
         danfe_url: focusData.caminho_danfe || null,
-        authorized_at: newStatus === 'authorized' ? new Date().toISOString() : null,
+        authorization_date: newStatus === 'authorized' ? new Date().toISOString() : null,
         emission_paid: newStatus === 'authorized',
         updated_at: new Date().toISOString(),
       })
@@ -380,7 +426,7 @@ Deno.serve(async (req) => {
     if (newStatus === 'authorized') {
       await supabase.rpc('confirm_emission_credit', { p_emission_id: emission.id });
       console.log(`[nfe-emitir] Emissão ${emission.id} autorizada e crédito confirmado`);
-    } else if (newStatus === 'denied' || newStatus === 'error') {
+    } else if (newStatus === 'rejected') {
       await supabase.rpc('release_emission_credit', { p_emission_id: emission.id });
       console.log(`[nfe-emitir] Emissão ${emission.id} rejeitada e crédito liberado`);
     }
