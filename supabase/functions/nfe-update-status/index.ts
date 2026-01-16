@@ -5,67 +5,83 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function jsonResponse(status: number, body: Record<string, unknown>) {
+function json(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 
-function asString(v: unknown, fallback = ""): string {
-  return typeof v === "string" ? v : fallback;
+function onlyDigits(v: string) {
+  return (v || "").replace(/\D/g, "");
 }
 
-async function parseFocusResponse(resp: Response): Promise<{ ok: boolean; data: any; raw: string }> {
-  const raw = await resp.text();
-  let data: any = null;
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    data = { raw };
+function mapFocusStatusToInternalStatus(focusStatus?: string): "processing" | "authorized" | "rejected" | "canceled" {
+  switch (focusStatus) {
+    case "autorizado":
+      return "authorized";
+    case "cancelado":
+      return "canceled";
+    case "erro_autorizacao":
+    case "rejeitado":
+      return "rejected";
+    case "processando_autorizacao":
+    case "processando_cancelamento":
+    case "processando":
+    case "enviado":
+    default:
+      return "processing";
   }
-  return { ok: resp.ok, data, raw };
 }
 
-type EmissionRow = {
-  id: string;
-  status: string;
-  internal_ref: string | null;
-  focus_nfe_ref: string | null;
-  fiscal_environment: string | null;
-  emission_paid: boolean | null;
-};
+function pickSefazMessage(focusData: any): string {
+  return (
+    focusData?.mensagem_sefaz || focusData?.mensagem || focusData?.erro || "Sem mensagem detalhada do provedor fiscal."
+  );
+}
+
+function pickSefazCode(focusData: any): string | null {
+  return focusData?.status_sefaz || focusData?.codigo || focusData?.codigo_erro || focusData?.code || null;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const FOCUS_NFE_TOKEN = Deno.env.get("FOCUS_NFE_TOKEN");
-    if (!FOCUS_NFE_TOKEN) {
-      return jsonResponse(500, {
+    // ===== ENV =====
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const focusToken = Deno.env.get("FOCUS_NFE_TOKEN");
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return json(500, {
         success: false,
-        code: "CONFIG_MISSING",
-        message: "Token do provedor fiscal não configurado.",
+        message: "Configuração do Supabase ausente (SUPABASE_URL / SERVICE_ROLE_KEY).",
+      });
+    }
+    if (!focusToken) {
+      return json(500, {
+        success: false,
+        message: "Token da Focus NFe não configurado (FOCUS_NFE_TOKEN).",
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Auth (mantém controle por usuário, mas usa service role)
+    // ===== AUTH =====
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return jsonResponse(401, { success: false, code: "UNAUTHORIZED", message: "Não autorizado." });
+      return json(401, { success: false, message: "Não autorizado: header Authorization ausente." });
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: authError } = await supabase.auth.getUser(token);
+    const jwt = authHeader.replace("Bearer ", "");
+    const { data: userData, error: authError } = await supabase.auth.getUser(jwt);
+
     if (authError || !userData?.user) {
-      return jsonResponse(401, { success: false, code: "INVALID_TOKEN", message: "Token inválido." });
+      return json(401, { success: false, message: "Não autorizado: token inválido." });
     }
 
-    // Body (opcional)
+    // ===== BODY =====
     let body: any = {};
     try {
       body = await req.json();
@@ -73,218 +89,236 @@ Deno.serve(async (req) => {
       body = {};
     }
 
-    const emission_id: string | undefined = body?.emission_id;
-    const internal_ref: string | undefined = body?.internal_ref;
-    const limit: number = Number(body?.limit || 20);
+    const emission_id = typeof body?.emission_id === "string" ? body.emission_id : null;
+    const internal_ref = typeof body?.internal_ref === "string" ? body.internal_ref : null;
 
-    // Buscar emissões a atualizar
-    let emissions: EmissionRow[] = [];
-
-    if (emission_id || internal_ref) {
-      const query = supabase
-        .from("nfe_emissions")
-        .select("id,status,internal_ref,focus_nfe_ref,fiscal_environment,emission_paid")
-        .limit(1);
-
-      const { data, error } = emission_id
-        ? await query.eq("id", emission_id).maybeSingle()
-        : await query.eq("internal_ref", internal_ref).maybeSingle();
-
-      if (error) {
-        console.error("[nfe-update-status] Erro buscando emissão:", error);
-        return jsonResponse(500, { success: false, code: "DB_ERROR", message: "Erro ao buscar emissão." });
-      }
-      if (!data) {
-        return jsonResponse(404, {
-          success: false,
-          code: "NOT_FOUND",
-          message: "Emissão não encontrada.",
-        });
-      }
-
-      emissions = [data as EmissionRow];
-    } else {
-      const { data, error } = await supabase
-        .from("nfe_emissions")
-        .select("id,status,internal_ref,focus_nfe_ref,fiscal_environment,emission_paid")
-        .eq("status", "processing")
-        .order("created_at", { ascending: true })
-        .limit(Math.min(Math.max(limit, 1), 50));
-
-      if (error) {
-        console.error("[nfe-update-status] Erro listando pendentes:", error);
-        return jsonResponse(500, { success: false, code: "DB_ERROR", message: "Erro ao listar emissões pendentes." });
-      }
-
-      emissions = (data || []) as EmissionRow[];
-    }
-
-    if (emissions.length === 0) {
-      return jsonResponse(200, {
-        success: true,
-        message: "Nenhuma emissão pendente para atualizar.",
-        updated: 0,
+    if (!emission_id && !internal_ref) {
+      return json(400, {
+        success: false,
+        message: "Informe emission_id ou internal_ref.",
         results: [],
       });
     }
 
-    const results: any[] = [];
+    // ===== PROFILE (para checar permissão) =====
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", userData.user.id)
+      .maybeSingle();
 
-    for (const em of emissions) {
-      const ref = em.focus_nfe_ref || em.internal_ref;
-
-      if (!ref) {
-        // registro inconsistente
-        await supabase
-          .from("nfe_emissions")
-          .update({
-            status: "rejected",
-            error_message: "Referência interna ausente para consulta do provedor fiscal.",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", em.id);
-
-        await supabase.rpc("release_emission_credit", { p_emission_id: em.id });
-
-        results.push({
-          emission_id: em.id,
-          status: "rejected",
-          message: "Referência ausente. Crédito liberado.",
-        });
-        continue;
-      }
-
-      const isProducao = em.fiscal_environment === "production";
-      const focusBase = isProducao ? "https://api.focusnfe.com.br" : "https://homologacao.focusnfe.com.br";
-      const focusGetUrl = `${focusBase}/v2/nfe/${encodeURIComponent(ref)}`;
-
-      let focusResp: Response;
-      let parsed: { ok: boolean; data: any; raw: string };
-
-      try {
-        focusResp = await fetch(focusGetUrl, {
-          method: "GET",
-          headers: {
-            Authorization: `Basic ${btoa(`${FOCUS_NFE_TOKEN}:`)}`,
-            "Content-Type": "application/json",
-          },
-        });
-        parsed = await parseFocusResponse(focusResp);
-      } catch (err) {
-        console.error("[nfe-update-status] Falha comunicação Focus:", err);
-        results.push({
-          emission_id: em.id,
-          status: em.status,
-          message: "Falha ao consultar o provedor fiscal. Tente novamente.",
-        });
-        continue;
-      }
-
-      const focusData = parsed.data;
-
-      if (!parsed.ok) {
-        const msg =
-          asString(focusData?.mensagem_sefaz) ||
-          asString(focusData?.mensagem) ||
-          asString(focusData?.error) ||
-          `Erro ao consultar provedor fiscal (HTTP ${focusResp.status}).`;
-
-        // mantém processing, mas registra erro para diagnóstico
-        await supabase
-          .from("nfe_emissions")
-          .update({
-            focus_nfe_response: focusData,
-            error_message: msg,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", em.id);
-
-        results.push({
-          emission_id: em.id,
-          status: em.status,
-          message: msg,
-        });
-        continue;
-      }
-
-      const focusStatus = asString(focusData?.status);
-      let newStatus: "authorized" | "processing" | "rejected" | "canceled" = "processing";
-      let errorMessage: string | null = null;
-
-      if (focusStatus === "autorizado") {
-        newStatus = "authorized";
-      } else if (focusStatus === "cancelado") {
-        newStatus = "canceled";
-      } else if (focusStatus === "erro_autorizacao" || focusStatus === "rejeitado" || focusStatus === "denegado") {
-        newStatus = "rejected";
-        errorMessage =
-          asString(focusData?.mensagem_sefaz) || asString(focusData?.mensagem) || "NF-e não autorizada pela SEFAZ.";
-      } else if (focusStatus === "processando_autorizacao") {
-        newStatus = "processing";
-      } else {
-        // status desconhecido: deixa processing, mas registra retorno
-        newStatus = "processing";
-      }
-
-      // Update DB
-      await supabase
-        .from("nfe_emissions")
-        .update({
-          status: newStatus,
-          focus_nfe_ref: ref,
-          focus_nfe_response: focusData,
-          access_key: focusData?.chave_nfe || null,
-          number: focusData?.numero ? Number(focusData.numero) : null,
-          series: focusData?.serie ? Number(focusData.serie) : 1,
-          sefaz_status_code: focusData?.status_sefaz || null,
-          sefaz_status_message: focusData?.mensagem_sefaz || null,
-          error_message: errorMessage,
-          xml_url: focusData?.caminho_xml_nota_fiscal || null,
-          danfe_url: focusData?.caminho_danfe || null,
-          authorization_date: newStatus === "authorized" ? new Date().toISOString() : null,
-          emission_paid: newStatus === "authorized",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", em.id);
-
-      // Credits
-      if (newStatus === "authorized" && !em.emission_paid) {
-        await supabase.rpc("confirm_emission_credit", { p_emission_id: em.id });
-      } else if (newStatus === "rejected") {
-        await supabase.rpc("release_emission_credit", { p_emission_id: em.id });
-      }
-
-      results.push({
-        emission_id: em.id,
-        status: newStatus,
-        focus_status: focusStatus,
-        numero: focusData?.numero || null,
-        chave: focusData?.chave_nfe || null,
-        danfe_url: focusData?.caminho_danfe || null,
-        xml_url: focusData?.caminho_xml_nota_fiscal || null,
-        message:
-          newStatus === "authorized"
-            ? "NF-e autorizada pela SEFAZ."
-            : newStatus === "processing"
-              ? "NF-e ainda em processamento."
-              : newStatus === "canceled"
-                ? "NF-e cancelada."
-                : errorMessage || "NF-e não autorizada.",
+    if (profileError || !profile) {
+      return json(404, {
+        success: false,
+        message: "Perfil não encontrado.",
+        results: [],
       });
     }
 
-    return jsonResponse(200, {
+    // ===== FETCH EMISSION =====
+    let emissionQuery = supabase.from("nfe_emissions").select("*");
+
+    if (emission_id) emissionQuery = emissionQuery.eq("id", emission_id);
+    if (internal_ref) emissionQuery = emissionQuery.eq("internal_ref", internal_ref);
+
+    const { data: emission, error: emissionError } = await emissionQuery.maybeSingle();
+
+    if (emissionError) {
+      console.error("[nfe-update-status] Erro ao buscar emissão:", emissionError);
+      return json(500, {
+        success: false,
+        message: "Erro ao buscar emissão no banco.",
+        results: [],
+      });
+    }
+
+    if (!emission) {
+      return json(404, {
+        success: false,
+        message: "Emissão não encontrada.",
+        results: [],
+      });
+    }
+
+    // ===== PERMISSION =====
+    // A emissão foi criada com created_by = profile.id no seu nfe-emitir.
+    if (emission.created_by && emission.created_by !== profile.id) {
+      return json(403, {
+        success: false,
+        message: "Você não tem permissão para consultar esta emissão.",
+        results: [],
+      });
+    }
+
+    // ===== DETERMINE ENV / REF =====
+    const fiscalEnv = emission.fiscal_environment === "production" ? "production" : "homologation";
+    const focusBase =
+      fiscalEnv === "production" ? "https://api.focusnfe.com.br/v2/nfe" : "https://homologacao.focusnfe.com.br/v2/nfe";
+
+    const ref = emission.focus_nfe_ref || emission.internal_ref;
+    if (!ref) {
+      return json(400, {
+        success: false,
+        message: "Emissão sem referência interna (internal_ref) para consulta.",
+        results: [
+          {
+            emission_id: emission.id,
+            status: emission.status ?? "processing",
+            message: "Emissão sem referência para consulta no provedor fiscal.",
+            danfe_url: emission.danfe_url ?? null,
+            xml_url: emission.xml_url ?? null,
+          },
+        ],
+      });
+    }
+
+    // ===== CALL FOCUS (GET status) =====
+    let focusResponse: Response;
+    let focusData: any = null;
+
+    try {
+      focusResponse = await fetch(`${focusBase}/${encodeURIComponent(ref)}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Basic ${btoa(focusToken + ":")}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      // Focus costuma devolver JSON mesmo em erro
+      try {
+        focusData = await focusResponse.json();
+      } catch {
+        focusData = null;
+      }
+    } catch (err) {
+      console.error("[nfe-update-status] Falha na comunicação com Focus:", err);
+      return json(200, {
+        success: false,
+        message: "Falha na comunicação com o provedor fiscal (Focus NFe).",
+        results: [
+          {
+            emission_id: emission.id,
+            status: emission.status ?? "processing",
+            message: "Não foi possível consultar a Focus NFe agora. Tente novamente em instantes.",
+            danfe_url: emission.danfe_url ?? null,
+            xml_url: emission.xml_url ?? null,
+          },
+        ],
+      });
+    }
+
+    // Se Focus respondeu erro HTTP, ainda assim devolvemos 200 para o front e colocamos motivo em português.
+    if (!focusResponse.ok) {
+      const msg = pickSefazMessage(focusData) || `Erro HTTP ${focusResponse.status} ao consultar o provedor fiscal.`;
+      return json(200, {
+        success: false,
+        message: "Consulta ao provedor fiscal retornou erro.",
+        results: [
+          {
+            emission_id: emission.id,
+            status: emission.status ?? "processing",
+            message: msg,
+            sefaz_code: pickSefazCode(focusData),
+            danfe_url: emission.danfe_url ?? null,
+            xml_url: emission.xml_url ?? null,
+          },
+        ],
+      });
+    }
+
+    // ===== MAP + UPDATE DB =====
+    const newStatus = mapFocusStatusToInternalStatus(focusData?.status);
+    const sefazMsg = pickSefazMessage(focusData);
+    const sefazCode = pickSefazCode(focusData);
+
+    const updatePatch: Record<string, unknown> = {
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+      focus_nfe_response: focusData,
+      access_key: focusData?.chave_nfe ?? emission.access_key ?? null,
+      number: focusData?.numero ? Number(focusData.numero) : (emission.number ?? null),
+      series: focusData?.serie ? Number(focusData.serie) : (emission.series ?? null),
+      sefaz_status_code: focusData?.status_sefaz ?? emission.sefaz_status_code ?? null,
+      sefaz_status_message: focusData?.mensagem_sefaz ?? emission.sefaz_status_message ?? null,
+      sefaz_protocol: focusData?.protocolo ?? emission.sefaz_protocol ?? null,
+      danfe_url: focusData?.caminho_danfe ?? emission.danfe_url ?? null,
+      xml_url: focusData?.caminho_xml_nota_fiscal ?? emission.xml_url ?? null,
+      error_message: newStatus === "rejected" ? sefazMsg : null,
+      error_code: newStatus === "rejected" ? sefazCode : null,
+      authorization_date:
+        newStatus === "authorized"
+          ? (emission.authorization_date ?? new Date().toISOString())
+          : (emission.authorization_date ?? null),
+      emission_paid: newStatus === "authorized" ? true : (emission.emission_paid ?? false),
+    };
+
+    const { error: dbUpErr } = await supabase.from("nfe_emissions").update(updatePatch).eq("id", emission.id);
+
+    if (dbUpErr) {
+      console.error("[nfe-update-status] Erro ao atualizar nfe_emissions:", dbUpErr);
+      // Mesmo que falhe atualizar o banco, devolvemos o status para a UI não ficar “cega”
+      return json(200, {
+        success: false,
+        message: "A consulta foi feita, mas houve erro ao atualizar o banco. Verifique logs.",
+        results: [
+          {
+            emission_id: emission.id,
+            status: newStatus,
+            message: sefazMsg,
+            sefaz_code: sefazCode,
+            danfe_url: focusData?.caminho_danfe ?? emission.danfe_url ?? null,
+            xml_url: focusData?.caminho_xml_nota_fiscal ?? emission.xml_url ?? null,
+          },
+        ],
+      });
+    }
+
+    // ===== CREDIT FINALIZATION (se existir RPCs) =====
+    // Não quebra se não existir, mas tenta.
+    try {
+      if (newStatus === "authorized") {
+        await supabase.rpc("confirm_emission_credit", { p_emission_id: emission.id });
+      } else if (newStatus === "rejected") {
+        await supabase.rpc("release_emission_credit", { p_emission_id: emission.id });
+      }
+    } catch (e) {
+      console.warn("[nfe-update-status] RPC de crédito falhou (ignorado):", e);
+    }
+
+    // ===== RESPONSE (results[]) =====
+    return json(200, {
       success: true,
-      updated: results.length,
-      results,
-      message: "Atualização concluída.",
+      message:
+        newStatus === "authorized"
+          ? "NF-e autorizada pela SEFAZ."
+          : newStatus === "rejected"
+            ? "NF-e rejeitada pela SEFAZ."
+            : newStatus === "canceled"
+              ? "NF-e cancelada."
+              : "NF-e ainda em processamento.",
+      results: [
+        {
+          emission_id: emission.id,
+          internal_ref: emission.internal_ref,
+          status: newStatus,
+          sefaz_code: sefazCode,
+          message: sefazMsg,
+          danfe_url: focusData?.caminho_danfe ?? emission.danfe_url ?? null,
+          xml_url: focusData?.caminho_xml_nota_fiscal ?? emission.xml_url ?? null,
+          access_key: focusData?.chave_nfe ?? emission.access_key ?? null,
+          numero: focusData?.numero ?? emission.number ?? null,
+          serie: focusData?.serie ?? emission.series ?? null,
+          ambiente: fiscalEnv === "production" ? "producao" : "homologacao",
+        },
+      ],
     });
   } catch (error) {
-    console.error("[nfe-update-status] Erro inesperado:", error);
-    return jsonResponse(500, {
+    console.error("[nfe-update-status] Unexpected error:", error);
+    return json(200, {
       success: false,
-      code: "INTERNAL_ERROR",
-      message: "Erro interno do servidor.",
+      message: "Erro interno ao consultar status da NF-e.",
+      results: [],
     });
   }
 });
