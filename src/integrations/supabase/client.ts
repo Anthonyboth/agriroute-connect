@@ -263,8 +263,20 @@ if (typeof window !== 'undefined' && !isPublicPage) {
   // Capturar erros não tratados no window
   window.addEventListener('error', (event) => {
     const message = event.message || '';
+
+    // ✅ Não notificar conflitos esperados de regra de negócio (ex.: CPF/CNPJ já cadastrado)
+    // Isso evita alertas de "blank screen" quando o backend retorna 409 intencionalmente.
+    const isExpectedFiscalIssuerConflict =
+      message.includes('Edge function returned 409') &&
+      (message.includes('fiscal-issuer-register') ||
+        message.includes('Este CPF/CNPJ já está cadastrado'));
+
+    if (isExpectedFiscalIssuerConflict) {
+      return;
+    }
+
     const errorKey = `window_error_${message.substring(0, 50)}`;
-    
+
     if (shouldNotify(errorKey)) {
       // SECURITY: Only send minimal, non-sensitive error info
       notifyErrorToTelegram({
@@ -286,8 +298,21 @@ if (typeof window !== 'undefined' && !isPublicPage) {
   // Capturar promise rejections não tratadas
   window.addEventListener('unhandledrejection', (event) => {
     const message = event.reason?.message || String(event.reason);
+
+    // ✅ Não notificar conflitos esperados de regra de negócio (ex.: CPF/CNPJ já cadastrado)
+    const isExpectedFiscalIssuerConflict =
+      message.includes('Edge function returned 409') &&
+      (message.includes('fiscal-issuer-register') ||
+        message.includes('Este CPF/CNPJ já está cadastrado'));
+
+    if (isExpectedFiscalIssuerConflict) {
+      // Evita "CRITICAL" e "blank screen" nos alertas
+      event.preventDefault?.();
+      return;
+    }
+
     const errorKey = `promise_rejection_${message.substring(0, 50)}`;
-    
+
     if (shouldNotify(errorKey)) {
       // SECURITY: Only send minimal, non-sensitive error info
       notifyErrorToTelegram({
