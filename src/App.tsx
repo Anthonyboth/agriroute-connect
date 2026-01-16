@@ -149,7 +149,19 @@ if (typeof window !== 'undefined') {
 
     // Capturar erros não tratados
     window.addEventListener('error', (event) => {
-      errorMonitoring.captureError(event.error || new Error(event.message), {
+      const message = event.message || '';
+
+      // ✅ Não reportar conflitos esperados (regra de negócio) como "blank screen"
+      const isExpectedFiscalIssuerConflict =
+        message.includes('Edge function returned 409') &&
+        (message.includes('fiscal-issuer-register') ||
+          message.includes('Este CPF/CNPJ já está cadastrado'));
+
+      if (isExpectedFiscalIssuerConflict) {
+        return;
+      }
+
+      errorMonitoring.captureError(event.error || new Error(message), {
         source: 'window.error',
         filename: event.filename,
         lineno: event.lineno,
@@ -159,6 +171,19 @@ if (typeof window !== 'undefined') {
 
     // Capturar rejeições de promessas não tratadas
     window.addEventListener('unhandledrejection', (event) => {
+      const message = event.reason?.message || String(event.reason);
+
+      // ✅ Não reportar conflitos esperados (regra de negócio)
+      const isExpectedFiscalIssuerConflict =
+        message.includes('Edge function returned 409') &&
+        (message.includes('fiscal-issuer-register') ||
+          message.includes('Este CPF/CNPJ já está cadastrado'));
+
+      if (isExpectedFiscalIssuerConflict) {
+        event.preventDefault?.();
+        return;
+      }
+
       errorMonitoring.captureError(
         event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
         { source: 'unhandledrejection' }
