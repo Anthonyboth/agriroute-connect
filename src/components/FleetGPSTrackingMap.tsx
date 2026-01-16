@@ -1,4 +1,7 @@
-import React, { useState, useEffect, useCallback, memo } from "react";
+import React, { useEffect, useMemo, useRef, useState, memo } from "react";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +22,7 @@ import {
   Users,
   Route,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -49,6 +53,33 @@ interface FleetGPSTrackingMapProps {
 
 type DriverStatus = "all" | "available" | "in_transit" | "offline";
 
+const DEFAULT_CENTER: [number, number] = [-47.9292, -15.7801]; // Brasília (lng, lat)
+
+function isNum(n: unknown): n is number {
+  return typeof n === "number" && !Number.isNaN(n) && Number.isFinite(n);
+}
+
+function buildDriverMarkerEl(status: "in_transit" | "available" | "offline") {
+  const el = document.createElement("div");
+  el.className =
+    "w-9 h-9 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white cursor-pointer select-none";
+  el.style.fontSize = "16px";
+
+  if (status === "in_transit") {
+    el.style.background = "#3b82f6"; // azul
+    el.textContent = "🚛";
+    return el;
+  }
+  if (status === "available") {
+    el.style.background = "#22c55e"; // verde
+    el.textContent = "✅";
+    return el;
+  }
+  el.style.background = "#6b7280"; // cinza
+  el.textContent = "⚪";
+  return el;
+}
+
 /**
  * Fleet GPS Tracking Map
  * Real-time visualization of all company drivers on a map
@@ -62,7 +93,11 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DriverStatus>("all");
-  const [mapCenter, setMapCenter] = useState({ lat: -15.7801, lng: -47.9292 }); // Default: Brasília
+
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // Fetch driver locations
   const {
@@ -73,7 +108,6 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
   } = useQuery({
     queryKey: ["fleet-drivers", companyId],
     queryFn: async () => {
-      // Get affiliated drivers with tracking data
       const { data: trackingData, error } = await supabase
         .from("affiliated_drivers_tracking")
         .select(
@@ -89,18 +123,16 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
         `,
         )
         .eq("company_id", companyId)
-        .not("current_lat", "is", null);
+        .not("current_lat", "is", null)
+        .not("current_lng", "is", null);
 
       if (error) throw error;
 
-      // Get driver profiles
       const driverIds = trackingData?.map((t) => t.driver_profile_id).filter(Boolean) || [];
-
       if (driverIds.length === 0) return [];
 
       const { data: profiles } = await supabase.from("profiles").select("id, full_name, phone").in("id", driverIds);
 
-      // Get current freight info
       const freightIds = trackingData?.map((t) => t.current_freight_id).filter(Boolean) || [];
 
       let freightsMap: Record<string, any> = {};
@@ -115,8 +147,7 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
         });
       }
 
-      // Combine data
-      const locations: DriverLocation[] = (trackingData || []).map((tracking) => {
+      const locations: DriverLocation[] = (trackingData || []).map((tracking: any) => {
         const profile = profiles?.find((p) => p.id === tracking.driver_profile_id);
         const freight = tracking.current_freight_id ? freightsMap[tracking.current_freight_id] : null;
 
@@ -125,10 +156,10 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
           driver_profile_id: tracking.driver_profile_id || "",
           driver_name: profile?.full_name || "Motorista",
           driver_phone: profile?.phone || null,
-          current_lat: tracking.current_lat,
-          current_lng: tracking.current_lng,
+          current_lat: Number(tracking.current_lat),
+          current_lng: Number(tracking.current_lng),
           last_gps_update: tracking.last_gps_update,
-          is_available: tracking.is_available || false,
+          is_available: Boolean(tracking.is_available),
           tracking_status: tracking.tracking_status || "offline",
           current_freight_id: tracking.current_freight_id,
           freight_origin: freight ? `${freight.origin_city}/${freight.origin_state}` : undefined,
@@ -136,69 +167,207 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
         };
       });
 
-      return locations;
+      return locations.filter((d) => isNum(d.current_lat) && isNum(d.current_lng));
     },
     refetchInterval: refreshInterval,
     staleTime: 10000,
   });
 
   // Filter drivers
-  const filteredDrivers = drivers.filter((driver) => {
-    const matchesSearch =
-      driver.driver_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      driver.vehicle_plate?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredDrivers = useMemo(() => {
+    return drivers.filter((driver) => {
+      const matchesSearch =
+        driver.driver_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        driver.vehicle_plate?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "available" && driver.is_available) ||
-      (statusFilter === "in_transit" && driver.current_freight_id) ||
-      (statusFilter === "offline" && !driver.is_available && !driver.current_freight_id);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "available" && driver.is_available) ||
+        (statusFilter === "in_transit" && driver.current_freight_id) ||
+        (statusFilter === "offline" && !driver.is_available && !driver.current_freight_id);
 
-    return matchesSearch && matchesStatus;
-  });
+      return Boolean(matchesSearch && matchesStatus);
+    });
+  }, [drivers, searchTerm, statusFilter]);
 
-  // Get status badge
+  // Center computed
+  const computedCenter = useMemo<[number, number]>(() => {
+    if (selectedDriver) {
+      const d = filteredDrivers.find((x) => x.id === selectedDriver);
+      if (d && isNum(d.current_lat) && isNum(d.current_lng)) return [d.current_lng, d.current_lat];
+    }
+    if (filteredDrivers.length > 0) {
+      const first = filteredDrivers[0];
+      if (isNum(first.current_lat) && isNum(first.current_lng)) return [first.current_lng, first.current_lat];
+    }
+    return DEFAULT_CENTER;
+  }, [filteredDrivers, selectedDriver]);
+
+  // Status badge/icon
   const getStatusBadge = (driver: DriverLocation) => {
-    if (driver.current_freight_id) {
-      return <Badge className="bg-blue-500 text-white">Em Viagem</Badge>;
-    }
-    if (driver.is_available) {
-      return <Badge className="bg-green-500 text-white">Disponível</Badge>;
-    }
+    if (driver.current_freight_id) return <Badge className="bg-blue-500 text-white">Em Viagem</Badge>;
+    if (driver.is_available) return <Badge className="bg-green-500 text-white">Disponível</Badge>;
     return <Badge variant="secondary">Offline</Badge>;
   };
 
-  // Get status icon
   const getStatusIcon = (driver: DriverLocation) => {
-    if (driver.current_freight_id) {
-      return <Navigation className="h-4 w-4 text-blue-500" />;
-    }
-    if (driver.is_available) {
-      return <CheckCircle className="h-4 w-4 text-green-500" />;
-    }
+    if (driver.current_freight_id) return <Navigation className="h-4 w-4 text-blue-500" />;
+    if (driver.is_available) return <CheckCircle className="h-4 w-4 text-green-500" />;
     return <Circle className="h-4 w-4 text-muted-foreground" />;
   };
 
-  // Calculate time since last update
   const getLastUpdateText = (lastUpdate: string) => {
     if (!lastUpdate) return "Nunca";
     try {
-      return formatDistanceToNow(new Date(lastUpdate), {
-        addSuffix: true,
-        locale: ptBR,
-      });
+      return formatDistanceToNow(new Date(lastUpdate), { addSuffix: true, locale: ptBR });
     } catch {
       return "Desconhecido";
     }
   };
 
-  // Stats
   const stats = {
     total: drivers.length,
     available: drivers.filter((d) => d.is_available).length,
     inTransit: drivers.filter((d) => d.current_freight_id).length,
     offline: drivers.filter((d) => !d.is_available && !d.current_freight_id).length,
   };
+
+  // ✅ Init MapLibre (uma vez)
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+    if (mapRef.current) return;
+
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      center: computedCenter,
+      zoom: 6,
+      // ✅ NUNCA use `true` aqui (dá erro no TS)
+      attributionControl: false,
+      pixelRatio: window.devicePixelRatio || 1,
+    });
+
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+
+    map.on("load", () => {
+      // canvas em tab precisa resize
+      requestAnimationFrame(() => {
+        map.resize();
+        requestAnimationFrame(() => map.resize());
+      });
+    });
+
+    map.on("error", (e) => {
+      console.error("[FleetGPSTrackingMap] Map error:", (e as any)?.error || e);
+    });
+
+    mapRef.current = map;
+
+    // ResizeObserver (tabs/layout)
+    const ro = new ResizeObserver(() => {
+      mapRef.current?.resize();
+    });
+    ro.observe(mapContainerRef.current);
+    resizeObserverRef.current = ro;
+
+    // garante resize ao voltar pra aba
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        requestAnimationFrame(() => mapRef.current?.resize());
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current.clear();
+
+      map.remove();
+      mapRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ✅ Recentra quando muda
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapRef.current.setCenter(computedCenter);
+  }, [computedCenter]);
+
+  // ✅ Render/Update markers
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+
+    const keepIds = new Set<string>();
+
+    for (const d of filteredDrivers) {
+      if (!isNum(d.current_lat) || !isNum(d.current_lng)) continue;
+      keepIds.add(d.id);
+
+      const status: "in_transit" | "available" | "offline" = d.current_freight_id
+        ? "in_transit"
+        : d.is_available
+          ? "available"
+          : "offline";
+
+      const existing = markersRef.current.get(d.id);
+      if (existing) {
+        existing.setLngLat([d.current_lng, d.current_lat]);
+        continue;
+      }
+
+      const el = buildDriverMarkerEl(status);
+
+      const popupHtml = `
+        <div style="padding:8px; max-width:220px;">
+          <div style="font-weight:700; margin-bottom:4px;">${d.driver_name}</div>
+          <div style="font-size:12px; color:#6b7280; margin-bottom:6px;">Último GPS: ${getLastUpdateText(
+            d.last_gps_update,
+          )}</div>
+          ${
+            d.current_freight_id && d.freight_origin
+              ? `<div style="font-size:12px;"><strong>Rota:</strong> ${d.freight_origin} → ${d.freight_destination || "—"}</div>`
+              : `<div style="font-size:12px;"><strong>Status:</strong> ${status === "available" ? "Disponível" : "Offline"}</div>`
+          }
+        </div>
+      `;
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([d.current_lng, d.current_lat])
+        .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(popupHtml))
+        .addTo(map);
+
+      el.addEventListener("click", () => setSelectedDriver(d.id));
+
+      markersRef.current.set(d.id, marker);
+    }
+
+    // remove markers que sumiram
+    for (const [id, marker] of markersRef.current.entries()) {
+      if (!keepIds.has(id)) {
+        marker.remove();
+        markersRef.current.delete(id);
+      }
+    }
+
+    // fit bounds quando tem mais de 1
+    const markers = Array.from(markersRef.current.values());
+    if (markers.length >= 2) {
+      const bounds = new maplibregl.LngLatBounds();
+      markers.forEach((m) => bounds.extend(m.getLngLat()));
+      map.fitBounds(bounds, { padding: 60, maxZoom: 12, duration: 0 });
+    } else if (markers.length === 1) {
+      map.easeTo({ center: markers[0].getLngLat(), zoom: 10, duration: 0 });
+    }
+
+    requestAnimationFrame(() => map.resize());
+  }, [filteredDrivers, selectedDriver]);
 
   return (
     <div className={className}>
@@ -261,38 +430,32 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
             </Select>
           </div>
 
-          {/* Map Placeholder + Driver List */}
           <div className="grid lg:grid-cols-3 gap-4">
             {/* Map Area */}
             <div className="lg:col-span-2">
-              <div className="aspect-video bg-muted rounded-xl flex items-center justify-center border-2 border-dashed border-muted-foreground/25">
-                <div className="text-center p-8">
-                  <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="font-semibold text-lg mb-2">Mapa de Rastreamento</h3>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    Visualize a localização em tempo real de todos os motoristas.
-                    {filteredDrivers.length > 0 && (
-                      <span className="block mt-2 text-primary font-medium">
-                        {filteredDrivers.length} motorista(s) com GPS ativo
-                      </span>
-                    )}
-                  </p>
-                  {filteredDrivers.length > 0 && (
-                    <div className="mt-4 flex flex-wrap justify-center gap-2">
-                      {filteredDrivers.slice(0, 5).map((driver) => (
-                        <Badge key={driver.id} variant="outline" className="text-xs">
-                          <Truck className="h-3 w-3 mr-1" />
-                          {driver.driver_name.split(" ")[0]}
-                        </Badge>
-                      ))}
-                      {filteredDrivers.length > 5 && (
-                        <Badge variant="secondary" className="text-xs">
-                          +{filteredDrivers.length - 5} mais
-                        </Badge>
-                      )}
+              <div className="relative aspect-video rounded-xl overflow-hidden border">
+                <div ref={mapContainerRef} className="absolute inset-0" />
+
+                {/* overlay quando não tem drivers */}
+                {!isLoading && filteredDrivers.length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/40">
+                    <div className="text-center p-6">
+                      <MapPin className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        Nenhum motorista com GPS ativo (ou sem permissão/RLS para ler a tabela).
+                      </p>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+
+                {isLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+                    <div className="text-center p-6">
+                      <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">Carregando mapa...</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -375,4 +538,5 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
     </div>
   );
 });
+
 export default FleetGPSTrackingMap;
