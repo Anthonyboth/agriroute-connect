@@ -296,3 +296,6 @@ verify_jwt = true
 
 [functions.fiscal-certificate-upload]
 verify_jwt = true
+
+[functions.admin-delete-fiscal-issuer]
+verify_jwt = false
