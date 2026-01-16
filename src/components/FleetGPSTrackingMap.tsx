@@ -375,5 +375,4 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
     </div>
   );
 });
-
 export default FleetGPSTrackingMap;
