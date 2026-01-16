@@ -152,11 +152,11 @@ Deno.serve(async (req) => {
     // Check wallet balance
     const { data: wallet } = await supabase
       .from('fiscal_wallet')
-      .select('available_emissions, reserved_emissions')
+      .select('available_balance, reserved_balance')
       .eq('issuer_id', issuer_id)
       .single();
 
-    if (!wallet || wallet.available_emissions < 1) {
+    if (!wallet || wallet.available_balance < 1) {
       return new Response(
         JSON.stringify({ error: 'Saldo insuficiente de emissões. Adquira mais créditos.' }),
         { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
