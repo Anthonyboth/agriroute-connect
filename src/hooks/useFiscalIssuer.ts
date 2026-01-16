@@ -186,20 +186,38 @@ export function useFiscalIssuer() {
         body: data,
       });
 
-      if (fnError) throw fnError;
+      // When the Edge Function returns non-2xx (e.g. 409), Supabase returns fnError and `result` can be null.
+      // Extract the JSON body error message so the UI shows the real cause instead of a generic "FunctionsHttpError".
+      if (fnError) {
+        let message = fnError.message || 'Erro ao cadastrar emissor fiscal';
 
-      if (result.error) {
-        throw new Error(result.error);
+        const maybeResponse = (fnError as any)?.context;
+        if (maybeResponse && typeof maybeResponse === 'object' && typeof (maybeResponse as Response).clone === 'function') {
+          try {
+            const payload = await (maybeResponse as Response).clone().json();
+            if (payload?.error && typeof payload.error === 'string') {
+              message = payload.error;
+            }
+          } catch {
+            // ignore JSON parse errors
+          }
+        }
+
+        throw new Error(message);
+      }
+
+      if ((result as any)?.error) {
+        throw new Error((result as any).error);
       }
 
       toast.success('Emissor fiscal cadastrado com sucesso!');
-      
+
       // Refresh data
       await fetchIssuer();
-      
-      return result.issuer as FiscalIssuer;
+
+      return (result as any).issuer as FiscalIssuer;
     } catch (err: any) {
-      const message = err.message || 'Erro ao cadastrar emissor fiscal';
+      const message = err?.message || 'Erro ao cadastrar emissor fiscal';
       setError(message);
       toast.error(message);
       return null;
