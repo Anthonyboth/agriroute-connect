@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
         valid_until: validUntil,
         is_valid: true,
         is_expired: false,
-        status: 'active',
+        status: 'valid',
         storage_path: storagePath,
         uploaded_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
