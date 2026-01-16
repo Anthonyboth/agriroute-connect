@@ -39,22 +39,6 @@ interface NFePayload {
   informacoes_adicionais?: string;
 }
 
-type ApiErrorCode =
-  | "UNAUTHORIZED"
-  | "INVALID_TOKEN"
-  | "PROFILE_NOT_FOUND"
-  | "INVALID_PAYLOAD"
-  | "ISSUER_NOT_FOUND"
-  | "FORBIDDEN"
-  | "ISSUER_BLOCKED"
-  | "INSUFFICIENT_BALANCE"
-  | "INVALID_ISSUER_DOCUMENT"
-  | "INVALID_RECIPIENT_DOCUMENT"
-  | "EMISSION_RECORD_FAILED"
-  | "FOCUS_REQUEST_FAILED"
-  | "FOCUS_COMMUNICATION_FAILED"
-  | "INTERNAL_ERROR";
-
 function jsonResponse(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
@@ -70,15 +54,7 @@ function safeUpper(v: string) {
   return (v || "").trim().toUpperCase();
 }
 
-function asString(v: unknown, fallback = ""): string {
-  return typeof v === "string" ? v : fallback;
-}
-
 function mapTaxRegime(regime: string): string {
-  // Focus:
-  // 1 – Simples Nacional
-  // 2 – Simples Nacional – excesso sublimite
-  // 3 – Regime Normal
   switch (regime) {
     case "simples_nacional":
     case "mei":
@@ -93,9 +69,9 @@ function mapTaxRegime(regime: string): string {
   }
 }
 
-async function parseFocusResponse(resp: Response): Promise<{ ok: boolean; data: any; raw: string }> {
+async function parseJsonOrText(resp: Response): Promise<{ ok: boolean; data: any; raw: string }> {
   const raw = await resp.text();
-  let data: any = null;
+  let data: any;
   try {
     data = JSON.parse(raw);
   } catch {
@@ -104,20 +80,39 @@ async function parseFocusResponse(resp: Response): Promise<{ ok: boolean; data: 
   return { ok: resp.ok, data, raw };
 }
 
+function focusFriendlyMessage(focusData: any, httpStatus?: number) {
+  const msg = String(
+    focusData?.mensagem_sefaz || focusData?.mensagem || focusData?.error || focusData?.raw || "",
+  ).trim();
+
+  if (msg) return msg;
+
+  if (httpStatus) {
+    if (httpStatus === 401 || httpStatus === 403) return "Falha de autenticação com o provedor fiscal.";
+    if (httpStatus === 404) return "Recurso não encontrado no provedor fiscal.";
+    if (httpStatus >= 400 && httpStatus < 500) return "Dados fiscais inválidos. Verifique os campos e tente novamente.";
+    if (httpStatus >= 500) return "Provedor fiscal indisponível no momento. Tente novamente.";
+  }
+
+  return "Não foi possível processar a NF-e. Verifique os dados e tente novamente.";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Token Focus
     const FOCUS_NFE_TOKEN = Deno.env.get("FOCUS_NFE_TOKEN");
     if (!FOCUS_NFE_TOKEN) {
       console.error("[nfe-emitir] FOCUS_NFE_TOKEN não configurado");
       return jsonResponse(500, {
         success: false,
-        code: "INTERNAL_ERROR",
+        code: "CONFIG_MISSING",
         message: "Configuração fiscal indisponível. Contate o suporte.",
       });
     }
 
+    // Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -135,21 +130,15 @@ Deno.serve(async (req) => {
       return jsonResponse(401, { success: false, code: "INVALID_TOKEN", message: "Token inválido." });
     }
 
-    const user = userData.user;
-
-    // Profile
+    // Perfil
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("id, full_name")
-      .eq("user_id", user.id)
+      .eq("user_id", userData.user.id)
       .single();
 
     if (profileError || !profile) {
-      return jsonResponse(404, {
-        success: false,
-        code: "PROFILE_NOT_FOUND",
-        message: "Perfil não encontrado.",
-      });
+      return jsonResponse(404, { success: false, code: "PROFILE_NOT_FOUND", message: "Perfil não encontrado." });
     }
 
     // Payload
@@ -167,11 +156,7 @@ Deno.serve(async (req) => {
     const { issuer_id, freight_id, destinatario, itens, valores, informacoes_adicionais } = payload;
 
     if (!issuer_id) {
-      return jsonResponse(400, {
-        success: false,
-        code: "INVALID_PAYLOAD",
-        message: "issuer_id é obrigatório.",
-      });
+      return jsonResponse(400, { success: false, code: "INVALID_PAYLOAD", message: "issuer_id é obrigatório." });
     }
 
     if (!destinatario?.cnpj_cpf || !destinatario?.razao_social) {
@@ -190,7 +175,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Load issuer
+    // Emissor
     const { data: issuer, error: issuerError } = await supabase
       .from("fiscal_issuers")
       .select("*")
@@ -199,23 +184,13 @@ Deno.serve(async (req) => {
 
     if (issuerError || !issuer) {
       console.error("[nfe-emitir] Issuer não encontrado:", issuerError);
-      return jsonResponse(404, {
-        success: false,
-        code: "ISSUER_NOT_FOUND",
-        message: "Emissor fiscal não encontrado.",
-      });
+      return jsonResponse(404, { success: false, code: "ISSUER_NOT_FOUND", message: "Emissor fiscal não encontrado." });
     }
 
-    // Ownership
     if (issuer.profile_id !== profile.id) {
-      return jsonResponse(403, {
-        success: false,
-        code: "FORBIDDEN",
-        message: "Você não tem permissão para emitir por este emissor.",
-      });
+      return jsonResponse(403, { success: false, code: "FORBIDDEN", message: "Sem permissão para este emissor." });
     }
 
-    // Issuer status
     if (issuer.status === "blocked" || issuer.status === "suspended") {
       return jsonResponse(403, {
         success: false,
@@ -224,14 +199,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Wallet
+    // Carteira
     const { data: wallet, error: walletError } = await supabase
       .from("fiscal_wallet")
       .select("available_balance, reserved_balance")
       .eq("issuer_id", issuer_id)
       .maybeSingle();
 
-    if (walletError) console.error("[nfe-emitir] Erro carteira fiscal:", walletError);
+    if (walletError) console.error("[nfe-emitir] Erro carteira:", walletError);
 
     if (!wallet || wallet.available_balance < 1) {
       return jsonResponse(402, {
@@ -241,13 +216,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Documents sanitization
-    const issuerDoc = onlyDigits(asString(issuer.document_number));
-    const recipientDoc = onlyDigits(destinatario.cnpj_cpf);
+    // Documentos sanitizados (CORREÇÃO CRÍTICA)
+    const issuerDoc = onlyDigits(String(issuer.document_number || ""));
+    const destDoc = onlyDigits(String(destinatario.cnpj_cpf || ""));
 
     const isIssuerCPF = issuerDoc.length === 11;
     const isIssuerCNPJ = issuerDoc.length === 14;
-
     if (!isIssuerCPF && !isIssuerCNPJ) {
       return jsonResponse(400, {
         success: false,
@@ -256,10 +230,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const isRecipientCPF = recipientDoc.length === 11;
-    const isRecipientCNPJ = recipientDoc.length === 14;
-
-    if (!isRecipientCPF && !isRecipientCNPJ) {
+    const isDestCPF = destDoc.length === 11;
+    const isDestCNPJ = destDoc.length === 14;
+    if (!isDestCPF && !isDestCNPJ) {
       return jsonResponse(400, {
         success: false,
         code: "INVALID_RECIPIENT_DOCUMENT",
@@ -267,15 +240,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Environment + Focus URL
+    // Ref
     const internalRef = `NFE-${issuer_id.substring(0, 8)}-${Date.now()}`;
 
+    // Ambiente
     const isProducao = issuer.fiscal_environment === "production";
     const focusUrl = isProducao ? "https://api.focusnfe.com.br/v2/nfe" : "https://homologacao.focusnfe.com.br/v2/nfe";
 
-    console.log(`[nfe-emitir] Emitindo. Ambiente=${isProducao ? "PRODUÇÃO" : "HOMOLOGAÇÃO"} ref=${internalRef}`);
-
-    // City IBGE code (recipient)
+    // IBGE destinatário (opcional)
     const destMunicipio = (destinatario.endereco?.municipio || "").trim();
     const destUf = safeUpper(destinatario.endereco?.uf || issuer.uf || "MT");
 
@@ -287,119 +259,118 @@ Deno.serve(async (req) => {
         .ilike("name", destMunicipio)
         .eq("state", destUf)
         .maybeSingle();
+
       destCodigoMunicipio = cityData?.ibge_code || "";
     }
 
-    // Build Focus payload (minimal but valid)
-    const issuerCep = onlyDigits(asString(issuer.address_zip_code));
-    const recipientCep = onlyDigits(asString(destinatario.endereco?.cep));
-    const recipientPhone = onlyDigits(asString(destinatario.telefone));
-
+    // Payload Focus (CORRIGIDO)
     const nfePayload: Record<string, unknown> = {
       natureza_operacao: "VENDA DE MERCADORIA",
       forma_pagamento: "0",
       tipo_documento: "1",
       finalidade_emissao: "1",
-      consumidor_final: isRecipientCPF ? "1" : "0",
+      consumidor_final: isDestCPF ? "1" : "0",
 
-      // Emitente
+      // Emitente: CPF ou CNPJ (CORREÇÃO)
       cpf_emitente: isIssuerCPF ? issuerDoc : undefined,
       cnpj_emitente: isIssuerCNPJ ? issuerDoc : undefined,
-      inscricao_estadual_emitente: asString(issuer.state_registration, ""),
-      nome_emitente: asString(issuer.legal_name, ""),
-      nome_fantasia_emitente: asString(issuer.trade_name || issuer.legal_name, ""),
-      logradouro_emitente: asString(issuer.address_street, ""),
-      numero_emitente: asString(issuer.address_number, "SN"),
-      bairro_emitente: asString(issuer.address_neighborhood, ""),
-      municipio_emitente: asString(issuer.city, ""),
-      codigo_municipio_emitente: asString(issuer.city_ibge_code, ""),
-      uf_emitente: safeUpper(asString(issuer.uf, "")),
-      cep_emitente: issuerCep,
+      inscricao_estadual_emitente: String(issuer.state_registration || ""),
+      nome_emitente: String(issuer.legal_name || ""),
+      nome_fantasia_emitente: String(issuer.trade_name || issuer.legal_name || ""),
+      logradouro_emitente: String(issuer.address_street || ""),
+      numero_emitente: String(issuer.address_number || "SN"),
+      bairro_emitente: String(issuer.address_neighborhood || ""),
+      municipio_emitente: String(issuer.city || ""),
+      codigo_municipio_emitente: String(issuer.city_ibge_code || ""),
+      uf_emitente: safeUpper(String(issuer.uf || "")),
+      cep_emitente: onlyDigits(String(issuer.address_zip_code || "")),
+      regime_tributario: mapTaxRegime(String(issuer.tax_regime || "simples_nacional")),
 
-      regime_tributario: mapTaxRegime(asString(issuer.tax_regime, "simples_nacional")),
-
-      // Destinatário
-      cpf_destinatario: isRecipientCPF ? recipientDoc : undefined,
-      cnpj_destinatario: isRecipientCNPJ ? recipientDoc : undefined,
-      nome_destinatario: asString(destinatario.razao_social, ""),
-      inscricao_estadual_destinatario: asString(destinatario.ie, ""),
-      email_destinatario: asString(destinatario.email, ""),
-      telefone_destinatario: recipientPhone,
-      logradouro_destinatario: asString(destinatario.endereco?.logradouro, ""),
-      numero_destinatario: asString(destinatario.endereco?.numero, "SN"),
-      bairro_destinatario: asString(destinatario.endereco?.bairro, ""),
+      // Destinatário: CPF ou CNPJ (CORREÇÃO)
+      cpf_destinatario: isDestCPF ? destDoc : undefined,
+      cnpj_destinatario: isDestCNPJ ? destDoc : undefined,
+      nome_destinatario: String(destinatario.razao_social || ""),
+      inscricao_estadual_destinatario: String(destinatario.ie || ""),
+      email_destinatario: String(destinatario.email || ""),
+      telefone_destinatario: onlyDigits(String(destinatario.telefone || "")),
+      logradouro_destinatario: String(destinatario.endereco?.logradouro || ""),
+      numero_destinatario: String(destinatario.endereco?.numero || "SN"),
+      bairro_destinatario: String(destinatario.endereco?.bairro || ""),
       municipio_destinatario: destMunicipio,
       codigo_municipio_destinatario: destCodigoMunicipio,
       uf_destinatario: destUf,
-      cep_destinatario: recipientCep,
+      cep_destinatario: onlyDigits(String(destinatario.endereco?.cep || "")),
 
-      // Itens
+      // Itens: campos corretos Focus (CORREÇÃO)
       items: itens.map((item, index) => {
-        const ncm = onlyDigits(item.ncm || "99999999");
-        const cfop = onlyDigits(item.cfop || "5102") || "5102";
         const unidade = (item.unidade || "UN").toUpperCase();
+        const cfop = onlyDigits(item.cfop || "5102") || "5102";
+        const ncm = onlyDigits(item.ncm || "99999999") || "99999999";
+        const valorTotal = item.quantidade * item.valor_unitario;
 
         return {
           numero_item: index + 1,
           codigo_produto: String(index + 1).padStart(5, "0"),
           descricao: item.descricao,
+
+          // Focus usa "codigo_ncm"
           codigo_ncm: ncm,
           cfop,
+
           unidade_comercial: unidade,
           quantidade_comercial: item.quantidade,
           valor_unitario_comercial: item.valor_unitario,
-          valor_bruto: item.quantidade * item.valor_unitario,
+          valor_bruto: valorTotal,
 
           unidade_tributavel: unidade,
           quantidade_tributavel: item.quantidade,
           valor_unitario_tributavel: item.valor_unitario,
 
+          // Focus usa "icms_origem" (não "origem")
           icms_origem: "0",
           icms_situacao_tributaria: "102",
+
+          // evita rejeições comuns em serviços simples
           pis_situacao_tributaria: "07",
           cofins_situacao_tributaria: "07",
         };
       }),
 
-      // Totais
       valor_produtos: valores.total,
       valor_frete: valores.frete || 0,
       valor_desconto: valores.desconto || 0,
       valor_total: valores.total + (valores.frete || 0) - (valores.desconto || 0),
 
-      // Frete
       modalidade_frete: "9",
-
-      // Info adicionais
-      informacoes_complementares: asString(informacoes_adicionais, ""),
+      informacoes_complementares: String(informacoes_adicionais || ""),
     };
 
-    // Normalize stored addresses/items for DB
+    // Dados para DB (sanitizados)
     const issuerAddress = {
-      logradouro: asString(issuer.address_street, ""),
-      numero: asString(issuer.address_number, "SN"),
-      bairro: asString(issuer.address_neighborhood, ""),
-      municipio: asString(issuer.city, ""),
-      codigo_municipio: asString(issuer.city_ibge_code, ""),
-      uf: safeUpper(asString(issuer.uf, "")),
-      cep: issuerCep,
+      logradouro: String(issuer.address_street || ""),
+      numero: String(issuer.address_number || "SN"),
+      bairro: String(issuer.address_neighborhood || ""),
+      municipio: String(issuer.city || ""),
+      codigo_municipio: String(issuer.city_ibge_code || ""),
+      uf: safeUpper(String(issuer.uf || "")),
+      cep: onlyDigits(String(issuer.address_zip_code || "")),
     };
 
     const recipientAddress = destinatario.endereco
       ? {
-          logradouro: asString(destinatario.endereco.logradouro, ""),
-          numero: asString(destinatario.endereco.numero, "SN"),
-          bairro: asString(destinatario.endereco.bairro, ""),
-          municipio: asString(destinatario.endereco.municipio, ""),
-          uf: safeUpper(asString(destinatario.endereco.uf, destUf)),
-          cep: recipientCep,
+          logradouro: String(destinatario.endereco.logradouro || ""),
+          numero: String(destinatario.endereco.numero || "SN"),
+          bairro: String(destinatario.endereco.bairro || ""),
+          municipio: String(destinatario.endereco.municipio || ""),
+          uf: safeUpper(String(destinatario.endereco.uf || destUf)),
+          cep: onlyDigits(String(destinatario.endereco.cep || "")),
         }
       : null;
 
     const emissionItems = itens.map((item, index) => ({
       numero_item: index + 1,
       descricao: item.descricao,
-      ncm: onlyDigits(item.ncm || "99999999"),
+      ncm: onlyDigits(item.ncm || "99999999") || "99999999",
       cfop: onlyDigits(item.cfop || "5102") || "5102",
       unidade: (item.unidade || "UN").toUpperCase(),
       quantidade: item.quantidade,
@@ -407,7 +378,7 @@ Deno.serve(async (req) => {
       valor_total: item.quantidade * item.valor_unitario,
     }));
 
-    // Create emission record BEFORE sending to Focus
+    // Cria emissão
     const { data: emission, error: emissionError } = await supabase
       .from("nfe_emissions")
       .insert({
@@ -415,18 +386,18 @@ Deno.serve(async (req) => {
         freight_id: freight_id || null,
         internal_ref: internalRef,
         model: "55",
-        operation_nature: nfePayload.natureza_operacao,
+        operation_nature: String(nfePayload.natureza_operacao || "VENDA DE MERCADORIA"),
         cfop: emissionItems?.[0]?.cfop || "5102",
         issuer_document: issuerDoc,
-        issuer_name: asString(issuer.legal_name, ""),
-        issuer_ie: asString(issuer.state_registration, "") || null,
+        issuer_name: String(issuer.legal_name || ""),
+        issuer_ie: String(issuer.state_registration || "") || null,
         issuer_address: issuerAddress,
-        recipient_document_type: isRecipientCPF ? "CPF" : "CNPJ",
-        recipient_document: recipientDoc,
-        recipient_name: asString(destinatario.razao_social, ""),
-        recipient_ie: asString(destinatario.ie, "") || null,
-        recipient_email: asString(destinatario.email, "") || null,
-        recipient_phone: recipientPhone || null,
+        recipient_document_type: isDestCPF ? "CPF" : "CNPJ",
+        recipient_document: destDoc,
+        recipient_name: String(destinatario.razao_social || ""),
+        recipient_ie: String(destinatario.ie || "") || null,
+        recipient_email: String(destinatario.email || "") || null,
+        recipient_phone: onlyDigits(String(destinatario.telefone || "")) || null,
         recipient_address: recipientAddress,
         items: emissionItems,
         totals: {
@@ -453,12 +424,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Reserve credit
+    // Reserva crédito
     await supabase.rpc("reserve_emission_credit", { p_issuer_id: issuer_id, p_emission_id: emission.id });
 
-    // Send to Focus
+    // Envia para Focus
     let focusResp: Response;
-    let focusParsed: { ok: boolean; data: any; raw: string };
+    let parsed: { ok: boolean; data: any; raw: string };
 
     try {
       focusResp = await fetch(`${focusUrl}?ref=${encodeURIComponent(internalRef)}`, {
@@ -470,7 +441,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify(nfePayload),
       });
 
-      focusParsed = await parseFocusResponse(focusResp);
+      parsed = await parseJsonOrText(focusResp);
     } catch (err) {
       console.error("[nfe-emitir] Falha comunicação Focus:", err);
 
@@ -488,21 +459,17 @@ Deno.serve(async (req) => {
       return jsonResponse(502, {
         success: false,
         code: "FOCUS_COMMUNICATION_FAILED",
-        message: "Falha na comunicação com o provedor fiscal. Tente novamente em instantes.",
+        message: "Falha na comunicação com o provedor fiscal. Tente novamente.",
       });
     }
 
-    const focusData = focusParsed.data;
+    const focusData = parsed.data;
 
-    // If Focus returned HTTP error, treat as rejection and show message
-    if (!focusParsed.ok) {
-      const msg =
-        asString(focusData?.mensagem_sefaz) ||
-        asString(focusData?.mensagem) ||
-        asString(focusData?.error) ||
-        "Não foi possível enviar a NF-e. Verifique os dados e tente novamente.";
+    // Se Focus retornou erro HTTP => rejeita e mostra motivo
+    if (!parsed.ok) {
+      const msg = focusFriendlyMessage(focusData, focusResp.status);
 
-      console.error("[nfe-emitir] Focus retornou erro HTTP:", focusResp.status, focusParsed.raw?.slice(0, 400));
+      console.error("[nfe-emitir] Focus erro HTTP:", focusResp.status, String(parsed.raw || "").slice(0, 400));
 
       await supabase
         .from("nfe_emissions")
@@ -527,28 +494,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Map Focus status to internal status
+    // Mapeia status Focus -> status interno
     let newStatus: "authorized" | "processing" | "rejected" | "canceled" = "processing";
     let errorMessage: string | null = null;
 
-    const focusStatus = asString(focusData?.status);
+    const focusStatus = String(focusData?.status || "");
 
-    if (focusStatus === "autorizado") {
-      newStatus = "authorized";
-    } else if (focusStatus === "cancelado") {
-      newStatus = "canceled";
-    } else if (focusStatus === "erro_autorizacao" || focusStatus === "rejeitado") {
+    if (focusStatus === "autorizado") newStatus = "authorized";
+    else if (focusStatus === "cancelado") newStatus = "canceled";
+    else if (focusStatus === "erro_autorizacao" || focusStatus === "rejeitado" || focusStatus === "denegado") {
       newStatus = "rejected";
-      errorMessage =
-        asString(focusData?.mensagem_sefaz) || asString(focusData?.mensagem) || "Erro na autorização da NF-e.";
-    } else if (focusStatus === "processando_autorizacao") {
-      newStatus = "processing";
-    } else {
-      // unknown Focus status -> keep processing
-      newStatus = "processing";
-    }
+      errorMessage = focusFriendlyMessage(focusData);
+    } else if (focusStatus === "processando_autorizacao") newStatus = "processing";
+    else newStatus = "processing";
 
-    // Update DB record
+    // Atualiza emissão
     await supabase
       .from("nfe_emissions")
       .update({
@@ -571,27 +531,25 @@ Deno.serve(async (req) => {
       })
       .eq("id", emission.id);
 
-    // Confirm / release credit
+    // Crédito
     if (newStatus === "authorized") {
       await supabase.rpc("confirm_emission_credit", { p_emission_id: emission.id });
     } else if (newStatus === "rejected") {
       await supabase.rpc("release_emission_credit", { p_emission_id: emission.id });
     }
 
-    const userMessage =
+    const message =
       newStatus === "authorized"
         ? "NF-e autorizada com sucesso!"
         : newStatus === "processing"
           ? "NF-e enviada para autorização. Aguarde a confirmação."
           : newStatus === "canceled"
             ? "NF-e cancelada."
-            : errorMessage || "Não foi possível autorizar a NF-e.";
+            : errorMessage || "NF-e não autorizada.";
 
-    // Return response
     return jsonResponse(200, {
       success: newStatus === "authorized" || newStatus === "processing",
-      code: newStatus === "rejected" ? "FOCUS_REQUEST_FAILED" : null,
-      message: userMessage,
+      message,
       emission_id: emission.id,
       internal_ref: internalRef,
       status: newStatus,
@@ -601,8 +559,8 @@ Deno.serve(async (req) => {
       xml_url: focusData?.caminho_xml_nota_fiscal || null,
       ambiente: isProducao ? "producao" : "homologacao",
     });
-  } catch (error: any) {
-    console.error("[nfe-emitir] Erro:", error);
+  } catch (error) {
+    console.error("[nfe-emitir] Erro inesperado:", error);
     return jsonResponse(500, {
       success: false,
       code: "INTERNAL_ERROR",
