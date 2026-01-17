@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ZAxis } from 'recharts';
 import { MapPin, TrendingUp, TrendingDown, Download, ArrowUpDown } from 'lucide-react';
 import { formatBRL, formatKm } from '@/lib/formatters';
-import * as XLSX from 'xlsx';
+import { exportToXlsx } from '@/lib/excel-export';
 
 interface RouteRentabilityReportProps {
   freights: any[];
@@ -98,21 +98,25 @@ export const RouteRentabilityReport: React.FC<RouteRentabilityReportProps> = ({ 
   };
   
   const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(
-      routeAnalytics.map(route => ({
-        'Rota': route.route,
-        'Fretes Realizados': route.totalFreights,
-        'Receita Total': route.totalRevenue,
-        'Preço Médio': route.avgPrice,
-        'Distância Média (km)': route.avgDistance,
-        'Preço por KM': route.pricePerKm,
-        'Score de Rentabilidade': route.profitabilityScore.toFixed(1)
-      }))
-    );
+    const sheetData: (string | number)[][] = [
+      ['Rota', 'Fretes Realizados', 'Receita Total', 'Preço Médio', 'Distância Média (km)', 'Preço por KM', 'Score de Rentabilidade'],
+      ...routeAnalytics.map(route => [
+        route.route,
+        route.totalFreights,
+        route.totalRevenue,
+        route.avgPrice,
+        route.avgDistance,
+        route.pricePerKm,
+        route.profitabilityScore.toFixed(1)
+      ])
+    ];
     
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Análise de Rotas');
-    XLSX.writeFile(wb, `rotas-rentabilidade-${new Date().toISOString().split('T')[0]}.xlsx`);
+    exportToXlsx({
+      fileName: `rotas-rentabilidade-${new Date().toISOString().split('T')[0]}.xlsx`,
+      sheets: [
+        { name: 'Análise de Rotas', data: sheetData, columnWidths: [40, 18, 15, 15, 20, 15, 22] }
+      ]
+    });
   };
   
   // Dados para scatter plot

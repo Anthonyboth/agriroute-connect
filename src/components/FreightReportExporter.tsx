@@ -1,8 +1,7 @@
 import React from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
+import { exportToXlsx } from '@/lib/excel-export';
 import { Button } from '@/components/ui/button';
 import { formatBRL, formatKm, formatTons, formatDate } from '@/lib/formatters';
 import { FileText, Table } from 'lucide-react';
@@ -71,59 +70,54 @@ export const FreightReportExporter: React.FC<FreightReportExporterProps> = ({
   };
   
   const exportToExcel = () => {
-    // Summary sheet
-    const summaryData = [
+    // Summary sheet data
+    const summaryData: (string | number | null)[][] = [
       ['Relatório', reportTitle],
       ['Data de Geração', new Date().toLocaleString('pt-BR')],
-      [],
-      ['Estatísticas Gerais'],
+      ['', ''],
+      ['Estatísticas Gerais', ''],
       ['Total de Fretes', data.summary.total],
       ['Valor Total (R$)', data.summary.totalValue],
       ['Distância Total (km)', data.summary.totalDistance],
       ['Peso Total (t)', data.summary.totalWeight],
       ['Preço Médio (R$)', data.summary.avgPrice],
       ['Distância Média (km)', data.summary.avgDistance],
-      [],
-      ['Fretes por Status'],
-      ...Object.entries(data.summary.byStatus).map(([status, count]) => [status, count]),
-      [],
-      ['Fretes por Urgência'],
-      ...Object.entries(data.summary.byUrgency).map(([urgency, count]) => [urgency, count])
+      ['', ''],
+      ['Fretes por Status', ''],
+      ...Object.entries(data.summary.byStatus).map(([status, count]) => [status, count as number]),
+      ['', ''],
+      ['Fretes por Urgência', ''],
+      ...Object.entries(data.summary.byUrgency).map(([urgency, count]) => [urgency, count as number])
     ];
     
-    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    // Freights sheet data
+    const freightsData: (string | number | null)[][] = [
+      ['ID', 'Tipo de Carga', 'Peso (t)', 'Origem Cidade', 'Origem Estado', 'Destino Cidade', 'Destino Estado', 'Data Coleta', 'Data Entrega', 'Distância (km)', 'Preço (R$)', 'Status', 'Urgência', 'Motorista'],
+      ...data.freights.map(f => [
+        f.id,
+        f.cargo_type || 'N/A',
+        f.weight || 0,
+        f.origin_city || 'N/A',
+        f.origin_state || 'N/A',
+        f.destination_city || 'N/A',
+        f.destination_state || 'N/A',
+        formatDate(f.pickup_date),
+        formatDate(f.delivery_date),
+        f.distance_km || 0,
+        f.price || 0,
+        f.status,
+        f.urgency || 'LOW',
+        f.profiles?.full_name || 'Aguardando'
+      ])
+    ];
     
-    // Freights sheet
-    const freightsData = data.freights.map(f => ({
-      'ID': f.id,
-      'Tipo de Carga': f.cargo_type || 'N/A',
-      'Peso (t)': f.weight || 0,
-      'Origem Cidade': f.origin_city || 'N/A',
-      'Origem Estado': f.origin_state || 'N/A',
-      'Destino Cidade': f.destination_city || 'N/A',
-      'Destino Estado': f.destination_state || 'N/A',
-      'Data Coleta': formatDate(f.pickup_date),
-      'Data Entrega': formatDate(f.delivery_date),
-      'Distância (km)': f.distance_km || 0,
-      'Preço (R$)': f.price || 0,
-      'Status': f.status,
-      'Urgência': f.urgency || 'LOW',
-      'Motorista': f.profiles?.full_name || 'Aguardando'
-    }));
-    
-    const freightsSheet = XLSX.utils.json_to_sheet(freightsData);
-    
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumo');
-    XLSX.utils.book_append_sheet(workbook, freightsSheet, 'Fretes Detalhados');
-    
-    // Save file
-    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([excelBuffer], { 
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    exportToXlsx({
+      fileName: `${reportTitle.toLowerCase().replace(/\s/g, '_')}_${Date.now()}.xlsx`,
+      sheets: [
+        { name: 'Resumo', data: summaryData, columnWidths: [25, 20] },
+        { name: 'Fretes Detalhados', data: freightsData, columnWidths: [36, 15, 10, 20, 10, 20, 10, 12, 12, 12, 12, 15, 10, 25] }
+      ]
     });
-    saveAs(blob, `${reportTitle.toLowerCase().replace(/\s/g, '_')}_${Date.now()}.xlsx`);
   };
   
   return (

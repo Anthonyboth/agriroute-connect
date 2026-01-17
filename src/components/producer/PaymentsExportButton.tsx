@@ -6,12 +6,11 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { PaymentCardData } from './PaymentCard';
+import { exportToXlsx } from '@/lib/excel-export';
 
 // Types for lazy-loaded libraries
 type JsPDFType = typeof import('jspdf').default;
 type AutoTableType = typeof import('jspdf-autotable').default;
-type XLSXType = typeof import('xlsx');
-type SaveAsType = typeof import('file-saver').saveAs;
 
 interface PaymentsExportButtonProps {
   payments: PaymentCardData[];
@@ -163,63 +162,54 @@ export const PaymentsExportButton: React.FC<PaymentsExportButtonProps> = ({
   const exportToExcel = useCallback(async () => {
     setIsExporting(true);
     try {
-      // Lazy load Excel libraries only when needed
-      const [xlsxModule, fileSaverModule] = await Promise.all([
-        import('xlsx'),
-        import('file-saver')
-      ]);
-      
-      const XLSX = xlsxModule as XLSXType;
-      const saveAs = fileSaverModule.saveAs as SaveAsType;
-      
-      const workbook = XLSX.utils.book_new();
       const summary = calculateSummary();
 
-      // Summary sheet
-      const summaryData = [
-        ['Relatório de Pagamentos - Produtor'],
-        [''],
-        ['Gerado em', format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })],
-        dateRange ? ['Período', `${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`] : [],
-        [''],
-        ['RESUMO FINANCEIRO'],
+      // Summary sheet data
+      const summaryData: (string | number)[][] = [
+        ['Relatório de Pagamentos - Produtor', '', ''],
+        ['', '', ''],
+        ['Gerado em', format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR }), ''],
+      ];
+      
+      if (dateRange) {
+        summaryData.push(['Período', `${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`, '']);
+      }
+      
+      summaryData.push(
+        ['', '', ''],
+        ['RESUMO FINANCEIRO', '', ''],
         ['Categoria', 'Quantidade', 'Valor (R$)'],
         ['Pendentes', summary.pendingCount, summary.pendingValue],
         ['Aguardando Confirmação', summary.awaitingCount, summary.awaitingValue],
         ['Concluídos', summary.completedCount, summary.completedValue],
-        ['TOTAL', summary.totalPayments, summary.totalValue],
-      ].filter(row => row.length > 0);
+        ['TOTAL', summary.totalPayments, summary.totalValue]
+      );
 
-      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-      summarySheet['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 20 }];
-      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumo');
-
-      // Payments detail sheet
-      const paymentsData = payments.map(p => ({
-        'Data': format(new Date(p.created_at), 'dd/MM/yyyy', { locale: ptBR }),
-        'Motorista': p.driver?.full_name || 'N/A',
-        'Telefone': p.driver?.contact_phone || 'N/A',
-        'Origem': p.freight ? `${p.freight.origin_city || '?'}/${p.freight.origin_state || '?'}` : 'N/A',
-        'Destino': p.freight ? `${p.freight.destination_city || '?'}/${p.freight.destination_state || '?'}` : 'N/A',
-        'Tipo de Carga': p.freight?.cargo_type || 'N/A',
-        'Distância (km)': p.freight?.distance_km || 0,
-        'Valor do Frete (R$)': p.freight?.price || 0,
-        'Valor do Pagamento (R$)': p.amount,
-        'Status': getStatusLabel(p.status),
-        'Observações': p.notes || '',
-      }));
-
-      const paymentsSheet = XLSX.utils.json_to_sheet(paymentsData);
-      paymentsSheet['!cols'] = [
-        { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 },
-        { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 20 }, { wch: 22 }, { wch: 30 }
+      // Payments detail sheet data
+      const paymentsData: (string | number)[][] = [
+        ['Data', 'Motorista', 'Telefone', 'Origem', 'Destino', 'Tipo de Carga', 'Distância (km)', 'Valor do Frete (R$)', 'Valor do Pagamento (R$)', 'Status', 'Observações'],
+        ...payments.map(p => [
+          format(new Date(p.created_at), 'dd/MM/yyyy', { locale: ptBR }),
+          p.driver?.full_name || 'N/A',
+          p.driver?.contact_phone || 'N/A',
+          p.freight ? `${p.freight.origin_city || '?'}/${p.freight.origin_state || '?'}` : 'N/A',
+          p.freight ? `${p.freight.destination_city || '?'}/${p.freight.destination_state || '?'}` : 'N/A',
+          p.freight?.cargo_type || 'N/A',
+          p.freight?.distance_km || 0,
+          p.freight?.price || 0,
+          p.amount,
+          getStatusLabel(p.status),
+          p.notes || '',
+        ])
       ];
-      XLSX.utils.book_append_sheet(workbook, paymentsSheet, 'Pagamentos');
 
-      // Generate file
-      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      saveAs(blob, getFileName('xlsx'));
+      exportToXlsx({
+        fileName: getFileName('xlsx'),
+        sheets: [
+          { name: 'Resumo', data: summaryData, columnWidths: [25, 15, 20] },
+          { name: 'Pagamentos', data: paymentsData, columnWidths: [12, 25, 15, 20, 20, 15, 12, 18, 20, 22, 30] }
+        ]
+      });
       
       toast.success('Relatório Excel exportado com sucesso!');
     } catch (error) {

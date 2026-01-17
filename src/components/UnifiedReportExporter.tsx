@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import { exportToXlsx } from '@/lib/excel-export';
 import { saveAs } from 'file-saver';
 
 export type ReportType = 'performance' | 'financial' | 'operational';
@@ -260,25 +260,26 @@ export const UnifiedReportExporter = memo(function UnifiedReportExporter({
 
   // Export to Excel
   const exportToExcel = (data: ReportData) => {
-    const workbook = XLSX.utils.book_new();
-
-    data.sections.forEach((section, index) => {
-      let sheetData: any[][] = [];
+    const sheets = data.sections.map((section) => {
+      let sheetData: (string | number)[][] = [];
       
       if (section.type === 'summary' && section.items) {
-        sheetData = section.items.map(item => [item.label, item.value]);
+        sheetData = section.items.map(item => [item.label, typeof item.value === 'number' ? item.value : String(item.value)]);
       } else if (section.type === 'table' && section.headers && section.rows) {
         sheetData = [section.headers, ...section.rows];
       }
 
-      const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
-      const sheetName = section.title.substring(0, 31); // Excel limit
-      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      return {
+        name: section.title.substring(0, 31), // Excel limit
+        data: sheetData,
+        columnWidths: [30, 20, 20, 20]
+      };
     });
 
-    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `${data.title.toLowerCase().replace(/\s+/g, '-')}-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    exportToXlsx({
+      fileName: `${data.title.toLowerCase().replace(/\s+/g, '-')}-${format(new Date(), 'yyyy-MM-dd')}.xlsx`,
+      sheets
+    });
   };
 
   // Export to CSV

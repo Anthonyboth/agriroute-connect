@@ -7,8 +7,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
+import { exportToXlsx } from '@/lib/excel-export';
 import type { DateRange, ExportFormat } from '@/types/reports';
 
 interface ExportSection {
@@ -122,19 +121,17 @@ export const ReportExportButton: React.FC<ReportExportButtonProps> = ({
   const exportToExcel = useCallback(async () => {
     setIsExporting(true);
     try {
-      const workbook = XLSX.utils.book_new();
-
-      // Summary sheet
-      const summaryData = [
+      // Build summary data
+      const summaryData: (string | number)[][] = [
         ['Relatório', reportTitle],
         ['Período', `${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`],
         ['Gerado em', format(new Date(), 'dd/MM/yyyy HH:mm')],
-        [''],
+        ['', ''],
       ];
 
       // Add each section
       for (const section of sections) {
-        summaryData.push([section.title]);
+        summaryData.push([section.title, '']);
         
         if (section.type === 'kpi' || section.type === 'list') {
           const kpiData = section.data as Array<{ label: string; value: string | number }>;
@@ -149,20 +146,15 @@ export const ReportExportButton: React.FC<ReportExportButtonProps> = ({
           });
         }
         
-        summaryData.push(['']); // Empty row between sections
+        summaryData.push(['', '']); // Empty row between sections
       }
 
-      const worksheet = XLSX.utils.aoa_to_sheet(summaryData);
-      
-      // Set column widths
-      worksheet['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
-      
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Resumo');
-
-      // Generate file
-      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      saveAs(blob, getFileName('xlsx'));
+      exportToXlsx({
+        fileName: getFileName('xlsx'),
+        sheets: [
+          { name: 'Resumo', data: summaryData, columnWidths: [30, 20, 20, 20] }
+        ]
+      });
       
       toast.success('Relatório Excel exportado com sucesso!');
     } catch (error) {
