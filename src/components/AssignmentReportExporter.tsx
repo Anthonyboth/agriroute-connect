@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Download, FileText, FileSpreadsheet } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import { exportToXlsx } from '@/lib/excel-export';
 import { formatDate } from '@/lib/formatters';
 import { toast } from 'sonner';
 
@@ -80,11 +80,11 @@ export function AssignmentReportExporter({ assignments, companyName = 'Empresa' 
   const exportToExcel = () => {
     try {
       // Sheet 1: Resumo
-      const summaryData = [
-        ['Relatório de Vínculos Motorista ↔ Veículo'],
+      const summaryData: (string | number)[][] = [
+        ['Relatório de Vínculos Motorista ↔ Veículo', ''],
         ['Empresa:', companyName],
         ['Gerado em:', formatDate(new Date().toISOString())],
-        [],
+        ['', ''],
         ['Total de Vínculos:', assignments.length],
         ['Vínculos Ativos:', assignments.filter(a => !a.removed_at).length],
         ['Vínculos Removidos:', assignments.filter(a => a.removed_at).length],
@@ -92,7 +92,7 @@ export function AssignmentReportExporter({ assignments, companyName = 'Empresa' 
       ];
       
       // Sheet 2: Detalhes
-      const detailsData = [
+      const detailsData: (string | number)[][] = [
         ['Motorista', 'Telefone', 'Placa', 'Tipo de Veículo', 'Capacidade (t)', 'Principal', 'Status', 'Data Criação', 'Data Remoção']
       ];
       
@@ -110,14 +110,14 @@ export function AssignmentReportExporter({ assignments, companyName = 'Empresa' 
         ]);
       });
       
-      const wb = XLSX.utils.book_new();
-      const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
-      const ws2 = XLSX.utils.aoa_to_sheet(detailsData);
+      exportToXlsx({
+        fileName: `vinculos_motorista_veiculo_${new Date().toISOString().split('T')[0]}.xlsx`,
+        sheets: [
+          { name: 'Resumo', data: summaryData, columnWidths: [30, 25] },
+          { name: 'Detalhes', data: detailsData, columnWidths: [25, 15, 12, 18, 15, 12, 12, 15, 15] }
+        ]
+      });
       
-      XLSX.utils.book_append_sheet(wb, ws1, 'Resumo');
-      XLSX.utils.book_append_sheet(wb, ws2, 'Detalhes');
-      
-      XLSX.writeFile(wb, `vinculos_motorista_veiculo_${new Date().toISOString().split('T')[0]}.xlsx`);
       toast.success('Relatório Excel gerado com sucesso!');
     } catch (error) {
       console.error('Erro ao gerar Excel:', error);

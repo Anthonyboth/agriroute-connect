@@ -11,7 +11,7 @@ import { formatBRL, formatDate } from '@/lib/formatters';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import { exportToXlsx } from '@/lib/excel-export';
 import { toast } from 'sonner';
 
 interface Transaction {
@@ -164,39 +164,35 @@ export function CompanyFinancialDashboard({ companyId, companyName = 'Empresa' }
 
   const exportToExcel = () => {
     try {
-      const summaryData = [
-        ['Relatório Financeiro'],
+      const summaryData: (string | number)[][] = [
+        ['Relatório Financeiro', ''],
         ['Empresa:', companyName],
         ['Período:', getPeriodLabel(period)],
-        [],
+        ['', ''],
         ['Saldo:', summary.balance],
         ['Entradas:', summary.credits],
         ['Saídas:', summary.debits],
-        []
       ];
       
-      const detailsData = [
-        ['Data', 'Tipo', 'Descrição', 'Valor', 'Status']
-      ];
-      
-      transactions.forEach(t => {
-        summaryData.push([
+      const detailsData: (string | number)[][] = [
+        ['Data', 'Tipo', 'Descrição', 'Valor', 'Status'],
+        ...transactions.map(t => [
           formatDate(t.created_at),
           t.type === 'CREDIT' ? 'Entrada' : 'Saída',
           t.description,
-          t.amount.toString(),
+          t.amount,
           t.status
-        ]);
+        ])
+      ];
+      
+      exportToXlsx({
+        fileName: `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.xlsx`,
+        sheets: [
+          { name: 'Resumo', data: summaryData, columnWidths: [20, 25] },
+          { name: 'Transações', data: detailsData, columnWidths: [15, 12, 40, 15, 15] }
+        ]
       });
       
-      const wb = XLSX.utils.book_new();
-      const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
-      const ws2 = XLSX.utils.aoa_to_sheet(detailsData);
-      
-      XLSX.utils.book_append_sheet(wb, ws1, 'Resumo');
-      XLSX.utils.book_append_sheet(wb, ws2, 'Transações');
-      
-      XLSX.writeFile(wb, `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.xlsx`);
       toast.success('Relatório Excel gerado!');
     } catch (error) {
       console.error('Erro ao gerar Excel:', error);

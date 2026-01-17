@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import { exportToXlsx } from '@/lib/excel-export';
 import { CompanyDriverPerformance } from '@/hooks/useCompanyDriverPerformance';
 
 interface DriverPerformanceExporterProps {
@@ -90,49 +90,48 @@ export const DriverPerformanceExporter: React.FC<DriverPerformanceExporterProps>
   const exportToExcel = async () => {
     setExporting(true);
     try {
-      // Prepare data
-      const data = drivers.map((driver, index) => ({
-        'Posição': index + 1,
-        'Nome': driver.driverName,
-        'Email': driver.driverEmail || '-',
-        'Telefone': driver.driverPhone || '-',
-        'Status': driver.isOnline ? 'Online' : 'Offline',
-        'Total Fretes': driver.totalFreights,
-        'Completos': driver.completedFreights,
-        'Cancelados': driver.cancelledFreights,
-        'Ativos': driver.activeFreights,
-        'Taxa No Prazo (%)': driver.onTimeRate.toFixed(1),
-        'Avaliação': driver.averageRating.toFixed(1),
-        'Total Avaliações': driver.totalRatings,
-        'Taxa Aceitação (%)': driver.acceptanceRate.toFixed(1),
-        'Tempo Resposta (h)': driver.responseTime.toFixed(2),
-        'Receita (R$)': driver.totalRevenue.toFixed(2),
-        'Distância (km)': driver.totalDistance.toFixed(1),
-      }));
-
-      // Create workbook
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      
-      // Add summary sheet
-      const summaryData = [
-        { 'Métrica': 'Total de Motoristas', 'Valor': drivers.length },
-        { 'Métrica': 'Receita Total', 'Valor': formatBRL(drivers.reduce((sum, d) => sum + d.totalRevenue, 0)) },
-        { 'Métrica': 'Entregas Completas', 'Valor': drivers.reduce((sum, d) => sum + d.completedFreights, 0) },
-        { 'Métrica': 'Avaliação Média', 'Valor': (drivers.reduce((sum, d) => sum + d.averageRating, 0) / drivers.length).toFixed(1) },
-        { 'Métrica': 'Taxa Aceitação Média', 'Valor': `${(drivers.reduce((sum, d) => sum + d.acceptanceRate, 0) / drivers.length).toFixed(0)}%` },
-        { 'Métrica': 'Data do Relatório', 'Valor': format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR }) },
+      // Summary sheet data
+      const summaryData: (string | number)[][] = [
+        ['Métrica', 'Valor'],
+        ['Total de Motoristas', drivers.length],
+        ['Receita Total', formatBRL(drivers.reduce((sum, d) => sum + d.totalRevenue, 0))],
+        ['Entregas Completas', drivers.reduce((sum, d) => sum + d.completedFreights, 0)],
+        ['Avaliação Média', (drivers.reduce((sum, d) => sum + d.averageRating, 0) / drivers.length).toFixed(1)],
+        ['Taxa Aceitação Média', `${(drivers.reduce((sum, d) => sum + d.acceptanceRate, 0) / drivers.length).toFixed(0)}%`],
+        ['Data do Relatório', format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })],
       ];
-      const summaryWs = XLSX.utils.json_to_sheet(summaryData);
 
-      XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumo');
-      XLSX.utils.book_append_sheet(wb, ws, 'Motoristas');
+      // Drivers sheet data
+      const driversData: (string | number)[][] = [
+        ['Posição', 'Nome', 'Email', 'Telefone', 'Status', 'Total Fretes', 'Completos', 'Cancelados', 'Ativos', 'Taxa No Prazo (%)', 'Avaliação', 'Total Avaliações', 'Taxa Aceitação (%)', 'Tempo Resposta (h)', 'Receita (R$)', 'Distância (km)'],
+        ...drivers.map((driver, index) => [
+          index + 1,
+          driver.driverName,
+          driver.driverEmail || '-',
+          driver.driverPhone || '-',
+          driver.isOnline ? 'Online' : 'Offline',
+          driver.totalFreights,
+          driver.completedFreights,
+          driver.cancelledFreights,
+          driver.activeFreights,
+          driver.onTimeRate.toFixed(1),
+          driver.averageRating.toFixed(1),
+          driver.totalRatings,
+          driver.acceptanceRate.toFixed(1),
+          driver.responseTime.toFixed(2),
+          driver.totalRevenue.toFixed(2),
+          driver.totalDistance.toFixed(1),
+        ])
+      ];
 
-      // Auto-width columns
-      const colWidths = Object.keys(data[0] || {}).map(key => ({ wch: Math.max(key.length, 12) }));
-      ws['!cols'] = colWidths;
+      exportToXlsx({
+        fileName: `performance_motoristas_${format(new Date(), 'yyyy-MM-dd')}.xlsx`,
+        sheets: [
+          { name: 'Resumo', data: summaryData, columnWidths: [25, 20] },
+          { name: 'Motoristas', data: driversData, columnWidths: [8, 25, 25, 15, 10, 12, 12, 12, 10, 15, 12, 15, 18, 18, 15, 15] }
+        ]
+      });
 
-      XLSX.writeFile(wb, `performance_motoristas_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
       toast.success('Excel exportado com sucesso!');
     } catch (error) {
       console.error('Erro ao exportar Excel:', error);
