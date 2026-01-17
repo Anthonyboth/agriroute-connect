@@ -338,7 +338,7 @@ const Landing: React.FC = () => {
       {/* CTA Section */}
       <section className="py-20 gradient-hero">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-12">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-12 drop-shadow-lg">
             Pronto para organizar seu transporte com mais eficiência?
           </h2>
           <Button
