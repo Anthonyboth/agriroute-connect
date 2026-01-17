@@ -105,17 +105,29 @@ export const useDriverPerformance = (driverId: string, startDate?: Date, endDate
       if (freightsError) throw freightsError;
 
       // Fetch ratings - tentar freight_ratings primeiro, depois ratings
+      // CORREÇÃO: Dividir em lotes de 50 para evitar erro HTTP 400
       let ratings: { rating: number; comment?: string; created_at: string; freight_id?: string }[] = [];
       
       const freightIds = freights?.map(f => f.id) || [];
       if (freightIds.length > 0) {
-        // Tentar buscar de freight_ratings
-        const { data: freightRatingsData } = await supabase
-          .from('freight_ratings')
-          .select('rating, comment, created_at, freight_id')
-          .in('freight_id', freightIds);
+        const batchSize = 50;
+        let freightRatingsData: any[] = [];
         
-        if (freightRatingsData && freightRatingsData.length > 0) {
+        // Buscar de freight_ratings em lotes
+        for (let i = 0; i < freightIds.length; i += batchSize) {
+          const batch = freightIds.slice(i, i + batchSize);
+          try {
+            const { data: batchData } = await supabase
+              .from('freight_ratings')
+              .select('rating, comment, created_at, freight_id')
+              .in('freight_id', batch);
+            if (batchData) freightRatingsData.push(...batchData);
+          } catch (e) {
+            console.warn('[useDriverPerformance] Erro ao buscar freight_ratings batch:', e);
+          }
+        }
+        
+        if (freightRatingsData.length > 0) {
           ratings = freightRatingsData;
         } else {
           // Fallback para tabela ratings (rated_user_id = driverId)

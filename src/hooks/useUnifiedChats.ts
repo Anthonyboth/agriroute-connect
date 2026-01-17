@@ -121,10 +121,22 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
           }
 
           // Buscar ratings para verificar fechamento automático
-          const { data: ratings } = await supabase
-            .from('ratings')
-            .select('freight_id, rater_id')
-            .in('freight_id', freightIds);
+          // CORREÇÃO: Dividir em lotes de 50 para evitar erro HTTP 400
+          let allRatings: any[] = [];
+          const batchSize = 50;
+          for (let i = 0; i < freightIds.length; i += batchSize) {
+            const batch = freightIds.slice(i, i + batchSize);
+            try {
+              const { data: batchRatings } = await supabase
+                .from('ratings')
+                .select('freight_id, rater_id')
+                .in('freight_id', batch);
+              if (batchRatings) allRatings.push(...batchRatings);
+            } catch (e) {
+              console.warn('[useUnifiedChats] Erro ao buscar ratings batch:', e);
+            }
+          }
+          const ratings = allRatings;
           
           const ratingsMap = new Map<string, Set<string>>();
           ratings?.forEach((r: any) => {

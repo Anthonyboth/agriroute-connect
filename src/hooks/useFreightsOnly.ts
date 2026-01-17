@@ -48,8 +48,27 @@ export const useFreightsOnly = (companyId?: string) => {
 
         if (error) throw error;
 
+        // CORREÇÃO MOTO: Buscar fretes FRETE_MOTO diretamente (RPC pode não retorná-los)
+        let motoFreights: any[] = [];
+        try {
+          const { data: motoData } = await supabase
+            .from('freights')
+            .select('*')
+            .eq('status', 'OPEN')
+            .eq('service_type', 'FRETE_MOTO')
+            .order('created_at', { ascending: false });
+          motoFreights = motoData || [];
+        } catch (e) {
+          console.warn('[useFreightsOnly] Erro ao buscar fretes MOTO:', e);
+        }
+
+        // Combinar resultados da RPC + fretes MOTO, removendo duplicatas
+        const allFreights = [...(data || []), ...motoFreights];
+        const uniqueMap = new Map(allFreights.map(f => [f.id, f]));
+        const uniqueFreights = Array.from(uniqueMap.values());
+
         // Normalizar e filtrar apenas tipos de frete válidos (excluir serviços técnicos)
-        const validFreights = (data || [])
+        const validFreights = uniqueFreights
           .map((f: any) => ({
             ...f,
             service_type: normalizeServiceType(f.service_type)

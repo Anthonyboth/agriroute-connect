@@ -362,6 +362,8 @@ export function CreateFreightWizard({
         producer_id: guestMode ? null : userProfile.id,
         is_guest_freight: guestMode,
         cargo_type: formData.cargo_type,
+        // CORREÇÃO MOTO: Definir service_type correto para fretes por moto
+        service_type: formData.cargo_type === 'frete_moto' ? 'FRETE_MOTO' : 'CARGA',
         weight: convertWeightToKg(weight),
         origin_address: buildAddressString(formData.origin_city, formData.origin_state, formData.origin_neighborhood, formData.origin_street, formData.origin_number, formData.origin_complement),
         origin_city: formData.origin_city,
