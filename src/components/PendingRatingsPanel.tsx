@@ -92,16 +92,27 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
 
       console.log('[PendingRatingsPanel] 🔎 Buscando ratings existentes do tipo:', ratingType);
 
-      const { data: existingRatings, error: ratingsError } = await supabase
-        .from('freight_ratings')
-        .select('freight_id')
-        .in('freight_id', freightIds)
-        .eq('rater_id', userProfileId)
-        .eq('rating_type', ratingType);
+      // CORREÇÃO: Dividir em lotes de 50 para evitar erro HTTP 400
+      let existingRatings: { freight_id: string }[] = [];
+      const batchSize = 50;
+      for (let i = 0; i < freightIds.length; i += batchSize) {
+        const batch = freightIds.slice(i, i + batchSize);
+        try {
+          const { data: batchData, error: batchError } = await supabase
+            .from('freight_ratings')
+            .select('freight_id')
+            .in('freight_id', batch)
+            .eq('rater_id', userProfileId)
+            .eq('rating_type', ratingType);
 
-      if (ratingsError) {
-        console.error('[PendingRatingsPanel] ❌ Erro ao buscar ratings:', ratingsError);
-        throw ratingsError;
+          if (batchError) {
+            console.warn('[PendingRatingsPanel] ⚠️ Erro em batch de ratings:', batchError);
+          } else if (batchData) {
+            existingRatings.push(...batchData);
+          }
+        } catch (e) {
+          console.warn('[PendingRatingsPanel] ⚠️ Erro ao buscar ratings batch:', e);
+        }
       }
 
       console.log('[PendingRatingsPanel] ✅ Ratings existentes:', existingRatings?.length || 0);

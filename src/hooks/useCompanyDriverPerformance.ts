@@ -112,13 +112,22 @@ export const useCompanyDriverPerformance = (companyId: string) => {
       const profileMap = new Map((profiles || []).map(p => [p.id, p]));
 
       // Fetch ratings for company's freights
+      // CORREÇÃO: Dividir em lotes de 50 para evitar erro HTTP 400
       const freightIds = freights?.map(f => f.id) || [];
-      const { data: ratings, error: ratingsError } = await supabase
-        .from('freight_ratings')
-        .select('rating, freight_id')
-        .in('freight_id', freightIds);
-
-      if (ratingsError) throw ratingsError;
+      let ratings: any[] = [];
+      const batchSize = 50;
+      for (let i = 0; i < freightIds.length; i += batchSize) {
+        const batch = freightIds.slice(i, i + batchSize);
+        try {
+          const { data: batchData } = await supabase
+            .from('freight_ratings')
+            .select('rating, freight_id')
+            .in('freight_id', batch);
+          if (batchData) ratings.push(...batchData);
+        } catch (e) {
+          console.warn('[useCompanyDriverPerformance] Erro ao buscar ratings batch:', e);
+        }
+      }
 
       // Fetch freight assignments restricted to this company and drivers
       const { data: assignments, error: assignmentsError } = await supabase
