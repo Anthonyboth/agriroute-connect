@@ -358,12 +358,29 @@ export function CreateFreightWizard({
         return address;
       };
 
+      // CORREÇÃO BUG MOTO: Calcular effectiveGuestMode baseado no perfil
+      // Se tiver perfil de PRODUTOR, NUNCA usar guestMode mesmo que venha true
+      const isProducer = userProfile?.role === 'PRODUTOR' || userProfile?.active_mode === 'PRODUTOR';
+      const effectiveGuestMode = isProducer ? false : guestMode;
+      
+      // Segurança: abortar se não for guest e não tiver perfil válido
+      if (!effectiveGuestMode && !userProfile?.id) {
+        toast.error('Você precisa estar logado como produtor para criar um frete.');
+        setLoading(false);
+        return;
+      }
+
+      // CORREÇÃO MOTO: Determinar service_type canônico
+      // Se vehicle_type_required === 'MOTO' OU cargo_type === 'frete_moto' => FRETE_MOTO
+      const serviceType = (formData.vehicle_type_required === 'MOTO' || formData.cargo_type === 'frete_moto') 
+        ? 'FRETE_MOTO' 
+        : 'CARGA';
+
       const freightData = {
-        producer_id: guestMode ? null : userProfile.id,
-        is_guest_freight: guestMode,
+        producer_id: effectiveGuestMode ? null : userProfile.id,
+        is_guest_freight: effectiveGuestMode,
         cargo_type: formData.cargo_type,
-        // CORREÇÃO MOTO: Definir service_type correto para fretes por moto
-        service_type: formData.cargo_type === 'frete_moto' ? 'FRETE_MOTO' : 'CARGA',
+        service_type: serviceType,
         weight: convertWeightToKg(weight),
         origin_address: buildAddressString(formData.origin_city, formData.origin_state, formData.origin_neighborhood, formData.origin_street, formData.origin_number, formData.origin_complement),
         origin_city: formData.origin_city,
@@ -384,7 +401,7 @@ export function CreateFreightWizard({
         destination_neighborhood: formData.destination_neighborhood || null,
         destination_street: formData.destination_street || null,
         destination_number: formData.destination_number || null,
-        destination_complement: formData.destination_complement || null,
+        destination_complement: formData.destination_number || null,
         distance_km: calculatedDistance,
         minimum_antt_price: calculatedAnttPrice,
         price: calculation.totalPrice,
@@ -403,8 +420,8 @@ export function CreateFreightWizard({
         min_driver_rating: formData.visibility_type === 'RATING_MINIMUM' && formData.min_driver_rating 
           ? parseFloat(formData.min_driver_rating) 
           : null,
-        // Guest freight contact info
-        ...(guestMode && {
+        // Guest freight contact info - só inclui se for effectiveGuestMode
+        ...(effectiveGuestMode && {
           guest_contact_name: formData.guest_name || null,
           guest_contact_phone: formData.guest_phone || null,
           guest_contact_email: formData.guest_email || null,
@@ -431,7 +448,7 @@ export function CreateFreightWizard({
         }
       }
 
-      toast.success(guestMode 
+      toast.success(effectiveGuestMode 
         ? 'Solicitação enviada! Motoristas da região serão notificados.' 
         : 'Frete criado com sucesso!');
       

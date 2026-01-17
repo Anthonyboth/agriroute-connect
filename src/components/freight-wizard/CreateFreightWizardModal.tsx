@@ -28,6 +28,10 @@ export function CreateFreightWizardModal({
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
   
+  // CORREÇÃO BUG MOTO: Se o perfil for PRODUTOR, NUNCA usar guestMode
+  const isProducer = userProfile?.role === 'PRODUTOR' || userProfile?.active_mode === 'PRODUTOR';
+  const effectiveGuestMode = isProducer ? false : guestMode;
+  
   const setOpen = (newOpen: boolean) => {
     if (!isControlled) {
       setInternalOpen(newOpen);
@@ -78,7 +82,7 @@ export function CreateFreightWizardModal({
           onFreightCreated={handleSuccess}
           onClose={handleClose}
           isOpen={open}
-          guestMode={guestMode}
+          guestMode={effectiveGuestMode}
         />
       </DialogContent>
     </Dialog>

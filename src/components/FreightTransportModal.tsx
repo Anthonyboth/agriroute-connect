@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Truck, Package, Home, Wheat, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface FreightTransportModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
   onClose,
   onBack,
 }) => {
+  const { profile } = useAuth();
+  
   const [guestServiceModal, setGuestServiceModal] = useState<{
     isOpen: boolean;
     serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO';
@@ -25,6 +28,9 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
   }>({ isOpen: false });
 
   const [guestFreightModal, setGuestFreightModal] = useState(false);
+
+  // CORREÇÃO BUG MOTO: Determinar se é produtor logado
+  const isProducer = profile?.role === 'PRODUTOR' || profile?.active_mode === 'PRODUTOR';
 
   const freightServices = [
     {
@@ -155,7 +161,7 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
         />
       )}
 
-      {/* CreateFreightWizardModal para FRETE_RURAL - Novo Wizard */}
+      {/* CreateFreightWizardModal para FRETE_RURAL - CORREÇÃO: usar perfil do produtor quando disponível */}
       <CreateFreightWizardModal
         open={guestFreightModal}
         onOpenChange={(open) => {
@@ -165,9 +171,9 @@ export const FreightTransportModal: React.FC<FreightTransportModalProps> = ({
           setGuestFreightModal(false);
           onClose();
         }}
-        userProfile={null}
+        userProfile={isProducer ? profile : null}
         trigger={null}
-        guestMode={true}
+        guestMode={!isProducer}
       />
     </>
   );
