@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { ServiceCatalogGrid } from './ServiceCatalogGrid';
+import { clearCachedProfile, setCachedProfile } from '@/lib/profile-cache';
 
 // Normaliza IDs para canônicos
 const toCanonical = (id: string): string => {
@@ -15,7 +16,7 @@ const toCanonical = (id: string): string => {
 };
 
 export const ServiceTypeManager: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -54,7 +55,7 @@ export const ServiceTypeManager: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!profile) return;
+    if (!profile || !user) return;
     
     setLoading(true);
     try {
@@ -65,7 +66,20 @@ export const ServiceTypeManager: React.FC = () => {
 
       if (error) throw error;
 
-      toast.success('Tipos de serviço atualizados com sucesso!');
+      // ✅ CRÍTICO: Atualizar cache do perfil para que SmartFreightMatcher use os novos tipos
+      const updatedProfile = { ...profile, service_types: selectedServices };
+      setCachedProfile(user.id, updatedProfile);
+      
+      // ✅ Limpar cooldown para forçar refetch
+      sessionStorage.removeItem('profile_fetch_cooldown_until');
+      
+      toast.success('Tipos de serviço atualizados! Recarregando dados...');
+      
+      // ✅ Forçar recarregamento suave após 500ms para atualizar o contexto
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      
     } catch (error: any) {
       console.error('Erro ao atualizar tipos de serviço:', error);
       toast.error('Erro ao salvar configurações. Tente novamente.');

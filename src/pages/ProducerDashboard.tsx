@@ -30,7 +30,7 @@ import { formatKm, formatBRL, formatDate } from '@/lib/formatters';
 import { isInProgressFreight, isScheduledFreight, formatPickupDate } from '@/utils/freightDateHelpers';
 import { FreightInProgressCard } from '@/components/FreightInProgressCard';
 import { toast } from 'sonner';
-import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star, MessageCircle, BarChart, Loader2 } from 'lucide-react';
+import { MapPin, TrendingUp, Truck, Clock, CheckCircle, Plus, Settings, Play, DollarSign, Package, Calendar, Eye, Users, Phone, CreditCard, X, AlertTriangle, Star, MessageCircle, BarChart, Loader2, Bike } from 'lucide-react';
 import { Wrench } from 'lucide-react';
 import { AdvancedFreightFilters, FreightFilters } from '@/components/AdvancedFreightFilters';
 import { FreightReportExporter } from '@/components/FreightReportExporter';
@@ -167,6 +167,7 @@ const ProducerDashboard = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
   const [serviceRequests, setServiceRequests] = useState<any[]>([]);
+  const [ongoingServiceRequests, setOngoingServiceRequests] = useState<any[]>([]);
   const [urgencyFilter, setUrgencyFilter] = useState<'all' | 'critical' | 'urgent'>('all');
   
   // Estado para controlar avaliações automáticas
@@ -475,7 +476,7 @@ const ProducerDashboard = () => {
     }
   }, [profile?.id, profile?.role]);
 
-  // Buscar solicitações de serviço
+  // Buscar solicitações de serviço ABERTAS
   const fetchServiceRequests = useCallback(async () => {
     if (!profile?.id || profile.role !== 'PRODUTOR') {
       return;
@@ -494,6 +495,28 @@ const ProducerDashboard = () => {
       setServiceRequests(data || []);
     } catch (error) {
       toast.error('Erro ao carregar serviços');
+    }
+  }, [profile?.id, profile?.role]);
+
+  // ✅ NOVO: Buscar solicitações de serviço EM ANDAMENTO (aceitas pelo prestador)
+  const fetchOngoingServiceRequests = useCallback(async () => {
+    if (!profile?.id || profile.role !== 'PRODUTOR') {
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('service_requests')
+        .select('*, provider:provider_id(id, full_name, phone, rating)')
+        .eq('client_id', profile.id)
+        .in('status', ['ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'])
+        .order('accepted_at', { ascending: false })
+        .limit(50);
+      
+      if (error) throw error;
+      setOngoingServiceRequests(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar serviços em andamento:', error);
     }
   }, [profile?.id, profile?.role]);
 
@@ -526,7 +549,8 @@ const ProducerDashboard = () => {
           fetchProposals(),
           fetchExternalPayments(),
           fetchFreightPayments(),
-          fetchServiceRequests()
+          fetchServiceRequests(),
+          fetchOngoingServiceRequests()
         ]);
       } finally {
         setLoading(false);
@@ -1645,7 +1669,7 @@ const ProducerDashboard = () => {
 
           <TabsContent value="ongoing" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Fretes em Andamento</h3>
+              <h3 className="text-lg font-semibold">Em Andamento</h3>
             </div>
             
             {(() => {
@@ -1654,40 +1678,122 @@ const ProducerDashboard = () => {
               
               if (import.meta.env.DEV) {
                 console.log('[ProducerDashboard] 📋 Lista "Em Andamento":', {
-                  count: ongoingFreights.length,
-                  freights: ongoingFreights.map(f => ({ 
-                    id: f.id.slice(0, 8), 
-                    status: f.status, 
-                    pickup: f.pickup_date 
-                  }))
+                  freightsCount: ongoingFreights.length,
+                  servicesCount: ongoingServiceRequests.length
                 });
               }
               
-              return ongoingFreights.length === 0 ? (
+              const hasOngoingItems = ongoingFreights.length > 0 || ongoingServiceRequests.length > 0;
+              
+              return !hasOngoingItems ? (
                 <Card className="border-dashed">
                   <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                     <Play className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="font-semibold text-lg mb-2">Nenhum frete em andamento</h3>
+                    <h3 className="font-semibold text-lg mb-2">Nenhum frete ou serviço em andamento</h3>
                     <p className="text-muted-foreground mb-6 max-w-sm">
-                      Você não possui fretes em andamento no momento.
+                      Você não possui fretes ou serviços em andamento no momento.
                     </p>
                   </CardContent>
                 </Card>
               ) : (
-                <div className="max-h-[70vh] overflow-y-auto pr-2">
-                  <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
-                    {ongoingFreights.map((freight) => (
-                      <FreightInProgressCard
-                        key={freight.id}
-                        freight={freight}
-                        onViewDetails={() => setSelectedFreightDetails(freight)}
-                        onRequestCancel={() => {
-                          setFreightToCancel(freight);
-                          setConfirmDialogOpen(true);
-                        }}
-                      />
-                    ))}
-                  </div>
+                <div className="max-h-[70vh] overflow-y-auto pr-2 space-y-6">
+                  {/* ✅ NOVO: Serviços em andamento (Guincho/Moto/Mudança) */}
+                  {ongoingServiceRequests.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-muted-foreground flex items-center gap-2">
+                        <Wrench className="h-4 w-4" />
+                        Serviços em Andamento ({ongoingServiceRequests.length})
+                      </h4>
+                      <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+                        {ongoingServiceRequests.map((sr: any) => (
+                          <Card key={sr.id} className="border-l-4 border-l-primary">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  {sr.service_type === 'GUINCHO' && <Truck className="h-5 w-5 text-orange-500" />}
+                                  {sr.service_type === 'FRETE_MOTO' && <Bike className="h-5 w-5 text-blue-500" />}
+                                  {sr.service_type === 'MUDANCA' && <Package className="h-5 w-5 text-purple-500" />}
+                                  <span className="font-semibold">
+                                    {sr.service_type === 'GUINCHO' ? 'Guincho' : 
+                                     sr.service_type === 'FRETE_MOTO' ? 'Frete por Moto' : 
+                                     sr.service_type === 'MUDANCA' ? 'Mudança' : sr.service_type}
+                                  </span>
+                                </div>
+                                <Badge variant={
+                                  sr.status === 'ACCEPTED' ? 'default' :
+                                  sr.status === 'ON_THE_WAY' ? 'secondary' : 'outline'
+                                }>
+                                  {sr.status === 'ACCEPTED' ? 'Aceito' :
+                                   sr.status === 'ON_THE_WAY' ? 'A caminho' :
+                                   sr.status === 'IN_PROGRESS' ? 'Em progresso' : sr.status}
+                                </Badge>
+                              </div>
+                              
+                              <div className="text-sm text-muted-foreground space-y-1 mb-3">
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  <span className="truncate">{sr.location_address || sr.city_name}</span>
+                                </div>
+                                {sr.accepted_at && (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    <span>Aceito em {formatDate(sr.accepted_at)}</span>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Dados do prestador */}
+                              {sr.provider && (
+                                <div className="bg-secondary/50 rounded-lg p-2 flex items-center gap-2">
+                                  <Users className="h-4 w-4 text-primary" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm truncate">{sr.provider.full_name}</p>
+                                    {sr.provider.phone && (
+                                      <a href={`tel:${sr.provider.phone}`} className="text-xs text-primary hover:underline flex items-center gap-1">
+                                        <Phone className="h-3 w-3" />
+                                        {sr.provider.phone}
+                                      </a>
+                                    )}
+                                  </div>
+                                  {sr.provider.rating && (
+                                    <div className="flex items-center gap-1">
+                                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                      <span className="text-sm font-medium">{sr.provider.rating.toFixed(1)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Fretes em andamento */}
+                  {ongoingFreights.length > 0 && (
+                    <div className="space-y-3">
+                      {ongoingServiceRequests.length > 0 && (
+                        <h4 className="font-medium text-muted-foreground flex items-center gap-2">
+                          <Truck className="h-4 w-4" />
+                          Fretes em Andamento ({ongoingFreights.length})
+                        </h4>
+                      )}
+                      <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
+                        {ongoingFreights.map((freight) => (
+                          <FreightInProgressCard
+                            key={freight.id}
+                            freight={freight}
+                            onViewDetails={() => setSelectedFreightDetails(freight)}
+                            onRequestCancel={() => {
+                              setFreightToCancel(freight);
+                              setConfirmDialogOpen(true);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}

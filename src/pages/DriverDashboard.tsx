@@ -759,7 +759,7 @@ const DriverDashboard = () => {
         .from('service_requests')
         .select('*')
         .eq('provider_id', profile.id)
-        .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_URBANO'])
+        .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_URBANO', 'FRETE_MOTO'])
         .in('status', ['ACCEPTED', 'ON_THE_WAY', 'IN_PROGRESS'])
         .order('accepted_at', { ascending: false })
         .limit(50);
