@@ -300,9 +300,29 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
                 setHasActiveCities(false);
                 toast.info('Configure suas cidades de atendimento para ver fretes compatíveis.');
                 setCompatibleFreights(spatialFreights); // Manter fretes do spatial
-                setTowingRequests([]);
+                
+                // ✅ CORREÇÃO: Buscar service_requests mesmo sem cidades ativas
+                const serviceTypesToFetch = allowedTypesFromProfile.filter(t => 
+                  t === 'GUINCHO' || t === 'MUDANCA' || t === 'FRETE_MOTO'
+                );
+                
+                if (serviceTypesToFetch.length > 0) {
+                  const { data: sr } = await supabase
+                    .from('service_requests')
+                    .select('*')
+                    .in('service_type', serviceTypesToFetch)
+                    .eq('status', 'OPEN')
+                    .is('provider_id', null)
+                    .order('created_at', { ascending: true });
+                  setTowingRequests(sr || []);
+                  console.log(`🔧 Service requests carregados (sem cidades): ${sr?.length || 0}`);
+                } else {
+                  setTowingRequests([]);
+                }
+                
                 setLoading(false);
               }
+              updateLockRef.current = false;
               return;
             }
 
@@ -583,8 +603,28 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         console.warn('Sem cidades de atendimento ativas. Nada a exibir.');
         toast.info('Configure suas cidades de atendimento para ver fretes.');
         setCompatibleFreights([]);
-        setTowingRequests([]);
+        
+        // ✅ CORREÇÃO: Buscar service_requests mesmo sem cidades ativas (2º ponto)
+        const serviceTypesToFetchNoCities = allowedTypesFromProfile.filter(t => 
+          t === 'GUINCHO' || t === 'MUDANCA' || t === 'FRETE_MOTO'
+        );
+        
+        if (serviceTypesToFetchNoCities.length > 0) {
+          const { data: sr } = await supabase
+            .from('service_requests')
+            .select('*')
+            .in('service_type', serviceTypesToFetchNoCities)
+            .eq('status', 'OPEN')
+            .is('provider_id', null)
+            .order('created_at', { ascending: true });
+          setTowingRequests(sr || []);
+          console.log(`🔧 Service requests carregados (sem cidades RPC): ${sr?.length || 0}`);
+        } else {
+          setTowingRequests([]);
+        }
+        
         setLoading(false);
+        updateLockRef.current = false;
         return;
       }
       
