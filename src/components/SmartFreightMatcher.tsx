@@ -636,12 +636,16 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
         onCountsChange?.({ total: finalFreights.length, highUrgency });
       }
 
-      // Buscar chamados de serviço (GUINCHO/MUDANCA) abertos e sem prestador atribuído
-      if (allowedTypesFromProfile.some(t => t === 'GUINCHO' || t === 'MUDANCA')) {
+      // Buscar chamados de serviço (GUINCHO/MUDANCA/FRETE_MOTO) abertos e sem prestador atribuído
+      const serviceTypesToFetch = allowedTypesFromProfile.filter(t => 
+        t === 'GUINCHO' || t === 'MUDANCA' || t === 'FRETE_MOTO'
+      );
+      
+      if (serviceTypesToFetch.length > 0) {
         const { data: sr, error: srErr } = await supabase
           .from('service_requests')
           .select('*')
-          .in('service_type', allowedTypesFromProfile.filter(t => t === 'GUINCHO' || t === 'MUDANCA'))
+          .in('service_type', serviceTypesToFetch)
           .eq('status', 'OPEN')
           .is('provider_id', null)
           .order('created_at', { ascending: true });
@@ -1129,13 +1133,13 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({
               </SafeListWrapper>
             )}
 
-            {/* Chamados de Guincho/Mudança - Design Profissional */}
+            {/* Chamados de Serviço (Guincho/Mudança/Frete Moto) - Design Profissional */}
             {filteredRequests.length > 0 && (
               <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando lista...</div>}>
                 <div className="space-y-3">
                   <h4 className="font-semibold text-lg flex items-center gap-2">
                     <Wrench className="h-5 w-5 text-primary" />
-                    Chamados de Guincho/Mudança
+                    Chamados de Serviço
                   </h4>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredRequests.map((r: any) => (
