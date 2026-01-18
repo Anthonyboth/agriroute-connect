@@ -137,7 +137,7 @@ serve(async (req) => {
         location_address: data.location_address,
         location_lat: data.location_lat,
         location_lng: data.location_lng,
-        problem_description: data.problem_description,
+        problem_description: data.problem_description || 'Solicitação de serviço',
         urgency: data.urgency,
         status: 'OPEN',
         city_name: data.city_name,
