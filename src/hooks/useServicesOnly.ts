@@ -35,10 +35,10 @@ export const useServicesOnly = () => {
 
       if (error) throw error;
 
-      // Filtro de segurança: garantir que são apenas serviços técnicos (não incluir CARGA/FRETE_MOTO que são fretes)
+      // Filtro de segurança: garantir que são apenas serviços técnicos + FRETE_MOTO (que também pode vir de service_requests)
       const validServices = (data || []).filter((s: any) => 
         s.service_type && 
-        ['GUINCHO', 'MUDANCA', 'ELETRICISTA', 'MECANICO', 'BORRACHEIRO', 'INSTALACAO'].includes(s.service_type)
+        ['GUINCHO', 'MUDANCA', 'ELETRICISTA', 'MECANICO', 'BORRACHEIRO', 'INSTALACAO', 'FRETE_MOTO'].includes(s.service_type)
       );
 
       setServices(validServices);
