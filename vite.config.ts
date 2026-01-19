@@ -120,6 +120,27 @@ export default defineConfig(({ mode }) => ({
               /^lg:/,
               /^xl:/,
               /^2xl:/,
+              // ✅ AgriRoute Design System - Classes customizadas
+              /^gradient-/,        // gradient-hero, gradient-primary, gradient-card
+              /^shadow-/,          // shadow-elegant, shadow-card, shadow-glow
+              /^btn-/,             // btn-accessible
+              /^card-/,            // card-accessible
+              /^text-gradient-/,   // text-gradient-hero
+              /^text-shadow-/,     // text-shadow-lg, text-shadow-md
+              /^text-accessible/,  // text-accessible, text-large-accessible
+              /^freight-/,         // freight-card-standard
+              /^spacing-/,         // spacing-accessible
+              /^pentagon-/,        // pentagon-card
+              /^status-/,          // status-open, status-booked, etc.
+              /^scroll-/,          // scroll-area
+              /^safe-/,            // safe-area-*, safe-text
+              /^responsive-/,      // responsive-card-header, responsive-card-actions
+              /^badge-/,           // badge-inline
+              /^touch-/,           // touch-target-safe
+              /^prevent-/,         // prevent-button-overlap
+              /^provider-/,        // provider-theme
+              'transition-smooth',
+              'transition-bounce',
             ],
             deep: [
               /radix/,
