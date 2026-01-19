@@ -79,8 +79,8 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     try {
       console.log("🔍 [FRETES I.A] Buscando fretes para company:", company.id);
 
-      // ✅ ABERTOS = OPEN + IN_NEGOTIATION (mantém compatibilidade com seu sistema)
-      const OPEN_STATUSES = ["OPEN", "IN_NEGOTIATION"];
+      // ✅ IMPORTANTÍSSIMO: tipar como literal (resolve TS2345)
+      const OPEN_STATUSES = ["OPEN", "IN_NEGOTIATION"] as const;
 
       const { data: freightsData, error: freightsError } = await supabase
         .from("freights")
@@ -92,7 +92,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         `,
         )
         .in("status", OPEN_STATUSES)
-        .is("driver_id", null) // ✅ só o que está realmente disponível
+        .is("driver_id", null)
         .order("created_at", { ascending: false })
         .limit(80);
 
@@ -107,7 +107,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
       for (const freight of freightsData || []) {
         const idSafe = typeof freight.id === "string" ? freight.id : "";
 
-        const normalizedStatus = normalizeFreightStatus(freight.status);
+        const normalizedStatus = normalizeFreightStatus(freight.status as any);
         const open = isOpenStatus(normalizedStatus);
 
         if (!open) {
@@ -115,8 +115,8 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
           continue;
         }
 
-        const requiredTrucks = Number(freight.required_trucks ?? 1);
-        const acceptedTrucks = Number(freight.accepted_trucks ?? 0);
+        const requiredTrucks = Number((freight as any).required_trucks ?? 1);
+        const acceptedTrucks = Number((freight as any).accepted_trucks ?? 0);
         const hasAvailableSlots = acceptedTrucks < requiredTrucks;
 
         if (!hasAvailableSlots) {
@@ -125,26 +125,26 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
         }
 
         normalizedFreights.push({
-          freight_id: freight.id,
-          cargo_type: freight.cargo_type,
-          weight: Number(freight.weight ?? 0), // ✅ evita NaN
-          origin_address: freight.origin_address || "",
-          destination_address: freight.destination_address || "",
-          origin_city: freight.origin_city || undefined,
-          origin_state: freight.origin_state || undefined,
-          destination_city: freight.destination_city || undefined,
-          destination_state: freight.destination_state || undefined,
-          pickup_date: String(freight.pickup_date || ""),
-          delivery_date: String(freight.delivery_date || ""),
-          price: Number(freight.price ?? 0),
-          urgency: String(freight.urgency || "LOW"),
-          status: String(freight.status || "OPEN"),
-          service_type: String(freight.service_type || "CARGA"),
-          distance_km: Number(freight.distance_km ?? 0),
-          minimum_antt_price: Number(freight.minimum_antt_price ?? 0),
+          freight_id: String(freight.id),
+          cargo_type: String((freight as any).cargo_type || ""),
+          weight: Number((freight as any).weight ?? 0),
+          origin_address: String((freight as any).origin_address || ""),
+          destination_address: String((freight as any).destination_address || ""),
+          origin_city: (freight as any).origin_city || undefined,
+          origin_state: (freight as any).origin_state || undefined,
+          destination_city: (freight as any).destination_city || undefined,
+          destination_state: (freight as any).destination_state || undefined,
+          pickup_date: String((freight as any).pickup_date || ""),
+          delivery_date: String((freight as any).delivery_date || ""),
+          price: Number((freight as any).price ?? 0),
+          urgency: String((freight as any).urgency || "LOW"),
+          status: String((freight as any).status || "OPEN"),
+          service_type: String((freight as any).service_type || "CARGA"),
+          distance_km: Number((freight as any).distance_km ?? 0),
+          minimum_antt_price: Number((freight as any).minimum_antt_price ?? 0),
           required_trucks: requiredTrucks,
           accepted_trucks: acceptedTrucks,
-          created_at: String(freight.created_at || ""),
+          created_at: String((freight as any).created_at || ""),
         });
       }
 
@@ -175,7 +175,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
   }, [company?.id]);
 
   const handleAssignFreight = async (freightId: string) => {
-    if (!selectedDriverId) {
+    if (!selectedDriverId || selectedDriverId === "__none") {
       toast.info("Selecione um motorista para atribuir.");
       return;
     }
@@ -224,7 +224,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
     return matchesSearch && matchesCargoType;
   });
 
-  const activeDrivers = (drivers || []).filter((d) => d.status === "ACTIVE");
+  const activeDrivers = (drivers || []).filter((d: any) => d.status === "ACTIVE");
 
   return (
     <div className="space-y-6">
@@ -256,7 +256,6 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                 </p>
               </div>
 
-              {/* ✅ seletor de motorista */}
               <div className="w-full sm:w-[320px]">
                 <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
                   <SelectTrigger>
@@ -269,7 +268,7 @@ export const CompanySmartFreightMatcher: React.FC<CompanySmartFreightMatcherProp
                       </SelectItem>
                     ) : (
                       activeDrivers.map((d: any) => (
-                        <SelectItem key={d.driver_id || d.id} value={String(d.driver_id || d.id)}>
+                        <SelectItem key={String(d.driver_id || d.id)} value={String(d.driver_id || d.id)}>
                           {d.name || d.full_name || d.email || String(d.driver_id || d.id).slice(0, 8)}
                         </SelectItem>
                       ))
