@@ -74,7 +74,18 @@ export const useAvailableFreights = (driverId: string) => {
     queryFn: async () => {
       console.log('[useAvailableFreights] Fetching available freights for driver:', driverId);
       
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.warn('[useAvailableFreights] No session found, skipping fetch');
+        return [];
+      }
+      
       const { data, error } = await supabase.functions.invoke('driver-spatial-matching', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
         body: { driver_id: driverId }
       });
 
