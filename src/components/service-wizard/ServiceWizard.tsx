@@ -12,6 +12,7 @@ import { ServiceFormData, ServiceType, ServiceWizardStep } from './types';
 import { getServiceConfig } from './config';
 import { supabase } from '@/integrations/supabase/client';
 import { showErrorToast } from '@/lib/error-handler';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ServiceWizardProps {
   serviceType: ServiceType;
@@ -113,6 +114,7 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
   catalogServiceLabel,
   catalogServiceDescription
 }) => {
+  const { profile } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ServiceFormData>(() => 
     createInitialFormData(serviceType)
@@ -281,9 +283,11 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
       const finalServiceType = catalogServiceId || serviceType;
 
       // Chamar Edge Function para criar solicitação
+      // Se o usuário estiver logado, vinculamos ao profile para aparecer no painel do produtor
       const { data, error } = await supabase.functions.invoke('create-guest-service-request', {
         body: {
           prospect_user_id: null,
+          client_id: profile?.id || null, // ✅ CORREÇÃO: Vincular ao perfil logado
           service_type: finalServiceType,
           contact_name: formData.personal.name,
           contact_phone: formData.personal.phone,
