@@ -773,7 +773,16 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
                               toast.success("Chamado aceito! Indo para Em Andamento.");
                               setServiceRequests((prev) => prev.filter((x: any) => x.id !== r.id));
-                              window.dispatchEvent(new CustomEvent("navigate-to-tab", { detail: "ongoing" }));
+                              
+                              // ✅ Disparar evento correto que DriverDashboard escuta
+                              window.dispatchEvent(new CustomEvent("freight:accepted", { 
+                                detail: { 
+                                  freightId: r.id, 
+                                  source: 'service_request', 
+                                  serviceType: r.service_type 
+                                } 
+                              }));
+                              
                               await fetchCompatibleFreights();
                             } catch (e: any) {
                               console.error("Erro ao aceitar chamado:", e);
