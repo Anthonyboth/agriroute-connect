@@ -92,7 +92,7 @@ export const DriverOngoingTab: React.FC = () => {
       if (!driverProfileId) return { freights: [] as FreightRow[], serviceRequests: [] as ServiceRequestRow[] };
 
       // 1) FRETES (rurais)
-      const freightOngoingStatuses = ["ACCEPTED", "LOADING", "LOADED", "IN_TRANSIT", "DELIVERED_PENDING_CONFIRMATION"];
+      const freightOngoingStatuses = ["ACCEPTED", "LOADING", "LOADED", "IN_TRANSIT", "DELIVERED_PENDING_CONFIRMATION"] as const;
 
       const { data: freights, error: freErr } = await supabase
         .from("freights")
