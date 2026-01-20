@@ -1388,11 +1388,10 @@ const DriverDashboard = () => {
     const handleFreightAccepted = (event: CustomEvent) => {
       console.log('🎯 Frete aceito, navegando para aba Em Andamento:', event.detail?.freightId);
       
-      // Invalidar queries e recarregar dados - incluindo driver-ongoing-all do DriverOngoingTab
+      // Invalidar queries e recarregar dados
       queryClient.invalidateQueries({ queryKey: ['driver-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['available-freights'] });
       queryClient.invalidateQueries({ queryKey: ['ongoing-freights'] });
-      queryClient.invalidateQueries({ queryKey: ['driver-ongoing-all'] }); // ✅ Query do DriverOngoingTab
       
       fetchOngoingFreights();
       fetchMyAssignments();

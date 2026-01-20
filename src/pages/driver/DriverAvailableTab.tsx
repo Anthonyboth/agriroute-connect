@@ -33,7 +33,11 @@ export const DriverAvailableTab: React.FC<DriverAvailableTabProps> = ({
       <SmartFreightMatcher
         key={`freight-matcher-${profileId || "loading"}`}
         onFreightAction={onFreightAction}
-        onCountsChange={(counts) => onCountsChange({ total: counts.total })}
+        onCountsChange={(counts) => {
+          // SmartFreightMatcher manda { total, highUrgency }
+          // Aqui o DriverAvailableTab só quer { total }
+          onCountsChange({ total: counts.total });
+        }}
       />
     </SafeListWrapper>
   );
