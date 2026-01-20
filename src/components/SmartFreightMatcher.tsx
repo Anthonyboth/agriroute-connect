@@ -961,8 +961,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                                   .eq("id", r.id)
                                   .eq("status", "OPEN");
                                 if (error) throw error;
-                                toast.success("Chamado aceito! Aguarde contato do solicitante.");
+                                toast.success("Chamado aceito! Indo para Em Andamento.");
                                 setTowingRequests((prev) => prev.filter((x: any) => x.id !== r.id));
+                                // Dispatch event to navigate to ongoing tab and refresh lists
+                                window.dispatchEvent(new CustomEvent('freight:accepted', { 
+                                  detail: { freightId: r.id, source: 'service_request', serviceType: r.service_type } 
+                                }));
                               } catch (e: any) {
                                 console.error("Erro ao aceitar chamado:", e);
                                 toast.error("Erro ao aceitar chamado");
