@@ -17,15 +17,21 @@ const isPublicPage = typeof window !== 'undefined' &&
 
 // Realtime configuration - completely disabled on public pages to prevent WebSocket errors
 const realtimeConfig = isPublicPage ? {
-  // On public pages, use a dummy/disabled configuration
+  // On public pages, use a dummy URL that prevents connection attempts
+  // This prevents ERR_NAME_NOT_RESOLVED errors in Lighthouse
+  transport: undefined as any, // Disable transport entirely
   params: {
     eventsPerSecond: 0
   },
-  // Prevent automatic connection by using long timeouts
-  timeout: 1,
-  heartbeatIntervalMs: 999999999,
-  // Disable reconnect attempts
-  reconnectAfterMs: () => 999999999
+  // Set to never connect
+  autoConnect: false,
+  // Prevent automatic connection by using extremely long timeouts
+  timeout: 0,
+  heartbeatIntervalMs: Number.MAX_SAFE_INTEGER,
+  // Disable reconnect attempts completely
+  reconnectAfterMs: () => Number.MAX_SAFE_INTEGER,
+  // Disable logging
+  log_level: 'silent' as any
 } : {
   params: {
     eventsPerSecond: 10
@@ -52,17 +58,22 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 // Immediately disconnect realtime on public pages BEFORE any connection attempt
 if (isPublicPage && typeof window !== 'undefined') {
-  // Use queueMicrotask to run immediately after client creation but before any async operations
-  queueMicrotask(() => {
-    try {
-      // Set connection state to closed to prevent reconnection attempts
-      supabase.realtime.setAuth(null);
-      supabase.removeAllChannels();
-      supabase.realtime.disconnect();
-    } catch {
-      // Silently handle any disconnection errors
-    }
-  });
+  // Synchronously disconnect to prevent any WebSocket connection attempts
+  try {
+    // Disconnect immediately - not in microtask to prevent race condition
+    supabase.realtime.setAuth(null);
+    supabase.removeAllChannels();
+    supabase.realtime.disconnect();
+    
+    // Override connect method to prevent any future connection attempts on public pages
+    const originalConnect = supabase.realtime.connect.bind(supabase.realtime);
+    supabase.realtime.connect = () => {
+      // No-op on public pages - prevent WebSocket connection
+      return Promise.resolve();
+    };
+  } catch {
+    // Silently handle any disconnection errors
+  }
 }
 
 /**
