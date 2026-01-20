@@ -1,195 +1,353 @@
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { SafeListWrapper } from '@/components/SafeListWrapper';
-import { MyAssignmentCard } from '@/components/MyAssignmentCard';
-import { ServiceRequestInProgressCard } from '@/components/ServiceRequestInProgressCard';
-import { Package, Truck, Wrench, Play, CheckCircle } from 'lucide-react';
-import { getCargoTypeLabel } from '@/lib/cargo-types';
-import type { Freight } from './types';
+import React, { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Truck, Wrench, Bike, MapPin, Clock, RefreshCw } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
-interface DriverOngoingTabProps {
-  activeAssignments: any[];
-  visibleOngoing: Freight[];
-  acceptedServiceRequests: any[];
-  freightCheckins: Record<string, number>;
-  onAssignmentAction: (freightId: string) => void;
-  onMarkServiceOnTheWay: (requestId: string) => void;
-  onFinishService: (requestId: string) => void;
-  onCheckin: (freightId: string) => void;
-  onViewDetails: (freightId: string) => void;
-  onGoToAvailable: () => void;
-}
+type FreightRow = {
+  id: string;
+  created_at: string;
+  status: string;
+  cargo_type: string | null;
+  price: number | null;
+  origin_address: string | null;
+  destination_address: string | null;
+  origin_city: string | null;
+  origin_state: string | null;
+  destination_city: string | null;
+  destination_state: string | null;
+  service_type: string | null;
+};
 
-export const DriverOngoingTab: React.FC<DriverOngoingTabProps> = ({
-  activeAssignments,
-  visibleOngoing,
-  acceptedServiceRequests,
-  freightCheckins,
-  onAssignmentAction,
-  onMarkServiceOnTheWay,
-  onFinishService,
-  onCheckin,
-  onViewDetails,
-  onGoToAvailable,
-}) => {
-  const totalCount = activeAssignments.length + visibleOngoing.length + acceptedServiceRequests.length;
+type ServiceRequestRow = {
+  id: string;
+  created_at: string;
+  status: string;
+  service_type: string | null;
+  location_address: string | null;
+  city_name: string | null;
+  state: string | null;
+  problem_description: string | null;
+  estimated_price: number | null;
+  urgency: string | null;
+  is_emergency: boolean | null;
+  accepted_at: string | null;
+};
+
+const statusLabel = (status: string) => {
+  const map: Record<string, string> = {
+    OPEN: "Aberto",
+    IN_NEGOTIATION: "Em Negociação",
+    ACCEPTED: "Aceito",
+    LOADING: "A Caminho da Coleta",
+    LOADED: "Carregado",
+    IN_TRANSIT: "Em Transporte",
+    DELIVERED: "Entregue",
+    DELIVERED_PENDING_CONFIRMATION: "Entrega Reportada",
+    COMPLETED: "Concluído",
+    CANCELLED: "Cancelado",
+    REJECTED: "Rejeitado",
+    PENDING: "Pendente",
+    IN_PROGRESS: "Em Andamento",
+  };
+  return map[status] || status;
+};
+
+const statusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+  if (["COMPLETED", "DELIVERED"].includes(status)) return "default";
+  if (["IN_TRANSIT", "LOADING", "IN_PROGRESS", "ACCEPTED"].includes(status)) return "secondary";
+  if (["CANCELLED", "REJECTED"].includes(status)) return "destructive";
+  return "outline";
+};
+
+const serviceIcon = (serviceType?: string | null) => {
+  const t = String(serviceType || "").toUpperCase();
+  if (t.includes("GUINCHO")) return <Wrench className="h-5 w-5" />;
+  if (t.includes("MOTO")) return <Bike className="h-5 w-5" />;
+  return <Truck className="h-5 w-5" />;
+};
+
+const serviceTitle = (serviceType?: string | null) => {
+  const t = String(serviceType || "").toUpperCase();
+  if (t.includes("GUINCHO")) return "Guincho";
+  if (t.includes("MOTO")) return "Frete Moto";
+  if (t.includes("MUDANCA")) return "Mudança";
+  return "Serviço";
+};
+
+export const DriverOngoingTab: React.FC = () => {
+  const { profile } = useAuth();
+
+  const driverProfileId = profile?.id;
+
+  const { data, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ["driver-ongoing-all", driverProfileId],
+    enabled: Boolean(driverProfileId),
+    queryFn: async () => {
+      if (!driverProfileId) return { freights: [] as FreightRow[], serviceRequests: [] as ServiceRequestRow[] };
+
+      // 1) FRETES (rurais)
+      const freightOngoingStatuses = ["ACCEPTED", "LOADING", "LOADED", "IN_TRANSIT", "DELIVERED_PENDING_CONFIRMATION"];
+
+      const { data: freights, error: freErr } = await supabase
+        .from("freights")
+        .select(
+          `
+          id,
+          created_at,
+          status,
+          cargo_type,
+          price,
+          origin_address,
+          destination_address,
+          origin_city,
+          origin_state,
+          destination_city,
+          destination_state,
+          service_type
+        `,
+        )
+        .eq("driver_id", driverProfileId)
+        .in("status", freightOngoingStatuses)
+        .order("created_at", { ascending: false });
+
+      if (freErr) throw freErr;
+
+      // 2) SERVICE REQUESTS (urbano: moto/guincho/mudança)
+      // IMPORTANTÍSSIMO: Aqui é o motivo de não aparecer.
+      // A aba "Em Andamento" precisa listar os serviços aceitos do motorista.
+      const srOngoingStatuses = ["ACCEPTED", "IN_PROGRESS"];
+
+      const { data: serviceRequests, error: srErr } = await supabase
+        .from("service_requests")
+        .select(
+          `
+          id,
+          created_at,
+          status,
+          service_type,
+          location_address,
+          city_name,
+          state,
+          problem_description,
+          estimated_price,
+          urgency,
+          is_emergency,
+          accepted_at
+        `,
+        )
+        .eq("provider_id", driverProfileId)
+        .in("status", srOngoingStatuses)
+        .order("accepted_at", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (srErr) throw srErr;
+
+      return {
+        freights: (freights || []) as FreightRow[],
+        serviceRequests: (serviceRequests || []) as ServiceRequestRow[],
+      };
+    },
+  });
+
+  const freights = data?.freights || [];
+  const serviceRequests = data?.serviceRequests || [];
+
+  const totalOngoing = useMemo(
+    () => freights.length + serviceRequests.length,
+    [freights.length, serviceRequests.length],
+  );
+
+  if (!driverProfileId) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-muted-foreground">
+          Perfil do motorista não encontrado.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-32 w-full" />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <SafeListWrapper>
-      <div className="flex flex-col space-y-2 mb-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-base font-semibold">Em Andamento</h3>
-          <Badge variant="secondary" className="text-xs">
-            {totalCount}
-          </Badge>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Em Andamento</h3>
+          <p className="text-sm text-muted-foreground">Fretes rurais + chamados urbanos aceitos</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">{totalOngoing}</Badge>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
         </div>
       </div>
-      
-      {/* Service Requests Aceitos (Guincho/Mudança) */}
-      {acceptedServiceRequests && acceptedServiceRequests.length > 0 && (
-        <div className="space-y-4 mb-6">
-          <div className="flex items-center gap-2">
-            <Wrench className="h-4 w-4 text-orange-600" />
-            <h4 className="text-sm font-semibold text-orange-600">Serviços em Andamento</h4>
-            <Badge variant="outline" className="text-xs border-orange-300">{acceptedServiceRequests.length}</Badge>
-          </div>
-          <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando lista...</div>}>
-            {acceptedServiceRequests.map((request) => (
-              <ServiceRequestInProgressCard
-                key={request.id}
-                request={request}
-                onMarkOnTheWay={onMarkServiceOnTheWay}
-                onFinishService={onFinishService}
-              />
-            ))}
-          </SafeListWrapper>
-        </div>
-      )}
-      
-      {/* Assignments (Fretes com valores individualizados) */}
-      {activeAssignments && activeAssignments.length > 0 && (
-        <div className="space-y-4 mb-6">
-          <div className="flex items-center gap-2">
-            <Truck className="h-4 w-4 text-green-600" />
-            <h4 className="text-sm font-semibold text-green-600">Seus Contratos Ativos</h4>
-            <Badge variant="outline" className="text-xs">{activeAssignments.length}</Badge>
-          </div>
-          <SafeListWrapper fallback={<div className="p-4 text-sm text-muted-foreground">Atualizando lista...</div>}>
-            {activeAssignments.map((assignment) => {
-              if (!assignment?.id) return null;
-              
-              return (
-                <MyAssignmentCard
-                  key={assignment.id}
-                  assignment={assignment}
-                  onAction={() => onAssignmentAction(assignment.freight_id)}
-                />
-              );
-            })}
-          </SafeListWrapper>
-        </div>
-      )}
-      
-      {visibleOngoing.length > 0 ? (
-        <SafeListWrapper>
-          <div className="space-y-4">
-            {visibleOngoing.map((freight) => (
-              <Card key={freight.id} className="shadow-sm border border-border/50 hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  {/* Header com tipo de carga e status */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <Package className="h-4 w-4 text-primary" />
-                      <h3 className="font-medium text-foreground text-sm">
-                        {getCargoTypeLabel(freight.cargo_type)}
-                      </h3>
-                    </div>
-                    <Badge variant="default" className="text-xs bg-primary text-primary-foreground px-2 py-1">
-                      {freight.status === 'ACCEPTED' ? 'Aceito' : 'Ativo'}
-                    </Badge>
-                  </div>
 
-                  {/* Origem e Destino simplificados - apenas cidades */}
-                  <div className="space-y-2 text-sm mb-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">De:</span>
-                      <span className="font-medium truncate max-w-[200px]">
-                        {freight.origin_address.split(',').slice(-2).join(',').trim()}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Para:</span>
-                      <span className="font-medium truncate max-w-[200px]">
-                        {freight.destination_address.split(',').slice(-2).join(',').trim()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Valor em destaque */}
-                  <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-3 rounded-lg border border-border/20 mb-3">
-                    <div className="text-center">
-                      <span className="text-lg font-bold text-primary">
-                        R$ {freight.price?.toLocaleString('pt-BR')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Botões de ação simplificados */}
-                  <div className="flex gap-2">
-                    {!freight.is_service_request && (freight.status === 'ACCEPTED' || freight.status === 'LOADING' || freight.status === 'IN_TRANSIT') && (
-                      <Button 
-                        size="sm" 
-                        className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => onCheckin(freight.id)}
-                      >
-                        Check-in
-                      </Button>
-                    )}
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="flex-1 h-8 text-xs border-primary/30 hover:bg-primary/5"
-                      onClick={() => onViewDetails(freight.id)}
-                    >
-                      Ver Detalhes
-                    </Button>
-                  </div>
-
-                  {/* Check-ins counter - apenas contador simples */}
-                  {freightCheckins[freight.id] > 0 && (
-                    <div className="mt-3 pt-3 border-t border-border/30">
-                      <div className="flex items-center justify-center text-xs text-muted-foreground">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        {freightCheckins[freight.id]} check-in{freightCheckins[freight.id] !== 1 ? 's' : ''} realizado{freightCheckins[freight.id] !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </SafeListWrapper>
-      ) : (
-        (!activeAssignments || activeAssignments.length === 0) && acceptedServiceRequests.length === 0 ? (
-          <div className="text-center py-12">
-            <Play className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">
-              Nenhum frete em andamento
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              Quando você aceitar um frete ou ele for aceito pelo produtor, aparecerá aqui
+      {/* Empty */}
+      {totalOngoing === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <div className="mx-auto mb-3 h-10 w-10 text-muted-foreground flex items-center justify-center">
+              <Truck className="h-10 w-10" />
+            </div>
+            <p className="font-medium">Nenhum frete em andamento</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Quando você aceitar um frete rural ou um chamado (moto/guincho/mudança), ele aparecerá aqui.
             </p>
-            <Button 
-              onClick={onGoToAvailable}
-              className="mt-2"
-            >
-              Ver Fretes Disponíveis
-            </Button>
-          </div>
-        ) : null
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Service Requests (Moto/Guincho/Mudança) */}
+          {serviceRequests.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-semibold">Chamados Urbanos</h4>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {serviceRequests.map((r) => (
+                  <Card key={r.id} className="overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          {serviceIcon(r.service_type)}
+                          <CardTitle className="text-base">{serviceTitle(r.service_type)}</CardTitle>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge variant={statusVariant(r.status)}>{statusLabel(r.status)}</Badge>
+                          {r.is_emergency && <Badge variant="destructive">🚨 Emergência</Badge>}
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="space-y-3">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
+                        <div className="text-sm">
+                          <p className="font-medium">
+                            {(r.city_name || "Cidade não informada").toUpperCase()} {r.state ? `- ${r.state}` : ""}
+                          </p>
+                          <p className="text-muted-foreground line-clamp-2">
+                            {r.location_address || "Endereço não informado"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {r.problem_description && (
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Descrição: </span>
+                          <span className="line-clamp-2">{r.problem_description}</span>
+                        </div>
+                      )}
+
+                      {typeof r.estimated_price === "number" && (
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Valor: </span>
+                          <span className="font-semibold text-primary">
+                            R$ {Number(r.estimated_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>Aceito em {new Date(r.accepted_at || r.created_at).toLocaleString("pt-BR")}</span>
+                      </div>
+
+                      {/* Botão opcional: marcar como IN_PROGRESS (se você quiser fluxo) */}
+                      {r.status === "ACCEPTED" && (
+                        <Button
+                          className="w-full"
+                          variant="secondary"
+                          onClick={async () => {
+                            try {
+                              const { error } = await supabase
+                                .from("service_requests")
+                                .update({ status: "IN_PROGRESS" })
+                                .eq("id", r.id)
+                                .eq("provider_id", driverProfileId)
+                                .in("status", ["ACCEPTED"]);
+                              if (error) throw error;
+                              toast.success("Chamado movido para Em Andamento.");
+                              refetch();
+                            } catch (e: any) {
+                              console.error(e);
+                              toast.error("Falha ao atualizar status do chamado.");
+                            }
+                          }}
+                        >
+                          Iniciar atendimento
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Freights (Rural) */}
+          {freights.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-semibold">Fretes Rurais</h4>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {freights.map((f) => (
+                  <Card key={f.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{f.cargo_type || "Frete"}</CardTitle>
+                        <Badge variant={statusVariant(f.status)}>{statusLabel(f.status)}</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="text-sm">
+                        <p className="font-medium">
+                          {(f.origin_city || "Origem").toString()}, {(f.origin_state || "").toString()}
+                        </p>
+                        <p className="text-muted-foreground">↓</p>
+                        <p className="font-medium">
+                          {(f.destination_city || "Destino").toString()}, {(f.destination_state || "").toString()}
+                        </p>
+                      </div>
+
+                      {typeof f.price === "number" && (
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Valor: </span>
+                          <span className="font-semibold text-primary">
+                            R$ {Number(f.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>Criado em {new Date(f.created_at).toLocaleString("pt-BR")}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
-    </SafeListWrapper>
+    </div>
   );
 };
