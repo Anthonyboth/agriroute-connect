@@ -8366,6 +8366,51 @@ export type Database = {
           },
         ]
       }
+      service_request_matches: {
+        Row: {
+          created_at: string
+          distance_m: number
+          driver_id: string
+          id: string
+          match_score: number
+          match_type: string
+          service_request_id: string
+        }
+        Insert: {
+          created_at?: string
+          distance_m?: number
+          driver_id: string
+          id?: string
+          match_score?: number
+          match_type: string
+          service_request_id: string
+        }
+        Update: {
+          created_at?: string
+          distance_m?: number
+          driver_id?: string
+          id?: string
+          match_score?: number
+          match_type?: string
+          service_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_matches_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_matches_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_requests: {
         Row: {
           accepted_at: string | null
