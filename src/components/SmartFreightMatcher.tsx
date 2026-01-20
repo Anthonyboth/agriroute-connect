@@ -2,7 +2,7 @@ import React, { useState, useEffect, useTransition, useMemo, useRef, useCallback
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CARGO_TYPES, getCargoTypesByCategory } from "@/lib/cargo-types";
+import { getCargoTypesByCategory } from "@/lib/cargo-types";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -128,38 +128,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     abortControllerRef.current = new AbortController();
 
     try {
-      // ✅ CORREÇÃO 1: efetivo sempre (se vazio, não pode filtrar tudo pra fora)
+      // ✅ Tipos efetivos (fallback para não filtrar tudo pra fora)
       let effectiveTypes = allowedTypesFromProfile;
-
       if (!isCompany && (!effectiveTypes || effectiveTypes.length === 0)) {
-        // fallback mínimo para não “sumir tudo”
         effectiveTypes = ["CARGA", "GUINCHO", "MUDANCA", "FRETE_MOTO"] as CanonicalServiceType[];
         toast.info("Seus tipos de serviço não estão configurados. Mostrando todos por enquanto.", { duration: 3500 });
       }
 
       console.log("[SmartFreightMatcher] effectiveTypes:", effectiveTypes);
-
-      // ✅ SEMPRE buscar chamados de serviço (service_requests)
-      // (não depende de config do perfil pra não “sumir” FRETE_MOTO)
-      const fetchServiceRequestsForCompany = async () => {
-        const { data: sr, error: srErr } = await supabase
-          .from("service_requests")
-          .select("*")
-          .in("service_type", ["GUINCHO", "MUDANCA", "FRETE_MOTO"])
-          .eq("status", "OPEN")
-          .is("provider_id", null)
-          .order("created_at", { ascending: true });
-
-        if (srErr) {
-          console.warn("[SmartFreightMatcher] Erro ao buscar service_requests:", srErr);
-          return [];
-        }
-
-        // Se quiser filtrar por tipos efetivos, faça AQUI (mas sem bloquear tudo)
-        // Ex: se effectiveTypes não inclui FRETE_MOTO, você pode remover.
-        // Porém, pra “aparecer a todo custo”, vamos manter todos:
-        return sr || [];
-      };
 
       // TRANSPORTADORA: carrega fretes abertos direto (sem matching)
       if (isCompany) {
@@ -196,21 +172,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           created_at: f.created_at,
         }));
 
-        // Se quiser filtrar por effectiveTypes (transportadora geralmente vê tudo)
-        const filtered = mapped;
+        // Para transportadora, você pode trazer service_requests separadamente se desejar.
+        // Aqui mantemos apenas freights.
+        if (currentFetchId === fetchIdRef.current && isMountedRef.current && !abortControllerRef.current?.signal) {
+          setCompatibleFreights(mapped);
+          setTowingRequests([]);
 
-        const sr = await fetchServiceRequestsForCompany();
-
-        if (
-          currentFetchId === fetchIdRef.current &&
-          isMountedRef.current &&
-          !abortControllerRef.current?.signal.aborted
-        ) {
-          setCompatibleFreights(filtered);
-          setTowingRequests(sr);
-
-          const highUrgency = filtered.filter((f) => f.urgency === "HIGH").length;
-          onCountsChange?.({ total: filtered.length + sr.length, highUrgency });
+          const highUrgency = mapped.filter((f) => f.urgency === "HIGH").length;
+          onCountsChange?.({ total: mapped.length, highUrgency });
         }
 
         return;
@@ -220,6 +189,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       const {
         data: { session },
       } = await supabase.auth.getSession();
+
       const { data: spatialData, error: spatialError } = await supabase.functions.invoke("driver-spatial-matching", {
         method: "POST",
         headers: {
@@ -234,10 +204,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
       // 1) fretes do matching espacial
       let spatialFreights: CompatibleFreight[] = [];
-
       if (spatialData?.freights && Array.isArray(spatialData.freights)) {
         spatialFreights = spatialData.freights
-          // ✅ CORREÇÃO 2: usar effectiveTypes (não allowedTypesFromProfile)
           .filter((f: any) => effectiveTypes.includes(normalizeServiceType(f.service_type)))
           .map((f: any) => ({
             freight_id: f.id || f.freight_id,
@@ -263,7 +231,13 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           }));
       }
 
-      // 2) tentar RPC
+      // ✅ service_requests retornados do matching espacial (motorista só vê da região dele)
+      let matchedServiceRequests: any[] = [];
+      if (spatialData?.service_requests && Array.isArray(spatialData.service_requests)) {
+        matchedServiceRequests = spatialData.service_requests;
+      }
+
+      // 2) tentar RPC (não bloqueante)
       const { data: rpcData, error: rpcError } = await supabase.rpc("get_freights_for_driver", {
         p_driver_id: profile.id,
       });
@@ -271,7 +245,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       let rpcFreights: CompatibleFreight[] = [];
 
       if (!rpcError && Array.isArray(rpcData)) {
-        // buscar cidades ativas (para evitar frete de cidade errada)
         const { data: ucActive } = await supabase
           .from("user_cities")
           .select("cities(name, state)")
@@ -303,10 +276,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           accepted_trucks: f.accepted_trucks || 0,
         }));
 
-        // ✅ CORREÇÃO 3: filtrar por effectiveTypes (não allowedTypesFromProfile)
         filtered = filtered.filter((f: any) => effectiveTypes.includes(f.service_type));
 
-        // Filtrar por cidades se existirem
         setMatchingStats({ exactMatches: 0, fallbackMatches: 0, totalChecked: 0 });
 
         if (activeCities) {
@@ -419,14 +390,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         if (!uniqueMap.has(f.freight_id)) uniqueMap.set(f.freight_id, f);
       });
       const finalFreights = Array.from(uniqueMap.values());
-
-      // ✅ CORREÇÃO: Usar service_requests do matching espacial ao invés de query global
-      // Isso garante que motoristas só vejam FRETE_MOTO, GUINCHO, MUDANCA das cidades configuradas
-      let matchedServiceRequests: any[] = [];
-      if (spatialData?.service_requests && Array.isArray(spatialData.service_requests)) {
-        matchedServiceRequests = spatialData.service_requests;
-        console.log("[SmartFreightMatcher] Service requests do matching espacial:", matchedServiceRequests.length);
-      }
 
       if (
         currentFetchId === fetchIdRef.current &&
@@ -814,7 +777,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                           minimum_antt_price: freight.minimum_antt_price,
                           required_trucks: freight.required_trucks,
                           accepted_trucks: freight.accepted_trucks,
-                          // ✅ CORREÇÃO: permitir FRETE_MOTO sem quebrar o TS do FreightCard
                           service_type: freight.service_type as any,
                         }}
                         onAction={(action) => handleFreightAction(freight.freight_id, action)}
@@ -945,31 +907,46 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                             )}
                           </div>
 
+                          {/* ✅ CORREÇÃO CRÍTICA: aceitar chamado só se realmente atualizou (returning + lock provider_id) */}
                           <Button
                             className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
                             size="lg"
                             onClick={async () => {
                               try {
                                 if (!profile?.id) return;
-                                const { error } = await supabase
+
+                                const { data: updated, error } = await supabase
                                   .from("service_requests")
                                   .update({
                                     provider_id: profile.id,
-                                    status: "ACCEPTED",
+                                    status: "IN_PROGRESS", // ✅ vai para andamento (mais consistente)
                                     accepted_at: new Date().toISOString(),
                                   })
                                   .eq("id", r.id)
-                                  .eq("status", "OPEN");
+                                  .eq("status", "OPEN")
+                                  .is("provider_id", null) // ✅ impede aceitar se alguém já pegou
+                                  .select("id, status, provider_id, accepted_at")
+                                  .single();
+
                                 if (error) throw error;
+
+                                if (!updated?.id || updated.provider_id !== profile.id) {
+                                  throw new Error("Não foi possível aceitar: o chamado não estava mais disponível.");
+                                }
+
                                 toast.success("Chamado aceito! Indo para Em Andamento.");
+
+                                // remove da lista disponível APENAS depois de confirmar update
                                 setTowingRequests((prev) => prev.filter((x: any) => x.id !== r.id));
-                                // Dispatch event to navigate to ongoing tab and refresh lists
-                                window.dispatchEvent(new CustomEvent('freight:accepted', { 
-                                  detail: { freightId: r.id, source: 'service_request', serviceType: r.service_type } 
-                                }));
+
+                                // dispara navegação (se seu dashboard escuta isso)
+                                window.dispatchEvent(new CustomEvent("navigate-to-tab", { detail: "ongoing" }));
+
+                                // força re-sync
+                                await fetchCompatibleFreights();
                               } catch (e: any) {
                                 console.error("Erro ao aceitar chamado:", e);
-                                toast.error("Erro ao aceitar chamado");
+                                toast.error(e?.message || "Erro ao aceitar chamado");
                               }
                             }}
                           >
