@@ -72,13 +72,16 @@ interface SmartFreightMatcherProps {
   onCountsChange?: (counts: { total: number; highUrgency: number }) => void;
 }
 
+const AVAILABLE_SERVICE_REQUEST_STATUSES = ["OPEN", "AVAILABLE"] as const;
+const SERVICE_TYPES_REQUESTS = ["GUINCHO", "MUDANCA", "FRETE_MOTO"] as const;
+
 export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFreightAction, onCountsChange }) => {
   const { profile, user } = useAuth();
   const { isAffiliated, companyId } = useCompanyDriver();
   const { canAcceptFreights, companyId: permissionCompanyId } = useDriverPermissions();
 
   const [compatibleFreights, setCompatibleFreights] = useState<CompatibleFreight[]>([]);
-  const [towingRequests, setTowingRequests] = useState<any[]>([]);
+  const [serviceRequests, setServiceRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -107,6 +110,98 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     return getAllowedServiceTypesFromProfile(profile);
   }, [profile?.role, profile?.service_types]);
 
+  /**
+   * ✅ BUSCA REAL (FONTE DA VERDADE):
+   * - pega cidades ativas do motorista
+   * - busca service_requests com status disponível, provider_id null, e dentro das cidades
+   *
+   * IMPORTANTE: isso elimina a “lista mentirosa” vindo da edge function.
+   */
+  const fetchServiceRequestsForDriverCities = useCallback(async () => {
+    if (!user?.id) return [];
+
+    // cidades ativas
+    const { data: ucActive, error: ucErr } = await supabase
+      .from("user_cities")
+      .select("city_id, cities(name, state)")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .in("type", ["MOTORISTA_ORIGEM", "MOTORISTA_DESTINO"]);
+
+    if (ucErr) {
+      console.warn("[SmartFreightMatcher] erro buscando user_cities:", ucErr);
+      return [];
+    }
+
+    const activeCities = (ucActive || []).length > 0;
+    setHasActiveCities(activeCities);
+
+    if (!activeCities) return [];
+
+    const cityIds = (ucActive || []).map((u: any) => u.city_id).filter(Boolean);
+
+    const cityPairs = (ucActive || [])
+      .map((u: any) => ({
+        city: String(u.cities?.name || "").trim(),
+        state: String(u.cities?.state || "")
+          .trim()
+          .toUpperCase(),
+      }))
+      .filter((c: any) => c.city && c.state);
+
+    // 1) TENTATIVA POR city_id (se existir no schema, é o ideal)
+    if (cityIds.length > 0) {
+      const { data: byId, error: byIdErr } = await supabase
+        .from("service_requests")
+        .select("*")
+        .in("service_type", [...SERVICE_TYPES_REQUESTS])
+        .in("status", [...AVAILABLE_SERVICE_REQUEST_STATUSES])
+        .is("provider_id", null)
+        // @ts-expect-error: city_id pode existir no schema
+        .in("city_id", cityIds)
+        .order("created_at", { ascending: true });
+
+      if (!byIdErr && Array.isArray(byId)) {
+        return byId;
+      }
+
+      // se der erro (coluna não existe), cai no fallback por city_name/state
+      if (byIdErr) {
+        console.warn(
+          "[SmartFreightMatcher] city_id não funcionou (provável coluna inexistente). Indo para fallback:",
+          byIdErr,
+        );
+      }
+    }
+
+    // 2) FALLBACK POR city_name/state
+    // monta OR: and(city_name.ilike.%X%,state.eq.Y)
+    // Obs: se seus campos forem outros (ex: location_city), ajuste aqui.
+    const orConditions: string[] = [];
+    for (const { city, state } of cityPairs) {
+      const cityLike = city.replaceAll(",", " ").trim();
+      orConditions.push(`and(city_name.ilike.%${cityLike}%,state.eq.${state})`);
+    }
+
+    if (orConditions.length === 0) return [];
+
+    const { data: byName, error: byNameErr } = await supabase
+      .from("service_requests")
+      .select("*")
+      .in("service_type", [...SERVICE_TYPES_REQUESTS])
+      .in("status", [...AVAILABLE_SERVICE_REQUEST_STATUSES])
+      .is("provider_id", null)
+      .or(orConditions.join(","))
+      .order("created_at", { ascending: true });
+
+    if (byNameErr) {
+      console.warn("[SmartFreightMatcher] fallback city_name/state falhou:", byNameErr);
+      return [];
+    }
+
+    return byName || [];
+  }, [user?.id]);
+
   const fetchCompatibleFreights = useCallback(async () => {
     if (!profile?.id || !user?.id) return;
 
@@ -128,11 +223,13 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
     try {
       let effectiveTypes = allowedTypesFromProfile;
+
       if (!isCompany && (!effectiveTypes || effectiveTypes.length === 0)) {
         effectiveTypes = ["CARGA", "GUINCHO", "MUDANCA", "FRETE_MOTO"] as CanonicalServiceType[];
         toast.info("Seus tipos de serviço não estão configurados. Mostrando todos por enquanto.", { duration: 3500 });
       }
 
+      // TRANSPORTADORA
       if (isCompany) {
         const { data: directFreights, error: directError } = await supabase
           .from("freights")
@@ -173,26 +270,25 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           !abortControllerRef.current?.signal.aborted
         ) {
           setCompatibleFreights(mapped);
-          setTowingRequests([]);
+          setServiceRequests([]);
           const highUrgency = mapped.filter((f) => f.urgency === "HIGH").length;
           onCountsChange?.({ total: mapped.length, highUrgency });
         }
+
         return;
       }
 
+      // MOTORISTA: matching espacial (freights) + service_requests direto do banco
       const {
         data: { session },
       } = await supabase.auth.getSession();
-
-      const { data: spatialData, error: spatialError } = await supabase.functions.invoke("driver-spatial-matching", {
+      const { data: spatialData } = await supabase.functions.invoke("driver-spatial-matching", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: session?.access_token ? `Bearer ${session.access_token}` : "",
         },
       });
-
-      if (spatialError) console.warn("[SmartFreightMatcher] spatialError:", spatialError);
 
       let spatialFreights: CompatibleFreight[] = [];
       if (spatialData?.freights && Array.isArray(spatialData.freights)) {
@@ -222,18 +318,23 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           }));
       }
 
-      let matchedServiceRequests: any[] = [];
-      if (spatialData?.service_requests && Array.isArray(spatialData.service_requests)) {
-        matchedServiceRequests = spatialData.service_requests;
-      }
-
+      // RPC (se existir)
       const { data: rpcData, error: rpcError } = await supabase.rpc("get_freights_for_driver", {
         p_driver_id: profile.id,
       });
 
       let rpcFreights: CompatibleFreight[] = [];
-
       if (!rpcError && Array.isArray(rpcData)) {
+        const extractCityStateFromAddress = (address: string): { city: string; state: string } => {
+          if (!address) return { city: "", state: "" };
+          const match = address.match(/([^,\-]+)[\,\-]?\s*([A-Z]{2})\s*$/i);
+          if (match) return { city: normalizeCity(match[1].trim()), state: match[2].trim().toUpperCase() };
+          const parts = address.split(",").map((p) => p.trim());
+          const cityPart = parts[parts.length - 1] || parts[0];
+          return { city: normalizeCity(cityPart), state: "" };
+        };
+
+        // cidades ativas
         const { data: ucActive } = await supabase
           .from("user_cities")
           .select("cities(name, state)")
@@ -243,15 +344,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
         const activeCities = (ucActive || []).length > 0;
         setHasActiveCities(activeCities);
-
-        const extractCityStateFromAddress = (address: string): { city: string; state: string } => {
-          if (!address) return { city: "", state: "" };
-          const match = address.match(/([^,\-]+)[\,\-]?\s*([A-Z]{2})\s*$/i);
-          if (match) return { city: normalizeCity(match[1].trim()), state: match[2].trim().toUpperCase() };
-          const parts = address.split(",").map((p) => p.trim());
-          const cityPart = parts[parts.length - 1] || parts[0];
-          return { city: normalizeCity(cityPart), state: "" };
-        };
 
         let filtered = rpcData.map((f: any) => ({
           ...f,
@@ -366,9 +458,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           accepted_trucks: f.accepted_trucks,
           created_at: f.created_at,
         }));
-      } else {
-        console.warn("[SmartFreightMatcher] RPC falhou (não bloqueante):", rpcError);
       }
+
+      // ✅ Service Requests: agora vem DIRETO do banco (fonte da verdade)
+      const realServiceRequests = await fetchServiceRequestsForDriverCities();
 
       const combined = [...spatialFreights, ...rpcFreights];
       const uniqueMap = new Map<string, CompatibleFreight>();
@@ -383,10 +476,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         !abortControllerRef.current?.signal.aborted
       ) {
         setCompatibleFreights(finalFreights);
-        setTowingRequests(matchedServiceRequests);
+        setServiceRequests(realServiceRequests);
 
         const highUrgency = finalFreights.filter((f) => f.urgency === "HIGH").length;
-        onCountsChange?.({ total: finalFreights.length + matchedServiceRequests.length, highUrgency });
+        onCountsChange?.({ total: finalFreights.length + realServiceRequests.length, highUrgency });
       }
     } catch (error: any) {
       console.error("[SmartFreightMatcher] erro geral:", error);
@@ -398,7 +491,15 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       }
       updateLockRef.current = false;
     }
-  }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, onCountsChange]);
+  }, [
+    profile?.id,
+    profile?.role,
+    profile?.active_mode,
+    user?.id,
+    allowedTypesFromProfile,
+    onCountsChange,
+    fetchServiceRequestsForDriverCities,
+  ]);
 
   const handleFreightAction = async (freightId: string, action: string) => {
     if (onFreightAction) {
@@ -534,14 +635,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   }, [compatibleFreights, searchTerm, selectedCargoType]);
 
   const filteredRequests = useMemo(() => {
-    return towingRequests.filter((r: any) => {
+    return (serviceRequests || []).filter((r: any) => {
       const matchesSearch =
         !searchTerm ||
         (r.location_address || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (r.problem_description || "").toLowerCase().includes(searchTerm.toLowerCase());
       return matchesSearch;
     });
-  }, [towingRequests, searchTerm]);
+  }, [serviceRequests, searchTerm]);
 
   useEffect(() => {
     if (!onCountsChange) return;
@@ -855,24 +956,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                                 min
                               </span>
                             </div>
-
-                            {r.urgency && (
-                              <Badge
-                                variant={
-                                  r.urgency === "HIGH"
-                                    ? "destructive"
-                                    : r.urgency === "MEDIUM"
-                                      ? "default"
-                                      : "secondary"
-                                }
-                                className="text-xs"
-                              >
-                                {r.urgency === "HIGH" ? "Alta" : r.urgency === "MEDIUM" ? "Média" : "Baixa"}
-                              </Badge>
-                            )}
                           </div>
 
-                          {/* ✅ FIX DEFINITIVO DO ERRO: sem `.single()` (não estoura “Cannot coerce...”) */}
                           <Button
                             className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
                             size="lg"
@@ -880,45 +965,32 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                               try {
                                 if (!profile?.id) return;
 
+                                // 🔒 atomic update: só aceita se ainda estiver disponível
                                 const { data: updatedRows, error } = await supabase
                                   .from("service_requests")
                                   .update({
                                     provider_id: profile.id,
-                                    status: "IN_PROGRESS",
+                                    status: "ACCEPTED",
                                     accepted_at: new Date().toISOString(),
                                   })
                                   .eq("id", r.id)
-                                  .eq("status", "OPEN")
+                                  .in("status", ["OPEN", "AVAILABLE"])
                                   .is("provider_id", null)
-                                  .select("id, status, provider_id, accepted_at"); // <- retorna array
+                                  .select("id");
 
                                 if (error) throw error;
 
-                                // Se não atualizou nenhuma linha: já foi aceito/fechado ou RLS bloqueou
                                 if (!updatedRows || updatedRows.length === 0) {
-                                  toast.error("Não foi possível aceitar: este chamado não está mais disponível.");
-                                  // Re-sync pra remover da lista se já foi pego por outro
-                                  await fetchCompatibleFreights();
-                                  return;
-                                }
-
-                                // Garantia de integridade
-                                const updated = updatedRows[0];
-                                if (!updated?.id || updated.provider_id !== profile.id) {
                                   toast.error("Não foi possível aceitar: este chamado não está mais disponível.");
                                   await fetchCompatibleFreights();
                                   return;
                                 }
 
                                 toast.success("Chamado aceito! Indo para Em Andamento.");
+                                setServiceRequests((prev) => prev.filter((x: any) => x.id !== r.id));
 
-                                // remove da lista disponível (local) depois de confirmar update
-                                setTowingRequests((prev) => prev.filter((x: any) => x.id !== r.id));
-
-                                // navegação (se seu dashboard escuta isso)
                                 window.dispatchEvent(new CustomEvent("navigate-to-tab", { detail: "ongoing" }));
 
-                                // re-sync
                                 await fetchCompatibleFreights();
                               } catch (e: any) {
                                 console.error("Erro ao aceitar chamado:", e);
