@@ -141,7 +141,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
       // ✅ SEMPRE buscar chamados de serviço (service_requests)
       // (não depende de config do perfil pra não “sumir” FRETE_MOTO)
-      const fetchServiceRequests = async () => {
+      const fetchServiceRequestsForCompany = async () => {
         const { data: sr, error: srErr } = await supabase
           .from("service_requests")
           .select("*")
@@ -199,7 +199,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         // Se quiser filtrar por effectiveTypes (transportadora geralmente vê tudo)
         const filtered = mapped;
 
-        const sr = await fetchServiceRequests();
+        const sr = await fetchServiceRequestsForCompany();
 
         if (
           currentFetchId === fetchIdRef.current &&
@@ -420,7 +420,13 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       });
       const finalFreights = Array.from(uniqueMap.values());
 
-      const sr = await fetchServiceRequests();
+      // ✅ CORREÇÃO: Usar service_requests do matching espacial ao invés de query global
+      // Isso garante que motoristas só vejam FRETE_MOTO, GUINCHO, MUDANCA das cidades configuradas
+      let matchedServiceRequests: any[] = [];
+      if (spatialData?.service_requests && Array.isArray(spatialData.service_requests)) {
+        matchedServiceRequests = spatialData.service_requests;
+        console.log("[SmartFreightMatcher] Service requests do matching espacial:", matchedServiceRequests.length);
+      }
 
       if (
         currentFetchId === fetchIdRef.current &&
@@ -428,10 +434,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         !abortControllerRef.current?.signal.aborted
       ) {
         setCompatibleFreights(finalFreights);
-        setTowingRequests(sr);
+        setTowingRequests(matchedServiceRequests);
 
         const highUrgency = finalFreights.filter((f) => f.urgency === "HIGH").length;
-        onCountsChange?.({ total: finalFreights.length + sr.length, highUrgency });
+        onCountsChange?.({ total: finalFreights.length + matchedServiceRequests.length, highUrgency });
       }
 
       // notificação rate limited
