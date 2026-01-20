@@ -75,6 +75,12 @@ interface SmartFreightMatcherProps {
 const SERVICE_TYPES_REQUESTS = ["GUINCHO", "MUDANCA", "FRETE_MOTO"] as const;
 const AVAILABLE_SERVICE_REQUEST_STATUSES = ["OPEN", "AVAILABLE"] as const;
 
+// ✅ compat ES2019/2020 (sem replaceAll)
+const safeReplaceAll = (input: string, search: string, replacement: string) => {
+  if (!input) return input;
+  return input.split(search).join(replacement);
+};
+
 export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFreightAction, onCountsChange }) => {
   const { profile, user } = useAuth();
   const { isAffiliated, companyId } = useCompanyDriver();
@@ -110,11 +116,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     return getAllowedServiceTypesFromProfile(profile);
   }, [profile?.role, profile?.service_types]);
 
-  /**
-   * ✅ IMPORTANTÍSSIMO:
-   * - matching espacial decide QUEM PODE VER (retorna IDs)
-   * - banco decide SE AINDA ESTÁ DISPONÍVEL (status/provider)
-   */
   const fetchCompatibleFreights = useCallback(async () => {
     if (!profile?.id || !user?.id) return;
 
@@ -132,13 +133,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
     try {
       let effectiveTypes = allowedTypesFromProfile;
-
-      // fallback para não filtrar tudo pra fora
       if (!isCompany && (!effectiveTypes || effectiveTypes.length === 0)) {
         effectiveTypes = ["CARGA", "GUINCHO", "MUDANCA", "FRETE_MOTO"] as CanonicalServiceType[];
       }
 
-      // TRANSPORTADORA: só freights (não service_requests)
+      // TRANSPORTADORA
       if (isCompany) {
         const { data: directFreights, error: directError } = await supabase
           .from("freights")
@@ -198,11 +197,9 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         },
       });
 
-      if (spatialError) {
-        console.warn("[SmartFreightMatcher] spatialError:", spatialError);
-      }
+      if (spatialError) console.warn("[SmartFreightMatcher] spatialError:", spatialError);
 
-      // ---- FREIGHTS (CARGA) vindos do matching
+      // FREIGHTS do matching
       let spatialFreights: CompatibleFreight[] = [];
       if (spatialData?.freights && Array.isArray(spatialData.freights)) {
         spatialFreights = spatialData.freights
@@ -231,8 +228,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           }));
       }
 
-      // ---- SERVICE REQUESTS: PEGAR IDS DO MATCHING e VALIDAR NO BANCO
-      // Aceita qualquer formato: spatialData.service_requests (objs) ou spatialData.service_request_ids (ids)
+      // SERVICE REQUESTS: pegar IDs do matching e validar no banco
       const matchedRequestIds: string[] = (() => {
         if (Array.isArray(spatialData?.service_request_ids)) {
           return spatialData.service_request_ids.map((x: any) => String(x)).filter(Boolean);
@@ -246,9 +242,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         return [];
       })();
 
-      // Se o matching não estiver retornando ids, não tem como mostrar com segurança.
-      // (isso explica “sumiu tudo” em muitos builds)
       let verifiedRequests: any[] = [];
+
       if (matchedRequestIds.length > 0) {
         const { data: dbReqs, error: reqErr } = await supabase
           .from("service_requests")
@@ -266,11 +261,65 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           verifiedRequests = dbReqs || [];
         }
       } else {
-        // marca isso pra você enxergar rápido no console
-        console.warn("[SmartFreightMatcher] Matching não retornou service_requests/ids. Nada para exibir.");
+        // ✅ FALLBACK: se o matching não retornar ids, busca por cidades ativas do motorista
+        const { data: uc } = await supabase
+          .from("user_cities")
+          .select("cities(name, state)")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .in("type", ["MOTORISTA_ORIGEM", "MOTORISTA_DESTINO"]);
+
+        const activeCities = (uc || []).length > 0;
+        setHasActiveCities(activeCities);
+
+        if (activeCities) {
+          const pairs = (uc || [])
+            .map((u: any) => ({
+              city: String(u.cities?.name || "").trim(),
+              state: String(u.cities?.state || "").trim(),
+            }))
+            .filter((p: any) => p.city && p.state);
+
+          if (pairs.length > 0) {
+            // monta OR por cidade/estado em location_address (fallback)
+            // (não depende de city_id/city_name existir na tabela)
+            const orParts: string[] = [];
+            for (const p of pairs) {
+              const city = safeReplaceAll(p.city, ",", "");
+              const state = p.state.toUpperCase();
+              // location_address costuma conter "Cidade - UF" ou "... Cidade - UF"
+              orParts.push(`location_address.ilike.%${city}%`);
+              orParts.push(`location_address.ilike.%${state}%`);
+            }
+
+            // Observação: supabase .or precisa de string, aqui é um fallback fraco (mas melhor que sumir tudo)
+            // Vamos filtrar melhor no client abaixo.
+            const { data: sr } = await supabase
+              .from("service_requests")
+              .select("*")
+              .in("service_type", [...SERVICE_TYPES_REQUESTS])
+              .in("status", [...AVAILABLE_SERVICE_REQUEST_STATUSES])
+              .is("provider_id", null)
+              .order("created_at", { ascending: true })
+              .limit(200);
+
+            const allowedCities = new Set(pairs.map((p: any) => `${normalizeCity(p.city)}|${p.state.toUpperCase()}`));
+
+            verifiedRequests = (sr || []).filter((r: any) => {
+              const addr = String(r.location_address || "");
+              // tenta extrair cidade/UF do final
+              const m = addr.match(/([^,\-]+)[\,\-]?\s*([A-Z]{2})\s*$/i);
+              if (!m) return false;
+              const c = normalizeCity(m[1].trim());
+              const s = m[2].trim().toUpperCase();
+              return allowedCities.has(`${c}|${s}`);
+            });
+          }
+        } else {
+          verifiedRequests = [];
+        }
       }
 
-      // Atualiza estado
       if (
         currentFetchId === fetchIdRef.current &&
         isMountedRef.current &&
@@ -365,13 +414,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     }
   };
 
-  // inicial
   useEffect(() => {
     if (!profile?.id || !user?.id) return;
     fetchCompatibleFreights();
   }, [profile?.id, user?.id, fetchCompatibleFreights]);
 
-  // realtime user_cities
   useEffect(() => {
     let isMountedLocal = true;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -496,11 +543,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
               <Zap className="mr-1 h-3 w-3" />
               IA
             </Badge>
-            {matchingStats.totalChecked > 0 && (
-              <Badge variant="outline" className="ml-auto text-xs">
-                🎯 {matchingStats.exactMatches} | 🗺️ {matchingStats.fallbackMatches}
-              </Badge>
-            )}
           </CardTitle>
           <CardDescription>
             Fretes selecionados automaticamente com base nas suas áreas e tipos de serviço.
@@ -508,19 +550,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         </CardHeader>
 
         <CardContent>
-          {profile?.service_types && (
-            <div className="bg-secondary/30 p-4 rounded-lg mb-6">
-              <h4 className="font-semibold mb-2">Seus Tipos de Serviço Ativos:</h4>
-              <div className="flex flex-wrap gap-2">
-                {Array.from(
-                  new Set((profile.service_types as unknown as string[]).map((t) => normalizeServiceType(String(t)))),
-                ).map((serviceType: string) => (
-                  <div key={serviceType}>{getServiceTypeBadge(serviceType)}</div>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className="space-y-4 mb-6">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
@@ -540,7 +569,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                 className="flex items-center gap-2 whitespace-nowrap"
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                <span className="hidden sm:inline">Atualizar</span>
+                Atualizar
               </Button>
             </div>
 
@@ -582,218 +611,187 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
               </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <div className="space-y-4">
-        {loading ? (
-          <div className="text-center py-8">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">Carregando...</p>
-          </div>
-        ) : filteredFreights.length + filteredRequests.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="font-semibold mb-2">Nada disponível</h3>
-              <p className="text-muted-foreground mb-4">
-                {hasActiveCities === false ? "Configure suas cidades de atendimento." : "Sem matches no momento."}
-              </p>
-              <Button variant="outline" onClick={fetchCompatibleFreights}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Verificar Novamente
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {filteredFreights.length > 0 && (
-              <SafeListWrapper
-                fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando...</div>}
-              >
+          {filteredFreights.length > 0 && (
+            <SafeListWrapper>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredFreights.map((freight) => (
+                  <div key={freight.freight_id} className="relative h-full">
+                    <FreightCard
+                      freight={{
+                        id: freight.freight_id,
+                        cargo_type: freight.cargo_type,
+                        weight: freight.weight ? freight.weight / 1000 : 0,
+                        origin_address: freight.origin_address,
+                        destination_address: freight.destination_address,
+                        origin_city: freight.origin_city,
+                        origin_state: freight.origin_state,
+                        destination_city: freight.destination_city,
+                        destination_state: freight.destination_state,
+                        pickup_date: freight.pickup_date,
+                        delivery_date: freight.delivery_date,
+                        price: freight.price,
+                        urgency: freight.urgency as "LOW" | "MEDIUM" | "HIGH",
+                        status: "OPEN" as const,
+                        distance_km: freight.distance_km,
+                        minimum_antt_price: freight.minimum_antt_price,
+                        required_trucks: freight.required_trucks,
+                        accepted_trucks: freight.accepted_trucks,
+                        service_type: freight.service_type as any,
+                      }}
+                      onAction={(action) => handleFreightAction(freight.freight_id, action)}
+                      showActions
+                      canAcceptFreights={canAcceptFreights}
+                      isAffiliatedDriver={isAffiliated}
+                      driverCompanyId={companyId || permissionCompanyId}
+                    />
+                  </div>
+                ))}
+              </div>
+            </SafeListWrapper>
+          )}
+
+          {filteredRequests.length > 0 && (
+            <SafeListWrapper>
+              <div className="space-y-3">
+                <h4 className="font-semibold text-lg flex items-center gap-2">
+                  <Wrench className="h-5 w-5 text-primary" />
+                  Chamados de Serviço (Guincho / Mudança / Moto)
+                </h4>
+
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredFreights.map((freight) => (
-                    <div key={freight.freight_id} className="relative h-full">
-                      <FreightCard
-                        freight={{
-                          id: freight.freight_id,
-                          cargo_type: freight.cargo_type,
-                          weight: freight.weight ? freight.weight / 1000 : 0,
-                          origin_address: freight.origin_address,
-                          destination_address: freight.destination_address,
-                          origin_city: freight.origin_city,
-                          origin_state: freight.origin_state,
-                          destination_city: freight.destination_city,
-                          destination_state: freight.destination_state,
-                          pickup_date: freight.pickup_date,
-                          delivery_date: freight.delivery_date,
-                          price: freight.price,
-                          urgency: freight.urgency as "LOW" | "MEDIUM" | "HIGH",
-                          status: "OPEN" as const,
-                          distance_km: freight.distance_km,
-                          minimum_antt_price: freight.minimum_antt_price,
-                          required_trucks: freight.required_trucks,
-                          accepted_trucks: freight.accepted_trucks,
-                          service_type: freight.service_type as any,
-                        }}
-                        onAction={(action) => handleFreightAction(freight.freight_id, action)}
-                        showActions={true}
-                        canAcceptFreights={canAcceptFreights}
-                        isAffiliatedDriver={isAffiliated}
-                        driverCompanyId={companyId || permissionCompanyId}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </SafeListWrapper>
-            )}
+                  {filteredRequests.map((r: any) => (
+                    <Card
+                      key={r.id}
+                      className="hover:shadow-lg transition-all duration-300 border-2 border-border/60 overflow-hidden"
+                    >
+                      <div className="p-4 bg-gradient-to-r from-blue-500/10 to-blue-600/5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                              {r.service_type === "GUINCHO" ? (
+                                <Wrench className="h-5 w-5 text-orange-600" />
+                              ) : r.service_type === "FRETE_MOTO" ? (
+                                <Bike className="h-5 w-5 text-blue-600" />
+                              ) : (
+                                <Truck className="h-5 w-5 text-blue-600" />
+                              )}
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-foreground">
+                                {r.service_type === "GUINCHO"
+                                  ? "Guincho"
+                                  : r.service_type === "FRETE_MOTO"
+                                    ? "Frete Moto"
+                                    : r.service_type === "MUDANCA"
+                                      ? "Mudança"
+                                      : "Serviço"}
+                              </h3>
+                              <p className="text-xs text-muted-foreground">Solicitação #{String(r.id).slice(0, 8)}</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                            Disponível
+                          </Badge>
+                        </div>
+                      </div>
 
-            {filteredRequests.length > 0 && (
-              <SafeListWrapper
-                fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando...</div>}
-              >
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-lg flex items-center gap-2">
-                    <Wrench className="h-5 w-5 text-primary" />
-                    Chamados de Serviço (Guincho / Mudança / Moto)
-                  </h4>
+                      <CardContent className="p-4 space-y-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-primary" />
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                              Local
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground pl-6 line-clamp-2">
+                            {r.location_address || "Endereço não informado"}
+                          </p>
+                        </div>
 
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredRequests.map((r: any) => (
-                      <Card
-                        key={r.id}
-                        className="hover:shadow-lg transition-all duration-300 border-2 border-border/60 overflow-hidden"
-                      >
-                        <div className="p-4 bg-gradient-to-r from-blue-500/10 to-blue-600/5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
-                                {r.service_type === "GUINCHO" ? (
-                                  <Wrench className="h-5 w-5 text-orange-600" />
-                                ) : r.service_type === "FRETE_MOTO" ? (
-                                  <Bike className="h-5 w-5 text-blue-600" />
-                                ) : (
-                                  <Truck className="h-5 w-5 text-blue-600" />
-                                )}
-                              </div>
+                        {r.problem_description && (
+                          <div className="p-3 bg-secondary/30 rounded-lg border border-border/50">
+                            <div className="flex items-start gap-2">
+                              <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                               <div>
-                                <h3 className="font-bold text-foreground">
-                                  {r.service_type === "GUINCHO"
-                                    ? "Guincho"
-                                    : r.service_type === "FRETE_MOTO"
-                                      ? "Frete Moto"
-                                      : r.service_type === "MUDANCA"
-                                        ? "Mudança"
-                                        : "Serviço"}
-                                </h3>
-                                <p className="text-xs text-muted-foreground">Solicitação #{String(r.id).slice(0, 8)}</p>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">Descrição</p>
+                                <p className="text-sm text-foreground line-clamp-3">{r.problem_description}</p>
                               </div>
                             </div>
-                            <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                              Disponível
-                            </Badge>
+                          </div>
+                        )}
+
+                        {r.estimated_price && (
+                          <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="h-5 w-5 text-green-600" />
+                              <span className="text-sm text-green-700 dark:text-green-300">Valor Estimado</span>
+                            </div>
+                            <span className="text-xl font-bold text-green-700 dark:text-green-300">
+                              R$ {Number(r.estimated_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>
+                              Solicitado há{" "}
+                              {Math.max(1, Math.floor((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60)))}{" "}
+                              min
+                            </span>
                           </div>
                         </div>
 
-                        <CardContent className="p-4 space-y-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-primary" />
-                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                Local
-                              </span>
-                            </div>
-                            <p className="text-sm text-muted-foreground pl-6 line-clamp-2">
-                              {r.location_address || "Endereço não informado"}
-                            </p>
-                          </div>
+                        <Button
+                          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
+                          size="lg"
+                          onClick={async () => {
+                            try {
+                              if (!profile?.id) return;
 
-                          {r.problem_description && (
-                            <div className="p-3 bg-secondary/30 rounded-lg border border-border/50">
-                              <div className="flex items-start gap-2">
-                                <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <p className="text-xs font-medium text-muted-foreground mb-1">Descrição</p>
-                                  <p className="text-sm text-foreground line-clamp-3">{r.problem_description}</p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
+                              const { data: updatedRows, error } = await supabase
+                                .from("service_requests")
+                                .update({
+                                  provider_id: profile.id,
+                                  status: "ACCEPTED",
+                                  accepted_at: new Date().toISOString(),
+                                })
+                                .eq("id", r.id)
+                                .in("status", ["OPEN", "AVAILABLE"])
+                                .is("provider_id", null)
+                                .select("id");
 
-                          {r.estimated_price && (
-                            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                              <div className="flex items-center gap-2">
-                                <DollarSign className="h-5 w-5 text-green-600" />
-                                <span className="text-sm text-green-700 dark:text-green-300">Valor Estimado</span>
-                              </div>
-                              <span className="text-xl font-bold text-green-700 dark:text-green-300">
-                                R$ {Number(r.estimated_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </span>
-                            </div>
-                          )}
+                              if (error) throw error;
 
-                          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              <span>
-                                Solicitado há{" "}
-                                {Math.max(1, Math.floor((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60)))}{" "}
-                                min
-                              </span>
-                            </div>
-                          </div>
-
-                          <Button
-                            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
-                            size="lg"
-                            onClick={async () => {
-                              try {
-                                if (!profile?.id) return;
-
-                                // atomic update: só aceita se ainda estiver disponível
-                                const { data: updatedRows, error } = await supabase
-                                  .from("service_requests")
-                                  .update({
-                                    provider_id: profile.id,
-                                    status: "ACCEPTED",
-                                    accepted_at: new Date().toISOString(),
-                                  })
-                                  .eq("id", r.id)
-                                  .in("status", ["OPEN", "AVAILABLE"])
-                                  .is("provider_id", null)
-                                  .select("id");
-
-                                if (error) throw error;
-
-                                if (!updatedRows || updatedRows.length === 0) {
-                                  toast.error("Não foi possível aceitar: este chamado não está mais disponível.");
-                                  await fetchCompatibleFreights();
-                                  return;
-                                }
-
-                                toast.success("Chamado aceito! Indo para Em Andamento.");
-                                setServiceRequests((prev) => prev.filter((x: any) => x.id !== r.id));
-
-                                window.dispatchEvent(new CustomEvent("navigate-to-tab", { detail: "ongoing" }));
+                              if (!updatedRows || updatedRows.length === 0) {
+                                toast.error("Não foi possível aceitar: este chamado não está mais disponível.");
                                 await fetchCompatibleFreights();
-                              } catch (e: any) {
-                                console.error("Erro ao aceitar chamado:", e);
-                                toast.error(e?.message || "Erro ao aceitar chamado");
+                                return;
                               }
-                            }}
-                          >
-                            ✅ Aceitar Chamado
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+
+                              toast.success("Chamado aceito! Indo para Em Andamento.");
+                              setServiceRequests((prev) => prev.filter((x: any) => x.id !== r.id));
+                              window.dispatchEvent(new CustomEvent("navigate-to-tab", { detail: "ongoing" }));
+                              await fetchCompatibleFreights();
+                            } catch (e: any) {
+                              console.error("Erro ao aceitar chamado:", e);
+                              toast.error(e?.message || "Erro ao aceitar chamado");
+                            }
+                          }}
+                        >
+                          ✅ Aceitar Chamado
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-              </SafeListWrapper>
-            )}
-          </>
-        )}
-      </div>
+              </div>
+            </SafeListWrapper>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
