@@ -72,8 +72,8 @@ interface SmartFreightMatcherProps {
   onCountsChange?: (counts: { total: number; highUrgency: number }) => void;
 }
 
-const AVAILABLE_SERVICE_REQUEST_STATUSES = ["OPEN", "AVAILABLE"] as const;
 const SERVICE_TYPES_REQUESTS = ["GUINCHO", "MUDANCA", "FRETE_MOTO"] as const;
+const AVAILABLE_SERVICE_REQUEST_STATUSES = ["OPEN", "AVAILABLE"] as const;
 
 export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFreightAction, onCountsChange }) => {
   const { profile, user } = useAuth();
@@ -111,105 +111,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
   }, [profile?.role, profile?.service_types]);
 
   /**
-   * ✅ BUSCA REAL (FONTE DA VERDADE):
-   * - pega cidades ativas do motorista
-   * - busca service_requests com status disponível, provider_id null, e dentro das cidades
-   *
-   * IMPORTANTE: isso elimina a “lista mentirosa” vindo da edge function.
+   * ✅ IMPORTANTÍSSIMO:
+   * - matching espacial decide QUEM PODE VER (retorna IDs)
+   * - banco decide SE AINDA ESTÁ DISPONÍVEL (status/provider)
    */
-  const fetchServiceRequestsForDriverCities = useCallback(async () => {
-    if (!user?.id) return [];
-
-    // cidades ativas
-    const { data: ucActive, error: ucErr } = await supabase
-      .from("user_cities")
-      .select("city_id, cities(name, state)")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .in("type", ["MOTORISTA_ORIGEM", "MOTORISTA_DESTINO"]);
-
-    if (ucErr) {
-      console.warn("[SmartFreightMatcher] erro buscando user_cities:", ucErr);
-      return [];
-    }
-
-    const activeCities = (ucActive || []).length > 0;
-    setHasActiveCities(activeCities);
-
-    if (!activeCities) return [];
-
-    const cityIds = (ucActive || []).map((u: any) => u.city_id).filter(Boolean);
-
-    const cityPairs = (ucActive || [])
-      .map((u: any) => ({
-        city: String(u.cities?.name || "").trim(),
-        state: String(u.cities?.state || "")
-          .trim()
-          .toUpperCase(),
-      }))
-      .filter((c: any) => c.city && c.state);
-
-    // 1) TENTATIVA POR city_id (se existir no schema, é o ideal)
-    if (cityIds.length > 0) {
-      const { data: byId, error: byIdErr } = await supabase
-        .from("service_requests")
-        .select("*")
-        .in("service_type", [...SERVICE_TYPES_REQUESTS])
-        .in("status", [...AVAILABLE_SERVICE_REQUEST_STATUSES])
-        .is("provider_id", null)
-        // @ts-expect-error: city_id pode existir no schema
-        .in("city_id", cityIds)
-        .order("created_at", { ascending: true });
-
-      if (!byIdErr && Array.isArray(byId)) {
-        return byId;
-      }
-
-      // se der erro (coluna não existe), cai no fallback por city_name/state
-      if (byIdErr) {
-        console.warn(
-          "[SmartFreightMatcher] city_id não funcionou (provável coluna inexistente). Indo para fallback:",
-          byIdErr,
-        );
-      }
-    }
-
-    // 2) FALLBACK POR city_name/state
-    // monta OR: and(city_name.ilike.%X%,state.eq.Y)
-    // Obs: se seus campos forem outros (ex: location_city), ajuste aqui.
-    const orConditions: string[] = [];
-    for (const { city, state } of cityPairs) {
-      const cityLike = city.replaceAll(",", " ").trim();
-      orConditions.push(`and(city_name.ilike.%${cityLike}%,state.eq.${state})`);
-    }
-
-    if (orConditions.length === 0) return [];
-
-    const { data: byName, error: byNameErr } = await supabase
-      .from("service_requests")
-      .select("*")
-      .in("service_type", [...SERVICE_TYPES_REQUESTS])
-      .in("status", [...AVAILABLE_SERVICE_REQUEST_STATUSES])
-      .is("provider_id", null)
-      .or(orConditions.join(","))
-      .order("created_at", { ascending: true });
-
-    if (byNameErr) {
-      console.warn("[SmartFreightMatcher] fallback city_name/state falhou:", byNameErr);
-      return [];
-    }
-
-    return byName || [];
-  }, [user?.id]);
-
   const fetchCompatibleFreights = useCallback(async () => {
     if (!profile?.id || !user?.id) return;
 
-    if (updateLockRef.current) {
-      console.log("[SmartFreightMatcher] Fetch já em andamento, ignorando...");
-      return;
-    }
-
+    if (updateLockRef.current) return;
     const currentFetchId = ++fetchIdRef.current;
     updateLockRef.current = true;
 
@@ -224,12 +133,12 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     try {
       let effectiveTypes = allowedTypesFromProfile;
 
+      // fallback para não filtrar tudo pra fora
       if (!isCompany && (!effectiveTypes || effectiveTypes.length === 0)) {
         effectiveTypes = ["CARGA", "GUINCHO", "MUDANCA", "FRETE_MOTO"] as CanonicalServiceType[];
-        toast.info("Seus tipos de serviço não estão configurados. Mostrando todos por enquanto.", { duration: 3500 });
       }
 
-      // TRANSPORTADORA
+      // TRANSPORTADORA: só freights (não service_requests)
       if (isCompany) {
         const { data: directFreights, error: directError } = await supabase
           .from("freights")
@@ -274,15 +183,14 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           const highUrgency = mapped.filter((f) => f.urgency === "HIGH").length;
           onCountsChange?.({ total: mapped.length, highUrgency });
         }
-
         return;
       }
 
-      // MOTORISTA: matching espacial (freights) + service_requests direto do banco
+      // MOTORISTA: matching espacial
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      const { data: spatialData } = await supabase.functions.invoke("driver-spatial-matching", {
+      const { data: spatialData, error: spatialError } = await supabase.functions.invoke("driver-spatial-matching", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -290,6 +198,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         },
       });
 
+      if (spatialError) {
+        console.warn("[SmartFreightMatcher] spatialError:", spatialError);
+      }
+
+      // ---- FREIGHTS (CARGA) vindos do matching
       let spatialFreights: CompatibleFreight[] = [];
       if (spatialData?.freights && Array.isArray(spatialData.freights)) {
         spatialFreights = spatialData.freights
@@ -318,168 +231,56 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           }));
       }
 
-      // RPC (se existir)
-      const { data: rpcData, error: rpcError } = await supabase.rpc("get_freights_for_driver", {
-        p_driver_id: profile.id,
-      });
-
-      let rpcFreights: CompatibleFreight[] = [];
-      if (!rpcError && Array.isArray(rpcData)) {
-        const extractCityStateFromAddress = (address: string): { city: string; state: string } => {
-          if (!address) return { city: "", state: "" };
-          const match = address.match(/([^,\-]+)[\,\-]?\s*([A-Z]{2})\s*$/i);
-          if (match) return { city: normalizeCity(match[1].trim()), state: match[2].trim().toUpperCase() };
-          const parts = address.split(",").map((p) => p.trim());
-          const cityPart = parts[parts.length - 1] || parts[0];
-          return { city: normalizeCity(cityPart), state: "" };
-        };
-
-        // cidades ativas
-        const { data: ucActive } = await supabase
-          .from("user_cities")
-          .select("cities(name, state)")
-          .eq("user_id", user.id)
-          .eq("is_active", true)
-          .in("type", ["MOTORISTA_ORIGEM", "MOTORISTA_DESTINO"]);
-
-        const activeCities = (ucActive || []).length > 0;
-        setHasActiveCities(activeCities);
-
-        let filtered = rpcData.map((f: any) => ({
-          ...f,
-          freight_id: f.freight_id ?? f.id,
-          service_type: normalizeServiceType(f.service_type),
-          pickup_date: String(f.pickup_date || ""),
-          delivery_date: String(f.delivery_date || ""),
-          required_trucks: f.required_trucks || 1,
-          accepted_trucks: f.accepted_trucks || 0,
-        }));
-
-        filtered = filtered.filter((f: any) => effectiveTypes.includes(f.service_type));
-
-        setMatchingStats({ exactMatches: 0, fallbackMatches: 0, totalChecked: 0 });
-
-        if (activeCities) {
-          const allowedCities = new Set(
-            (ucActive || []).map((u: any) => {
-              const cityName = String(u.cities?.name || "")
-                .trim()
-                .toLowerCase();
-              const state = String(u.cities?.state || "")
-                .trim()
-                .toUpperCase();
-              return `${cityName}|${state}`;
-            }),
-          );
-
-          const allowedStates = new Set(
-            Array.from(allowedCities)
-              .map((key) => key.split("|")[1])
-              .filter(Boolean),
-          );
-
-          let exactMatches = 0;
-          let stateMatches = 0;
-          let fallbackMatches = 0;
-
-          filtered = filtered.filter((f: any) => {
-            let oKey = normalizeCityState(f.origin_city || "", f.origin_state || "");
-            let dKey = normalizeCityState(f.destination_city || "", f.destination_state || "");
-
-            if (!f.origin_city || !f.origin_state) {
-              const extracted = extractCityStateFromAddress(f.origin_address);
-              if (extracted.city) oKey = normalizeCityState(extracted.city, extracted.state);
-            }
-
-            if (!f.destination_city || !f.destination_state) {
-              const extracted = extractCityStateFromAddress(f.destination_address);
-              if (extracted.city) dKey = normalizeCityState(extracted.city, extracted.state);
-            }
-
-            let included = allowedCities.has(oKey) || allowedCities.has(dKey);
-            let matchType: "exact" | "state" | "fallback" | "none" = included ? "exact" : "none";
-
-            if (!included) {
-              const originState = oKey.split("|")[1];
-              const destState = dKey.split("|")[1];
-              const stateMatch = allowedStates.has(originState) || allowedStates.has(destState);
-              if (stateMatch) {
-                included = true;
-                matchType = "state";
-              }
-            }
-
-            if (!included) {
-              const allowedCityNames = new Set(Array.from(allowedCities).map((key) => key.split("|")[0]));
-              const originCityOnly = oKey.split("|")[0];
-              const destCityOnly = dKey.split("|")[0];
-              const fallbackMatch = allowedCityNames.has(originCityOnly) || allowedCityNames.has(destCityOnly);
-              if (fallbackMatch) {
-                included = true;
-                matchType = "fallback";
-              }
-            }
-
-            if (matchType === "exact") exactMatches++;
-            else if (matchType === "state") stateMatches++;
-            else if (matchType === "fallback") fallbackMatches++;
-
-            return included;
-          });
-
-          setMatchingStats({
-            exactMatches,
-            fallbackMatches: stateMatches + fallbackMatches,
-            totalChecked: exactMatches + stateMatches + fallbackMatches,
-          });
-        } else {
-          setHasActiveCities(false);
+      // ---- SERVICE REQUESTS: PEGAR IDS DO MATCHING e VALIDAR NO BANCO
+      // Aceita qualquer formato: spatialData.service_requests (objs) ou spatialData.service_request_ids (ids)
+      const matchedRequestIds: string[] = (() => {
+        if (Array.isArray(spatialData?.service_request_ids)) {
+          return spatialData.service_request_ids.map((x: any) => String(x)).filter(Boolean);
         }
+        if (Array.isArray(spatialData?.service_requests)) {
+          return spatialData.service_requests
+            .map((r: any) => r?.id)
+            .map((x: any) => String(x))
+            .filter(Boolean);
+        }
+        return [];
+      })();
 
-        rpcFreights = filtered.map((f: any) => ({
-          freight_id: f.freight_id,
-          cargo_type: f.cargo_type,
-          weight: f.weight || 0,
-          origin_address: f.origin_address || `${f.origin_city || ""}, ${f.origin_state || ""}`,
-          destination_address: f.destination_address || `${f.destination_city || ""}, ${f.destination_state || ""}`,
-          origin_city: f.origin_city,
-          origin_state: f.origin_state,
-          destination_city: f.destination_city,
-          destination_state: f.destination_state,
-          pickup_date: f.pickup_date,
-          delivery_date: f.delivery_date,
-          price: f.price || 0,
-          urgency: String(f.urgency || "LOW"),
-          status: f.status,
-          service_type: f.service_type,
-          distance_km: f.distance_km || 0,
-          minimum_antt_price: f.minimum_antt_price || 0,
-          required_trucks: f.required_trucks,
-          accepted_trucks: f.accepted_trucks,
-          created_at: f.created_at,
-        }));
+      // Se o matching não estiver retornando ids, não tem como mostrar com segurança.
+      // (isso explica “sumiu tudo” em muitos builds)
+      let verifiedRequests: any[] = [];
+      if (matchedRequestIds.length > 0) {
+        const { data: dbReqs, error: reqErr } = await supabase
+          .from("service_requests")
+          .select("*")
+          .in("id", matchedRequestIds)
+          .in("service_type", [...SERVICE_TYPES_REQUESTS])
+          .in("status", [...AVAILABLE_SERVICE_REQUEST_STATUSES])
+          .is("provider_id", null)
+          .order("created_at", { ascending: true });
+
+        if (reqErr) {
+          console.warn("[SmartFreightMatcher] erro validando service_requests no banco:", reqErr);
+          verifiedRequests = [];
+        } else {
+          verifiedRequests = dbReqs || [];
+        }
+      } else {
+        // marca isso pra você enxergar rápido no console
+        console.warn("[SmartFreightMatcher] Matching não retornou service_requests/ids. Nada para exibir.");
       }
 
-      // ✅ Service Requests: agora vem DIRETO do banco (fonte da verdade)
-      const realServiceRequests = await fetchServiceRequestsForDriverCities();
-
-      const combined = [...spatialFreights, ...rpcFreights];
-      const uniqueMap = new Map<string, CompatibleFreight>();
-      combined.forEach((f) => {
-        if (!uniqueMap.has(f.freight_id)) uniqueMap.set(f.freight_id, f);
-      });
-      const finalFreights = Array.from(uniqueMap.values());
-
+      // Atualiza estado
       if (
         currentFetchId === fetchIdRef.current &&
         isMountedRef.current &&
         !abortControllerRef.current?.signal.aborted
       ) {
-        setCompatibleFreights(finalFreights);
-        setServiceRequests(realServiceRequests);
+        setCompatibleFreights(spatialFreights);
+        setServiceRequests(verifiedRequests);
 
-        const highUrgency = finalFreights.filter((f) => f.urgency === "HIGH").length;
-        onCountsChange?.({ total: finalFreights.length + realServiceRequests.length, highUrgency });
+        const highUrgency = spatialFreights.filter((f) => f.urgency === "HIGH").length;
+        onCountsChange?.({ total: spatialFreights.length + verifiedRequests.length, highUrgency });
       }
     } catch (error: any) {
       console.error("[SmartFreightMatcher] erro geral:", error);
@@ -491,15 +292,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       }
       updateLockRef.current = false;
     }
-  }, [
-    profile?.id,
-    profile?.role,
-    profile?.active_mode,
-    user?.id,
-    allowedTypesFromProfile,
-    onCountsChange,
-    fetchServiceRequestsForDriverCities,
-  ]);
+  }, [profile?.id, profile?.role, profile?.active_mode, user?.id, allowedTypesFromProfile, onCountsChange]);
 
   const handleFreightAction = async (freightId: string, action: string) => {
     if (onFreightAction) {
@@ -572,11 +365,13 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     }
   };
 
+  // inicial
   useEffect(() => {
     if (!profile?.id || !user?.id) return;
     fetchCompatibleFreights();
   }, [profile?.id, user?.id, fetchCompatibleFreights]);
 
+  // realtime user_cities
   useEffect(() => {
     let isMountedLocal = true;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -738,17 +533,15 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                 />
               </div>
 
-              <div className="flex gap-2 flex-wrap sm:flex-nowrap">
-                <Button
-                  variant="outline"
-                  onClick={fetchCompatibleFreights}
-                  disabled={loading}
-                  className="flex items-center gap-2 whitespace-nowrap"
-                >
-                  <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                  <span className="hidden sm:inline">Atualizar</span>
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                onClick={fetchCompatibleFreights}
+                disabled={loading}
+                className="flex items-center gap-2 whitespace-nowrap"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                <span className="hidden sm:inline">Atualizar</span>
+              </Button>
             </div>
 
             <div className="w-full md:w-80">
@@ -804,9 +597,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
               <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="font-semibold mb-2">Nada disponível</h3>
               <p className="text-muted-foreground mb-4">
-                {hasActiveCities === false
-                  ? "Configure suas cidades de atendimento."
-                  : "Não há fretes/solicitações no momento."}
+                {hasActiveCities === false ? "Configure suas cidades de atendimento." : "Sem matches no momento."}
               </p>
               <Button variant="outline" onClick={fetchCompatibleFreights}>
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -898,7 +689,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                                 <p className="text-xs text-muted-foreground">Solicitação #{String(r.id).slice(0, 8)}</p>
                               </div>
                             </div>
-
                             <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
                               Disponível
                             </Badge>
@@ -913,11 +703,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                                 Local
                               </span>
                             </div>
-                            {r.city_name && (
-                              <p className="text-lg font-bold text-primary pl-6">
-                                {String(r.city_name).toUpperCase()} {r.state ? `- ${r.state}` : ""}
-                              </p>
-                            )}
                             <p className="text-sm text-muted-foreground pl-6 line-clamp-2">
                               {r.location_address || "Endereço não informado"}
                             </p>
@@ -965,7 +750,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                               try {
                                 if (!profile?.id) return;
 
-                                // 🔒 atomic update: só aceita se ainda estiver disponível
+                                // atomic update: só aceita se ainda estiver disponível
                                 const { data: updatedRows, error } = await supabase
                                   .from("service_requests")
                                   .update({
@@ -990,7 +775,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                                 setServiceRequests((prev) => prev.filter((x: any) => x.id !== r.id));
 
                                 window.dispatchEvent(new CustomEvent("navigate-to-tab", { detail: "ongoing" }));
-
                                 await fetchCompatibleFreights();
                               } catch (e: any) {
                                 console.error("Erro ao aceitar chamado:", e);
