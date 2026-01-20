@@ -123,21 +123,16 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
     setLoading(true);
 
-    // Cancelar requisição anterior
     if (abortControllerRef.current) abortControllerRef.current.abort();
     abortControllerRef.current = new AbortController();
 
     try {
-      // ✅ Tipos efetivos (fallback para não filtrar tudo pra fora)
       let effectiveTypes = allowedTypesFromProfile;
       if (!isCompany && (!effectiveTypes || effectiveTypes.length === 0)) {
         effectiveTypes = ["CARGA", "GUINCHO", "MUDANCA", "FRETE_MOTO"] as CanonicalServiceType[];
         toast.info("Seus tipos de serviço não estão configurados. Mostrando todos por enquanto.", { duration: 3500 });
       }
 
-      console.log("[SmartFreightMatcher] effectiveTypes:", effectiveTypes);
-
-      // TRANSPORTADORA: carrega fretes abertos direto (sem matching)
       if (isCompany) {
         const { data: directFreights, error: directError } = await supabase
           .from("freights")
@@ -172,20 +167,19 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           created_at: f.created_at,
         }));
 
-        // Para transportadora, você pode trazer service_requests separadamente se desejar.
-        // Aqui mantemos apenas freights.
-        if (currentFetchId === fetchIdRef.current && isMountedRef.current && !abortControllerRef.current?.signal) {
+        if (
+          currentFetchId === fetchIdRef.current &&
+          isMountedRef.current &&
+          !abortControllerRef.current?.signal.aborted
+        ) {
           setCompatibleFreights(mapped);
           setTowingRequests([]);
-
           const highUrgency = mapped.filter((f) => f.urgency === "HIGH").length;
           onCountsChange?.({ total: mapped.length, highUrgency });
         }
-
         return;
       }
 
-      // MOTORISTA: rodar matching espacial
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -198,11 +192,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         },
       });
 
-      if (spatialError) {
-        console.warn("[SmartFreightMatcher] spatialError:", spatialError);
-      }
+      if (spatialError) console.warn("[SmartFreightMatcher] spatialError:", spatialError);
 
-      // 1) fretes do matching espacial
       let spatialFreights: CompatibleFreight[] = [];
       if (spatialData?.freights && Array.isArray(spatialData.freights)) {
         spatialFreights = spatialData.freights
@@ -231,13 +222,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           }));
       }
 
-      // ✅ service_requests retornados do matching espacial (motorista só vê da região dele)
       let matchedServiceRequests: any[] = [];
       if (spatialData?.service_requests && Array.isArray(spatialData.service_requests)) {
         matchedServiceRequests = spatialData.service_requests;
       }
 
-      // 2) tentar RPC (não bloqueante)
       const { data: rpcData, error: rpcError } = await supabase.rpc("get_freights_for_driver", {
         p_driver_id: profile.id,
       });
@@ -258,9 +247,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         const extractCityStateFromAddress = (address: string): { city: string; state: string } => {
           if (!address) return { city: "", state: "" };
           const match = address.match(/([^,\-]+)[\,\-]?\s*([A-Z]{2})\s*$/i);
-          if (match) {
-            return { city: normalizeCity(match[1].trim()), state: match[2].trim().toUpperCase() };
-          }
+          if (match) return { city: normalizeCity(match[1].trim()), state: match[2].trim().toUpperCase() };
           const parts = address.split(",").map((p) => p.trim());
           const cityPart = parts[parts.length - 1] || parts[0];
           return { city: normalizeCity(cityPart), state: "" };
@@ -383,7 +370,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         console.warn("[SmartFreightMatcher] RPC falhou (não bloqueante):", rpcError);
       }
 
-      // Combina spatial + rpc e deduplica
       const combined = [...spatialFreights, ...rpcFreights];
       const uniqueMap = new Map<string, CompatibleFreight>();
       combined.forEach((f) => {
@@ -401,20 +387,6 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
         const highUrgency = finalFreights.filter((f) => f.urgency === "HIGH").length;
         onCountsChange?.({ total: finalFreights.length + matchedServiceRequests.length, highUrgency });
-      }
-
-      // notificação rate limited
-      if (spatialData?.created > 0 || finalFreights.length > 0) {
-        const lastNotificationKey = `lastMatchNotification_${profile.id}`;
-        const lastNotification = localStorage.getItem(lastNotificationKey);
-        const now = Date.now();
-        const fiveMinutes = 5 * 60 * 1000;
-
-        if (!lastNotification || now - parseInt(lastNotification, 10) > fiveMinutes) {
-          localStorage.setItem(lastNotificationKey, now.toString());
-          if (spatialData?.created > 0) toast.success(`${spatialData.created} novos matches criados!`);
-          if (finalFreights.length > 0) toast.success(`${finalFreights.length} fretes compatíveis encontrados!`);
-        }
       }
     } catch (error: any) {
       console.error("[SmartFreightMatcher] erro geral:", error);
@@ -499,13 +471,11 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     }
   };
 
-  // inicial
   useEffect(() => {
     if (!profile?.id || !user?.id) return;
     fetchCompatibleFreights();
   }, [profile?.id, user?.id, fetchCompatibleFreights]);
 
-  // realtime user_cities
   useEffect(() => {
     let isMountedLocal = true;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -521,12 +491,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
       (ch) =>
         ch.on(
           "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "user_cities",
-            filter: `user_id=eq.${user.id}`,
-          },
+          { event: "*", schema: "public", table: "user_cities", filter: `user_id=eq.${user.id}` },
           () => {
             if (!isMountedLocal || !isMountedRef.current) return;
             toast.info("Suas cidades de atendimento foram atualizadas. Recarregando fretes...");
@@ -907,7 +872,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                             )}
                           </div>
 
-                          {/* ✅ CORREÇÃO CRÍTICA: aceitar chamado só se realmente atualizou (returning + lock provider_id) */}
+                          {/* ✅ FIX DEFINITIVO DO ERRO: sem `.single()` (não estoura “Cannot coerce...”) */}
                           <Button
                             className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
                             size="lg"
@@ -915,34 +880,45 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                               try {
                                 if (!profile?.id) return;
 
-                                const { data: updated, error } = await supabase
+                                const { data: updatedRows, error } = await supabase
                                   .from("service_requests")
                                   .update({
                                     provider_id: profile.id,
-                                    status: "IN_PROGRESS", // ✅ vai para andamento (mais consistente)
+                                    status: "IN_PROGRESS",
                                     accepted_at: new Date().toISOString(),
                                   })
                                   .eq("id", r.id)
                                   .eq("status", "OPEN")
-                                  .is("provider_id", null) // ✅ impede aceitar se alguém já pegou
-                                  .select("id, status, provider_id, accepted_at")
-                                  .single();
+                                  .is("provider_id", null)
+                                  .select("id, status, provider_id, accepted_at"); // <- retorna array
 
                                 if (error) throw error;
 
+                                // Se não atualizou nenhuma linha: já foi aceito/fechado ou RLS bloqueou
+                                if (!updatedRows || updatedRows.length === 0) {
+                                  toast.error("Não foi possível aceitar: este chamado não está mais disponível.");
+                                  // Re-sync pra remover da lista se já foi pego por outro
+                                  await fetchCompatibleFreights();
+                                  return;
+                                }
+
+                                // Garantia de integridade
+                                const updated = updatedRows[0];
                                 if (!updated?.id || updated.provider_id !== profile.id) {
-                                  throw new Error("Não foi possível aceitar: o chamado não estava mais disponível.");
+                                  toast.error("Não foi possível aceitar: este chamado não está mais disponível.");
+                                  await fetchCompatibleFreights();
+                                  return;
                                 }
 
                                 toast.success("Chamado aceito! Indo para Em Andamento.");
 
-                                // remove da lista disponível APENAS depois de confirmar update
+                                // remove da lista disponível (local) depois de confirmar update
                                 setTowingRequests((prev) => prev.filter((x: any) => x.id !== r.id));
 
-                                // dispara navegação (se seu dashboard escuta isso)
+                                // navegação (se seu dashboard escuta isso)
                                 window.dispatchEvent(new CustomEvent("navigate-to-tab", { detail: "ongoing" }));
 
-                                // força re-sync
+                                // re-sync
                                 await fetchCompatibleFreights();
                               } catch (e: any) {
                                 console.error("Erro ao aceitar chamado:", e);
