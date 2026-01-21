@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
-import purgecss from '@fullhuman/postcss-purgecss';
+import { purgeCSSPlugin } from '@fullhuman/postcss-purgecss';
 // @ts-ignore - critical package doesn't have type definitions
 import { generate } from 'critical';
 
@@ -86,7 +86,7 @@ export default defineConfig(({ mode }) => ({
     devSourcemap: false, // Disable CSS sourcemaps in dev for faster HMR
     postcss: {
       plugins: mode === 'production' ? [
-        purgecss({
+        purgeCSSPlugin({
           content: [
             './index.html',
             './src/**/*.{js,ts,jsx,tsx}',
