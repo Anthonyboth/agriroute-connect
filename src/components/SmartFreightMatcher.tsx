@@ -884,20 +884,19 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                                   .from("service_requests")
                                   .update({
                                     provider_id: profile.id,
-                                    status: "IN_PROGRESS",
+                                    status: "ACCEPTED",
                                     accepted_at: new Date().toISOString(),
                                   })
                                   .eq("id", r.id)
                                   .eq("status", "OPEN")
                                   .is("provider_id", null)
-                                  .select("id, status, provider_id, accepted_at"); // <- retorna array
+                                  .select("id, status, provider_id, accepted_at, service_type");
 
                                 if (error) throw error;
 
                                 // Se não atualizou nenhuma linha: já foi aceito/fechado ou RLS bloqueou
                                 if (!updatedRows || updatedRows.length === 0) {
                                   toast.error("Não foi possível aceitar: este chamado não está mais disponível.");
-                                  // Re-sync pra remover da lista se já foi pego por outro
                                   await fetchCompatibleFreights();
                                   return;
                                 }
@@ -912,11 +911,17 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
                                 toast.success("Chamado aceito! Indo para Em Andamento.");
 
-                                // remove da lista disponível (local) depois de confirmar update
+                                // remove da lista disponível (local) 
                                 setTowingRequests((prev) => prev.filter((x: any) => x.id !== r.id));
 
-                                // navegação (se seu dashboard escuta isso)
-                                window.dispatchEvent(new CustomEvent("navigate-to-tab", { detail: "ongoing" }));
+                                // Disparar evento para navegação automática e refresh
+                                window.dispatchEvent(new CustomEvent("freight:accepted", { 
+                                  detail: { 
+                                    freightId: r.id, 
+                                    source: 'service_request', 
+                                    serviceType: updated.service_type || r.service_type 
+                                  } 
+                                }));
 
                                 // re-sync
                                 await fetchCompatibleFreights();
