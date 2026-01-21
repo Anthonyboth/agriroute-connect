@@ -42,6 +42,7 @@ import { debounce } from '@/lib/utils';
 import { fetchBatchCheckins } from '@/hooks/useBatchCheckins';
 import { FRETES_IA_LABEL, AREAS_IA_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
 import { DriverProposalDetailsModal } from '@/components/DriverProposalDetailsModal';
+import { forceLogoutAndRedirect } from '@/utils/authRecovery';
 
 // Sub-components refatorados
 import { 
@@ -674,9 +675,23 @@ const DriverDashboard = () => {
     if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('get-driver-assignments');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('get-driver-assignments', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
       
       if (error) {
+        const status = (error as any)?.status ?? (error as any)?.context?.response?.status ?? null;
+        if (status === 401) {
+          await forceLogoutAndRedirect('/auth');
+          return;
+        }
         console.error('[fetchMyAssignments] ❌ Edge function error:', {
           message: error.message,
           context: error.context,

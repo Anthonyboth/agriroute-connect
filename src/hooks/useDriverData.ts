@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
+import { forceLogoutAndRedirect } from '@/utils/authRecovery';
 
 /**
  * Hook otimizado para buscar assignments do motorista
@@ -12,13 +13,30 @@ export const useDriverAssignments = (driverId: string | undefined) => {
     queryFn: async () => {
       if (!driverId) return [];
 
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        // Evita chamar edge function sem token (gera 401/Invalid token)
+        return [];
+      }
+
       const { data, error } = await supabase.functions.invoke('get-driver-assignments', {
         headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        const status = (error as any)?.status ?? (error as any)?.context?.response?.status ?? null;
+        const message = String((error as any)?.message || '').toLowerCase();
+
+        // Se o token/sessão estiver inválido, forçar logout para não quebrar a tela.
+        if (status === 401 || message.includes('invalid token') || message.includes('jwt expired')) {
+          await forceLogoutAndRedirect('/auth');
+          return [];
+        }
+
+        throw error;
+      }
       return data?.assignments || [];
     },
     enabled: !!driverId,
