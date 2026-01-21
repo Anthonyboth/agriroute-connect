@@ -743,67 +743,34 @@ export const ServiceProviderDashboard: React.FC = () => {
         return;
       }
 
-      // VERIFICAÇÃO EM TEMPO REAL: Buscar estado atual do serviço
-      const { data: currentRequest, error: checkError } = await supabase
-        .from('service_requests')
-        .select('provider_id, status')
-        .eq('id', requestId)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('Error checking service availability:', checkError);
-        toast({
-          title: "Erro",
-          description: "Erro ao verificar disponibilidade do serviço.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!currentRequest) {
-        toast({
-          title: "Serviço Indisponível",
-          description: "Serviço não encontrado ou indisponível.",
-          variant: "destructive",
-        });
-        setShowRequestModal(false);
-        setSelectedRequest(null);
-        fetchServiceRequests({ scope: 'all', silent: true });
-        refreshCounts();
-        return;
-      }
-
-      // Verificar se já foi aceito por outro prestador
-      if (currentRequest.provider_id !== null || currentRequest.status !== 'OPEN') {
-        toast({
-          title: "Serviço Indisponível",
-          description: "Este serviço já foi aceito por outro prestador.",
-          variant: "destructive",
-        });
-        
-        // Fechar modal e atualizar lista
-        setShowRequestModal(false);
-        fetchServiceRequests({ scope: 'all', silent: true });
-        refreshCounts();
-        return;
-      }
-
-      // Tentar aceitar usando a função RPC
+      // A RPC accept_service_request garante atomicidade e concorrência
+      // Não fazemos verificação prévia SELECT para evitar bloqueio por RLS
       const { data, error } = await supabase.rpc('accept_service_request', {
         p_provider_id: providerId,
         p_request_id: requestId,
       });
 
       if (error) {
-        // Verificar se é erro de concorrência
-        if (error.message.includes('indisponível') || error.message.includes('aceita')) {
+        console.error('Error accepting request:', error);
+        // Verificar se é erro de concorrência ou autenticação
+        if (error.message.includes('indisponível') || error.message.includes('aceita') || error.message.includes('not authenticated')) {
           toast({
             title: "Serviço Indisponível",
-            description: "Este serviço foi aceito por outro prestador no momento.",
+            description: "Este serviço foi aceito por outro prestador ou você não está autenticado.",
+            variant: "destructive",
+          });
+        } else if (error.message.includes('provider not registered')) {
+          toast({
+            title: "Erro de Cadastro",
+            description: "Seu perfil de prestador não está registrado corretamente.",
             variant: "destructive",
           });
         } else {
-          throw error;
+          toast({
+            title: "Erro",
+            description: error.message || "Erro ao aceitar serviço.",
+            variant: "destructive",
+          });
         }
         
         setShowRequestModal(false);
@@ -812,6 +779,7 @@ export const ServiceProviderDashboard: React.FC = () => {
         return;
       }
 
+      // Se RPC retornou 0 linhas, serviço já foi aceito por outro
       if (!data || data.length === 0) {
         toast({
           title: "Serviço Indisponível",
