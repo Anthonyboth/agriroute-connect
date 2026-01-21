@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ServiceProposalModal } from './ServiceProposalModal';
-import { CompanyBulkFreightAcceptor } from './CompanyBulkFreightAcceptor';
-import { ShareFreightToCompany } from './ShareFreightToCompany';
-import { CompanyDriverSelectModal } from './CompanyDriverSelectModal';
-import { Separator } from '@/components/ui/separator';
-import { getFreightStatusLabel, getFreightStatusVariant } from '@/lib/freight-status';
-import { 
-  MapPin, 
-  Package, 
-  Truck, 
-  Calendar, 
-  DollarSign, 
+import React, { useState } from "react";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ServiceProposalModal } from "./ServiceProposalModal";
+import { CompanyBulkFreightAcceptor } from "./CompanyBulkFreightAcceptor";
+import { ShareFreightToCompany } from "./ShareFreightToCompany";
+import { CompanyDriverSelectModal } from "./CompanyDriverSelectModal";
+import { Separator } from "@/components/ui/separator";
+import { getFreightStatusLabel, getFreightStatusVariant } from "@/lib/freight-status";
+import {
+  MapPin,
+  Package,
+  Truck,
+  Calendar,
+  DollarSign,
   Clock,
   Eye,
   FileText,
@@ -22,19 +22,19 @@ import {
   Home,
   Edit,
   X,
-  MessageCircle
-} from 'lucide-react';
-import { getCargoTypeLabel } from '@/lib/cargo-types';
-import { getUrgencyLabel, getUrgencyVariant } from '@/lib/urgency-labels';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useTransportCompany } from '@/hooks/useTransportCompany';
-import { toast } from 'sonner';
-import { formatTons, formatKm, formatBRL, formatDate, getPricePerTruck } from '@/lib/formatters';
-import { LABELS } from '@/lib/labels';
-import { getPickupDateBadge } from '@/utils/freightDateHelpers';
-import { AlertTriangle } from 'lucide-react';
-import { getVehicleTypeLabel } from '@/lib/vehicle-types';
+  MessageCircle,
+} from "lucide-react";
+import { getCargoTypeLabel } from "@/lib/cargo-types";
+import { getUrgencyLabel, getUrgencyVariant } from "@/lib/urgency-labels";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useTransportCompany } from "@/hooks/useTransportCompany";
+import { toast } from "sonner";
+import { formatTons, formatKm, formatBRL, formatDate, getPricePerTruck } from "@/lib/formatters";
+import { LABELS } from "@/lib/labels";
+import { getPickupDateBadge } from "@/utils/freightDateHelpers";
+import { AlertTriangle } from "lucide-react";
+import { getVehicleTypeLabel } from "@/lib/vehicle-types";
 
 interface FreightCardProps {
   freight: {
@@ -50,17 +50,17 @@ interface FreightCardProps {
     pickup_date: string;
     delivery_date: string;
     price: number;
-    urgency: 'LOW' | 'MEDIUM' | 'HIGH';
-    status: 'OPEN' | 'IN_TRANSIT' | 'DELIVERED' | 'IN_NEGOTIATION' | 'ACCEPTED' | 'CANCELLED' | 'LOADING' | 'LOADED';
+    urgency: "LOW" | "MEDIUM" | "HIGH";
+    status: "OPEN" | "IN_TRANSIT" | "DELIVERED" | "IN_NEGOTIATION" | "ACCEPTED" | "CANCELLED" | "LOADING" | "LOADED";
     distance_km: number;
     minimum_antt_price: number;
-    service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO';
+    service_type?: "CARGA" | "GUINCHO" | "MUDANCA" | "FRETE_MOTO";
     required_trucks?: number;
     accepted_trucks?: number;
     vehicle_type_required?: string;
     vehicle_axles_required?: number;
   };
-  onAction?: (action: 'propose' | 'accept' | 'complete' | 'edit' | 'cancel' | 'request-cancel') => void;
+  onAction?: (action: "propose" | "accept" | "complete" | "edit" | "cancel" | "request-cancel") => void;
   showActions?: boolean;
   showProducerActions?: boolean;
   hidePrice?: boolean;
@@ -71,38 +71,38 @@ interface FreightCardProps {
   showAvailableSlots?: boolean;
 }
 
-export const FreightCard: React.FC<FreightCardProps> = ({ 
-  freight, 
-  onAction, 
-  showActions = false, 
+export const FreightCard: React.FC<FreightCardProps> = ({
+  freight,
+  onAction,
+  showActions = false,
   showProducerActions = false,
   hidePrice = false,
   canAcceptFreights = true,
   isAffiliatedDriver = false,
   driverCompanyId,
   onUnavailable,
-  showAvailableSlots = false
+  showAvailableSlots = false,
 }) => {
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [bulkAcceptorOpen, setBulkAcceptorOpen] = useState(false);
   const [driverSelectModalOpen, setDriverSelectModalOpen] = useState(false);
   const { profile } = useAuth();
   const { company, drivers } = useTransportCompany();
-  
+
   // Verificar se o frete está com vagas completas
   const isFullyBooked = (freight.required_trucks || 1) <= (freight.accepted_trucks || 0);
   const availableSlots = (freight.required_trucks || 1) - (freight.accepted_trucks || 0);
-  
+
   const urgencyVariant = getUrgencyVariant(freight.urgency);
   const urgencyLabel = getUrgencyLabel(freight.urgency);
 
-  const isTransportCompany = profile?.role === 'TRANSPORTADORA';
+  const isTransportCompany = profile?.role === "TRANSPORTADORA";
 
   const handleAcceptFreight = async (numTrucks = 1) => {
     // ✅ Se é transportadora E não tem driverId pré-definido, abrir modal de seleção
     if (isTransportCompany && !driverCompanyId) {
       if (!drivers || drivers.length === 0) {
-        toast.error('Cadastre um motorista para aceitar fretes como transportadora');
+        toast.error("Cadastre um motorista para aceitar fretes como transportadora");
         return;
       }
       setDriverSelectModalOpen(true);
@@ -111,15 +111,12 @@ export const FreightCard: React.FC<FreightCardProps> = ({
 
     try {
       // Primeiro: verificar se o solicitante tem cadastro
-      const { data: checkData, error: checkError } = await supabase.functions.invoke(
-        'check-freight-requester',
-        {
-          body: { freight_id: freight.id }
-        }
-      );
+      const { data: checkData, error: checkError } = await supabase.functions.invoke("check-freight-requester", {
+        body: { freight_id: freight.id },
+      });
 
       if (checkError) {
-        console.error('Error checking requester:', checkError);
+        console.error("Error checking requester:", checkError);
         toast.error("Erro ao verificar solicitante");
         return;
       }
@@ -129,79 +126,76 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         toast.error("O solicitante não possui cadastro. Este frete foi movido para o histórico.");
         // Aguardar um pouco e recarregar para refletir mudança
         setTimeout(() => {
-          onAction?.('accept'); // Trigger refresh/tab change
+          onAction?.("accept"); // Trigger refresh/tab change
         }, 1500);
         return;
       }
 
       // Se tem cadastro, proceder com aceite normal
       // Status usados pela Edge Function accept-freight-multiple (linha 257)
-      const activeStatuses = ['ACCEPTED', 'IN_TRANSIT', 'LOADING', 'LOADED'] as const;
+      const activeStatuses = ["ACCEPTED", "IN_TRANSIT", "LOADING", "LOADED"] as const;
 
       // 1) Verificar se já existe atribuição ativa para ESTE frete
       if (!isTransportCompany && profile?.id) {
         const { data: existingAssignment } = await supabase
-          .from('freight_assignments')
-          .select('id,status')
-          .eq('freight_id', freight.id)
-          .eq('driver_id', profile.id)
-          .in('status', activeStatuses)
+          .from("freight_assignments")
+          .select("id,status")
+          .eq("freight_id", freight.id)
+          .eq("driver_id", profile.id)
+          .in("status", activeStatuses)
           .maybeSingle();
 
         if (existingAssignment) {
-          toast.info('Você já aceitou este frete', {
-            description: 'Esse frete já está em andamento na sua conta.',
+          toast.info("Você já aceitou este frete", {
+            description: "Esse frete já está em andamento na sua conta.",
           });
-          onAction?.('accept');
+          onAction?.("accept");
           return;
         }
 
         // 2) Motorista autônomo: verificar se já tem QUALQUER frete EM ANDAMENTO (não agendado)
-        const today = new Date().toISOString().split('T')[0];
-        
+        const today = new Date().toISOString().split("T")[0];
+
         const { data: activeFreights } = await supabase
-          .from('freights')
-          .select('id, cargo_type, pickup_date')
-          .eq('driver_id', profile.id)
-          .in('status', activeStatuses);
+          .from("freights")
+          .select("id, cargo_type, pickup_date")
+          .eq("driver_id", profile.id)
+          .in("status", activeStatuses);
 
         const { data: activeAssignments } = await supabase
-          .from('freight_assignments')
-          .select('id, freight:freights(pickup_date)')
-          .eq('driver_id', profile.id)
-          .in('status', activeStatuses);
+          .from("freight_assignments")
+          .select("id, freight:freights(pickup_date)")
+          .eq("driver_id", profile.id)
+          .in("status", activeStatuses);
 
         // Filtrar apenas fretes com data de coleta <= hoje (em andamento, não agendados)
-        const inProgressFreights = (activeFreights || []).filter(f => {
-          const pickupDate = f.pickup_date?.split('T')[0];
+        const inProgressFreights = (activeFreights || []).filter((f) => {
+          const pickupDate = f.pickup_date?.split("T")[0];
           return pickupDate && pickupDate <= today;
         });
 
-        const inProgressAssignments = (activeAssignments || []).filter(a => {
-          const pickupDate = (a.freight as any)?.pickup_date?.split('T')[0];
+        const inProgressAssignments = (activeAssignments || []).filter((a) => {
+          const pickupDate = (a.freight as any)?.pickup_date?.split("T")[0];
           return pickupDate && pickupDate <= today;
         });
 
         const totalInProgress = inProgressFreights.length + inProgressAssignments.length;
 
         if (totalInProgress > 0) {
-          const currentCargo = inProgressFreights[0]?.cargo_type || 'Carga';
-          toast.error('Você já possui um frete em andamento', {
+          const currentCargo = inProgressFreights[0]?.cargo_type || "Carga";
+          toast.error("Você já possui um frete em andamento", {
             description: `Complete a entrega atual (${currentCargo}) antes de aceitar um novo frete.`,
           });
           return;
         }
       }
 
-      const { data: acceptData, error: acceptError } = await supabase.functions.invoke(
-        'accept-freight-multiple',
-        {
-          body: {
-            freight_id: freight.id,
-            num_trucks: numTrucks,
-          },
-        }
-      );
+      const { data: acceptData, error: acceptError } = await supabase.functions.invoke("accept-freight-multiple", {
+        body: {
+          freight_id: freight.id,
+          num_trucks: numTrucks,
+        },
+      });
 
       if (acceptError) {
         // Supabase JS v2: o body do erro pode vir em `acceptData` ou `error.context.body`
@@ -209,7 +203,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         if (!errorBody && (acceptError as any)?.context?.body) {
           errorBody = (acceptError as any).context.body;
         }
-        if (typeof errorBody === 'string') {
+        if (typeof errorBody === "string") {
           try {
             errorBody = JSON.parse(errorBody);
           } catch {
@@ -217,45 +211,47 @@ export const FreightCard: React.FC<FreightCardProps> = ({
           }
         }
 
-        let title = errorBody?.error || acceptError.message || 'Não foi possível aceitar o frete';
+        let title = errorBody?.error || acceptError.message || "Não foi possível aceitar o frete";
         let description = errorBody?.details;
 
         const alreadyAccepted =
-          typeof title === 'string' &&
-          (title.includes('active assignment') || title.includes('already have an active assignment'));
+          typeof title === "string" &&
+          (title.includes("active assignment") || title.includes("already have an active assignment"));
 
         if (alreadyAccepted) {
-          toast.info('Você já aceitou este frete', {
-            description: 'Esse frete já está em andamento na sua conta.',
+          toast.info("Você já aceitou este frete", {
+            description: "Esse frete já está em andamento na sua conta.",
           });
-          onAction?.('accept');
+          onAction?.("accept");
           return;
         }
 
         // ✅ PT-BR fallback (evitar inglês na UI)
-        if (typeof title === 'string' && (title.includes('Edge function returned 409') || title.includes('409'))) {
-          title = 'Não foi possível aceitar o frete';
+        if (typeof title === "string" && (title.includes("Edge function returned 409") || title.includes("409"))) {
+          title = "Não foi possível aceitar o frete";
         }
 
         toast.error(title, description ? { description } : undefined);
         return;
       }
 
-      const label = freight.service_type === 'FRETE_MOTO' ? 'frete' : 'carreta';
-      toast.success(`${numTrucks} ${label}${numTrucks > 1 ? 's' : ''} aceita${numTrucks > 1 ? 's' : ''} com sucesso!`);
+      const label = freight.service_type === "FRETE_MOTO" ? "frete" : "carreta";
+      toast.success(`${numTrucks} ${label}${numTrucks > 1 ? "s" : ""} aceita${numTrucks > 1 ? "s" : ""} com sucesso!`);
 
       // ✅ Disparar evento para navegação automática para aba "Em Andamento"
-      window.dispatchEvent(new CustomEvent('freight:accepted', { 
-        detail: { freightId: freight.id } 
-      }));
+      window.dispatchEvent(
+        new CustomEvent("freight:accepted", {
+          detail: { freightId: freight.id },
+        }),
+      );
 
-      onAction?.('accept');
+      onAction?.("accept");
     } catch (error: any) {
-      console.error('Error accepting freight:', error);
+      console.error("Error accepting freight:", error);
 
       // fallback: nunca quebrar a tela por erro de edge function
-      toast.error('Não foi possível aceitar o frete', {
-        description: 'Tente novamente em alguns instantes.'
+      toast.error("Não foi possível aceitar o frete", {
+        description: "Tente novamente em alguns instantes.",
       });
     }
   };
@@ -263,89 +259,90 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   // ✅ Handler para aceite via transportadora (com driver selecionado)
   const handleCompanyAcceptWithDriver = async (selectedDriverId: string) => {
     if (!company?.id) {
-      toast.error('Informações da empresa não encontradas');
+      toast.error("Informações da empresa não encontradas");
       return;
     }
 
     try {
       // Buscar dados do frete para garantir valores corretos
       const { data: freightData, error: freightError } = await supabase
-        .from('freights')
-        .select('*')
-        .eq('id', freight.id)
+        .from("freights")
+        .select("*")
+        .eq("id", freight.id)
         .single();
 
       if (freightError || !freightData) {
-        toast.error('Erro ao buscar dados do frete');
+        toast.error("Erro ao buscar dados do frete");
         return;
       }
 
       // Verificar se frete ainda está disponível
-      if (freightData.status !== 'OPEN') {
-        toast.error('Este frete não está mais disponível');
+      if (freightData.status !== "OPEN") {
+        toast.error("Este frete não está mais disponível");
         return;
       }
 
       // ✅ CRÍTICO: Criar assignment COM company_id E driver_id
-      const { error: assignmentError } = await supabase
-        .from('freight_assignments')
-        .upsert({
+      const { error: assignmentError } = await supabase.from("freight_assignments").upsert(
+        {
           freight_id: freight.id,
           driver_id: selectedDriverId,
           company_id: company.id, // ✅ ESSENCIAL
-          status: 'ACCEPTED',
+          status: "ACCEPTED",
           accepted_at: new Date().toISOString(),
           agreed_price: freightData.price,
-          pricing_type: 'FIXED',
-          minimum_antt_price: freightData.minimum_antt_price || 0
-        }, {
-          onConflict: 'freight_id,driver_id'
-        });
+          pricing_type: "FIXED",
+          minimum_antt_price: freightData.minimum_antt_price || 0,
+        },
+        {
+          onConflict: "freight_id,driver_id",
+        },
+      );
 
       if (assignmentError) throw assignmentError;
 
       // Atualizar status do frete
       const { error: updateError } = await supabase
-        .from('freights')
+        .from("freights")
         .update({
-          status: 'ACCEPTED',
+          status: "ACCEPTED",
           driver_id: selectedDriverId,
           company_id: company.id, // ✅ ESSENCIAL
-          accepted_trucks: (freightData.accepted_trucks || 0) + 1
+          accepted_trucks: (freightData.accepted_trucks || 0) + 1,
         })
-        .eq('id', freight.id);
+        .eq("id", freight.id);
 
       if (updateError) throw updateError;
 
       // Criar chat automaticamente
-      await supabase.from('company_driver_chats').insert({
+      await supabase.from("company_driver_chats").insert({
         company_id: company.id,
         driver_profile_id: selectedDriverId,
-        sender_type: 'COMPANY',
+        sender_type: "COMPANY",
         message: `🚚 Frete aceito! Olá, este chat foi criado automaticamente para acompanharmos a entrega de: ${freight.cargo_type}. Qualquer dúvida estou à disposição.`,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       });
 
-      toast.success('✅ Frete aceito com sucesso!', {
-        description: 'O frete aparecerá na aba "Em Andamento"'
+      toast.success("✅ Frete aceito com sucesso!", {
+        description: 'O frete aparecerá na aba "Em Andamento"',
       });
 
       // ✅ Disparar evento para navegação automática para aba "Em Andamento"
-      window.dispatchEvent(new CustomEvent('freight:accepted', { 
-        detail: { freightId: freight.id } 
-      }));
-      
-      onAction?.('accept');
+      window.dispatchEvent(
+        new CustomEvent("freight:accepted", {
+          detail: { freightId: freight.id },
+        }),
+      );
+
+      onAction?.("accept");
     } catch (error: any) {
-      console.error('Error accepting freight:', error);
-      
+      console.error("Error accepting freight:", error);
+
       // Extract detailed error information
       const errorResponse = (error as any)?.context?.response;
-      const errorMessage = errorResponse?.error 
-        || error?.message 
-        || 'Erro ao aceitar frete';
+      const errorMessage = errorResponse?.error || error?.message || "Erro ao aceitar frete";
       const errorDetails = errorResponse?.details;
-      
+
       // Show detailed message if available
       if (errorDetails) {
         toast.error(errorMessage, { description: errorDetails });
@@ -358,11 +355,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   // Icon based on service type
   const getServiceIcon = () => {
     switch (freight.service_type) {
-      case 'GUINCHO':
+      case "GUINCHO":
         return <Wrench className="h-5 w-5 text-warning" />;
-      case 'MUDANCA':
+      case "MUDANCA":
         return <Home className="h-5 w-5 text-accent" />;
-      case 'FRETE_MOTO':
+      case "FRETE_MOTO":
         return <Truck className="h-5 w-5 text-blue-500" />;
       default:
         return <Package className="h-5 w-5 text-primary" />;
@@ -372,28 +369,34 @@ export const FreightCard: React.FC<FreightCardProps> = ({
   // Service type label
   const getServiceLabel = () => {
     switch (freight.service_type) {
-      case 'GUINCHO':
-        return 'Guincho';
-      case 'MUDANCA':
-        return 'Mudança';
-      case 'FRETE_MOTO':
-        return 'Frete Moto (Carretinha 500kg)';
+      case "GUINCHO":
+        return "Guincho";
+      case "MUDANCA":
+        return "Mudança";
+      case "FRETE_MOTO":
+        return "Frete Moto (Carretinha 500kg)";
       default:
-        return 'Carga';
+        return "Carga";
     }
   };
 
+  // ✅ TÍTULO PRINCIPAL DO CARD (corrige "Serviço" aparecendo em Mudança/Guincho/Moto)
+  const getCardTitle = () => {
+    if (freight.service_type && freight.service_type !== "CARGA") return getServiceLabel();
+    return getCargoTypeLabel(freight.cargo_type);
+  };
+
   return (
-    <Card data-testid="freight-card" className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60 overflow-hidden">
+    <Card
+      data-testid="freight-card"
+      className="freight-card-standard hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 border-border/60 overflow-hidden"
+    >
       <CardHeader className="pb-2 flex-shrink-0">
         <div className="min-w-fit space-y-2">
-          
           {/* LINHA 1: Ícone + Título */}
           <div className="flex items-center gap-2">
             {getServiceIcon()}
-            <h3 className="font-semibold text-foreground text-base whitespace-nowrap">
-              {getCargoTypeLabel(freight.cargo_type)}
-            </h3>
+            <h3 className="font-semibold text-foreground text-base whitespace-nowrap">{getCardTitle()}</h3>
           </div>
 
           {/* LINHA 2: Badges de Status (permite quebra se necessário) */}
@@ -401,18 +404,22 @@ export const FreightCard: React.FC<FreightCardProps> = ({
             <Badge variant={urgencyVariant} className="text-xs font-medium shrink-0">
               {urgencyLabel}
             </Badge>
-            <Badge data-testid="freight-status-badge" variant={getFreightStatusVariant(freight.status)} className="text-xs font-medium shrink-0">
+            <Badge
+              data-testid="freight-status-badge"
+              variant={getFreightStatusVariant(freight.status)}
+              className="text-xs font-medium shrink-0"
+            >
               {getFreightStatusLabel(freight.status)}
             </Badge>
-            
+
             {/* Badge de data de coleta */}
             {(() => {
               const badgeInfo = getPickupDateBadge(freight.pickup_date);
               if (!badgeInfo) return null;
-              
+
               const iconMap = { AlertTriangle, Clock, Calendar };
               const IconComponent = iconMap[badgeInfo.icon];
-              
+
               return (
                 <Badge variant={badgeInfo.variant} className="flex items-center gap-1 text-xs shrink-0">
                   <IconComponent className="h-3 w-3" />
@@ -420,18 +427,20 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 </Badge>
               );
             })()}
-            
+
             {/* Badge de vagas disponíveis */}
             {showAvailableSlots && freight.required_trucks && freight.required_trucks > 1 && (
-              <Badge 
-                variant={isFullyBooked ? "default" : "outline"} 
-                className={`text-xs font-medium shrink-0 ${isFullyBooked ? 'bg-green-600 hover:bg-green-700' : 'border-primary text-primary'}`}
+              <Badge
+                variant={isFullyBooked ? "default" : "outline"}
+                className={`text-xs font-medium shrink-0 ${
+                  isFullyBooked ? "bg-green-600 hover:bg-green-700" : "border-primary text-primary"
+                }`}
               >
                 <Truck className="h-3 w-3 mr-1" />
                 {freight.accepted_trucks || 0}/{freight.required_trucks}
               </Badge>
             )}
-            
+
             {/* Badge de Tipo de Veículo Preferencial - PROBLEMA 6 */}
             {freight.vehicle_type_required && (
               <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30 shrink-0">
@@ -450,7 +459,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 {getServiceLabel()}
               </Badge>
               {/* Badge de capacidade máxima para moto */}
-              {freight.service_type === 'FRETE_MOTO' && (
+              {freight.service_type === "FRETE_MOTO" && (
                 <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300 shrink-0">
                   <AlertTriangle className="h-3 w-3 mr-1" />
                   Máx. 500kg
@@ -458,9 +467,9 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               )}
             </div>
             <div className="flex items-center space-x-3 text-xs whitespace-nowrap">
-              {freight.service_type === 'GUINCHO' ? (
+              {freight.service_type === "GUINCHO" ? (
                 <span className="text-muted-foreground">Reboque</span>
-              ) : freight.service_type === 'MUDANCA' ? (
+              ) : freight.service_type === "MUDANCA" ? (
                 <span className="text-muted-foreground">Residencial</span>
               ) : (
                 <span className="text-muted-foreground">
@@ -473,46 +482,53 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                   )}
                 </span>
               )}
-              <span className="text-muted-foreground" title={
-                ((freight as any).origin_lat && (freight as any).origin_lng && 
-                 (freight as any).destination_lat && (freight as any).destination_lng) 
-                  ? 'Distância calculada com GPS preciso' 
-                  : 'Distância estimada por endereço'
-              }>
-                {formatKm(parseFloat(String(freight.distance_km).replace(/[^\d.]/g, '')) || 0)}
+              <span
+                className="text-muted-foreground"
+                title={
+                  (freight as any).origin_lat &&
+                  (freight as any).origin_lng &&
+                  (freight as any).destination_lat &&
+                  (freight as any).destination_lng
+                    ? "Distância calculada com GPS preciso"
+                    : "Distância estimada por endereço"
+                }
+              >
+                {formatKm(parseFloat(String(freight.distance_km).replace(/[^\d.]/g, "")) || 0)}
                 <span className="text-[10px] ml-1">
-                  {((freight as any).origin_lat && (freight as any).origin_lng && 
-                    (freight as any).destination_lat && (freight as any).destination_lng) 
-                      ? '📍' : '📌'}
+                  {(freight as any).origin_lat &&
+                  (freight as any).origin_lng &&
+                  (freight as any).destination_lat &&
+                  (freight as any).destination_lng
+                    ? "📍"
+                    : "📌"}
                 </span>
               </span>
             </div>
           </div>
-
         </div>
       </CardHeader>
 
       <CardContent className="space-y-3 flex-1 overflow-y-auto">
         {/* Carretas Info */}
-        {(freight.required_trucks && freight.required_trucks > 1) && (
+        {freight.required_trucks && freight.required_trucks > 1 && (
           <div className="flex flex-col gap-2 p-2 bg-secondary/20 rounded-lg border border-border/40">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2 text-muted-foreground">
                 <Truck className="h-3 w-3" />
                 <span className="text-xs font-medium">Carretas:</span>
               </div>
-              <span className={`font-semibold text-sm ${isFullyBooked ? 'text-success' : 'text-primary'}`}>
+              <span className={`font-semibold text-sm ${isFullyBooked ? "text-success" : "text-primary"}`}>
                 {freight.accepted_trucks || 0}/{freight.required_trucks}
               </span>
             </div>
-            
+
             <div className="flex flex-wrap items-center gap-2">
               {availableSlots > 0 && (
                 <Badge variant="outline" className="text-green-600 border-green-600 animate-pulse text-xs">
-                  {availableSlots} {availableSlots === 1 ? 'vaga disponível' : 'vagas disponíveis'}!
+                  {availableSlots} {availableSlots === 1 ? "vaga disponível" : "vagas disponíveis"}!
                 </Badge>
               )}
-              
+
               {isFullyBooked && (
                 <Badge variant="default" className="text-xs bg-success text-success-foreground">
                   Completo
@@ -534,14 +550,14 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 {freight.origin_city.toUpperCase()} - {freight.origin_state.toUpperCase()}
                 {(freight as any).origin_zip_code && (
                   <span className="text-xs text-muted-foreground font-normal ml-2">
-                    (CEP: {(freight as any).origin_zip_code.replace(/^(\d{5})(\d{3})$/, '$1-$2')})
+                    (CEP: {(freight as any).origin_zip_code.replace(/^(\d{5})(\d{3})$/, "$1-$2")})
                   </span>
                 )}
               </p>
             )}
             <p className="text-xs text-muted-foreground pl-4 line-clamp-1">{freight.origin_address}</p>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs font-semibold text-foreground flex items-center gap-1">
               <ArrowRight className="h-3 w-3 text-accent" />
@@ -552,7 +568,7 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 {freight.destination_city.toUpperCase()} - {freight.destination_state.toUpperCase()}
                 {(freight as any).destination_zip_code && (
                   <span className="text-xs text-muted-foreground font-normal ml-2">
-                    (CEP: {(freight as any).destination_zip_code.replace(/^(\d{5})(\d{3})$/, '$1-$2')})
+                    (CEP: {(freight as any).destination_zip_code.replace(/^(\d{5})(\d{3})$/, "$1-$2")})
                   </span>
                 )}
               </p>
@@ -568,18 +584,14 @@ export const FreightCard: React.FC<FreightCardProps> = ({
               <Calendar className="h-3 w-3 text-primary" />
               <span className="text-xs font-medium">Coleta</span>
             </div>
-            <p className="font-semibold text-foreground text-xs">
-              {formatDate(freight.pickup_date)}
-            </p>
+            <p className="font-semibold text-foreground text-xs">{formatDate(freight.pickup_date)}</p>
           </div>
           <div className="space-y-1 p-2 bg-gradient-to-br from-accent/20 to-accent/5 rounded-lg border border-border/40">
             <div className="flex items-center space-x-1 text-muted-foreground">
               <Calendar className="h-3 w-3 text-accent" />
               <span className="text-xs font-medium">Entrega</span>
             </div>
-            <p className="font-semibold text-foreground text-xs">
-              {formatDate(freight.delivery_date)}
-            </p>
+            <p className="font-semibold text-foreground text-xs">{formatDate(freight.delivery_date)}</p>
           </div>
         </div>
       </CardContent>
@@ -593,35 +605,33 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                 const requiredTrucks = freight.required_trucks || 1;
                 const pricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
                 const hasMultipleTrucks = requiredTrucks > 1;
-                const isProducer = profile?.role === 'PRODUTOR';
-                
+                const isProducer = profile?.role === "PRODUTOR";
+
                 // Determinar tipo de pagamento - campo correto é pricing_type
                 const pricingType = (freight as any).pricing_type || (freight as any).payment_type;
                 const valuePerKm = (freight as any).price_per_km || (freight as any).value_per_km;
                 const valuePerTon = (freight as any).price_per_ton || (freight as any).value_per_ton;
-                
+
                 return (
                   <>
                     {/* Exibir valor baseado no tipo de precificação */}
-                    {pricingType === 'PER_KM' && valuePerKm ? (
+                    {pricingType === "PER_KM" && valuePerKm ? (
                       <p className="font-bold text-xl text-primary whitespace-nowrap">
                         {formatBRL(valuePerKm, true)}
                         <span className="text-xs font-normal text-muted-foreground ml-1">/km</span>
                       </p>
-                    ) : pricingType === 'PER_TON' && (valuePerTon || (freight.weight && freight.price)) ? (
+                    ) : pricingType === "PER_TON" && (valuePerTon || (freight.weight && freight.price)) ? (
                       <p className="font-bold text-xl text-primary whitespace-nowrap">
-                        {formatBRL(valuePerTon || (freight.price / (freight.weight / 1000)), true)}
+                        {formatBRL(valuePerTon || freight.price / (freight.weight / 1000), true)}
                         <span className="text-xs font-normal text-muted-foreground ml-1">/ton</span>
                       </p>
                     ) : (
                       <p className="font-bold text-xl text-primary whitespace-nowrap">
                         {formatBRL(pricePerTruck, true)}
                         {hasMultipleTrucks && (
-                          <span className="text-xs font-normal text-muted-foreground ml-1">
-                            /carreta
-                          </span>
+                          <span className="text-xs font-normal text-muted-foreground ml-1">/carreta</span>
                         )}
-                        {!hasMultipleTrucks && pricingType === 'FIXED' && (
+                        {!hasMultipleTrucks && pricingType === "FIXED" && (
                           <span className="text-xs font-normal text-muted-foreground ml-1">fixo</span>
                         )}
                       </p>
@@ -635,19 +645,21 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                   </>
                 );
               })()}
-              {freight.service_type === 'FRETE_MOTO' ? (
-                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                  Mínimo: R$ 10,00
-                </p>
-              ) : freight.service_type === 'CARGA' && (
-                freight.minimum_antt_price && freight.minimum_antt_price > 0 ? (
-                  <Badge variant="outline" className="text-xs">
-                    Mín. ANTT: {formatBRL(freight.minimum_antt_price, true)}
-                  </Badge>
-                ) : (
-                  <Badge variant="destructive" className="text-xs">
-                    ⚠️ ANTT não calculado
-                  </Badge>
+              {freight.service_type === "FRETE_MOTO" ? (
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Mínimo: R$ 10,00</p>
+              ) : (
+                freight.service_type === "CARGA" && (
+                  <>
+                    {freight.minimum_antt_price && freight.minimum_antt_price > 0 ? (
+                      <Badge variant="outline" className="text-xs">
+                        Mín. ANTT: {formatBRL(freight.minimum_antt_price, true)}
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="text-xs">
+                        ⚠️ ANTT não calculado
+                      </Badge>
+                    )}
+                  </>
                 )
               )}
             </div>
@@ -658,21 +670,17 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         </CardFooter>
       )}
 
-      {showActions && onAction && freight.status === 'OPEN' && !isFullyBooked && (
+      {showActions && onAction && freight.status === "OPEN" && !isFullyBooked && (
         <div className="px-6 pb-6">
           {isAffiliatedDriver && !canAcceptFreights ? (
             // ✅ Motorista afiliado SEM permissão: apenas compartilhar com transportadora
-            <ShareFreightToCompany 
-              freight={freight}
-              companyId={driverCompanyId}
-              driverProfile={profile}
-            />
+            <ShareFreightToCompany freight={freight} companyId={driverCompanyId} driverProfile={profile} />
           ) : (
             <div className="space-y-3">
               {/* Botões de aceitar e contraproposta (para quem pode aceitar) */}
-              {canAcceptFreights && (
-                freight.service_type === 'GUINCHO' ? (
-                  <Button 
+              {canAcceptFreights &&
+                (freight.service_type === "GUINCHO" ? (
+                  <Button
                     onClick={() => handleAcceptFreight(1)}
                     className="w-full gradient-primary hover:shadow-lg transition-all duration-300"
                     size="sm"
@@ -680,8 +688,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                     <Wrench className="mr-2 h-4 w-4" />
                     Aceitar Chamado
                   </Button>
-                ) : freight.service_type === 'MUDANCA' ? (
-                  <Button 
+                ) : freight.service_type === "MUDANCA" ? (
+                  <Button
                     onClick={() => handleAcceptFreight(1)}
                     className="w-full gradient-primary hover:shadow-lg transition-all duration-300"
                     size="sm"
@@ -689,8 +697,8 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                     <Home className="mr-2 h-4 w-4" />
                     Aceitar Mudança
                   </Button>
-                ) : freight.service_type === 'FRETE_MOTO' ? (
-                  <Button 
+                ) : freight.service_type === "FRETE_MOTO" ? (
+                  <Button
                     onClick={() => handleAcceptFreight(1)}
                     className="w-full gradient-primary hover:shadow-lg transition-all duration-300"
                     size="sm"
@@ -700,13 +708,13 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                   </Button>
                 ) : isTransportCompany && freight.required_trucks && freight.required_trucks > 1 ? (
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <Button 
+                    <Button
                       onClick={() => setBulkAcceptorOpen(true)}
                       className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
                     >
                       Aceitar ({availableSlots} vagas)
                     </Button>
-                    <Button 
+                    <Button
                       onClick={() => setProposalModalOpen(true)}
                       className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
                       variant="outline"
@@ -716,14 +724,14 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                   </div>
                 ) : (
                   <div className="flex gap-3">
-                    <Button 
+                    <Button
                       onClick={() => handleAcceptFreight(1)}
                       className="flex-1 gradient-primary hover:shadow-lg transition-all duration-300"
                       size="sm"
                     >
                       Aceitar Frete
                     </Button>
-                    <Button 
+                    <Button
                       onClick={() => setProposalModalOpen(true)}
                       className="flex-1 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
                       size="sm"
@@ -732,16 +740,11 @@ export const FreightCard: React.FC<FreightCardProps> = ({
                       Contra proposta
                     </Button>
                   </div>
-                )
-              )}
-              
+                ))}
+
               {/* Botão de compartilhar - SEMPRE aparece para motoristas afiliados */}
               {isAffiliatedDriver && driverCompanyId && (
-                <ShareFreightToCompany 
-                  freight={freight}
-                  companyId={driverCompanyId}
-                  driverProfile={profile}
-                />
+                <ShareFreightToCompany freight={freight} companyId={driverCompanyId} driverProfile={profile} />
               )}
             </div>
           )}
@@ -757,36 +760,26 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       )}
 
       {/* Producer Actions */}
-      {showProducerActions && onAction && freight.status !== 'CANCELLED' && (
+      {showProducerActions && onAction && freight.status !== "CANCELLED" && (
         <div className="px-6 pb-6">
           <div className="flex gap-2">
-            <Button 
-              onClick={() => onAction('edit')}
-              className="flex-1"
-              size="sm"
-              variant="outline"
-            >
+            <Button onClick={() => onAction("edit")} className="flex-1" size="sm" variant="outline">
               <Edit className="h-4 w-4 mr-2" />
               Editar
             </Button>
-            
+
             {/* Cancelamento direto para OPEN, ACCEPTED, LOADING */}
-            {['OPEN', 'ACCEPTED', 'LOADING'].includes(freight.status) && (
-              <Button 
-                onClick={() => onAction('cancel')}
-                className="flex-1"
-                size="sm"
-                variant="destructive"
-              >
+            {["OPEN", "ACCEPTED", "LOADING"].includes(freight.status) && (
+              <Button onClick={() => onAction("cancel")} className="flex-1" size="sm" variant="destructive">
                 <X className="h-4 w-4 mr-2" />
                 Cancelar
               </Button>
             )}
-            
+
             {/* Solicitar cancelamento via chat para LOADED, IN_TRANSIT */}
-            {['LOADED', 'IN_TRANSIT'].includes(freight.status) && (
-              <Button 
-                onClick={() => onAction('request-cancel')}
+            {["LOADED", "IN_TRANSIT"].includes(freight.status) && (
+              <Button
+                onClick={() => onAction("request-cancel")}
                 className="flex-1 border-destructive text-destructive hover:bg-destructive/10"
                 size="sm"
                 variant="outline"
@@ -800,12 +793,10 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       )}
 
       {/* Mensagem para fretes cancelados */}
-      {showProducerActions && freight.status === 'CANCELLED' && (
+      {showProducerActions && freight.status === "CANCELLED" && (
         <div className="px-6 pb-6">
           <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-            <p className="text-sm text-red-600 dark:text-red-400">
-              Fretes cancelados não podem ser editados
-            </p>
+            <p className="text-sm text-red-600 dark:text-red-400">Fretes cancelados não podem ser editados</p>
           </div>
         </div>
       )}
@@ -815,15 +806,19 @@ export const FreightCard: React.FC<FreightCardProps> = ({
         isOpen={proposalModalOpen}
         onClose={() => setProposalModalOpen(false)}
         freight={freight}
-        originalProposal={freight.service_type === 'CARGA' || !freight.service_type ? {
-          id: freight.id,
-          proposed_price: freight.price,
-          message: 'Proposta do produtor',
-          driver_name: 'Produtor'
-        } : undefined}
+        originalProposal={
+          freight.service_type === "CARGA" || !freight.service_type
+            ? {
+                id: freight.id,
+                proposed_price: freight.price,
+                message: "Proposta do produtor",
+                driver_name: "Produtor",
+              }
+            : undefined
+        }
         onSuccess={() => {
           setProposalModalOpen(false);
-          if (onAction) onAction('propose');
+          if (onAction) onAction("propose");
         }}
       />
 
@@ -839,20 +834,23 @@ export const FreightCard: React.FC<FreightCardProps> = ({
       <CompanyDriverSelectModal
         isOpen={driverSelectModalOpen}
         onClose={() => setDriverSelectModalOpen(false)}
-        drivers={(drivers || []).filter(d => d.status === 'ACTIVE' || d.status === 'APPROVED').map(d => ({
-          id: d.driver.id,
-          full_name: d.driver.full_name,
-          status: d.status
-        }))}
+        drivers={(drivers || [])
+          .filter((d) => d.status === "ACTIVE" || d.status === "APPROVED")
+          .map((d) => ({
+            id: d.driver.id,
+            full_name: d.driver.full_name,
+            status: d.status,
+          }))}
         onSelectDriver={handleCompanyAcceptWithDriver}
         freight={{
           cargo_type: getCargoTypeLabel(freight.cargo_type),
           origin_address: freight.origin_address,
           destination_address: freight.destination_address,
-          price: freight.price
+          price: freight.price,
         }}
       />
     </Card>
   );
 };
+
 export default FreightCard;
