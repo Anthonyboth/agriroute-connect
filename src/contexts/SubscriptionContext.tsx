@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useLocation } from 'react-router-dom';
+import { forceLogoutAndRedirect } from '@/utils/authRecovery';
 
 export type SubscriptionTier = 'FREE' | 'ESSENTIAL' | 'PROFESSIONAL';
 
@@ -133,6 +134,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         
         if (!accessToken) {
           console.warn('[SubscriptionContext] No valid access token available');
+          // Se o app acredita que há usuário mas não há token válido, forçar logout.
+          await forceLogoutAndRedirect('/auth');
           break;
         }
         
@@ -159,6 +162,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
               await new Promise(resolve => setTimeout(resolve, 300));
               continue; // Retry com novo token
             }
+          }
+
+          // Sessão inválida e não conseguimos recuperar → logout para evitar loop de 401.
+          if (isSessionError) {
+            await forceLogoutAndRedirect('/auth');
+            return;
           }
           
           if (error) throw error;
