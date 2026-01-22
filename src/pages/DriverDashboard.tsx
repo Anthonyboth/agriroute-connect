@@ -1416,8 +1416,14 @@ const DriverDashboard = () => {
       setActiveTab('ongoing');
     };
     
+    // Escutar ambos os eventos: freight:accepted (fretes rurais) e service_request:accepted (MOTO/GUINCHO/MUDANÇA)
     window.addEventListener('freight:accepted', handleFreightAccepted as EventListener);
-    return () => window.removeEventListener('freight:accepted', handleFreightAccepted as EventListener);
+    window.addEventListener('service_request:accepted', handleFreightAccepted as EventListener);
+    
+    return () => {
+      window.removeEventListener('freight:accepted', handleFreightAccepted as EventListener);
+      window.removeEventListener('service_request:accepted', handleFreightAccepted as EventListener);
+    };
   }, [queryClient, fetchOngoingFreights, fetchMyAssignments, fetchAvailableFreights]);
 
   // ✅ CORREÇÃO: Criar versões debounced das funções de fetch
