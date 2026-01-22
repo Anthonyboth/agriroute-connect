@@ -6,6 +6,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * SECURITY: Generate a cryptographically secure random password
+ * Uses Web Crypto API for secure random number generation
+ */
+function generateSecurePassword(length: number = 16): string {
+  const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*';
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  return Array.from(array)
+    .map(x => charset[x % charset.length])
+    .join('');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -60,14 +73,27 @@ serve(async (req) => {
 
     console.log('🚀 Iniciando geração de dados de teste...');
 
+    // SECURITY: Audit log for test user generation
+    await supabaseAdmin.from('audit_logs').insert({
+      user_id: user.id,
+      operation: 'GENERATE_TEST_USERS',
+      table_name: 'profiles',
+      new_data: {
+        triggered_by: user.email,
+        timestamp: new Date().toISOString(),
+      }
+    }).catch(err => console.error('Audit log error:', err));
+
     const createdUsers: any[] = [];
-    const password = 'Teste@2025';
+    const userCredentials: { email: string; password: string; role: string }[] = [];
     const tatinhaCompanyId = '76bc21ba-a7ba-48a7-8238-07a841de5759';
 
     // =============== PASSO 1: CRIAR PRODUTORES ===============
     console.log('📦 Criando 5 produtores...');
     for (let i = 1; i <= 5; i++) {
       const email = `produtor${i}@teste.com`;
+      // SECURITY: Generate unique random password for each user
+      const password = generateSecurePassword();
       
       try {
         const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -112,6 +138,7 @@ serve(async (req) => {
           console.error(`Erro ao criar profile produtor ${i}:`, profileError);
         } else {
           createdUsers.push({ email, role: 'PRODUTOR', profile_id: profile.id });
+          userCredentials.push({ email, password, role: 'PRODUTOR' });
           console.log(`✅ Produtor ${i} criado: ${email}, Profile ID: ${profile.id}`);
         }
       } catch (e: any) {
@@ -123,6 +150,8 @@ serve(async (req) => {
     console.log('🚗 Criando 5 motoristas autônomos...');
     for (let i = 1; i <= 5; i++) {
       const email = `motorista${i}@teste.com`;
+      const password = generateSecurePassword();
+      
       const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -169,6 +198,7 @@ serve(async (req) => {
         console.error(`Erro ao criar profile motorista ${i}:`, profileError);
       } else {
         createdUsers.push({ email, role: 'MOTORISTA', profile_id: profile.id });
+        userCredentials.push({ email, password, role: 'MOTORISTA' });
         console.log(`✅ Motorista ${i} criado: ${email}`);
       }
     }
@@ -177,6 +207,8 @@ serve(async (req) => {
     console.log('🔧 Criando 5 prestadores de serviço...');
     for (let i = 1; i <= 5; i++) {
       const email = `prestador${i}@teste.com`;
+      const password = generateSecurePassword();
+      
       const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -214,6 +246,7 @@ serve(async (req) => {
         console.error(`Erro ao criar profile prestador ${i}:`, profileError);
       } else {
         createdUsers.push({ email, role: 'PRESTADOR_SERVICOS', profile_id: profile.id });
+        userCredentials.push({ email, password, role: 'PRESTADOR_SERVICOS' });
         console.log(`✅ Prestador ${i} criado: ${email}`);
       }
     }
@@ -224,6 +257,8 @@ serve(async (req) => {
     
     for (let i = 1; i <= 5; i++) {
       const email = `afiliado${i}@teste.com`;
+      const password = generateSecurePassword();
+      
       const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -273,6 +308,7 @@ serve(async (req) => {
 
       affiliatedDriverIds.push(profile.id);
       createdUsers.push({ email, role: 'MOTORISTA_AFILIADO', profile_id: profile.id });
+      userCredentials.push({ email, password, role: 'MOTORISTA_AFILIADO' });
       console.log(`✅ Motorista Afiliado ${i} criado: ${email}`);
 
       // Vincular à Tatinha Transportes
@@ -440,9 +476,12 @@ serve(async (req) => {
     }
 
     // =============== RELATÓRIO FINAL ===============
+    // SECURITY: Return credentials only in this response - they are not stored
+    // Admin should save them securely or distribute to test users
     const report = {
       success: true,
       timestamp: new Date().toISOString(),
+      security_notice: 'ATENÇÃO: As senhas são geradas aleatoriamente e exibidas apenas uma vez. Salve-as agora pois não poderão ser recuperadas.',
       users_created: {
         PRODUTOR: createdUsers.filter(u => u.role === 'PRODUTOR').length,
         MOTORISTA: createdUsers.filter(u => u.role === 'MOTORISTA').length,
@@ -450,10 +489,7 @@ serve(async (req) => {
         MOTORISTA_AFILIADO: createdUsers.filter(u => u.role === 'MOTORISTA_AFILIADO').length,
         TOTAL: createdUsers.length,
       },
-      credentials: {
-        password,
-        users: createdUsers.map(u => ({ email: u.email, role: u.role })),
-      },
+      credentials: userCredentials,
       services_created: {
         GUINCHO: 3,
         RURAL: 3,
@@ -466,25 +502,18 @@ serve(async (req) => {
     };
 
     console.log('✅ Geração completa!');
-    console.log(JSON.stringify(report, null, 2));
+    console.log(`Total de usuários criados: ${createdUsers.length}`);
 
     return new Response(
       JSON.stringify(report),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
-    console.error('❌ Erro na geração:', error);
+  } catch (error) {
+    console.error('Erro na geração de dados de teste:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message,
-        stack: error.stack 
-      }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ error: error.message }), 
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
