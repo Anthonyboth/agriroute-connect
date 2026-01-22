@@ -10,9 +10,8 @@ import { MapPin, Package, Truck, Calendar, DollarSign, ArrowRight, Wrench, Home,
 import { getCargoTypeLabel } from "@/lib/cargo-types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { formatTons, formatKm, formatBRL, formatDate } from "@/lib/formatters";
-import { formatDistanceToNowStrict } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatTons, formatKm, formatBRL, formatDate, formatSolicitadoHa } from "@/lib/formatters";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FreightCardProps {
   freight: {
@@ -151,18 +150,21 @@ const OptimizedFreightCard = memo<FreightCardProps>(
       }
     }, []);
 
-    // ✅ "Solicitado há X dias" (sem minutos)
-    const requestedDaysLabel = React.useMemo(() => {
-      const base = freight.created_at || freight.pickup_date; // fallback seguro
+    // ✅ "Solicitado há X dias" usando função padronizada
+    const requestedTimeInfo = React.useMemo(() => {
+      const base = freight.created_at || freight.pickup_date;
       if (!base) return null;
 
       try {
-        // força "dias" (minutos não aparecem)
-        return formatDistanceToNowStrict(new Date(base), {
-          locale: ptBR,
-          addSuffix: true,
-          unit: "day",
+        const label = formatSolicitadoHa(base);
+        const exactDate = new Date(base).toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
         });
+        return { label, exactDate };
       } catch {
         return null;
       }
@@ -232,12 +234,21 @@ const OptimizedFreightCard = memo<FreightCardProps>(
                 {serviceLabel}
               </Badge>
 
-              {/* ✅ Tempo em DIAS (conforme pedido) */}
-              {requestedDaysLabel && (
-                <Badge variant="secondary" className="text-sm px-3 py-1 flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Solicitado {requestedDaysLabel}
-                </Badge>
+              {/* ✅ Tempo com tooltip da data exata */}
+              {requestedTimeInfo && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="secondary" className="text-sm px-3 py-1 flex items-center gap-2 cursor-help">
+                        <Clock className="h-4 w-4" />
+                        {requestedTimeInfo.label}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Criado em {requestedTimeInfo.exactDate}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
 
               {/* Badge de capacidade máxima para moto */}
