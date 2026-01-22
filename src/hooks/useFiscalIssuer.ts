@@ -34,7 +34,7 @@ export interface FiscalIssuer {
   created_at: string;
   updated_at: string;
 
-  // opcionais (não quebrar caso existam)
+  // opcionais
   status_reason?: string;
   sefaz_status?: string;
   sefaz_validated_at?: string;
@@ -46,6 +46,9 @@ export interface FiscalIssuer {
   blocked_at?: string;
   blocked_by?: string;
   block_reason?: string;
+
+  // se existir no schema
+  terms_accepted_at?: string;
 }
 
 export interface FiscalCertificate {
@@ -150,9 +153,8 @@ export function useFiscalIssuer() {
       // ✅ ISSUER: perfil_id (não profile_id)
       const issuerRes = await (supabase as any)
         .from("fiscal_issuers")
-        // selecione campos mínimos pra evitar inferência pesada
         .select(
-          "id, perfil_id, document_type, document_number, legal_name, city, uf, fiscal_environment, status, created_at, updated_at",
+          "id, perfil_id, document_type, document_number, legal_name, city, uf, fiscal_environment, status, created_at, updated_at, terms_accepted_at",
         )
         .eq("perfil_id", profile.id)
         .maybeSingle();
@@ -348,12 +350,98 @@ export function useFiscalIssuer() {
     [issuer, fetchIssuer],
   );
 
+  // ✅ VOLTOU: validação SEFAZ
+  const validateWithSefaz = useCallback(async (): Promise<boolean> => {
+    if (!issuer) {
+      toast.error("Nenhum emissor fiscal encontrado");
+      return false;
+    }
+
+    if (!certificate) {
+      toast.error("Certificado digital não encontrado");
+      return false;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data: result, error: fnError } = await supabase.functions.invoke("fiscal-sefaz-validation", {
+        body: { issuer_id: issuer.id },
+      });
+
+      if (fnError) throw new Error(fnError.message || "Erro na validação SEFAZ");
+      if ((result as any)?.error) throw new Error((result as any).error);
+
+      if ((result as any)?.success) {
+        toast.success("Validação SEFAZ concluída com sucesso!");
+        await fetchIssuer();
+        return true;
+      }
+
+      throw new Error((result as any)?.message || "Falha na validação SEFAZ");
+    } catch (err: any) {
+      const message = err?.message || "Erro na validação SEFAZ";
+      setError(message);
+      toast.error(message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [issuer, certificate, fetchIssuer]);
+
+  // ✅ VOLTOU: aceitar termos
+  const acceptTerms = useCallback(async (): Promise<boolean> => {
+    if (!issuer) {
+      toast.error("Nenhum emissor fiscal encontrado");
+      return false;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // registra aceite (se a tabela existir)
+      const { error: acceptError } = await (supabase as any).from("fiscal_terms_acceptances").upsert({
+        issuer_id: issuer.id,
+        term_version: "2.0",
+        accepted_at: new Date().toISOString(),
+        ip_address: null,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+        document_hash: "FISCAL_TERMS_V2_HASH",
+      });
+
+      if (acceptError) throw acceptError;
+
+      // atualiza issuer
+      const { error: updateError } = await (supabase as any)
+        .from("fiscal_issuers")
+        .update({
+          terms_accepted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", issuer.id);
+
+      if (updateError) throw updateError;
+
+      toast.success("Termo de responsabilidade aceito");
+      await fetchIssuer();
+      return true;
+    } catch (err: any) {
+      const message = err?.message || "Erro ao aceitar termos";
+      setError(message);
+      toast.error(message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [issuer, fetchIssuer]);
+
   const getOnboardingProgress = useCallback(() => {
     if (!issuer) return { step: 0, total: 5, label: "Não iniciado", canEmit: false };
 
     const s = String(issuer.status || "").toUpperCase();
 
-    // ✅ cobre status em snake_case e em UPPER_CASE
     if (s === "PENDING") return { step: 1, total: 5, label: "Cadastro pendente", canEmit: false };
     if (s === "DOCUMENT_VALIDATED") return { step: 2, total: 5, label: "Documentos validados", canEmit: false };
     if (s === "CERTIFICATE_PENDING") return { step: 2, total: 5, label: "Certificado pendente", canEmit: false };
@@ -390,18 +478,26 @@ export function useFiscalIssuer() {
   }, [fetchIssuer]);
 
   return {
-    loading,
-    error,
-    issuer,
-    certificate,
-    wallet,
+    loading: !!loading,
+    error: error || "",
+
+    issuer: issuer as any,
+    certificate: certificate as any,
+    wallet: wallet as any,
+
     fetchIssuer,
     registerIssuer,
     updateIssuer,
     uploadCertificate,
+
+    // ✅ voltaram pro retorno
+    validateWithSefaz,
+    acceptTerms,
+
     getOnboardingProgress,
     isCertificateValid,
     getCertificateDaysUntilExpiry,
+
     clearError: () => setError(null),
   };
 }
