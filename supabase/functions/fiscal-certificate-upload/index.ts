@@ -13,19 +13,19 @@ const UploadCertificateSchema = z.object({
   file_name: z.string().max(255).optional(),
 });
 
+function json(status: number, payload: Record<string, unknown>) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader) return json(401, { error: "Não autorizado" });
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -37,71 +37,59 @@ Deno.serve(async (req) => {
       error: authError,
     } = await supabase.auth.getUser(token);
 
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Token inválido" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (authError || !user) return json(401, { error: "Token inválido" });
 
-    // Profile do usuário logado
+    // perfil do usuário logado
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("id")
       .eq("user_id", user.id)
       .single();
 
-    if (profileError || !profile) {
-      return new Response(JSON.stringify({ error: "Perfil não encontrado" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (profileError || !profile) return json(404, { error: "Perfil não encontrado" });
 
+    // validar payload
     const body = await req.json();
     const validation = UploadCertificateSchema.safeParse(body);
 
     if (!validation.success) {
-      return new Response(
-        JSON.stringify({
-          error: "Dados inválidos",
-          details: validation.error.errors.map((e) => ({
-            field: e.path.join("."),
-            message: e.message,
-          })),
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return json(400, {
+        error: "Dados inválidos",
+        details: validation.error.errors.map((e) => ({
+          field: e.path.join("."),
+          message: e.message,
+        })),
+      });
     }
 
     const { issuer_id, certificate_base64, certificate_password, file_name } = validation.data;
 
     /**
-     * ✅ AQUI ESTÁ A CORREÇÃO:
-     * Sua coluna é `perfil_id` (não `profile_id`)
+     * ✅ BLINDADO:
+     * Não referenciamos perfil_id/profile_id no SQL (porque pode variar por ambiente).
+     * Buscamos por ID e depois checamos o dono lendo o campo que existir.
      */
     const { data: issuer, error: issuerError } = await supabase
       .from("fiscal_issuers")
-      .select("id, perfil_id, status")
+      .select("*")
       .eq("id", issuer_id)
       .single();
 
-    if (issuerError || !issuer) {
-      return new Response(JSON.stringify({ error: "Emissor fiscal não encontrado" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (issuerError || !issuer) return json(404, { error: "Emissor fiscal não encontrado" });
+
+    const ownerId = (issuer as any).perfil_id ?? (issuer as any).profile_id ?? (issuer as any).profileId ?? null;
+
+    if (!ownerId) {
+      return json(500, {
+        error: "Schema inconsistente: emissor fiscal sem campo de vínculo de perfil (perfil_id/profile_id).",
       });
     }
 
-    // ✅ conferir dono
-    if ((issuer as any).perfil_id !== profile.id) {
-      return new Response(JSON.stringify({ error: "Você não tem permissão para este emissor" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (ownerId !== profile.id) {
+      return json(403, { error: "Você não tem permissão para este emissor" });
     }
 
-    // Decode base64
+    // decode base64
     let certificateBytes: Uint8Array;
     try {
       const binaryString = atob(certificate_base64);
@@ -110,32 +98,24 @@ Deno.serve(async (req) => {
         certificateBytes[i] = binaryString.charCodeAt(i);
       }
     } catch {
-      return new Response(JSON.stringify({ error: "Formato de certificado inválido" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(400, { error: "Formato de certificado inválido (base64)" });
     }
 
     if (certificateBytes.length > 10 * 1024 * 1024) {
-      return new Response(JSON.stringify({ error: "Certificado muito grande. Máximo: 10MB" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(400, { error: "Certificado muito grande. Máximo: 10MB" });
     }
 
-    const isValidFormat = certificateBytes[0] === 0x30 || (certificateBytes.length > 4 && certificateBytes[0] === 0x00);
-
-    if (!isValidFormat && certificateBytes.length < 100) {
-      return new Response(JSON.stringify({ error: "Arquivo não parece ser um certificado válido" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // validação simples (PKCS12 costuma iniciar com 0x30)
+    const looksPkcs12 = certificateBytes[0] === 0x30 || certificateBytes[0] === 0x00;
+    if (!looksPkcs12 && certificateBytes.length < 100) {
+      return json(400, { error: "Arquivo não parece ser um certificado válido (.pfx/.p12)" });
     }
 
     const timestamp = Date.now();
     const safeFileName = (file_name || "certificate.pfx").replace(/[^a-zA-Z0-9.-]/g, "_");
     const storagePath = `certificates/${issuer_id}/${timestamp}_${safeFileName}`;
 
+    // upload storage
     const { error: uploadError } = await supabase.storage
       .from("fiscal-certificates")
       .upload(storagePath, certificateBytes, {
@@ -145,15 +125,12 @@ Deno.serve(async (req) => {
 
     if (uploadError) {
       console.error("[fiscal-certificate-upload] Storage error:", uploadError);
-      return new Response(JSON.stringify({ error: "Erro ao armazenar certificado", details: uploadError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(500, { error: "Erro ao armazenar certificado", details: uploadError.message });
     }
 
-    // Simulado (ideal seria parsear PKCS12)
+    // (simulado) datas
     const now = new Date();
-    const validFrom = now.toISOString();
+    const validFrom = new Date().toISOString();
     const validUntil = new Date(now.setFullYear(now.getFullYear() + 1)).toISOString();
 
     // desativar anteriores
@@ -163,6 +140,7 @@ Deno.serve(async (req) => {
       .eq("issuer_id", issuer_id)
       .eq("is_valid", true);
 
+    // registrar
     const { data: certificate, error: certError } = await supabase
       .from("fiscal_certificates")
       .insert({
@@ -182,16 +160,15 @@ Deno.serve(async (req) => {
       .single();
 
     if (certError) {
-      console.error("[fiscal-certificate-upload] Certificate record error:", certError);
+      console.error("[fiscal-certificate-upload] DB insert error:", certError);
+
+      // rollback storage
       await supabase.storage.from("fiscal-certificates").remove([storagePath]);
 
-      return new Response(JSON.stringify({ error: "Erro ao registrar certificado", details: certError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(500, { error: "Erro ao registrar certificado", details: certError.message });
     }
 
-    // ✅ status do issuer (mantém o seu padrão atual)
+    // atualizar status do issuer (não depende de coluna perfil_id/profile_id)
     const { error: updateError } = await supabase
       .from("fiscal_issuers")
       .update({
@@ -202,28 +179,23 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error("[fiscal-certificate-upload] Issuer update error:", updateError);
+      // não fatal
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        certificate: {
-          id: certificate.id,
-          certificate_type: certificate.certificate_type,
-          valid_from: certificate.valid_from,
-          valid_until: certificate.valid_until,
-          is_valid: certificate.is_valid,
-          status: certificate.status,
-        },
-        message: "Certificado enviado com sucesso",
-      }),
-      { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return json(201, {
+      success: true,
+      message: "Certificado enviado com sucesso",
+      certificate: {
+        id: certificate.id,
+        certificate_type: certificate.certificate_type,
+        valid_from: certificate.valid_from,
+        valid_until: certificate.valid_until,
+        is_valid: certificate.is_valid,
+        status: certificate.status,
+      },
+    });
   } catch (error: any) {
     console.error("[fiscal-certificate-upload] Unexpected error:", error);
-    return new Response(JSON.stringify({ error: "Erro interno do servidor", details: error?.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json(500, { error: "Erro interno do servidor", details: error?.message });
   }
 });
