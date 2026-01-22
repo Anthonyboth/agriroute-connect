@@ -16,8 +16,6 @@ export type IssuerStatus =
 
 export interface FiscalIssuer {
   id: string;
-
-  // ✅ no seu banco: fiscal_issuers.perfil_id
   perfil_id: string;
 
   document_type?: string;
@@ -30,15 +28,11 @@ export interface FiscalIssuer {
 
   fiscal_environment?: string;
 
-  // pode vir em formatos diferentes (ex: CERTIFICATE_UPLOADED)
   status: string;
 
   created_at: string;
   updated_at: string;
 
-  terms_accepted_at?: string;
-
-  // opcionais
   status_reason?: string;
   sefaz_status?: string;
   sefaz_validated_at?: string;
@@ -50,6 +44,8 @@ export interface FiscalIssuer {
   blocked_at?: string;
   blocked_by?: string;
   block_reason?: string;
+
+  terms_accepted_at?: string;
 }
 
 export interface FiscalCertificate {
@@ -64,7 +60,6 @@ export interface FiscalCertificate {
   valid_from?: string;
   valid_until?: string;
 
-  // ✅ schema da edge function
   is_valid?: boolean;
   is_expired?: boolean;
   status?: string;
@@ -110,104 +105,112 @@ export interface RegisterIssuerData {
   telefone_fiscal?: string;
 }
 
-// -----------------------------
-// Helpers de erro (Supabase v2)
-// -----------------------------
-type FnErrorPayload =
-  | { error?: string; message?: string; details?: any }
-  | { [k: string]: any }
-  | string
-  | null
-  | undefined;
+export type UseFiscalIssuerReturn = {
+  loading: boolean;
+  error: string | null;
 
-function safeJsonParse(str: string) {
-  try {
-    return JSON.parse(str);
-  } catch {
+  issuer: FiscalIssuer | null;
+  certificate: FiscalCertificate | null;
+  wallet: FiscalWallet | null;
+
+  fetchIssuer: () => Promise<FiscalIssuer | null>;
+  registerIssuer: (data: RegisterIssuerData) => Promise<FiscalIssuer | null>;
+  updateIssuer: (updates: Partial<RegisterIssuerData>) => Promise<boolean>;
+  uploadCertificate: (file: File, password: string) => Promise<boolean>;
+
+  validateWithSefaz: () => Promise<boolean>;
+  acceptTerms: () => Promise<boolean>;
+
+  getOnboardingProgress: () => { step: number; total: number; label: string; canEmit: boolean };
+  isCertificateValid: () => boolean;
+  getCertificateDaysUntilExpiry: () => number | null;
+
+  clearError: () => void;
+};
+
+// ✅ Extrai a mensagem REAL do invoke (context.body / Response / etc)
+async function getEdgeFunctionErrorMessage(fnError: any, fallback: string): Promise<string> {
+  let message = fnError?.message || fallback;
+
+  // 1) Caso mais comum: context.body (string ou objeto)
+  const ctx = fnError?.context;
+
+  const tryExtractFromPayload = (payload: any) => {
+    if (!payload) return null;
+
+    // Edge function costuma devolver { error, details, message }
+    const err = typeof payload?.error === "string" ? payload.error : null;
+    const msg = typeof payload?.message === "string" ? payload.message : null;
+
+    // details pode vir string ou array
+    let details: string | null = null;
+    if (typeof payload?.details === "string") details = payload.details;
+    if (Array.isArray(payload?.details)) {
+      // zod errors -> [{field,message}]
+      const lines = payload.details
+        .map((d: any) => {
+          const f = d?.field ? `${d.field}: ` : "";
+          const m = d?.message ? String(d.message) : "";
+          return `${f}${m}`.trim();
+        })
+        .filter(Boolean);
+      if (lines.length) details = lines.join(" | ");
+    }
+
+    const main = err || msg;
+    if (main && details) return `${main} (${details})`;
+    if (main) return main;
+    if (details) return details;
+
     return null;
-  }
-}
+  };
 
-function buildErrorText(payload: any, fallback: string) {
-  if (!payload) return fallback;
+  // 1a) context.body
+  if (ctx && typeof ctx === "object" && "body" in ctx && (ctx as any).body) {
+    const body = (ctx as any).body;
 
-  // payload string (às vezes vem como texto puro)
-  if (typeof payload === "string") {
-    const parsed = safeJsonParse(payload);
-    if (parsed) return buildErrorText(parsed, fallback);
-    return payload || fallback;
-  }
-
-  // payload objeto
-  const main =
-    (typeof payload.error === "string" && payload.error) ||
-    (typeof payload.message === "string" && payload.message) ||
-    fallback;
-
-  // details pode ser string ou array/obj
-  const details =
-    typeof payload.details === "string"
-      ? payload.details
-      : Array.isArray(payload.details)
-        ? payload.details.map((d: any) => d?.message || JSON.stringify(d)).join(" | ")
-        : payload.details
-          ? JSON.stringify(payload.details)
-          : "";
-
-  return details ? `${main} — ${details}` : main;
-}
-
-async function extractFunctionError(
-  fnError: any,
-  fallback: string,
-): Promise<{ message: string; raw: any; status?: number }> {
-  const status: number | undefined = fnError?.context?.status ?? fnError?.status ?? undefined;
-
-  // 1) context.body (muito comum no supabase-js v2)
-  const bodyFromContext = fnError?.context?.body as FnErrorPayload;
-  if (bodyFromContext) {
-    return {
-      message: buildErrorText(bodyFromContext, fallback),
-      raw: bodyFromContext,
-      status,
-    };
+    if (typeof body === "string") {
+      try {
+        const parsed = JSON.parse(body);
+        const extracted = tryExtractFromPayload(parsed);
+        if (extracted) return extracted;
+      } catch {
+        // body pode ser string pura
+        if (body.trim().length) return body;
+      }
+    } else {
+      const extracted = tryExtractFromPayload(body);
+      if (extracted) return extracted;
+    }
   }
 
-  // 2) context.response (às vezes vem um Response)
-  const maybeResponse = fnError?.context as any;
-  if (maybeResponse && typeof maybeResponse === "object" && typeof (maybeResponse as Response).clone === "function") {
+  // 2) Algumas versões: context.response (obj)
+  if (ctx && typeof ctx === "object" && "response" in ctx && (ctx as any).response) {
+    const extracted = tryExtractFromPayload((ctx as any).response);
+    if (extracted) return extracted;
+  }
+
+  // 3) Se por acaso vier um Response de verdade
+  if (ctx && typeof ctx === "object" && typeof (ctx as Response).clone === "function") {
     try {
-      const cloned = (maybeResponse as Response).clone();
-      const text = await cloned.text();
-      const parsed = safeJsonParse(text);
-      return {
-        message: buildErrorText(parsed ?? text, fallback),
-        raw: parsed ?? text,
-        status: (maybeResponse as Response).status ?? status,
-      };
+      const payload = await (ctx as Response).clone().json();
+      const extracted = tryExtractFromPayload(payload);
+      if (extracted) return extracted;
     } catch {
       // ignore
     }
   }
 
-  // 3) message padrão do erro
-  const msg = (fnError?.message && String(fnError.message)) || fallback;
-  return { message: msg, raw: fnError, status };
+  return message;
 }
 
-export function useFiscalIssuer() {
+export function useFiscalIssuer(): UseFiscalIssuerReturn {
   const [loading, setLoading] = useState<boolean>(false);
   const [issuer, setIssuer] = useState<FiscalIssuer | null>(null);
   const [certificate, setCertificate] = useState<FiscalCertificate | null>(null);
   const [wallet, setWallet] = useState<FiscalWallet | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * ✅ IMPORTANTE:
-   * - usamos (supabase as any) para evitar TS2589 (inferência profunda)
-   * - buscamos issuer por "perfil_id" (seu schema real)
-   * - buscamos certificado preferindo is_valid=true
-   */
   const fetchIssuer = useCallback(async (): Promise<FiscalIssuer | null> => {
     setLoading(true);
     setError(null);
@@ -223,16 +226,19 @@ export function useFiscalIssuer() {
         return null;
       }
 
-      const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).single();
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
 
-      if (!profile?.id) {
+      if (profileError || !profile?.id) {
         setIssuer(null);
         setCertificate(null);
         setWallet(null);
         return null;
       }
 
-      // ✅ ISSUER: perfil_id (não profile_id)
       const issuerRes = await (supabase as any)
         .from("fiscal_issuers")
         .select(
@@ -262,11 +268,9 @@ export function useFiscalIssuer() {
         .maybeSingle();
 
       const issuerError = issuerRes?.error;
-      if (issuerError && (issuerError as any)?.code !== "PGRST116") {
-        throw issuerError;
-      }
+      if (issuerError && (issuerError as any)?.code !== "PGRST116") throw issuerError;
 
-      const rawIssuer = issuerRes?.data as any;
+      const rawIssuer = (issuerRes?.data as any) ?? null;
       if (!rawIssuer) {
         setIssuer(null);
         setCertificate(null);
@@ -292,7 +296,6 @@ export function useFiscalIssuer() {
 
       setIssuer(issuerData);
 
-      // ✅ CERTIFICADO: prioriza válido
       let cert: FiscalCertificate | null = null;
 
       const validCertRes = await (supabase as any)
@@ -320,7 +323,6 @@ export function useFiscalIssuer() {
 
       setCertificate(cert);
 
-      // ✅ WALLET
       const walletRes = await (supabase as any)
         .from("fiscal_wallet")
         .select("*")
@@ -331,7 +333,7 @@ export function useFiscalIssuer() {
 
       return issuerData;
     } catch (err: any) {
-      console.error("[FISCAL] fetchIssuer error:", err);
+      console.error("[FISCAL] Error fetching issuer:", err);
       setError(err?.message || "Erro ao buscar emissor fiscal");
       return null;
     } finally {
@@ -350,9 +352,8 @@ export function useFiscalIssuer() {
         });
 
         if (fnError) {
-          const extracted = await extractFunctionError(fnError, "Erro ao cadastrar emissor fiscal");
-          console.error("[FISCAL] fiscal-issuer-register error:", extracted);
-          throw new Error(extracted.message);
+          const msg = await getEdgeFunctionErrorMessage(fnError, "Erro ao cadastrar emissor fiscal");
+          throw new Error(msg);
         }
 
         if ((result as any)?.error) throw new Error((result as any).error);
@@ -385,10 +386,7 @@ export function useFiscalIssuer() {
       try {
         const { error: updateError } = await (supabase as any)
           .from("fiscal_issuers")
-          .update({
-            ...updates,
-            updated_at: new Date().toISOString(),
-          })
+          .update({ ...updates, updated_at: new Date().toISOString() })
           .eq("id", issuer.id);
 
         if (updateError) throw updateError;
@@ -408,7 +406,6 @@ export function useFiscalIssuer() {
     [issuer, fetchIssuer],
   );
 
-  // ✅ UPLOAD CERTIFICADO (agora mostrando o erro REAL)
   const uploadCertificate = useCallback(
     async (file: File, password: string): Promise<boolean> => {
       if (!issuer) {
@@ -420,7 +417,6 @@ export function useFiscalIssuer() {
       setError(null);
 
       try {
-        // Convert file to base64 (sem prefixo data:)
         const base64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.readAsDataURL(file);
@@ -442,35 +438,20 @@ export function useFiscalIssuer() {
         });
 
         if (fnError) {
-          const extracted = await extractFunctionError(fnError, "Não foi possível enviar o certificado");
-          console.error("[FISCAL] fiscal-certificate-upload error:", extracted);
-
-          // Mostra no toast a mensagem real e, se for muito longa, coloca o resto no console
-          const title = extracted.status
-            ? `Erro (${extracted.status}) ao enviar certificado`
-            : "Erro ao enviar certificado";
-          toast.error(title, { description: extracted.message });
-
-          setError(extracted.message);
-          return false;
+          const msg = await getEdgeFunctionErrorMessage(fnError, "Não foi possível enviar o certificado");
+          throw new Error(msg);
         }
 
-        if ((result as any)?.error) {
-          const msg = String((result as any)?.error);
-          console.error("[FISCAL] fiscal-certificate-upload result.error:", result);
-          toast.error("Erro ao enviar certificado", { description: msg });
-          setError(msg);
-          return false;
-        }
+        if ((result as any)?.error) throw new Error((result as any).error);
 
         toast.success("Certificado digital enviado com sucesso!");
         await fetchIssuer();
         return true;
       } catch (err: any) {
-        console.error("[FISCAL] uploadCertificate exception:", err);
         const message = err?.message || "Não foi possível enviar o certificado";
+        console.error("[FISCAL] uploadCertificate error:", err);
         setError(message);
-        toast.error("Erro ao enviar certificado", { description: message });
+        toast.error(message); // ✅ agora sai o erro REAL
         return false;
       } finally {
         setLoading(false);
@@ -499,11 +480,8 @@ export function useFiscalIssuer() {
       });
 
       if (fnError) {
-        const extracted = await extractFunctionError(fnError, "Erro na validação SEFAZ");
-        console.error("[FISCAL] fiscal-sefaz-validation error:", extracted);
-        toast.error("Erro na validação SEFAZ", { description: extracted.message });
-        setError(extracted.message);
-        return false;
+        const msg = await getEdgeFunctionErrorMessage(fnError, "Erro na validação SEFAZ");
+        throw new Error(msg);
       }
 
       if ((result as any)?.error) throw new Error((result as any).error);
@@ -518,7 +496,7 @@ export function useFiscalIssuer() {
     } catch (err: any) {
       const message = err?.message || "Erro na validação SEFAZ";
       setError(message);
-      toast.error("Erro na validação SEFAZ", { description: message });
+      toast.error(message);
       return false;
     } finally {
       setLoading(false);
@@ -564,7 +542,7 @@ export function useFiscalIssuer() {
     } catch (err: any) {
       const message = err?.message || "Erro ao aceitar termos";
       setError(message);
-      toast.error("Erro ao aceitar termos", { description: message });
+      toast.error(message);
       return false;
     } finally {
       setLoading(false);
