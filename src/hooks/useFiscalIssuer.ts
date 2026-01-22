@@ -28,11 +28,13 @@ export interface FiscalIssuer {
 
   fiscal_environment: string;
 
+  // pode vir em formatos diferentes (ex: CERTIFICATE_UPLOADED)
   status: string;
 
   created_at: string;
   updated_at: string;
 
+  // opcionais (depende do schema)
   status_reason?: string;
   sefaz_status?: string;
   sefaz_validated_at?: string;
@@ -44,7 +46,6 @@ export interface FiscalIssuer {
   blocked_at?: string;
   blocked_by?: string;
   block_reason?: string;
-
   terms_accepted_at?: string;
 }
 
@@ -52,14 +53,18 @@ export interface FiscalCertificate {
   id: string;
   issuer_id: string;
   certificate_type: "A1" | "A3";
+
   subject_cn?: string;
   issuer_cn?: string;
   serial_number?: string;
+
   valid_from?: string;
   valid_until?: string;
+
   is_valid?: boolean;
   is_expired?: boolean;
   status?: string;
+
   storage_path?: string;
   uploaded_at?: string;
   created_at: string;
@@ -101,8 +106,8 @@ export interface RegisterIssuerData {
   telefone_fiscal?: string;
 }
 
+// 🔥 extrai erro real do supabase.functions.invoke (para não ficar genérico)
 async function extractFunctionError(fnError: any): Promise<{ title: string; description?: string }> {
-  // padrão supabase: message genérica + context (Response)
   let title = fnError?.message || "Erro ao executar função";
   let description: string | undefined;
 
@@ -111,9 +116,12 @@ async function extractFunctionError(fnError: any): Promise<{ title: string; desc
     try {
       const payload = await (ctx as Response).clone().json();
       if (payload?.error) title = String(payload.error);
-      if (payload?.details)
+      if (payload?.details) {
         description = typeof payload.details === "string" ? payload.details : JSON.stringify(payload.details);
-      if (payload?.version) description = description ? `${description} | ${payload.version}` : String(payload.version);
+      }
+      if (payload?.version) {
+        description = description ? `${description} | ${payload.version}` : String(payload.version);
+      }
     } catch {
       // ignore
     }
@@ -129,6 +137,12 @@ export function useFiscalIssuer() {
   const [wallet, setWallet] = useState<FiscalWallet | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * ✅ IMPORTANTE:
+   * - usamos (supabase as any) para evitar TS2589 (inferência profunda do Supabase)
+   * - buscamos issuer por "profile_id"
+   * - buscamos certificado preferindo is_valid=true
+   */
   const fetchIssuer = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -167,6 +181,7 @@ export function useFiscalIssuer() {
       if (issuerRes?.error && issuerRes.error?.code !== "PGRST116") throw issuerRes.error;
 
       const issuerData = (issuerRes?.data as FiscalIssuer | null) ?? null;
+
       if (!issuerData) {
         setIssuer(null);
         setCertificate(null);
@@ -176,7 +191,7 @@ export function useFiscalIssuer() {
 
       setIssuer(issuerData);
 
-      // certificado válido primeiro
+      // ✅ CERTIFICADO: preferir válido
       let cert: FiscalCertificate | null = null;
 
       const validCertRes = await (supabase as any)
@@ -188,8 +203,9 @@ export function useFiscalIssuer() {
         .limit(1)
         .maybeSingle();
 
-      if (validCertRes?.data) cert = validCertRes.data as FiscalCertificate;
-      else {
+      if (validCertRes?.data) {
+        cert = validCertRes.data as FiscalCertificate;
+      } else {
         const lastCertRes = await (supabase as any)
           .from("fiscal_certificates")
           .select("*")
@@ -203,6 +219,7 @@ export function useFiscalIssuer() {
 
       setCertificate(cert);
 
+      // ✅ WALLET
       const walletRes = await (supabase as any)
         .from("fiscal_wallet")
         .select("*")
@@ -213,7 +230,7 @@ export function useFiscalIssuer() {
 
       return issuerData;
     } catch (err: any) {
-      console.error("[FISCAL] fetchIssuer error:", err);
+      console.error("[FISCAL] Error fetching issuer:", err);
       const msg = err?.message || "Erro ao buscar emissor fiscal";
       setError(msg);
       return null;
@@ -222,6 +239,78 @@ export function useFiscalIssuer() {
     }
   }, []);
 
+  // ✅ Register issuer (Step2 usa isso)
+  const registerIssuer = useCallback(
+    async (data: RegisterIssuerData): Promise<FiscalIssuer | null> => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { data: result, error: fnError } = await supabase.functions.invoke("fiscal-issuer-register", {
+          body: data,
+        });
+
+        if (fnError) {
+          const e = await extractFunctionError(fnError);
+          throw new Error(e.description ? `${e.title} — ${e.description}` : e.title);
+        }
+
+        if ((result as any)?.error) throw new Error(String((result as any).error));
+
+        toast.success("Emissor fiscal cadastrado com sucesso!");
+        await fetchIssuer();
+
+        return (result as any)?.issuer as FiscalIssuer;
+      } catch (err: any) {
+        const message = err?.message || "Erro ao cadastrar emissor fiscal";
+        setError(message);
+        toast.error(message);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchIssuer],
+  );
+
+  // ✅ Update issuer (mantém compatibilidade)
+  const updateIssuer = useCallback(
+    async (updates: Partial<RegisterIssuerData>): Promise<boolean> => {
+      if (!issuer) {
+        toast.error("Nenhum emissor fiscal encontrado");
+        return false;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { error: updateError } = await (supabase as any)
+          .from("fiscal_issuers")
+          .update({
+            ...updates,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", issuer.id);
+
+        if (updateError) throw updateError;
+
+        toast.success("Dados atualizados com sucesso");
+        await fetchIssuer();
+        return true;
+      } catch (err: any) {
+        const message = err?.message || "Erro ao atualizar dados";
+        setError(message);
+        toast.error(message);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [issuer, fetchIssuer],
+  );
+
+  // ✅ Upload certificate (Step4 usa isso)
   const uploadCertificate = useCallback(
     async (file: File, password: string): Promise<boolean> => {
       if (!issuer) {
@@ -271,7 +360,7 @@ export function useFiscalIssuer() {
     [issuer, fetchIssuer],
   );
 
-  // (mantive aqui só o essencial pra você não quebrar os steps)
+  // ✅ SEFAZ validation (Step4/5 pode usar)
   const validateWithSefaz = useCallback(async (): Promise<boolean> => {
     if (!issuer) {
       toast.error("Nenhum emissor fiscal encontrado");
@@ -292,9 +381,13 @@ export function useFiscalIssuer() {
       }
       if ((result as any)?.error) throw new Error(String((result as any).error));
 
-      toast.success("Validação SEFAZ concluída com sucesso!");
-      await fetchIssuer();
-      return true;
+      if ((result as any)?.success) {
+        toast.success("Validação SEFAZ concluída com sucesso!");
+        await fetchIssuer();
+        return true;
+      }
+
+      throw new Error(String((result as any)?.message || "Falha na validação SEFAZ"));
     } catch (err: any) {
       const message = err?.message || "Erro na validação SEFAZ";
       setError(message);
@@ -305,6 +398,7 @@ export function useFiscalIssuer() {
     }
   }, [issuer, fetchIssuer]);
 
+  // ✅ Accept fiscal terms (Step5 usa isso)
   const acceptTerms = useCallback(async (): Promise<boolean> => {
     if (!issuer) {
       toast.error("Nenhum emissor fiscal encontrado");
@@ -391,11 +485,14 @@ export function useFiscalIssuer() {
   return {
     loading,
     error: error || "",
+
     issuer: issuer as any,
     certificate: certificate as any,
     wallet: wallet as any,
 
     fetchIssuer,
+    registerIssuer, // ✅ voltou
+    updateIssuer, // ✅ voltou
     uploadCertificate,
 
     validateWithSefaz,
