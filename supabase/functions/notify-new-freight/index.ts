@@ -20,6 +20,9 @@ interface FreightPayload {
 /**
  * Edge function to notify nearby drivers about new freights
  * Called when a new freight is created with status OPEN
+ * 
+ * SECURITY: Requires authentication and verifies the caller owns the freight
+ * or has producer/company role to trigger notifications
  */
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -27,6 +30,38 @@ serve(async (req) => {
   }
 
   try {
+    // SECURITY: Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.warn('[NOTIFY] Unauthorized access attempt - no auth header');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Create client with anon key first to verify user
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      {
+        global: { headers: { Authorization: authHeader } }
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.warn('[NOTIFY] Invalid authentication token');
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // SECURITY: Now use service role for privileged operations (after auth verified)
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -38,10 +73,76 @@ serve(async (req) => {
     };
 
     if (!freight || !freight.id) {
-      throw new Error('Freight data is required');
+      return new Response(
+        JSON.stringify({ error: 'Freight data is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log(`[NOTIFY] Processing new freight: ${freight.id}`);
+    // SECURITY: Get user's profile to verify authorization
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!userProfile) {
+      console.warn(`[NOTIFY] User ${user.id} has no profile`);
+      return new Response(
+        JSON.stringify({ error: 'User profile not found' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // SECURITY: Verify user owns the freight or has admin role
+    const { data: freightData } = await supabase
+      .from('freights')
+      .select('producer_id, company_id')
+      .eq('id', freight.id)
+      .single();
+
+    if (!freightData) {
+      return new Response(
+        JSON.stringify({ error: 'Freight not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user is the producer or part of the company
+    const isProducer = freightData.producer_id === userProfile.id;
+    
+    let isCompanyMember = false;
+    if (freightData.company_id) {
+      const { data: companyMember } = await supabase
+        .from('company_drivers')
+        .select('id')
+        .eq('company_id', freightData.company_id)
+        .eq('driver_profile_id', userProfile.id)
+        .eq('status', 'ACTIVE')
+        .maybeSingle();
+      
+      isCompanyMember = !!companyMember;
+    }
+
+    // Check admin role
+    const { data: adminRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    const isAdmin = !!adminRole;
+
+    if (!isProducer && !isCompanyMember && !isAdmin) {
+      console.warn(`[NOTIFY] Unauthorized: User ${user.id} cannot notify for freight ${freight.id}`);
+      return new Response(
+        JSON.stringify({ error: 'Not authorized to send notifications for this freight' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[NOTIFY] Processing new freight: ${freight.id} by user ${user.id}`);
     console.log(`[NOTIFY] Route: ${freight.origin_city}/${freight.origin_state} → ${freight.destination_city}/${freight.destination_state}`);
 
     // Get freight location (origin city)
@@ -210,6 +311,18 @@ serve(async (req) => {
           ignoreDuplicates: true 
         });
     }
+
+    // SECURITY: Audit log for notification trigger
+    await supabase.from('audit_logs').insert({
+      user_id: user.id,
+      operation: 'NOTIFY_FREIGHT',
+      table_name: 'freights',
+      new_data: {
+        freight_id: freight.id,
+        drivers_notified: eligibleDrivers.length,
+        triggered_by: userProfile.id,
+      }
+    }).catch(err => console.error('[NOTIFY] Audit log error:', err));
 
     return new Response(
       JSON.stringify({ 
