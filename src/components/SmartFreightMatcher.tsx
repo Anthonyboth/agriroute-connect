@@ -84,6 +84,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCargoType, setSelectedCargoType] = useState<string>("all");
+  const [selectedVehicleType, setSelectedVehicleType] = useState<string>("all");
 
   const [matchingStats, setMatchingStats] = useState({ exactMatches: 0, fallbackMatches: 0, totalChecked: 0 });
   const [hasActiveCities, setHasActiveCities] = useState<boolean | null>(null);
@@ -530,9 +531,13 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         (freight.destination_address || "").toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesCargoType = selectedCargoType === "all" || freight.cargo_type === selectedCargoType;
-      return matchesSearch && matchesCargoType;
+      
+      // Filtro por tipo de veículo
+      const matchesVehicleType = selectedVehicleType === "all" || freight.service_type === selectedVehicleType;
+      
+      return matchesSearch && matchesCargoType && matchesVehicleType;
     });
-  }, [compatibleFreights, searchTerm, selectedCargoType]);
+  }, [compatibleFreights, searchTerm, selectedCargoType, selectedVehicleType]);
 
   const filteredRequests = useMemo(() => {
     return towingRequests.filter((r: any) => {
@@ -540,9 +545,13 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         !searchTerm ||
         (r.location_address || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (r.problem_description || "").toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesSearch;
+      
+      // Filtro por tipo de veículo para service_requests
+      const matchesVehicleType = selectedVehicleType === "all" || r.service_type === selectedVehicleType;
+      
+      return matchesSearch && matchesVehicleType;
     });
-  }, [towingRequests, searchTerm]);
+  }, [towingRequests, searchTerm, selectedVehicleType]);
 
   useEffect(() => {
     if (!onCountsChange) return;
@@ -685,6 +694,22 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                       </SelectItem>
                     ))}
                   </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro por Tipo de Veículo */}
+            <div className="w-full md:w-60">
+              <Select value={selectedVehicleType} onValueChange={setSelectedVehicleType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo de veículo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os veículos</SelectItem>
+                  <SelectItem value="CARGA">🚛 Caminhão</SelectItem>
+                  <SelectItem value="FRETE_MOTO">🏍️ Moto</SelectItem>
+                  <SelectItem value="GUINCHO">🚗 Guincho</SelectItem>
+                  <SelectItem value="MUDANCA">📦 Mudança</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -875,48 +900,59 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                             size="lg"
                             onClick={async () => {
                               try {
-                                if (!profile?.id) return;
+                                if (!profile?.id) {
+                                  toast.error("Perfil não encontrado");
+                                  return;
+                                }
 
-                                const { data: updatedRows, error } = await supabase
-                                  .from("service_requests")
-                                  .update({
-                                    provider_id: profile.id,
-                                    status: "ACCEPTED",
-                                    accepted_at: new Date().toISOString(),
-                                  })
-                                  .eq("id", r.id)
-                                  .eq("status", "OPEN")
-                                  .is("provider_id", null)
-                                  .select("id, status, provider_id, accepted_at, service_type");
+                                console.log("[SmartFreightMatcher] Tentando aceitar service_request:", {
+                                  request_id: r.id,
+                                  provider_id: profile.id,
+                                  service_type: r.service_type,
+                                  status_atual: r.status
+                                });
 
-                                if (error) throw error;
+                                // Usar RPC atômico para aceitar (SECURITY DEFINER)
+                                const { data: rpcResult, error: rpcError } = await supabase.rpc('accept_service_request', {
+                                  p_provider_id: profile.id,
+                                  p_request_id: r.id
+                                });
 
-                                // Se não atualizou nenhuma linha: já foi aceito/fechado ou RLS bloqueou
-                                if (!updatedRows || updatedRows.length === 0) {
+                                console.log("[SmartFreightMatcher] Resultado RPC:", { rpcResult, rpcError });
+
+                                if (rpcError) {
+                                  console.error("[SmartFreightMatcher] Erro RPC:", rpcError);
+                                  if (rpcError.message?.includes('not authenticated')) {
+                                    toast.error("Você precisa estar logado para aceitar chamados.");
+                                  } else if (rpcError.message?.includes('provider not registered')) {
+                                    toast.error("Você não está registrado como motorista/prestador.");
+                                  } else {
+                                    toast.error(rpcError.message || "Erro ao aceitar chamado");
+                                  }
+                                  return;
+                                }
+
+                                // RPC retorna array - se vazio, não conseguiu aceitar
+                                if (!rpcResult || (Array.isArray(rpcResult) && rpcResult.length === 0)) {
                                   toast.error("Não foi possível aceitar: este chamado não está mais disponível.");
                                   await fetchCompatibleFreights();
                                   return;
                                 }
 
-                                // Garantia de integridade
-                                const updated = updatedRows[0];
-                                if (!updated?.id || updated.provider_id !== profile.id) {
-                                  toast.error("Não foi possível aceitar: este chamado não está mais disponível.");
-                                  await fetchCompatibleFreights();
-                                  return;
-                                }
-
+                                const accepted = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+                                
                                 toast.success("Chamado aceito! Indo para Em Andamento.");
 
-                                // remove da lista disponível (local) 
+                                // Remove da lista local
                                 setTowingRequests((prev) => prev.filter((x: any) => x.id !== r.id));
 
-                                // Disparar evento para navegação automática e refresh
-                                window.dispatchEvent(new CustomEvent("freight:accepted", { 
+                                // Disparar evento para navegação automática
+                                window.dispatchEvent(new CustomEvent("service_request:accepted", { 
                                   detail: { 
-                                    freightId: r.id, 
+                                    requestId: r.id, 
                                     source: 'service_request', 
-                                    serviceType: updated.service_type || r.service_type 
+                                    serviceType: r.service_type,
+                                    providerId: accepted.provider_id
                                   } 
                                 }));
 
