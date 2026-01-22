@@ -12,12 +12,10 @@ export type IssuerStatus =
   | "active"
   | "blocked";
 
-export type FiscalEnvironment = "homologacao" | "producao";
-
 export interface FiscalIssuer {
   id: string;
 
-  // ✅ BANCO (conforme seu print): fiscal_issuers.perfil_id
+  // ✅ no seu banco: fiscal_issuers.perfil_id
   perfil_id: string;
 
   document_type: string;
@@ -25,46 +23,29 @@ export interface FiscalIssuer {
   legal_name: string;
   trade_name?: string;
 
-  state_registration?: string;
-  municipal_registration?: string;
-
-  tax_regime: string;
-
-  cnae_code?: string;
-  cnae_description?: string;
-
-  address_street?: string;
-  address_number?: string;
-  address_complement?: string;
-  address_neighborhood?: string;
   city: string;
   uf: string;
-  address_zip_code?: string;
-  city_ibge_code?: string;
 
   fiscal_environment: string;
 
-  // ⚠️ seu banco pode estar usando outros valores (ex: CERTIFICATE_UPLOADED).
-  // Aqui mantemos como string pra não quebrar e mapeamos no getOnboardingProgress.
+  // pode vir em formatos diferentes (ex: CERTIFICATE_UPLOADED)
   status: string;
 
-  status_reason?: string;
+  created_at: string;
+  updated_at: string;
 
+  // opcionais (não quebrar caso existam)
+  status_reason?: string;
   sefaz_status?: string;
   sefaz_validated_at?: string;
   sefaz_validation_response?: any;
-
   onboarding_step?: number;
   onboarding_completed?: boolean;
   onboarding_completed_at?: string;
-
   activated_at?: string;
   blocked_at?: string;
   blocked_by?: string;
   block_reason?: string;
-
-  created_at: string;
-  updated_at: string;
 }
 
 export interface FiscalCertificate {
@@ -74,15 +55,12 @@ export interface FiscalCertificate {
 
   subject_cn?: string;
   issuer_cn?: string;
-
-  // ⚠️ no seu schema original você tinha "serial_número" etc.
-  // Aqui deixo opcionais e em snake_case comum:
   serial_number?: string;
 
   valid_from?: string;
   valid_until?: string;
 
-  // ✅ EDGE FUNCTION usa is_valid / is_expired / status
+  // ✅ schema da edge function
   is_valid?: boolean;
   is_expired?: boolean;
   status?: string;
@@ -136,10 +114,10 @@ export function useFiscalIssuer() {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * ✅ Fetch issuer + cert + wallet
-   * - Corrige coluna: fiscal_issuers.perfil_id (não profile_id)
-   * - Corrige seleção de certificado: prioriza is_valid=true
-   * - Limpa states quando não encontra dados (para UI não ficar “presa”)
+   * ✅ IMPORTANTE:
+   * - usamos (supabase as any) para evitar TS2589 (inferência profunda do Supabase)
+   * - buscamos issuer por "perfil_id" (seu schema real)
+   * - buscamos certificado preferindo is_valid=true
    */
   const fetchIssuer = useCallback(async () => {
     setLoading(true);
@@ -148,6 +126,7 @@ export function useFiscalIssuer() {
     try {
       const { data: auth } = await supabase.auth.getUser();
       const user = auth?.user;
+
       if (!user) {
         setIssuer(null);
         setCertificate(null);
@@ -155,7 +134,6 @@ export function useFiscalIssuer() {
         return null;
       }
 
-      // Perfil do usuário logado
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
@@ -169,12 +147,18 @@ export function useFiscalIssuer() {
         return null;
       }
 
-      // ✅ ISSUER: usa "perfil_id"
-      const { data: issuerData, error: issuerError } = await supabase
+      // ✅ ISSUER: perfil_id (não profile_id)
+      const issuerRes = await (supabase as any)
         .from("fiscal_issuers")
-        .select("*")
+        // selecione campos mínimos pra evitar inferência pesada
+        .select(
+          "id, perfil_id, document_type, document_number, legal_name, city, uf, fiscal_environment, status, created_at, updated_at",
+        )
         .eq("perfil_id", profile.id)
         .maybeSingle();
+
+      const issuerData = (issuerRes?.data as FiscalIssuer | null) ?? null;
+      const issuerError = issuerRes?.error;
 
       if (issuerError && (issuerError as any)?.code !== "PGRST116") {
         throw issuerError;
@@ -187,14 +171,12 @@ export function useFiscalIssuer() {
         return null;
       }
 
-      setIssuer(issuerData as unknown as FiscalIssuer);
+      setIssuer(issuerData);
 
-      // ✅ CERTIFICADO: prioriza o válido (is_valid = true), senão pega o último
-      // (porque sua edge function "revoga" os anteriores setando is_valid=false)
+      // ✅ CERTIFICADO: prioriza válido
       let cert: FiscalCertificate | null = null;
 
-      // tenta pegar o válido
-      const { data: validCert, error: validCertError } = await supabase
+      const validCertRes = await (supabase as any)
         .from("fiscal_certificates")
         .select("*")
         .eq("issuer_id", issuerData.id)
@@ -203,11 +185,10 @@ export function useFiscalIssuer() {
         .limit(1)
         .maybeSingle();
 
-      if (!validCertError && validCert) {
-        cert = validCert as unknown as FiscalCertificate;
+      if (validCertRes?.data) {
+        cert = validCertRes.data as FiscalCertificate;
       } else {
-        // fallback: pega o último de todos
-        const { data: lastCert } = await supabase
+        const lastCertRes = await (supabase as any)
           .from("fiscal_certificates")
           .select("*")
           .eq("issuer_id", issuerData.id)
@@ -215,21 +196,21 @@ export function useFiscalIssuer() {
           .limit(1)
           .maybeSingle();
 
-        cert = (lastCert as unknown as FiscalCertificate) || null;
+        cert = (lastCertRes?.data as FiscalCertificate | null) ?? null;
       }
 
       setCertificate(cert);
 
       // ✅ WALLET
-      const { data: walletData } = await supabase
+      const walletRes = await (supabase as any)
         .from("fiscal_wallet")
         .select("*")
         .eq("issuer_id", issuerData.id)
         .maybeSingle();
 
-      setWallet((walletData as unknown as FiscalWallet) || null);
+      setWallet((walletRes?.data as FiscalWallet | null) ?? null);
 
-      return issuerData as unknown as FiscalIssuer;
+      return issuerData;
     } catch (err: any) {
       console.error("[FISCAL] Error fetching issuer:", err);
       setError(err?.message || "Erro ao buscar emissor fiscal");
@@ -260,9 +241,7 @@ export function useFiscalIssuer() {
           ) {
             try {
               const payload = await (maybeResponse as Response).clone().json();
-              if (payload?.error && typeof payload.error === "string") {
-                message = payload.error;
-              }
+              if (payload?.error && typeof payload.error === "string") message = payload.error;
             } catch {
               // ignore
             }
@@ -271,13 +250,10 @@ export function useFiscalIssuer() {
           throw new Error(message);
         }
 
-        if ((result as any)?.error) {
-          throw new Error((result as any).error);
-        }
+        if ((result as any)?.error) throw new Error((result as any).error);
 
         toast.success("Emissor fiscal cadastrado com sucesso!");
         await fetchIssuer();
-
         return (result as any).issuer as FiscalIssuer;
       } catch (err: any) {
         const message = err?.message || "Erro ao cadastrar emissor fiscal";
@@ -302,12 +278,12 @@ export function useFiscalIssuer() {
       setError(null);
 
       try {
-        const { error: updateError } = await supabase
+        const { error: updateError } = await (supabase as any)
           .from("fiscal_issuers")
           .update({
             ...updates,
             updated_at: new Date().toISOString(),
-          } as any)
+          })
           .eq("id", issuer.id);
 
         if (updateError) throw updateError;
@@ -341,11 +317,7 @@ export function useFiscalIssuer() {
         const base64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.readAsDataURL(file);
-          reader.onload = () => {
-            const result = reader.result as string;
-            const base64Data = result.split(",")[1];
-            resolve(base64Data);
-          };
+          reader.onload = () => resolve((reader.result as string).split(",")[1]);
           reader.onerror = reject;
         });
 
@@ -358,21 +330,11 @@ export function useFiscalIssuer() {
           },
         });
 
-        if (fnError) {
-          // se vier payload com mensagem, tenta extrair
-          const message = fnError.message || "Erro ao enviar certificado";
-          throw new Error(message);
-        }
-
-        if ((result as any)?.error) {
-          throw new Error((result as any).error);
-        }
+        if (fnError) throw new Error(fnError.message || "Erro ao enviar certificado");
+        if ((result as any)?.error) throw new Error((result as any).error);
 
         toast.success("Certificado digital enviado com sucesso!");
-
-        // ✅ garante refresh do issuer/certificado logo após upload
         await fetchIssuer();
-
         return true;
       } catch (err: any) {
         const message = err?.message || "Erro ao enviar certificado";
@@ -386,164 +348,36 @@ export function useFiscalIssuer() {
     [issuer, fetchIssuer],
   );
 
-  const validateWithSefaz = useCallback(async (): Promise<boolean> => {
-    if (!issuer) {
-      toast.error("Nenhum emissor fiscal encontrado");
-      return false;
-    }
-
-    if (!certificate) {
-      toast.error("Certificado digital não encontrado");
-      return false;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data: result, error: fnError } = await supabase.functions.invoke("fiscal-sefaz-validation", {
-        body: { issuer_id: issuer.id },
-      });
-
-      if (fnError) throw fnError;
-
-      if ((result as any)?.error) {
-        throw new Error((result as any).error);
-      }
-
-      if ((result as any)?.success) {
-        toast.success("Validação SEFAZ concluída com sucesso!");
-        await fetchIssuer();
-        return true;
-      }
-
-      throw new Error((result as any)?.message || "Falha na validação SEFAZ");
-    } catch (err: any) {
-      const message = err?.message || "Erro na validação SEFAZ";
-      setError(message);
-      toast.error(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [issuer, certificate, fetchIssuer]);
-
-  const acceptTerms = useCallback(async (): Promise<boolean> => {
-    if (!issuer) {
-      toast.error("Nenhum emissor fiscal encontrado");
-      return false;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data: auth } = await supabase.auth.getUser();
-      const user = auth?.user;
-      if (!user) throw new Error("Usuário não autenticado");
-
-      const { error: acceptError } = await supabase.from("fiscal_terms_acceptances").upsert({
-        issuer_id: issuer.id,
-        term_version: "2.0",
-        accepted_at: new Date().toISOString(),
-        ip_address: null,
-        user_agent: navigator.userAgent,
-        document_hash: "FISCAL_TERMS_V2_HASH",
-      } as any);
-
-      if (acceptError) throw acceptError;
-
-      const { error: updateError } = await supabase
-        .from("fiscal_issuers")
-        .update({
-          terms_accepted_at: new Date().toISOString(),
-          status: issuer.status === "sefaz_validated" ? "active" : issuer.status,
-          updated_at: new Date().toISOString(),
-        } as any)
-        .eq("id", issuer.id);
-
-      if (updateError) throw updateError;
-
-      toast.success("Termo de responsabilidade aceito");
-      await fetchIssuer();
-      return true;
-    } catch (err: any) {
-      const message = err?.message || "Erro ao aceitar termos";
-      setError(message);
-      toast.error(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [issuer, fetchIssuer]);
-
   const getOnboardingProgress = useCallback(() => {
-    if (!issuer) {
-      return { step: 0, total: 5, label: "Não iniciado", canEmit: false };
-    }
+    if (!issuer) return { step: 0, total: 5, label: "Não iniciado", canEmit: false };
 
-    // ✅ normaliza status (se vier CERTIFICATE_UPLOADED etc.)
-    const s = String(issuer.status || "").toLowerCase();
+    const s = String(issuer.status || "").toUpperCase();
 
-    if (s === "pending") return { step: 1, total: 5, label: "Cadastro pendente", canEmit: false };
-    if (s === "document_validated") return { step: 2, total: 5, label: "Documentos validados", canEmit: false };
-    if (s === "certificate_pending") return { step: 2, total: 5, label: "Certificado pendente", canEmit: false };
-    if (s === "certificate_uploaded" || s === "certificate_uploaded".toLowerCase() || s === "certificate_uploaded") {
-      return { step: 3, total: 5, label: "Certificado enviado", canEmit: false };
-    }
-    if (s === "certificate_uploaded" || s === "certificate_uploaded".toLowerCase()) {
+    // ✅ cobre status em snake_case e em UPPER_CASE
+    if (s === "PENDING") return { step: 1, total: 5, label: "Cadastro pendente", canEmit: false };
+    if (s === "DOCUMENT_VALIDATED") return { step: 2, total: 5, label: "Documentos validados", canEmit: false };
+    if (s === "CERTIFICATE_PENDING") return { step: 2, total: 5, label: "Certificado pendente", canEmit: false };
+
+    // ✅ status vindo da edge function
+    if (s === "CERTIFICATE_UPLOADED" || s === "CERTIFICATE-UPLOADED" || s === "CERTIFICATEUPLOADED") {
       return { step: 3, total: 5, label: "Certificado enviado", canEmit: false };
     }
 
-    // ✅ cobre status da edge function: CERTIFICATE_UPLOADED
-    if (s === "certificate_uploaded" || s === "certificate_uploaded".toLowerCase() || s === "certificate_uploaded") {
-      return { step: 3, total: 5, label: "Certificado enviado", canEmit: false };
-    }
-    if (s === "certificate_uploaded" || s === "certificate_uploaded".toLowerCase()) {
-      return { step: 3, total: 5, label: "Certificado enviado", canEmit: false };
-    }
-    if (s === "certificate_uploaded") {
-      return { step: 3, total: 5, label: "Certificado enviado", canEmit: false };
-    }
-    if (s === "certificate_uploaded") {
-      return { step: 3, total: 5, label: "Certificado enviado", canEmit: false };
-    }
-    if (s === "certificate_uploaded") {
-      return { step: 3, total: 5, label: "Certificado enviado", canEmit: false };
-    }
+    if (s === "SEFAZ_VALIDATED") return { step: 4, total: 5, label: "Validado pela SEFAZ", canEmit: false };
+    if (s === "ACTIVE") return { step: 5, total: 5, label: "Ativo", canEmit: true };
+    if (s === "BLOCKED") return { step: 0, total: 5, label: "Bloqueado", canEmit: false };
 
-    if (s === "certificate_uploaded" || s === "certificate_uploaded".toLowerCase()) {
-      return { step: 3, total: 5, label: "Certificado enviado", canEmit: false };
-    }
-
-    if (s === "certificate_uploaded") return { step: 3, total: 5, label: "Certificado enviado", canEmit: false };
-    if (s === "certificate_uploaded") return { step: 3, total: 5, label: "Certificado enviado", canEmit: false };
-
-    if (s === "certificate_uploaded") return { step: 3, total: 5, label: "Certificado enviado", canEmit: false };
-
-    if (s === "certificate_uploaded") return { step: 3, total: 5, label: "Certificado enviado", canEmit: false };
-
-    if (s === "sefaz_validated") return { step: 4, total: 5, label: "Validado pela SEFAZ", canEmit: false };
-    if (s === "active") return { step: 5, total: 5, label: "Ativo", canEmit: true };
-    if (s === "blocked") return { step: 0, total: 5, label: "Bloqueado", canEmit: false };
-
-    // fallback
     return { step: 0, total: 5, label: "Desconhecido", canEmit: false };
   }, [issuer]);
 
-  const isCertificateValid = useCallback((): boolean => {
+  const isCertificateValid = useCallback(() => {
     if (!certificate) return false;
-
-    // ✅ se existir is_valid, respeita
-    if (typeof certificate.is_valid === "boolean") {
-      if (!certificate.is_valid) return false;
-    }
-
+    if (typeof certificate.is_valid === "boolean" && !certificate.is_valid) return false;
     if (!certificate.valid_until) return false;
     return new Date(certificate.valid_until) > new Date();
   }, [certificate]);
 
-  const getCertificateDaysUntilExpiry = useCallback((): number | null => {
+  const getCertificateDaysUntilExpiry = useCallback(() => {
     if (!certificate?.valid_until) return null;
     const now = new Date();
     const expiry = new Date(certificate.valid_until);
@@ -565,8 +399,6 @@ export function useFiscalIssuer() {
     registerIssuer,
     updateIssuer,
     uploadCertificate,
-    validateWithSefaz,
-    acceptTerms,
     getOnboardingProgress,
     isCertificateValid,
     getCertificateDaysUntilExpiry,
