@@ -43,6 +43,7 @@ import {
 import { subscriptionWithRetry } from "@/lib/query-utils";
 import { debounce } from "@/lib/utils";
 import { normalizeCity, normalizeCityState } from "@/utils/city-normalization";
+import { formatSolicitadoHa } from "@/lib/formatters";
 
 interface CompatibleFreight {
   freight_id: string;
@@ -849,11 +850,7 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
                             <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              <span>
-                                Solicitado há{" "}
-                                {Math.max(1, Math.floor((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60)))}{" "}
-                                min
-                              </span>
+                              <span>{formatSolicitadoHa(r.created_at)}</span>
                             </div>
 
                             {r.urgency && (

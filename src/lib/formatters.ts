@@ -320,3 +320,50 @@ export const calculateDeliveryDeadline = (deliveredAt: string | null | undefined
   
   return { hoursRemaining, isUrgent, isCritical, displayText };
 };
+
+// ============= TEMPO DE SOLICITAÇÃO =============
+
+/**
+ * Formata o tempo desde a criação de uma solicitação para exibição
+ * Regras:
+ * - < 1h: "Solicitado hoje"
+ * - 1-23h: "Solicitado há X hora(s)"
+ * - >= 24h: "Solicitado há X dia" (singular) ou "Solicitado há X dias" (plural)
+ * 
+ * @param createdAt - timestamp ISO da criação
+ * @returns string formatada em pt-BR
+ */
+export const formatSolicitadoHa = (createdAt: string | Date | null | undefined): string => {
+  if (!createdAt) return 'Solicitado recentemente';
+  
+  try {
+    const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
+    const now = new Date();
+    const diffMs = now.getTime() - created.getTime();
+    
+    // Evitar valores negativos (caso de relógio desajustado)
+    if (diffMs < 0) return 'Solicitado agora';
+    
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    
+    // >= 1 dia: exibir em dias
+    if (diffDays >= 1) {
+      return diffDays === 1 
+        ? 'Solicitado há 1 dia' 
+        : `Solicitado há ${diffDays} dias`;
+    }
+    
+    // < 24h: exibir "hoje" ou em horas
+    if (diffHours >= 1) {
+      return diffHours === 1 
+        ? 'Solicitado há 1 hora' 
+        : `Solicitado há ${diffHours} horas`;
+    }
+    
+    // < 1 hora: exibir "hoje" (sem minutos gigantes)
+    return 'Solicitado hoje';
+  } catch {
+    return 'Solicitado recentemente';
+  }
+};
