@@ -229,8 +229,28 @@ if (typeof window !== 'undefined' && !isPublicPage) {
   console.error = (...args: any[]) => {
     const message = args[0]?.toString() || '';
     
-    // Sempre logar no console
-    originalConsoleError.apply(console, args);
+    // SECURITY: In production, sanitize console output to prevent sensitive data exposure
+    // In development, allow full logging for debugging
+    if (import.meta.env.PROD) {
+      // Sanitize args before logging in production
+      const sanitizedArgs = args.map(arg => {
+        if (typeof arg === 'string') {
+          return arg
+            .replace(/\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/gi, '[UUID]')
+            .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
+            .replace(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[JWT]')
+            .replace(/\b(sk_|pk_|api_|key_)[a-zA-Z0-9]{20,}\b/g, '[API_KEY]')
+            .replace(/\b\d{3}\.?\d{3}\.?\d{3}[-.]?\d{2}\b/g, '[CPF]')
+            .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[-.]?\d{2}\b/g, '[CNPJ]')
+            .substring(0, 500);
+        }
+        return arg;
+      });
+      originalConsoleError.apply(console, sanitizedArgs);
+    } else {
+      // Development: full logging for debugging
+      originalConsoleError.apply(console, args);
+    }
     
     // Notificar erros de WebSocket no Telegram
     if (isWebSocketError(message) && shouldNotify('websocket_error')) {
@@ -241,7 +261,6 @@ if (typeof window !== 'undefined' && !isPublicPage) {
         module: 'supabase-client',
         route: window.location.pathname,
         metadata: {
-          userAgent: navigator.userAgent,
           url: window.location.href,
           timestamp: new Date().toISOString()
         }
@@ -253,7 +272,25 @@ if (typeof window !== 'undefined' && !isPublicPage) {
   const originalConsoleWarn = console.warn;
   console.warn = (...args: any[]) => {
     const message = args[0]?.toString() || '';
-    originalConsoleWarn.apply(console, args);
+    
+    // SECURITY: In production, sanitize console output
+    if (import.meta.env.PROD) {
+      const sanitizedArgs = args.map(arg => {
+        if (typeof arg === 'string') {
+          return arg
+            .replace(/\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/gi, '[UUID]')
+            .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
+            .replace(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[JWT]')
+            .replace(/\b\d{3}\.?\d{3}\.?\d{3}[-.]?\d{2}\b/g, '[CPF]')
+            .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[-.]?\d{2}\b/g, '[CNPJ]')
+            .substring(0, 500);
+        }
+        return arg;
+      });
+      originalConsoleWarn.apply(console, sanitizedArgs);
+    } else {
+      originalConsoleWarn.apply(console, args);
+    }
     
     if (isWebSocketError(message) && shouldNotify('websocket_warn')) {
       notifyErrorToTelegram({
@@ -263,7 +300,6 @@ if (typeof window !== 'undefined' && !isPublicPage) {
         module: 'supabase-client',
         route: window.location.pathname,
         metadata: {
-          userAgent: navigator.userAgent,
           url: window.location.href,
           timestamp: new Date().toISOString()
         }
