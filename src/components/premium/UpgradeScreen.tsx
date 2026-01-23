@@ -13,49 +13,49 @@ interface UpgradeScreenProps {
 const PLANS = [
   {
     id: 'free',
-    name: 'Gratuito',
+    name: 'Plano Grátis',
     price: 'R$ 0',
     period: '/mês',
-    description: 'Para começar a usar',
+    description: 'Para experimentar a plataforma',
     features: [
-      { name: 'Até 3 exportações por dia', included: true },
-      { name: 'Histórico de 30 dias', included: true },
-      { name: 'Relatórios básicos', included: true },
-      { name: 'Comparação de períodos', included: false },
-      { name: 'Insights automáticos', included: false },
+      { name: 'Fretes e serviços ilimitados', included: true },
+      { name: '10% de comissão sobre transações', included: true },
+      { name: 'Suporte básico por e-mail', included: true },
+      { name: 'Acesso à rede básica', included: true },
+      { name: 'Relatórios avançados', included: false },
       { name: 'Suporte prioritário', included: false },
     ],
     highlighted: false,
   },
   {
-    id: 'premium',
-    name: 'Premium',
-    price: 'R$ 49,90',
+    id: 'essential',
+    name: 'Plano Essencial',
+    price: 'R$ 120,00',
     period: '/mês',
-    description: 'Para profissionais',
+    description: 'Ideal para profissionais em crescimento',
     features: [
-      { name: 'Exportações ilimitadas', included: true },
-      { name: 'Histórico completo', included: true },
-      { name: 'Relatórios avançados', included: true },
-      { name: 'Comparação de períodos', included: true },
-      { name: 'Insights automáticos', included: true },
+      { name: 'Fretes e serviços ilimitados', included: true },
+      { name: '5% de comissão sobre transações', included: true },
       { name: 'Suporte prioritário', included: true },
+      { name: 'Relatórios básicos', included: true },
+      { name: 'Dashboard avançado', included: true },
+      { name: 'API para integração', included: false },
     ],
     highlighted: true,
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 'Sob consulta',
-    period: '',
-    description: 'Para empresas',
+    id: 'professional',
+    name: 'Plano Profissional',
+    price: 'R$ 240,00',
+    period: '/mês',
+    description: 'Para grandes profissionais',
     features: [
-      { name: 'Tudo do Premium', included: true },
-      { name: 'API de integração', included: true },
-      { name: 'Relatórios customizados', included: true },
-      { name: 'Múltiplos usuários', included: true },
-      { name: 'SLA garantido', included: true },
-      { name: 'Gerente de conta', included: true },
+      { name: 'Tudo do Plano Essencial', included: true },
+      { name: 'Sem comissão sobre transações', included: true },
+      { name: 'Suporte 24/7', included: true },
+      { name: 'Relatórios avançados', included: true },
+      { name: 'API para integração', included: true },
+      { name: 'Consultor dedicado', included: true },
     ],
     highlighted: false,
   },
@@ -65,7 +65,7 @@ const FEATURE_MESSAGES: Record<string, { icon: React.ReactNode; title: string; d
   exports: {
     icon: <Download className="h-8 w-8" />,
     title: 'Limite de Exportações Atingido',
-    description: 'Você atingiu o limite de 3 exportações diárias. Faça upgrade para exportar sem limites.',
+    description: 'Você atingiu o limite de exportações diárias. Faça upgrade para exportar sem limites.',
   },
   history: {
     icon: <Clock className="h-8 w-8" />,
@@ -75,12 +75,12 @@ const FEATURE_MESSAGES: Record<string, { icon: React.ReactNode; title: string; d
   comparison: {
     icon: <BarChart3 className="h-8 w-8" />,
     title: 'Comparação de Períodos',
-    description: 'Compare o desempenho entre diferentes períodos. Disponível apenas no plano Premium.',
+    description: 'Compare o desempenho entre diferentes períodos. Disponível em planos pagos.',
   },
   insights: {
     icon: <Sparkles className="h-8 w-8" />,
     title: 'Insights Automáticos',
-    description: 'Receba análises automáticas e sugestões de melhoria. Disponível apenas no plano Premium.',
+    description: 'Receba análises automáticas e sugestões de melhoria. Disponível em planos pagos.',
   },
 };
 
@@ -142,7 +142,7 @@ export const UpgradeScreen: React.FC<UpgradeScreenProps> = ({ onClose, feature }
             
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2">
-                {plan.id === 'premium' && <Zap className="h-5 w-5 text-primary" />}
+                {plan.id === 'essential' && <Zap className="h-5 w-5 text-primary" />}
                 {plan.name}
               </CardTitle>
               <CardDescription>{plan.description}</CardDescription>
@@ -175,9 +175,9 @@ export const UpgradeScreen: React.FC<UpgradeScreenProps> = ({ onClose, feature }
                     : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
                 }`}
                 variant={plan.highlighted ? 'default' : 'secondary'}
-                disabled={plan.id === planType}
+                disabled={true}
               >
-                {plan.id === planType ? 'Plano Atual' : plan.id === 'enterprise' ? 'Fale Conosco' : 'Selecionar'}
+                {plan.id === planType ? 'Plano Atual' : plan.id === 'free' ? 'Plano Gratuito' : 'Em breve'}
               </Button>
             </CardContent>
           </Card>
@@ -190,12 +190,12 @@ export const UpgradeScreen: React.FC<UpgradeScreenProps> = ({ onClose, feature }
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Plano atual: Gratuito</p>
+                <p className="text-sm font-medium">Plano atual: Grátis</p>
                 <p className="text-xs text-muted-foreground">
                   {exportsRemaining} exportação(ões) restante(s) hoje
                 </p>
               </div>
-              <Badge variant="outline">Free</Badge>
+              <Badge variant="outline">Grátis</Badge>
             </div>
           </CardContent>
         </Card>
@@ -209,6 +209,11 @@ export const UpgradeScreen: React.FC<UpgradeScreenProps> = ({ onClose, feature }
           </Button>
         </div>
       )}
+
+      {/* Informational note */}
+      <div className="text-center text-sm text-muted-foreground">
+        <p>Os planos acima são informativos. A cobrança ainda não está ativa.</p>
+      </div>
     </div>
   );
 };

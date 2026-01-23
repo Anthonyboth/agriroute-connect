@@ -16,18 +16,19 @@ const Plans: React.FC = () => {
   const { user, profile, signOut } = useAuth();
   const { subscriptionTier, createCheckout, loading, openCustomerPortal } = useSubscription();
 
+  // Planos informativos - cobrança não está ativa
   const plans = [
     {
       id: 'FREE',
-      name: 'Gratuito',
+      name: 'Plano Grátis',
       price: 'R$ 0',
       period: '/mês',
       description: 'Para experimentar a plataforma',
       features: [
-        '3 fretes gratuitos',
-        'Acesso básico a motoristas',
-        'Comissão de 5%',
-        'Suporte por email'
+        'Fretes e serviços ilimitados',
+        '10% de comissão sobre transações',
+        'Suporte básico por e-mail',
+        'Acesso à rede básica'
       ],
       icon: <Check className="h-5 w-5" />,
       buttonText: 'Plano Atual',
@@ -37,41 +38,40 @@ const Plans: React.FC = () => {
     },
     {
       id: 'ESSENTIAL',
-      name: 'Essencial',
-      price: 'R$ 59',
+      name: 'Plano Essencial',
+      price: 'R$ 120,00',
       period: '/mês',
-      description: 'Para produtores que transportam regularmente',
+      description: 'Ideal para profissionais em crescimento',
       features: [
-        'Fretes ilimitados',
-        'Comissão reduzida de 2%',
+        'Fretes e serviços ilimitados',
+        '5% de comissão sobre transações',
         'Suporte prioritário',
         'Relatórios básicos',
-        'Acesso antecipado a novos recursos',
-        'Rede premium de motoristas'
+        'Dashboard avançado'
       ],
       icon: <Star className="h-5 w-5" />,
-      buttonText: subscriptionTier === 'ESSENTIAL' ? 'Gerenciar Plano' : 'Assinar Essencial',
-      disabled: false,
+      buttonText: 'Em breve',
+      disabled: true,
       popular: true,
       current: subscriptionTier === 'ESSENTIAL'
     },
     {
       id: 'PROFESSIONAL',
-      name: 'Profissional',
-      price: 'R$ 99',
+      name: 'Plano Profissional',
+      price: 'R$ 240,00',
       period: '/mês',
-      description: 'Para grandes produtores',
+      description: 'Para grandes profissionais',
       features: [
-        'Tudo do Essencial',
-        'Sem taxas sobre transações',
-        'Suporte Prioritário',
-        'Relatórios avançados e analytics',
+        'Tudo do Plano Essencial',
+        'Sem comissão sobre transações',
+        'Suporte 24/7',
+        'Relatórios avançados',
         'API para integração',
-        'Gerenciamento de múltiplas fazendas'
+        'Consultor dedicado'
       ],
       icon: <Zap className="h-5 w-5" />,
-      buttonText: subscriptionTier === 'PROFESSIONAL' ? 'Gerenciar Plano' : 'Assinar Profissional',
-      disabled: false,
+      buttonText: 'Em breve',
+      disabled: true,
       popular: false,
       current: subscriptionTier === 'PROFESSIONAL'
     }

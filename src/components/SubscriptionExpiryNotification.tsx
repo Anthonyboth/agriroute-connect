@@ -162,9 +162,8 @@ export const SubscriptionExpiryNotification: React.FC = () => {
                   {isExpired ? '🚫 Recursos Suspensos:' : '⚠️ Será Suspenso:'}
                 </h4>
                 <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-1">
-                  <li>• Comissão reduzida voltará ao padrão</li>
+                  <li>• Comissão voltará para 10%</li>
                   <li>• Perda do suporte prioritário</li>
-                  <li>• Limitação de cargas por mês</li>
                   <li>• Acesso limitado a relatórios</li>
                 </ul>
               </div>
