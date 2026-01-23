@@ -61,6 +61,7 @@ import { FreightDetails } from '@/components/FreightDetails';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ServicesModal } from '@/components/ServicesModal';
 import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
+import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
 
 // ✅ PHASE 2: Lazy load chart-heavy components to reduce initial bundle
 const CompanyAnalyticsDashboard = lazy(() => import('@/components/CompanyAnalyticsDashboard').then(m => ({ default: m.CompanyAnalyticsDashboard })));
@@ -539,7 +540,7 @@ const CompanyDashboard = () => {
       <section className="relative py-6 overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-30 animate-fade-in"
-          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
+          style={{ backgroundImage: `url(${HERO_BG_DESKTOP})` }}
         />
         {/* Overlay verde para melhor contraste - seguindo padrão do DriverDashboard */}
         <div className="absolute inset-0 bg-primary/80" />

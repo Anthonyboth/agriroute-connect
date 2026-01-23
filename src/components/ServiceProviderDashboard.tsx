@@ -78,6 +78,7 @@ import { SystemAnnouncementsBoard } from '@/components/SystemAnnouncementsBoard'
 import { normalizeServiceType } from '@/lib/pt-br-validator';
 import { FiscalTab } from '@/components/fiscal/tabs/FiscalTab';
 import { FileText } from 'lucide-react';
+import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
 
 interface ServiceRequest {
   id: string;
@@ -1021,7 +1022,7 @@ export const ServiceProviderDashboard: React.FC = () => {
       <section className="relative min-h-[280px] flex items-center justify-center overflow-hidden animate-fade-in">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
+          style={{ backgroundImage: `url(${HERO_BG_DESKTOP})` }}
         />
         <div className="absolute inset-0 bg-primary/75" />
         <div className="relative z-10 w-full">

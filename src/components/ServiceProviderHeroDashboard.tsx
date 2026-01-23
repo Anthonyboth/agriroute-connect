@@ -25,6 +25,7 @@ import { ServicesModal } from '@/components/ServicesModal';
 import { useToast } from '@/hooks/use-toast';
 import { useEarningsVisibility } from '@/hooks/useEarningsVisibility';
 import { SISTEMA_IA_LABEL } from '@/lib/ui-labels';
+import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
 
 interface ServiceProviderStats {
   total_requests: number;
@@ -152,7 +153,7 @@ export const ServiceProviderHeroDashboard: React.FC = () => {
         {/* Background Image */}
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
+          style={{ backgroundImage: `url(${HERO_BG_DESKTOP})` }}
         />
         {/* Overlay */}
         <div className="absolute inset-0 bg-primary/75" />

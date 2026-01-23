@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Brain, MapPin, Settings, Wrench, Users } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { SISTEMA_IA_LABEL, VER_FRETES_IA_LABEL } from '@/lib/ui-labels';
+import { HERO_BG_DESKTOP } from '@/lib/hero-assets';
 
 interface DriverDashboardHeroProps {
   profileName?: string;
@@ -31,7 +32,7 @@ export const DriverDashboardHero: React.FC<DriverDashboardHeroProps> = ({
       <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
-          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
+          style={{ backgroundImage: `url(${HERO_BG_DESKTOP})` }}
           role="img"
           aria-label="Imagem de fundo com caminhão"
         />

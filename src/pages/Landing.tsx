@@ -88,6 +88,7 @@ import Leaf from 'lucide-react/dist/esm/icons/leaf';
 import Shield from 'lucide-react/dist/esm/icons/shield';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Wrench from 'lucide-react/dist/esm/icons/wrench';
+import { HERO_BG_DESKTOP, HERO_BG_MOBILE } from '@/lib/hero-assets';
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
@@ -236,12 +237,12 @@ const Landing: React.FC = () => {
         <picture>
           <source
             media="(max-width: 640px)"
-            srcSet="/hero-truck-night-moon-mobile.webp"
+            srcSet={HERO_BG_MOBILE}
             type="image/webp"
           />
           <img 
-            src="/hero-truck-night-moon.webp"
-            srcSet="/hero-truck-night-moon-mobile.webp 640w, /hero-truck-night-moon.webp 1920w"
+            src={HERO_BG_DESKTOP}
+            srcSet={`${HERO_BG_MOBILE} 640w, ${HERO_BG_DESKTOP} 1920w`}
             sizes="100vw"
             alt="Logística agrícola moderna - caminhão transportando carga agrícola"
             className="absolute inset-0 w-full h-full object-cover"
