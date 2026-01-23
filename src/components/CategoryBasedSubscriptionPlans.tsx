@@ -9,12 +9,8 @@ const CategoryBasedSubscriptionPlans: React.FC = () => {
   const { 
     subscriptionTier, 
     userCategory, 
-    createCheckout, 
-    loading, 
-    getAvailablePlans 
+    loading 
   } = useSubscription();
-
-  const plans = getAvailablePlans();
 
   const getCategoryIcon = (category: string) => {
     const icons = {
@@ -51,26 +47,24 @@ const CategoryBasedSubscriptionPlans: React.FC = () => {
     
     const baseFeatures = {
       'free': [
-        `${itemType} limitados`,
-        `5% comissão sobre ${serviceType}`,
-        'Suporte básico por email',
+        `${itemType} e ${serviceType} ilimitados`,
+        `10% de comissão sobre transações`,
+        'Suporte básico por e-mail',
         'Acesso à rede básica'
       ],
       'essential': [
-        `${itemType} ilimitados`,
-        `2% comissão sobre ${serviceType}`,
-        'Valor mensal fixo',
+        `${itemType} e ${serviceType} ilimitados`,
+        `5% de comissão sobre transações`,
         'Suporte prioritário',
-        'Dashboard avançado',
-        'Relatórios básicos'
+        'Relatórios básicos',
+        'Dashboard avançado'
       ],
       'professional': [
-        `${itemType} ilimitados`,
-        'Sem comissões sobre transações',
-        'Apenas valor mensal',
-        'Suporte premium 24/7',
-        'Relatórios completos',
-        'Dashboard premium',
+        'Tudo do Plano Essencial',
+        'Sem comissão sobre transações',
+        'Suporte 24/7',
+        'Relatórios avançados',
+        'API para integração',
         'Consultor dedicado'
       ]
     };
@@ -84,11 +78,29 @@ const CategoryBasedSubscriptionPlans: React.FC = () => {
     return false;
   };
 
-  const handleSubscribe = async (planType: string) => {
-    if (planType === 'essential' || planType === 'professional') {
-      await createCheckout(userCategory || 'prestador', planType as 'essential' | 'professional');
+  const plans = [
+    { 
+      id: 'free', 
+      name: 'Plano Grátis', 
+      price: '0', 
+      planType: 'free',
+      description: 'Para experimentar a plataforma'
+    },
+    { 
+      id: 'essential', 
+      name: 'Plano Essencial', 
+      price: '120,00', 
+      planType: 'essential',
+      description: 'Ideal para profissionais em crescimento'
+    },
+    { 
+      id: 'professional', 
+      name: 'Plano Profissional', 
+      price: '240,00', 
+      planType: 'professional',
+      description: 'Para grandes profissionais'
     }
-  };
+  ];
 
   return (
     <div className="space-y-6">
@@ -139,6 +151,9 @@ const CategoryBasedSubscriptionPlans: React.FC = () => {
                 </span>
                 <span className="text-muted-foreground">/mês</span>
               </div>
+              <p className="text-sm text-muted-foreground">
+                {plan.description}
+              </p>
             </CardHeader>
             
             <CardContent className="space-y-4">
@@ -154,14 +169,13 @@ const CategoryBasedSubscriptionPlans: React.FC = () => {
               <Button
                 className="w-full"
                 variant={index === 1 ? "default" : "outline"}
-                disabled={plan.planType === 'free' || isCurrentPlan(plan.planType) || loading}
-                onClick={() => handleSubscribe(plan.planType)}
+                disabled={true}
               >
                 {isCurrentPlan(plan.planType) 
                   ? 'Plano Atual' 
                   : plan.planType === 'free' 
                     ? 'Plano Gratuito' 
-                    : `Assinar ${plan.name}`
+                    : 'Em breve'
                 }
               </Button>
             </CardContent>
@@ -172,8 +186,7 @@ const CategoryBasedSubscriptionPlans: React.FC = () => {
       {/* Category Switch Note */}
       <div className="text-center text-sm text-muted-foreground">
         <p>
-          Os preços são específicos para sua categoria profissional. 
-          Motoristas e prestadores pagam mensalidade, com diferentes comissões por categoria.
+          Os planos acima são informativos. A cobrança ainda não está ativa.
         </p>
       </div>
     </div>

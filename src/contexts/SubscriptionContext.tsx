@@ -273,33 +273,15 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [user, location.pathname]);
 
   const getAvailablePlans = () => {
-    const category = state.userCategory || 'prestador';
-    
-    // New pricing scheme based on user requirements
-    const categoryPlans = {
-      'prestador': [
-        { id: 'free', name: 'Plano Grátis', price: 0, planType: 'free', commission: '5%' },
-        { id: 'essential', name: 'Plano Essencial', price: 69, planType: 'essential', commission: '2%' },
-        { id: 'professional', name: 'Plano Profissional', price: 119, planType: 'professional', commission: '0%' }
-      ],
-      'motorista_rural': [
-        { id: 'free', name: 'Plano Grátis', price: 0, planType: 'free', commission: '5%' },
-        { id: 'essential', name: 'Plano Essencial', price: 119, planType: 'essential', commission: '2%' },
-        { id: 'professional', name: 'Plano Profissional', price: 199, planType: 'professional', commission: '0%' }
-      ],
-      'motorista_urbano': [
-        { id: 'free', name: 'Plano Grátis', price: 0, planType: 'free', commission: '5%' },
-        { id: 'essential', name: 'Plano Essencial', price: 69, planType: 'essential', commission: '2%' },
-        { id: 'professional', name: 'Plano Profissional', price: 119, planType: 'professional', commission: '0%' }
-      ],
-      'guincho_urbano': [
-        { id: 'free', name: 'Plano Grátis', price: 0, planType: 'free', commission: '5%' },
-        { id: 'essential', name: 'Plano Essencial', price: 69, planType: 'essential', commission: '2%' },
-        { id: 'professional', name: 'Plano Profissional', price: 119, planType: 'professional', commission: '0%' }
-      ]
-    };
+    // Planos informativos - cobrança não está ativa
+    // Valores fixos para todas as categorias conforme solicitado
+    const plans = [
+      { id: 'free', name: 'Plano Grátis', price: 0, planType: 'free', commission: '10%' },
+      { id: 'essential', name: 'Plano Essencial', price: 120, planType: 'essential', commission: '5%' },
+      { id: 'professional', name: 'Plano Profissional', price: 240, planType: 'professional', commission: '0%' }
+    ];
 
-    return categoryPlans[category as keyof typeof categoryPlans] || categoryPlans.prestador;
+    return plans;
   };
 
   const canAccessFeature = (requiredTier: SubscriptionTier): boolean => {
