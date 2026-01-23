@@ -59,6 +59,7 @@ import { FreightProposalsManager } from "@/components/FreightProposalsManager";
 import { UnifiedChatHub } from "@/components/UnifiedChatHub";
 import { useUnreadChatsCount } from "@/hooks/useUnifiedChats";
 import { FiscalTab } from "@/components/fiscal/tabs/FiscalTab";
+import { HERO_BG_DESKTOP } from "@/lib/hero-assets";
 
 // ✅ PHASE 2: Lazy load chart-heavy components to reduce initial bundle
 const FreightAnalyticsDashboard = lazy(() =>
@@ -818,7 +819,7 @@ const ProducerDashboard = () => {
       <section className="relative min-h-[250px] flex items-center justify-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
-          style={{ backgroundImage: `url(/hero-truck-night-moon.webp)` }}
+          style={{ backgroundImage: `url(${HERO_BG_DESKTOP})` }}
         />
         <div className="absolute inset-0 bg-primary/75" />
         <div className="relative z-10 w-full">
