@@ -1454,6 +1454,13 @@ export type Database = {
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "company_vehicle_assignments_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       compliance_audit_events: {
@@ -2076,6 +2083,13 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_expenses_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -3914,6 +3928,13 @@ export type Database = {
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "freight_assignments_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       freight_attachments: {
@@ -4510,6 +4531,13 @@ export type Database = {
             columns: ["target_vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_messages_target_vehicle_id_fkey"
+            columns: ["target_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -6736,6 +6764,13 @@ export type Database = {
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mdfe_veiculos_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       nfe_documents: {
@@ -8732,6 +8767,13 @@ export type Database = {
             referencedRelation: "service_requests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "service_messages_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       service_payments: {
@@ -9122,6 +9164,13 @@ export type Database = {
             referencedRelation: "service_requests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "service_ratings_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       service_request_matches: {
@@ -9172,6 +9221,13 @@ export type Database = {
             columns: ["service_request_id"]
             isOneToOne: false
             referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_matches_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -10569,6 +10625,13 @@ export type Database = {
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vehicle_photo_history_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vehicles: {
@@ -10753,6 +10816,72 @@ export type Database = {
       }
     }
     Views: {
+      balance_transactions_secure: {
+        Row: {
+          amount: number | null
+          balance_after: number | null
+          balance_before: number | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          provider_id: string | null
+          reference_id: string | null
+          reference_type: string | null
+          status: string | null
+          stripe_payment_intent_id_masked: string | null
+          stripe_payout_id_masked: string | null
+          transaction_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          balance_after?: number | null
+          balance_before?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          provider_id?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string | null
+          stripe_payment_intent_id_masked?: never
+          stripe_payout_id_masked?: never
+          transaction_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          balance_after?: number | null
+          balance_before?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          provider_id?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string | null
+          stripe_payment_intent_id_masked?: never
+          stripe_payout_id_masked?: never
+          transaction_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balance_transactions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "balance_transactions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       city_hierarchy: {
         Row: {
           active_freights_destination: number | null
@@ -10789,6 +10918,184 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fiscal_certificates_secure: {
+        Row: {
+          certificate_type: string | null
+          certificate_uploaded: boolean | null
+          created_at: string | null
+          days_until_expiration: number | null
+          id: string | null
+          is_expired: boolean | null
+          is_valid: boolean | null
+          issuer_cn: string | null
+          issuer_id: string | null
+          last_used_at: string | null
+          purchased_via_platform: boolean | null
+          serial_number: string | null
+          status: string | null
+          subject_cn: string | null
+          subject_document: string | null
+          updated_at: string | null
+          uploaded_at: string | null
+          usage_count: number | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          certificate_type?: string | null
+          certificate_uploaded?: never
+          created_at?: string | null
+          days_until_expiration?: never
+          id?: string | null
+          is_expired?: boolean | null
+          is_valid?: boolean | null
+          issuer_cn?: string | null
+          issuer_id?: string | null
+          last_used_at?: string | null
+          purchased_via_platform?: boolean | null
+          serial_number?: string | null
+          status?: string | null
+          subject_cn?: string | null
+          subject_document?: string | null
+          updated_at?: string | null
+          uploaded_at?: string | null
+          usage_count?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          certificate_type?: string | null
+          certificate_uploaded?: never
+          created_at?: string | null
+          days_until_expiration?: never
+          id?: string | null
+          is_expired?: boolean | null
+          is_valid?: boolean | null
+          issuer_cn?: string | null
+          issuer_id?: string | null
+          last_used_at?: string | null
+          purchased_via_platform?: boolean | null
+          serial_number?: string | null
+          status?: string | null
+          subject_cn?: string | null
+          subject_document?: string | null
+          updated_at?: string | null
+          uploaded_at?: string | null
+          usage_count?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_certificates_issuer_id_fkey"
+            columns: ["issuer_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_issuers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freight_payments_secure: {
+        Row: {
+          amount: number | null
+          completed_at: string | null
+          created_at: string | null
+          external_transaction_masked: string | null
+          freight_id: string | null
+          id: string | null
+          payer_id: string | null
+          payment_method: string | null
+          payment_type: string | null
+          receiver_id: string | null
+          status: string | null
+          stripe_payment_intent_masked: string | null
+          stripe_session_masked: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          external_transaction_masked?: never
+          freight_id?: string | null
+          id?: string | null
+          payer_id?: string | null
+          payment_method?: string | null
+          payment_type?: string | null
+          receiver_id?: string | null
+          status?: string | null
+          stripe_payment_intent_masked?: never
+          stripe_session_masked?: never
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          external_transaction_masked?: never
+          freight_id?: string | null
+          id?: string | null
+          payer_id?: string | null
+          payment_method?: string | null
+          payment_type?: string | null
+          receiver_id?: string | null
+          status?: string | null
+          stripe_payment_intent_masked?: never
+          stripe_session_masked?: never
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_payments_freight_id_fkey"
+            columns: ["freight_id"]
+            isOneToOne: false
+            referencedRelation: "freights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      identity_selfies_secure: {
+        Row: {
+          created_at: string | null
+          has_selfie_uploaded: boolean | null
+          id: string | null
+          selfie_url: string | null
+          updated_at: string | null
+          upload_method: string | null
+          user_id: string | null
+          verification_notes: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          has_selfie_uploaded?: never
+          id?: string | null
+          selfie_url?: never
+          updated_at?: string | null
+          upload_method?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          has_selfie_uploaded?: never
+          id?: string | null
+          selfie_url?: never
+          updated_at?: string | null
+          upload_method?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
       }
       inspection_qr_public: {
         Row: {
@@ -10838,6 +11145,317 @@ export type Database = {
           validation_status: string | null
         }
         Relationships: []
+      }
+      service_requests_secure: {
+        Row: {
+          accepted_at: string | null
+          additional_info: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          city_id: string | null
+          city_lat: number | null
+          city_lng: number | null
+          city_name: string | null
+          client_comment: string | null
+          client_id: string | null
+          client_rating: number | null
+          completed_at: string | null
+          contact_document_masked: string | null
+          contact_email_masked: string | null
+          contact_name_masked: string | null
+          contact_phone_masked: string | null
+          created_at: string | null
+          estimated_price: number | null
+          final_price: number | null
+          id: string | null
+          is_emergency: boolean | null
+          location_address_masked: string | null
+          location_city: string | null
+          location_lat: number | null
+          location_lng: number | null
+          location_state: string | null
+          preferred_datetime: string | null
+          problem_description: string | null
+          prospect_user_id: string | null
+          provider_comment: string | null
+          provider_id: string | null
+          provider_notes: string | null
+          provider_rating: number | null
+          reference_number: number | null
+          service_radius_km: number | null
+          service_type: string | null
+          state: string | null
+          status: string | null
+          updated_at: string | null
+          urgency: string | null
+          vehicle_info: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          additional_info?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          city_id?: string | null
+          city_lat?: number | null
+          city_lng?: number | null
+          city_name?: string | null
+          client_comment?: string | null
+          client_id?: string | null
+          client_rating?: number | null
+          completed_at?: string | null
+          contact_document_masked?: never
+          contact_email_masked?: never
+          contact_name_masked?: never
+          contact_phone_masked?: never
+          created_at?: string | null
+          estimated_price?: number | null
+          final_price?: number | null
+          id?: string | null
+          is_emergency?: boolean | null
+          location_address_masked?: never
+          location_city?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_state?: string | null
+          preferred_datetime?: string | null
+          problem_description?: string | null
+          prospect_user_id?: string | null
+          provider_comment?: string | null
+          provider_id?: string | null
+          provider_notes?: string | null
+          provider_rating?: number | null
+          reference_number?: number | null
+          service_radius_km?: number | null
+          service_type?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          urgency?: string | null
+          vehicle_info?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          additional_info?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          city_id?: string | null
+          city_lat?: number | null
+          city_lng?: number | null
+          city_name?: string | null
+          client_comment?: string | null
+          client_id?: string | null
+          client_rating?: number | null
+          completed_at?: string | null
+          contact_document_masked?: never
+          contact_email_masked?: never
+          contact_name_masked?: never
+          contact_phone_masked?: never
+          created_at?: string | null
+          estimated_price?: number | null
+          final_price?: number | null
+          id?: string | null
+          is_emergency?: boolean | null
+          location_address_masked?: never
+          location_city?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_state?: string | null
+          preferred_datetime?: string | null
+          problem_description?: string | null
+          prospect_user_id?: string | null
+          provider_comment?: string | null
+          provider_id?: string | null
+          provider_notes?: string | null
+          provider_rating?: number | null
+          reference_number?: number | null
+          service_radius_km?: number | null
+          service_type?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          urgency?: string | null
+          vehicle_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_service_requests_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_service_requests_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_service_requests_provider"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_service_requests_provider"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
+          },
+          {
+            foreignKeyName: "service_requests_prospect_user_id_fkey"
+            columns: ["prospect_user_id"]
+            isOneToOne: false
+            referencedRelation: "prospect_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles_secure: {
+        Row: {
+          assigned_driver_id: string | null
+          axle_count: number | null
+          company_id: string | null
+          created_at: string | null
+          crlv_expiry_date: string | null
+          crlv_url: string | null
+          driver_id: string | null
+          has_crlv: boolean | null
+          has_inspection: boolean | null
+          has_insurance: boolean | null
+          high_performance: boolean | null
+          id: string | null
+          inspection_certificate_url: string | null
+          insurance_document_url: string | null
+          insurance_expiry_date: string | null
+          is_company_vehicle: boolean | null
+          last_inspection_date: string | null
+          license_plate: string | null
+          max_capacity_tons: number | null
+          primary_identification: string | null
+          status: string | null
+          updated_at: string | null
+          vehicle_documents: Json | null
+          vehicle_photo_url: string | null
+          vehicle_photos: Json | null
+          vehicle_specifications: string | null
+          vehicle_type: Database["public"]["Enums"]["vehicle_type"] | null
+          vehicle_validation_status: string | null
+        }
+        Insert: {
+          assigned_driver_id?: string | null
+          axle_count?: number | null
+          company_id?: string | null
+          created_at?: string | null
+          crlv_expiry_date?: string | null
+          crlv_url?: never
+          driver_id?: string | null
+          has_crlv?: never
+          has_inspection?: never
+          has_insurance?: never
+          high_performance?: boolean | null
+          id?: string | null
+          inspection_certificate_url?: never
+          insurance_document_url?: never
+          insurance_expiry_date?: string | null
+          is_company_vehicle?: boolean | null
+          last_inspection_date?: string | null
+          license_plate?: string | null
+          max_capacity_tons?: number | null
+          primary_identification?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vehicle_documents?: never
+          vehicle_photo_url?: string | null
+          vehicle_photos?: Json | null
+          vehicle_specifications?: string | null
+          vehicle_type?: Database["public"]["Enums"]["vehicle_type"] | null
+          vehicle_validation_status?: string | null
+        }
+        Update: {
+          assigned_driver_id?: string | null
+          axle_count?: number | null
+          company_id?: string | null
+          created_at?: string | null
+          crlv_expiry_date?: string | null
+          crlv_url?: never
+          driver_id?: string | null
+          has_crlv?: never
+          has_inspection?: never
+          has_insurance?: never
+          high_performance?: boolean | null
+          id?: string | null
+          inspection_certificate_url?: never
+          insurance_document_url?: never
+          insurance_expiry_date?: string | null
+          is_company_vehicle?: boolean | null
+          last_inspection_date?: string | null
+          license_plate?: string | null
+          max_capacity_tons?: number | null
+          primary_identification?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vehicle_documents?: never
+          vehicle_photo_url?: string | null
+          vehicle_photos?: Json | null
+          vehicle_specifications?: string | null
+          vehicle_type?: Database["public"]["Enums"]["vehicle_type"] | null
+          vehicle_validation_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_assigned_driver_id_fkey"
+            columns: ["assigned_driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_assigned_driver_id_fkey"
+            columns: ["assigned_driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
