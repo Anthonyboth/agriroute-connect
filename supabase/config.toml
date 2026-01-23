@@ -302,3 +302,9 @@ verify_jwt = false
 
 [functions.nfe-emitir]
 verify_jwt = true
+
+[functions.fiscal-sefaz-validation]
+verify_jwt = true
+
+[functions.mdfe-consultar]
+verify_jwt = true

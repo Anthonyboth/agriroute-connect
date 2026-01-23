@@ -11014,6 +11014,10 @@ export type Database = {
         Returns: boolean
       }
       confirm_delivery: { Args: { freight_id_param: string }; Returns: Json }
+      confirm_emission_credit: {
+        Args: { p_emission_id: string }
+        Returns: boolean
+      }
       decrypt_document: {
         Args: { encrypted_doc: string; original_doc: string }
         Returns: string
@@ -11954,7 +11958,15 @@ export type Database = {
         Returns: Json
       }
       process_telegram_queue: { Args: never; Returns: Json }
+      release_emission_credit: {
+        Args: { p_emission_id: string }
+        Returns: boolean
+      }
       reopen_freight: { Args: { p_freight_id: string }; Returns: string }
+      reserve_emission_credit: {
+        Args: { p_emission_id: string; p_issuer_id: string }
+        Returns: boolean
+      }
       run_antifraud_rules: {
         Args: { p_freight_id: string }
         Returns: {
