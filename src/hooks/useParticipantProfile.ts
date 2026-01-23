@@ -64,9 +64,10 @@ export const useParticipantProfile = (
     setError(null);
 
     try {
-      // Buscar perfil básico
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
+      // Buscar perfil básico usando a view segura para proteção de PII
+      // profiles_secure mascara dados sensíveis para não-proprietários
+      const { data: profileData, error: profileError } = await (supabase as any)
+        .from('profiles_secure')
         .select('id, full_name, profile_photo_url, selfie_url, role, created_at, rating, total_ratings, status')
         .eq('id', userId)
         .maybeSingle();

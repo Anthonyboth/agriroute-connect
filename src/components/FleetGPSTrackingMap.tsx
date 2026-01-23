@@ -131,7 +131,8 @@ export const FleetGPSTrackingMap = memo(function FleetGPSTrackingMap({
       const driverIds = trackingData?.map((t) => t.driver_profile_id).filter(Boolean) || [];
       if (driverIds.length === 0) return [];
 
-      const { data: profiles } = await supabase.from("profiles").select("id, full_name, phone").in("id", driverIds);
+      // Usar profiles_secure para proteção de PII - phone será mascarado para não-proprietários
+      const { data: profiles } = await (supabase as any).from("profiles_secure").select("id, full_name, phone").in("id", driverIds);
 
       const freightIds = trackingData?.map((t) => t.current_freight_id).filter(Boolean) || [];
 
