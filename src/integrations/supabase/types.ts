@@ -615,25 +615,34 @@ export type Database = {
       }
       api_rate_limits: {
         Row: {
+          block_reason: string | null
+          blocked_until: string | null
           created_at: string
           endpoint: string
           id: string
+          ip_address: unknown
           request_count: number
           user_id: string | null
           window_start: string
         }
         Insert: {
+          block_reason?: string | null
+          blocked_until?: string | null
           created_at?: string
           endpoint: string
           id?: string
+          ip_address?: unknown
           request_count?: number
           user_id?: string | null
           window_start?: string
         }
         Update: {
+          block_reason?: string | null
+          blocked_until?: string | null
           created_at?: string
           endpoint?: string
           id?: string
+          ip_address?: unknown
           request_count?: number
           user_id?: string | null
           window_start?: string
@@ -8165,6 +8174,45 @@ export type Database = {
           },
         ]
       }
+      rate_limit_config: {
+        Row: {
+          block_duration_minutes: number
+          burst_limit: number
+          created_at: string | null
+          description: string | null
+          endpoint_pattern: string
+          id: string
+          is_active: boolean | null
+          max_requests_per_hour: number
+          max_requests_per_minute: number
+          updated_at: string | null
+        }
+        Insert: {
+          block_duration_minutes?: number
+          burst_limit?: number
+          created_at?: string | null
+          description?: string | null
+          endpoint_pattern: string
+          id?: string
+          is_active?: boolean | null
+          max_requests_per_hour?: number
+          max_requests_per_minute?: number
+          updated_at?: string | null
+        }
+        Update: {
+          block_duration_minutes?: number
+          burst_limit?: number
+          created_at?: string | null
+          description?: string | null
+          endpoint_pattern?: string
+          id?: string
+          is_active?: boolean | null
+          max_requests_per_hour?: number
+          max_requests_per_minute?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       rate_limit_violations: {
         Row: {
           blocked_until: string | null
@@ -11657,6 +11705,7 @@ export type Database = {
       cleanup_expired_requests: { Args: never; Returns: undefined }
       cleanup_old_error_logs: { Args: never; Returns: undefined }
       cleanup_old_location_history: { Args: never; Returns: Json }
+      cleanup_rate_limits: { Args: never; Returns: number }
       confirm_checkin_as_counterpart: {
         Args: { p_checkin_id: string; p_observations?: string }
         Returns: boolean
@@ -11712,6 +11761,16 @@ export type Database = {
           p_new_status: string
           p_notes?: string
           p_user_id: string
+        }
+        Returns: Json
+      }
+      edge_function_rate_check: {
+        Args: {
+          p_endpoint: string
+          p_ip_address: unknown
+          p_max_requests?: number
+          p_user_id: string
+          p_window_minutes?: number
         }
         Returns: Json
       }
