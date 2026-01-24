@@ -320,42 +320,72 @@ export const useAuth = () => {
       
       const meta = (user as any).user_metadata || {};
       const roleMeta = (meta.role as any);
-      const resolvedRole = (roleMeta === 'PRODUTOR' || roleMeta === 'MOTORISTA' || roleMeta === 'MOTORISTA_AFILIADO' || roleMeta === 'PRESTADOR_SERVICOS' || roleMeta === 'TRANSPORTADORA') ? roleMeta : 'PRODUTOR';
       
-      const newProfile = {
-        user_id: user.id,
-        full_name: meta.full_name || '',
-        phone: meta.phone || '',
-        document: meta.document || '',
-        cpf_cnpj: meta.document || '',
-        active_mode: resolvedRole, // mantém compatibilidade com telas que dependem do "role"
-        status: 'PENDING' as any,
-      };
+      // Check sessionStorage for pending signup role as fallback
+      const pendingRole = sessionStorage.getItem('pending_signup_role');
+      const resolvedRole = (
+        roleMeta === 'PRODUTOR' || 
+        roleMeta === 'MOTORISTA' || 
+        roleMeta === 'MOTORISTA_AFILIADO' || 
+        roleMeta === 'PRESTADOR_SERVICOS' || 
+        roleMeta === 'TRANSPORTADORA'
+      ) ? roleMeta : (
+        pendingRole && ['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'PRESTADOR_SERVICOS', 'TRANSPORTADORA'].includes(pendingRole)
+          ? pendingRole
+          : 'PRODUTOR'
+      );
       
-      const { data: inserted, error: insertError } = await supabase
-        .from('profiles')
-        .insert(newProfile)
-        .select('*')
-        .single();
+      // Use create_additional_profile RPC for proper server-side handling
+      const { data: newProfileId, error: rpcError } = await supabase.rpc('create_additional_profile', {
+        p_user_id: user.id,
+        p_role: resolvedRole,
+        p_full_name: meta.full_name || '',
+        p_phone: meta.phone || '',
+        p_document: meta.document || ''
+      });
         
       if (!mountedRef.current) return;
       
-      if (!insertError && inserted) {
-        setProfiles([inserted as any]);
-        setProfile(inserted as any);
-        setProfileError(null);
-      } else if (insertError?.code === '23505') {
-        // Document already in use - set error and stop the loop
-        // SECURITY: Removed document logging
-        setProfileError({
-          code: 'DOCUMENT_IN_USE',
-          message: 'Este CPF/CNPJ já está cadastrado no sistema',
-          document: meta.document
-        });
+      if (!rpcError && newProfileId) {
+        // Clear pending role after successful creation
+        sessionStorage.removeItem('pending_signup_role');
+        
+        // Fetch the created profile
+        const { data: createdProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', newProfileId)
+          .single();
+        
+        if (createdProfile) {
+          setProfiles([createdProfile as any]);
+          setProfile(createdProfile as any);
+          setProfileError(null);
+        }
+      } else if (rpcError) {
+        const errorMsg = rpcError.message || '';
+        
+        if (errorMsg.includes('já possui um perfil') || errorMsg.includes('já está cadastrado')) {
+          setProfileError({
+            code: 'DOCUMENT_IN_USE',
+            message: errorMsg,
+            document: meta.document
+          });
+        } else {
+          console.error('[useAuth] Erro ao criar perfil via RPC:', rpcError);
+          setProfileError({
+            code: 'PROFILE_CREATION_FAILED',
+            message: 'Não foi possível criar o perfil. Tente novamente.'
+          });
+        }
         setLoading(false);
       }
     } catch (e) {
       console.error('[useAuth] Erro ao criar perfil:', e);
+      setProfileError({
+        code: 'UNEXPECTED_ERROR',
+        message: 'Erro inesperado ao criar perfil. Tente novamente.'
+      });
       setLoading(false);
     }
   };
