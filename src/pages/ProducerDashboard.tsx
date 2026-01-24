@@ -1070,14 +1070,6 @@ const ProducerDashboard = () => {
               </TabsTrigger>
 
               <TabsTrigger
-                value="fiscal"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                <FileText className="h-3 w-3 mr-1" />
-                Fiscal
-              </TabsTrigger>
-
-              <TabsTrigger
                 value="ongoing"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
@@ -1149,6 +1141,14 @@ const ProducerDashboard = () => {
                     {chatUnreadCount}
                   </Badge>
                 )}
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="fiscal"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <FileText className="h-3 w-3 mr-1" />
+                Fiscal
               </TabsTrigger>
 
               <TabsTrigger
