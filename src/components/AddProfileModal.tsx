@@ -78,33 +78,35 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
         }
       }
 
-      // TEMPORÁRIO: Funcionalidade desabilitada durante migração de segurança
-      toast.warning('Criação de perfil adicional temporariamente indisponível. Aguarde sincronização do banco.');
-      setLoading(false);
-      return;
-      
-      /* DESABILITADO ATÉ create_additional_profile SER RECRIADA PELO SUPABASE
-      const { data, error } = await supabase.rpc('create_additional_profile', {
+      // Criar perfil adicional usando a função RPC
+      const { data: newProfileId, error } = await supabase.rpc('create_additional_profile', {
         p_user_id: user.id,
         p_role: targetRole
       });
 
       if (error) {
-        console.error('Error creating additional profile:', error);
+        console.error('[AddProfileModal] Erro ao criar perfil:', error);
         
-        if (error.message?.includes('já possui um cadastro')) {
-          toast.error(error.message);
+        const errorMsg = error.message || '';
+        if (errorMsg.includes('já possui um perfil')) {
+          toast.error(errorMsg);
+        } else if (errorMsg.includes('já está cadastrado')) {
+          toast.error('Este CPF/CNPJ já está em uso por outro usuário.');
         } else {
-          toast.error(`Erro ao criar perfil de ${targetRole === 'MOTORISTA' ? 'motorista' : 'produtor'}`);
+          toast.error(`Erro ao criar perfil: ${errorMsg}`);
         }
         return;
+      }
+
+      // Salvar novo perfil como ativo
+      if (newProfileId) {
+        localStorage.setItem('current_profile_id', newProfileId);
       }
 
       toast.success(`Perfil de ${targetRole === 'MOTORISTA' ? 'motorista' : 'produtor'} criado com sucesso! Complete os dados no perfil.`);
       
       onProfileAdded();
       onClose();
-      */
       
     } catch (error: any) {
       console.error('Error creating profile:', error);
