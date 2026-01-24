@@ -66,13 +66,13 @@ async function sendTimeoutAlert(metrics: BootMetrics, phase: BootPhase): Promise
       : 'web';
     
     const payload = {
-      errorType: 'BOOTSTRAP_TIMEOUT',
+      errorType: 'FRONTEND',
       errorCategory: 'CRITICAL',
-      errorMessage: `⏰ Bootstrap timeout na fase: ${phase}`,
+      errorMessage: `⏰ BOOTSTRAP_TIMEOUT na fase: ${phase}`,
       module: 'AppBootContext',
       route: window.location.pathname,
       metadata: {
-        phase,
+        bootstrapPhase: phase,
         elapsedMs: Date.now() - metrics.bootStartedAt,
         metrics,
         platform,
