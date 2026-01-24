@@ -86,7 +86,6 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
     icon: Building2,
     badge: activeCount > 0 ? activeCount : undefined
   },
-  { value: 'fiscal', label: 'Fiscal', shortLabel: 'Fiscal', icon: FileText, badge: undefined },
   { value: 'marketplace', label: FRETES_IA_LABEL, shortLabel: FRETES_IA_LABEL, icon: Brain, badge: undefined },
   { value: 'drivers', label: 'Motoristas', shortLabel: 'Motoristas', icon: Users, badge: undefined },
   
@@ -114,6 +113,7 @@ const getCompanyTabs = (activeCount: number, chatCount: number) => [
     icon: MessageSquare,
     badge: chatCount > 0 ? chatCount : undefined
   },
+  { value: 'fiscal', label: 'Fiscal', shortLabel: 'Fiscal', icon: FileText, badge: undefined },
   { value: 'reports', label: 'Relatórios', shortLabel: 'Relatórios', icon: BarChart, badge: undefined }
 ];
 
