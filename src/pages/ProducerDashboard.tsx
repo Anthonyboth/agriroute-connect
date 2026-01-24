@@ -281,8 +281,9 @@ const ProducerDashboard = () => {
         .limit(500);
 
       if (error) {
-        toast.error("Erro ao carregar fretes");
-        showErrorToast(toast, "Erro ao carregar fretes", error);
+        // ✅ CORREÇÃO: Falha silenciosa no login - sem toast automático
+        console.error("[fetchFreights] Erro ao carregar fretes:", error.message);
+        setFreights([]);
         return;
       }
 
@@ -344,8 +345,9 @@ const ProducerDashboard = () => {
 
       setFreights(finalData);
     } catch (err) {
-      toast.error("Erro ao carregar fretes");
-      showErrorToast(toast, "Erro ao carregar fretes", err);
+      // ✅ CORREÇÃO: Falha silenciosa no login - sem toast automático
+      console.error("[fetchFreights] Exception:", err);
+      setFreights([]);
     }
   }, [profile?.id, profile?.role]);
 
@@ -385,7 +387,9 @@ const ProducerDashboard = () => {
       if (error) throw error;
       setProposals(data || []);
     } catch {
-      toast.error("Erro ao carregar propostas");
+      // ✅ CORREÇÃO: Falha silenciosa no login - sem toast automático
+      console.error("[fetchProposals] Erro ao carregar propostas");
+      setProposals([]);
     }
   }, [profile?.id, profile?.role]);
 

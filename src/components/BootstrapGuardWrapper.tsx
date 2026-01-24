@@ -17,22 +17,22 @@ interface BootstrapGuardWrapperProps {
 }
 
 export const BootstrapGuardWrapper: React.FC<BootstrapGuardWrapperProps> = ({ children }) => {
-  const { phase, isTimeout, reset, metrics, error } = useAppBoot();
+  const { phase, isTimeout, reset, metrics, error, lastStep, stepTimings } = useAppBoot();
   const shouldShowFallback = useShouldShowTimeoutFallback();
   
   // Se deu timeout, mostrar fallback
   if (shouldShowFallback || isTimeout || phase === 'TIMEOUT') {
     return (
       <BootstrapFallback
-        failedStep={phase}
+        failedStep={lastStep || phase}
         elapsedMs={Date.now() - metrics.bootStartedAt}
         error={error || undefined}
+        stepTimings={stepTimings}
         onRetry={() => {
+          // ✅ CORREÇÃO: Apenas reset, SEM reload
+          // O BootOrchestrator detecta bootAttempt e reexecuta
+          console.log('🔄 [BootstrapGuard] Tentando novamente (sem reload)');
           reset();
-          // Reload com cache-bust
-          const url = new URL(window.location.href);
-          url.searchParams.set('_retry', Date.now().toString());
-          window.location.href = url.toString();
         }}
       />
     );
@@ -42,11 +42,13 @@ export const BootstrapGuardWrapper: React.FC<BootstrapGuardWrapperProps> = ({ ch
   if (phase === 'ERROR') {
     return (
       <BootstrapFallback
-        failedStep="error"
+        failedStep={lastStep || 'error'}
         error={error || 'Erro desconhecido'}
+        stepTimings={stepTimings}
         onRetry={() => {
+          // ✅ CORREÇÃO: Apenas reset, SEM reload
+          console.log('🔄 [BootstrapGuard] Tentando novamente após erro');
           reset();
-          window.location.reload();
         }}
       />
     );
