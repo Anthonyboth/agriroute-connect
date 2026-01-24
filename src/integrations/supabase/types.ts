@@ -11636,6 +11636,16 @@ export type Database = {
         Args: { p_emission_id: string }
         Returns: boolean
       }
+      create_additional_profile: {
+        Args: {
+          p_document?: string
+          p_full_name?: string
+          p_phone?: string
+          p_role: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       decrypt_document: {
         Args: { encrypted_doc: string; original_doc: string }
         Returns: string

@@ -266,68 +266,69 @@ const Auth = () => {
                   }
                 }
               } else {
-                // Criar novo perfil adicional - TEMPORÁRIO: Desabilitado durante migração
-                toast.warning('Criação de perfil adicional temporariamente indisponível. Aguarde sincronização do banco de dados.');
-                setLoading(false);
-                return;
-                
-                /* CÓDIGO DESABILITADO ATÉ create_additional_profile SER RECRIADO
-                const { data: newProfileId, error: rpcError } = await supabase.rpc('create_additional_profile', {
-                  p_user_id: loginData.user.id,
-                  p_role: targetRole,
-                  p_full_name: fullName,
-                  p_phone: phone,
-                  p_document: cleanDoc
-                });
+                // Criar novo perfil adicional usando a função RPC
+                try {
+                  const { data: newProfileId, error: rpcError } = await supabase.rpc('create_additional_profile', {
+                    p_user_id: loginData.user.id,
+                    p_role: targetRole,
+                    p_full_name: fullName,
+                    p_phone: phone,
+                    p_document: cleanDoc
+                  });
 
-                if (rpcError) {
-                  toast.error(`Erro ao criar perfil adicional: ${rpcError.message}`);
-                  setLoading(false);
-                  return;
-                }
+                  if (rpcError) {
+                    console.error('[Auth] Erro ao criar perfil adicional:', rpcError);
+                    
+                    // Exibir mensagem de erro específica
+                    const errorMsg = rpcError.message || '';
+                    if (errorMsg.includes('já possui um perfil')) {
+                      toast.error(errorMsg);
+                    } else if (errorMsg.includes('já está cadastrado')) {
+                      toast.error('Este CPF/CNPJ já está em uso por outro usuário.');
+                    } else {
+                      toast.error(`Erro ao criar perfil: ${errorMsg}`);
+                    }
+                    setLoading(false);
+                    return;
+                  }
 
-                // Ativar o novo perfil
-                localStorage.setItem('current_profile_id', newProfileId);
-                toast.success('Novo perfil criado! Bem-vindo(a).');
-                
-                // Redirecionar conforme a role
-                if (targetRole === 'PRESTADOR_SERVICOS') {
-                  navigate('/cadastro-prestador');
-                } else if (driverType === 'TRANSPORTADORA') {
-                  // Criar registro da transportadora
-                  const { error: companyError } = await supabase
-                    .from('transport_companies')
-                    .insert({
-                      profile_id: newProfileId,
-                      company_name: companyName,
-                      company_cnpj: sanitizeForStore(companyCNPJ),
-                      antt_registration: companyANTT,
-                      address: companyAddress,
-                      status: 'PENDING'
-                    });
+                  // Ativar o novo perfil
+                  localStorage.setItem('current_profile_id', newProfileId);
+                  
+                  // Limpar role pendente
+                  sessionStorage.removeItem('pending_signup_role');
+                  
+                  toast.success('Novo perfil criado com sucesso!');
+                  
+                  // Se for transportadora, criar registro
+                  if (driverType === 'TRANSPORTADORA') {
+                    const { error: companyError } = await supabase
+                      .from('transport_companies')
+                      .insert({
+                        profile_id: newProfileId,
+                        company_name: companyName,
+                        company_cnpj: sanitizeForStore(companyCNPJ),
+                        antt_registration: companyANTT,
+                        address: companyAddress,
+                        status: 'PENDING'
+                      });
 
-                  if (companyError) {
-                    console.error('Erro ao criar transportadora:', companyError);
-                    toast.warning('Perfil criado, mas houve erro ao criar transportadora.');
-                  } else {
-                    // Atualizar profiles.document com o CNPJ para permitir login posterior
-                    const { error: updateProfileError } = await supabase
-                      .from('profiles')
-                      .update({
-                        document: sanitizeForStore(companyCNPJ),
-                        phone: phone
-                      })
-                      .eq('id', newProfileId);
-
-                    if (updateProfileError) {
-                      console.warn('Aviso: Não foi possível atualizar documento no perfil:', updateProfileError);
+                    if (companyError) {
+                      console.error('[Auth] Erro ao criar transportadora:', companyError);
+                      toast.warning('Perfil criado, mas houve erro ao criar transportadora.');
                     }
                   }
-                  navigate('/complete-profile');
-                } else {
-                  navigate('/complete-profile');
+                  
+                  // Redirecionar conforme a role
+                  if (targetRole === 'PRESTADOR_SERVICOS') {
+                    navigate('/cadastro-prestador');
+                  } else {
+                    navigate('/complete-profile');
+                  }
+                } catch (createError) {
+                  console.error('[Auth] Erro inesperado ao criar perfil:', createError);
+                  toast.error('Erro ao criar novo perfil. Tente novamente.');
                 }
-                */
               }
             }
             
