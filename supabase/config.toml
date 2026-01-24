@@ -308,3 +308,12 @@ verify_jwt = true
 
 [functions.mdfe-consultar]
 verify_jwt = true
+
+[functions.hourly-security-report]
+verify_jwt = false
+
+[functions.hourly-operational-report]
+verify_jwt = false
+
+[functions.hourly-financial-report]
+verify_jwt = false
