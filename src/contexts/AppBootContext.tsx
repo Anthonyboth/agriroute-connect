@@ -35,12 +35,28 @@ interface BootMetrics {
   timeoutAt?: number;
 }
 
+/** Erro detalhado para instrumentação */
+interface BootError {
+  message: string;
+  step: BootPhase;
+  stack?: string;
+  code?: string | number;
+}
+
 interface AppBootState {
   phase: BootPhase;
   isLoading: boolean;
   error: string | null;
   metrics: BootMetrics;
   isTimeout: boolean;
+  /** Último step executado */
+  lastStep: string | null;
+  /** Timings por step (ms) */
+  stepTimings: Record<string, number>;
+  /** Erro detalhado */
+  lastError: BootError | null;
+  /** Contador de tentativas de boot */
+  bootAttempt: number;
 }
 
 interface AppBootContextValue extends AppBootState {
@@ -51,6 +67,8 @@ interface AppBootContextValue extends AppBootState {
   getTotalBootTime: () => number | null;
   /** Forçar timeout (para testes) */
   forceTimeout: () => void;
+  /** Registrar timing de um step */
+  recordStepTiming: (step: string, ms: number) => void;
 }
 
 const AppBootContext = createContext<AppBootContextValue | null>(null);
@@ -59,7 +77,13 @@ const SUPABASE_URL = "https://shnvtxejjecbnztdbbbl.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNobnZ0eGVqamVjYm56dGRiYmJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNjAzMzAsImV4cCI6MjA3MjkzNjMzMH0.qcYO3vsj8KOmGDGM12ftFpr0mTQP5DB_0jAiRkPYyFg";
 
 /** Enviar alerta de timeout para Telegram via report-error (verify_jwt=false) */
-async function sendTimeoutAlert(metrics: BootMetrics, phase: BootPhase): Promise<void> {
+async function sendTimeoutAlert(
+  metrics: BootMetrics, 
+  phase: BootPhase,
+  lastStep: string | null,
+  stepTimings: Record<string, number>,
+  lastError: { message: string; step: BootPhase; stack?: string; code?: string | number } | null
+): Promise<void> {
   try {
     const platform = Capacitor.isNativePlatform() 
       ? Capacitor.getPlatform() 
@@ -68,11 +92,18 @@ async function sendTimeoutAlert(metrics: BootMetrics, phase: BootPhase): Promise
     const payload = {
       errorType: 'FRONTEND',
       errorCategory: 'CRITICAL',
-      errorMessage: `⏰ BOOTSTRAP_TIMEOUT na fase: ${phase}`,
+      errorMessage: `BOOTSTRAP_TIMEOUT step=${lastStep || phase}`,
       module: 'AppBootContext',
       route: window.location.pathname,
       metadata: {
         bootstrapPhase: phase,
+        lastStep,
+        stepTimings,
+        lastError: lastError ? {
+          message: lastError.message,
+          step: lastError.step,
+          code: lastError.code,
+        } : null,
         elapsedMs: Date.now() - metrics.bootStartedAt,
         metrics,
         platform,
@@ -120,15 +151,29 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
       bootStartedAt: Date.now(),
     },
     isTimeout: false,
+    lastStep: null,
+    stepTimings: {},
+    lastError: null,
+    bootAttempt: 1,
   });
   
   const metricsRef = useRef<BootMetrics>({
     bootStartedAt: Date.now(),
   });
   
+  const stepTimingsRef = useRef<Record<string, number>>({});
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasCompletedRef = useRef(false);
   const hasTimedOutRef = useRef(false);
+
+  const recordStepTiming = useCallback((step: string, ms: number) => {
+    stepTimingsRef.current[step] = ms;
+    setState(prev => ({
+      ...prev,
+      lastStep: step,
+      stepTimings: { ...stepTimingsRef.current },
+    }));
+  }, []);
 
   const setPhase = useCallback((phase: BootPhase) => {
     // Ignorar se já deu timeout ou completou
@@ -155,16 +200,15 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setState(prev => ({
       ...prev,
       phase,
+      lastStep: phase,
       isLoading: phase !== 'READY' && phase !== 'ERROR' && phase !== 'TIMEOUT',
       isTimeout: phase === 'TIMEOUT',
       metrics: { ...metricsRef.current },
     }));
     
     // Log de métricas em dev
-    if (import.meta.env.DEV) {
-      const elapsed = now - metricsRef.current.bootStartedAt;
-      console.log(`🚀 [AppBoot] Phase: ${phase} (${elapsed}ms desde boot)`);
-    }
+    const elapsed = now - metricsRef.current.bootStartedAt;
+    console.log(`🚀 [AppBoot] Phase: ${phase} (${elapsed}ms desde boot)`);
   }, []);
 
   const setError = useCallback((error: string | null) => {
@@ -191,31 +235,50 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
     hasTimedOutRef.current = true;
     metricsRef.current.timeoutAt = Date.now();
     
+    const lastError: BootError = {
+      message: `Bootstrap timeout na fase ${state.phase}`,
+      step: state.phase,
+    };
+    
     setState(prev => ({
       ...prev,
       phase: 'TIMEOUT',
       isLoading: false,
       isTimeout: true,
       metrics: { ...metricsRef.current },
+      lastError,
     }));
     
-    // Enviar alerta
-    sendTimeoutAlert(metricsRef.current, state.phase);
-  }, [state.phase]);
+    // Enviar alerta com dados de instrumentação
+    sendTimeoutAlert(
+      metricsRef.current, 
+      state.phase,
+      state.lastStep,
+      stepTimingsRef.current,
+      lastError
+    );
+  }, [state.phase, state.lastStep]);
 
   const reset = useCallback(() => {
     hasCompletedRef.current = false;
     hasTimedOutRef.current = false;
     
     metricsRef.current = { bootStartedAt: Date.now() };
+    stepTimingsRef.current = {};
     
-    setState({
+    setState(prev => ({
       phase: 'INITIALIZING',
       isLoading: true,
       error: null,
       metrics: metricsRef.current,
       isTimeout: false,
-    });
+      lastStep: null,
+      stepTimings: {},
+      lastError: null,
+      bootAttempt: prev.bootAttempt + 1,
+    }));
+    
+    console.log('🔄 [AppBoot] Reset - reiniciando boot');
     
     // Reiniciar timeout
     if (timeoutRef.current) {
@@ -281,6 +344,7 @@ export const AppBootProvider: React.FC<{ children: React.ReactNode }> = ({ child
     getLoadingMessage,
     getTotalBootTime,
     forceTimeout,
+    recordStepTiming,
   };
 
   return (

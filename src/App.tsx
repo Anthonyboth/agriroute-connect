@@ -24,6 +24,7 @@ import { ComponentLoader } from '@/components/LazyComponents';
 import { AppLoader, AuthLoader, DashboardLoader, GlobalLoader } from '@/components/AppLoader';
 import { AppBootProvider, useAppBoot, useShouldShowTimeoutFallback } from '@/contexts/AppBootContext';
 import { BootstrapGuardWrapper, BootTimeoutGuard } from '@/components/BootstrapGuardWrapper';
+import { BootOrchestrator } from '@/components/BootOrchestrator';
 import { ScrollToTop } from './components/ScrollToTop';
 import { PermissionPrompts } from './components/PermissionPrompts';
 import { useDeviceRegistration } from './hooks/useDeviceRegistration';
@@ -781,6 +782,7 @@ const App = () => {
           <BootstrapGuardWrapper>
           <BootTimeoutGuard>
           <BrowserRouter>
+            <BootOrchestrator />
             <RatingProviderErrorBoundary>
               <RatingProvider>
                 <TooltipProvider>

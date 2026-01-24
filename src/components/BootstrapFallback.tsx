@@ -24,6 +24,8 @@ interface BootstrapFallbackProps {
   onRetry?: () => void;
   /** Se está online */
   isOnline?: boolean;
+  /** Timings por step (para detalhes técnicos) */
+  stepTimings?: Record<string, number>;
 }
 
 export const BootstrapFallback: React.FC<BootstrapFallbackProps> = ({
@@ -32,6 +34,7 @@ export const BootstrapFallback: React.FC<BootstrapFallbackProps> = ({
   error,
   onRetry,
   isOnline = navigator.onLine,
+  stepTimings = {},
 }) => {
   const [isRecovering, setIsRecovering] = React.useState(false);
 
@@ -45,17 +48,21 @@ export const BootstrapFallback: React.FC<BootstrapFallbackProps> = ({
     
     if (onRetry) {
       onRetry();
+      // Resetar estado após um tempo para permitir nova tentativa se falhar
+      setTimeout(() => setIsRecovering(false), 3000);
     } else {
-      // Reload simples com cache-bust
-      const url = new URL(window.location.href);
-      url.searchParams.set('_retry', Date.now().toString());
-      window.location.href = url.toString();
+      // Fallback: reload simples
+      window.location.reload();
     }
   };
 
   const handleLogout = async () => {
     setIsRecovering(true);
     try {
+      // ✅ Chamar supabase.auth.signOut primeiro
+      const { supabase } = await import('@/integrations/supabase/client');
+      await supabase.auth.signOut({ scope: 'local' });
+      
       // Limpar storage de auth
       clearSupabaseAuthStorage();
       
@@ -125,14 +132,19 @@ export const BootstrapFallback: React.FC<BootstrapFallbackProps> = ({
         
         <CardContent className="space-y-4">
           {/* Info técnica (colapsável) */}
-          {(failedStep || elapsedMs || error) && (
+          {(failedStep || elapsedMs || error || Object.keys(stepTimings).length > 0) && (
             <details className="bg-muted rounded-lg p-3">
               <summary className="text-sm text-muted-foreground cursor-pointer">
                 Detalhes técnicos
               </summary>
               <div className="mt-2 text-xs font-mono space-y-1 text-muted-foreground">
                 {failedStep && <div>Etapa: {failedStep}</div>}
-                {elapsedMs && <div>Tempo: {Math.round(elapsedMs / 1000)}s</div>}
+                {elapsedMs && <div>Tempo total: {Math.round(elapsedMs / 1000)}s</div>}
+                {Object.keys(stepTimings).length > 0 && (
+                  <div>
+                    Timings: {Object.entries(stepTimings).map(([k, v]) => `${k}=${v}ms`).join(', ')}
+                  </div>
+                )}
                 {error && <div>Erro: {error.slice(0, 100)}</div>}
               </div>
             </details>
