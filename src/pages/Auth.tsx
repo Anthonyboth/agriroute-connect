@@ -92,26 +92,35 @@ const Auth = () => {
     
     // Handle role from URL - store in sessionStorage for persistence
     const roleFromUrl = parseRoleFromUrl(searchParams.get('role'));
-    if (roleFromUrl) {
-      sessionStorage.setItem('pending_signup_role', roleFromUrl);
-      setRole(roleFromUrl);
-      
-      // If role is provided, skip to appropriate step
-      if (roleFromUrl === 'MOTORISTA' || roleFromUrl === 'TRANSPORTADORA') {
-        setDriverType(roleFromUrl);
-        setSignupStep('form');
-      } else if (roleFromUrl === 'MOTORISTA_AFILIADO') {
-        // Redirect to affiliate signup page
-        window.location.href = '/cadastro-motorista-afiliado';
-        return;
-      } else {
-        setSignupStep('form');
+    
+    // Also check sessionStorage for pending role (from AuthModal)
+    const pendingRole = sessionStorage.getItem('pending_signup_role');
+    const effectiveRole = roleFromUrl || (
+      pendingRole && VALID_SIGNUP_ROLES.includes(pendingRole as SignupRole) 
+        ? pendingRole as SignupRole 
+        : null
+    );
+    
+    if (effectiveRole) {
+      // Store in sessionStorage if from URL (for persistence)
+      if (roleFromUrl) {
+        sessionStorage.setItem('pending_signup_role', roleFromUrl);
       }
-    } else {
-      // Check if there's a pending role in sessionStorage
-      const pendingRole = sessionStorage.getItem('pending_signup_role');
-      if (pendingRole && VALID_SIGNUP_ROLES.includes(pendingRole as SignupRole)) {
-        setRole(pendingRole as SignupRole);
+      setRole(effectiveRole);
+      
+      // If role is provided and we're in signup mode, skip to appropriate step
+      if (mode === 'signup') {
+        if (effectiveRole === 'MOTORISTA' || effectiveRole === 'TRANSPORTADORA') {
+          setDriverType(effectiveRole);
+          setSignupStep('form');
+        } else if (effectiveRole === 'MOTORISTA_AFILIADO') {
+          // Redirect to affiliate signup page
+          window.location.href = '/cadastro-motorista-afiliado';
+          return;
+        } else {
+          // PRODUTOR, PRESTADOR_SERVICOS - go directly to form
+          setSignupStep('form');
+        }
       }
     }
   }, [searchParams]);

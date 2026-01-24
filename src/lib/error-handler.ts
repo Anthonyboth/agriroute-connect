@@ -125,7 +125,13 @@ export function getErrorMessage(error: any): string {
     return 'Erro no processamento do pagamento. Tente novamente';
   }
   
+  // Profile creation specific errors - show clear messages
+  if (message.includes('já possui um perfil') || message.includes('já está cadastrado')) {
+    return message; // Return the actual message for profile-specific errors
+  }
+  
   // Hide any remaining technical database errors and table names
+  // But be careful not to hide profile-related errors
   if (message.includes('_') || 
       message.includes('postgres') || 
       message.includes('supabase') ||
