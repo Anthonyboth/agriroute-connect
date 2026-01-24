@@ -4,11 +4,111 @@ import { test, expect } from '@playwright/test';
  * Testes E2E para Fluxos de Autenticação - AgriRoute
  * 
  * Cobre:
+ * - Modal de seleção de role na Landing
  * - Signup com role específica via deep link
  * - Login e redirecionamento para dashboard correto
  * - Multi-profile selector
  * - Recuperação de senha
  */
+
+test.describe('Landing - Modal de Cadastro', () => {
+  
+  test.beforeEach(async ({ page }) => {
+    await page.context().clearCookies();
+  });
+
+  test('Botão "Cadastrar-se" abre modal com 4 opções de role', async ({ page }) => {
+    await page.goto('/');
+    
+    // Clicar no botão Cadastrar-se
+    const cadastrarBtn = page.getByRole('button', { name: /cadastrar/i }).first();
+    await expect(cadastrarBtn).toBeVisible({ timeout: 10000 });
+    await cadastrarBtn.click();
+    
+    // Verificar que o modal abriu
+    const modal = page.getByRole('dialog');
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    
+    // Verificar que tem aba de cadastro ativa
+    await expect(page.locator('[data-value="signup"]')).toHaveAttribute('data-state', 'active');
+    
+    // Verificar que as 4 opções estão visíveis
+    await expect(page.getByText(/produtor.*contratante/i)).toBeVisible();
+    await expect(page.getByText(/^motorista$/i)).toBeVisible();
+    await expect(page.getByText(/transportadora/i)).toBeVisible();
+    await expect(page.getByText(/prestador.*serviços/i)).toBeVisible();
+  });
+
+  test('Selecionar "Motorista" navega para /auth com mode=signup e role=MOTORISTA', async ({ page }) => {
+    await page.goto('/');
+    
+    // Abrir modal
+    const cadastrarBtn = page.getByRole('button', { name: /cadastrar/i }).first();
+    await cadastrarBtn.click();
+    
+    // Selecionar Motorista
+    await page.getByText(/^motorista$/i).click();
+    
+    // Clicar em continuar/prosseguir
+    const continueBtn = page.getByRole('button', { name: /continuar|prosseguir|cadastro/i });
+    await continueBtn.click();
+    
+    // Verificar URL
+    await expect(page).toHaveURL(/\/auth.*mode=signup.*role=MOTORISTA/i, { timeout: 10000 });
+    
+    // Verificar que role foi persistido em sessionStorage
+    const sessionRole = await page.evaluate(() => sessionStorage.getItem('pending_signup_role'));
+    expect(sessionRole).toBe('MOTORISTA');
+  });
+
+  test('Selecionar "Produtor" navega para /auth com mode=signup e role=PRODUTOR', async ({ page }) => {
+    await page.goto('/');
+    
+    // Abrir modal
+    const cadastrarBtn = page.getByRole('button', { name: /cadastrar/i }).first();
+    await cadastrarBtn.click();
+    
+    // Selecionar Produtor
+    await page.getByText(/produtor.*contratante/i).click();
+    
+    // Clicar em continuar
+    const continueBtn = page.getByRole('button', { name: /continuar|prosseguir|cadastro/i });
+    await continueBtn.click();
+    
+    // Verificar URL
+    await expect(page).toHaveURL(/\/auth.*mode=signup.*role=PRODUTOR/i, { timeout: 10000 });
+    
+    // Verificar sessionStorage
+    const sessionRole = await page.evaluate(() => sessionStorage.getItem('pending_signup_role'));
+    expect(sessionRole).toBe('PRODUTOR');
+  });
+
+  test('Botão "Começar Agora" (CTA) abre modal de cadastro', async ({ page }) => {
+    await page.goto('/');
+    
+    // Scroll para o CTA e clicar
+    const ctaBtn = page.getByRole('button', { name: /começar agora/i });
+    await ctaBtn.scrollIntoViewIfNeeded();
+    await ctaBtn.click();
+    
+    // Verificar que o modal abriu com aba signup ativa
+    const modal = page.getByRole('dialog');
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('[data-value="signup"]')).toHaveAttribute('data-state', 'active');
+  });
+
+  test('Botão "Entrar" continua funcionando normalmente', async ({ page }) => {
+    await page.goto('/');
+    
+    // Clicar no botão Entrar
+    const entrarBtn = page.getByRole('button', { name: /^entrar$/i }).first();
+    await expect(entrarBtn).toBeVisible({ timeout: 10000 });
+    await entrarBtn.click();
+    
+    // Verificar navegação para /auth com mode=login
+    await expect(page).toHaveURL(/\/auth.*mode=login/i, { timeout: 10000 });
+  });
+});
 
 test.describe('Autenticação - Fluxos Principais', () => {
   

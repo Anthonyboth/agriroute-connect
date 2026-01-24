@@ -217,12 +217,12 @@ const Landing: React.FC = () => {
               Entrar
             </Button>
             <Button 
-              onClick={() => navigate('/auth?mode=signup')}
+              onClick={() => openAuthModal('signup')}
               className="hidden sm:flex gradient-primary"
             > 
               Cadastrar-se
             </Button>
-            <MobileMenu onContactClick={() => setContactModal(true)} />
+            <MobileMenu onContactClick={() => setContactModal(true)} onSignupClick={() => openAuthModal('signup')} />
           </div>
         </div>
       </header>
@@ -344,7 +344,7 @@ const Landing: React.FC = () => {
           </h2>
           <Button
             size="lg"
-            onClick={() => navigate('/auth')}
+            onClick={() => openAuthModal('signup')}
             className="bg-background text-foreground text-lg px-8 py-6 rounded-xl hover:scale-105 transition-bounce shadow-xl"
           >
             Começar Agora
