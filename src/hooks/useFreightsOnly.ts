@@ -81,8 +81,9 @@ export const useFreightsOnly = (companyId?: string) => {
         setFreights(validFreights);
       }
     } catch (error) {
+      // ✅ CORREÇÃO CRÍTICA: NÃO exibir toast automático no login
+      // Falha silenciosa - evita "erro falso" quando não há fretes
       console.error('[useFreightsOnly] Error:', error);
-      toast.error('Erro ao carregar fretes');
       setFreights([]);
     } finally {
       setLoading(false);

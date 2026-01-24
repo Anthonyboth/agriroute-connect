@@ -75,11 +75,10 @@ const RouteRentabilityReport = lazy(() =>
   import("@/components/RouteRentabilityReport").then((m) => ({ default: m.RouteRentabilityReport })),
 );
 
-// Loading fallback for chart components
+// Loading fallback for chart components - SEM TEXTO (padrão global)
 const ChartLoader = () => (
   <div className="flex items-center justify-center p-12 min-h-[300px]">
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    <span className="ml-2 text-muted-foreground">Carregando gráficos...</span>
   </div>
 );
 
@@ -505,10 +504,21 @@ const ProducerDashboard = () => {
         .order("created_at", { ascending: false })
         .limit(200);
 
-      if (error) throw error;
+      // ✅ CORREÇÃO CRÍTICA: Diferenciar lista vazia vs erro real
+      // Lista vazia ou null = estado OK, não é erro
+      if (error) {
+        console.error("[fetchServiceRequests] Erro real:", error);
+        // NÃO exibir toast - falha silenciosa no login
+        setServiceRequests([]);
+        return;
+      }
+      
+      // Sucesso - pode ser lista vazia, é normal
       setServiceRequests(data || []);
-    } catch {
-      toast.error("Erro ao carregar serviços");
+    } catch (e) {
+      // ✅ NÃO exibir toast automático no login
+      console.error("[fetchServiceRequests] Exception:", e);
+      setServiceRequests([]);
     }
   }, [profile?.id, profile?.role]);
 

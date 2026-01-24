@@ -69,11 +69,10 @@ const CompanyDriverPerformanceDashboard = lazy(() => import('@/components/dashbo
 const CompanyFinancialDashboard = lazy(() => import('@/components/CompanyFinancialDashboard').then(m => ({ default: m.CompanyFinancialDashboard })));
 const CompanyReportsTab = lazy(() => import('@/pages/company/CompanyReportsTab').then(m => ({ default: m.CompanyReportsTab })));
 
-// Loading fallback for chart components
+// Loading fallback for chart components - SEM TEXTO (padrão global)
 const ChartLoader = () => (
   <div className="flex items-center justify-center p-12 min-h-[300px]">
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    <span className="ml-2 text-muted-foreground">Carregando gráficos...</span>
   </div>
 );
 
