@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,9 +18,36 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getErrorMessage } from '@/lib/error-handler';
 import { ProfileSelectorModal } from '@/components/ProfileSelectorModal';
+import { getDashboardByRole, isValidRole } from '@/lib/auth-utils';
 
+// Valid roles for signup
+const VALID_SIGNUP_ROLES = ['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'PRESTADOR_SERVICOS', 'TRANSPORTADORA'] as const;
+type SignupRole = typeof VALID_SIGNUP_ROLES[number];
+
+// Parse and validate role from URL
+function parseRoleFromUrl(roleParam: string | null): SignupRole | null {
+  if (!roleParam) return null;
+  const normalizedRole = roleParam.toUpperCase();
+  if (VALID_SIGNUP_ROLES.includes(normalizedRole as SignupRole)) {
+    return normalizedRole as SignupRole;
+  }
+  return null;
+}
+
+// Parse mode from URL (supports both 'mode' and 'tab' for backward compatibility)
+function parseModeFromUrl(searchParams: URLSearchParams): 'login' | 'signup' {
+  const mode = searchParams.get('mode');
+  const tab = searchParams.get('tab');
+  
+  // 'mode' takes priority, then 'tab'
+  if (mode === 'signup' || tab === 'signup' || tab === 'register') {
+    return 'signup';
+  }
+  return 'login';
+}
 
 const Auth = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [loginField, setLoginField] = useState('');
@@ -28,7 +55,7 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<'PRODUTOR' | 'MOTORISTA' | 'MOTORISTA_AFILIADO' | 'PRESTADOR_SERVICOS' | 'TRANSPORTADORA'>('PRODUTOR');
+  const [role, setRole] = useState<SignupRole>('PRODUTOR');
   const [phone, setPhone] = useState('');
   const [document, setDocument] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,6 +63,13 @@ const Auth = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const navigate = useNavigate();
+
+  // ✅ CRITICAL: Read mode and role from URL query params
+  const urlMode = parseModeFromUrl(searchParams);
+  const urlRole = parseRoleFromUrl(searchParams.get('role'));
+  
+  // ✅ Controlled active tab synced to URL
+  const [activeTab, setActiveTab] = useState<'login' | 'signup'>(urlMode);
 
   // Estados para fluxo multi-step de cadastro
   const [signupStep, setSignupStep] = useState<'role-selection' | 'driver-type' | 'form'>('role-selection');
@@ -50,6 +84,62 @@ const Auth = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showProfileSelector, setShowProfileSelector] = useState(false);
   const [availableProfiles, setAvailableProfiles] = useState<any[]>([]);
+
+  // ✅ CRITICAL: Sync URL mode to active tab state on mount and URL changes
+  useEffect(() => {
+    const mode = parseModeFromUrl(searchParams);
+    setActiveTab(mode);
+    
+    // Handle role from URL - store in sessionStorage for persistence
+    const roleFromUrl = parseRoleFromUrl(searchParams.get('role'));
+    if (roleFromUrl) {
+      sessionStorage.setItem('pending_signup_role', roleFromUrl);
+      setRole(roleFromUrl);
+      
+      // If role is provided, skip to appropriate step
+      if (roleFromUrl === 'MOTORISTA' || roleFromUrl === 'TRANSPORTADORA') {
+        setDriverType(roleFromUrl);
+        setSignupStep('form');
+      } else if (roleFromUrl === 'MOTORISTA_AFILIADO') {
+        // Redirect to affiliate signup page
+        window.location.href = '/cadastro-motorista-afiliado';
+        return;
+      } else {
+        setSignupStep('form');
+      }
+    } else {
+      // Check if there's a pending role in sessionStorage
+      const pendingRole = sessionStorage.getItem('pending_signup_role');
+      if (pendingRole && VALID_SIGNUP_ROLES.includes(pendingRole as SignupRole)) {
+        setRole(pendingRole as SignupRole);
+      }
+    }
+  }, [searchParams]);
+
+  // ✅ CRITICAL: Update URL when tab changes (single source of truth)
+  const handleTabChange = (newTab: string) => {
+    const tab = newTab as 'login' | 'signup';
+    setActiveTab(tab);
+    
+    // Update URL to reflect the new mode
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('mode', tab);
+    
+    // Preserve role if switching to signup
+    if (tab === 'signup') {
+      const pendingRole = sessionStorage.getItem('pending_signup_role');
+      if (pendingRole) {
+        newParams.set('role', pendingRole);
+      }
+    } else {
+      newParams.delete('role');
+    }
+    
+    // Remove legacy 'tab' param
+    newParams.delete('tab');
+    
+    setSearchParams(newParams, { replace: true });
+  };
 
   useEffect(() => {
     // Remove automatic redirect from auth page - let RedirectIfAuthed handle it
@@ -520,10 +610,11 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
-          <Tabs defaultValue="login" className="space-y-6">
+          {/* ✅ CRITICAL: Controlled tabs synced to URL */}
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             <TabsList className="mx-auto grid grid-cols-2 gap-1 w-full max-w-xs bg-muted rounded-lg p-1">
               <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Cadastro</TabsTrigger>
+              <TabsTrigger value="signup">Cadastro</TabsTrigger>
             </TabsList>
             
             {/* Social Login Section - Common for both tabs */}
@@ -593,7 +684,7 @@ const Auth = () => {
 
             </TabsContent>
             
-            <TabsContent value="register">
+            <TabsContent value="signup">
               <div className="space-y-4">
                 {/* Step 1: Seleção de Role */}
                 {signupStep === 'role-selection' && (

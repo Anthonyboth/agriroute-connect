@@ -19,6 +19,25 @@ export class AuthErrorBoundary extends React.Component<
     console.error('Auth Error:', error, errorInfo);
   }
 
+  handleRetry = () => {
+    // ✅ Preserve current URL params (mode, role) on retry
+    window.location.reload();
+  };
+
+  handleGoToAuth = () => {
+    // ✅ Preserve mode from current URL if available
+    const currentUrl = new URL(window.location.href);
+    const mode = currentUrl.searchParams.get('mode') || 'login';
+    const role = currentUrl.searchParams.get('role');
+    
+    let authUrl = `/auth?mode=${mode}`;
+    if (role && mode === 'signup') {
+      authUrl += `&role=${role}`;
+    }
+    
+    window.location.href = authUrl;
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -29,9 +48,14 @@ export class AuthErrorBoundary extends React.Component<
             <p className="text-muted-foreground">
               {this.state.error?.message || 'Ocorreu um erro inesperado'}
             </p>
-            <Button onClick={() => window.location.reload()}>
-              Tentar Novamente
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button onClick={this.handleRetry}>
+                Tentar Novamente
+              </Button>
+              <Button variant="outline" onClick={this.handleGoToAuth}>
+                Ir para Login
+              </Button>
+            </div>
           </div>
         </div>
       );
