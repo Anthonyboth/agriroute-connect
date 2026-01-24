@@ -21,6 +21,8 @@ import Landing from "./pages/Landing";
 import { useAuth } from "./hooks/useAuth";
 import { useCompanyDriver } from "./hooks/useCompanyDriver";
 import { ComponentLoader } from '@/components/LazyComponents';
+import { AppLoader, AuthLoader, DashboardLoader } from '@/components/AppLoader';
+import { AppBootProvider, useAppBoot } from '@/contexts/AppBootContext';
 import { ScrollToTop } from './components/ScrollToTop';
 import { PermissionPrompts } from './components/PermissionPrompts';
 import { useDeviceRegistration } from './hooks/useDeviceRegistration';
@@ -243,18 +245,29 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
   const location = useLocation();
   const navigate = useNavigate();
   const [loadingTimeout, setLoadingTimeout] = React.useState(false);
+  const loadingStartRef = React.useRef<number>(Date.now());
 
   React.useEffect(() => {
     if (loading || isLoadingCompany) {
+      loadingStartRef.current = Date.now();
       const timer = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 15000); // ✅ ETAPA 5: Aumentado de 8s para 15s
+      }, 15000); // 15s timeout
       return () => clearTimeout(timer);
+    } else {
+      // Log tempo de loading em dev
+      if (import.meta.env.DEV) {
+        const elapsed = Date.now() - loadingStartRef.current;
+        if (elapsed > 100) {
+          console.log(`⏱️ [ProtectedRoute] Loading: ${elapsed}ms`);
+        }
+      }
     }
   }, [loading, isLoadingCompany]);
 
+  // ✅ UNIFICADO: Usar AuthLoader para estado de carregamento
   if ((loading || isLoadingCompany) && !loadingTimeout) {
-    return <ComponentLoader />;
+    return <AuthLoader message="Verificando autenticação..." />;
   }
   
   if (loadingTimeout) {
@@ -424,10 +437,12 @@ const AuthedLanding = () => {
   const [isCheckingCompany, setIsCheckingCompany] = React.useState(false);
   const [isCompany, setIsCompany] = React.useState(false);
   const [loadingTimeout, setLoadingTimeout] = React.useState(false);
+  const bootTimeRef = React.useRef<number>(Date.now());
   
-  // Timeout para loading
+  // Timeout para loading (8s)
   React.useEffect(() => {
     if (loading || isCheckingCompany) {
+      bootTimeRef.current = Date.now();
       const timer = setTimeout(() => {
         setLoadingTimeout(true);
       }, 8000);
@@ -449,6 +464,11 @@ const AuthedLanding = () => {
         const isCompanyUser = !!data || profile.active_mode === 'TRANSPORTADORA';
         setIsCompany(isCompanyUser);
         setIsCheckingCompany(false);
+        
+        // Log tempo em dev
+        if (import.meta.env.DEV) {
+          console.log(`⏱️ [AuthedLanding] Company check: ${Date.now() - bootTimeRef.current}ms`);
+        }
       }
     };
     
@@ -462,9 +482,9 @@ const AuthedLanding = () => {
     return <Landing />;
   }
   
-  // Aguardar resolução
+  // ✅ UNIFICADO: Usar AuthLoader durante carregamento
   if ((loading || isCheckingCompany) && !loadingTimeout) {
-    return <ComponentLoader />;
+    return <AuthLoader message="Carregando..." />;
   }
   
   // Se não autenticado, mostrar Landing normal
@@ -583,16 +603,17 @@ const RedirectIfAuthed = () => {
     );
   }
   
+  // ✅ UNIFICADO: Usar AuthLoader em vez de ComponentLoader
   if (loading || isCheckingCompany) {
-    return <ComponentLoader />;
+    return <AuthLoader message="Verificando perfil..." />;
   }
   
   // ✅ FASE 1 FIX: Aguardar profile carregar quando autenticado (corrige flash de cadastro)
   if (isAuthenticated && !profile) {
-    return <ComponentLoader />;
+    return <AuthLoader message="Carregando perfil..." />;
   }
   
-  if (!isAuthenticated) return <Suspense fallback={<ComponentLoader />}><Auth /></Suspense>;
+  if (!isAuthenticated) return <Suspense fallback={<AuthLoader message="Carregando..." />}><Auth /></Suspense>;
   
   // Evita redirecionar cedo demais: só vá para /complete-profile
   // quando já soubermos que não há perfis após o carregamento
@@ -600,7 +621,7 @@ const RedirectIfAuthed = () => {
     if (Array.isArray(profiles) && profiles.length === 0) {
       return <Navigate to="/complete-profile" replace />;
     }
-    return <ComponentLoader />; // aguardando resolução do perfil
+    return <AuthLoader message="Finalizando..." />; // aguardando resolução do perfil
   }
   
   // Consumir redirect_after_login se existir
@@ -755,6 +776,7 @@ const App = () => {
       <ErrorBoundary>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <QueryClientProvider client={queryClient}>
+          <AppBootProvider>
           <BrowserRouter>
             <RatingProviderErrorBoundary>
               <RatingProvider>
@@ -774,9 +796,9 @@ const App = () => {
                       <Routes>
                         <Route path="/" element={<AuthedLanding />} />
                         <Route path="/landing" element={<Landing />} />
-                        <Route path="/auth" element={<Suspense fallback={<ComponentLoader />}><Auth /></Suspense>} />
-                        <Route path="/reset-password" element={<Suspense fallback={<ComponentLoader />}><ResetPassword /></Suspense>} />
-                        <Route path="/confirm-email" element={<Suspense fallback={<ComponentLoader />}><ConfirmEmail /></Suspense>} />
+                        <Route path="/auth" element={<Suspense fallback={<AuthLoader message="Carregando..." />}><Auth /></Suspense>} />
+                        <Route path="/reset-password" element={<Suspense fallback={<AppLoader variant="inline" />}><ResetPassword /></Suspense>} />
+                        <Route path="/confirm-email" element={<Suspense fallback={<AppLoader variant="inline" />}><ConfirmEmail /></Suspense>} />
                         <Route 
                           path="/complete-profile" 
                           element={
@@ -821,7 +843,7 @@ const App = () => {
                           path="/dashboard/producer"
                           element={
                             <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRODUTOR"]}>
-                              <Suspense fallback={<ComponentLoader />}>
+                              <Suspense fallback={<DashboardLoader message="Carregando painel do produtor..." />}>
                                 <ProducerDashboard />
                               </Suspense>
                             </ProtectedRoute>
@@ -831,7 +853,7 @@ const App = () => {
                           path="/dashboard/driver" 
                           element={
                             <ProtectedRoute requiresAuth requiresApproval allowedRoles={["MOTORISTA", "MOTORISTA_AFILIADO"]}>
-                              <Suspense fallback={<ComponentLoader />}>
+                              <Suspense fallback={<DashboardLoader message="Carregando painel do motorista..." />}>
                                 <DriverDashboard />
                               </Suspense>
                             </ProtectedRoute>
@@ -841,7 +863,7 @@ const App = () => {
                           path="/dashboard/service-provider" 
                           element={
                             <ProtectedRoute requiresAuth requiresApproval allowedRoles={["PRESTADOR_SERVICOS"]}>
-                              <Suspense fallback={<ComponentLoader />}>
+                              <Suspense fallback={<DashboardLoader message="Carregando painel de serviços..." />}>
                                 <ServiceProviderDashboard />
                               </Suspense>
                             </ProtectedRoute>
@@ -851,7 +873,7 @@ const App = () => {
                           path="/dashboard/company" 
                           element={
                             <ProtectedRoute requiresAuth requiresApproval allowedRoles={["TRANSPORTADORA"]}>
-                              <Suspense fallback={<ComponentLoader />}>
+                              <Suspense fallback={<DashboardLoader message="Carregando painel da transportadora..." />}>
                                 <CompanyDashboard />
                               </Suspense>
                             </ProtectedRoute>
@@ -944,6 +966,7 @@ const App = () => {
               </RatingProvider>
             </RatingProviderErrorBoundary>
           </BrowserRouter>
+          </AppBootProvider>
         </QueryClientProvider>
       </ThemeProvider>
     </ErrorBoundary>
