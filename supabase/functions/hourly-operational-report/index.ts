@@ -48,22 +48,7 @@ async function sendTelegramMessage(message: string): Promise<boolean> {
   }
 }
 
-type Status = 'OK' | 'ATENCAO' | 'GARGALO';
-
-interface OperationalMetric {
-  name: string;
-  value: number | string;
-  status: Status;
-  details?: string;
-}
-
-function getStatusEmoji(status: Status): string {
-  switch (status) {
-    case 'GARGALO': return '🔴';
-    case 'ATENCAO': return '🟡';
-    case 'OK': return '🟢';
-  }
-}
+type Status = 'OK' | 'ATENCAO' | 'CRITICO';
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -86,303 +71,246 @@ serve(async (req) => {
     const last6h = new Date(now.getTime() - 6 * 60 * 60 * 1000);
     const cuiabaTime = now.toLocaleString('pt-BR', { timeZone: 'America/Cuiaba' });
 
-    const metrics: OperationalMetric[] = [];
-    let hasGargalo = false;
-    let hasAtencao = false;
+    let overallStatus: Status = 'OK';
+    const issues: string[] = [];
 
-    // ================== CADASTROS ==================
-    logStep('Verificando cadastros');
-
-    // Cadastros iniciados (profiles criados)
-    const { count: startedSignups } = await supabaseAdmin
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', oneHourAgo.toISOString());
-
-    // Cadastros concluídos (perfis com status ativo ou approved)
-    const { count: completedSignups } = await supabaseAdmin
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', oneHourAgo.toISOString())
-      .or('registration_status.eq.approved,registration_status.eq.approved_verified');
-
-    const signupConversionRate = startedSignups && startedSignups > 0 
-      ? Math.round(((completedSignups || 0) / startedSignups) * 100) 
-      : 100;
-
-    let signupStatus: Status = 'OK';
-    if (signupConversionRate < 50 && (startedSignups || 0) > 3) { signupStatus = 'GARGALO'; hasGargalo = true; }
-    else if (signupConversionRate < 80 && (startedSignups || 0) > 3) { signupStatus = 'ATENCAO'; hasAtencao = true; }
-
-    metrics.push({
-      name: 'Cadastros (1h)',
-      value: `${completedSignups || 0}/${startedSignups || 0}`,
-      status: signupStatus,
-      details: `${signupConversionRate}% conversão`
-    });
-
-    // Erros de login/cadastro mais frequentes
-    const { data: authErrors } = await supabaseAdmin
-      .from('error_logs')
-      .select('error_message')
-      .gte('created_at', oneHourAgo.toISOString())
-      .or('function_name.ilike.%auth%,function_name.ilike.%login%,function_name.ilike.%signup%,module.ilike.%auth%');
-
-    const errorCounts: Record<string, number> = {};
-    authErrors?.forEach(e => {
-      const msg = (e.error_message || 'unknown').substring(0, 50);
-      errorCounts[msg] = (errorCounts[msg] || 0) + 1;
-    });
-    const topErrors = Object.entries(errorCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-
-    if (topErrors.length > 0) {
-      metrics.push({
-        name: 'Top Erros Auth (1h)',
-        value: topErrors.length,
-        status: topErrors.length > 5 ? 'ATENCAO' : 'OK',
-        details: topErrors.slice(0, 2).map(([e, c]) => `${e.substring(0, 25)}(${c}x)`).join(', ')
-      });
-    }
-
-    // Perfis pendentes de aprovação
-    const { count: pendingProfiles } = await supabaseAdmin
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .or('registration_status.eq.pending,registration_status.eq.pending_verification');
-
-    let pendingStatus: Status = 'OK';
-    if ((pendingProfiles || 0) > 20) { pendingStatus = 'GARGALO'; hasGargalo = true; }
-    else if ((pendingProfiles || 0) > 10) { pendingStatus = 'ATENCAO'; hasAtencao = true; }
-
-    metrics.push({
-      name: 'Perfis Pendentes',
-      value: pendingProfiles || 0,
-      status: pendingStatus
-    });
-
-    // ================== FRETES ==================
-    logStep('Verificando fretes');
-
-    // Fretes abertos por tipo
+    // ==========================================
+    // 1. FRETES ABERTOS POR TIPO
+    // ==========================================
+    logStep('Verificando fretes abertos');
+    
     const { data: openFreights } = await supabaseAdmin
       .from('freights')
-      .select('id, status, freight_type, service_type')
-      .in('status', ['WAITING_PICKUP', 'OPEN', 'PENDING']);
+      .select('id, freight_type, service_type, status, created_at, updated_at')
+      .in('status', ['OPEN', 'WAITING_PICKUP', 'PENDING']);
 
-    const freightsByType: Record<string, number> = {};
+    // Contar por tipo de veículo/serviço
+    const freightsByType: Record<string, number> = {
+      'CAMINHAO': 0,
+      'MOTO': 0,
+      'GUINCHO': 0,
+      'SERVICO': 0,
+      'OUTROS': 0
+    };
+
     openFreights?.forEach(f => {
-      const type = f.freight_type || f.service_type || 'OUTROS';
-      freightsByType[type] = (freightsByType[type] || 0) + 1;
+      const type = f.freight_type?.toUpperCase() || f.service_type?.toUpperCase() || '';
+      
+      if (type.includes('CAMINHAO') || type.includes('TRUCK') || type.includes('CARRETA')) {
+        freightsByType['CAMINHAO']++;
+      } else if (type.includes('MOTO') || type.includes('BIKE')) {
+        freightsByType['MOTO']++;
+      } else if (type.includes('GUINCHO') || type.includes('REBOQUE') || type.includes('TOW')) {
+        freightsByType['GUINCHO']++;
+      } else if (type.includes('SERVICO') || type.includes('SERVICE')) {
+        freightsByType['SERVICO']++;
+      } else {
+        freightsByType['OUTROS']++;
+      }
     });
 
-    metrics.push({
-      name: 'Fretes Abertos',
-      value: openFreights?.length || 0,
-      status: 'OK',
-      details: Object.entries(freightsByType).slice(0, 3).map(([t, c]) => `${t}: ${c}`).join(', ')
-    });
+    const totalOpenFreights = openFreights?.length || 0;
 
-    // Fretes sem proposta há mais de 6 horas
-    const { count: freightsWithoutProposals } = await supabaseAdmin
+    // ==========================================
+    // 2. FRETES EM ANDAMENTO
+    // ==========================================
+    logStep('Verificando fretes em andamento');
+    const { count: inTransitFreights } = await supabaseAdmin
       .from('freights')
       .select('*', { count: 'exact', head: true })
+      .eq('status', 'IN_TRANSIT');
+
+    // ==========================================
+    // 3. FRETES PRÓXIMOS DE CANCELAMENTO AUTOMÁTICO (24h+)
+    // ==========================================
+    logStep('Verificando fretes estagnados');
+    const { data: staleFreights } = await supabaseAdmin
+      .from('freights')
+      .select('id, status, created_at')
       .in('status', ['OPEN', 'WAITING_PICKUP'])
-      .lt('created_at', last6h.toISOString())
-      .eq('proposals_count', 0);
+      .lt('created_at', last24h.toISOString());
 
-    let noProposalStatus: Status = 'OK';
-    if ((freightsWithoutProposals || 0) > 10) { noProposalStatus = 'GARGALO'; hasGargalo = true; }
-    else if ((freightsWithoutProposals || 0) > 5) { noProposalStatus = 'ATENCAO'; hasAtencao = true; }
+    const staleFreightsCount = staleFreights?.length || 0;
+    if (staleFreightsCount > 5) {
+      overallStatus = 'CRITICO';
+      issues.push(`${staleFreightsCount} fretes há +24h sem movimento`);
+    } else if (staleFreightsCount > 2) {
+      if (overallStatus !== 'CRITICO') overallStatus = 'ATENCAO';
+      issues.push(`${staleFreightsCount} fretes há +24h sem movimento`);
+    }
 
-    metrics.push({
-      name: 'Fretes s/ Proposta (+6h)',
-      value: freightsWithoutProposals || 0,
-      status: noProposalStatus
-    });
+    // ==========================================
+    // 4. SERVIÇOS ABERTOS
+    // ==========================================
+    logStep('Verificando serviços abertos');
+    const { count: openServices } = await supabaseAdmin
+      .from('service_requests')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['OPEN', 'PENDING', 'AWAITING_PROVIDER']);
 
-    // Propostas criadas vs aceitas (taxa de conversão)
-    const { count: proposalsCreated } = await supabaseAdmin
+    // ==========================================
+    // 5. PROPOSTAS ENVIADAS (últimas 24h)
+    // ==========================================
+    logStep('Verificando propostas');
+    const { count: proposals24h } = await supabaseAdmin
       .from('freight_proposals')
       .select('*', { count: 'exact', head: true })
-      .gte('created_at', oneHourAgo.toISOString());
+      .gte('created_at', last24h.toISOString());
 
-    const { count: proposalsAccepted } = await supabaseAdmin
+    // Propostas aceitas
+    const { count: acceptedProposals24h } = await supabaseAdmin
       .from('freight_proposals')
       .select('*', { count: 'exact', head: true })
-      .gte('created_at', oneHourAgo.toISOString())
-      .eq('status', 'ACCEPTED');
+      .eq('status', 'ACCEPTED')
+      .gte('created_at', last24h.toISOString());
 
-    const proposalConversion = proposalsCreated && proposalsCreated > 0
-      ? Math.round(((proposalsAccepted || 0) / proposalsCreated) * 100)
+    const proposalConversionRate = (proposals24h && proposals24h > 0) 
+      ? Math.round(((acceptedProposals24h || 0) / proposals24h) * 100) 
       : 0;
 
-    let proposalStatus: Status = 'OK';
-    if (proposalConversion < 10 && (proposalsCreated || 0) > 10) { proposalStatus = 'ATENCAO'; hasAtencao = true; }
+    if (proposalConversionRate < 10 && (proposals24h || 0) > 20) {
+      if (overallStatus !== 'CRITICO') overallStatus = 'ATENCAO';
+      issues.push(`Taxa de conversão de propostas baixa (${proposalConversionRate}%)`);
+    }
 
-    metrics.push({
-      name: 'Propostas (1h)',
-      value: `${proposalsAccepted || 0}/${proposalsCreated || 0}`,
-      status: proposalStatus,
-      details: `${proposalConversion}% aceitas`
-    });
+    // ==========================================
+    // 6. CONTRA-PROPOSTAS PENDENTES DE RESPOSTA
+    // ==========================================
+    logStep('Verificando contra-propostas');
+    const { count: pendingCounterProposals } = await supabaseAdmin
+      .from('freight_proposals')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'COUNTER_PROPOSED');
 
-    // Fretes em andamento sem atualização há muito tempo
-    const { count: staleInTransit } = await supabaseAdmin
+    // Contra-propostas pendentes há mais de 6h
+    const { count: staleCounterProposals } = await supabaseAdmin
+      .from('freight_proposals')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'COUNTER_PROPOSED')
+      .lt('updated_at', last6h.toISOString());
+
+    if ((staleCounterProposals || 0) > 5) {
+      if (overallStatus !== 'CRITICO') overallStatus = 'ATENCAO';
+      issues.push(`${staleCounterProposals} contra-propostas sem resposta há +6h`);
+    }
+
+    // ==========================================
+    // 7. FRETES TRAVADOS POR ERRO DE STATUS
+    // ==========================================
+    logStep('Verificando fretes com status inconsistente');
+    
+    // Fretes "IN_TRANSIT" sem atualização há mais de 48h
+    const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+    const { count: stuckInTransit } = await supabaseAdmin
       .from('freights')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'IN_TRANSIT')
-      .lt('updated_at', last24h.toISOString());
+      .lt('updated_at', twoDaysAgo.toISOString());
 
-    let staleStatus: Status = 'OK';
-    if ((staleInTransit || 0) > 5) { staleStatus = 'GARGALO'; hasGargalo = true; }
-    else if ((staleInTransit || 0) > 2) { staleStatus = 'ATENCAO'; hasAtencao = true; }
+    // Fretes "DELIVERED" mas não confirmados há mais de 48h
+    const { count: unconfirmedDeliveries } = await supabaseAdmin
+      .from('freights')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'DELIVERED')
+      .eq('delivery_confirmed', false)
+      .lt('updated_at', twoDaysAgo.toISOString());
 
-    metrics.push({
-      name: 'Em Trânsito (s/ update 24h)',
-      value: staleInTransit || 0,
-      status: staleStatus
-    });
+    const stuckFreightsTotal = (stuckInTransit || 0) + (unconfirmedDeliveries || 0);
+    if (stuckFreightsTotal > 3) {
+      overallStatus = 'CRITICO';
+      issues.push(`${stuckFreightsTotal} fretes possivelmente travados`);
+    } else if (stuckFreightsTotal > 0) {
+      if (overallStatus !== 'CRITICO') overallStatus = 'ATENCAO';
+      issues.push(`${stuckFreightsTotal} fretes possivelmente travados`);
+    }
 
-    // Entregas atrasadas
+    // ==========================================
+    // 8. ENTREGAS ATRASADAS
+    // ==========================================
+    logStep('Verificando entregas atrasadas');
     const { count: overdueDeliveries } = await supabaseAdmin
       .from('freights')
       .select('*', { count: 'exact', head: true })
       .in('status', ['IN_TRANSIT', 'WAITING_PICKUP'])
       .lt('estimated_delivery_date', now.toISOString());
 
-    let overdueStatus: Status = 'OK';
-    if ((overdueDeliveries || 0) > 5) { overdueStatus = 'GARGALO'; hasGargalo = true; }
-    else if ((overdueDeliveries || 0) > 2) { overdueStatus = 'ATENCAO'; hasAtencao = true; }
+    if ((overdueDeliveries || 0) > 5) {
+      if (overallStatus !== 'CRITICO') overallStatus = 'ATENCAO';
+      issues.push(`${overdueDeliveries} entregas atrasadas`);
+    }
 
-    metrics.push({
-      name: 'Entregas Atrasadas',
-      value: overdueDeliveries || 0,
-      status: overdueStatus
-    });
-
-    // Confirmações de entrega pendentes
-    const { count: pendingConfirmations } = await supabaseAdmin
+    // ==========================================
+    // 9. COMPARAÇÃO COM DASHBOARD (sanity check)
+    // ==========================================
+    // Aqui verificamos se os números são consistentes
+    const { count: dashboardOpenFreights } = await supabaseAdmin
       .from('freights')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'DELIVERED')
-      .eq('delivery_confirmed', false);
+      .in('status', ['OPEN', 'WAITING_PICKUP', 'PENDING']);
 
-    let confirmStatus: Status = 'OK';
-    if ((pendingConfirmations || 0) > 10) { confirmStatus = 'ATENCAO'; hasAtencao = true; }
+    const divergence = Math.abs((dashboardOpenFreights || 0) - totalOpenFreights);
+    const hasDivergence = divergence > 0;
 
-    metrics.push({
-      name: 'Confirmações Pendentes',
-      value: pendingConfirmations || 0,
-      status: confirmStatus
-    });
+    // ==========================================
+    // BUILD MESSAGE - FORMATO OBRIGATÓRIO
+    // ==========================================
+    const statusEmoji = overallStatus === 'CRITICO' ? '🔴' : overallStatus === 'ATENCAO' ? '🟡' : '🟢';
 
-    // ================== SERVIÇOS ==================
-    logStep('Verificando serviços');
+    let message = `🚚 <b>STATUS OPERACIONAL — FRETES & SERVIÇOS</b>\n`;
+    message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
-    const { count: openServices } = await supabaseAdmin
-      .from('service_requests')
-      .select('*', { count: 'exact', head: true })
-      .in('status', ['OPEN', 'PENDING', 'AWAITING_PROVIDER']);
+    // STATUS GERAL
+    message += `📊 <b>Status Geral:</b> ${statusEmoji} ${overallStatus}\n\n`;
 
-    metrics.push({
-      name: 'Serviços Abertos',
-      value: openServices || 0,
-      status: 'OK'
-    });
+    // FRETES ABERTOS POR TIPO
+    message += `📦 <b>FRETES ABERTOS</b> (Total: <b>${totalOpenFreights}</b>)\n`;
+    message += `├ 🚛 Caminhão: ${freightsByType['CAMINHAO']}\n`;
+    message += `├ 🏍️ Moto: ${freightsByType['MOTO']}\n`;
+    message += `├ 🚗 Guincho: ${freightsByType['GUINCHO']}\n`;
+    message += `├ 🔧 Serviços: ${freightsByType['SERVICO']}\n`;
+    message += `└ 📋 Outros: ${freightsByType['OUTROS']}\n\n`;
 
-    // ================== AVALIAÇÕES ==================
-    logStep('Verificando avaliações');
+    // STATUS DOS FRETES
+    message += `🔄 <b>MOVIMENTAÇÃO</b>\n`;
+    message += `├ Em Andamento: <b>${inTransitFreights || 0}</b>\n`;
+    message += `├ Próximos de Cancelamento (+24h): ${staleFreightsCount}${staleFreightsCount > 0 ? ' ⚠️' : ''}\n`;
+    message += `├ Entregas Atrasadas: ${overdueDeliveries || 0}${(overdueDeliveries || 0) > 0 ? ' ⚠️' : ''}\n`;
+    message += `└ Travados por Erro: ${stuckFreightsTotal}${stuckFreightsTotal > 0 ? ' 🚨' : ''}\n\n`;
 
-    // Média de avaliações
-    const { data: recentRatings } = await supabaseAdmin
-      .from('ratings')
-      .select('rating')
-      .gte('created_at', last24h.toISOString());
+    // SERVIÇOS
+    message += `🔧 <b>SERVIÇOS</b>\n`;
+    message += `└ Serviços Abertos: <b>${openServices || 0}</b>\n\n`;
 
-    const avgRating = recentRatings && recentRatings.length > 0
-      ? (recentRatings.reduce((sum, r) => sum + r.rating, 0) / recentRatings.length).toFixed(1)
-      : 'N/A';
+    // PROPOSTAS
+    message += `💼 <b>PROPOSTAS (24h)</b>\n`;
+    message += `├ Propostas Enviadas: <b>${proposals24h || 0}</b>\n`;
+    message += `├ Propostas Aceitas: ${acceptedProposals24h || 0} (${proposalConversionRate}%)\n`;
+    message += `├ Contra-Propostas Pendentes: ${pendingCounterProposals || 0}\n`;
+    message += `└ Contra-Propostas s/ Resposta (+6h): ${staleCounterProposals || 0}${(staleCounterProposals || 0) > 0 ? ' ⚠️' : ''}\n\n`;
 
-    // Avaliações ruins (1-2 estrelas)
-    const badRatings = recentRatings?.filter(r => r.rating <= 2).length || 0;
+    // DIVERGÊNCIA
+    if (hasDivergence) {
+      message += `⚠️ <b>DIVERGÊNCIA DETECTADA:</b>\n`;
+      message += `├ Contagem API: ${totalOpenFreights}\n`;
+      message += `├ Contagem Dashboard: ${dashboardOpenFreights}\n`;
+      message += `└ Diferença: ${divergence}\n\n`;
+    }
 
-    let ratingStatus: Status = 'OK';
-    if (badRatings > 5) { ratingStatus = 'GARGALO'; hasGargalo = true; }
-    else if (badRatings > 2) { ratingStatus = 'ATENCAO'; hasAtencao = true; }
-
-    metrics.push({
-      name: 'Avaliações (24h)',
-      value: recentRatings?.length || 0,
-      status: ratingStatus,
-      details: `Média: ${avgRating} ⭐ | ${badRatings} ruins`
-    });
-
-    // Avaliações pendentes (fretes concluídos sem avaliação)
-    const { count: pendingRatings } = await supabaseAdmin
-      .from('freights')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'COMPLETED')
-      .lt('completed_at', last24h.toISOString())
-      .is('producer_rating', null);
-
-    metrics.push({
-      name: 'Avaliações Pendentes',
-      value: pendingRatings || 0,
-      status: (pendingRatings || 0) > 20 ? 'ATENCAO' : 'OK'
-    });
-
-    // ================== BUILD MESSAGE ==================
-    const gargaloMetrics = metrics.filter(m => m.status === 'GARGALO');
-    const atencaoMetrics = metrics.filter(m => m.status === 'ATENCAO');
-    const okMetrics = metrics.filter(m => m.status === 'OK');
-
-    let overallStatus = '🟢 NORMAL';
-    if (hasGargalo) overallStatus = '🔴 GARGALOS';
-    else if (hasAtencao) overallStatus = '🟡 ATENÇÃO';
-
-    let message = `🚚 <b>OPERAÇÃO & QUALIDADE - AgriRoute</b>\n`;
-    message += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-    message += `📊 <b>Status:</b> ${overallStatus}\n`;
-    message += `🕐 <b>Período:</b> Última 1 hora\n\n`;
-
-    if (gargaloMetrics.length > 0) {
-      message += `🔴 <b>GARGALOS (${gargaloMetrics.length}):</b>\n`;
-      gargaloMetrics.forEach(m => {
-        message += `├ ${m.name}: <b>${m.value}</b>`;
-        if (m.details) message += ` (${m.details})`;
-        message += `\n`;
+    // ISSUES
+    if (issues.length > 0) {
+      message += `⚠️ <b>ALERTAS ATIVOS:</b>\n`;
+      issues.forEach(issue => {
+        message += `• ${issue}\n`;
       });
       message += `\n`;
     }
 
-    if (atencaoMetrics.length > 0) {
-      message += `🟡 <b>ATENÇÃO (${atencaoMetrics.length}):</b>\n`;
-      atencaoMetrics.forEach(m => {
-        message += `├ ${m.name}: <b>${m.value}</b>`;
-        if (m.details) message += ` (${m.details})`;
-        message += `\n`;
-      });
-      message += `\n`;
-    }
-
-    message += `🟢 <b>OK (${okMetrics.length}):</b>\n`;
-    okMetrics.slice(0, 6).forEach(m => {
-      message += `├ ${m.name}: ${m.value}`;
-      if (m.details) message += ` (${m.details})`;
-      message += `\n`;
-    });
-    if (okMetrics.length > 6) {
-      message += `└ ... e mais ${okMetrics.length - 6} métricas OK\n`;
-    }
-
-    message += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-    message += `⏱️ Gerado em: ${cuiabaTime}`;
+    message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `🕐 Gerado em: ${cuiabaTime}`;
 
     // Send to Telegram
     const sent = await sendTelegramMessage(message);
-    logStep('Relatório enviado', { sent, gargalos: gargaloMetrics.length, atencao: atencaoMetrics.length });
+    logStep('Relatório enviado', { sent, status: overallStatus, issues: issues.length });
 
     // Log to audit
     await supabaseAdmin
@@ -391,9 +319,19 @@ serve(async (req) => {
         operation: 'HOURLY_OPERATIONAL_REPORT',
         table_name: 'system',
         new_data: {
-          gargaloCount: gargaloMetrics.length,
-          atencaoCount: atencaoMetrics.length,
-          metrics,
+          status: overallStatus,
+          totalOpenFreights,
+          freightsByType,
+          inTransitFreights,
+          staleFreightsCount,
+          openServices,
+          proposals24h,
+          acceptedProposals24h,
+          pendingCounterProposals,
+          stuckFreightsTotal,
+          overdueDeliveries,
+          hasDivergence,
+          issues,
           executionTime: Date.now() - startTime,
           reportSent: sent
         }
@@ -401,9 +339,15 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      gargaloCount: gargaloMetrics.length,
-      atencaoCount: atencaoMetrics.length,
-      metrics,
+      status: overallStatus,
+      issues,
+      metrics: {
+        totalOpenFreights,
+        freightsByType,
+        inTransitFreights,
+        proposals24h,
+        stuckFreightsTotal
+      },
       reportSent: sent,
       executionTime: Date.now() - startTime
     }), {
