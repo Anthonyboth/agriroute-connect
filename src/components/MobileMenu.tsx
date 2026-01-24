@@ -63,13 +63,13 @@ export function MobileMenu({ onContactClick }: MobileMenuProps) {
           
           <div className="border-t pt-4 mt-2 flex flex-col gap-3">
             <Button 
-              onClick={() => handleNavigation('/auth')}
+              onClick={() => handleNavigation('/auth?mode=login')}
               className="w-full justify-start text-base bg-orange-500 hover:bg-orange-600 text-gray-900 font-medium"
             >
               Entrar
             </Button>
             <Button 
-              onClick={() => handleNavigation('/auth?tab=signup')}
+              onClick={() => handleNavigation('/auth?mode=signup')}
               className="w-full justify-start text-base bg-green-600 hover:bg-green-700 text-white"
             >
               Cadastrar-se

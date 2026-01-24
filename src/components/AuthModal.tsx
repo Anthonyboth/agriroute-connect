@@ -81,9 +81,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
       return;
     }
     
-    // Redirecionar para a página de auth com parâmetros
+    // Redirecionar para a página de auth com parâmetros - usando mode em vez de tab
     onClose();
-    navigate('/auth?tab=login');
+    navigate('/auth?mode=login');
   };
 
   const handleSignupRoleSelect = (role: UserRole) => {
@@ -100,8 +100,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
       return;
     }
     
+    // Store role in sessionStorage for persistence across page loads
+    sessionStorage.setItem('pending_signup_role', selectedRole);
+    
     onClose();
-    navigate(`/auth?tab=signup&role=${selectedRole}`);
+    // ✅ CRITICAL: Use mode=signup instead of tab=signup
+    navigate(`/auth?mode=signup&role=${selectedRole}`);
   };
 
   return (
@@ -166,7 +170,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
             </form>
             
             <div className="text-center">
-              <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate('/auth?tab=forgot')}>
+              <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate('/auth?mode=login')}>
                 Esqueceu sua senha?
               </Button>
             </div>
