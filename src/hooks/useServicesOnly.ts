@@ -43,8 +43,9 @@ export const useServicesOnly = () => {
 
       setServices(validServices);
     } catch (error) {
+      // ✅ CORREÇÃO CRÍTICA: NÃO exibir toast automático
+      // Falha silenciosa - lista vazia sem assustar o usuário
       console.error('[useServicesOnly] Error:', error);
-      toast.error('Erro ao carregar serviços');
       setServices([]);
     } finally {
       setLoading(false);

@@ -1,12 +1,16 @@
 /**
  * AppLoader - Componente de loading unificado do AgriRoute
  * 
- * Resolve o problema de múltiplos spinners em diferentes posições.
+ * REGRA CRÍTICA (PRODUÇÃO):
+ * - SPINNER ÚNICO: Apenas um spinner verde centralizado
+ * - SEM TEXTO: Nenhuma mensagem de loading
+ * - Cor: Verde AgriRoute (text-primary)
+ * - Centralizado na tela
  * 
  * Modos:
- * - fullscreen: Overlay bloqueante para boot/auth
- * - inline: Para seções/tabs específicas
- * - minimal: Spinner pequeno sem texto
+ * - fullscreen: Overlay bloqueante para boot/auth (SEM TEXTO)
+ * - inline: Para seções/tabs específicas (SEM TEXTO)
+ * - minimal: Spinner pequeno (SEM TEXTO)
  */
 
 import React from 'react';
@@ -21,7 +25,7 @@ interface AppLoaderProps {
   variant?: AppLoaderVariant;
   /** Tamanho do spinner */
   size?: AppLoaderSize;
-  /** Texto a exibir abaixo do spinner */
+  /** @deprecated Não usar - sistema padronizado sem texto */
   text?: string;
   /** Classe CSS adicional */
   className?: string;
@@ -35,16 +39,9 @@ const sizeClasses: Record<AppLoaderSize, string> = {
   lg: 'h-12 w-12',
 };
 
-const textSizeClasses: Record<AppLoaderSize, string> = {
-  sm: 'text-xs',
-  md: 'text-sm',
-  lg: 'text-base',
-};
-
 export const AppLoader: React.FC<AppLoaderProps> = ({
   variant = 'inline',
   size = 'md',
-  text,
   className,
   debugId,
 }) => {
@@ -66,16 +63,9 @@ export const AppLoader: React.FC<AppLoaderProps> = ({
           className
         )}
         role="status"
-        aria-label={text || 'Carregando...'}
+        aria-label="Carregando"
       >
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className={cn(sizeClasses[size], "animate-spin text-primary")} />
-          {text && (
-            <p className={cn("text-muted-foreground animate-pulse", textSizeClasses[size])}>
-              {text}
-            </p>
-          )}
-        </div>
+        <Loader2 className={cn(sizeClasses[size], "animate-spin text-primary")} />
       </div>
     );
   }
@@ -85,7 +75,7 @@ export const AppLoader: React.FC<AppLoaderProps> = ({
       <div 
         className={cn("flex items-center justify-center p-2", className)}
         role="status"
-        aria-label="Carregando..."
+        aria-label="Carregando"
       >
         <Loader2 className={cn(sizeClasses[size], "animate-spin text-primary")} />
       </div>
@@ -100,59 +90,49 @@ export const AppLoader: React.FC<AppLoaderProps> = ({
         className
       )}
       role="status"
-      aria-label={text || 'Carregando...'}
+      aria-label="Carregando"
     >
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 className={cn(sizeClasses[size], "animate-spin text-primary")} />
-        {text && (
-          <p className={cn("text-muted-foreground", textSizeClasses[size])}>
-            {text}
-          </p>
-        )}
-      </div>
+      <Loader2 className={cn(sizeClasses[size], "animate-spin text-primary")} />
     </div>
   );
 };
 
 /**
- * AuthLoader - Loader específico para fluxo de autenticação
- * Centralizado e com mensagem contextual
+ * GlobalLoader - Spinner único global do AgriRoute
+ * Verde, centralizado, SEM TEXTO
  */
-export const AuthLoader: React.FC<{ message?: string }> = ({ 
-  message = 'Verificando autenticação...' 
-}) => (
+export const GlobalLoader: React.FC = () => (
   <AppLoader 
     variant="fullscreen" 
     size="lg" 
-    text={message}
-    debugId="auth-loader"
+    debugId="global-loader"
   />
+);
+
+/**
+ * AuthLoader - Loader para fluxo de autenticação
+ * @deprecated Use GlobalLoader - sistema padronizado sem texto
+ */
+export const AuthLoader: React.FC<{ message?: string }> = () => (
+  <GlobalLoader />
 );
 
 /**
  * DashboardLoader - Loader para carregamento inicial do dashboard
+ * @deprecated Use GlobalLoader - sistema padronizado sem texto
  */
-export const DashboardLoader: React.FC<{ message?: string }> = ({ 
-  message = 'Carregando painel...' 
-}) => (
-  <AppLoader 
-    variant="fullscreen" 
-    size="lg" 
-    text={message}
-    debugId="dashboard-loader"
-  />
+export const DashboardLoader: React.FC<{ message?: string }> = () => (
+  <GlobalLoader />
 );
 
 /**
  * SectionLoader - Loader para seções/tabs específicas
+ * Spinner inline SEM TEXTO
  */
-export const SectionLoader: React.FC<{ message?: string }> = ({ 
-  message 
-}) => (
+export const SectionLoader: React.FC<{ message?: string }> = () => (
   <AppLoader 
     variant="inline" 
     size="md" 
-    text={message}
     debugId="section-loader"
   />
 );
