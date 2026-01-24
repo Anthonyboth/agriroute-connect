@@ -21,8 +21,9 @@ import Landing from "./pages/Landing";
 import { useAuth } from "./hooks/useAuth";
 import { useCompanyDriver } from "./hooks/useCompanyDriver";
 import { ComponentLoader } from '@/components/LazyComponents';
-import { AppLoader, AuthLoader, DashboardLoader } from '@/components/AppLoader';
-import { AppBootProvider, useAppBoot } from '@/contexts/AppBootContext';
+import { AppLoader, AuthLoader, DashboardLoader, GlobalLoader } from '@/components/AppLoader';
+import { AppBootProvider, useAppBoot, useShouldShowTimeoutFallback } from '@/contexts/AppBootContext';
+import { BootstrapGuardWrapper, BootTimeoutGuard } from '@/components/BootstrapGuardWrapper';
 import { ScrollToTop } from './components/ScrollToTop';
 import { PermissionPrompts } from './components/PermissionPrompts';
 import { useDeviceRegistration } from './hooks/useDeviceRegistration';
@@ -252,7 +253,7 @@ const ProtectedRoute = ({ children, requiresAuth = true, requiresApproval = fals
       loadingStartRef.current = Date.now();
       const timer = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 15000); // 15s timeout
+      }, 8000); // 8s timeout - reduzido para evitar tela travada
       return () => clearTimeout(timer);
     } else {
       // Log tempo de loading em dev
@@ -777,6 +778,8 @@ const App = () => {
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <QueryClientProvider client={queryClient}>
           <AppBootProvider>
+          <BootstrapGuardWrapper>
+          <BootTimeoutGuard>
           <BrowserRouter>
             <RatingProviderErrorBoundary>
               <RatingProvider>
@@ -966,6 +969,8 @@ const App = () => {
               </RatingProvider>
             </RatingProviderErrorBoundary>
           </BrowserRouter>
+          </BootTimeoutGuard>
+          </BootstrapGuardWrapper>
           </AppBootProvider>
         </QueryClientProvider>
       </ThemeProvider>
