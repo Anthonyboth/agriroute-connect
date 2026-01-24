@@ -41,7 +41,7 @@ const SUPABASE_URL = "https://shnvtxejjecbnztdbbbl.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNobnZ0eGVqamVjYm56dGRiYmJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNjAzMzAsImV4cCI6MjA3MjkzNjMzMH0.qcYO3vsj8KOmGDGM12ftFpr0mTQP5DB_0jAiRkPYyFg";
 
 /**
- * Enviar alerta de timeout para Telegram
+ * Enviar alerta de timeout para Telegram via report-error (verify_jwt=false)
  */
 async function sendBootstrapTimeoutAlert(state: BootstrapState): Promise<void> {
   try {
@@ -51,9 +51,10 @@ async function sendBootstrapTimeoutAlert(state: BootstrapState): Promise<void> {
     
     const payload = {
       errorType: 'BOOTSTRAP_TIMEOUT',
-      errorCategory: 'BOOT',
+      errorCategory: 'CRITICAL',
       errorMessage: `Bootstrap timeout na etapa: ${state.currentStep}`,
       module: 'useBootstrapGuard',
+      route: window.location.pathname,
       metadata: {
         currentStep: state.currentStep,
         elapsedMs: Date.now() - state.startedAt,
@@ -67,15 +68,14 @@ async function sendBootstrapTimeoutAlert(state: BootstrapState): Promise<void> {
       }
     };
 
-    await fetch(`${SUPABASE_URL}/functions/v1/send-telegram-alert`, {
+    // Usar report-error que tem verify_jwt=false e encaminha para Telegram internamente
+    await fetch(`${SUPABASE_URL}/functions/v1/report-error`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({
-        errorData: payload
-      })
+      body: JSON.stringify(payload)
     });
     
     console.log('[BootstrapGuard] Alerta de timeout enviado ao Telegram');
