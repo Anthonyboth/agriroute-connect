@@ -11160,16 +11160,16 @@ export type Database = {
           client_id: string | null
           client_rating: number | null
           completed_at: string | null
-          contact_document_masked: string | null
-          contact_email_masked: string | null
-          contact_name_masked: string | null
-          contact_phone_masked: string | null
+          contact_document: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
           created_at: string | null
           estimated_price: number | null
           final_price: number | null
           id: string | null
           is_emergency: boolean | null
-          location_address_masked: string | null
+          location_address: string | null
           location_city: string | null
           location_lat: number | null
           location_lng: number | null
@@ -11203,16 +11203,16 @@ export type Database = {
           client_id?: string | null
           client_rating?: number | null
           completed_at?: string | null
-          contact_document_masked?: never
-          contact_email_masked?: never
-          contact_name_masked?: never
-          contact_phone_masked?: never
+          contact_document?: never
+          contact_email?: never
+          contact_name?: never
+          contact_phone?: never
           created_at?: string | null
           estimated_price?: number | null
           final_price?: number | null
           id?: string | null
           is_emergency?: boolean | null
-          location_address_masked?: never
+          location_address?: never
           location_city?: string | null
           location_lat?: number | null
           location_lng?: number | null
@@ -11246,16 +11246,16 @@ export type Database = {
           client_id?: string | null
           client_rating?: number | null
           completed_at?: string | null
-          contact_document_masked?: never
-          contact_email_masked?: never
-          contact_name_masked?: never
-          contact_phone_masked?: never
+          contact_document?: never
+          contact_email?: never
+          contact_name?: never
+          contact_phone?: never
           created_at?: string | null
           estimated_price?: number | null
           final_price?: number | null
           id?: string | null
           is_emergency?: boolean | null
-          location_address_masked?: never
+          location_address?: never
           location_city?: string | null
           location_lat?: number | null
           location_lng?: number | null
