@@ -6,9 +6,10 @@ import { useNavigate } from "react-router-dom";
 
 interface MobileMenuProps {
   onContactClick: () => void;
+  onSignupClick?: () => void;
 }
 
-export function MobileMenu({ onContactClick }: MobileMenuProps) {
+export function MobileMenu({ onContactClick, onSignupClick }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -69,7 +70,14 @@ export function MobileMenu({ onContactClick }: MobileMenuProps) {
               Entrar
             </Button>
             <Button 
-              onClick={() => handleNavigation('/auth?mode=signup')}
+              onClick={() => {
+                setOpen(false);
+                if (onSignupClick) {
+                  onSignupClick();
+                } else {
+                  navigate('/auth?mode=signup');
+                }
+              }}
               className="w-full justify-start text-base bg-green-600 hover:bg-green-700 text-white"
             >
               Cadastrar-se
