@@ -391,6 +391,7 @@ const ProducerDashboard = () => {
   }, [profile?.id, profile?.role]);
 
   // ✅ Buscar pagamentos externos
+  // ✅ Buscar pagamentos externos com mapeamento de status
   const fetchExternalPayments = useCallback(async () => {
     if (!profile?.id || profile.role !== "PRODUTOR") return;
 
@@ -424,36 +425,69 @@ const ProducerDashboard = () => {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.warn("Pagamentos externos não disponíveis:", error.message);
+        console.error("[fetchExternalPayments] Erro Supabase:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        
+        // Mensagem específica baseada no tipo de erro
+        if (error.code === "42501" || error.message?.includes("permission")) {
+          toast.error("Você não tem permissão para visualizar pagamentos.");
+        } else if (error.code === "PGRST301") {
+          toast.error("Sessão expirada. Por favor, faça login novamente.");
+        }
+        // Outros erros silenciosos - não mostrar toast para evitar spam
+        
         setExternalPayments([]);
         return;
       }
-      setExternalPayments(data || []);
+
+      // ✅ Mapear status do banco para UI
+      // Banco: proposed, paid_by_producer, confirmed, rejected, cancelled
+      // UI: proposed, paid_by_producer, completed (confirmed mapeado)
+      const mappedData = (data || []).map((payment: any) => ({
+        ...payment,
+        // Mapear 'confirmed' do banco para 'completed' na UI
+        status: payment.status === 'confirmed' ? 'completed' : payment.status
+      }));
+
+      setExternalPayments(mappedData);
     } catch (e) {
-      console.warn("Erro ao buscar pagamentos externos:", e);
+      console.error("[fetchExternalPayments] Erro inesperado:", e);
       setExternalPayments([]);
     }
   }, [profile?.id, profile?.role]);
 
-  // ✅ Buscar pagamentos de fretes
+  // ✅ Buscar pagamentos de fretes (Stripe/interno)
   const fetchFreightPayments = useCallback(async () => {
     if (!profile?.id || profile.role !== "PRODUTOR") return;
 
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("freight_payments")
         .select("*")
         .eq("payer_id", profile.id)
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.warn("Pagamentos de fretes não disponíveis:", error.message);
+        console.error("[fetchFreightPayments] Erro Supabase:", {
+          code: error.code,
+          message: error.message,
+          details: error.details
+        });
+        
+        if (error.code === "42501" || error.message?.includes("permission")) {
+          toast.error("Você não tem permissão para visualizar pagamentos de fretes.");
+        }
+        
         setFreightPayments([]);
         return;
       }
       setFreightPayments(data || []);
     } catch (e) {
-      console.warn("Erro ao buscar pagamentos:", e);
+      console.error("[fetchFreightPayments] Erro inesperado:", e);
       setFreightPayments([]);
     }
   }, [profile?.id, profile?.role]);
@@ -782,13 +816,94 @@ const ProducerDashboard = () => {
     fetchExternalPayments();
   };
 
-  const handleConfirmExternalPayment = async (_freightId: string, _amount: number) => {
-    // a lógica completa está no seu sistema; mantive a assinatura usada no ProducerPaymentsTab
-    toast.info("Função de confirmação externa está no seu fluxo de pagamentos.");
+  // ✅ Confirmar pagamento externo - criar solicitação de pagamento
+  const handleConfirmExternalPayment = async (freightId: string, amount: number) => {
+    if (!profile?.id) {
+      toast.error("Você precisa estar autenticado para confirmar pagamentos.");
+      return;
+    }
+
+    setPaymentLoading(true);
+    try {
+      // Buscar motorista do frete
+      const { data: freight, error: freightError } = await supabase
+        .from("freights")
+        .select("driver_id")
+        .eq("id", freightId)
+        .single();
+
+      if (freightError || !freight?.driver_id) {
+        console.error("[handleConfirmExternalPayment] Erro ao buscar frete:", freightError);
+        toast.error("Não foi possível encontrar o motorista deste frete.");
+        return;
+      }
+
+      // Criar registro de pagamento externo
+      const { error: insertError } = await supabase
+        .from("external_payments")
+        .insert({
+          freight_id: freightId,
+          producer_id: profile.id,
+          driver_id: freight.driver_id,
+          amount: amount,
+          status: "proposed",
+          notes: "Pagamento completo do frete após entrega confirmada",
+          proposed_at: new Date().toISOString(),
+        });
+
+      if (insertError) {
+        console.error("[handleConfirmExternalPayment] Erro ao criar pagamento:", insertError);
+        toast.error(`Erro ao registrar pagamento: ${insertError.message}`);
+        return;
+      }
+
+      toast.success("Solicitação de pagamento registrada! O motorista será notificado.");
+      fetchExternalPayments();
+      fetchFreights();
+    } catch (error) {
+      console.error("[handleConfirmExternalPayment] Erro inesperado:", error);
+      toast.error("Erro inesperado ao processar pagamento. Tente novamente.");
+    } finally {
+      setPaymentLoading(false);
+    }
   };
 
-  const confirmPaymentMade = async (_paymentId: string) => {
-    toast.info("Função confirmPaymentMade está no seu fluxo de pagamentos.");
+  // ✅ Produtor confirma que fez o pagamento - atualiza status para "paid_by_producer"
+  const confirmPaymentMade = async (paymentId: string) => {
+    if (!profile?.id) {
+      toast.error("Você precisa estar autenticado.");
+      return;
+    }
+
+    setPaymentLoading(true);
+    try {
+      const { error } = await supabase
+        .from("external_payments")
+        .update({ 
+          status: "paid_by_producer",
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", paymentId)
+        .eq("producer_id", profile.id); // RLS adicional: só o produtor pode atualizar
+
+      if (error) {
+        console.error("[confirmPaymentMade] Erro ao confirmar pagamento:", error);
+        if (error.code === "42501" || error.message?.includes("permission")) {
+          toast.error("Você não tem permissão para confirmar este pagamento.");
+        } else {
+          toast.error(`Erro ao confirmar pagamento: ${error.message}`);
+        }
+        return;
+      }
+
+      toast.success("Pagamento confirmado! Aguardando confirmação do motorista.");
+      fetchExternalPayments();
+    } catch (error) {
+      console.error("[confirmPaymentMade] Erro inesperado:", error);
+      toast.error("Erro inesperado. Tente novamente.");
+    } finally {
+      setPaymentLoading(false);
+    }
   };
 
   if (loading) {

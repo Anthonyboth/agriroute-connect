@@ -629,20 +629,41 @@ const DriverDashboard = () => {
   }, [profile?.id, profile?.role, isCompanyDriver, companyId]);
 
   // Buscar propostas do motorista - otimizado
+  // ✅ Buscar propostas do motorista - otimizado com tratamento de erro detalhado
   const fetchMyProposals = useCallback(async () => {
     // Don't fetch if user is not a driver
     if (!profile?.id || (profile.role !== 'MOTORISTA' && profile.role !== 'MOTORISTA_AFILIADO')) return;
 
     try {
-      const { data, error } = await (supabase as any).functions.invoke('driver-proposals');
+      const { data, error } = await supabase.functions.invoke('driver-proposals');
+      
       if (error) {
-        throw error;
+        console.error('[fetchMyProposals] Erro na edge function:', {
+          message: error.message,
+          context: error.context
+        });
+        
+        // Extrair código de erro se disponível
+        const errorData = error.context?.json || {};
+        const errorCode = errorData.code || 'UNKNOWN';
+        
+        // Mensagens específicas baseadas no código
+        if (errorCode === 'MISSING_AUTH' || errorCode === 'INVALID_TOKEN') {
+          toast.error('Sessão expirada. Por favor, faça login novamente.');
+        } else if (errorCode === 'USER_NOT_FOUND') {
+          toast.error('Perfil de motorista não encontrado.');
+        } else if (isMountedRef.current) {
+          // Erro genérico apenas se outros checks falharem
+          toast.error('Não foi possível carregar suas propostas. Tente novamente.');
+        }
+        return;
       }
 
       const proposals = (data?.proposals as any[]) || [];
       const ongoing = (data?.ongoingFreights as any[]) || [];
       
       if (isMountedRef.current) setMyProposals(proposals);
+      
       // ✅ Não mesclar service_requests (motoristas não veem serviços)
       if (isMountedRef.current) {
         // Remover duplicatas mas não mesclar com service_requests
@@ -661,11 +682,15 @@ const DriverDashboard = () => {
           setFreightCheckins(prev => ({ ...prev, ...checkinCounts }));
         }
       }
-    } catch (error) {
-      console.error('Error fetching proposals:', error);
-      // Só mostrar toast se for motorista
-      if (profile?.role === 'MOTORISTA' && isMountedRef.current) {
-        toast.error('Erro ao carregar suas propostas');
+    } catch (error: any) {
+      console.error('[fetchMyProposals] Erro inesperado:', {
+        message: error?.message,
+        stack: error?.stack
+      });
+      
+      // Só mostrar toast se for motorista e componente montado
+      if ((profile?.role === 'MOTORISTA' || profile?.role === 'MOTORISTA_AFILIADO') && isMountedRef.current) {
+        toast.error('Erro ao carregar suas propostas. Verifique sua conexão.');
       }
     }
   }, [profile?.id, profile?.role]);

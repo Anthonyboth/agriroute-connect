@@ -57,8 +57,17 @@ interface PaymentCardProps {
   defaultExpanded?: boolean;
 }
 
+// ✅ Normalizar status do banco para UI
+const normalizeStatus = (status: string): string => {
+  // 'confirmed' do banco = 'completed' na UI
+  if (status === 'confirmed') return 'completed';
+  return status;
+};
+
 const getStatusConfig = (status: string) => {
-  switch (status) {
+  const normalizedStatus = normalizeStatus(status);
+  
+  switch (normalizedStatus) {
     case 'proposed':
       return {
         label: 'Pendente',
@@ -82,6 +91,22 @@ const getStatusConfig = (status: string) => {
         bgColor: 'bg-green-50 border-green-200',
         iconColor: 'text-green-600',
         icon: CheckCircle
+      };
+    case 'rejected':
+      return {
+        label: 'Rejeitado',
+        variant: 'destructive' as const,
+        bgColor: 'bg-red-50 border-red-200',
+        iconColor: 'text-red-600',
+        icon: DollarSign
+      };
+    case 'cancelled':
+      return {
+        label: 'Cancelado',
+        variant: 'outline' as const,
+        bgColor: 'bg-gray-50 border-gray-200',
+        iconColor: 'text-gray-600',
+        icon: DollarSign
       };
     default:
       return {
@@ -243,7 +268,8 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
                   Chat com Motorista
                 </Button>
                 
-                {payment.status === 'proposed' && (
+                {/* ✅ Botão de ação baseado no status normalizado */}
+                {(payment.status === 'proposed' || normalizeStatus(payment.status) === 'proposed') && (
                   <Button
                     className="flex-1"
                     onClick={(e) => {

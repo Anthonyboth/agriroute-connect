@@ -33,10 +33,13 @@ export const ProducerPaymentsTab: React.FC<ProducerPaymentsTabProps> = ({
   // Apply filters to payments
   const filteredPayments = usePaymentsFilter(externalPayments, filters);
 
-  // Categorize filtered payments
-  const proposedPayments = filteredPayments.filter(p => p.status === 'proposed');
-  const pendingDriverConfirmation = filteredPayments.filter(p => p.status === 'paid_by_producer');
-  const completedPayments = filteredPayments.filter(p => p.status === 'completed');
+  // ✅ Normalizar status para categorização (confirmed → completed)
+  const normalizeStatus = (status: string) => status === 'confirmed' ? 'completed' : status;
+
+  // Categorize filtered payments usando status normalizado
+  const proposedPayments = filteredPayments.filter(p => normalizeStatus(p.status) === 'proposed');
+  const pendingDriverConfirmation = filteredPayments.filter(p => normalizeStatus(p.status) === 'paid_by_producer');
+  const completedPayments = filteredPayments.filter(p => normalizeStatus(p.status) === 'completed');
 
   const handleOpenChat = (freightId: string, driverId: string) => {
     const payment = externalPayments.find(p => p.freight_id === freightId);

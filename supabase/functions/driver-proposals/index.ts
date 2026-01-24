@@ -12,7 +12,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ✅ Logging helper
+  const logStep = (step: string, details?: any) => {
+    console.log(`[driver-proposals] ${step}`, details ? JSON.stringify(details) : '');
+  };
+
   try {
+    logStep("Iniciando requisição");
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -20,21 +27,34 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      logStep("Erro: Header Authorization ausente");
       return new Response(
-        JSON.stringify({ error: "Missing Authorization header" }),
+        JSON.stringify({ error: "Authorization header obrigatório", code: "MISSING_AUTH" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userRes } = await supabase.auth.getUser(token);
+    const { data: userRes, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError) {
+      logStep("Erro de autenticação", { error: authError.message });
+      return new Response(
+        JSON.stringify({ error: "Token inválido ou expirado", code: "INVALID_TOKEN" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const user = userRes?.user;
     if (!user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      logStep("Usuário não encontrado no token");
+      return new Response(
+        JSON.stringify({ error: "Usuário não autenticado", code: "USER_NOT_FOUND" }), 
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    logStep("Usuário autenticado", { userId: user.id });
 
     // Find driver profile id
     const { data: profile, error: profileErr } = await supabase
@@ -43,12 +63,23 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
-    if (profileErr || !profile || (profile.role !== "MOTORISTA" && profile.role !== "MOTORISTA_AFILIADO")) {
-      return new Response(JSON.stringify({ error: "Driver profile not found" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (profileErr) {
+      logStep("Erro ao buscar perfil", { error: profileErr.message });
+      return new Response(
+        JSON.stringify({ error: "Erro ao buscar perfil do motorista", code: "PROFILE_ERROR" }), 
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    if (!profile || (profile.role !== "MOTORISTA" && profile.role !== "MOTORISTA_AFILIADO")) {
+      logStep("Perfil de motorista não encontrado", { role: profile?.role });
+      return new Response(
+        JSON.stringify({ error: "Perfil de motorista não encontrado", code: "DRIVER_NOT_FOUND" }), 
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    logStep("Perfil encontrado", { profileId: profile.id, role: profile.role });
 
     const driverId: string = profile.id as string;
 
@@ -154,9 +185,17 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("driver-proposals error:", err);
+    console.error("[driver-proposals] ❌ Erro interno:", err);
+    
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const errorResponse = {
+      error: "Erro ao processar propostas",
+      details: errorMessage,
+      code: "INTERNAL_ERROR"
+    };
+    
     return new Response(
-      JSON.stringify({ error: "Internal error", details: String(err) }),
+      JSON.stringify(errorResponse),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

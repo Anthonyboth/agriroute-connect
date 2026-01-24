@@ -8,9 +8,13 @@ interface PaymentsSummaryProps {
 }
 
 export const PaymentsSummary: React.FC<PaymentsSummaryProps> = ({ payments }) => {
-  const proposed = payments.filter(p => p.status === 'proposed');
-  const pending = payments.filter(p => p.status === 'paid_by_producer');
-  const completed = payments.filter(p => p.status === 'completed');
+  // ✅ Normalizar status: 'confirmed' do banco = 'completed' na UI
+  const normalizeStatus = (status: string) => 
+    status === 'confirmed' ? 'completed' : status;
+
+  const proposed = payments.filter(p => normalizeStatus(p.status) === 'proposed');
+  const pending = payments.filter(p => normalizeStatus(p.status) === 'paid_by_producer');
+  const completed = payments.filter(p => normalizeStatus(p.status) === 'completed');
 
   const totalPending = proposed.reduce((sum, p) => sum + p.amount, 0);
   const totalWaiting = pending.reduce((sum, p) => sum + p.amount, 0);
