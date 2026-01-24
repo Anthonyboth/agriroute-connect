@@ -58,7 +58,7 @@ const AppBootContext = createContext<AppBootContextValue | null>(null);
 const SUPABASE_URL = "https://shnvtxejjecbnztdbbbl.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNobnZ0eGVqamVjYm56dGRiYmJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNjAzMzAsImV4cCI6MjA3MjkzNjMzMH0.qcYO3vsj8KOmGDGM12ftFpr0mTQP5DB_0jAiRkPYyFg";
 
-/** Enviar alerta de timeout para Telegram */
+/** Enviar alerta de timeout para Telegram via report-error (verify_jwt=false) */
 async function sendTimeoutAlert(metrics: BootMetrics, phase: BootPhase): Promise<void> {
   try {
     const platform = Capacitor.isNativePlatform() 
@@ -66,25 +66,25 @@ async function sendTimeoutAlert(metrics: BootMetrics, phase: BootPhase): Promise
       : 'web';
     
     const payload = {
-      errorData: {
-        errorType: 'BOOTSTRAP_TIMEOUT',
-        errorCategory: 'BOOT',
-        errorMessage: `⏰ Bootstrap timeout na fase: ${phase}`,
-        module: 'AppBootContext',
-        metadata: {
-          phase,
-          elapsedMs: Date.now() - metrics.bootStartedAt,
-          metrics,
-          platform,
-          userAgent: navigator.userAgent,
-          isOnline: navigator.onLine,
-          url: window.location.href,
-          timestamp: new Date().toISOString(),
-        }
+      errorType: 'BOOTSTRAP_TIMEOUT',
+      errorCategory: 'CRITICAL',
+      errorMessage: `⏰ Bootstrap timeout na fase: ${phase}`,
+      module: 'AppBootContext',
+      route: window.location.pathname,
+      metadata: {
+        phase,
+        elapsedMs: Date.now() - metrics.bootStartedAt,
+        metrics,
+        platform,
+        userAgent: navigator.userAgent,
+        isOnline: navigator.onLine,
+        url: window.location.href,
+        timestamp: new Date().toISOString(),
       }
     };
 
-    await fetch(`${SUPABASE_URL}/functions/v1/send-telegram-alert`, {
+    // Usar report-error que tem verify_jwt=false e encaminha para Telegram internamente
+    await fetch(`${SUPABASE_URL}/functions/v1/report-error`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
