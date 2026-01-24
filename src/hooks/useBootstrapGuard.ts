@@ -50,13 +50,13 @@ async function sendBootstrapTimeoutAlert(state: BootstrapState): Promise<void> {
       : 'web';
     
     const payload = {
-      errorType: 'BOOTSTRAP_TIMEOUT',
+      errorType: 'FRONTEND',
       errorCategory: 'CRITICAL',
-      errorMessage: `Bootstrap timeout na etapa: ${state.currentStep}`,
+      errorMessage: `BOOTSTRAP_TIMEOUT na etapa: ${state.currentStep}`,
       module: 'useBootstrapGuard',
       route: window.location.pathname,
       metadata: {
-        currentStep: state.currentStep,
+        bootstrapStep: state.currentStep,
         elapsedMs: Date.now() - state.startedAt,
         stepTimings: state.stepTimings,
         error: state.error,
