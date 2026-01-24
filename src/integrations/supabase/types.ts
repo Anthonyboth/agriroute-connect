@@ -8625,6 +8625,36 @@ export type Database = {
         }
         Relationships: []
       }
+      security_definer_audit: {
+        Row: {
+          audited_by: string
+          created_at: string | null
+          function_name: string
+          id: string
+          justification: string
+          last_audit_date: string
+          schema_name: string
+        }
+        Insert: {
+          audited_by: string
+          created_at?: string | null
+          function_name: string
+          id?: string
+          justification: string
+          last_audit_date: string
+          schema_name?: string
+        }
+        Update: {
+          audited_by?: string
+          created_at?: string | null
+          function_name?: string
+          id?: string
+          justification?: string
+          last_audit_date?: string
+          schema_name?: string
+        }
+        Relationships: []
+      }
       sensitive_data_access_log: {
         Row: {
           access_type: string | null
@@ -11652,7 +11682,7 @@ export type Database = {
       }
       decrypt_pii_field: { Args: { p_encrypted: string }; Returns: string }
       decrypt_sensitive_data: {
-        Args: { encrypted_data: string; key: string }
+        Args: { encrypted_data: string; key?: string }
         Returns: string
       }
       detect_eta_worsening: {
@@ -11688,7 +11718,7 @@ export type Database = {
       encrypt_document: { Args: { doc: string }; Returns: string }
       encrypt_pii_field: { Args: { p_value: string }; Returns: string }
       encrypt_sensitive_data: {
-        Args: { data: string; key: string }
+        Args: { data: string; key?: string }
         Returns: string
       }
       ensure_current_user_role: {
@@ -12378,6 +12408,10 @@ export type Database = {
           total_ratings: number
           two_star: number
         }[]
+      }
+      get_user_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["user_role"]
       }
       get_user_roles: {
         Args: { _user_id: string }
