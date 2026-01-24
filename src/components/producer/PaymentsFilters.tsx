@@ -343,6 +343,13 @@ export const PaymentsFilters: React.FC<PaymentsFiltersProps> = ({
   );
 };
 
+// ✅ Normalizar status do banco para UI
+const normalizePaymentStatus = (status: string): string => {
+  // 'confirmed' do banco = 'completed' na UI
+  if (status === 'confirmed') return 'completed';
+  return status;
+};
+
 // Hook to filter payments
 export const usePaymentsFilter = (
   payments: PaymentCardData[],
@@ -350,6 +357,8 @@ export const usePaymentsFilter = (
 ): PaymentCardData[] => {
   return useMemo(() => {
     return payments.filter(payment => {
+      const normalizedStatus = normalizePaymentStatus(payment.status);
+      
       // Date range filter
       if (filters.dateRange) {
         const paymentDate = new Date(payment.created_at);
@@ -358,9 +367,12 @@ export const usePaymentsFilter = (
         }
       }
 
-      // Status filter
-      if (filters.status && payment.status !== filters.status) {
-        return false;
+      // Status filter - comparar com status normalizado
+      if (filters.status) {
+        const filterStatus = normalizePaymentStatus(filters.status);
+        if (normalizedStatus !== filterStatus) {
+          return false;
+        }
       }
 
       // Driver name filter
