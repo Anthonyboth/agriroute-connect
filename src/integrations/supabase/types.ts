@@ -11882,6 +11882,30 @@ export type Database = {
               service_types: string[]
             }[]
           }
+      find_duplicate_documents: {
+        Args: never
+        Returns: {
+          count: number
+          document_number: string
+          profile_ids: string[]
+        }[]
+      }
+      find_duplicate_emails: {
+        Args: never
+        Returns: {
+          count: number
+          email_address: string
+          profile_ids: string[]
+        }[]
+      }
+      find_duplicate_phones: {
+        Args: never
+        Returns: {
+          count: number
+          phone_number: string
+          profile_ids: string[]
+        }[]
+      }
       find_providers_by_location: {
         Args: { request_id: string; request_lat: number; request_lng: number }
         Returns: {
