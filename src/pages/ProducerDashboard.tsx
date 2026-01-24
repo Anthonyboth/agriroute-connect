@@ -1655,6 +1655,7 @@ const ProducerDashboard = () => {
               onConfirmPaymentMade={confirmPaymentMade}
               onProcessStripePayment={() => toast.info("Pagamento via Stripe em desenvolvimento")}
               currentUserProfile={profile}
+              onRefresh={fetchExternalPayments}
             />
           </TabsContent>
 
