@@ -473,6 +473,12 @@ const ProducerDashboard = () => {
   const fetchServiceRequests = useCallback(async () => {
     if (!profile?.id || profile.role !== "PRODUTOR") return;
 
+    // ✅ P0 DEBUG: Log de início da query
+    console.info('[fetchServiceRequests] Iniciando query', {
+      profileId: profile.id,
+      profileRole: profile.role
+    });
+
     try {
       const { data, error } = await supabase
         .from("service_requests_secure")
@@ -490,6 +496,14 @@ const ProducerDashboard = () => {
         setServiceRequests([]);
         return;
       }
+      
+      // ✅ P0 DEBUG: Log de resultado
+      const motoCount = (data || []).filter((sr: any) => sr.service_type === 'FRETE_MOTO').length;
+      console.info('[fetchServiceRequests] Resultado', {
+        total: data?.length || 0,
+        motoCount,
+        serviceTypes: (data || []).map((sr: any) => sr.service_type)
+      });
       
       // Sucesso - pode ser lista vazia, é normal
       setServiceRequests(data || []);
@@ -1202,15 +1216,13 @@ const ProducerDashboard = () => {
                   const motoFreights = serviceRequests.filter((sr) => sr.service_type === "FRETE_MOTO");
                   const totalFreightCount = openFreights.length + motoFreights.length;
                   
-                  // Instrumentação: log de contagem
-                  if (import.meta.env.DEV && totalFreightCount > 0) {
-                    console.log('[ProducerDashboard] FREIGHTS_QUERY_RESULT', {
-                      openFreightsCount: openFreights.length,
-                      motoFreightsCount: motoFreights.length,
-                      totalCount: totalFreightCount,
-                      motoIds: motoFreights.map(m => m.id)
-                    });
-                  }
+                  // ✅ P0 INSTRUMENTAÇÃO: Log SEMPRE ativo (não só DEV) para monitorar frete moto
+                  console.info('[ProducerDashboard] FREIGHTS_QUERY_RESULT', {
+                    openFreightsCount: openFreights.length,
+                    motoFreightsCount: motoFreights.length,
+                    totalCount: totalFreightCount,
+                    motoIds: motoFreights.map(m => m.id)
+                  });
                   
                   if (totalFreightCount === 0) return null;
                   
@@ -1247,25 +1259,27 @@ const ProducerDashboard = () => {
                           />
                         ))}
                         
-                        {/* ✅ FRETE_MOTO de service_requests - renderizado como FreightCard */}
+                        {/* ✅ P0 FIX: FRETE_MOTO de service_requests_secure - CAMPOS CORRIGIDOS */}
                         {motoFreights.map((moto) => (
                           <FreightCard
                             key={`moto-${moto.id}`}
                             freight={{
                               id: moto.id,
-                              cargo_type: moto.cargo_description || "Entrega por moto",
-                              weight: moto.cargo_weight ? moto.cargo_weight / 1000 : 0,
-                              distance_km: moto.distance_km || 0,
-                              origin_address: moto.origin_address || moto.location_address || moto.city_name || "Origem não informada",
-                              destination_address: moto.destination_address || moto.destination_city || "Destino não informado",
-                              origin_city: moto.origin_city || moto.city_name,
-                              origin_state: moto.origin_state || moto.state,
-                              destination_city: moto.destination_city,
-                              destination_state: moto.destination_state,
-                              price: moto.estimated_price || moto.accepted_price || 0,
+                              // ✅ Usar problem_description como cargo_type (é o que o usuário preenche)
+                              cargo_type: moto.problem_description || "Entrega por moto",
+                              weight: 0, // Moto não tem peso significativo
+                              distance_km: 0,
+                              // ✅ CORREÇÃO: Usar campos REAIS da view service_requests_secure
+                              origin_address: moto.location_address || `${moto.city_name || "Origem"}${moto.state ? `, ${moto.state}` : ""}`,
+                              destination_address: moto.additional_info || "Destino informado na descrição",
+                              origin_city: moto.city_name || moto.location_city,
+                              origin_state: moto.state || moto.location_state,
+                              destination_city: "", // service_requests não tem destination_city separado
+                              destination_state: "",
+                              price: moto.estimated_price || moto.final_price || 0,
                               status: "OPEN",
-                              pickup_date: moto.scheduled_date || moto.created_at,
-                              delivery_date: moto.scheduled_date || moto.created_at,
+                              pickup_date: moto.preferred_datetime || moto.created_at,
+                              delivery_date: moto.preferred_datetime || moto.created_at,
                               urgency: moto.urgency || "MEDIUM",
                               minimum_antt_price: 0,
                               required_trucks: 1,
