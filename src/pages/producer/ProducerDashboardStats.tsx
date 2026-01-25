@@ -65,7 +65,7 @@ export const ProducerDashboardStats: React.FC<ProducerDashboardStatsProps> = ({
         iconColor="text-teal-500"
         label="Serviços"
         value={statistics.openServices || 0}
-        onClick={() => onTabChange('history')}
+        onClick={() => onTabChange('services-open')}
       />
     </div>
   );
