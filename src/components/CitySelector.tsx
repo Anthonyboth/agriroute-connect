@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { MapPin, Search, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCityValidationIcon } from '@/lib/city-validation-utils';
+import { deduplicateCities, formatCityDisplay } from '@/utils/city-deduplication';
 
 interface City {
   id: string;
@@ -15,6 +16,7 @@ interface City {
   display_name: string;
   lat?: number;
   lng?: number;
+  ibge_code?: string;
 }
 
 interface CitySelectorProps {
@@ -51,7 +53,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Buscar cidades no banco de dados
+  // Buscar cidades no banco de dados com deduplicação
   const searchCities = async (term: string) => {
     if (!term || term.length < 2) {
       setCities([]);
@@ -62,7 +64,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
     try {
       const { data, error } = await supabase.rpc('search_cities', {
         search_term: term,
-        limit_count: 10
+        limit_count: 20 // Buscar mais para compensar possíveis duplicatas
       });
 
       if (error) {
@@ -70,7 +72,14 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
         return;
       }
 
-      setCities(data || []);
+      // Deduplicar e formatar display_name consistente
+      const rawCities = (data || []).map((c: any) => ({
+        ...c,
+        display_name: formatCityDisplay(c.name, c.state)
+      }));
+      
+      const uniqueCities = deduplicateCities(rawCities).slice(0, 10);
+      setCities(uniqueCities);
     } catch (error) {
       console.error('Erro na busca de cidades:', error);
     } finally {
@@ -262,7 +271,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
             ) : (
               cities.map((city, index) => (
                 <button
-                  key={city.id}
+                  key={`${city.id}-${city.name}-${city.state}`}
                   type="button"
                   className={cn(
                     "w-full text-left px-4 py-3 hover:bg-accent hover:text-accent-foreground flex items-center transition-colors",
@@ -272,8 +281,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
                 >
                   <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                   <div>
-                    <div className="font-medium">{city.name}</div>
-                    <div className="text-sm text-muted-foreground">{city.state}</div>
+                    <div className="font-medium">{city.display_name}</div>
                   </div>
                 </button>
               ))

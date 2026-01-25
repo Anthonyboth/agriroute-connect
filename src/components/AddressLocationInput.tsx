@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { MapPin, X, CheckCircle2, AlertTriangle, Loader2, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ZipCodeService } from '@/services/zipCodeService';
+import { deduplicateCities, formatCityDisplay } from '@/utils/city-deduplication';
 
 interface City {
   id: string;
@@ -15,6 +16,7 @@ interface City {
   display_name: string;
   lat?: number;
   lng?: number;
+  ibge_code?: string;
 }
 
 interface AddressLocationInputProps {
@@ -118,7 +120,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
     }
   };
 
-  // Buscar cidades por nome
+  // Buscar cidades por nome com deduplicação
   const searchCities = async (term: string) => {
     if (!term || term.length < 2) {
       setCities([]);
@@ -129,7 +131,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
     try {
       const { data, error } = await supabase.rpc('search_cities', {
         search_term: term,
-        limit_count: 10
+        limit_count: 20 // Buscar mais para compensar possíveis duplicatas
       });
 
       if (error) {
@@ -137,7 +139,14 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
         return;
       }
 
-      setCities(data || []);
+      // Deduplicar e formatar display_name consistente
+      const rawCities = (data || []).map((c: any) => ({
+        ...c,
+        display_name: formatCityDisplay(c.name, c.state)
+      }));
+      
+      const uniqueCities = deduplicateCities(rawCities).slice(0, 10);
+      setCities(uniqueCities);
       setShowDropdown(true);
     } catch (error) {
       console.error('Erro na busca de cidades:', error);
@@ -372,7 +381,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
             ) : (
               cities.map((city, index) => (
                 <button
-                  key={city.id}
+                  key={`${city.id}-${city.name}-${city.state}`}
                   type="button"
                   className={cn(
                     "w-full text-left px-4 py-3 hover:bg-accent hover:text-accent-foreground flex items-center transition-colors",
@@ -382,8 +391,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
                 >
                   <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                   <div>
-                    <div className="font-medium">{city.name}</div>
-                    <div className="text-sm text-muted-foreground">{city.state}</div>
+                    <div className="font-medium">{city.display_name}</div>
                   </div>
                 </button>
               ))
