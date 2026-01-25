@@ -7,12 +7,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Schema de validação de entrada
+// Schema de validação de entrada - aceita datas em formatos flexíveis
 const UpdateFreightSchema = z.object({
   freight_id: z.string().uuid('ID de frete inválido'),
   updates: z.object({
-    pickup_date: z.string().datetime().optional(),
-    delivery_date: z.string().datetime().optional(),
+    pickup_date: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Data de coleta inválida' }).optional(),
+    delivery_date: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Data de entrega inválida' }).optional(),
     status: z.enum(['OPEN', 'ACCEPTED', 'LOADING', 'IN_TRANSIT', 'DELIVERED']).optional(),
     notes: z.string().max(1000).optional(),
     price: z.number().min(0).max(10000000).optional(),

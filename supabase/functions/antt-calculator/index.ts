@@ -55,13 +55,13 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') || '';
     
-    // Schema de validação rigoroso com Zod
+    // Schema de validação com Zod - flexível para aceitar strings de estados
     const AnttRequestSchema = z.object({
       cargo_type: z.string().min(1).max(100),
       distance_km: z.number().positive().max(10000),
       axles: z.number().int().min(2).max(9),
-      origin_state: z.string().length(2).optional(),
-      destination_state: z.string().length(2).optional(),
+      origin_state: z.string().max(50).optional(), // Aceita qualquer string, validação semântica abaixo
+      destination_state: z.string().max(50).optional(),
       high_performance: z.boolean().optional().default(false),
       table_type: z.enum(['A', 'B', 'C', 'D']).optional(),
       required_trucks: z.number().int().positive().max(50).optional().default(1)
