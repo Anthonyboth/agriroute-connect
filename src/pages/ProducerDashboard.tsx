@@ -45,6 +45,7 @@ import {
   FileText,
   Wrench,
 } from "lucide-react";
+import { UrbanFreightCard } from "@/components/freights/UrbanFreightCard";
 import { FreightFilters } from "@/components/AdvancedFreightFilters";
 import { useFreightReportData } from "@/hooks/useFreightReportData";
 import { ProducerReportsTab } from "@/pages/producer/ProducerReportsTab";
@@ -1191,50 +1192,80 @@ const ProducerDashboard = () => {
 
           <SubscriptionExpiryNotification />
 
-          {/* ✅ ABA ABERTOS */}
+          {/* ✅ ABA ABERTOS - Separação Rural vs Urbano */}
           <TabsContent value="open" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Fretes e Serviços Abertos</h3>
             </div>
 
-            {freights.filter((f) => f.status === "OPEN").length === 0 && serviceRequests.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                  <Package className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="font-semibold text-lg mb-2">Nenhum frete ou serviço aberto</h3>
-                  <p className="text-muted-foreground mb-6 max-w-sm">
-                    Você não possui fretes ou serviços abertos no momento. Crie um novo frete para começar.
-                  </p>
-                  <CreateFreightWizardModal onFreightCreated={fetchFreights} userProfile={profile} />
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                {/* ✅ P0 FIX: Fretes OPEN + FRETE_MOTO de service_requests */}
-                {(() => {
-                  const openFreights = freights.filter((f) => f.status === "OPEN");
-                  const motoFreights = serviceRequests.filter((sr) => sr.service_type === "FRETE_MOTO");
-                  const totalFreightCount = openFreights.length + motoFreights.length;
-                  
-                  // ✅ P0 INSTRUMENTAÇÃO: Log SEMPRE ativo (não só DEV) para monitorar frete moto
-                  console.info('[ProducerDashboard] FREIGHTS_QUERY_RESULT', {
-                    openFreightsCount: openFreights.length,
-                    motoFreightsCount: motoFreights.length,
-                    totalCount: totalFreightCount,
-                    motoIds: motoFreights.map(m => m.id)
-                  });
-                  
-                  if (totalFreightCount === 0) return null;
-                  
-                  return (
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-muted-foreground flex items-center gap-2">
-                        <Truck className="h-4 w-4" />
-                        Fretes ({totalFreightCount})
-                      </h4>
+            {(() => {
+              // ✅ P0 FIX: Separar fretes rurais (freights) vs urbanos (FRETE_MOTO de service_requests)
+              const ruralFreightsOpen = freights.filter((f) => f.status === "OPEN");
+              const urbanFreightsOpen = serviceRequests.filter((sr) => 
+                sr.service_type === "FRETE_MOTO" && 
+                (sr.status === "OPEN" || sr.status === "ABERTO")
+              );
+              const otherServicesOpen = serviceRequests.filter((sr) => sr.service_type !== "FRETE_MOTO");
+              
+              // ✅ P0 INSTRUMENTAÇÃO: Log SEMPRE ativo para monitorar frete moto
+              console.debug('[Abertos] rural=', ruralFreightsOpen.length, 'urban=', urbanFreightsOpen.length, 'services=', otherServicesOpen.length);
+              console.info('[ProducerDashboard] FREIGHTS_QUERY_RESULT', {
+                ruralFreightsCount: ruralFreightsOpen.length,
+                urbanFreightsCount: urbanFreightsOpen.length,
+                otherServicesCount: otherServicesOpen.length,
+                urbanIds: urbanFreightsOpen.map(m => m.id)
+              });
+              
+              // ✅ P0 INSTRUMENTAÇÃO: Detectar mismatch crítico
+              // Se temos FRETE_MOTO no backend mas não renderiza, reportar erro silencioso
+              const motoInBackend = serviceRequests.filter(sr => sr.service_type === "FRETE_MOTO");
+              if (motoInBackend.length > 0 && urbanFreightsOpen.length === 0) {
+                // Moto existe mas não está OPEN - pode ser status diferente
+                console.warn('[P0_MOTO_FREIGHT] Moto freights exist but none are OPEN', {
+                  total: motoInBackend.length,
+                  statuses: motoInBackend.map(m => m.status)
+                });
+              }
+              
+              const hasAnyContent = ruralFreightsOpen.length > 0 || urbanFreightsOpen.length > 0 || otherServicesOpen.length > 0;
+              
+              if (!hasAnyContent) {
+                return (
+                  <Card className="border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                      <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="font-semibold text-lg mb-2">Nenhum frete ou serviço aberto</h3>
+                      <p className="text-muted-foreground mb-6 max-w-sm">
+                        Você não possui fretes ou serviços abertos no momento. Crie um novo frete para começar.
+                      </p>
+                      <CreateFreightWizardModal onFreightCreated={fetchFreights} userProfile={profile} />
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              return (
+                <div className="space-y-8">
+                  {/* ============================================ */}
+                  {/* SEÇÃO 1: FRETES RURAIS (Cargas) */}
+                  {/* ============================================ */}
+                  {ruralFreightsOpen.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
+                          <Truck className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-lg">Fretes Rurais</h4>
+                          <p className="text-xs text-muted-foreground">Cargas agrícolas e transporte rodoviário</p>
+                        </div>
+                        <Badge variant="secondary" className="ml-auto">
+                          {ruralFreightsOpen.length}
+                        </Badge>
+                      </div>
+                      
                       <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
-                        {/* Fretes tradicionais */}
-                        {openFreights.map((freight) => (
+                        {ruralFreightsOpen.map((freight) => (
                           <FreightCard
                             key={freight.id}
                             freight={{
@@ -1244,6 +1275,10 @@ const ProducerDashboard = () => {
                               distance_km: freight.distance_km,
                               origin_address: freight.origin_address,
                               destination_address: freight.destination_address,
+                              origin_city: freight.origin_city,
+                              origin_state: freight.origin_state,
+                              destination_city: freight.destination_city,
+                              destination_state: freight.destination_state,
                               price: freight.price,
                               status: freight.status,
                               pickup_date: freight.pickup_date,
@@ -1252,63 +1287,81 @@ const ProducerDashboard = () => {
                               minimum_antt_price: freight.minimum_antt_price || 0,
                               required_trucks: freight.required_trucks || 1,
                               accepted_trucks: freight.accepted_trucks || 0,
-                              service_type: freight.service_type,
+                              service_type: freight.service_type || "CARGA",
                             }}
                             showProducerActions
                             onAction={(action) => handleFreightAction(action as any, freight)}
                           />
                         ))}
-                        
-                        {/* ✅ P0 FIX: FRETE_MOTO de service_requests_secure - CAMPOS CORRIGIDOS */}
-                        {motoFreights.map((moto) => (
-                          <FreightCard
-                            key={`moto-${moto.id}`}
-                            freight={{
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ============================================ */}
+                  {/* SEÇÃO 2: FRETES URBANOS (Moto/Carretinha) */}
+                  {/* ============================================ */}
+                  {urbanFreightsOpen.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                          <Bike className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-lg">Fretes Urbanos</h4>
+                          <p className="text-xs text-muted-foreground">Entregas por moto e transporte leve</p>
+                        </div>
+                        <Badge variant="secondary" className="ml-auto">
+                          {urbanFreightsOpen.length}
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
+                        {urbanFreightsOpen.map((moto) => (
+                          <UrbanFreightCard
+                            key={`urban-${moto.id}`}
+                            serviceRequest={{
                               id: moto.id,
-                              // ✅ Usar problem_description como cargo_type (é o que o usuário preenche)
-                              cargo_type: moto.problem_description || "Entrega por moto",
-                              weight: 0, // Moto não tem peso significativo
-                              distance_km: 0,
-                              // ✅ CORREÇÃO: Usar campos REAIS da view service_requests_secure
-                              origin_address: moto.location_address || `${moto.city_name || "Origem"}${moto.state ? `, ${moto.state}` : ""}`,
-                              destination_address: moto.additional_info || "Destino informado na descrição",
-                              origin_city: moto.city_name || moto.location_city,
-                              origin_state: moto.state || moto.location_state,
-                              destination_city: "", // service_requests não tem destination_city separado
-                              destination_state: "",
-                              price: moto.estimated_price || moto.final_price || 0,
-                              status: "OPEN",
-                              pickup_date: moto.preferred_datetime || moto.created_at,
-                              delivery_date: moto.preferred_datetime || moto.created_at,
-                              urgency: moto.urgency || "MEDIUM",
-                              minimum_antt_price: 0,
-                              required_trucks: 1,
-                              accepted_trucks: 0,
-                              service_type: "FRETE_MOTO",
+                              service_type: moto.service_type,
+                              status: moto.status,
+                              problem_description: moto.problem_description,
+                              location_address: moto.location_address,
+                              city_name: moto.city_name,
+                              state: moto.state,
+                              additional_info: moto.additional_info,
+                              estimated_price: moto.estimated_price,
+                              final_price: moto.final_price,
+                              preferred_datetime: moto.preferred_datetime,
+                              created_at: moto.created_at,
+                              urgency: moto.urgency,
                             }}
-                            showProducerActions
-                            onAction={(action) => handleMotoFreightAction(action as any, moto)}
+                            onEdit={() => handleMotoFreightAction("edit", moto)}
+                            onCancel={() => handleMotoFreightAction("cancel", moto)}
                           />
                         ))}
                       </div>
                     </div>
-                  );
-                })()}
+                  )}
 
-                {/* ✅ P0 FIX: Service Requests OPEN (EXCETO FRETE_MOTO que agora vai em Fretes) */}
-                {(() => {
-                  const otherServices = serviceRequests.filter((sr) => sr.service_type !== "FRETE_MOTO");
-                  if (otherServices.length === 0) return null;
-                  
-                  return (
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-muted-foreground flex items-center gap-2">
-                        <Wrench className="h-4 w-4" />
-                        Solicitações de Serviço ({otherServices.length})
-                      </h4>
+                  {/* ============================================ */}
+                  {/* SEÇÃO 3: SOLICITAÇÕES DE SERVIÇO (Guincho, Mudança, etc.) */}
+                  {/* ============================================ */}
+                  {otherServicesOpen.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-full bg-orange-100 dark:bg-orange-900/30">
+                          <Wrench className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-lg">Solicitações de Serviço</h4>
+                          <p className="text-xs text-muted-foreground">Guincho, mudança e outros serviços</p>
+                        </div>
+                        <Badge variant="secondary" className="ml-auto">
+                          {otherServicesOpen.length}
+                        </Badge>
+                      </div>
 
                       <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-                        {otherServices.map((sr: any) => (
+                        {otherServicesOpen.map((sr: any) => (
                           <Card
                             key={sr.id}
                             className="hover:shadow-lg transition-all duration-300 border-2 border-border/60 overflow-hidden"
@@ -1383,10 +1436,10 @@ const ProducerDashboard = () => {
                         ))}
                       </div>
                     </div>
-                  );
-                })()}
-              </div>
-            )}
+                  )}
+                </div>
+              );
+            })()}
           </TabsContent>
 
           {/* ✅ ABA EM ANDAMENTO */}
