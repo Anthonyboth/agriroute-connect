@@ -97,11 +97,16 @@ export function ChatInput({
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Use signed URL for private bucket (1 hour expiry)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('chat-images')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 3600);
 
-      setSelectedImage(publicUrl);
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        throw new Error('Falha ao gerar URL de acesso');
+      }
+
+      setSelectedImage(signedUrlData.signedUrl);
       toast({
         title: "Imagem carregada",
         description: "Clique em enviar para compartilhar",
@@ -159,12 +164,17 @@ export function ChatInput({
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Use signed URL for private bucket (1 hour expiry)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('chat-files')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 3600);
+
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        throw new Error('Falha ao gerar URL de acesso');
+      }
 
       setSelectedFile({
-        url: publicUrl,
+        url: signedUrlData.signedUrl,
         name: file.name,
         type: file.type,
         size: file.size,
