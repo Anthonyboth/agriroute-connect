@@ -85,7 +85,7 @@ const ChartLoader = () => (
 );
 
 const ProducerDashboard = () => {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, user } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
@@ -819,6 +819,16 @@ const ProducerDashboard = () => {
   // ✅ P0 FIX: Handler para ações em FRETE_MOTO (service_requests)
   const handleMotoFreightAction = async (action: "edit" | "cancel", motoFreight: any) => {
     if (action === "cancel") {
+      // ✅ P0 OBRIGATÓRIO: Log antes do cancelamento
+      console.log('[P0_CANCEL] BEFORE_CANCEL_MOTO', {
+        service_request_id: motoFreight.id,
+        service_type: motoFreight.service_type,
+        client_id: motoFreight.client_id,
+        profile_id: profile?.id,
+        auth_uid: user?.id,
+        timestamp: new Date().toISOString()
+      });
+
       try {
         const { data, error } = await supabase.rpc('cancel_producer_service_request', {
           p_request_id: motoFreight.id,
@@ -827,29 +837,34 @@ const ProducerDashboard = () => {
 
         if (error) throw error;
         
-        const result = data as { success: boolean; error?: string; message?: string };
+        const result = data as { success: boolean; error?: string; message?: string; debug_info?: any };
+        
+        // ✅ P0 OBRIGATÓRIO: Log do resultado
+        console.log('[P0_CANCEL] RPC_RESULT_MOTO', {
+          service_request_id: motoFreight.id,
+          success: result.success,
+          error: result.error,
+          debug_info: result.debug_info,
+          timestamp: new Date().toISOString()
+        });
+
         if (!result.success) {
           throw new Error(result.error || 'Erro ao cancelar');
         }
 
         toast.success('Frete por moto cancelado com sucesso!');
         
-        // Instrumentação: log de sucesso
-        console.log('[ProducerDashboard] MOTO_FREIGHT_CANCELLED', {
-          id: motoFreight.id,
-          service_type: motoFreight.service_type,
-          timestamp: new Date().toISOString()
-        });
-        
         // Refetch imediato
         await Promise.all([fetchServiceRequests(), fetchFreights()]);
       } catch (e: any) {
-        console.error('[handleMotoFreightAction] Erro:', e);
+        console.error('[P0_CANCEL] ERROR_MOTO', {
+          service_request_id: motoFreight.id,
+          error_message: e?.message,
+          timestamp: new Date().toISOString()
+        });
         toast.error(e?.message || 'Erro ao cancelar frete por moto');
       }
     } else if (action === "edit") {
-      // Para edição, abrir ServicesModal com dados preenchidos
-      // Por ora, mostrar toast informativo (edição de moto requer fluxo separado)
       toast.info('Para editar, cancele este frete e crie um novo com as informações corretas.', { duration: 5000 });
     }
   };
@@ -859,6 +874,16 @@ const ProducerDashboard = () => {
   // ============================================
   const handleServiceAction = async (action: "edit" | "cancel", service: any) => {
     if (action === "cancel") {
+      // ✅ P0 OBRIGATÓRIO: Log antes do cancelamento
+      console.log('[P0_CANCEL] BEFORE_CANCEL_SERVICE', {
+        service_request_id: service.id,
+        service_type: service.service_type,
+        client_id: service.client_id,
+        profile_id: profile?.id,
+        auth_uid: user?.id,
+        timestamp: new Date().toISOString()
+      });
+
       try {
         const { data, error } = await supabase.rpc('cancel_producer_service_request', {
           p_request_id: service.id,
@@ -867,7 +892,17 @@ const ProducerDashboard = () => {
 
         if (error) throw error;
         
-        const result = data as { success: boolean; error?: string; message?: string };
+        const result = data as { success: boolean; error?: string; message?: string; debug_info?: any };
+        
+        // ✅ P0 OBRIGATÓRIO: Log do resultado
+        console.log('[P0_CANCEL] RPC_RESULT_SERVICE', {
+          service_request_id: service.id,
+          success: result.success,
+          error: result.error,
+          debug_info: result.debug_info,
+          timestamp: new Date().toISOString()
+        });
+
         if (!result.success) {
           throw new Error(result.error || 'Erro ao cancelar serviço');
         }
@@ -877,10 +912,14 @@ const ProducerDashboard = () => {
         // Refetch para atualizar contadores e listas
         await Promise.all([fetchServiceRequests(), fetchFreights()]);
       } catch (error: any) {
+        console.error('[P0_CANCEL] ERROR_SERVICE', {
+          service_request_id: service.id,
+          error_message: error?.message,
+          timestamp: new Date().toISOString()
+        });
         toast.error(error.message || 'Erro ao cancelar serviço');
       }
     } else if (action === "edit") {
-      // TODO P0: Abrir modal/wizard de edição com dados pré-preenchidos
       toast.info('Funcionalidade de edição será implementada em breve.', { duration: 3000 });
     }
   };
