@@ -11651,6 +11651,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      cancel_producer_service_request: {
+        Args: { p_cancellation_reason?: string; p_request_id: string }
+        Returns: Json
+      }
       check_admin_reset_rate_limit: {
         Args: { p_admin_profile_id: string }
         Returns: Json
