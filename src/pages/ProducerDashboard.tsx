@@ -530,21 +530,14 @@ const ProducerDashboard = () => {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("[fetchExternalPayments] Erro Supabase:", {
+        // ✅ P0 FIX: NUNCA mostrar toast no carregamento automático
+        // Erros são silenciosos - log apenas para debugging
+        console.warn("[fetchExternalPayments] Erro silencioso (sem toast):", {
           code: error.code,
           message: error.message,
-          details: error.details,
-          hint: error.hint
         });
         
-        // Mensagem específica baseada no tipo de erro
-        if (error.code === "42501" || error.message?.includes("permission")) {
-          toast.error("Você não tem permissão para visualizar pagamentos.");
-        } else if (error.code === "PGRST301") {
-          toast.error("Sessão expirada. Por favor, faça login novamente.");
-        }
-        // Outros erros silenciosos - não mostrar toast para evitar spam
-        
+        // Estado vazio válido - sem toast, sem erro visível
         setExternalPayments([]);
         return;
       }
