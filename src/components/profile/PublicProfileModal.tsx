@@ -72,10 +72,11 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
   const fetchPublicProfile = async () => {
     setLoading(true);
     try {
-      // Buscar dados básicos do perfil (apenas campos públicos)
+      // Buscar dados básicos do perfil usando a view segura para proteção de PII
+      // profiles_secure mascara dados sensíveis para não-proprietários
       const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, full_name, profile_photo_url, selfie_url, role, created_at, rating, total_ratings')
+        .from('profiles_secure')
+        .select('id, full_name, profile_photo_url, role, created_at, rating, total_ratings')
         .eq('id', userId)
         .maybeSingle();
 
@@ -108,8 +109,8 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
       const totalRatings = (profileData as any).total_ratings || 0;
       const averageRating = (profileData as any).rating || 0;
 
-      // Usar profile_photo_url ou selfie_url como avatar
-      const avatarUrl = (profileData as any).profile_photo_url || (profileData as any).selfie_url;
+      // Usar profile_photo_url como avatar (selfie_url não exposto na view segura)
+      const avatarUrl = (profileData as any).profile_photo_url;
 
       setProfile({
         id: (profileData as any).id,
