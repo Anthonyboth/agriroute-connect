@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -12,6 +12,26 @@ interface MobileMenuProps {
 export function MobileMenu({ onContactClick, onSignupClick }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+
+  // Explicitly block body scroll when menu is open (belt & suspenders approach)
+  useEffect(() => {
+    if (open) {
+      const originalOverflow = document.body.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+      
+      document.body.style.overflow = 'hidden';
+      // Prevent layout shift from scrollbar disappearing
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+      
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.paddingRight = originalPaddingRight;
+      };
+    }
+  }, [open]);
 
   const handleNavigation = useCallback((path: string) => {
     setOpen(false);
