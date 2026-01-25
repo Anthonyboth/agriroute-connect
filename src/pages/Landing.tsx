@@ -1,5 +1,5 @@
 // Sprint 1: Performance optimization - removed dead carousel code
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -128,13 +128,32 @@ const Landing: React.FC = () => {
     closeHowItWorksModal();
   };
 
-  const openAuthModal = (initialTab?: 'login' | 'signup') => {
-    setAuthModal({ isOpen: true, initialTab });
-  };
+  const openAuthModal = useCallback((initialTab?: 'login' | 'signup') => {
+    try {
+      setAuthModal({ isOpen: true, initialTab });
+      
+      // Verificar se o modal abriu após timeout
+      setTimeout(() => {
+        const modalExists = document.querySelector(
+          '[data-auth-modal-content], [data-fallback-modal], [data-inline-fallback-modal]'
+        );
+        if (!modalExists) {
+          console.warn('[Landing] Modal não apareceu após 1.2s, fechando backdrop');
+          setAuthModal({ isOpen: false });
+          // Redirecionar direto para /auth como fallback final
+          navigate(`/auth?mode=${initialTab || 'signup'}`);
+        }
+      }, 1200);
+    } catch (error) {
+      console.error('[Landing] Erro ao abrir modal:', error);
+      setAuthModal({ isOpen: false });
+      navigate(`/auth?mode=${initialTab || 'signup'}`);
+    }
+  }, [navigate]);
 
-  const closeAuthModal = () => {
+  const closeAuthModal = useCallback(() => {
     setAuthModal({ isOpen: false });
-  };
+  }, []);
 
   const handleServiceSelect = (service: any) => {
     setSelectedService(service);
