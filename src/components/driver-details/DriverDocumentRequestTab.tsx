@@ -72,15 +72,15 @@ export const DriverDocumentRequestTab = ({
     driverProfileId
   );
 
-  // Buscar dados completos do motorista
+  // Buscar dados do motorista usando view segura para proteção de PII
   const { data: driverProfile } = useQuery({
-    queryKey: ['driver-profile-complete', driverProfileId],
+    queryKey: ['driver-profile-secure', driverProfileId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
+        .from('profiles_secure')
+        .select('id, full_name, cpf_cnpj, phone, contact_phone, address_street, address_city, address_state, profile_photo_url, status, rating, total_ratings, created_at, updated_at, service_types, base_city_name, base_state, aprovado, validation_status')
         .eq('id', driverProfileId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

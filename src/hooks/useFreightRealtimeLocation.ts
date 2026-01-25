@@ -75,27 +75,31 @@ export function useFreightRealtimeLocation(freightId: string | null): UseFreight
           return;
         }
 
-        // FALLBACK: Se frete não tem localização, buscar do perfil do motorista
+        // FALLBACK: Se frete não tem localização, buscar do driver_location_history (mais seguro)
         if ((!data?.current_lat || !data?.current_lng) && data?.driver_id) {
-          console.log('[useFreightRealtimeLocation] Freight location null, fetching from driver profile...');
+          console.log('[useFreightRealtimeLocation] Freight location null, fetching from driver location history...');
           
-          const { data: driverProfile } = await supabase
-            .from('profiles')
-            .select('current_location_lat, current_location_lng, last_gps_update')
-            .eq('id', data.driver_id)
-            .single();
+          // Buscar última localização do histórico (protegido por RLS para participantes do frete)
+          const { data: locationHistory } = await supabase
+            .from('driver_location_history')
+            .select('lat, lng, captured_at')
+            .eq('driver_profile_id', data.driver_id)
+            .eq('freight_id', freightId)
+            .order('captured_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-          if (driverProfile?.current_location_lat && driverProfile?.current_location_lng) {
+          if (locationHistory?.lat && locationHistory?.lng) {
             setDriverLocation({ 
-              lat: driverProfile.current_location_lat, 
-              lng: driverProfile.current_location_lng 
+              lat: locationHistory.lat, 
+              lng: locationHistory.lng 
             });
-            if (driverProfile.last_gps_update) {
-              setLastUpdate(new Date(driverProfile.last_gps_update));
+            if (locationHistory.captured_at) {
+              setLastUpdate(new Date(locationHistory.captured_at));
             }
-            console.log('[useFreightRealtimeLocation] Using driver profile location:', {
-              lat: driverProfile.current_location_lat,
-              lng: driverProfile.current_location_lng
+            console.log('[useFreightRealtimeLocation] Using driver location history:', {
+              lat: locationHistory.lat,
+              lng: locationHistory.lng
             });
             return;
           }
