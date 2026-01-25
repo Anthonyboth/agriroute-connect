@@ -17,14 +17,15 @@ interface DriverLocationTabProps {
 export const DriverLocationTab = ({ driverProfileId, companyId }: DriverLocationTabProps) => {
   const { currentLocation, isLoading, refreshLocation } = useDriverTracking(driverProfileId, companyId);
 
+  // Usar profiles_secure para proteção de PII - mascara dados para não-proprietários
   const { data: driver } = useQuery({
-    queryKey: ['driver-name', driverProfileId],
+    queryKey: ['driver-name-secure', driverProfileId],
     queryFn: async () => {
       const { data } = await supabase
-        .from('profiles')
+        .from('profiles_secure')
         .select('full_name')
         .eq('id', driverProfileId)
-        .single();
+        .maybeSingle();
       return data;
     },
   });
