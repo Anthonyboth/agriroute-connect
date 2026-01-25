@@ -282,20 +282,15 @@ export const DriverFreightsTab = ({ driverProfileId }: DriverFreightsTabProps) =
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header - Fretes */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h3 className="text-lg font-semibold">Fretes e Serviços</h3>
-        <div className="flex gap-2 flex-wrap">
-          {headerBadges.length ? (
-            headerBadges.map((b) => (
-              <Badge key={b.label} variant="secondary">
-                {b.label}: {b.value}
-              </Badge>
-            ))
-          ) : (
-            <Badge variant="secondary">Sem itens</Badge>
-          )}
-        </div>
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Truck className="h-5 w-5 text-green-600" />
+          Fretes Atribuídos
+        </h3>
+        <Badge variant="secondary">
+          {safeFreights.length}
+        </Badge>
       </div>
 
       {hasErrors && (
@@ -306,11 +301,14 @@ export const DriverFreightsTab = ({ driverProfileId }: DriverFreightsTabProps) =
         </Card>
       )}
 
-      {/* ✅ SERVIÇOS ABERTOS (inclui FRETE_MOTO) */}
-      <div className="space-y-3">
+      {/* ✅ SERVIÇOS ABERTOS - Seção Separada */}
+      <div className="space-y-3 mt-8 pt-6 border-t">
         <div className="flex items-center justify-between">
-          <h4 className="font-medium text-muted-foreground">Solicitações Abertas</h4>
-          <Badge variant="outline">{safeOpenServices.length}</Badge>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Wrench className="h-5 w-5 text-orange-600" />
+            Serviços Disponíveis
+          </h3>
+          <Badge variant="secondary">{safeOpenServices.length}</Badge>
         </div>
 
         {safeOpenServices.length === 0 ? (

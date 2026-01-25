@@ -1086,14 +1086,27 @@ const ProducerDashboard = () => {
           <div className="w-full overflow-x-auto pb-2">
             <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-card p-1 text-muted-foreground min-w-fit">
               <TabsTrigger
-                value="open"
+                value="freights-open"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <Package className="h-3 w-3 mr-1" />
-                Abertos
+                <Truck className="h-3 w-3 mr-1" />
+                Fretes
                 {statistics.openFreights > 0 && (
                   <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
                     {statistics.openFreights}
+                  </Badge>
+                )}
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="services-open"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Wrench className="h-3 w-3 mr-1" />
+                Serviços
+                {statistics.openServices > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
+                    {statistics.openServices}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -1192,51 +1205,26 @@ const ProducerDashboard = () => {
 
           <SubscriptionExpiryNotification />
 
-          {/* ✅ ABA ABERTOS - Separação Rural vs Urbano */}
-          <TabsContent value="open" className="space-y-4">
+          {/* ✅ ABA FRETES ABERTOS - Somente Fretes */}
+          <TabsContent value="freights-open" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Fretes e Serviços Abertos</h3>
+              <h3 className="text-lg font-semibold">Fretes Abertos</h3>
+              <CreateFreightWizardModal onFreightCreated={fetchFreights} userProfile={profile} />
             </div>
 
             {(() => {
-              // ✅ P0 FIX: Separar fretes rurais (freights) vs urbanos (FRETE_MOTO de service_requests)
               const ruralFreightsOpen = freights.filter((f) => f.status === "OPEN");
-              const urbanFreightsOpen = serviceRequests.filter((sr) => 
-                sr.service_type === "FRETE_MOTO" && 
-                (sr.status === "OPEN" || sr.status === "ABERTO")
-              );
-              const otherServicesOpen = serviceRequests.filter((sr) => sr.service_type !== "FRETE_MOTO");
               
-              // ✅ P0 INSTRUMENTAÇÃO: Log SEMPRE ativo para monitorar frete moto
-              console.debug('[Abertos] rural=', ruralFreightsOpen.length, 'urban=', urbanFreightsOpen.length, 'services=', otherServicesOpen.length);
-              console.info('[ProducerDashboard] FREIGHTS_QUERY_RESULT', {
-                ruralFreightsCount: ruralFreightsOpen.length,
-                urbanFreightsCount: urbanFreightsOpen.length,
-                otherServicesCount: otherServicesOpen.length,
-                urbanIds: urbanFreightsOpen.map(m => m.id)
-              });
+              console.debug('[Fretes] rural=', ruralFreightsOpen.length);
               
-              // ✅ P0 INSTRUMENTAÇÃO: Detectar mismatch crítico
-              // Se temos FRETE_MOTO no backend mas não renderiza, reportar erro silencioso
-              const motoInBackend = serviceRequests.filter(sr => sr.service_type === "FRETE_MOTO");
-              if (motoInBackend.length > 0 && urbanFreightsOpen.length === 0) {
-                // Moto existe mas não está OPEN - pode ser status diferente
-                console.warn('[P0_MOTO_FREIGHT] Moto freights exist but none are OPEN', {
-                  total: motoInBackend.length,
-                  statuses: motoInBackend.map(m => m.status)
-                });
-              }
-              
-              const hasAnyContent = ruralFreightsOpen.length > 0 || urbanFreightsOpen.length > 0 || otherServicesOpen.length > 0;
-              
-              if (!hasAnyContent) {
+              if (ruralFreightsOpen.length === 0) {
                 return (
                   <Card className="border-dashed">
                     <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                      <Package className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="font-semibold text-lg mb-2">Nenhum frete ou serviço aberto</h3>
+                      <Truck className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="font-semibold text-lg mb-2">Nenhum frete aberto</h3>
                       <p className="text-muted-foreground mb-6 max-w-sm">
-                        Você não possui fretes ou serviços abertos no momento. Crie um novo frete para começar.
+                        Você não possui fretes abertos no momento. Crie um novo frete para começar.
                       </p>
                       <CreateFreightWizardModal onFreightCreated={fetchFreights} userProfile={profile} />
                     </CardContent>
@@ -1245,80 +1233,100 @@ const ProducerDashboard = () => {
               }
               
               return (
-                <div className="space-y-8">
-                  {/* ============================================ */}
-                  {/* SEÇÃO 1: FRETES RURAIS (Cargas) */}
-                  {/* ============================================ */}
-                  {ruralFreightsOpen.length > 0 && (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
-                          <Truck className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-lg">Fretes Rurais</h4>
-                          <p className="text-xs text-muted-foreground">Cargas agrícolas e transporte rodoviário</p>
-                        </div>
-                        <Badge variant="secondary" className="ml-auto">
-                          {ruralFreightsOpen.length}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
-                        {ruralFreightsOpen.map((freight) => (
-                          <FreightCard
-                            key={freight.id}
-                            freight={{
-                              id: freight.id,
-                              cargo_type: freight.cargo_type,
-                              weight: freight.weight ? freight.weight / 1000 : 0,
-                              distance_km: freight.distance_km,
-                              origin_address: freight.origin_address,
-                              destination_address: freight.destination_address,
-                              origin_city: freight.origin_city,
-                              origin_state: freight.origin_state,
-                              destination_city: freight.destination_city,
-                              destination_state: freight.destination_state,
-                              price: freight.price,
-                              status: freight.status,
-                              pickup_date: freight.pickup_date,
-                              delivery_date: freight.delivery_date,
-                              urgency: freight.urgency,
-                              minimum_antt_price: freight.minimum_antt_price || 0,
-                              required_trucks: freight.required_trucks || 1,
-                              accepted_trucks: freight.accepted_trucks || 0,
-                              service_type: freight.service_type || "CARGA",
-                            }}
-                            showProducerActions
-                            onAction={(action) => handleFreightAction(action as any, freight)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                <div className="max-h-[70vh] overflow-y-auto pr-2">
+                  <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
+                    {ruralFreightsOpen.map((freight) => (
+                      <FreightCard
+                        key={freight.id}
+                        freight={{
+                          id: freight.id,
+                          cargo_type: freight.cargo_type,
+                          weight: freight.weight ? freight.weight / 1000 : 0,
+                          distance_km: freight.distance_km,
+                          origin_address: freight.origin_address,
+                          destination_address: freight.destination_address,
+                          origin_city: freight.origin_city,
+                          origin_state: freight.origin_state,
+                          destination_city: freight.destination_city,
+                          destination_state: freight.destination_state,
+                          price: freight.price,
+                          status: freight.status,
+                          pickup_date: freight.pickup_date,
+                          delivery_date: freight.delivery_date,
+                          urgency: freight.urgency,
+                          minimum_antt_price: freight.minimum_antt_price || 0,
+                          required_trucks: freight.required_trucks || 1,
+                          accepted_trucks: freight.accepted_trucks || 0,
+                          service_type: freight.service_type || "CARGA",
+                        }}
+                        showProducerActions
+                        onAction={(action) => handleFreightAction(action as any, freight)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </TabsContent>
 
-                  {/* ============================================ */}
-                  {/* SEÇÃO 2: FRETES URBANOS (Moto/Carretinha) */}
-                  {/* ============================================ */}
-                  {urbanFreightsOpen.length > 0 && (
+          {/* ✅ ABA SERVIÇOS ABERTOS - Somente Serviços */}
+          <TabsContent value="services-open" className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Serviços Abertos</h3>
+            </div>
+
+            {(() => {
+              // ✅ SERVIÇOS: Inclui FRETE_MOTO, GUINCHO, MUDANCA e outros
+              const openServices = serviceRequests.filter((sr) => 
+                sr.status === "OPEN" || sr.status === "ABERTO"
+              );
+              
+              console.debug('[Serviços] total=', openServices.length);
+              
+              if (openServices.length === 0) {
+                return (
+                  <Card className="border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                      <Wrench className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="font-semibold text-lg mb-2">Nenhum serviço aberto</h3>
+                      <p className="text-muted-foreground mb-6 max-w-sm">
+                        Você não possui solicitações de serviço em aberto no momento.
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              // Separar por tipo para melhor organização visual
+              const motoServices = openServices.filter(sr => sr.service_type === "FRETE_MOTO");
+              const guinchoServices = openServices.filter(sr => sr.service_type === "GUINCHO");
+              const mudancaServices = openServices.filter(sr => sr.service_type === "MUDANCA" || sr.service_type === "MUDANCA_RESIDENCIAL" || sr.service_type === "MUDANCA_COMERCIAL");
+              const otherServices = openServices.filter(sr => 
+                !["FRETE_MOTO", "GUINCHO", "MUDANCA", "MUDANCA_RESIDENCIAL", "MUDANCA_COMERCIAL"].includes(sr.service_type)
+              );
+              
+              return (
+                <div className="max-h-[70vh] overflow-y-auto pr-2 space-y-6">
+                  {/* FRETE MOTO */}
+                  {motoServices.length > 0 && (
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
                           <Bike className="h-5 w-5 text-blue-600" />
                         </div>
                         <div>
-                          <h4 className="font-semibold text-lg">Fretes Urbanos</h4>
-                          <p className="text-xs text-muted-foreground">Entregas por moto e transporte leve</p>
+                          <h4 className="font-semibold text-lg">Frete Moto</h4>
+                          <p className="text-xs text-muted-foreground">Entregas rápidas por moto</p>
                         </div>
                         <Badge variant="secondary" className="ml-auto">
-                          {urbanFreightsOpen.length}
+                          {motoServices.length}
                         </Badge>
                       </div>
                       
-                      <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
-                        {urbanFreightsOpen.map((moto) => (
+                      <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+                        {motoServices.map((moto) => (
                           <UrbanFreightCard
-                            key={`urban-${moto.id}`}
+                            key={`moto-${moto.id}`}
                             serviceRequest={{
                               id: moto.id,
                               service_type: moto.service_type,
@@ -1342,72 +1350,44 @@ const ProducerDashboard = () => {
                     </div>
                   )}
 
-                  {/* ============================================ */}
-                  {/* SEÇÃO 3: SOLICITAÇÕES DE SERVIÇO (Guincho, Mudança, etc.) */}
-                  {/* ============================================ */}
-                  {otherServicesOpen.length > 0 && (
+                  {/* GUINCHO */}
+                  {guinchoServices.length > 0 && (
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-full bg-orange-100 dark:bg-orange-900/30">
                           <Wrench className="h-5 w-5 text-orange-600" />
                         </div>
                         <div>
-                          <h4 className="font-semibold text-lg">Solicitações de Serviço</h4>
-                          <p className="text-xs text-muted-foreground">Guincho, mudança e outros serviços</p>
+                          <h4 className="font-semibold text-lg">Guincho</h4>
+                          <p className="text-xs text-muted-foreground">Serviços de reboque</p>
                         </div>
                         <Badge variant="secondary" className="ml-auto">
-                          {otherServicesOpen.length}
+                          {guinchoServices.length}
                         </Badge>
                       </div>
-
+                      
                       <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-                        {otherServicesOpen.map((sr: any) => (
+                        {guinchoServices.map((sr: any) => (
                           <Card
                             key={sr.id}
                             className="hover:shadow-lg transition-all duration-300 border-2 border-border/60 overflow-hidden"
                           >
-                            <div
-                              className={`p-4 ${
-                                sr.service_type === "GUINCHO"
-                                  ? "bg-gradient-to-r from-orange-500/10 to-orange-600/5"
-                                  : "bg-gradient-to-r from-blue-500/10 to-blue-600/5"
-                              }`}
-                            >
+                            <div className="p-4 bg-gradient-to-r from-orange-500/10 to-orange-600/5">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                  <div
-                                    className={`p-2 rounded-full ${
-                                      sr.service_type === "GUINCHO"
-                                        ? "bg-orange-100 dark:bg-orange-900/30"
-                                        : "bg-blue-100 dark:bg-blue-900/30"
-                                    }`}
-                                  >
-                                    {sr.service_type === "GUINCHO" ? (
-                                      <Wrench className="h-5 w-5 text-orange-600" />
-                                    ) : (
-                                      <Package className="h-5 w-5 text-blue-600" />
-                                    )}
+                                  <div className="p-2 rounded-full bg-orange-100 dark:bg-orange-900/30">
+                                    <Wrench className="h-5 w-5 text-orange-600" />
                                   </div>
                                   <div>
-                                    <h3 className="font-bold text-foreground">
-                                      {sr.service_type === "GUINCHO"
-                                        ? "Guincho"
-                                        : sr.service_type === "MUDANCA"
-                                          ? "Mudança"
-                                          : sr.service_type}
-                                    </h3>
+                                    <h3 className="font-bold text-foreground">Guincho</h3>
                                     <p className="text-xs text-muted-foreground">Solicitação #{sr.id?.slice(0, 8)}</p>
                                   </div>
                                 </div>
-                                <Badge
-                                  variant="outline"
-                                  className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-300"
-                                >
+                                <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-300">
                                   Aguardando
                                 </Badge>
                               </div>
                             </div>
-
                             <CardContent className="p-4 space-y-3">
                               <div className="flex items-center gap-2 text-sm">
                                 <MapPin className="h-4 w-4 text-primary" />
@@ -1416,11 +1396,9 @@ const ProducerDashboard = () => {
                                   {sr.state && ` - ${sr.state}`}
                                 </span>
                               </div>
-
                               {sr.problem_description && (
                                 <p className="text-sm text-muted-foreground line-clamp-2">{sr.problem_description}</p>
                               )}
-
                               {sr.estimated_price && (
                                 <div className="flex items-center gap-2">
                                   <DollarSign className="h-4 w-4 text-green-600" />
@@ -1429,7 +1407,139 @@ const ProducerDashboard = () => {
                                   </span>
                                 </div>
                               )}
+                              <p className="text-xs text-muted-foreground">Criado em: {formatDate(sr.created_at)}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
+                  {/* MUDANÇA */}
+                  {mudancaServices.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30">
+                          <Package className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-lg">Mudança</h4>
+                          <p className="text-xs text-muted-foreground">Serviços de mudança</p>
+                        </div>
+                        <Badge variant="secondary" className="ml-auto">
+                          {mudancaServices.length}
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+                        {mudancaServices.map((sr: any) => (
+                          <Card
+                            key={sr.id}
+                            className="hover:shadow-lg transition-all duration-300 border-2 border-border/60 overflow-hidden"
+                          >
+                            <div className="p-4 bg-gradient-to-r from-purple-500/10 to-purple-600/5">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30">
+                                    <Package className="h-5 w-5 text-purple-600" />
+                                  </div>
+                                  <div>
+                                    <h3 className="font-bold text-foreground">
+                                      {sr.service_type === "MUDANCA_RESIDENCIAL" ? "Mudança Residencial" : 
+                                       sr.service_type === "MUDANCA_COMERCIAL" ? "Mudança Comercial" : "Mudança"}
+                                    </h3>
+                                    <p className="text-xs text-muted-foreground">Solicitação #{sr.id?.slice(0, 8)}</p>
+                                  </div>
+                                </div>
+                                <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-300">
+                                  Aguardando
+                                </Badge>
+                              </div>
+                            </div>
+                            <CardContent className="p-4 space-y-3">
+                              <div className="flex items-center gap-2 text-sm">
+                                <MapPin className="h-4 w-4 text-primary" />
+                                <span className="font-medium">
+                                  {sr.city_name || sr.location_address || "Local não informado"}
+                                  {sr.state && ` - ${sr.state}`}
+                                </span>
+                              </div>
+                              {sr.problem_description && (
+                                <p className="text-sm text-muted-foreground line-clamp-2">{sr.problem_description}</p>
+                              )}
+                              {sr.estimated_price && (
+                                <div className="flex items-center gap-2">
+                                  <DollarSign className="h-4 w-4 text-green-600" />
+                                  <span className="font-bold text-green-600">
+                                    R$ {Number(sr.estimated_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                              )}
+                              <p className="text-xs text-muted-foreground">Criado em: {formatDate(sr.created_at)}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* OUTROS SERVIÇOS */}
+                  {otherServices.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-full bg-gray-100 dark:bg-gray-900/30">
+                          <Wrench className="h-5 w-5 text-gray-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-lg">Outros Serviços</h4>
+                          <p className="text-xs text-muted-foreground">Outros tipos de serviço</p>
+                        </div>
+                        <Badge variant="secondary" className="ml-auto">
+                          {otherServices.length}
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+                        {otherServices.map((sr: any) => (
+                          <Card
+                            key={sr.id}
+                            className="hover:shadow-lg transition-all duration-300 border-2 border-border/60 overflow-hidden"
+                          >
+                            <div className="p-4 bg-gradient-to-r from-gray-500/10 to-gray-600/5">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 rounded-full bg-gray-100 dark:bg-gray-900/30">
+                                    <Wrench className="h-5 w-5 text-gray-600" />
+                                  </div>
+                                  <div>
+                                    <h3 className="font-bold text-foreground">{sr.service_type || "Serviço"}</h3>
+                                    <p className="text-xs text-muted-foreground">Solicitação #{sr.id?.slice(0, 8)}</p>
+                                  </div>
+                                </div>
+                                <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-300">
+                                  Aguardando
+                                </Badge>
+                              </div>
+                            </div>
+                            <CardContent className="p-4 space-y-3">
+                              <div className="flex items-center gap-2 text-sm">
+                                <MapPin className="h-4 w-4 text-primary" />
+                                <span className="font-medium">
+                                  {sr.city_name || sr.location_address || "Local não informado"}
+                                  {sr.state && ` - ${sr.state}`}
+                                </span>
+                              </div>
+                              {sr.problem_description && (
+                                <p className="text-sm text-muted-foreground line-clamp-2">{sr.problem_description}</p>
+                              )}
+                              {sr.estimated_price && (
+                                <div className="flex items-center gap-2">
+                                  <DollarSign className="h-4 w-4 text-green-600" />
+                                  <span className="font-bold text-green-600">
+                                    R$ {Number(sr.estimated_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                              )}
                               <p className="text-xs text-muted-foreground">Criado em: {formatDate(sr.created_at)}</p>
                             </CardContent>
                           </Card>
