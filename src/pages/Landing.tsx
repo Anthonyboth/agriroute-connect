@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AuthModal, PlatformStatsSection } from '@/components/LazyComponents';
+import { PlatformStatsSection } from '@/components/LazyComponents';
 import { MobileMenu } from '@/components/MobileMenu';
+import { SafeAuthModal } from '@/components/SafeAuthModal';
 
 // Intersection Observer wrapper for deferred loading
 const LazyStatsSection = () => {
@@ -413,13 +414,12 @@ const Landing: React.FC = () => {
         </div>
       </footer>
 
-      <Suspense fallback={<div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>}>
-        <AuthModal 
-          isOpen={authModal.isOpen}
-          onClose={closeAuthModal}
-          initialTab={authModal.initialTab}
-        />
-      </Suspense>
+      {/* SafeAuthModal com fail-safe anti-travamento - importação estática */}
+      <SafeAuthModal 
+        isOpen={authModal.isOpen}
+        onClose={closeAuthModal}
+        initialTab={authModal.initialTab}
+      />
 
       <Suspense fallback={null}>
         <ContactModal

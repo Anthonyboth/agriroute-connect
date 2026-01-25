@@ -3,6 +3,13 @@
  * 
  * IMPORTANTE: Sempre use estes valores ao invés de z-index arbitrários
  * para garantir uma hierarquia visual consistente.
+ * 
+ * HIERARQUIA (de baixo para cima):
+ * 1. Base/Dropdowns/Sticky
+ * 2. Sheet (menu mobile) 
+ * 3. Dialog/Modal (DEVE estar ACIMA do Sheet para abrir sobre o menu)
+ * 4. Alert Dialog
+ * 5. Toast/Tooltip/Notification
  */
 
 export const Z_INDEX = {
@@ -14,29 +21,31 @@ export const Z_INDEX = {
   // Overlays
   overlay: 1030,
   drawer: 1040,
-  modal: 1050,
-  modalOverlay: 1049,
   
-  // Dialog layers
-  dialog: 1060,
-  dialogOverlay: 1059,
-  dialogClose: 1065, // Sempre acima do conteúdo do dialog
+  // Sheet layers (menu mobile) - ABAIXO do Dialog
+  sheet: 1050,
+  sheetOverlay: 1049,
+  
+  // Modal layers
+  modal: 1060,
+  modalOverlay: 1059,
+  
+  // Dialog layers - ACIMA do Sheet para permitir abrir sobre o menu
+  dialog: 10000, // Ultra-alto para garantir que fique acima do Sheet (z-[9999])
+  dialogOverlay: 9999,
+  dialogClose: 10001, // Sempre acima do conteúdo do dialog
   
   // Alert Dialog layers
-  alertDialog: 1070,
-  alertDialogOverlay: 1069,
-  
-  // Sheet layers
-  sheet: 1080,
-  sheetOverlay: 1079,
+  alertDialog: 10010,
+  alertDialogOverlay: 10009,
   
   // Notifications & Toast
-  toast: 1090,
-  tooltip: 1095,
+  toast: 10090,
+  tooltip: 10095,
   
   // Sempre no topo
-  popover: 1100, // Para popovers e selects dentro de dialogs
-  notification: 1110,
+  popover: 10100, // Para popovers e selects dentro de dialogs
+  notification: 10110,
 } as const;
 
 /**
@@ -48,19 +57,23 @@ export const zIndexClasses = {
   sticky: 'z-[1020]',
   overlay: 'z-[1030]',
   drawer: 'z-[1040]',
-  modal: 'z-[1050]',
-  modalOverlay: 'z-[1049]',
-  dialog: 'z-[1060]',
-  dialogOverlay: 'z-[1059]',
-  dialogClose: 'z-[1065]',
-  alertDialog: 'z-[1070]',
-  alertDialogOverlay: 'z-[1069]',
-  sheet: 'z-[1080]',
-  sheetOverlay: 'z-[1079]',
-  toast: 'z-[1090]',
-  tooltip: 'z-[1095]',
-  popover: 'z-[1100]',
-  notification: 'z-[1110]',
+  // Sheet (menu mobile) - abaixo do dialog
+  sheet: 'z-[1050]',
+  sheetOverlay: 'z-[1049]',
+  modal: 'z-[1060]',
+  modalOverlay: 'z-[1059]',
+  // Dialog - ACIMA do Sheet (ultra-alto para garantir sobreposição)
+  dialog: 'z-[10000]',
+  dialogOverlay: 'z-[9999]',
+  dialogClose: 'z-[10001]',
+  // Alert dialogs ainda mais alto
+  alertDialog: 'z-[10010]',
+  alertDialogOverlay: 'z-[10009]',
+  // Notificações no topo
+  toast: 'z-[10090]',
+  tooltip: 'z-[10095]',
+  popover: 'z-[10100]',
+  notification: 'z-[10110]',
 } as const;
 
 /**
