@@ -4,8 +4,6 @@ import { ServiceProviderDashboard as ServiceDashboard } from '@/components/Servi
 import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
-import { toast } from 'sonner';
-
 const ServiceProviderDashboard = () => {
   const { profile, signOut } = useAuth();
   const { unreadCount } = useNotifications();
@@ -13,13 +11,8 @@ const ServiceProviderDashboard = () => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    try {
-      await signOut();
-      toast.success('Logout realizado com sucesso');
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-      toast.error('Erro ao fazer logout');
-    }
+    // ✅ Logout silencioso - sem toasts
+    await signOut();
   };
 
   const handleMenuClick = () => {

@@ -705,13 +705,8 @@ const ProducerDashboard = () => {
 
   // ✅ Ações
   const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate("/auth");
-    } catch (e) {
-      console.error("Erro ao fazer logout:", e);
-      toast.error("Erro ao fazer logout");
-    }
+    // ✅ Logout silencioso - sem toasts, redirect via listener
+    await signOut();
   };
 
   const handleFreightAction = async (action: "edit" | "cancel" | "request-cancel", freight: any) => {

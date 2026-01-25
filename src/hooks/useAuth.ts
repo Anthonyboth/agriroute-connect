@@ -3,9 +3,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { queryWithTimeout } from '@/lib/query-utils';
 import { clearSupabaseAuthStorage } from '@/utils/authRecovery';
-import { toast } from 'sonner';
 import { getCachedProfile, setCachedProfile } from '@/lib/profile-cache';
-
+import { incrementAuthListeners, decrementAuthListeners, incrementSignOutCalls } from '@/debug/authDebug';
 export interface UserProfile {
   id: string;
   user_id: string;
@@ -80,6 +79,7 @@ export const useAuth = () => {
   const TIMEOUT_COOLDOWN_MS = 60000; // 60s cooldown após timeout
   const ERROR_LOG_THROTTLE_MS = 60000; // 60s entre logs detalhados
   const hasFixedActiveModeRef = useRef(false); // ✅ Flag para evitar loop infinito
+  const isSigningOutRef = useRef(false); // ✅ Single-flight guard para logout
 
   // Memoized fetch function to prevent recreation on every render
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
@@ -465,6 +465,9 @@ export const useAuth = () => {
   useEffect(() => {
     mountedRef.current = true;
     
+    // ✅ DEV: Instrumentação para validar listener único
+    incrementAuthListeners();
+    
     // Set up auth state listener (only once)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -508,7 +511,7 @@ export const useAuth = () => {
               localStorage.setItem('redirect_after_login', path);
             } catch {}
             setTimeout(() => {
-              try { toast.error('Você saiu da conta.'); } catch {}
+              // ❌ REMOVIDO: toast.error('Você saiu da conta.') - logout silencioso
               window.location.replace('/auth');
             }, 0);
           }
@@ -565,6 +568,8 @@ export const useAuth = () => {
     return () => {
       mountedRef.current = false;
       subscription.unsubscribe();
+      // ✅ DEV: Decrementar contador de listeners
+      decrementAuthListeners();
     };
   }, [fetchProfile]);
 
@@ -629,6 +634,18 @@ export const useAuth = () => {
   // fetchProfile is now defined above as a useCallback hook
 
   const signOut = async () => {
+    // ✅ Guard single-flight: evita execuções duplicadas
+    if (isSigningOutRef.current) {
+      if (import.meta.env.DEV) {
+        console.log('[Auth] signOut já em execução, ignorando chamada duplicada');
+      }
+      return;
+    }
+    isSigningOutRef.current = true;
+    
+    // ✅ DEV: Incrementar contador de signOut calls
+    incrementSignOutCalls();
+    
     try {
       // Limpar todos os dados do usuário no logout para segurança
       // Dados de sessão e contexto do usuário
@@ -641,6 +658,8 @@ export const useAuth = () => {
         'agriroute_nfe_offline_cache',
         'freight_draft_data',
         'freight_attachments_metadata',
+        'mural_dismissed_at',
+        'profile_fetch_cooldown_until',
       ];
       
       userDataKeys.forEach(key => {
@@ -669,6 +688,9 @@ export const useAuth = () => {
       setSession(null);
       setProfile(null);
       setProfiles([]);
+      
+      // ❌ REMOVIDO: Nenhum toast aqui - logout silencioso
+      // Redirect será feito pelo listener onAuthStateChange
     } catch (error) {
       // Último recurso: limpar localmente para não travar o usuário
       try {
@@ -678,8 +700,9 @@ export const useAuth = () => {
       setSession(null);
       setProfile(null);
       setProfiles([]);
-      // Não relança erro para evitar bloquear o fluxo do usuário
+      // ❌ REMOVIDO: Nenhum toast de erro - logout silencioso
     }
+    // ✅ NÃO resetar isSigningOutRef - o redirect vai recarregar a página
   };
 
   const switchProfile = (profileId: string) => {
