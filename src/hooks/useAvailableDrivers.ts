@@ -32,16 +32,13 @@ export const useAvailableDrivers = (companyId: string) => {
         return [];
       }
 
-      // Buscar profiles dos motoristas
-      const { data: drivers, error: profilesError } = await supabase
-        .from('profiles')
+      // Buscar profiles dos motoristas usando view segura (mascara PII para não-proprietários)
+      const { data: drivers, error: profilesError } = await (supabase as any)
+        .from('profiles_secure')
         .select(`
           id,
           full_name,
-          email,
-          phone,
           profile_photo_url,
-          selfie_url,
           rating,
           total_ratings
         `)
