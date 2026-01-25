@@ -101,7 +101,8 @@ export const ServiceEditModal: React.FC<ServiceEditModalProps> = ({
         }
       }
 
-      const { data, error } = await supabase.rpc('update_producer_service_request', {
+      // Use type assertion since the RPC was just created and types need regeneration
+      const { data, error } = await (supabase.rpc as any)('update_producer_service_request', {
         p_request_id: serviceRequest.id,
         p_problem_description: formData.problem_description || null,
         p_urgency: formData.urgency || null,

@@ -53,6 +53,7 @@ import { ProducerReportsTab } from "@/pages/producer/ProducerReportsTab";
 import { ProducerPaymentsTab } from "@/pages/producer/ProducerPaymentsTab";
 import { PendingRatingsPanel } from "@/components/PendingRatingsPanel";
 import { ServicesModal } from "@/components/ServicesModal";
+import { ServiceEditModal } from "@/components/service-wizard/ServiceEditModal";
 import { UnifiedHistory } from "@/components/UnifiedHistory";
 import { showErrorToast } from "@/lib/error-handler";
 import { SystemAnnouncementsBoard } from "@/components/SystemAnnouncementsBoard";
@@ -121,6 +122,10 @@ const ProducerDashboard = () => {
   const [ongoingServiceRequests, setOngoingServiceRequests] = useState<any[]>([]);
   const [urgencyFilter, setUrgencyFilter] = useState<"all" | "critical" | "urgent">("all");
 
+  // ✅ P0: Service Edit Modal state
+  const [serviceEditModalOpen, setServiceEditModalOpen] = useState(false);
+  const [selectedServiceToEdit, setSelectedServiceToEdit] = useState<any>(null);
+
   // ============================================
   // P0: CLASSIFICADOR CENTRAL (única fonte de verdade)
   // ============================================
@@ -166,16 +171,18 @@ const ProducerDashboard = () => {
       });
     }
 
-    // ✅ P0: Telemetria obrigatória para integridade de contadores
-    console.debug('[ProducerCounts] DASH_COUNTS', {
-      openFretes: freightsCount,
-      openServices: servicesCount,
+    // ✅ P0: COUNTS_DEBUG - Telemetria obrigatória com IDs para integridade de contadores
+    console.debug('[COUNTS_DEBUG]', {
+      openFretesCount: freightsCount,
+      openServicesCount: servicesCount,
       openTotal,
-      renderedFretesCount: freightsRuralOpen.length + freightsUrbanOpen.length,
-      renderedServicesCount: servicesOpen.length,
+      renderedFretesCards: freightsRuralOpen.length + freightsUrbanOpen.length,
+      renderedServicesCards: servicesOpen.length,
+      idsFretes: [...freightsRuralOpen.map(f => f.id), ...freightsUrbanOpen.map(f => f.id)],
+      idsServices: servicesOpen.map(s => s.id),
     });
 
-    // ✅ P0: Guard rail de integridade - detectar divergência
+    // ✅ P0: Guard rail de integridade - detectar divergência e reportar
     const renderedFretes = freightsRuralOpen.length + freightsUrbanOpen.length;
     const renderedServices = servicesOpen.length;
     if (freightsCount !== renderedFretes || servicesCount !== renderedServices) {
@@ -185,6 +192,21 @@ const ProducerDashboard = () => {
         route: window.location.pathname,
         timestamp: new Date().toISOString(),
       });
+      // Report to backend for monitoring (silent - no toast)
+      supabase.functions.invoke('report-error', {
+        body: {
+          errorType: 'COUNT_MISMATCH_OPEN_FRETES',
+          errorMessage: `Mismatch: expected ${freightsCount} freights, rendered ${renderedFretes}`,
+          context: {
+            expected: { freights: freightsCount, services: servicesCount },
+            rendered: { freights: renderedFretes, services: renderedServices },
+            ids: {
+              freights: [...freightsRuralOpen.map(f => f.id), ...freightsUrbanOpen.map(f => f.id)],
+              services: servicesOpen.map(s => s.id)
+            }
+          }
+        }
+      }).catch(() => {}); // Silent fail
     }
 
     return {
@@ -865,7 +887,14 @@ const ProducerDashboard = () => {
         toast.error(e?.message || 'Erro ao cancelar frete por moto');
       }
     } else if (action === "edit") {
-      toast.info('Para editar, cancele este frete e crie um novo com as informações corretas.', { duration: 5000 });
+      // ✅ P0: Open edit modal for urban freights
+      console.log('[P0_EDIT_URBAN_FREIGHT] OPEN_MODAL', {
+        service_request_id: motoFreight.id,
+        service_type: motoFreight.service_type,
+        timestamp: new Date().toISOString()
+      });
+      setSelectedServiceToEdit(motoFreight);
+      setServiceEditModalOpen(true);
     }
   };
 
@@ -920,7 +949,14 @@ const ProducerDashboard = () => {
         toast.error(error.message || 'Erro ao cancelar serviço');
       }
     } else if (action === "edit") {
-      toast.info('Funcionalidade de edição será implementada em breve.', { duration: 3000 });
+      // ✅ P0: Open edit modal with service data
+      console.log('[P0_EDIT_SERVICE] OPEN_MODAL', {
+        service_request_id: service.id,
+        service_type: service.service_type,
+        timestamp: new Date().toISOString()
+      });
+      setSelectedServiceToEdit(service);
+      setServiceEditModalOpen(true);
     }
   };
 
@@ -1954,6 +1990,21 @@ const ProducerDashboard = () => {
               : null
           }
           currentUserProfile={profile}
+        />
+      )}
+
+      {/* ✅ P0: Service Edit Modal */}
+      {selectedServiceToEdit && (
+        <ServiceEditModal
+          isOpen={serviceEditModalOpen}
+          onClose={() => {
+            setServiceEditModalOpen(false);
+            setSelectedServiceToEdit(null);
+          }}
+          onSuccess={async () => {
+            await Promise.all([fetchServiceRequests(), fetchFreights()]);
+          }}
+          serviceRequest={selectedServiceToEdit}
         />
       )}
     </div>
