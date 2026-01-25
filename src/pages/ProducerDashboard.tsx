@@ -722,6 +722,46 @@ const ProducerDashboard = () => {
     }
   };
 
+  // ✅ P0 FIX: Handler para ações em FRETE_MOTO (service_requests)
+  const handleMotoFreightAction = async (action: "edit" | "cancel", motoFreight: any) => {
+    if (action === "cancel") {
+      // Usar RPC para cancelar service_request
+      try {
+        const { data, error } = await supabase.rpc('cancel_producer_service_request', {
+          p_request_id: motoFreight.id,
+          p_cancellation_reason: 'Cancelado pelo produtor'
+        });
+
+        if (error) throw error;
+        
+        const result = data as { success: boolean; error?: string; message?: string };
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao cancelar');
+        }
+
+        toast.success('Frete por moto cancelado com sucesso!');
+        
+        // Instrumentação: log de sucesso
+        console.log('[ProducerDashboard] MOTO_FREIGHT_CANCELLED', {
+          id: motoFreight.id,
+          service_type: motoFreight.service_type,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Refetch imediato
+        fetchServiceRequests();
+        setTimeout(fetchServiceRequests, 500);
+      } catch (e: any) {
+        console.error('[handleMotoFreightAction] Erro:', e);
+        toast.error(e?.message || 'Erro ao cancelar frete por moto');
+      }
+    } else if (action === "edit") {
+      // Para edição, abrir ServicesModal com dados preenchidos
+      // Por ora, mostrar toast informativo (edição de moto requer fluxo separado)
+      toast.info('Para editar, cancele este frete e crie um novo com as informações corretas.', { duration: 5000 });
+    }
+  };
+
   const confirmCancelFreight = async () => {
     if (!freightToCancel) return;
 
@@ -1156,17 +1196,33 @@ const ProducerDashboard = () => {
               </Card>
             ) : (
               <div className="space-y-6">
-                {/* Fretes OPEN */}
-                {freights.filter((f) => f.status === "OPEN").length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-muted-foreground flex items-center gap-2">
-                      <Truck className="h-4 w-4" />
-                      Fretes ({freights.filter((f) => f.status === "OPEN").length})
-                    </h4>
-                    <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
-                      {freights
-                        .filter((f) => f.status === "OPEN")
-                        .map((freight) => (
+                {/* ✅ P0 FIX: Fretes OPEN + FRETE_MOTO de service_requests */}
+                {(() => {
+                  const openFreights = freights.filter((f) => f.status === "OPEN");
+                  const motoFreights = serviceRequests.filter((sr) => sr.service_type === "FRETE_MOTO");
+                  const totalFreightCount = openFreights.length + motoFreights.length;
+                  
+                  // Instrumentação: log de contagem
+                  if (import.meta.env.DEV && totalFreightCount > 0) {
+                    console.log('[ProducerDashboard] FREIGHTS_QUERY_RESULT', {
+                      openFreightsCount: openFreights.length,
+                      motoFreightsCount: motoFreights.length,
+                      totalCount: totalFreightCount,
+                      motoIds: motoFreights.map(m => m.id)
+                    });
+                  }
+                  
+                  if (totalFreightCount === 0) return null;
+                  
+                  return (
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-muted-foreground flex items-center gap-2">
+                        <Truck className="h-4 w-4" />
+                        Fretes ({totalFreightCount})
+                      </h4>
+                      <div className="grid gap-6 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 auto-rows-[1fr]">
+                        {/* Fretes tradicionais */}
+                        {openFreights.map((freight) => (
                           <FreightCard
                             key={freight.id}
                             freight={{
@@ -1190,101 +1246,131 @@ const ProducerDashboard = () => {
                             onAction={(action) => handleFreightAction(action as any, freight)}
                           />
                         ))}
+                        
+                        {/* ✅ FRETE_MOTO de service_requests - renderizado como FreightCard */}
+                        {motoFreights.map((moto) => (
+                          <FreightCard
+                            key={`moto-${moto.id}`}
+                            freight={{
+                              id: moto.id,
+                              cargo_type: moto.cargo_description || "Entrega por moto",
+                              weight: moto.cargo_weight ? moto.cargo_weight / 1000 : 0,
+                              distance_km: moto.distance_km || 0,
+                              origin_address: moto.origin_address || moto.location_address || moto.city_name || "Origem não informada",
+                              destination_address: moto.destination_address || moto.destination_city || "Destino não informado",
+                              origin_city: moto.origin_city || moto.city_name,
+                              origin_state: moto.origin_state || moto.state,
+                              destination_city: moto.destination_city,
+                              destination_state: moto.destination_state,
+                              price: moto.estimated_price || moto.accepted_price || 0,
+                              status: "OPEN",
+                              pickup_date: moto.scheduled_date || moto.created_at,
+                              delivery_date: moto.scheduled_date || moto.created_at,
+                              urgency: moto.urgency || "MEDIUM",
+                              minimum_antt_price: 0,
+                              required_trucks: 1,
+                              accepted_trucks: 0,
+                              service_type: "FRETE_MOTO",
+                            }}
+                            showProducerActions
+                            onAction={(action) => handleMotoFreightAction(action as any, moto)}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
-                {/* ✅ Service Requests OPEN (inclui FRETE_MOTO) */}
-                {serviceRequests.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-muted-foreground flex items-center gap-2">
-                      <Wrench className="h-4 w-4" />
-                      Solicitações de Serviço ({serviceRequests.length})
-                    </h4>
+                {/* ✅ P0 FIX: Service Requests OPEN (EXCETO FRETE_MOTO que agora vai em Fretes) */}
+                {(() => {
+                  const otherServices = serviceRequests.filter((sr) => sr.service_type !== "FRETE_MOTO");
+                  if (otherServices.length === 0) return null;
+                  
+                  return (
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-muted-foreground flex items-center gap-2">
+                        <Wrench className="h-4 w-4" />
+                        Solicitações de Serviço ({otherServices.length})
+                      </h4>
 
-                    <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-                      {serviceRequests.map((sr: any) => (
-                        <Card
-                          key={sr.id}
-                          className="hover:shadow-lg transition-all duration-300 border-2 border-border/60 overflow-hidden"
-                        >
-                          <div
-                            className={`p-4 ${
-                              sr.service_type === "GUINCHO"
-                                ? "bg-gradient-to-r from-orange-500/10 to-orange-600/5"
-                                : sr.service_type === "FRETE_MOTO"
-                                  ? "bg-gradient-to-r from-purple-500/10 to-purple-600/5"
-                                  : "bg-gradient-to-r from-blue-500/10 to-blue-600/5"
-                            }`}
+                      <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+                        {otherServices.map((sr: any) => (
+                          <Card
+                            key={sr.id}
+                            className="hover:shadow-lg transition-all duration-300 border-2 border-border/60 overflow-hidden"
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`p-2 rounded-full ${
-                                    sr.service_type === "GUINCHO"
-                                      ? "bg-orange-100 dark:bg-orange-900/30"
-                                      : sr.service_type === "FRETE_MOTO"
-                                        ? "bg-purple-100 dark:bg-purple-900/30"
+                            <div
+                              className={`p-4 ${
+                                sr.service_type === "GUINCHO"
+                                  ? "bg-gradient-to-r from-orange-500/10 to-orange-600/5"
+                                  : "bg-gradient-to-r from-blue-500/10 to-blue-600/5"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`p-2 rounded-full ${
+                                      sr.service_type === "GUINCHO"
+                                        ? "bg-orange-100 dark:bg-orange-900/30"
                                         : "bg-blue-100 dark:bg-blue-900/30"
-                                  }`}
+                                    }`}
+                                  >
+                                    {sr.service_type === "GUINCHO" ? (
+                                      <Wrench className="h-5 w-5 text-orange-600" />
+                                    ) : (
+                                      <Package className="h-5 w-5 text-blue-600" />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <h3 className="font-bold text-foreground">
+                                      {sr.service_type === "GUINCHO"
+                                        ? "Guincho"
+                                        : sr.service_type === "MUDANCA"
+                                          ? "Mudança"
+                                          : sr.service_type}
+                                    </h3>
+                                    <p className="text-xs text-muted-foreground">Solicitação #{sr.id?.slice(0, 8)}</p>
+                                  </div>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-300"
                                 >
-                                  {sr.service_type === "GUINCHO" ? (
-                                    <Wrench className="h-5 w-5 text-orange-600" />
-                                  ) : sr.service_type === "FRETE_MOTO" ? (
-                                    <Bike className="h-5 w-5 text-purple-600" />
-                                  ) : (
-                                    <Package className="h-5 w-5 text-blue-600" />
-                                  )}
-                                </div>
-                                <div>
-                                  <h3 className="font-bold text-foreground">
-                                    {sr.service_type === "GUINCHO"
-                                      ? "Guincho"
-                                      : sr.service_type === "FRETE_MOTO"
-                                        ? "Frete por Moto"
-                                        : sr.service_type}
-                                  </h3>
-                                  <p className="text-xs text-muted-foreground">Solicitação #{sr.id?.slice(0, 8)}</p>
-                                </div>
+                                  Aguardando
+                                </Badge>
                               </div>
-                              <Badge
-                                variant="outline"
-                                className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-300"
-                              >
-                                Aguardando
-                              </Badge>
-                            </div>
-                          </div>
-
-                          <CardContent className="p-4 space-y-3">
-                            <div className="flex items-center gap-2 text-sm">
-                              <MapPin className="h-4 w-4 text-primary" />
-                              <span className="font-medium">
-                                {sr.city_name || sr.location_address || "Local não informado"}
-                                {sr.state && ` - ${sr.state}`}
-                              </span>
                             </div>
 
-                            {sr.problem_description && (
-                              <p className="text-sm text-muted-foreground line-clamp-2">{sr.problem_description}</p>
-                            )}
-
-                            {sr.estimated_price && (
-                              <div className="flex items-center gap-2">
-                                <DollarSign className="h-4 w-4 text-green-600" />
-                                <span className="font-bold text-green-600">
-                                  R$ {Number(sr.estimated_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            <CardContent className="p-4 space-y-3">
+                              <div className="flex items-center gap-2 text-sm">
+                                <MapPin className="h-4 w-4 text-primary" />
+                                <span className="font-medium">
+                                  {sr.city_name || sr.location_address || "Local não informado"}
+                                  {sr.state && ` - ${sr.state}`}
                                 </span>
                               </div>
-                            )}
 
-                            <p className="text-xs text-muted-foreground">Criado em: {formatDate(sr.created_at)}</p>
-                          </CardContent>
-                        </Card>
-                      ))}
+                              {sr.problem_description && (
+                                <p className="text-sm text-muted-foreground line-clamp-2">{sr.problem_description}</p>
+                              )}
+
+                              {sr.estimated_price && (
+                                <div className="flex items-center gap-2">
+                                  <DollarSign className="h-4 w-4 text-green-600" />
+                                  <span className="font-bold text-green-600">
+                                    R$ {Number(sr.estimated_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                              )}
+
+                              <p className="text-xs text-muted-foreground">Criado em: {formatDate(sr.created_at)}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )}
           </TabsContent>
