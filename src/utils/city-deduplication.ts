@@ -124,35 +124,32 @@ export const normalizeCityKey = (cityName: string): string => {
 
 /**
  * Gera chave única para deduplicação
- * SEMPRE usa UF normalizado (2 letras)
- * Prioridade: ibge_code > city_id > normalized_name|UF
+ * P0 FIX: SEMPRE usar nome + UF como chave primária
+ * Isso garante que duas entradas com mesmo nome/UF mas ibge_codes diferentes
+ * sejam deduplicadas corretamente
  */
 export const generateDedupeKey = (city: City): string => {
-  // Prioridade 1: IBGE code se existir
-  if (city.ibge_code) {
-    return `ibge:${city.ibge_code}`;
-  }
-  
-  // Prioridade 2: ID interno (UUID)
-  if (city.id) {
-    return `id:${city.id}`;
-  }
-  
-  // Fallback: nome normalizado + UF (sempre 2 letras)
+  // P0 FIX: SEMPRE usar nome normalizado + UF como chave
+  // Não usar ibge_code como chave primária porque registros duplicados
+  // podem ter ibge_codes diferentes (ex: um null, outro com valor)
   const normalizedName = normalizeCityKey(city.name);
   const uf = toUF(city.state) || city.state?.trim().toUpperCase().slice(0, 2) || '';
-  return `name:${normalizedName}|${uf}`;
+  
+  // Chave: nome_cidade|UF
+  return `${normalizedName}|${uf}`;
 };
 
 /**
  * Pontua a qualidade de um registro de cidade
  * Quanto maior, mais completo/confiável
+ * P0 FIX: ibge_code tem peso maior para priorizar registros oficiais
  */
 const scoreCityQuality = (city: City): number => {
   let score = 0;
   
+  // ibge_code = registro oficial, maior prioridade
+  if (city.ibge_code) score += 20;
   if (city.id) score += 10;
-  if (city.ibge_code) score += 8;
   if (city.lat && city.lng) score += 5;
   if (city.name) score += 3;
   if (city.state) score += 2;
