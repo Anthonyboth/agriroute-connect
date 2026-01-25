@@ -2,6 +2,7 @@ import React, { useState, useEffect, useTransition, useMemo, useRef, useCallback
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCargoTypesByCategory } from "@/lib/cargo-types";
 import { Input } from "@/components/ui/input";
 import {
@@ -717,35 +718,59 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
         </CardContent>
       </Card>
 
-      <div className="space-y-4">
+      {/* ✅ TABS SEPARADAS: Fretes vs Serviços */}
+      <Tabs defaultValue="freights" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="freights" className="flex items-center gap-2">
+            <Truck className="h-4 w-4" />
+            Fretes
+            {filteredFreights.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {filteredFreights.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="services" className="flex items-center gap-2">
+            <Wrench className="h-4 w-4" />
+            Serviços
+            {filteredRequests.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {filteredRequests.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
         {loading ? (
           <div className="text-center py-8">
             <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">Carregando...</p>
           </div>
-        ) : filteredFreights.length + filteredRequests.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="font-semibold mb-2">Nada disponível</h3>
-              <p className="text-muted-foreground mb-4">
-                {hasActiveCities === false
-                  ? "Configure suas cidades de atendimento."
-                  : "Não há fretes/solicitações no momento."}
-              </p>
-              <Button variant="outline" onClick={fetchCompatibleFreights}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Verificar Novamente
-              </Button>
-            </CardContent>
-          </Card>
         ) : (
           <>
-            {filteredFreights.length > 0 && (
-              <SafeListWrapper
-                fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando...</div>}
-              >
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {/* ABA FRETES */}
+            <TabsContent value="freights" className="space-y-4">
+              {filteredFreights.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <Truck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="font-semibold mb-2">Nenhum frete disponível</h3>
+                    <p className="text-muted-foreground mb-4">
+                      {hasActiveCities === false
+                        ? "Configure suas cidades de atendimento."
+                        : "Não há fretes disponíveis no momento."}
+                    </p>
+                    <Button variant="outline" onClick={fetchCompatibleFreights}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Verificar Novamente
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <SafeListWrapper
+                  fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando...</div>}
+                >
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {filteredFreights.map((freight) => (
                     <div key={freight.freight_id} className="relative h-full">
                       <FreightCard
@@ -781,8 +806,23 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                 </div>
               </SafeListWrapper>
             )}
+            </TabsContent>
 
-            {filteredRequests.length > 0 && (
+            {/* ABA SERVIÇOS */}
+            <TabsContent value="services" className="space-y-4">
+            {filteredRequests.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <Wrench className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="font-semibold mb-2">Nenhum serviço disponível</h3>
+                  <p className="text-muted-foreground mb-4">Não há serviços disponíveis no momento.</p>
+                  <Button variant="outline" onClick={fetchCompatibleFreights}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Verificar Novamente
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
               <SafeListWrapper
                 fallback={<div className="p-4 text-sm text-muted-foreground animate-pulse">Atualizando...</div>}
               >
@@ -973,9 +1013,10 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                 </div>
               </SafeListWrapper>
             )}
+            </TabsContent>
           </>
         )}
-      </div>
+      </Tabs>
     </div>
   );
 };
