@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, Building2, Truck, FileText, ChevronDown } from 'lucide-react';
+import { Bell, Settings, LogOut, User, Menu, Leaf, ArrowLeftRight, CreditCard, Building2, Truck, FileText, ChevronDown, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NotificationCenter, UserProfileModal } from '@/components/LazyComponents';
@@ -49,6 +49,18 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  // ✅ Wrapper para logout com guard de UI
+  const handleLogoutClick = useCallback(async () => {
+    if (isLoggingOut) return; // Evita clique duplo
+    setIsLoggingOut(true);
+    try {
+      await onLogout();
+    } finally {
+      // Não resetar - redirect vai acontecer
+    }
+  }, [onLogout, isLoggingOut]);
 
   const getUserInitials = (name?: string) => {
     if (!name) return 'U';
@@ -259,11 +271,16 @@ const Header: React.FC<HeaderProps> = ({
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
-                    onClick={onLogout} 
+                    onClick={handleLogoutClick} 
+                    disabled={isLoggingOut}
                     className="text-destructive focus:text-destructive cursor-pointer"
                   >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sair
+                    {isLoggingOut ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <LogOut className="mr-2 h-4 w-4" />
+                    )}
+                    {isLoggingOut ? 'Saindo...' : 'Sair'}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -340,14 +357,19 @@ const Header: React.FC<HeaderProps> = ({
                     <div className="p-3 border-t">
                       <Button
                         variant="ghost"
+                        disabled={isLoggingOut}
                         className="w-full justify-start h-11 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => {
-                          onLogout();
+                          handleLogoutClick();
                           setIsSheetOpen(false);
                         }}
                       >
-                        <LogOut className="mr-3 h-5 w-5" />
-                        Sair da conta
+                        {isLoggingOut ? (
+                          <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                        ) : (
+                          <LogOut className="mr-3 h-5 w-5" />
+                        )}
+                        {isLoggingOut ? 'Saindo...' : 'Sair da conta'}
                       </Button>
                     </div>
                   </div>

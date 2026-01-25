@@ -1716,13 +1716,8 @@ const DriverDashboard = () => {
   }, [myProposals, availableFreights, totalCheckins, visibleOngoing, activeAssignments]);
 
   const handleLogout = async () => {
-    try {
-      await signOut();
-      toast.success('Logout realizado com sucesso');
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-      toast.error('Erro ao fazer logout');
-    }
+    // ✅ Logout silencioso - sem toasts
+    await signOut();
   };
 
   const handleMenuClick = () => {

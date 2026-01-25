@@ -32,12 +32,12 @@ export function clearSupabaseAuthStorage() {
   } catch {}
 }
 
-export async function forceLogoutAndRedirect(redirectTo: string = '/') {
+export async function forceLogoutAndRedirect(redirectTo: string = '/auth') {
   try {
     await supabase.auth.signOut({ scope: 'local' });
   } catch {}
   clearSupabaseAuthStorage();
-  try { toast.error('Sua sessão expirou. Faça login novamente.'); } catch {}
+  // ❌ REMOVIDO: toast.error('Sua sessão expirou.') - logout silencioso
   window.location.href = redirectTo;
 }
 
