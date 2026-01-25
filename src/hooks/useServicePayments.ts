@@ -51,8 +51,10 @@ export const useServicePayments = () => {
 
       setPayments(data || []);
     } catch (err) {
-      console.error('Error fetching service payments:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao carregar pagamentos');
+      // ✅ P0 FIX: Erro silencioso - sem toast automático
+      console.warn('[useServicePayments] Erro silencioso:', err);
+      setError(null); // Não propagar erro para evitar toasts
+      setPayments([]); // Estado vazio válido
     } finally {
       setLoading(false);
     }
@@ -104,9 +106,9 @@ export const useServicePayments = () => {
     }
   };
 
-  useEffect(() => {
-    fetchPayments();
-  }, []);
+  // ✅ P0 FIX: REMOVIDO fetch automático no mount
+  // Pagamentos só devem ser carregados quando o usuário acessar a aba de pagamentos
+  // useEffect(() => { fetchPayments(); }, []); // DESABILITADO
 
   // Recarregar pagamentos quando há mudanças em tempo real
   useEffect(() => {
