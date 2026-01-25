@@ -92,13 +92,14 @@ export interface FreightPayment {
 
 export interface ProducerStatistics {
   openFreights: number;
+  openServices: number;
+  openTotal: number; // ✅ P0: Contador unificado (fretes + serviços abertos)
   activeFreights: number;
   pendingConfirmation: number;
   totalValue: number;
   pendingProposals: number;
   pendingPayments: number;
   totalPendingAmount: number;
-  openServices: number;
 }
 
 export interface ProducerFilters {
