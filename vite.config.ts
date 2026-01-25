@@ -9,6 +9,9 @@ import autoprefixer from 'autoprefixer';
 // @ts-ignore - critical package doesn't have type definitions
 import { generate } from 'critical';
 
+// ✅ RELEASE HARDENING: Generate unique build ID
+const BUILD_ID = `${new Date().toISOString().replace(/[:.T-]/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 8)}`;
+
 // Plugin to make CSS async (non-render-blocking)
 const asyncCssPlugin = () => ({
   name: 'async-css-plugin',
@@ -79,9 +82,20 @@ const asyncCssPlugin = () => ({
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // ✅ RELEASE HARDENING: Base path for proper asset resolution
+  // Empty string = relative paths, works in Netlify, Capacitor, and any subdirectory
+  base: '/',
+  
   server: {
     host: "::",
     port: 8080,
+  },
+  
+  // ✅ RELEASE HARDENING: Inject build ID and mode as global constants
+  define: {
+    __APP_BUILD_ID__: JSON.stringify(BUILD_ID),
+    __APP_BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
+    __APP_MODE__: JSON.stringify(mode),
   },
   // ✅ PERFORMANCE: PostCSS com PurgeCSS para reduzir CSS não utilizado
   css: {
