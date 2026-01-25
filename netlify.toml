@@ -2,12 +2,89 @@
   publish = "dist"
   command = "npm run build"
 
+# ================================
+# CRITICAL: Asset paths MUST NOT be rewritten to index.html
+# These rules MUST come BEFORE the SPA fallback
+# ================================
+
+# Explicitly serve assets from /assets/* - DO NOT REWRITE
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 200
+  force = true
+
+# Explicitly serve all static files - DO NOT REWRITE
+[[redirects]]
+  from = "/*.js"
+  to = "/:splat.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*.css"
+  to = "/:splat.css"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*.webp"
+  to = "/:splat.webp"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*.png"
+  to = "/:splat.png"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*.jpg"
+  to = "/:splat.jpg"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*.svg"
+  to = "/:splat.svg"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*.ico"
+  to = "/:splat.ico"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*.woff2"
+  to = "/:splat.woff2"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*.woff"
+  to = "/:splat.woff"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*.ttf"
+  to = "/:splat.ttf"
+  status = 200
+  force = true
+
+# SPA Fallback - MUST be LAST redirect rule
+# Only applies to routes that don't match static files
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# IMPORTANT: Specific rules MUST come BEFORE generic rules for proper precedence
+# ================================
+# HEADERS - Asset caching
+# ================================
 
 # Immutable hashed JS assets - 1 year cache with CDN directive
 [[headers]]
@@ -15,6 +92,7 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, s-maxage=31536000, immutable"
     X-Content-Type-Options = "nosniff"
+    Content-Type = "application/javascript; charset=utf-8"
 
 # Immutable hashed CSS assets - 1 year cache
 [[headers]]
@@ -22,6 +100,7 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, s-maxage=31536000, immutable"
     X-Content-Type-Options = "nosniff"
+    Content-Type = "text/css; charset=utf-8"
 
 # All assets fallback - 1 year cache
 [[headers]]

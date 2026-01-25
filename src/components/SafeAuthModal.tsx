@@ -2,7 +2,7 @@
  * SafeAuthModal - Wrapper robusto e à prova de falhas para o AuthModal
  * 
  * CORREÇÃO P0: O botão "Cadastro" travava em produção porque:
- * 1. Race condition no timeout/hasRendered (closure stale)
+ * 1. SPA fallback retornava HTML para chunks JS (Content-Type errado)
  * 2. Toast de erro irritava o usuário
  * 3. Overlay ficava preso se o modal falhasse
  * 
@@ -11,16 +11,22 @@
  * 2. ZERO toast de erro para o usuário
  * 3. Fallback inline se o modal falhar (nunca trava)
  * 4. ErrorBoundary robusto com cleanup automático
- * 5. Cleanup garantido do overlay em todos os cenários
+ * 5. Cleanup GARANTIDO do overlay em TODOS os cenários via finally
+ * 6. Report para backend com detalhes técnicos
  */
 import React, { useEffect, useRef, useState, Component, ReactNode, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Leaf, User, Truck, Wrench, Building2, ArrowRight, RefreshCw } from 'lucide-react';
+import { Leaf, User, Truck, Wrench, Building2, ArrowRight } from 'lucide-react';
 
 // Importação ESTÁTICA do AuthModal - evita problemas de chunk loading
 import AuthModal from '@/components/AuthModal';
+
+// ===============================
+// CONFIGURAÇÃO
+// ===============================
+const FAILSAFE_TIMEOUT_MS = 1000; // 1 segundo para ativar fallback
 
 interface SafeAuthModalProps {
   isOpen: boolean;
@@ -28,7 +34,43 @@ interface SafeAuthModalProps {
   initialTab?: 'login' | 'signup';
 }
 
-// Error Boundary para capturar erros de renderização
+// ===============================
+// ERROR REPORTING (silencioso)
+// ===============================
+async function reportModalError(error: Error | string, context: Record<string, unknown>) {
+  try {
+    const payload = {
+      errorType: 'FRONTEND',
+      errorCategory: 'CRITICAL',
+      errorMessage: typeof error === 'string' ? error : error.message,
+      errorStack: typeof error === 'string' ? undefined : error.stack,
+      module: 'SafeAuthModal',
+      functionName: 'fallbackTriggered',
+      route: window.location.pathname,
+      metadata: {
+        ...context,
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        isOnline: navigator.onLine,
+        timestamp: new Date().toISOString(),
+        buildVersion: import.meta.env.VITE_BUILD_VERSION || 'unknown',
+      }
+    };
+
+    // Tenta enviar para report-error (fire and forget)
+    fetch('https://shnvtxejjecbnztdbbbl.supabase.co/functions/v1/report-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {/* silencioso */});
+  } catch {
+    // Ignora erros de logging
+  }
+}
+
+// ===============================
+// ERROR BOUNDARY
+// ===============================
 class AuthModalErrorBoundary extends Component<
   { children: ReactNode; onError: (error: Error) => void; isOpen: boolean },
   { hasError: boolean; error: Error | null }
@@ -43,7 +85,11 @@ class AuthModalErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[SafeAuthModal] Erro capturado no ErrorBoundary:', error, errorInfo);
+    console.error('[SafeAuthModal] ErrorBoundary capturou erro:', error.message);
+    reportModalError(error, { 
+      errorInfo: errorInfo.componentStack?.slice(0, 500),
+      trigger: 'ErrorBoundary'
+    });
     this.props.onError(error);
   }
 
@@ -62,7 +108,9 @@ class AuthModalErrorBoundary extends Component<
   }
 }
 
-// Fallback Modal inline - não depende de chunks externos
+// ===============================
+// FALLBACK MODAL (inline, sem dependências externas)
+// ===============================
 function FallbackAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProps) {
   const navigate = useNavigate();
   
@@ -127,19 +175,32 @@ function FallbackAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProps) 
   );
 }
 
+// ===============================
+// SAFE AUTH MODAL (principal)
+// ===============================
 export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProps) {
   const [useFallback, setUseFallback] = useState(false);
   const hasRenderedRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountTimeRef = useRef<number>(0);
 
-  // Cleanup function garantida
+  // Cleanup function garantida - SEMPRE limpa timeout
   const cleanup = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
   }, []);
+
+  // Força fechamento do modal se algo der errado
+  const forceClose = useCallback(() => {
+    cleanup();
+    try {
+      onClose();
+    } catch {
+      // Ignora erros de fechamento
+    }
+  }, [cleanup, onClose]);
 
   // Reset estado quando modal fecha
   useEffect(() => {
@@ -154,7 +215,9 @@ export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProp
     }
   }, [isOpen, cleanup]);
 
-  // Fail-safe: se o modal não renderizar em 1.5s, usar fallback
+  // ===============================
+  // FAIL-SAFE: Timeout para fallback
+  // ===============================
   useEffect(() => {
     if (isOpen && !useFallback) {
       mountTimeRef.current = Date.now();
@@ -163,20 +226,19 @@ export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProp
       timeoutRef.current = setTimeout(() => {
         // Verifica usando ref (não closure stale)
         if (!hasRenderedRef.current) {
-          console.warn('[SafeAuthModal] Timeout: modal não renderizou em 1.5s, ativando fallback');
-          // Log para debugging interno (sem toast para usuário!)
-          try {
-            console.error('[SafeAuthModal] Fallback ativado', {
-              userAgent: navigator.userAgent,
-              timestamp: new Date().toISOString(),
-              initialTab,
-            });
-          } catch (e) {
-            // Ignora erros de logging
-          }
+          const elapsed = Date.now() - mountTimeRef.current;
+          console.warn(`[SafeAuthModal] Timeout após ${elapsed}ms - ativando fallback`);
+          
+          // Report silencioso (sem toast!)
+          reportModalError('REGISTER_MODAL_FALLBACK_TRIGGERED', {
+            trigger: 'timeout',
+            timeToOpenMs: elapsed,
+            initialTab,
+          });
+          
           setUseFallback(true);
         }
-      }, 1500);
+      }, FAILSAFE_TIMEOUT_MS);
     }
 
     return cleanup;
@@ -195,7 +257,8 @@ export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProp
 
   // Callback para erros do ErrorBoundary - ativa fallback silenciosamente
   const handleError = useCallback((error: Error) => {
-    console.error('[SafeAuthModal] ErrorBoundary capturou erro, ativando fallback:', error.message);
+    console.error('[SafeAuthModal] ErrorBoundary erro, ativando fallback');
+    reportModalError(error, { trigger: 'ErrorBoundary' });
     setUseFallback(true);
   }, []);
 
@@ -228,7 +291,9 @@ export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProp
   );
 }
 
-// Wrapper que notifica quando o modal é montado
+// ===============================
+// WRAPPER que notifica quando o modal é montado
+// ===============================
 function AuthModalWithCallback({
   isOpen,
   onClose,

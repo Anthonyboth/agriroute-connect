@@ -1,2 +1,26 @@
-# SPA Fallback - Sempre servir index.html para todas as rotas
+# ================================
+# CRITICAL: Asset paths MUST NOT be rewritten to index.html
+# These rules MUST come BEFORE the SPA fallback
+# ================================
+
+# Serve assets directly - NEVER rewrite to index.html
+/assets/*  /assets/:splat  200!
+
+# Serve all static files directly
+/*.js      /:splat.js      200!
+/*.css     /:splat.css     200!
+/*.webp    /:splat.webp    200!
+/*.png     /:splat.png     200!
+/*.jpg     /:splat.jpg     200!
+/*.jpeg    /:splat.jpeg    200!
+/*.svg     /:splat.svg     200!
+/*.ico     /:splat.ico     200!
+/*.woff2   /:splat.woff2   200!
+/*.woff    /:splat.woff    200!
+/*.ttf     /:splat.ttf     200!
+/*.json    /:splat.json    200!
+/*.xml     /:splat.xml     200!
+/*.webmanifest /:splat.webmanifest 200!
+
+# SPA Fallback - MUST be LAST (only for navigation routes)
 /*    /index.html   200
