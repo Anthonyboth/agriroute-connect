@@ -11729,6 +11729,7 @@ export type Database = {
         }
         Returns: string
       }
+      current_profile_id: { Args: never; Returns: string }
       decrypt_document: {
         Args: { encrypted_doc: string; original_doc: string }
         Returns: string
