@@ -91,9 +91,9 @@ export interface FreightPayment {
 }
 
 export interface ProducerStatistics {
-  openFreights: number;
-  openServices: number;
-  openTotal: number; // ✅ P0: Contador unificado (fretes + serviços abertos)
+  openFreights: number;  // ✅ P0: Fretes abertos (rural + urbano FRETE_*)
+  openServices: number;  // ✅ P0: Serviços abertos (NÃO-transporte)
+  openTotal: number;     // Soma total (uso interno apenas)
   activeFreights: number;
   pendingConfirmation: number;
   totalValue: number;
