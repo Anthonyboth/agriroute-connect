@@ -166,12 +166,26 @@ const ProducerDashboard = () => {
       });
     }
 
-    console.debug('[ProducerCounts]', {
-      rural: freightsRuralOpen.length,
-      freightService: freightsUrbanOpen.length,
-      services: servicesCount,
-      total: openTotal,
+    // ✅ P0: Telemetria obrigatória para integridade de contadores
+    console.debug('[ProducerCounts] DASH_COUNTS', {
+      openFretes: freightsCount,
+      openServices: servicesCount,
+      openTotal,
+      renderedFretesCount: freightsRuralOpen.length + freightsUrbanOpen.length,
+      renderedServicesCount: servicesOpen.length,
     });
+
+    // ✅ P0: Guard rail de integridade - detectar divergência
+    const renderedFretes = freightsRuralOpen.length + freightsUrbanOpen.length;
+    const renderedServices = servicesOpen.length;
+    if (freightsCount !== renderedFretes || servicesCount !== renderedServices) {
+      console.error('[CRITICAL] DASH_COUNT_MISMATCH', {
+        expected: { freights: freightsCount, services: servicesCount },
+        rendered: { freights: renderedFretes, services: renderedServices },
+        route: window.location.pathname,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     return {
       freightsRuralOpen,
@@ -1149,7 +1163,7 @@ const ProducerDashboard = () => {
             iconColor="text-teal-500"
             label="Serviços"
             value={statistics.openServices || 0}
-            onClick={() => setActiveTab("open")}
+            onClick={() => setActiveTab("services-open")}
           />
         </div>
 
