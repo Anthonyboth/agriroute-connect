@@ -66,23 +66,29 @@ serve(async (req) => {
       throw uploadError;
     }
 
-    // Get public URL
-    const { data: urlData } = supabaseClient.storage
+    // Get signed URL for private bucket (24 hours for DACTE documents)
+    const { data: signedUrlData, error: signedUrlError } = await supabaseClient.storage
       .from('mdfe-dactes')
-      .getPublicUrl(fileName);
+      .createSignedUrl(fileName, 86400); // 24 hours
 
-    // Update MDFe with DACTE URL
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      throw new Error('Falha ao gerar URL de acesso ao DACTE');
+    }
+
+    // Store the file path instead of URL (we'll generate signed URLs on-demand)
+    // Update MDFe with storage path for on-demand signed URL generation
     await supabaseClient
       .from('mdfe_manifestos')
-      .update({ dacte_url: urlData.publicUrl })
+      .update({ dacte_url: `mdfe-dactes/${fileName}` })
       .eq('id', mdfe_id);
 
-    console.log(`[MDFe DACTE] DACTE gerado com sucesso: ${urlData.publicUrl}`);
+    console.log(`[MDFe DACTE] DACTE gerado com sucesso: mdfe-dactes/${fileName}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        dacte_url: urlData.publicUrl,
+        dacte_url: signedUrlData.signedUrl,
+        storage_path: `mdfe-dactes/${fileName}`,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

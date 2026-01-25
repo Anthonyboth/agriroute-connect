@@ -34,11 +34,16 @@ export function useChatAttachments(userProfileId: string) {
 
       if (error) throw error;
 
-      const { data: urlData } = supabase.storage
+      // Use signed URL for private bucket (1 hour expiry)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('chat-interno-images')
-        .getPublicUrl(data.path);
+        .createSignedUrl(data.path, 3600);
 
-      return urlData.publicUrl;
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        throw new Error('Falha ao gerar URL de acesso');
+      }
+
+      return signedUrlData.signedUrl;
     } catch (error: any) {
       console.error('Erro ao fazer upload de imagem:', error);
       toast.error(error.message || 'Erro ao enviar imagem');
@@ -85,12 +90,17 @@ export function useChatAttachments(userProfileId: string) {
 
       if (error) throw error;
 
-      const { data: urlData } = supabase.storage
+      // Use signed URL for private bucket (1 hour expiry)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('chat-interno-files')
-        .getPublicUrl(data.path);
+        .createSignedUrl(data.path, 3600);
+
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        throw new Error('Falha ao gerar URL de acesso');
+      }
 
       return {
-        url: urlData.publicUrl,
+        url: signedUrlData.signedUrl,
         name: file.name,
         size: file.size,
       };

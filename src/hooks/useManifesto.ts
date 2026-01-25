@@ -208,7 +208,7 @@ export function useManifesto(freightId: string) {
     window.URL.revokeObjectURL(url);
   }, [manifesto]);
 
-  const baixarDACTE = useCallback(() => {
+  const baixarDACTE = useCallback(async () => {
     if (!manifesto?.dacte_url) {
       toast({
         title: "DACTE Indisponível",
@@ -218,7 +218,32 @@ export function useManifesto(freightId: string) {
       return;
     }
 
-    window.open(manifesto.dacte_url, '_blank');
+    try {
+      // Check if it's a storage path (new format) or direct URL (legacy)
+      if (manifesto.dacte_url.startsWith('mdfe-dactes/')) {
+        // Generate signed URL for private bucket
+        const filePath = manifesto.dacte_url.replace('mdfe-dactes/', '');
+        const { data, error } = await supabase.storage
+          .from('mdfe-dactes')
+          .createSignedUrl(filePath, 86400); // 24 hours
+
+        if (error || !data?.signedUrl) {
+          throw new Error('Falha ao gerar URL de acesso');
+        }
+
+        window.open(data.signedUrl, '_blank');
+      } else {
+        // Legacy: direct URL (fallback)
+        window.open(manifesto.dacte_url, '_blank');
+      }
+    } catch (err: any) {
+      console.error('Erro ao baixar DACTE:', err);
+      toast({
+        title: "Erro ao baixar DACTE",
+        description: err.message || "Não foi possível acessar o documento",
+        variant: "destructive",
+      });
+    }
   }, [manifesto]);
 
   return {
