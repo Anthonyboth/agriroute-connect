@@ -37,6 +37,10 @@ import { useSplashScreen } from './hooks/useSplashScreen';
 import { PreviewFreshBuildBanner } from './components/PreviewFreshBuildBanner';
 import { SwipeNavigationHandler } from './components/SwipeNavigationHandler';
 
+// ✅ RELEASE HARDENING: Import centralized env config and health check
+import { ENV, PLATFORM, validateEnvironment } from '@/config/env';
+import { initializeHealthCheck } from '@/lib/runtime-health-check';
+
 // ✅ PERFORMANCE: Prefetch estratégico de rotas críticas
 // Só executa em conexões rápidas (não mobile data saver)
 if (typeof window !== 'undefined' && 'connection' in navigator) {
@@ -200,6 +204,9 @@ if (typeof window !== 'undefined') {
   } else {
     setTimeout(initErrorMonitoring, 1);
   }
+
+  // ✅ RELEASE HARDENING: Initialize health check on app load
+  initializeHealthCheck();
 }
 
 // Componente para setup de monitoramento de erros
