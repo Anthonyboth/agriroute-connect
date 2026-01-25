@@ -15,12 +15,14 @@ import {
   FileKey,
   ShieldCheck,
   Eye,
-  EyeOff
+  EyeOff,
+  HelpCircle
 } from 'lucide-react';
 import { useFiscalIssuer } from '@/hooks/useFiscalIssuer';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { CertificateHelpModal } from '@/components/fiscal/CertificateHelpModal';
 
 interface FiscalOnboardingStep3Props {
   onNext: () => void;
@@ -33,6 +35,7 @@ export function FiscalOnboardingStep3({ onNext, onBack }: FiscalOnboardingStep3P
   const [password, setPassword] = useState('');
   const [uploading, setUploading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasCertificate = !!certificate;
@@ -103,12 +106,26 @@ export function FiscalOnboardingStep3({ onNext, onBack }: FiscalOnboardingStep3P
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold">Certificado Digital A1</h3>
-        <p className="text-muted-foreground text-sm mt-1">
-          O certificado é necessário para assinar os documentos fiscais
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold">Certificado Digital A1</h3>
+          <p className="text-muted-foreground text-sm mt-1">
+            O certificado é necessário para assinar os documentos fiscais
+          </p>
+        </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => setShowHelpModal(true)}
+          className="flex-shrink-0 text-muted-foreground hover:text-foreground"
+        >
+          <HelpCircle className="h-4 w-4 mr-1" />
+          Como obter
+        </Button>
       </div>
+
+      {/* Help Modal */}
+      <CertificateHelpModal open={showHelpModal} onOpenChange={setShowHelpModal} />
 
       {/* Current certificate status */}
       {hasCertificate && (
