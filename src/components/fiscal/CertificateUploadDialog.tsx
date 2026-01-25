@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload, Key, Loader2, ShieldCheck, FileKey, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { useFiscalIssuer } from "@/hooks/useFiscalIssuer";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface CertificateUploadDialogProps {
   open: boolean;
@@ -17,6 +18,7 @@ interface CertificateUploadDialogProps {
 export function CertificateUploadDialog({ open, onOpenChange, onSuccess }: CertificateUploadDialogProps) {
   // ✅ PEGAR TAMBÉM O `error` DO HOOK (isso é o principal!)
   const { loading, uploadCertificate, error: hookError } = useFiscalIssuer();
+  const queryClient = useQueryClient();
 
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState("");
@@ -84,6 +86,12 @@ export function CertificateUploadDialog({ open, onOpenChange, onSuccess }: Certi
       setUploadSuccess(true);
       setFile(null);
       setPassword("");
+      
+      // ✅ P0 CORREÇÃO: Invalidar cache do TanStack Query para forçar refetch imediato
+      // Isso garante que FiscalTab e FiscalIssuerSetup vejam o novo status
+      console.log('[CERTIFICATE] Invalidating fiscal-issuer query cache');
+      await queryClient.invalidateQueries({ queryKey: ['fiscal-issuer'] });
+      
       onSuccess?.();
 
       setTimeout(() => {

@@ -51,12 +51,16 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
       </Card>
     );
   }
-
-  // Check certificate status based on sefaz validation
-  const hasCertificate = fiscalIssuer.sefaz_status === 'validated' || fiscalIssuer.status === 'active';
+  // ✅ CORREÇÃO P0: Verificar status do certificado incluindo 'certificate_uploaded'
+  // Edge Function define status = 'certificate_uploaded' após upload bem sucedido
+  const hasCertificate = 
+    fiscalIssuer.sefaz_status === 'validated' || 
+    fiscalIssuer.status === 'active' ||
+    fiscalIssuer.status === 'certificate_uploaded';
+  
   const sefazValidatedAt = fiscalIssuer.sefaz_validated_at 
     ? new Date(fiscalIssuer.sefaz_validated_at) 
-    : null;
+    : (fiscalIssuer.status === 'certificate_uploaded' ? new Date() : null);
 
   return (
     <div className="space-y-6">
@@ -147,7 +151,7 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
             {hasCertificate ? (
               <Badge variant="default" className="gap-1 bg-green-600">
                 <CheckCircle className="h-3 w-3" />
-                Válido
+                {fiscalIssuer.status === 'certificate_uploaded' ? 'Configurado' : 'Válido'}
               </Badge>
             ) : (
               <Badge variant="secondary">Não configurado</Badge>
@@ -155,19 +159,23 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
           </div>
         </CardHeader>
         <CardContent>
-          {hasCertificate && sefazValidatedAt ? (
+          {hasCertificate ? (
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <p className="text-sm text-muted-foreground">Validado em</p>
+                  <p className="text-sm text-muted-foreground">
+                    {fiscalIssuer.status === 'certificate_uploaded' ? 'Enviado em' : 'Validado em'}
+                  </p>
                   <p className="font-medium">
-                    {sefazValidatedAt.toLocaleDateString('pt-BR')}
+                    {sefazValidatedAt?.toLocaleDateString('pt-BR') || 'Agora'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Status SEFAZ</p>
-                  <p className="font-medium text-green-600">
-                    {fiscalIssuer.sefaz_status || 'Validado'}
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className={`font-medium ${fiscalIssuer.status === 'certificate_uploaded' ? 'text-blue-600' : 'text-green-600'}`}>
+                    {fiscalIssuer.status === 'certificate_uploaded' 
+                      ? 'Certificado Enviado' 
+                      : (fiscalIssuer.sefaz_status || 'Validado')}
                   </p>
                 </div>
               </div>
