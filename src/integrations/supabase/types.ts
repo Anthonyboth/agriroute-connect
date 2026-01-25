@@ -13054,6 +13054,19 @@ export type Database = {
         Args: { p_freight_id: string }
         Returns: undefined
       }
+      update_producer_service_request: {
+        Args: {
+          p_additional_info?: string
+          p_contact_email?: string
+          p_contact_name?: string
+          p_contact_phone?: string
+          p_location_address?: string
+          p_problem_description?: string
+          p_request_id: string
+          p_urgency?: string
+        }
+        Returns: Json
+      }
       validate_password_strength: { Args: { password: string }; Returns: Json }
       validate_roles_post_migration: {
         Args: never
