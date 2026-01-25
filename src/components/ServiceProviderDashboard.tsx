@@ -487,9 +487,9 @@ export const ServiceProviderDashboard: React.FC = () => {
       }
 
       if (scope === 'all') {
-        // 3. Fetch provider's accepted requests
+        // 3. Fetch provider's accepted requests (usando view segura para PII)
         const { data, error: providerError } = await supabase
-          .from('service_requests')
+          .from('service_requests_secure')
           .select('*')
           .eq('provider_id', providerId)
           .order('created_at', { ascending: false });

@@ -123,8 +123,9 @@ export const DriverOngoingTab: React.FC = () => {
       // A aba "Em Andamento" precisa listar os serviços aceitos do motorista.
       const srOngoingStatuses = ["ACCEPTED", "IN_PROGRESS"];
 
+      // ✅ SEGURANÇA: Usar view segura para proteção de PII do cliente
       const { data: serviceRequests, error: srErr } = await supabase
-        .from("service_requests")
+        .from("service_requests_secure")
         .select(
           `
           id,

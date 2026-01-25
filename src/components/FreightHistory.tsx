@@ -156,8 +156,9 @@ export const FreightHistory: React.FC = () => {
       // 2. Para motoristas: buscar service_requests onde provider_id = motorista (trabalhos prestados)
       if (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO') {
         try {
+          // ✅ SEGURANÇA: Usar view segura para proteção de PII do cliente
           const { data: serviceData, error: serviceError } = await supabase
-            .from('service_requests')
+            .from('service_requests_secure')
             .select('*, client:profiles!service_requests_client_id_fkey(id, full_name)')
             .eq('provider_id', profile.id)
             .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_MOTO', 'FRETE_URBANO'])

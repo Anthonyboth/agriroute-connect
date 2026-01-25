@@ -134,8 +134,9 @@ export const DriverFreightsTab = ({ driverProfileId }: DriverFreightsTabProps) =
   } = useQuery({
     queryKey: ["driver-open-service-requests"],
     queryFn: async () => {
+      // ✅ SEGURANÇA: Usar view segura para proteção de PII
       const { data, error } = await supabase
-        .from("service_requests")
+        .from("service_requests_secure")
         .select(
           `
           id,
@@ -175,8 +176,9 @@ export const DriverFreightsTab = ({ driverProfileId }: DriverFreightsTabProps) =
     queryKey: ["driver-my-service-requests", driverProfileId],
     enabled: !!driverProfileId,
     queryFn: async () => {
+      // ✅ SEGURANÇA: Usar view segura para proteção de PII
       const { data, error } = await supabase
-        .from("service_requests")
+        .from("service_requests_secure")
         .select(
           `
           id,
