@@ -9,9 +9,11 @@ import {
   Upload,
   FileKey,
   Settings,
-  RefreshCw
+  RefreshCw,
+  HelpCircle
 } from 'lucide-react';
 import { CertificateUploadDialog } from '@/components/fiscal/CertificateUploadDialog';
+import { CertificateHelpModal } from '@/components/fiscal/CertificateHelpModal';
 import type { Database } from '@/integrations/supabase/types';
 
 type FiscalIssuerRow = Database['public']['Tables']['fiscal_issuers']['Row'];
@@ -28,6 +30,7 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
   onStartOnboarding,
 }) => {
   const [showCertUpload, setShowCertUpload] = React.useState(false);
+  const [showCertHelp, setShowCertHelp] = React.useState(false);
 
   if (!fiscalIssuer) {
     return (
@@ -130,8 +133,15 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
                 <FileKey className="h-5 w-5" />
                 Certificado Digital A1
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="flex items-center gap-2">
                 Necessário para CT-e e MDF-e
+                <button
+                  onClick={() => setShowCertHelp(true)}
+                  className="inline-flex items-center gap-1 text-primary hover:underline text-xs"
+                >
+                  <HelpCircle className="h-3 w-3" />
+                  Como obter
+                </button>
               </CardDescription>
             </div>
             {hasCertificate ? (
@@ -190,6 +200,12 @@ export const FiscalIssuerSetup: React.FC<FiscalIssuerSetupProps> = ({
         open={showCertUpload}
         onOpenChange={setShowCertUpload}
         onSuccess={() => setShowCertUpload(false)}
+      />
+
+      {/* Modal de Ajuda do Certificado */}
+      <CertificateHelpModal 
+        open={showCertHelp} 
+        onOpenChange={setShowCertHelp} 
       />
     </div>
   );
