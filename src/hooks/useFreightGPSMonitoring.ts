@@ -70,7 +70,7 @@ export const useFreightGPSMonitoring = (
           console.error('[GPS] Erro ao atualizar tracking:', trackingError);
         }
 
-        // ✅ NOVO: Salvar localização no histórico de 360 dias
+        // ✅ Salvar localização no histórico (retenção máxima de 7 dias, auto-purge após conclusão do frete)
         const { error: historyError } = await supabase.rpc('insert_driver_location_history', {
           p_driver_profile_id: driverProfileId,
           p_freight_id: freightId,
