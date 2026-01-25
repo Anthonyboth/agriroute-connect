@@ -110,7 +110,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" data-auth-modal-content>
         <DialogHeader>
           <div className="flex items-center justify-center space-x-2 mb-2">
             <Leaf className="h-8 w-8 text-primary" />
