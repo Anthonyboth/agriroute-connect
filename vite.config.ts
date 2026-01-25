@@ -4,6 +4,8 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
 import { purgeCSSPlugin } from '@fullhuman/postcss-purgecss';
+import tailwindcss from 'tailwindcss';
+import autoprefixer from 'autoprefixer';
 // @ts-ignore - critical package doesn't have type definitions
 import { generate } from 'critical';
 
@@ -85,74 +87,80 @@ export default defineConfig(({ mode }) => ({
   css: {
     devSourcemap: false, // Disable CSS sourcemaps in dev for faster HMR
     postcss: {
-      plugins: mode === 'production' ? [
-        purgeCSSPlugin({
-          content: [
-            './index.html',
-            './src/**/*.{js,ts,jsx,tsx}',
-          ],
-          defaultExtractor: (content: string) => content.match(/[\w-/:]+(?<!:)/g) || [],
-          safelist: {
-            standard: [
-              /^html/,
-              /^body/,
-              /^:root/,
-              /^dark/,
-              // Radix UI
-              /^data-/,
-              /\[data-.*\]/,
-              // Tailwind dynamic classes
-              /^bg-/,
-              /^text-/,
-              /^border-/,
-              /^hover:/,
-              /^focus:/,
-              /^active:/,
-              /^disabled:/,
-              /^group-/,
-              /^peer-/,
-              // Animations
-              /^animate-/,
-              /^transition-/,
-              // Responsive
-              /^sm:/,
-              /^md:/,
-              /^lg:/,
-              /^xl:/,
-              /^2xl:/,
-              // ✅ AgriRoute Design System - Classes customizadas
-              /^gradient-/,        // gradient-hero, gradient-primary, gradient-card
-              /^shadow-/,          // shadow-elegant, shadow-card, shadow-glow
-              /^btn-/,             // btn-accessible
-              /^card-/,            // card-accessible
-              /^text-gradient-/,   // text-gradient-hero
-              /^text-shadow-/,     // text-shadow-lg, text-shadow-md
-              /^text-accessible/,  // text-accessible, text-large-accessible
-              /^freight-/,         // freight-card-standard
-              /^spacing-/,         // spacing-accessible
-              /^pentagon-/,        // pentagon-card
-              /^status-/,          // status-open, status-booked, etc.
-              /^scroll-/,          // scroll-area
-              /^safe-/,            // safe-area-*, safe-text
-              /^responsive-/,      // responsive-card-header, responsive-card-actions
-              /^badge-/,           // badge-inline
-              /^touch-/,           // touch-target-safe
-              /^prevent-/,         // prevent-button-overlap
-              /^provider-/,        // provider-theme
-              'transition-smooth',
-              'transition-bounce',
+      plugins: [
+        // ✅ CRÍTICO: Tailwind DEVE vir primeiro para compilar @tailwind/@apply
+        tailwindcss(),
+        autoprefixer(),
+        // PurgeCSS apenas em produção, APÓS Tailwind compilar
+        ...(mode === 'production' ? [
+          purgeCSSPlugin({
+            content: [
+              './index.html',
+              './src/**/*.{js,ts,jsx,tsx}',
             ],
-            deep: [
-              /radix/,
-              /sonner/,
-              /cmdk/,
-            ],
-            greedy: [
-              /^lucide-/,
-            ]
-          }
-        })
-      ] : [],
+            defaultExtractor: (content: string) => content.match(/[\w-/:]+(?<!:)/g) || [],
+            safelist: {
+              standard: [
+                /^html/,
+                /^body/,
+                /^:root/,
+                /^dark/,
+                // Radix UI
+                /^data-/,
+                /\[data-.*\]/,
+                // Tailwind dynamic classes
+                /^bg-/,
+                /^text-/,
+                /^border-/,
+                /^hover:/,
+                /^focus:/,
+                /^active:/,
+                /^disabled:/,
+                /^group-/,
+                /^peer-/,
+                // Animations
+                /^animate-/,
+                /^transition-/,
+                // Responsive
+                /^sm:/,
+                /^md:/,
+                /^lg:/,
+                /^xl:/,
+                /^2xl:/,
+                // ✅ AgriRoute Design System - Classes customizadas
+                /^gradient-/,        // gradient-hero, gradient-primary, gradient-card
+                /^shadow-/,          // shadow-elegant, shadow-card, shadow-glow
+                /^btn-/,             // btn-accessible
+                /^card-/,            // card-accessible
+                /^text-gradient-/,   // text-gradient-hero
+                /^text-shadow-/,     // text-shadow-lg, text-shadow-md
+                /^text-accessible/,  // text-accessible, text-large-accessible
+                /^freight-/,         // freight-card-standard
+                /^spacing-/,         // spacing-accessible
+                /^pentagon-/,        // pentagon-card
+                /^status-/,          // status-open, status-booked, etc.
+                /^scroll-/,          // scroll-area
+                /^safe-/,            // safe-area-*, safe-text
+                /^responsive-/,      // responsive-card-header, responsive-card-actions
+                /^badge-/,           // badge-inline
+                /^touch-/,           // touch-target-safe
+                /^prevent-/,         // prevent-button-overlap
+                /^provider-/,        // provider-theme
+                'transition-smooth',
+                'transition-bounce',
+              ],
+              deep: [
+                /radix/,
+                /sonner/,
+                /cmdk/,
+              ],
+              greedy: [
+                /^lucide-/,
+              ]
+            }
+          })
+        ] : []),
+      ],
     },
   },
   build: {
