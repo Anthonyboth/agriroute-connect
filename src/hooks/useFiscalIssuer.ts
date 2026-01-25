@@ -508,15 +508,47 @@ export function useFiscalIssuer() {
     try {
       console.log("[FISCAL] Accepting terms for issuer:", issuer.id);
 
+      // Get current user profile_id (required column)
+      const { data: { user } } = await db.auth.getUser();
+      if (!user) {
+        throw new Error("Usuário não autenticado");
+      }
+      
+      // Query the profile to get the profile_id
+      const { data: profile, error: profileError } = await db
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (profileError || !profile) {
+        throw new Error("Perfil não encontrado");
+      }
+
+      // Generate a simple hash for the term content (SHA-256 style representation)
+      const termContent = `FISCAL_RESPONSIBILITY_TERM_V2_${issuer.id}`;
+      const termHash = await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(termContent)
+      ).then(buffer => 
+        Array.from(new Uint8Array(buffer))
+          .map(b => b.toString(16).padStart(2, "0"))
+          .join("")
+      );
+
       const { error: acceptError } = await db
         .from("fiscal_terms_acceptances")
         .upsert({
+          profile_id: profile.id,
           issuer_id: issuer.id,
+          term_type: "fiscal_responsibility",
           term_version: "2.0",
+          term_hash: termHash,
           accepted_at: new Date().toISOString(),
           ip_address: null,
           user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-          document_hash: "FISCAL_TERMS_V2_HASH",
+        }, {
+          onConflict: "profile_id,term_type,term_version"
         });
 
       if (acceptError) throw acceptError;
