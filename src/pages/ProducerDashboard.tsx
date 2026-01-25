@@ -469,12 +469,13 @@ const ProducerDashboard = () => {
   // Se necessário no futuro, implementar via edge function com validação de role.
 
   // ✅ Buscar service_requests ABERTAS (inclui FRETE_MOTO)
+  // ✅ SEGURANÇA: Usar service_requests_secure para proteção de PII
   const fetchServiceRequests = useCallback(async () => {
     if (!profile?.id || profile.role !== "PRODUTOR") return;
 
     try {
       const { data, error } = await supabase
-        .from("service_requests")
+        .from("service_requests_secure")
         .select("*")
         .eq("client_id", profile.id)
         .eq("status", "OPEN")
@@ -499,13 +500,13 @@ const ProducerDashboard = () => {
     }
   }, [profile?.id, profile?.role]);
 
-  // ✅ Buscar service_requests EM ANDAMENTO
+  // ✅ Buscar service_requests EM ANDAMENTO (usando view segura)
   const fetchOngoingServiceRequests = useCallback(async () => {
     if (!profile?.id || profile.role !== "PRODUTOR") return;
 
     try {
       const { data, error } = await supabase
-        .from("service_requests")
+        .from("service_requests_secure")
         .select("*, provider:provider_id(id, full_name, phone, rating)")
         .eq("client_id", profile.id)
         .in("status", ["ACCEPTED", "ON_THE_WAY", "IN_PROGRESS"])

@@ -794,9 +794,9 @@ const DriverDashboard = () => {
         console.error('❌ Erro buscando assignments:', assignmentError);
       }
 
-      // ✅ NOVO: Buscar service_requests (GUINCHO/MUDANCA) aceitos pelo motorista
+      // ✅ SEGURANÇA: Usar view segura para proteção de PII do cliente
       const { data: serviceRequestsData, error: serviceRequestsError } = await supabase
-        .from('service_requests')
+        .from('service_requests_secure')
         .select('*')
         .eq('provider_id', profile.id)
         .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_URBANO', 'FRETE_MOTO'])

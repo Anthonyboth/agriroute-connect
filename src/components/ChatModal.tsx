@@ -76,19 +76,26 @@ export const ChatModal = ({
     refetchInterval: 30000, // Atualizar a cada 30s
   });
 
+  // ✅ SEGURANÇA: Usar view segura - telefone mascarado para não-participantes
   const { data: serviceData } = useQuery({
-    queryKey: ['service-chat-data', conversation?.metadata?.serviceRequestId],
+    queryKey: ['service-chat-data-secure', conversation?.metadata?.serviceRequestId],
     queryFn: async () => {
       if (conversation?.type !== 'SERVICE') return null;
       const { data } = await supabase
-        .from('service_requests')
+        .from('service_requests_secure')
         .select(`
-          *,
+          id,
+          status,
+          service_type,
+          client_id,
+          provider_id,
+          contact_phone,
+          contact_name,
           client:profiles!service_requests_client_id_fkey(id, full_name, phone),
           provider:profiles!service_requests_provider_id_fkey(id, full_name, phone)
         `)
         .eq('id', conversation.metadata.serviceRequestId)
-        .single();
+        .maybeSingle();
       return data;
     },
     enabled: conversation?.type === 'SERVICE' && isOpen,

@@ -94,8 +94,9 @@ export const ServiceHistory: React.FC = () => {
 
     setLoading(true);
     try {
+      // ✅ SEGURANÇA: Usar view segura para proteção de PII
       let query = supabase
-        .from('service_requests')
+        .from('service_requests_secure')
         .select('*')
         .order('created_at', { ascending: false });
 
