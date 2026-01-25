@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Home } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Home, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { GPSAddressButton } from './GPSAddressButton';
 
 interface FreightWizardStep2AddressProps {
   formData: any;
@@ -17,8 +20,61 @@ export function FreightWizardStep2Address({
   onNext,
   onBack
 }: FreightWizardStep2AddressProps) {
+  const [originGpsError, setOriginGpsError] = useState<string | null>(null);
+  const [destGpsError, setDestGpsError] = useState<string | null>(null);
+  
   // Pelo menos o bairro/fazenda de origem e destino são obrigatórios
   const canProceed = formData.origin_neighborhood && formData.destination_neighborhood;
+
+  // Handler for GPS Origin Address (Coleta)
+  const handleOriginAddressFilled = (data: {
+    city?: string;
+    state?: string;
+    neighborhood?: string;
+    street?: string;
+    number?: string;
+    lat: number;
+    lng: number;
+  }) => {
+    setOriginGpsError(null);
+    
+    // Fill all available address fields for origin
+    if (data.city) onInputChange('origin_city', data.city);
+    if (data.state) onInputChange('origin_state', data.state);
+    if (data.neighborhood) onInputChange('origin_neighborhood', data.neighborhood);
+    if (data.street) onInputChange('origin_street', data.street);
+    if (data.number) {
+      onInputChange('origin_number', data.number);
+    }
+    // Always update coordinates
+    onInputChange('origin_lat', data.lat);
+    onInputChange('origin_lng', data.lng);
+  };
+
+  // Handler for GPS Destination Address (Entrega)
+  const handleDestAddressFilled = (data: {
+    city?: string;
+    state?: string;
+    neighborhood?: string;
+    street?: string;
+    number?: string;
+    lat: number;
+    lng: number;
+  }) => {
+    setDestGpsError(null);
+    
+    // Fill all available address fields for destination
+    if (data.city) onInputChange('destination_city', data.city);
+    if (data.state) onInputChange('destination_state', data.state);
+    if (data.neighborhood) onInputChange('destination_neighborhood', data.neighborhood);
+    if (data.street) onInputChange('destination_street', data.street);
+    if (data.number) {
+      onInputChange('destination_number', data.number);
+    }
+    // Always update coordinates
+    onInputChange('destination_lat', data.lat);
+    onInputChange('destination_lng', data.lng);
+  };
 
   return (
     <div className="space-y-6">
@@ -32,18 +88,32 @@ export function FreightWizardStep2Address({
         </p>
       </div>
 
-      {/* Endereço de Origem */}
+      {/* Endereço de Origem (Coleta) */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-green-500 text-white text-xs flex items-center justify-center">A</span>
-            Endereço de Origem
-            <span className="text-muted-foreground font-normal text-sm">
-              ({formData.origin_city}/{formData.origin_state})
-            </span>
-          </CardTitle>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <CardTitle className="text-base flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-green-500 text-white text-xs flex items-center justify-center">A</span>
+              Endereço de Coleta
+              <span className="text-muted-foreground font-normal text-sm">
+                ({formData.origin_city}/{formData.origin_state})
+              </span>
+            </CardTitle>
+            <GPSAddressButton
+              label="Usar GPS para Coleta"
+              onLocationFilled={handleOriginAddressFilled}
+              onError={(msg) => setOriginGpsError(msg)}
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {originGpsError && (
+            <Alert variant="destructive" className="animate-in fade-in">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">{originGpsError}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="origin_neighborhood">Bairro / Fazenda / Nome do Local *</Label>
             <Input
@@ -87,18 +157,32 @@ export function FreightWizardStep2Address({
         </CardContent>
       </Card>
 
-      {/* Endereço de Destino */}
+      {/* Endereço de Destino (Entrega) */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">B</span>
-            Endereço de Destino
-            <span className="text-muted-foreground font-normal text-sm">
-              ({formData.destination_city}/{formData.destination_state})
-            </span>
-          </CardTitle>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <CardTitle className="text-base flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">B</span>
+              Endereço de Entrega
+              <span className="text-muted-foreground font-normal text-sm">
+                ({formData.destination_city}/{formData.destination_state})
+              </span>
+            </CardTitle>
+            <GPSAddressButton
+              label="Usar GPS para Entrega"
+              onLocationFilled={handleDestAddressFilled}
+              onError={(msg) => setDestGpsError(msg)}
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {destGpsError && (
+            <Alert variant="destructive" className="animate-in fade-in">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">{destGpsError}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="destination_neighborhood">Bairro / Fazenda / Nome do Local *</Label>
             <Input
