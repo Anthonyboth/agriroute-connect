@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { deduplicateCities, formatCityDisplay } from '@/utils/city-deduplication';
 
 interface City {
   id: string;
@@ -9,6 +10,7 @@ interface City {
   display_name: string;
   lat?: number;
   lng?: number;
+  ibge_code?: string;
 }
 
 export const useCitySearch = () => {
@@ -29,16 +31,22 @@ export const useCitySearch = () => {
     try {
       const { data, error: searchError } = await supabase.rpc('search_cities', {
         search_term: searchTerm,
-        limit_count: limit
+        limit_count: Math.min(limit * 2, 40) // Buscar mais para compensar duplicatas
       });
 
       if (searchError) {
         throw searchError;
       }
 
-      const results = data || [];
-      setCities(results);
-      return results;
+      // Deduplicar e formatar display_name consistente
+      const rawCities = (data || []).map((c: any) => ({
+        ...c,
+        display_name: formatCityDisplay(c.name, c.state)
+      }));
+      
+      const uniqueCities = deduplicateCities(rawCities).slice(0, limit);
+      setCities(uniqueCities);
+      return uniqueCities;
     } catch (err) {
       console.error('Erro ao buscar cidades:', err);
       const errorMessage = 'Erro ao buscar cidades. Tente novamente.';
