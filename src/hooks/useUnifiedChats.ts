@@ -82,13 +82,14 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
             .in('freight_id', freightIds)
             .order('created_at', { ascending: false });
 
-          // Etapa 3: Buscar perfis necessários incluindo company_id
+          // Etapa 3: Buscar perfis necessários incluindo company_id (usando view segura)
           const producerIds = [...new Set((userFreights || []).map((f: any) => f.producer_id).filter(Boolean))];
           const driverIds = [...new Set((userFreights || []).map((f: any) => f.driver_id).filter(Boolean))];
           const companyIds = [...new Set((userFreights || []).map((f: any) => f.company_id).filter(Boolean))];
           
-          const { data: profiles } = await supabase
-            .from('profiles')
+          // Usar profiles_secure para mascarar PII de outros usuários
+          const { data: profiles } = await (supabase as any)
+            .from('profiles_secure')
             .select('id, full_name, role, phone')
             .in('id', [...producerIds, ...driverIds]);
 
@@ -146,8 +147,9 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
             ratingsMap.get(r.freight_id)?.add(r.rater_id);
           });
 
-          // Criar mapa de perfis para lookup rápido
-          const profileMap = new Map(profiles?.map((p: any) => [p.id, p]) || []);
+          // Criar mapa de perfis para lookup rápido (tipagem explícita para profiles_secure)
+          interface SecureProfile { id: string; full_name?: string; role?: string; phone?: string; active_mode?: string; }
+          const profileMap = new Map<string, SecureProfile>((profiles as SecureProfile[] || []).map((p) => [p.id, p]));
           const freightMap = new Map((userFreights || []).map((f: any) => [f.id, f]) || []);
 
           // Agrupar mensagens por freight_id
@@ -189,7 +191,7 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
                 participants.push({
                   id: freight.driver_id,
                   name: driverProfile.full_name || 'Motorista',
-                  role: driverProfile.active_mode || 'MOTORISTA',
+                  role: (driverProfile.active_mode as ChatParticipant['role']) || 'MOTORISTA',
                 });
               }
               if (company) {

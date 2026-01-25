@@ -62,8 +62,9 @@ export async function fetchBatchProfiles(
   const uniqueIds = [...new Set(profileIds)];
 
   try {
-    const { data, error } = await supabase
-      .from('profiles')
+    // Usar view segura para mascarar PII de outros usuários
+    const { data, error } = await (supabase as any)
+      .from('profiles_secure')
       .select('id, full_name, phone, rating')
       .in('id', uniqueIds);
 

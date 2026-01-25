@@ -18,14 +18,10 @@ export const AvailableDriversList = ({ companyId }: AvailableDriversListProps) =
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
 
-  // Filtrar motoristas por busca
-  const filteredDrivers = availableDrivers?.filter(driver => {
+  // Filtrar motoristas por busca (apenas por nome, PII mascarado na view segura)
+  const filteredDrivers = availableDrivers?.filter((driver: any) => {
     const search = searchTerm.toLowerCase();
-    return (
-      driver.full_name?.toLowerCase().includes(search) ||
-      driver.email?.toLowerCase().includes(search) ||
-      driver.phone?.toLowerCase().includes(search)
-    );
+    return driver.full_name?.toLowerCase().includes(search);
   });
 
   const handleInvite = (driverId: string) => {
@@ -51,7 +47,7 @@ export const AvailableDriversList = ({ companyId }: AvailableDriversListProps) =
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
-          placeholder="Buscar por nome, email ou telefone..."
+          placeholder="Buscar por nome..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -68,7 +64,7 @@ export const AvailableDriversList = ({ companyId }: AvailableDriversListProps) =
       {/* Lista de Motoristas */}
       {filteredDrivers && filteredDrivers.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredDrivers.map((driver) => (
+          {filteredDrivers.map((driver: any) => (
             <Card 
               key={driver.id} 
               className="hover:shadow-lg transition-all cursor-pointer group"
@@ -79,7 +75,7 @@ export const AvailableDriversList = ({ companyId }: AvailableDriversListProps) =
                   <div className="flex items-center gap-3">
                     <Avatar className="h-16 w-16 ring-2 ring-primary/10">
                       <AvatarImage 
-                        src={driver.profile_photo_url || driver.selfie_url} 
+                        src={driver.profile_photo_url} 
                         alt={driver.full_name} 
                       />
                       <AvatarFallback className="text-lg bg-primary/10">
@@ -110,19 +106,7 @@ export const AvailableDriversList = ({ companyId }: AvailableDriversListProps) =
               </CardHeader>
 
               <CardContent className="space-y-3">
-                {/* Contato */}
-                {driver.email && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="truncate">{driver.email}</span>
-                  </div>
-                )}
-                {driver.phone && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span>{driver.phone}</span>
-                  </div>
-                )}
+                {/* Nota: Dados de contato (email/phone) protegidos - só visíveis após afiliação */}
 
 
                 {/* Ações */}

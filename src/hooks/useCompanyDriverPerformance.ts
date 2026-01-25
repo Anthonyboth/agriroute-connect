@@ -101,10 +101,10 @@ export const useCompanyDriverPerformance = (companyId: string) => {
         };
       }
 
-      // Fetch basic profile info for all combined drivers
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, phone, last_gps_update')
+      // Fetch basic profile info usando view segura (mascara PII para não-proprietários)
+      const { data: profiles, error: profilesError } = await (supabase as any)
+        .from('profiles_secure')
+        .select('id, full_name, phone')
         .in('id', combinedDriverIds);
 
       if (profilesError) throw profilesError;
