@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,7 @@ import { ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { RegisterIssuerData, useFiscalIssuer } from '@/hooks/useFiscalIssuer';
 import { isValidDocument, formatDocument, getDocumentType } from '@/utils/document';
 import { toast } from 'sonner';
+import { usePrefilledUserData } from '@/hooks/usePrefilledUserData';
 
 interface FiscalOnboardingStep2Props {
   data: Partial<RegisterIssuerData>;
@@ -30,10 +31,64 @@ const UF_OPTIONS = [
 
 export function FiscalOnboardingStep2({ data, onUpdate, onBack, onNext }: FiscalOnboardingStep2Props) {
   const { loading, registerIssuer, issuer } = useFiscalIssuer();
+  const { fiscal: prefilledFiscal, personal: prefilledPersonal, loading: prefillLoading } = usePrefilledUserData();
   const [localLoading, setLocalLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [hasPrefilled, setHasPrefilled] = useState(false);
 
   const isCNPJ = data.issuer_type === 'CNPJ' || data.issuer_type === 'MEI';
+
+  // ✅ PREFILL AUTOMÁTICO: Preencher dados do perfil do usuário
+  useEffect(() => {
+    if (prefillLoading || hasPrefilled) return;
+    
+    // Verificar se há dados para prefill e se os campos estão vazios
+    if (prefilledFiscal && !data.cpf_cnpj && !data.razao_social) {
+      const updates: Partial<RegisterIssuerData> = {};
+      
+      if (!data.cpf_cnpj && prefilledFiscal.cnpj_cpf) {
+        updates.cpf_cnpj = prefilledFiscal.cnpj_cpf;
+      }
+      if (!data.razao_social && prefilledFiscal.razao_social) {
+        updates.razao_social = prefilledFiscal.razao_social;
+      }
+      if (!data.nome_fantasia && prefilledFiscal.nome_fantasia) {
+        updates.nome_fantasia = prefilledFiscal.nome_fantasia;
+      }
+      if (!data.inscricao_estadual && prefilledFiscal.inscricao_estadual) {
+        updates.inscricao_estadual = prefilledFiscal.inscricao_estadual;
+      }
+      if (!data.email_fiscal && prefilledFiscal.email) {
+        updates.email_fiscal = prefilledFiscal.email;
+      }
+      if (!data.telefone_fiscal && prefilledFiscal.telefone) {
+        updates.telefone_fiscal = prefilledFiscal.telefone;
+      }
+      if (!data.endereco_logradouro && prefilledFiscal.logradouro) {
+        updates.endereco_logradouro = prefilledFiscal.logradouro;
+      }
+      if (!data.endereco_numero && prefilledFiscal.numero) {
+        updates.endereco_numero = prefilledFiscal.numero;
+      }
+      if (!data.endereco_bairro && prefilledFiscal.bairro) {
+        updates.endereco_bairro = prefilledFiscal.bairro;
+      }
+      if (!data.endereco_cidade && prefilledFiscal.municipio) {
+        updates.endereco_cidade = prefilledFiscal.municipio;
+      }
+      if (!data.endereco_uf && prefilledFiscal.uf) {
+        updates.endereco_uf = prefilledFiscal.uf;
+      }
+      if (!data.endereco_cep && prefilledFiscal.cep) {
+        updates.endereco_cep = prefilledFiscal.cep;
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        onUpdate(updates);
+      }
+      setHasPrefilled(true);
+    }
+  }, [prefillLoading, prefilledFiscal, data, onUpdate, hasPrefilled]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};

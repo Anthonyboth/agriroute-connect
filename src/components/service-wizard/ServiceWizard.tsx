@@ -13,6 +13,7 @@ import { getServiceConfig } from "./config";
 import { supabase } from "@/integrations/supabase/client";
 import { showErrorToast } from "@/lib/error-handler";
 import { useAuth } from "@/hooks/useAuth";
+import { usePrefilledUserData } from "@/hooks/usePrefilledUserData";
 
 interface ServiceWizardProps {
   serviceType: ServiceType;
@@ -115,18 +116,49 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
   catalogServiceDescription,
 }) => {
   const { profile } = useAuth();
+  const { personal: prefilledPersonal, address: prefilledAddress, loading: prefillLoading } = usePrefilledUserData();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ServiceFormData>(() => createInitialFormData(serviceType));
   const [loading, setLoading] = useState(false);
+  const [hasPrefilled, setHasPrefilled] = useState(false);
 
   const config = useMemo(() => getServiceConfig(serviceType), [serviceType]);
   const totalSteps = config.steps.length;
+
+  // ✅ PREFILL AUTOMÁTICO: Preencher dados pessoais e endereço quando disponíveis
+  useEffect(() => {
+    if (prefillLoading || hasPrefilled) return;
+    
+    // Verificar se há dados para prefill
+    if (prefilledPersonal.name || prefilledPersonal.phone || prefilledPersonal.document) {
+      setFormData(prev => ({
+        ...prev,
+        personal: {
+          ...prev.personal,
+          name: prev.personal.name || prefilledPersonal.name,
+          phone: prev.personal.phone || prefilledPersonal.phone,
+          email: prev.personal.email || prefilledPersonal.email,
+          document: prev.personal.document || prefilledPersonal.document,
+        },
+        origin: {
+          ...prev.origin,
+          city: prev.origin.city || prefilledAddress.city,
+          city_id: prev.origin.city_id || prefilledAddress.city_id,
+          state: prev.origin.state || prefilledAddress.state,
+          lat: prev.origin.lat || prefilledAddress.lat,
+          lng: prev.origin.lng || prefilledAddress.lng,
+        },
+      }));
+      setHasPrefilled(true);
+    }
+  }, [prefillLoading, prefilledPersonal, prefilledAddress, hasPrefilled]);
 
   // ✅ Se serviceType mudar (ex: modal troca), reseta wizard corretamente
   useEffect(() => {
     setCurrentStep(1);
     setFormData(createInitialFormData(serviceType));
+    setHasPrefilled(false); // Reset prefill flag para permitir novo prefill
   }, [serviceType]);
 
   // Função para atualizar campos com suporte a paths aninhados

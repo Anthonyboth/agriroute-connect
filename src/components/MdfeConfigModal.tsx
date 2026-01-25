@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Save, AlertCircle, FileText } from 'lucide-react';
 import { useMdfeConfig, type MdfeConfig } from '@/hooks/useMdfeConfig';
+import { usePrefilledUserData } from '@/hooks/usePrefilledUserData';
 
 interface MdfeConfigModalProps {
   open: boolean;
@@ -21,7 +22,9 @@ export const MdfeConfigModal: React.FC<MdfeConfigModalProps> = ({
   onConfigSaved 
 }) => {
   const { config, loading: loadingConfig, saveConfig } = useMdfeConfig(userId);
+  const { fiscal: prefilledFiscal, loading: prefillLoading } = usePrefilledUserData();
   const [saving, setSaving] = useState(false);
+  const [hasPrefilled, setHasPrefilled] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState<Omit<MdfeConfig, 'id' | 'created_at' | 'updated_at'>>({
@@ -39,6 +42,29 @@ export const MdfeConfigModal: React.FC<MdfeConfigModalProps> = ({
     cep: '',
     serie_mdfe: '1',
   });
+
+  // ✅ PREFILL AUTOMÁTICO: Preencher com dados fiscais do usuário quando não há config salva
+  useEffect(() => {
+    if (!open || prefillLoading || hasPrefilled || loadingConfig) return;
+    
+    // Só prefill se não houver config existente
+    if (!config && prefilledFiscal) {
+      setFormData(prev => ({
+        ...prev,
+        cnpj: prev.cnpj || prefilledFiscal.cnpj_cpf.replace(/\D/g, ''),
+        inscricao_estadual: prev.inscricao_estadual || prefilledFiscal.inscricao_estadual || '',
+        razao_social: prev.razao_social || prefilledFiscal.razao_social,
+        nome_fantasia: prev.nome_fantasia || prefilledFiscal.nome_fantasia || '',
+        logradouro: prev.logradouro || prefilledFiscal.logradouro,
+        numero: prev.numero || prefilledFiscal.numero,
+        bairro: prev.bairro || prefilledFiscal.bairro,
+        municipio: prev.municipio || prefilledFiscal.municipio,
+        uf: prev.uf || prefilledFiscal.uf,
+        cep: prev.cep || prefilledFiscal.cep.replace(/\D/g, ''),
+      }));
+      setHasPrefilled(true);
+    }
+  }, [open, prefillLoading, prefilledFiscal, config, loadingConfig, hasPrefilled]);
 
   // Carregar config existente quando modal abrir
   useEffect(() => {
@@ -58,8 +84,16 @@ export const MdfeConfigModal: React.FC<MdfeConfigModalProps> = ({
         cep: config.cep || '',
         serie_mdfe: config.serie_mdfe || '1',
       });
+      setHasPrefilled(true); // Config existente, não precisa prefill
     }
   }, [open, config]);
+
+  // Reset prefill flag quando modal fecha
+  useEffect(() => {
+    if (!open) {
+      setHasPrefilled(false);
+    }
+  }, [open]);
 
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));

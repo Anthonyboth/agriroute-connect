@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { usePrefilledUserData } from "@/hooks/usePrefilledUserData";
 
 interface NfeEmissionWizardProps {
   isOpen: boolean;
@@ -49,8 +50,11 @@ function normalizeUf(uf: string) {
 }
 
 export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, onClose, fiscalIssuer, freightId }) => {
+  const { fiscal: prefilledFiscal, loading: prefillLoading } = usePrefilledUserData();
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasPrefilled, setHasPrefilled] = useState(false);
 
   const [formData, setFormData] = useState({
     // Destinatário
@@ -81,11 +85,36 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     informacoes_adicionais: "",
   });
 
+  // ✅ PREFILL AUTOMÁTICO: Preencher dados do destinatário com dados fiscais do usuário
+  useEffect(() => {
+    if (!isOpen || prefillLoading || hasPrefilled || !prefilledFiscal) return;
+    
+    // Verificar se há dados para prefill
+    if (prefilledFiscal.cnpj_cpf || prefilledFiscal.razao_social) {
+      setFormData(prev => ({
+        ...prev,
+        dest_cnpj_cpf: prev.dest_cnpj_cpf || prefilledFiscal.cnpj_cpf,
+        dest_razao_social: prev.dest_razao_social || prefilledFiscal.razao_social,
+        dest_ie: prev.dest_ie || prefilledFiscal.inscricao_estadual || '',
+        dest_email: prev.dest_email || prefilledFiscal.email,
+        dest_telefone: prev.dest_telefone || prefilledFiscal.telefone,
+        dest_logradouro: prev.dest_logradouro || prefilledFiscal.logradouro,
+        dest_numero: prev.dest_numero || prefilledFiscal.numero,
+        dest_bairro: prev.dest_bairro || prefilledFiscal.bairro,
+        dest_municipio: prev.dest_municipio || prefilledFiscal.municipio,
+        dest_uf: prev.dest_uf || prefilledFiscal.uf,
+        dest_cep: prev.dest_cep || prefilledFiscal.cep,
+      }));
+      setHasPrefilled(true);
+    }
+  }, [isOpen, prefillLoading, prefilledFiscal, hasPrefilled]);
+
   // Reset ao abrir/fechar
   useEffect(() => {
     if (!isOpen) return;
     setCurrentStep(1);
     setIsSubmitting(false);
+    setHasPrefilled(false); // Reset para permitir novo prefill
   }, [isOpen]);
 
   const updateField = (field: string, value: string) => {
