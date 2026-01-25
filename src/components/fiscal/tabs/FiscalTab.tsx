@@ -79,8 +79,12 @@ export const FiscalTab: React.FC<FiscalTabProps> = ({ userRole }) => {
   });
 
   const hasIssuerConfigured = !!fiscalIssuer;
-  // Use status field from fiscal_issuers table
-  const hasCertificate = fiscalIssuer?.status === 'ACTIVE' || fiscalIssuer?.sefaz_status === 'validated';
+  // ✅ CORREÇÃO P0: Incluir 'certificate_uploaded' (status definido pela Edge Function)
+  const hasCertificate = 
+    fiscalIssuer?.status === 'ACTIVE' || 
+    fiscalIssuer?.status === 'active' ||
+    fiscalIssuer?.status === 'certificate_uploaded' ||
+    fiscalIssuer?.sefaz_status === 'validated';
 
   // Determinar status fiscal geral
   const getFiscalStatus = () => {
