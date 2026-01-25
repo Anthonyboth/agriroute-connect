@@ -11000,15 +11000,18 @@ export type Database = {
       fiscal_certificates_secure: {
         Row: {
           certificate_type: string | null
-          certificate_uploaded: boolean | null
           created_at: string | null
-          days_until_expiration: number | null
+          has_certificate_file: boolean | null
           id: string | null
           is_expired: boolean | null
           is_valid: boolean | null
           issuer_cn: string | null
           issuer_id: string | null
           last_used_at: string | null
+          purchase_amount: number | null
+          purchase_date: string | null
+          purchase_order_id: string | null
+          purchase_provider: string | null
           purchased_via_platform: boolean | null
           serial_number: string | null
           status: string | null
@@ -11016,21 +11019,26 @@ export type Database = {
           subject_document: string | null
           updated_at: string | null
           uploaded_at: string | null
+          uploaded_by: string | null
           usage_count: number | null
           valid_from: string | null
           valid_until: string | null
+          validation_error: string | null
         }
         Insert: {
           certificate_type?: string | null
-          certificate_uploaded?: never
           created_at?: string | null
-          days_until_expiration?: never
+          has_certificate_file?: never
           id?: string | null
           is_expired?: boolean | null
           is_valid?: boolean | null
           issuer_cn?: string | null
           issuer_id?: string | null
           last_used_at?: string | null
+          purchase_amount?: number | null
+          purchase_date?: string | null
+          purchase_order_id?: string | null
+          purchase_provider?: string | null
           purchased_via_platform?: boolean | null
           serial_number?: string | null
           status?: string | null
@@ -11038,21 +11046,26 @@ export type Database = {
           subject_document?: string | null
           updated_at?: string | null
           uploaded_at?: string | null
+          uploaded_by?: string | null
           usage_count?: number | null
           valid_from?: string | null
           valid_until?: string | null
+          validation_error?: string | null
         }
         Update: {
           certificate_type?: string | null
-          certificate_uploaded?: never
           created_at?: string | null
-          days_until_expiration?: never
+          has_certificate_file?: never
           id?: string | null
           is_expired?: boolean | null
           is_valid?: boolean | null
           issuer_cn?: string | null
           issuer_id?: string | null
           last_used_at?: string | null
+          purchase_amount?: number | null
+          purchase_date?: string | null
+          purchase_order_id?: string | null
+          purchase_provider?: string | null
           purchased_via_platform?: boolean | null
           serial_number?: string | null
           status?: string | null
@@ -11060,9 +11073,11 @@ export type Database = {
           subject_document?: string | null
           updated_at?: string | null
           uploaded_at?: string | null
+          uploaded_by?: string | null
           usage_count?: number | null
           valid_from?: string | null
           valid_until?: string | null
+          validation_error?: string | null
         }
         Relationships: [
           {
@@ -11070,6 +11085,20 @@ export type Database = {
             columns: ["issuer_id"]
             isOneToOne: false
             referencedRelation: "fiscal_issuers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_certificates_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_certificates_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
