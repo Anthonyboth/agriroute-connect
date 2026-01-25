@@ -111,7 +111,7 @@ const ProducerDashboard = () => {
   const [freightToConfirm, setFreightToConfirm] = useState<any>(null);
 
   const [externalPayments, setExternalPayments] = useState<any[]>([]);
-  const [freightPayments, setFreightPayments] = useState<any[]>([]);
+  // REMOVIDO: freightPayments - produtores não têm permissão RLS para freight_payments
   const [paymentLoading, setPaymentLoading] = useState(false);
 
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
@@ -463,37 +463,10 @@ const ProducerDashboard = () => {
     }
   }, [profile?.id, profile?.role]);
 
-  // ✅ Buscar pagamentos de fretes (Stripe/interno)
-  const fetchFreightPayments = useCallback(async () => {
-    if (!profile?.id || profile.role !== "PRODUTOR") return;
-
-    try {
-      const { data, error } = await supabase
-        .from("freight_payments")
-        .select("*")
-        .eq("payer_id", profile.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("[fetchFreightPayments] Erro Supabase:", {
-          code: error.code,
-          message: error.message,
-          details: error.details
-        });
-        
-        if (error.code === "42501" || error.message?.includes("permission")) {
-          toast.error("Você não tem permissão para visualizar pagamentos de fretes.");
-        }
-        
-        setFreightPayments([]);
-        return;
-      }
-      setFreightPayments(data || []);
-    } catch (e) {
-      console.error("[fetchFreightPayments] Erro inesperado:", e);
-      setFreightPayments([]);
-    }
-  }, [profile?.id, profile?.role]);
+  // ✅ REMOVIDO: fetchFreightPayments
+  // Produtores NÃO têm permissão para acessar freight_payments via RLS.
+  // Esta funcionalidade foi removida para evitar erros de permissão no login.
+  // Se necessário no futuro, implementar via edge function com validação de role.
 
   // ✅ Buscar service_requests ABERTAS (inclui FRETE_MOTO)
   const fetchServiceRequests = useCallback(async () => {
@@ -578,7 +551,6 @@ const ProducerDashboard = () => {
           fetchFreights(),
           fetchProposals(),
           fetchExternalPayments(),
-          fetchFreightPayments(),
           fetchServiceRequests(),
           fetchOngoingServiceRequests(),
         ]);
@@ -594,7 +566,6 @@ const ProducerDashboard = () => {
     fetchFreights,
     fetchProposals,
     fetchExternalPayments,
-    fetchFreightPayments,
     fetchServiceRequests,
     fetchOngoingServiceRequests,
   ]);
@@ -627,10 +598,7 @@ const ProducerDashboard = () => {
     () => makeDebounced(fetchExternalPayments, 300),
     [makeDebounced, fetchExternalPayments],
   );
-  const debouncedFetchFreightPayments = useMemo(
-    () => makeDebounced(fetchFreightPayments, 300),
-    [makeDebounced, fetchFreightPayments],
-  );
+  // REMOVIDO: debouncedFetchFreightPayments - produtores não têm permissão RLS
   const debouncedFetchServiceRequests = useMemo(
     () => makeDebounced(fetchServiceRequests, 250),
     [makeDebounced, fetchServiceRequests],
@@ -689,9 +657,7 @@ const ProducerDashboard = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "external_payments" }, () =>
         debouncedFetchExternalPayments(),
       )
-      .on("postgres_changes", { event: "*", schema: "public", table: "freight_payments" }, () =>
-        debouncedFetchFreightPayments(),
-      )
+      // REMOVIDO: freight_payments - produtores não têm permissão RLS
       .on("postgres_changes", { event: "*", schema: "public", table: "service_requests" }, () => {
         // ✅ atualiza as duas listas (abertos e em andamento)
         debouncedFetchServiceRequests();
@@ -708,20 +674,18 @@ const ProducerDashboard = () => {
     debouncedFetchFreights,
     debouncedFetchProposals,
     debouncedFetchExternalPayments,
-    debouncedFetchFreightPayments,
     debouncedFetchServiceRequests,
     debouncedFetchOngoingServiceRequests,
   ]);
 
   // ✅ Estatísticas
+  // NOTA: freightPayments removido - produtores usam apenas externalPayments
   const statistics = useMemo(() => {
     const pendingExternalPayments = externalPayments.filter((p) => p.status === "proposed").length;
-    const pendingFreightPayments = freightPayments.filter((p) => p.status === "PENDING").length;
-    const totalPendingPayments = pendingExternalPayments + pendingFreightPayments;
+    const totalPendingPayments = pendingExternalPayments;
 
     const totalPendingAmount =
-      externalPayments.filter((p) => p.status === "proposed").reduce((sum, p) => sum + (p.amount || 0), 0) +
-      freightPayments.filter((p) => p.status === "PENDING").reduce((sum, p) => sum + (p.amount || 0), 0);
+      externalPayments.filter((p) => p.status === "proposed").reduce((sum, p) => sum + (p.amount || 0), 0);
 
     const openServices = serviceRequests.length;
     const ongoingFreights = freights.filter((f) => isInProgressFreight(f.pickup_date, f.status));
@@ -736,7 +700,7 @@ const ProducerDashboard = () => {
       totalPendingAmount,
       openServices,
     };
-  }, [freights, proposals, externalPayments, freightPayments, serviceRequests, ongoingServiceRequests]);
+  }, [freights, proposals, externalPayments, serviceRequests, ongoingServiceRequests]);
 
   // ✅ Ações
   const handleLogout = async () => {
@@ -1663,7 +1627,7 @@ const ProducerDashboard = () => {
           <TabsContent value="payments" className="space-y-4">
             <ProducerPaymentsTab
               externalPayments={externalPayments}
-              freightPayments={freightPayments}
+              freightPayments={[]} // REMOVIDO: produtores não têm permissão RLS
               paymentLoading={paymentLoading}
               onConfirmExternalPayment={handleConfirmExternalPayment}
               onConfirmPaymentMade={confirmPaymentMade}
