@@ -12,7 +12,7 @@ export const ProducerDashboardStats: React.FC<ProducerDashboardStatsProps> = ({
   statistics,
   onTabChange,
 }) => {
-  // ✅ P0: Validação de integridade de contadores
+  // ✅ P0: Validação de integridade de contadores (openTotal = freights + services)
   const expectedTotal = statistics.openFreights + statistics.openServices;
   if (statistics.openTotal !== expectedTotal) {
     console.error('[CRITICAL] STATS_CARD_MISMATCH', {
@@ -21,18 +21,19 @@ export const ProducerDashboardStats: React.FC<ProducerDashboardStatsProps> = ({
       openTotal: statistics.openTotal,
       expectedTotal,
       timestamp: new Date().toISOString(),
+      fix: 'Card Abertos mostra openFreights, Card Serviços mostra openServices',
     });
   }
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
-      {/* ✅ P0: Card "Abertos" mostra openTotal (fretes + serviços) */}
+      {/* ✅ P0 FIX: Card "Abertos" mostra APENAS fretes (rural + urbano), NÃO serviços */}
       <StatsCard
         size="sm"
         icon={<Package className="h-5 w-5" />}
         iconColor="text-blue-500"
         label="Abertos"
-        value={statistics.openTotal}
+        value={statistics.openFreights}
         onClick={() => onTabChange('open')}
       />
 

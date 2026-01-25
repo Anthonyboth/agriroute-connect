@@ -1185,12 +1185,13 @@ const ProducerDashboard = () => {
       <div className="container max-w-7xl mx-auto py-4 px-4 pb-8">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+          {/* ✅ P0 FIX: Card "Abertos" shows ONLY freights (rural + urban), NOT services */}
           <StatsCard
             size="sm"
             icon={<Package className="h-5 w-5" />}
             iconColor="text-blue-500"
             label="Abertos"
-            value={statistics.openTotal}
+            value={statistics.openFreights}
             onClick={() => setActiveTab("freights-open")}
           />
           <StatsCard
