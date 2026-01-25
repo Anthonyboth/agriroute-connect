@@ -15,6 +15,7 @@
  } from 'lucide-react';
  import { format } from 'date-fns';
  import { ptBR } from 'date-fns/locale';
+ import { toUF, formatCityDisplay } from '@/utils/city-deduplication';
  
  interface ServiceRequestCardProps {
    serviceRequest: any;
@@ -28,8 +29,8 @@
    onCancel,
  }) => {
    const sr = serviceRequest;
- 
-   // Safe field extraction
+
+   // Safe field extraction - SEMPRE retorna "Cidade — UF"
    const safeParseLocation = (value: any, fallback: string = "Não informado"): string => {
      if (!value) return fallback;
      if (typeof value === "string") {
@@ -37,7 +38,10 @@
          try {
            const parsed = JSON.parse(value);
            if (parsed.address) return parsed.address;
-           if (parsed.city && parsed.state) return `${parsed.city}, ${parsed.state}`;
+           if (parsed.city && parsed.state) {
+             const uf = toUF(parsed.state) || parsed.state;
+             return formatCityDisplay(parsed.city, uf);
+           }
            if (parsed.city) return parsed.city;
            return fallback;
          } catch {
@@ -48,7 +52,10 @@
      }
      if (typeof value === "object" && value !== null) {
        if (value.address) return value.address;
-       if (value.city && value.state) return `${value.city}, ${value.state}`;
+       if (value.city && value.state) {
+         const uf = toUF(value.state) || value.state;
+         return formatCityDisplay(value.city, uf);
+       }
        if (value.city) return value.city;
      }
      return fallback;

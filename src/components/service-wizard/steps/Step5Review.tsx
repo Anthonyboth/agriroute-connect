@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { ServiceFormData, ServiceType, URGENCY_LABELS, ADDITIONAL_SERVICES } from '../types';
 import { getServiceConfig } from '../config';
 import { User, MapPin, Package, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { toUF } from '@/utils/city-deduplication';
 
 interface Step5Props {
   formData: ServiceFormData;
@@ -15,15 +16,18 @@ export const Step5Review: React.FC<Step5Props> = ({ formData, serviceType }) => 
   const config = getServiceConfig(serviceType);
   const urgencyInfo = URGENCY_LABELS[formData.urgency];
 
+  // Formata endereço SEMPRE com UF de 2 letras
   const formatAddress = (address: typeof formData.origin) => {
     if (!address) return 'Não informado';
+    // Converter state para UF
+    const uf = address.state ? (toUF(address.state) || address.state) : '';
     const parts = [
       address.street,
       address.number && `nº ${address.number}`,
       address.neighborhood,
       address.complement,
       address.city,
-      address.state
+      uf
     ].filter(Boolean);
     return parts.join(', ') || 'Não informado';
   };
