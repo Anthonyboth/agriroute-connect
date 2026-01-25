@@ -191,7 +191,7 @@ const Landing: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header - Fixed height to prevent CLS */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 h-[72px]">
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-[100] h-[72px]">
         <div className="container mx-auto px-4 pr-2 sm:pr-4 flex items-center justify-between h-full">
           <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="flex items-center space-x-2">
