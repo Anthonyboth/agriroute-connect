@@ -46,6 +46,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { UrbanFreightCard } from "@/components/freights/UrbanFreightCard";
+import { ServiceRequestCard } from "@/components/ServiceRequestCard";
 import { FreightFilters } from "@/components/AdvancedFreightFilters";
 import { useFreightReportData } from "@/hooks/useFreightReportData";
 import { ProducerReportsTab } from "@/pages/producer/ProducerReportsTab";
@@ -119,6 +120,41 @@ const ProducerDashboard = () => {
   const [serviceRequests, setServiceRequests] = useState<any[]>([]);
   const [ongoingServiceRequests, setOngoingServiceRequests] = useState<any[]>([]);
   const [urgencyFilter, setUrgencyFilter] = useState<"all" | "critical" | "urgent">("all");
+
+  // ============================================
+  // P0: NORMALIZADOR CENTRAL DE DADOS ABERTOS
+  // ============================================
+  const normalizeProducerOpenItems = useMemo(() => {
+    const freightsRuralOpen = freights.filter((f) => f.status === "OPEN");
+    const freightsUrbanOpen = serviceRequests.filter(
+      (sr) => sr.service_type === "FRETE_MOTO" && (sr.status === "OPEN" || sr.status === "ABERTO")
+    );
+    const servicesOpen = serviceRequests.filter(
+      (sr) => sr.service_type !== "FRETE_MOTO" && (sr.status === "OPEN" || sr.status === "ABERTO")
+    );
+
+    const freightsCount = freightsRuralOpen.length + freightsUrbanOpen.length;
+    const servicesCount = servicesOpen.length;
+    const openTotal = freightsCount + servicesCount;
+
+    console.debug('[ProducerCounts]', {
+      rural: freightsRuralOpen.length,
+      urbanMoto: freightsUrbanOpen.length,
+      services: servicesCount,
+      total: openTotal,
+    });
+
+    return {
+      freightsRuralOpen,
+      freightsUrbanOpen,
+      servicesOpen,
+      counts: {
+        freights: freightsCount,
+        services: servicesCount,
+        openTotal,
+      },
+    };
+  }, [freights, serviceRequests]);
 
   // Estado para controlar avaliações automáticas
   const [activeFreightForRating, setActiveFreightForRating] = useState<any>(null);
@@ -740,7 +776,6 @@ const ProducerDashboard = () => {
   // ✅ P0 FIX: Handler para ações em FRETE_MOTO (service_requests)
   const handleMotoFreightAction = async (action: "edit" | "cancel", motoFreight: any) => {
     if (action === "cancel") {
-      // Usar RPC para cancelar service_request
       try {
         const { data, error } = await supabase.rpc('cancel_producer_service_request', {
           p_request_id: motoFreight.id,
@@ -764,8 +799,7 @@ const ProducerDashboard = () => {
         });
         
         // Refetch imediato
-        fetchServiceRequests();
-        setTimeout(fetchServiceRequests, 500);
+        await Promise.all([fetchServiceRequests(), fetchFreights()]);
       } catch (e: any) {
         console.error('[handleMotoFreightAction] Erro:', e);
         toast.error(e?.message || 'Erro ao cancelar frete por moto');
@@ -774,6 +808,37 @@ const ProducerDashboard = () => {
       // Para edição, abrir ServicesModal com dados preenchidos
       // Por ora, mostrar toast informativo (edição de moto requer fluxo separado)
       toast.info('Para editar, cancele este frete e crie um novo com as informações corretas.', { duration: 5000 });
+    }
+  };
+
+  // ============================================
+  // P0: Handler para ações de serviços (não-frete)
+  // ============================================
+  const handleServiceAction = async (action: "edit" | "cancel", service: any) => {
+    if (action === "cancel") {
+      try {
+        const { data, error } = await supabase.rpc('cancel_producer_service_request', {
+          p_request_id: service.id,
+          p_cancellation_reason: 'Cancelado pelo produtor'
+        });
+
+        if (error) throw error;
+        
+        const result = data as { success: boolean; error?: string; message?: string };
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao cancelar serviço');
+        }
+
+        toast.success('Serviço cancelado com sucesso!');
+        
+        // Refetch para atualizar contadores e listas
+        await Promise.all([fetchServiceRequests(), fetchFreights()]);
+      } catch (error: any) {
+        toast.error(error.message || 'Erro ao cancelar serviço');
+      }
+    } else if (action === "edit") {
+      // TODO P0: Abrir modal/wizard de edição com dados pré-preenchidos
+      toast.info('Funcionalidade de edição será implementada em breve.', { duration: 3000 });
     }
   };
 
