@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { Label } from '@/components/ui/label';
-import { LocationFillButton } from '@/components/LocationFillButton';
+import { GPSOriginButton } from './GPSOriginButton';
 import { UnifiedLocationInput, type LocationData } from '@/components/UnifiedLocationInput';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, MapPin } from 'lucide-react';
+import { ArrowRight, MapPin, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface FreightWizardStep1Props {
@@ -18,6 +19,8 @@ export function FreightWizardStep1({
   onNext,
   guestMode 
 }: FreightWizardStep1Props) {
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  
   const canProceed = formData.origin_city && formData.origin_state && 
                      formData.destination_city && formData.destination_state;
 
@@ -47,6 +50,19 @@ export function FreightWizardStep1({
     }
   };
 
+  const handleGPSOriginFilled = (data: { city: string; state: string; lat: number; lng: number }) => {
+    setGpsError(null);
+    // ONLY fill city and state - NOT street, number, or neighborhood
+    onInputChange('origin_city', data.city);
+    onInputChange('origin_state', data.state);
+    onInputChange('origin_lat', data.lat);
+    onInputChange('origin_lng', data.lng);
+  };
+
+  const handleGPSError = (message: string) => {
+    setGpsError(message);
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -59,6 +75,14 @@ export function FreightWizardStep1({
         </p>
       </div>
 
+      {/* GPS Error Alert - only shows when there's an error */}
+      {gpsError && (
+        <Alert variant="destructive" className="animate-in fade-in">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{gpsError}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Origem */}
       <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
         <div className="flex items-center gap-3 flex-wrap">
@@ -66,16 +90,9 @@ export function FreightWizardStep1({
             <span className="w-6 h-6 rounded-full bg-green-500 text-white text-xs flex items-center justify-center">A</span>
             Origem
           </Label>
-          <LocationFillButton
-            onLocationFilled={(address, lat, lng, locationData) => {
-              onInputChange('origin_lat', lat);
-              onInputChange('origin_lng', lng);
-              if (locationData) {
-                if (locationData.city) onInputChange('origin_city', locationData.city);
-                if (locationData.state) onInputChange('origin_state', locationData.state);
-                if (locationData.neighborhood) onInputChange('origin_neighborhood', locationData.neighborhood);
-              }
-            }}
+          <GPSOriginButton
+            onLocationFilled={handleGPSOriginFilled}
+            onError={handleGPSError}
           />
         </div>
         
