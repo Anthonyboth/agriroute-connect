@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { MapPin, X, CheckCircle2, AlertTriangle, Loader2, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ZipCodeService } from '@/services/zipCodeService';
-import { deduplicateCities, formatCityDisplay } from '@/utils/city-deduplication';
+import { deduplicateCities, formatCityDisplay, formatCityStatusMessage, toUF } from '@/utils/city-deduplication';
 
 interface City {
   id: string;
@@ -52,7 +52,7 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
   className,
   error
 }) => {
-  const [searchTerm, setSearchTerm] = useState(value?.city && value?.state ? `${value.city}, ${value.state}` : '');
+  const [searchTerm, setSearchTerm] = useState(value?.city && value?.state ? formatCityDisplay(value.city, value.state) : '');
   const [cities, setCities] = useState<City[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -98,15 +98,17 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
       
       if (result) {
         // CEP encontrado - preencher automaticamente
+        // SEMPRE converter state para UF de 2 letras
+        const uf = toUF(result.state) || result.state;
         onChange({
           city: result.city,
-          state: result.state,
+          state: uf,
           id: result.cityId || '',
           lat: result.lat,
           lng: result.lng,
           neighborhood: result.neighborhood
         });
-        setSearchTerm(`${result.city}, ${result.state}`);
+        setSearchTerm(formatCityDisplay(result.city, uf));
         setValidationStatus('valid');
         setShowDropdown(false);
       } else {
@@ -217,13 +219,15 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
   };
 
   const handleCitySelect = (city: City) => {
-    setSearchTerm(city.display_name);
+    // SEMPRE usar UF de 2 letras
+    const uf = toUF(city.state) || city.state;
+    setSearchTerm(formatCityDisplay(city.name, uf));
     setShowDropdown(false);
     setSelectedIndex(-1);
     setValidationStatus('valid');
     onChange({
       city: city.name,
-      state: city.state,
+      state: uf,
       id: city.id,
       lat: city.lat,
       lng: city.lng
@@ -429,13 +433,10 @@ export const AddressLocationInput: React.FC<AddressLocationInputProps> = ({
         )}
         
         {/* Success message */}
-        {isValidated && (
+        {isValidated && value?.city && (
           <p className="text-xs text-green-600 dark:text-green-500 mt-1 flex items-center gap-1">
             <CheckCircle2 className="h-3 w-3" />
-            {value?.neighborhood 
-              ? `✓ ${value.city}, ${value.state} - ${value.neighborhood}`
-              : `✓ ${value?.city}, ${value?.state}`
-            }
+            {formatCityStatusMessage(value.city, value.state || '', value.neighborhood)}
           </p>
         )}
       </div>

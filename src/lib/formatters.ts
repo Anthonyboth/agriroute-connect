@@ -195,19 +195,67 @@ export const formatRelativeDate = (date: Date | string | number | null | undefin
 // ============= ENDEREÇOS =============
 
 /**
- * Formata cidade + estado
+ * Mapa de nomes de estados brasileiros → UF (2 letras)
+ */
+const STATE_NAME_TO_UF_MAP: Record<string, string> = {
+  'AC': 'AC', 'AL': 'AL', 'AP': 'AP', 'AM': 'AM', 'BA': 'BA',
+  'CE': 'CE', 'DF': 'DF', 'ES': 'ES', 'GO': 'GO', 'MA': 'MA',
+  'MT': 'MT', 'MS': 'MS', 'MG': 'MG', 'PA': 'PA', 'PB': 'PB',
+  'PR': 'PR', 'PE': 'PE', 'PI': 'PI', 'RJ': 'RJ', 'RN': 'RN',
+  'RS': 'RS', 'RO': 'RO', 'RR': 'RR', 'SC': 'SC', 'SP': 'SP',
+  'SE': 'SE', 'TO': 'TO',
+  'acre': 'AC', 'alagoas': 'AL', 'amapa': 'AP', 'amazonas': 'AM',
+  'bahia': 'BA', 'ceara': 'CE', 'distrito federal': 'DF',
+  'espirito santo': 'ES', 'goias': 'GO', 'maranhao': 'MA',
+  'mato grosso': 'MT', 'mato grosso do sul': 'MS', 'minas gerais': 'MG',
+  'para': 'PA', 'paraiba': 'PB', 'parana': 'PR', 'pernambuco': 'PE',
+  'piaui': 'PI', 'rio de janeiro': 'RJ', 'rio grande do norte': 'RN',
+  'rio grande do sul': 'RS', 'rondonia': 'RO', 'roraima': 'RR',
+  'santa catarina': 'SC', 'sao paulo': 'SP', 'sergipe': 'SE', 'tocantins': 'TO',
+};
+
+/**
+ * Converte qualquer representação de estado para UF de 2 letras
+ */
+export const stateToUF = (state: string | null | undefined): string => {
+  if (!state) return '';
+  const trimmed = state.trim();
+  if (!trimmed) return '';
+  
+  // Já é UF válido?
+  const upper = trimmed.toUpperCase();
+  if (/^[A-Z]{2}$/.test(upper) && STATE_NAME_TO_UF_MAP[upper]) {
+    return upper;
+  }
+  
+  // Normalizar para busca
+  const normalized = trimmed
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[-_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  return STATE_NAME_TO_UF_MAP[normalized] || trimmed.slice(0, 2).toUpperCase();
+};
+
+/**
+ * Formata cidade + estado no padrão "Cidade — UF"
+ * NUNCA retorna "Cidade — NOME DO ESTADO"
  * @param city - nome da cidade
- * @param state - sigla do estado
- * @returns string formatada (ex: "São Paulo - SP")
+ * @param state - sigla do estado (pode ser UF ou nome completo)
+ * @returns string formatada (ex: "São Paulo — SP")
  */
 export const formatCityState = (
   city: string | null | undefined, 
   state: string | null | undefined
 ): string => {
   if (!city && !state) return '-';
-  if (!city) return state || '-';
-  if (!state) return city;
-  return `${city} - ${state}`;
+  const uf = stateToUF(state);
+  if (!city) return uf || '-';
+  if (!uf) return city;
+  return `${city} — ${uf}`;
 };
 
 /**

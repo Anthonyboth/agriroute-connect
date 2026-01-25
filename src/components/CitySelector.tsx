@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { MapPin, Search, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCityValidationIcon } from '@/lib/city-validation-utils';
-import { deduplicateCities, formatCityDisplay } from '@/utils/city-deduplication';
+import { deduplicateCities, formatCityDisplay, toUF } from '@/utils/city-deduplication';
 
 interface City {
   id: string;
@@ -44,7 +44,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
   className,
   error
 }) => {
-  const [searchTerm, setSearchTerm] = useState(value && value.city && value.state ? `${value.city}, ${value.state}` : '');
+  const [searchTerm, setSearchTerm] = useState(value && value.city && value.state ? formatCityDisplay(value.city, value.state) : '');
   const [cities, setCities] = useState<City[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -124,18 +124,21 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
     setSelectedIndex(-1);
     
     // Limpar seleção se o usuário digitou algo diferente do valor atual
-    if (value && value.city && value.state && inputValue !== `${value.city}, ${value.state}`) {
+    const expectedValue = value && value.city && value.state ? formatCityDisplay(value.city, value.state) : '';
+    if (expectedValue && inputValue !== expectedValue) {
       // onChange({ city: '', state: '' });
     }
   };
 
   const handleCitySelect = (city: City) => {
-    setSearchTerm(city.display_name);
+    // SEMPRE usar UF de 2 letras
+    const uf = toUF(city.state) || city.state;
+    setSearchTerm(formatCityDisplay(city.name, uf));
     setShowDropdown(false);
     setSelectedIndex(-1);
     onChange({
       city: city.name,
-      state: city.state,
+      state: uf,
       id: city.id,
       lat: city.lat,
       lng: city.lng

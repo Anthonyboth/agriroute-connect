@@ -348,9 +348,11 @@ export function CreateFreightWizard({
         anttMinimumPrice: calculatedAnttPrice || 0
       });
 
-      // Build full address strings
+      // Build full address strings - SEMPRE usa UF de 2 letras
       const buildAddressString = (city: string, state: string, neighborhood: string, street: string, number: string, complement: string) => {
-        let address = `${city}, ${state}`;
+        // Importar toUF localmente ou usar inline
+        const uf = state?.length === 2 ? state.toUpperCase() : state;
+        let address = `${city} — ${uf}`;
         if (neighborhood) address = `${neighborhood}, ${address}`;
         if (street) address = `${street}, ${address}`;
         if (number) address = `nº ${number}, ${address}`;

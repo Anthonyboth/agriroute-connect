@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { deduplicateCities, formatCityDisplay } from '@/utils/city-deduplication';
+import { deduplicateCities, formatCityDisplay, toUF, sanitizeCityResults } from '@/utils/city-deduplication';
 
 interface City {
   id: string;
@@ -38,11 +38,15 @@ export const useCitySearch = () => {
         throw searchError;
       }
 
-      // Deduplicar e formatar display_name consistente
-      const rawCities = (data || []).map((c: any) => ({
-        ...c,
-        display_name: formatCityDisplay(c.name, c.state)
-      }));
+      // Deduplicar, sanitizar (converter estado → UF) e formatar display_name
+      const rawCities = (data || []).map((c: any) => {
+        const uf = toUF(c.state) || c.state;
+        return {
+          ...c,
+          state: uf,
+          display_name: formatCityDisplay(c.name, uf)
+        };
+      });
       
       const uniqueCities = deduplicateCities(rawCities).slice(0, limit);
       setCities(uniqueCities);
