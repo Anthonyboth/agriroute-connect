@@ -7,6 +7,7 @@ import { ServiceHistory } from './ServiceHistory';
 import { Truck, Wrench } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { getFreightTypesForQuery, isFreightType } from '@/lib/item-classification';
 
 interface UnifiedHistoryProps {
   userRole: 'MOTORISTA' | 'PRODUTOR';
@@ -27,40 +28,76 @@ export const UnifiedHistory: React.FC<UnifiedHistoryProps> = ({
 
     const fetchCounts = async () => {
       try {
+        // ✅ P0 FIX: Usar classificação centralizada para contadores corretos
+        const freightTypes = getFreightTypesForQuery();
+        
         if (userRole === 'MOTORISTA') {
-          // Fretes = freights.driver_id + service_requests onde provider_id (GUINCHO, MUDANCA = trabalhos prestados)
+          // Fretes rurais = freights.driver_id
           const { count: freightsCount } = await supabase
             .from('freights')
             .select('*', { count: 'exact', head: true })
             .eq('driver_id', profile.id);
           
-          const { count: providedServicesCount } = await supabase
+          // Fretes urbanos = service_requests onde provider_id E tipo é FRETE
+          const { count: providedFreightsCount } = await supabase
             .from('service_requests')
             .select('*', { count: 'exact', head: true })
             .eq('provider_id', profile.id)
-            .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_MOTO', 'FRETE_URBANO']);
+            .in('service_type', freightTypes);
 
-          // Serviços = service_requests onde client_id (serviços que o motorista SOLICITOU)
-          const { count: requestedServicesCount } = await supabase
+          // Serviços = service_requests onde client_id E tipo NÃO é FRETE
+          const { data: clientServices } = await supabase
             .from('service_requests')
-            .select('*', { count: 'exact', head: true })
+            .select('service_type')
             .eq('client_id', profile.id);
+          
+          // ✅ Contar apenas serviços NÃO-frete
+          const serviceOnlyCount = (clientServices || []).filter(
+            s => !isFreightType(s.service_type)
+          ).length;
 
-          setFreightCount((freightsCount || 0) + (providedServicesCount || 0));
-          setServiceCount(requestedServicesCount || 0);
+          setFreightCount((freightsCount || 0) + (providedFreightsCount || 0));
+          setServiceCount(serviceOnlyCount);
+          
         } else if (userRole === 'PRODUTOR') {
-          const { count: freightCount } = await supabase
+          // ✅ P0 FIX: Para PRODUTOR, separar corretamente FRETE de SERVIÇO
+          
+          // Fretes rurais = freights.producer_id
+          const { count: ruralFreightCount } = await supabase
             .from('freights')
             .select('*', { count: 'exact', head: true })
             .eq('producer_id', profile.id);
           
-          const { count: serviceCount } = await supabase
+          // Fretes urbanos = service_requests onde client_id E tipo é FRETE
+          const { count: urbanFreightCount } = await supabase
             .from('service_requests')
             .select('*', { count: 'exact', head: true })
+            .eq('client_id', profile.id)
+            .in('service_type', freightTypes);
+          
+          // Serviços = service_requests onde client_id E tipo NÃO é FRETE
+          const { data: allServices } = await supabase
+            .from('service_requests')
+            .select('service_type')
             .eq('client_id', profile.id);
+          
+          // ✅ Contar apenas serviços NÃO-frete
+          const serviceOnlyCount = (allServices || []).filter(
+            s => !isFreightType(s.service_type)
+          ).length;
 
-          setFreightCount(freightCount || 0);
-          setServiceCount(serviceCount || 0);
+          // ✅ Total de fretes = rural + urbano
+          setFreightCount((ruralFreightCount || 0) + (urbanFreightCount || 0));
+          setServiceCount(serviceOnlyCount);
+          
+          if (import.meta.env.DEV) {
+            console.log('[UnifiedHistory] ✅ PRODUTOR counts:', {
+              ruralFreights: ruralFreightCount,
+              urbanFreights: urbanFreightCount,
+              totalFreights: (ruralFreightCount || 0) + (urbanFreightCount || 0),
+              services: serviceOnlyCount
+            });
+          }
         }
       } catch (error) {
         console.error('Erro ao buscar contadores:', error);

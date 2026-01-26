@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { ServiceChat } from './ServiceChat';
 import { normalizeServiceType } from '@/lib/pt-br-validator';
+import { isFreightType } from '@/lib/item-classification';
 
 interface ServiceRequest {
   id: string;
@@ -119,9 +120,22 @@ export const ServiceHistory: React.FC = () => {
 
       if (error) throw error;
 
+      // ✅ P0 FIX: FILTRAR tipos de FRETE - eles NÃO devem aparecer no histórico de SERVIÇOS
+      // Apenas serviços NÃO-frete devem aparecer aqui
+      const filteredRequests = (serviceRequests || []).filter(
+        item => !isFreightType(item.service_type)
+      );
+      
+      if (import.meta.env.DEV) {
+        const removedCount = (serviceRequests?.length || 0) - filteredRequests.length;
+        if (removedCount > 0) {
+          console.log('[ServiceHistory] ✅ Removidos', removedCount, 'itens de FRETE do histórico de serviços');
+        }
+      }
+
       // Buscar dados dos clientes e prestadores separadamente
-      const clientIds = [...new Set(serviceRequests?.map(s => s.client_id).filter(Boolean) || [])];
-      const providerIds = [...new Set(serviceRequests?.map(s => s.provider_id).filter(Boolean) || [])];
+      const clientIds = [...new Set(filteredRequests.map(s => s.client_id).filter(Boolean))];
+      const providerIds = [...new Set(filteredRequests.map(s => s.provider_id).filter(Boolean))];
 
       const { data: clientProfiles } = await supabase
         .from('profiles')
@@ -138,7 +152,7 @@ export const ServiceHistory: React.FC = () => {
       const providerMap = new Map(providerProfiles?.map(p => [p.id, p]) || []);
       
       // Combinar dados
-      const transformedData = (serviceRequests || []).map(item => ({
+      const transformedData = filteredRequests.map(item => ({
         ...item,
         client: item.client_id ? clientMap.get(item.client_id) : undefined,
         provider: item.provider_id ? providerMap.get(item.provider_id) : undefined

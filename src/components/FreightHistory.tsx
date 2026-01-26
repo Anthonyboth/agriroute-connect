@@ -34,6 +34,7 @@ import { getCargoTypeLabel } from '@/lib/cargo-types';
 import { formatWeight } from '@/lib/freight-calculations';
 import { formatKm, formatBRL, formatDate } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
+import { getFreightTypesForQuery } from '@/lib/item-classification';
 
 interface Freight {
   id: string;
@@ -153,6 +154,10 @@ export const FreightHistory: React.FC = () => {
       
       allFreights = [...transformedFreights];
 
+      // ✅ P0 FIX: Buscar fretes urbanos para TODOS os roles (não apenas MOTORISTA)
+      // Usar classificação centralizada
+      const freightTypes = getFreightTypesForQuery();
+      
       // 2. Para motoristas: buscar service_requests onde provider_id = motorista (trabalhos prestados)
       if (profile.role === 'MOTORISTA' || profile.role === 'MOTORISTA_AFILIADO') {
         try {
@@ -161,7 +166,7 @@ export const FreightHistory: React.FC = () => {
             .from('service_requests_secure')
             .select('*, client:profiles!service_requests_client_id_fkey(id, full_name)')
             .eq('provider_id', profile.id)
-            .in('service_type', ['GUINCHO', 'MUDANCA', 'FRETE_MOTO', 'FRETE_URBANO'])
+            .in('service_type', freightTypes)
             .order('created_at', { ascending: false })
             .limit(50);
 
@@ -206,6 +211,50 @@ export const FreightHistory: React.FC = () => {
         } catch (serviceError) {
           console.warn('[FreightHistory] Erro ao buscar serviços:', serviceError);
           // Continua sem os serviços - não é crítico
+        }
+      }
+      
+      // ✅ P0 FIX: Para PRODUTOR, também buscar fretes urbanos (FRETE_MOTO, GUINCHO, MUDANCA)
+      if (profile.role === 'PRODUTOR') {
+        try {
+          const { data: urbanFreightData, error: urbanError } = await supabase
+            .from('service_requests_secure')
+            .select('*')
+            .eq('client_id', profile.id)
+            .in('service_type', freightTypes)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+          if (urbanError) {
+            console.warn('[FreightHistory] Erro ao buscar fretes urbanos (não crítico):', urbanError);
+          } else if (urbanFreightData) {
+            // Transformar service_requests para o formato de Freight
+            const urbanAsFreights: Freight[] = urbanFreightData.map(service => ({
+              id: service.id,
+              cargo_type: service.service_type,
+              weight: 0,
+              origin_address: service.location_address || 'N/A',
+              destination_address: service.location_address || 'N/A',
+              pickup_date: service.created_at,
+              delivery_date: service.completed_at || service.created_at,
+              price: service.estimated_price || 0,
+              urgency: service.urgency || 'MEDIUM',
+              status: service.status,
+              distance_km: 0,
+              service_type: service.service_type,
+              created_at: service.created_at,
+              producer: { id: profile.id, full_name: profile.full_name || '' },
+              driver: undefined
+            }));
+
+            allFreights = [...allFreights, ...urbanAsFreights];
+            
+            if (import.meta.env.DEV) {
+              console.log('[FreightHistory] ✅ PRODUTOR fretes urbanos:', urbanAsFreights.length);
+            }
+          }
+        } catch (urbanError) {
+          console.warn('[FreightHistory] Erro ao buscar fretes urbanos:', urbanError);
         }
       }
 
