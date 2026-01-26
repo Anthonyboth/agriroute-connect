@@ -165,7 +165,13 @@ if (typeof window !== 'undefined') {
         (message.includes('fiscal-issuer-register') ||
           message.includes('Este CPF/CNPJ já está cadastrado'));
 
-      if (isExpectedFiscalIssuerConflict) {
+      // ✅ Não reportar erro esperado de saldo insuficiente (regra de negócio)
+      // Ex.: "Edge function returned 402 ... INSUFFICIENT_BALANCE"
+      const isExpectedNfeInsufficientBalance =
+        message.includes('Edge function returned 402') &&
+        (message.includes('INSUFFICIENT_BALANCE') || message.includes('Saldo insuficiente'));
+
+      if (isExpectedFiscalIssuerConflict || isExpectedNfeInsufficientBalance) {
         return;
       }
 
@@ -187,7 +193,12 @@ if (typeof window !== 'undefined') {
         (message.includes('fiscal-issuer-register') ||
           message.includes('Este CPF/CNPJ já está cadastrado'));
 
-      if (isExpectedFiscalIssuerConflict) {
+      // ✅ Não reportar erro esperado de saldo insuficiente (regra de negócio)
+      const isExpectedNfeInsufficientBalance =
+        message.includes('Edge function returned 402') &&
+        (message.includes('INSUFFICIENT_BALANCE') || message.includes('Saldo insuficiente'));
+
+      if (isExpectedFiscalIssuerConflict || isExpectedNfeInsufficientBalance) {
         event.preventDefault?.();
         return;
       }
