@@ -1,16 +1,17 @@
 /**
  * SafeAuthModal - Wrapper robusto e à prova de falhas para o AuthModal
  * 
- * CORREÇÃO P0 v2: O botão "Cadastrar-se" travava em produção porque:
+ * CORREÇÃO P0 v3: O botão "Cadastrar-se" travava em produção porque:
  * 1. Dialog/Portal do Radix falhava silenciosamente em produção
  * 2. useEffect notificava mount ANTES do DOM ser pintado
  * 3. Overlay ficava preso sem conteúdo visível
+ * 4. Timeouts muito agressivos para conexões lentas
  * 
  * SOLUÇÃO IMPLEMENTADA:
  * 1. Verificação DOM REAL com data-attribute após 2 RAFs
  * 2. InlineFallbackModal que renderiza SEM Portal/Dialog do Radix
- * 3. Timeout agressivo de 800ms para ativar fallback
- * 4. Fallback final com redirecionamento para /auth após 1500ms
+ * 3. Timeouts mais tolerantes para produção (1.5s, 3s, 5s)
+ * 4. Detecção de conexão lenta para fallback imediato
  * 5. Report silencioso para monitoramento
  * 6. NUNCA deixa overlay/backdrop travado
  */
@@ -24,11 +25,32 @@ import { Leaf, User, Truck, Wrench, Building2, ArrowRight, X } from 'lucide-reac
 import AuthModal from '@/components/AuthModal';
 
 // ===============================
-// CONFIGURAÇÃO
+// CONFIGURAÇÃO - Timeouts aumentados para produção (redes lentas)
 // ===============================
-const FAILSAFE_TIMEOUT_MS = 800; // 800ms para ativar fallback (mais agressivo)
-const ULTIMATE_FALLBACK_MS = 1500; // 1.5s para redirecionar se tudo falhar
+const FAILSAFE_TIMEOUT_MS = 1500; // 1.5s para ativar fallback Radix (mais tolerante para produção)
+const ULTIMATE_FALLBACK_MS = 3000; // 3s para tentar inline fallback
+const FORCE_REDIRECT_MS = 5000; // 5s para forçar redirecionamento se tudo falhar
 const DOM_VERIFICATION_ATTRIBUTE = 'data-auth-modal-content';
+
+// Detecta se é ambiente de produção
+const IS_PRODUCTION = typeof window !== 'undefined' && 
+  !window.location.hostname.includes('lovableproject.com') &&
+  !window.location.hostname.includes('localhost');
+
+// Detecta conexão lenta via Network Information API (se disponível)
+function isSlowConnection(): boolean {
+  try {
+    const nav = navigator as any;
+    if (nav.connection) {
+      const effectiveType = nav.connection.effectiveType;
+      // 2g ou slow-2g são conexões muito lentas
+      return effectiveType === '2g' || effectiveType === 'slow-2g';
+    }
+  } catch {
+    // API não disponível
+  }
+  return false;
+}
 
 interface SafeAuthModalProps {
   isOpen: boolean;
@@ -295,8 +317,12 @@ function FallbackAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProps) 
 // ===============================
 export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProps) {
   const navigate = useNavigate();
+  
+  // Em conexões lentas ou se modal falhou antes, usa inline fallback direto
+  const shouldUseInlineFallbackImmediately = isSlowConnection();
+  
   const [useFallback, setUseFallback] = useState(false);
-  const [useInlineFallback, setUseInlineFallback] = useState(false);
+  const [useInlineFallback, setUseInlineFallback] = useState(shouldUseInlineFallbackImmediately);
   const hasRenderedRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ultimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -332,14 +358,15 @@ export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProp
       // Dar tempo para próxima abertura
       const resetTimer = setTimeout(() => {
         setUseFallback(false);
-        setUseInlineFallback(false);
+        // Mantém inline fallback se conexão lenta
+        setUseInlineFallback(shouldUseInlineFallbackImmediately);
       }, 100);
       return () => clearTimeout(resetTimer);
     }
-  }, [isOpen, cleanup]);
+  }, [isOpen, cleanup, shouldUseInlineFallbackImmediately]);
 
   // ===============================
-  // FAIL-SAFE TIMEOUT: Ativa fallback após 800ms
+  // FAIL-SAFE TIMEOUT: Ativa fallback após 1.5s
   // ===============================
   useEffect(() => {
     if (isOpen && !useFallback && !useInlineFallback) {
@@ -363,7 +390,7 @@ export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProp
         }
       }, FAILSAFE_TIMEOUT_MS);
 
-      // Timeout ULTIMATE: Se após 1.5s nenhum modal visível, redireciona
+      // Timeout ULTIMATE: Se após 3s nenhum modal visível, tenta inline fallback
       ultimateTimeoutRef.current = setTimeout(() => {
         const anyModalVisible = document.querySelector(
           `[${DOM_VERIFICATION_ATTRIBUTE}], [data-fallback-modal], [data-inline-fallback-modal]`
@@ -371,28 +398,27 @@ export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProp
         
         if (!anyModalVisible) {
           const elapsed = Date.now() - mountTimeRef.current;
-          console.error(`[SafeAuthModal] FALLBACK FINAL ${elapsed}ms - redirecionando para /auth`);
+          console.warn(`[SafeAuthModal] FALLBACK INLINE ${elapsed}ms - ativando inline modal`);
           
           reportModalError('MODAL_ULTIMATE_FALLBACK', {
             trigger: 'ultimate_timeout',
             timeToOpenMs: elapsed,
             initialTab,
-            fallbackLevel: 'redirect',
+            fallbackLevel: 'inline',
           });
           
-          // Força fechar e redirecionar
-          forceClose();
-          
-          // Tenta inline fallback primeiro
+          // Ativa inline fallback (sem Portal, renderiza direto)
           setUseInlineFallback(true);
           
-          // Se ainda não funcionar, força navegação após mais 500ms
+          // Se ainda não funcionar após mais 2s, força navegação
           setTimeout(() => {
             const stillNoModal = !document.querySelector('[data-inline-fallback-modal]');
             if (stillNoModal) {
+              console.error(`[SafeAuthModal] FORÇANDO REDIRECIONAMENTO após ${Date.now() - mountTimeRef.current}ms`);
+              forceClose();
               window.location.href = `/auth?mode=${initialTab || 'signup'}`;
             }
-          }, 500);
+          }, FORCE_REDIRECT_MS - ULTIMATE_FALLBACK_MS);
         }
       }, ULTIMATE_FALLBACK_MS);
     }
