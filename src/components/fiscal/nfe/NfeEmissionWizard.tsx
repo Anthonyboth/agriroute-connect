@@ -267,14 +267,21 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
         },
       });
 
+      // ✅ Tratamento robusto: erro pode vir em `error` OU em `data` (status não-2xx)
       if (error) {
-        // Mostra motivo real (e não "non-2xx")
-        const msg = error.message || "Erro ao chamar o servidor fiscal.";
+        console.error("[NFE] invoke error:", error);
+        // Tenta extrair mensagem útil do context (body da resposta)
+        const ctx = error.context;
+        const bodyMsg = ctx?.message || ctx?.error;
+        const msg = bodyMsg || error.message || "Erro ao chamar o servidor fiscal.";
         throw new Error(msg);
       }
 
+      // ✅ Verifica se data indica erro (mesmo sem error, pode ser 4xx/5xx com JSON)
       if (!data?.success) {
-        throw new Error(data?.message || data?.error || "Falha ao emitir NF-e.");
+        const errMsg = data?.message || data?.error || "Falha ao emitir NF-e.";
+        console.warn("[NFE] Response não-sucesso:", data);
+        throw new Error(errMsg);
       }
 
       toast.success("NF-e enviada!", {
