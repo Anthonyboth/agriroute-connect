@@ -210,9 +210,17 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    logStep('ERRO', error);
+    // If validateInput threw a Response (Zod validation error), return it directly
+    if (error instanceof Response) {
+      logStep('Erro de validação', { status: error.status });
+      return error;
+    }
+    
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep('ERRO', { message: errorMessage, type: typeof error });
+    
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Erro desconhecido' 
+      error: errorMessage || 'Erro desconhecido' 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500
