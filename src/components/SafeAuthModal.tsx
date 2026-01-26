@@ -52,6 +52,23 @@ function isSlowConnection(): boolean {
   return false;
 }
 
+// Resolve hsl(var(--token)) to a real color string, with a safe fallback.
+// IMPORTANT: This is used only by the INLINE fallback modal so it remains usable
+// even if CSS/Tailwind assets fail to load in production (users were seeing a black screen).
+function resolveHslToken(cssVarName: string, fallbackHsl: string): string {
+  try {
+    if (typeof window === 'undefined') return fallbackHsl;
+    const raw = getComputedStyle(document.documentElement)
+      .getPropertyValue(cssVarName)
+      .trim();
+    // shadcn tokens are like: "0 0% 100%" (without the hsl())
+    if (raw) return `hsl(${raw})`;
+  } catch {
+    // ignore
+  }
+  return fallbackHsl;
+}
+
 interface SafeAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -138,6 +155,16 @@ class AuthModalErrorBoundary extends Component<
 // ===============================
 function InlineFallbackModal({ isOpen, onClose, initialTab }: SafeAuthModalProps) {
   const navigate = useNavigate();
+
+  // Inline styles to keep the modal readable even if CSS variables/classes fail to load.
+  const fallbackColors = {
+    bg: resolveHslToken('--background', 'hsl(0 0% 100%)'),
+    fg: resolveHslToken('--foreground', 'hsl(222 47% 11%)'),
+    border: resolveHslToken('--border', 'hsl(214 32% 91%)'),
+    muted: resolveHslToken('--muted', 'hsl(210 40% 96%)'),
+    mutedFg: resolveHslToken('--muted-foreground', 'hsl(215 16% 47%)'),
+    primary: resolveHslToken('--primary', 'hsl(142 76% 36%)'),
+  };
   
   const roles = [
     { id: 'PRODUTOR', label: 'Produtor/Contratante', icon: User, description: 'Publique fretes e contrate transportes' },
@@ -188,17 +215,23 @@ function InlineFallbackModal({ isOpen, onClose, initialTab }: SafeAuthModalProps
     >
       <div 
         className="bg-background rounded-lg p-6 max-w-md w-full shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"
+        style={{
+          backgroundColor: fallbackColors.bg,
+          color: fallbackColors.fg,
+          border: `1px solid ${fallbackColors.border}`,
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Leaf className="h-7 w-7 text-primary" />
+            <Leaf className="h-7 w-7 text-primary" style={{ color: fallbackColors.primary }} />
             <span className="text-xl font-bold">AgriRoute</span>
           </div>
           <button
             onClick={onClose}
             className="p-1 rounded-full hover:bg-muted transition-colors"
+            style={{ color: fallbackColors.fg }}
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />
@@ -229,12 +262,26 @@ function InlineFallbackModal({ isOpen, onClose, initialTab }: SafeAuthModalProps
               <button
                 key={role.id}
                 className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-left"
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: 12,
+                  borderRadius: 10,
+                  border: `1px solid ${fallbackColors.border}`,
+                  backgroundColor: fallbackColors.bg,
+                  color: fallbackColors.fg,
+                  cursor: 'pointer',
+                }}
                 onClick={() => handleRoleSelect(role.id)}
               >
-                <role.icon className="h-5 w-5 text-primary flex-shrink-0" />
+                <role.icon className="h-5 w-5 text-primary flex-shrink-0" style={{ color: fallbackColors.primary }} />
                 <div>
                   <div className="font-medium text-foreground">{role.label}</div>
-                  <div className="text-xs text-muted-foreground">{role.description}</div>
+                  <div className="text-xs text-muted-foreground" style={{ color: fallbackColors.mutedFg }}>
+                    {role.description}
+                  </div>
                 </div>
               </button>
             ))}
