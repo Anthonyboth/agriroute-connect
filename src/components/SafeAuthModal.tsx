@@ -19,7 +19,7 @@ import React, { useEffect, useRef, useState, Component, ReactNode, useCallback }
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Leaf, User, Truck, Wrench, Building2, ArrowRight, X } from 'lucide-react';
+import { Leaf, User, Truck, Wrench, Building2, ArrowRight } from 'lucide-react';
 
 // Importação ESTÁTICA do AuthModal - evita problemas de chunk loading
 import AuthModal from '@/components/AuthModal';
@@ -29,11 +29,10 @@ import AuthModal from '@/components/AuthModal';
 // ===============================
 const FAILSAFE_TIMEOUT_MS = 1500; // 1.5s para ativar fallback Radix (mais tolerante para produção)
 const ULTIMATE_FALLBACK_MS = 3000; // 3s para tentar inline fallback
-const FORCE_REDIRECT_MS = 5000; // 5s para forçar redirecionamento se tudo falhar
 const DOM_VERIFICATION_ATTRIBUTE = 'data-auth-modal-content';
 
 // Detecta se é ambiente de produção
-const IS_PRODUCTION = typeof window !== 'undefined' && 
+const IS_PRODUCTION = typeof window !== 'undefined' &&
   !window.location.hostname.includes('lovableproject.com') &&
   !window.location.hostname.includes('localhost');
 
@@ -50,23 +49,6 @@ function isSlowConnection(): boolean {
     // API não disponível
   }
   return false;
-}
-
-// Resolve hsl(var(--token)) to a real color string, with a safe fallback.
-// IMPORTANT: This is used only by the INLINE fallback modal so it remains usable
-// even if CSS/Tailwind assets fail to load in production (users were seeing a black screen).
-function resolveHslToken(cssVarName: string, fallbackHsl: string): string {
-  try {
-    if (typeof window === 'undefined') return fallbackHsl;
-    const raw = getComputedStyle(document.documentElement)
-      .getPropertyValue(cssVarName)
-      .trim();
-    // shadcn tokens are like: "0 0% 100%" (without the hsl())
-    if (raw) return `hsl(${raw})`;
-  } catch {
-    // ignore
-  }
-  return fallbackHsl;
 }
 
 interface SafeAuthModalProps {
@@ -151,148 +133,6 @@ class AuthModalErrorBoundary extends Component<
 }
 
 // ===============================
-// INLINE FALLBACK MODAL (100% independente - SEM Radix/Portal)
-// ===============================
-function InlineFallbackModal({ isOpen, onClose, initialTab }: SafeAuthModalProps) {
-  const navigate = useNavigate();
-
-  // Inline styles to keep the modal readable even if CSS variables/classes fail to load.
-  const fallbackColors = {
-    bg: resolveHslToken('--background', 'hsl(0 0% 100%)'),
-    fg: resolveHslToken('--foreground', 'hsl(222 47% 11%)'),
-    border: resolveHslToken('--border', 'hsl(214 32% 91%)'),
-    muted: resolveHslToken('--muted', 'hsl(210 40% 96%)'),
-    mutedFg: resolveHslToken('--muted-foreground', 'hsl(215 16% 47%)'),
-    primary: resolveHslToken('--primary', 'hsl(142 76% 36%)'),
-  };
-  
-  const roles = [
-    { id: 'PRODUTOR', label: 'Produtor/Contratante', icon: User, description: 'Publique fretes e contrate transportes' },
-    { id: 'MOTORISTA', label: 'Motorista', icon: Truck, description: 'Aceite fretes e gerencie viagens' },
-    { id: 'PRESTADOR_SERVICOS', label: 'Prestador de Serviços', icon: Wrench, description: 'Ofereça serviços mecânicos e outros' },
-    { id: 'TRANSPORTADORA', label: 'Transportadora', icon: Building2, description: 'Gerencie frota e motoristas' },
-  ];
-
-  const handleRoleSelect = (roleId: string) => {
-    sessionStorage.setItem('pending_signup_role', roleId);
-    onClose();
-    navigate(`/auth?mode=signup&role=${roleId}`);
-  };
-
-  const handleLogin = () => {
-    onClose();
-    navigate('/auth?mode=login');
-  };
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  // Previne scroll do body quando modal está aberto
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  // Renderiza DIRETAMENTE no DOM, sem Portal, sem Dialog do Radix
-  return (
-    <div 
-      data-inline-fallback-modal
-      className="fixed inset-0 flex items-center justify-center p-4"
-      style={{ 
-        zIndex: 99999,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      }}
-      onClick={handleBackdropClick}
-    >
-      <div 
-        className="bg-background rounded-lg p-6 max-w-md w-full shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"
-        style={{
-          backgroundColor: fallbackColors.bg,
-          color: fallbackColors.fg,
-          border: `1px solid ${fallbackColors.border}`,
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Leaf className="h-7 w-7 text-primary" style={{ color: fallbackColors.primary }} />
-            <span className="text-xl font-bold">AgriRoute</span>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-muted transition-colors"
-            style={{ color: fallbackColors.fg }}
-            aria-label="Fechar"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Title */}
-        <div className="text-center mb-4">
-          <h2 className="text-lg font-semibold">
-            {initialTab === 'login' ? 'Faça login para continuar' : 'Escolha seu tipo de cadastro'}
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Plataforma de logística agrícola
-          </p>
-        </div>
-
-        {/* Content */}
-        {initialTab === 'login' ? (
-          <div className="space-y-4 pt-2">
-            <Button onClick={handleLogin} className="w-full gradient-primary">
-              Ir para Login
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-3 pt-2">
-            {roles.map((role) => (
-              <button
-                key={role.id}
-                className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-left"
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: 12,
-                  borderRadius: 10,
-                  border: `1px solid ${fallbackColors.border}`,
-                  backgroundColor: fallbackColors.bg,
-                  color: fallbackColors.fg,
-                  cursor: 'pointer',
-                }}
-                onClick={() => handleRoleSelect(role.id)}
-              >
-                <role.icon className="h-5 w-5 text-primary flex-shrink-0" style={{ color: fallbackColors.primary }} />
-                <div>
-                  <div className="font-medium text-foreground">{role.label}</div>
-                  <div className="text-xs text-muted-foreground" style={{ color: fallbackColors.mutedFg }}>
-                    {role.description}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ===============================
 // FALLBACK MODAL (usa Dialog do Radix - segundo nível de fallback)
 // ===============================
 function FallbackAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProps) {
@@ -363,10 +203,9 @@ function FallbackAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProps) 
 // SAFE AUTH MODAL (principal)
 // ===============================
 export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProps) {
-  const navigate = useNavigate();
-  
-  // Em conexões lentas ou se modal falhou antes, usa inline fallback direto
-  const shouldUseInlineFallbackImmediately = isSlowConnection();
+  // ✅ PRODUÇÃO: usar modo inline (sem Portal) imediatamente para evitar tela preta
+  // (o visual/UX é o MESMO do AuthModal, apenas sem Radix Portal)
+  const shouldUseInlineFallbackImmediately = IS_PRODUCTION || isSlowConnection();
   
   const [useFallback, setUseFallback] = useState(false);
   const [useInlineFallback, setUseInlineFallback] = useState(shouldUseInlineFallbackImmediately);
@@ -454,18 +293,8 @@ export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProp
             fallbackLevel: 'inline',
           });
           
-          // Ativa inline fallback (sem Portal, renderiza direto)
+           // Ativa inline render (sem Portal)
           setUseInlineFallback(true);
-          
-          // Se ainda não funcionar após mais 2s, força navegação
-          setTimeout(() => {
-            const stillNoModal = !document.querySelector('[data-inline-fallback-modal]');
-            if (stillNoModal) {
-              console.error(`[SafeAuthModal] FORÇANDO REDIRECIONAMENTO após ${Date.now() - mountTimeRef.current}ms`);
-              forceClose();
-              window.location.href = `/auth?mode=${initialTab || 'signup'}`;
-            }
-          }, FORCE_REDIRECT_MS - ULTIMATE_FALLBACK_MS);
         }
       }, ULTIMATE_FALLBACK_MS);
     }
@@ -504,13 +333,14 @@ export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProp
     return null;
   }
 
-  // NÍVEL 3: Inline fallback (sem Radix, sem Portal)
+  // NÍVEL 3: Inline render (sem Portal) — usa o MESMO AuthModal em modo inline
   if (useInlineFallback) {
     return (
-      <InlineFallbackModal
+      <AuthModal
         isOpen={isOpen}
         onClose={onClose}
         initialTab={initialTab}
+        renderMode="inline"
       />
     );
   }
