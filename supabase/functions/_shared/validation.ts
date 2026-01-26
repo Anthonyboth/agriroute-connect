@@ -99,12 +99,15 @@ export const longitudeSchema = z.number().min(-180).max(180);
 
 // Error Report Schema with comprehensive validation
 export const ErrorReportSchema = z.object({
-  errorType: z.enum(['FRONTEND', 'BACKEND', 'DATABASE', 'NETWORK', 'PAYMENT'], {
+  errorType: z.enum([
+    'FRONTEND', 'BACKEND', 'DATABASE', 'NETWORK', 'PAYMENT',
+    'HEALTH_CHECK_FAILED', 'MODAL_OPEN_FAILED', 'ACTION_FAIL', 
+    'ACTION_LOG', 'COUNT_MISMATCH_OPEN_FRETES', 'GPS_DISABLED',
+    'RUNTIME_ERROR'
+  ], {
     errorMap: () => ({ message: 'Invalid error type' })
   }),
-  errorCategory: z.enum(['SIMPLE', 'CRITICAL'], {
-    errorMap: () => ({ message: 'Invalid error category' })
-  }),
+  errorCategory: z.enum(['SIMPLE', 'CRITICAL']).optional().default('SIMPLE'),
   errorMessage: z.string()
     .min(1, 'Error message required')
     .max(1000, 'Error message too long (max 1000 chars)'),
@@ -135,8 +138,9 @@ export const ErrorReportSchema = z.object({
     .max(500, 'Auto-correction action too long')
     .optional(),
   autoCorrectionSuccess: z.boolean().optional(),
-  metadata: z.record(z.string(), z.unknown())
-    .optional()
+  // Accept both "metadata" and "context" field names for backward compatibility
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  context: z.record(z.string(), z.unknown()).optional()
 });
 
 export type ErrorReport = z.infer<typeof ErrorReportSchema>;
