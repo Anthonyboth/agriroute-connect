@@ -2,7 +2,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Max-Age": "86400",
 };
 
 function json(status: number, body: Record<string, unknown>) {
@@ -45,7 +47,19 @@ function pickSefazCode(focusData: any): string | null {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // ✅ CORS Preflight com status 204
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  // ✅ Log inicial (sem token)
+  const origin = req.headers.get("Origin");
+  const authHeaderLog = req.headers.get("Authorization");
+  console.log("[nfe-update-status] Request", {
+    method: req.method,
+    origin,
+    hasAuthorization: !!authHeaderLog,
+  });
 
   try {
     // ===== ENV =====

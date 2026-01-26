@@ -151,7 +151,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
   };
 
   // Polling simples: consulta nfe-update-status até final (authorized/rejected/canceled)
-  const pollStatus = async (params: { emission_id?: string; internal_ref?: string }) => {
+  const pollStatus = async (params: { emission_id?: string; internal_ref?: string }, accessToken: string) => {
     const timeoutMs = 90_000;
     const intervalMs = 6_000;
     const start = Date.now();
@@ -159,6 +159,9 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
     while (Date.now() - start < timeoutMs) {
       const { data, error } = await supabase.functions.invoke("nfe-update-status", {
         body: params,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       });
 
       if (error) {
@@ -210,6 +213,13 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
       return;
     }
 
+    // ✅ Verificar sessão antes de invocar
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      toast.error("Sessão inválida", { description: "Faça login novamente." });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -249,9 +259,12 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
         informacoes_adicionais: (formData.informacoes_adicionais || "").trim(),
       };
 
-      // ✅ CHAMADA CORRETA (PADRONIZE SUA EDGE FUNCTION PARA "nfe-emissao")
-      const { data, error } = await supabase.functions.invoke("nfe-emissao", {
+      // ✅ CHAMADA CORRETA: "nfe-emitir" (não "nfe-emissao") + Authorization explícito
+      const { data, error } = await supabase.functions.invoke("nfe-emitir", {
         body: payload,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) {
@@ -279,7 +292,7 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
 
       // 🔥 Polling para sair do "Aguardando" eterno
       if (emission_id || internal_ref) {
-        await pollStatus({ emission_id, internal_ref });
+        await pollStatus({ emission_id, internal_ref }, session.access_token);
       }
 
       onClose();

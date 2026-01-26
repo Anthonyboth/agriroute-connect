@@ -2,7 +2,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Max-Age": "86400",
 };
 
 interface NFePayload {
@@ -98,7 +100,19 @@ function focusFriendlyMessage(focusData: any, httpStatus?: number) {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // ✅ CORS Preflight com status 204
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  // ✅ Log inicial (sem token)
+  const origin = req.headers.get("Origin");
+  const authHeader = req.headers.get("Authorization");
+  console.log("[nfe-emitir] Request", {
+    method: req.method,
+    origin,
+    hasAuthorization: !!authHeader,
+  });
 
   try {
     // Token Focus
