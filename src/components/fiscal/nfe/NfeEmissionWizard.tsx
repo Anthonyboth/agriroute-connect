@@ -270,9 +270,20 @@ export const NfeEmissionWizard: React.FC<NfeEmissionWizardProps> = ({ isOpen, on
       // ✅ Tratamento robusto: erro pode vir em `error` OU em `data` (status não-2xx)
       if (error) {
         console.error("[NFE] invoke error:", error);
-        // Tenta extrair mensagem útil do context (body da resposta)
-        const ctx = error.context;
-        const bodyMsg = ctx?.message || ctx?.error;
+        // `@supabase/functions-js` usa `error.context` como `Response` quando é non-2xx.
+        // Portanto precisamos parsear o JSON manualmente para capturar o `message` (ex.: INSUFFICIENT_BALANCE).
+        const ctx = (error as any)?.context;
+
+        let parsedBody: any = null;
+        if (ctx && typeof ctx.json === "function") {
+          try {
+            parsedBody = await ctx.json();
+          } catch {
+            parsedBody = null;
+          }
+        }
+
+        const bodyMsg = parsedBody?.message || parsedBody?.error;
         const msg = bodyMsg || error.message || "Erro ao chamar o servidor fiscal.";
         throw new Error(msg);
       }
