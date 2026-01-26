@@ -11378,8 +11378,15 @@ export type Database = {
           additional_info: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
+          city_id: string | null
+          city_lat: number | null
+          city_lng: number | null
+          city_name: string | null
+          client_comment: string | null
           client_id: string | null
+          client_rating: number | null
           completed_at: string | null
+          contact_document: string | null
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
@@ -11395,9 +11402,14 @@ export type Database = {
           location_state: string | null
           preferred_datetime: string | null
           problem_description: string | null
+          provider_comment: string | null
           provider_id: string | null
+          provider_notes: string | null
+          provider_rating: number | null
           reference_number: number | null
+          service_radius_km: number | null
           service_type: string | null
+          state: string | null
           status: string | null
           updated_at: string | null
           urgency: string | null
@@ -11408,8 +11420,15 @@ export type Database = {
           additional_info?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          city_id?: string | null
+          city_lat?: number | null
+          city_lng?: number | null
+          city_name?: string | null
+          client_comment?: string | null
           client_id?: string | null
+          client_rating?: number | null
           completed_at?: string | null
+          contact_document?: never
           contact_email?: never
           contact_name?: never
           contact_phone?: never
@@ -11425,9 +11444,14 @@ export type Database = {
           location_state?: string | null
           preferred_datetime?: string | null
           problem_description?: string | null
+          provider_comment?: string | null
           provider_id?: string | null
+          provider_notes?: string | null
+          provider_rating?: number | null
           reference_number?: number | null
+          service_radius_km?: number | null
           service_type?: string | null
+          state?: string | null
           status?: string | null
           updated_at?: string | null
           urgency?: string | null
@@ -11438,8 +11462,15 @@ export type Database = {
           additional_info?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          city_id?: string | null
+          city_lat?: number | null
+          city_lng?: number | null
+          city_name?: string | null
+          client_comment?: string | null
           client_id?: string | null
+          client_rating?: number | null
           completed_at?: string | null
+          contact_document?: never
           contact_email?: never
           contact_name?: never
           contact_phone?: never
@@ -11455,9 +11486,14 @@ export type Database = {
           location_state?: string | null
           preferred_datetime?: string | null
           problem_description?: string | null
+          provider_comment?: string | null
           provider_id?: string | null
+          provider_notes?: string | null
+          provider_rating?: number | null
           reference_number?: number | null
+          service_radius_km?: number | null
           service_type?: string | null
+          state?: string | null
           status?: string | null
           updated_at?: string | null
           urgency?: string | null
@@ -11491,6 +11527,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "city_hierarchy"
+            referencedColumns: ["city_id"]
           },
         ]
       }
