@@ -55,6 +55,14 @@ serve(async (req) => {
     // Parse and validate error report with Zod
     const rawReport = await req.json();
     const errorReport = validateInput(ErrorReportSchema, rawReport);
+    
+    // Merge context into metadata if present
+    if (errorReport.context && !errorReport.metadata) {
+      errorReport.metadata = errorReport.context;
+    } else if (errorReport.context && errorReport.metadata) {
+      errorReport.metadata = { ...errorReport.metadata, ...errorReport.context };
+    }
+    
     logStep('Relatório validado', { 
       type: errorReport.errorType, 
       category: errorReport.errorCategory 
@@ -210,14 +218,34 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    // If validateInput threw a Response (Zod validation error), return it directly
+    // Check if error is a Response object (more robust check)
+    if (error && typeof error === 'object' && 'status' in error && 'headers' in error) {
+      logStep('Erro de validação Zod', { 
+        status: (error as Response).status,
+        hasBody: true 
+      });
+      return error as Response;
+    }
+    
     if (error instanceof Response) {
       logStep('Erro de validação', { status: error.status });
       return error;
     }
     
+    // Enhanced error logging for debugging
+    const errorDetails = {
+      isError: error instanceof Error,
+      isResponse: error instanceof Response,
+      type: typeof error,
+      constructor: error?.constructor?.name,
+      message: error instanceof Error ? error.message : null,
+      stringified: String(error),
+      keys: error ? Object.keys(error) : []
+    };
+    
+    logStep('ERRO DETALHADO', errorDetails);
+    
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep('ERRO', { message: errorMessage, type: typeof error });
     
     return new Response(JSON.stringify({ 
       error: errorMessage || 'Erro desconhecido' 
