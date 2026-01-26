@@ -219,6 +219,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "affiliated_drivers_tracking_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "affiliated_drivers_tracking_current_freight_id_fkey"
             columns: ["current_freight_id"]
             isOneToOne: false
@@ -942,6 +949,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "chat_typing_indicators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "chat_typing_indicators_driver_profile_id_fkey"
             columns: ["driver_profile_id"]
             isOneToOne: false
@@ -1083,6 +1097,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "company_driver_chats_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "company_driver_chats_driver_profile_id_fkey"
             columns: ["driver_profile_id"]
             isOneToOne: false
@@ -1166,6 +1187,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "company_drivers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "company_drivers_driver_profile_id_fkey"
             columns: ["driver_profile_id"]
             isOneToOne: false
@@ -1244,6 +1272,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_internal_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
             referencedColumns: ["id"]
           },
           {
@@ -1331,6 +1366,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_invites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
             referencedColumns: ["id"]
           },
           {
@@ -1426,6 +1468,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_vehicle_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
             referencedColumns: ["id"]
           },
           {
@@ -1832,6 +1881,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
             referencedColumns: ["id"]
           },
           {
@@ -2820,6 +2876,13 @@ export type Database = {
             referencedRelation: "transport_companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "empresas_fiscais_transport_company_id_fkey"
+            columns: ["transport_company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       encryption_keys: {
@@ -3080,6 +3143,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
             referencedColumns: ["id"]
           },
           {
@@ -3900,6 +3970,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
             referencedColumns: ["id"]
           },
           {
@@ -5124,6 +5201,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "freight_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "freight_templates_producer_id_fkey"
             columns: ["producer_id"]
             isOneToOne: false
@@ -5497,6 +5581,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freights_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
             referencedColumns: ["id"]
           },
           {
@@ -6446,6 +6537,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "mdfe_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "mdfe_config_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -6693,6 +6791,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdfe_manifestos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
             referencedColumns: ["id"]
           },
           {
@@ -10817,6 +10922,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vehicles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vehicles_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
@@ -10993,6 +11105,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_invites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -11259,15 +11378,8 @@ export type Database = {
           additional_info: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
-          city_id: string | null
-          city_lat: number | null
-          city_lng: number | null
-          city_name: string | null
-          client_comment: string | null
           client_id: string | null
-          client_rating: number | null
           completed_at: string | null
-          contact_document: string | null
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
@@ -11283,15 +11395,9 @@ export type Database = {
           location_state: string | null
           preferred_datetime: string | null
           problem_description: string | null
-          prospect_user_id: string | null
-          provider_comment: string | null
           provider_id: string | null
-          provider_notes: string | null
-          provider_rating: number | null
           reference_number: number | null
-          service_radius_km: number | null
           service_type: string | null
-          state: string | null
           status: string | null
           updated_at: string | null
           urgency: string | null
@@ -11302,15 +11408,8 @@ export type Database = {
           additional_info?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
-          city_id?: string | null
-          city_lat?: number | null
-          city_lng?: number | null
-          city_name?: string | null
-          client_comment?: string | null
           client_id?: string | null
-          client_rating?: number | null
           completed_at?: string | null
-          contact_document?: never
           contact_email?: never
           contact_name?: never
           contact_phone?: never
@@ -11319,22 +11418,16 @@ export type Database = {
           final_price?: number | null
           id?: string | null
           is_emergency?: boolean | null
-          location_address?: never
+          location_address?: string | null
           location_city?: string | null
           location_lat?: number | null
           location_lng?: number | null
           location_state?: string | null
           preferred_datetime?: string | null
           problem_description?: string | null
-          prospect_user_id?: string | null
-          provider_comment?: string | null
           provider_id?: string | null
-          provider_notes?: string | null
-          provider_rating?: number | null
           reference_number?: number | null
-          service_radius_km?: number | null
           service_type?: string | null
-          state?: string | null
           status?: string | null
           updated_at?: string | null
           urgency?: string | null
@@ -11345,15 +11438,8 @@ export type Database = {
           additional_info?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
-          city_id?: string | null
-          city_lat?: number | null
-          city_lng?: number | null
-          city_name?: string | null
-          client_comment?: string | null
           client_id?: string | null
-          client_rating?: number | null
           completed_at?: string | null
-          contact_document?: never
           contact_email?: never
           contact_name?: never
           contact_phone?: never
@@ -11362,22 +11448,16 @@ export type Database = {
           final_price?: number | null
           id?: string | null
           is_emergency?: boolean | null
-          location_address?: never
+          location_address?: string | null
           location_city?: string | null
           location_lat?: number | null
           location_lng?: number | null
           location_state?: string | null
           preferred_datetime?: string | null
           problem_description?: string | null
-          prospect_user_id?: string | null
-          provider_comment?: string | null
           provider_id?: string | null
-          provider_notes?: string | null
-          provider_rating?: number | null
           reference_number?: number | null
-          service_radius_km?: number | null
           service_type?: string | null
-          state?: string | null
           status?: string | null
           updated_at?: string | null
           urgency?: string | null
@@ -11412,25 +11492,76 @@ export type Database = {
             referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      transport_companies_secure: {
+        Row: {
+          address: string | null
+          antt_document_url: string | null
+          antt_registration: string | null
+          city: string | null
+          cnpj_document_url: string | null
+          company_cnpj: string | null
+          company_name: string | null
+          created_at: string | null
+          id: string | null
+          municipal_registration: string | null
+          profile_id: string | null
+          state: string | null
+          state_registration: string | null
+          status: string | null
+          updated_at: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          antt_document_url?: never
+          antt_registration?: never
+          city?: string | null
+          cnpj_document_url?: never
+          company_cnpj?: never
+          company_name?: string | null
+          created_at?: string | null
+          id?: string | null
+          municipal_registration?: never
+          profile_id?: string | null
+          state?: string | null
+          state_registration?: never
+          status?: string | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          antt_document_url?: never
+          antt_registration?: never
+          city?: string | null
+          cnpj_document_url?: never
+          company_cnpj?: never
+          company_name?: string | null
+          created_at?: string | null
+          id?: string | null
+          municipal_registration?: never
+          profile_id?: string | null
+          state?: string | null
+          state_registration?: never
+          status?: string | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "service_requests_city_id_fkey"
-            columns: ["city_id"]
-            isOneToOne: false
-            referencedRelation: "cities"
+            foreignKeyName: "transport_companies_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "service_requests_city_id_fkey"
-            columns: ["city_id"]
-            isOneToOne: false
-            referencedRelation: "city_hierarchy"
-            referencedColumns: ["city_id"]
-          },
-          {
-            foreignKeyName: "service_requests_prospect_user_id_fkey"
-            columns: ["prospect_user_id"]
-            isOneToOne: false
-            referencedRelation: "prospect_users"
+            foreignKeyName: "transport_companies_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -11444,9 +11575,6 @@ export type Database = {
           crlv_expiry_date: string | null
           crlv_url: string | null
           driver_id: string | null
-          has_crlv: boolean | null
-          has_inspection: boolean | null
-          has_insurance: boolean | null
           high_performance: boolean | null
           id: string | null
           inspection_certificate_url: string | null
@@ -11459,9 +11587,7 @@ export type Database = {
           primary_identification: string | null
           status: string | null
           updated_at: string | null
-          vehicle_documents: Json | null
           vehicle_photo_url: string | null
-          vehicle_photos: Json | null
           vehicle_specifications: string | null
           vehicle_type: Database["public"]["Enums"]["vehicle_type"] | null
           vehicle_validation_status: string | null
@@ -11474,9 +11600,6 @@ export type Database = {
           crlv_expiry_date?: string | null
           crlv_url?: never
           driver_id?: string | null
-          has_crlv?: never
-          has_inspection?: never
-          has_insurance?: never
           high_performance?: boolean | null
           id?: string | null
           inspection_certificate_url?: never
@@ -11484,14 +11607,12 @@ export type Database = {
           insurance_expiry_date?: string | null
           is_company_vehicle?: boolean | null
           last_inspection_date?: string | null
-          license_plate?: string | null
+          license_plate?: never
           max_capacity_tons?: number | null
           primary_identification?: string | null
           status?: string | null
           updated_at?: string | null
-          vehicle_documents?: never
           vehicle_photo_url?: string | null
-          vehicle_photos?: Json | null
           vehicle_specifications?: string | null
           vehicle_type?: Database["public"]["Enums"]["vehicle_type"] | null
           vehicle_validation_status?: string | null
@@ -11504,9 +11625,6 @@ export type Database = {
           crlv_expiry_date?: string | null
           crlv_url?: never
           driver_id?: string | null
-          has_crlv?: never
-          has_inspection?: never
-          has_insurance?: never
           high_performance?: boolean | null
           id?: string | null
           inspection_certificate_url?: never
@@ -11514,14 +11632,12 @@ export type Database = {
           insurance_expiry_date?: string | null
           is_company_vehicle?: boolean | null
           last_inspection_date?: string | null
-          license_plate?: string | null
+          license_plate?: never
           max_capacity_tons?: number | null
           primary_identification?: string | null
           status?: string | null
           updated_at?: string | null
-          vehicle_documents?: never
           vehicle_photo_url?: string | null
-          vehicle_photos?: Json | null
           vehicle_specifications?: string | null
           vehicle_type?: Database["public"]["Enums"]["vehicle_type"] | null
           vehicle_validation_status?: string | null
@@ -11546,6 +11662,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "transport_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "transport_companies_secure"
             referencedColumns: ["id"]
           },
           {
