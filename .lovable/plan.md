@@ -1,316 +1,175 @@
 
+Objetivo
+- Eliminar o erro do browser “Failed to send a request to the Edge Function” ao emitir NF-e.
+- Garantir que a requisição chegue na Edge Function e que a resposta seja sempre JSON (inclusive em erro).
+- Mudanças mínimas e objetivas, apenas em Edge Functions e front-end, sem mexer em banco/migrações.
 
-## Plano: Gerar NF-e de Teste Imediatamente (Sem UI)
+Diagnóstico (com base no código atual)
+1) Front-end está chamando a function errada
+- Em `src/components/fiscal/nfe/NfeEmissionWizard.tsx`, o submit chama `supabase.functions.invoke("nfe-emissao", ...)`.
+- Porém a Edge Function existente e confirmada é `nfe-emitir`.
+- Isso sozinho pode gerar falha no browser dependendo de como o SDK trata 404/Network/CORS.
 
-### Situação Atual
+2) CORS das Edge Functions está incompleto para browser
+- `supabase/functions/nfe-emitir/index.ts` atualmente tem apenas:
+  - Access-Control-Allow-Origin
+  - Access-Control-Allow-Headers
+  - OPTIONS respondendo sem status 204 e sem Allow-Methods/Max-Age.
+- `supabase/functions/nfe-update-status/index.ts` está igual.
+- Preflight (OPTIONS) do browser pode falhar por falta de:
+  - `Access-Control-Allow-Methods: 'POST, OPTIONS'`
+  - `Access-Control-Max-Age: '86400'`
+  - status 204 no OPTIONS
+- Resultado típico: request é bloqueada antes de “chegar” no handler, e o SDK mostra “Failed to send a request…”
 
-**Emissor Fiscal Encontrado:**
-- **ID:** `d7ace860-210d-4cab-957e-2357023c9eeb`
-- **CNPJ:** `62965243000111`
-- **Razão Social:** ANTHONY BOTH
-- **Ambiente:** `production` (⚠️ **PRODUÇÃO**)
-- **Status:** `certificate_uploaded`
-- **Localização:** Primavera do Leste, MT
+3) Front-end não garante Authorization válido antes de chamar emissão
+- No `NfeEmissionWizard.tsx` hoje não existe `getSession()` antes do invoke principal.
+- E não envia `Authorization: Bearer ...` explicitamente (requisito que você pediu).
 
-**⚠️ ALERTA CRÍTICO:** O emissor está configurado em **PRODUÇÃO**. Emitir uma NF-e de teste em produção **gerará um documento fiscal real** com validade legal e custos reais. 
+Escopo e garantias
+- Não alterarei banco, não criarei migrações, não renomearei tabelas/colunas.
+- Mudanças serão somente nestes arquivos:
+  1) `supabase/functions/nfe-emitir/index.ts`
+  2) `supabase/functions/nfe-update-status/index.ts`
+  3) `src/components/fiscal/nfe/NfeEmissionWizard.tsx`
 
-### Opção 1: Emitir NF-e de Teste em PRODUÇÃO (Não Recomendado)
+Implementação (patch planejado)
 
-Se você deseja prosseguir mesmo assim, execute o seguinte código **no console do navegador** (F12) enquanto estiver logado no app:
-
-```javascript
-// Emitir NF-e de teste em PRODUÇÃO
-(async () => {
-  const { data: { session } } = await window.supabase.auth.getSession();
-  
-  if (!session) {
-    console.error('❌ Não há sessão ativa');
-    return;
-  }
-
-  const payload = {
-    issuer_id: 'd7ace860-210d-4cab-957e-2357023c9eeb',
-    freight_id: null,
-    destinatario: {
-      cnpj_cpf: '12345678909',
-      razao_social: 'DESTINATARIO TESTE PRODUCAO',
-      ie: '',
-      email: 'teste@teste.com',
-      telefone: '65999999999',
-      endereco: {
-        logradouro: 'RUA TESTE',
-        numero: '123',
-        bairro: 'CENTRO',
-        municipio: 'CUIABA',
-        uf: 'MT',
-        cep: '78000000'
-      }
-    },
-    itens: [{
-      descricao: 'SERVICO TESTE AGRIROUTE - PRODUCAO',
-      ncm: '',
-      cfop: '5102',
-      unidade: 'UN',
-      quantidade: 1,
-      valor_unitario: 10
-    }],
-    valores: {
-      total: 10,
-      frete: 0,
-      desconto: 0
-    },
-    informacoes_adicionais: 'NF-e de teste - AgriRoute'
-  };
-
-  console.log('🚀 Enviando para nfe-emitir...', payload);
-
-  const { data, error } = await window.supabase.functions.invoke('nfe-emitir', {
-    body: payload,
-    headers: {
-      Authorization: `Bearer ${session.access_token}`
-    }
-  });
-
-  if (error) {
-    console.error('❌ Erro:', error);
-    return;
-  }
-
-  if (!data?.success) {
-    console.error('❌ Falha na emissão:', data);
-    return;
-  }
-
-  console.log('✅ NF-e criada com sucesso!');
-  console.log('📋 Status:', data.status);
-  console.log('📋 Ref interna:', data.internal_ref);
-  console.log('📋 Emission ID:', data.emission_id);
-  if (data.numero) console.log('📋 Número NF-e:', data.numero);
-  if (data.chave) console.log('🔑 Chave de acesso:', data.chave);
-})();
+A) Edge Function: CORS correto em `supabase/functions/nfe-emitir/index.ts`
+1) Substituir o `corsHeaders` pelo modelo EXATO solicitado:
+```ts
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Max-Age': '86400',
+};
 ```
 
-**Consequências desta abordagem:**
-- ✅ Gerará uma NF-e real no SEFAZ MT
-- ⚠️ Consumirá 1 crédito real da carteira fiscal
-- ⚠️ Documento terá validade legal
-- ⚠️ Pode gerar obrigações fiscais (declaração de cancelamento se necessário)
-
----
-
-### Opção 2: Configurar Emissor em Homologação (Recomendado)
-
-Para testar **sem riscos fiscais**, você precisa criar/configurar um emissor em ambiente de homologação. Aqui está o plano:
-
-#### Passo A: Criar Emissor de Homologação via SQL
-
-Execute no **SQL Editor do Supabase** (https://supabase.com/dashboard/project/shnvtxejjecbnztdbbbl/sql/new):
-
-```sql
--- Inserir emissor de teste em homologação
-INSERT INTO public.fiscal_issuers (
-  profile_id,
-  document_type,
-  document_number,
-  legal_name,
-  trade_name,
-  state_registration,
-  uf,
-  city,
-  city_ibge_code,
-  address_street,
-  address_number,
-  address_neighborhood,
-  address_zip_code,
-  tax_regime,
-  fiscal_environment,
-  status,
-  onboarding_completed
-) VALUES (
-  '5968c470-b7a8-4c53-90cd-68a2b726f5bb', -- seu profile_id
-  'CNPJ',
-  '11222333000144', -- CNPJ fictício para homologação
-  'EMPRESA TESTE HOMOLOGACAO LTDA',
-  'TESTE HOMOLOG',
-  '000000000',
-  'MT',
-  'CUIABA',
-  '5103403',
-  'RUA DOS TESTES',
-  '999',
-  'CENTRO',
-  '78000000',
-  'simples_nacional',
-  'homologation', -- ✅ AMBIENTE DE TESTE
-  'certificate_uploaded',
-  true
-)
-RETURNING id, document_number, fiscal_environment;
-```
-
-Este comando retornará o **novo `id`** do emissor de homologação.
-
-#### Passo B: Adicionar Créditos de Teste
-
-```sql
--- Criar carteira fiscal com créditos de teste
-INSERT INTO public.fiscal_wallet (
-  issuer_id,
-  available_balance,
-  reserved_balance,
-  total_consumed
-) VALUES (
-  '<EMISSOR_ID_RETORNADO_ACIMA>', -- substituir pelo ID real
-  100, -- 100 créditos de teste
-  0,
-  0
-)
-ON CONFLICT (issuer_id) DO UPDATE
-SET available_balance = fiscal_wallet.available_balance + 100;
-```
-
-#### Passo C: Gerar NF-e de Teste em Homologação
-
-Agora sim, execute no **console do navegador**:
-
-```javascript
-// Emitir NF-e de teste em HOMOLOGAÇÃO
-(async () => {
-  const { data: { session } } = await window.supabase.auth.getSession();
-  
-  if (!session) {
-    console.error('❌ Não há sessão ativa');
-    return;
-  }
-
-  // ⚠️ SUBSTITUIR pelo ID do emissor de homologação criado no Passo A
-  const ISSUER_ID_HOMOLOG = '<SUBSTITUIR_AQUI>'; 
-
-  const payload = {
-    issuer_id: ISSUER_ID_HOMOLOG,
-    freight_id: null,
-    destinatario: {
-      cnpj_cpf: '12345678909',
-      razao_social: 'DESTINATARIO TESTE HOMOLOGACAO',
-      ie: '',
-      email: 'teste@teste.com',
-      telefone: '65999999999',
-      endereco: {
-        logradouro: 'RUA TESTE',
-        numero: '123',
-        bairro: 'CENTRO',
-        municipio: 'CUIABA',
-        uf: 'MT',
-        cep: '78000000'
-      }
-    },
-    itens: [{
-      descricao: 'SERVICO TESTE AGRIROUTE - HOMOLOGACAO',
-      ncm: '',
-      cfop: '5102',
-      unidade: 'UN',
-      quantidade: 1,
-      valor_unitario: 10
-    }],
-    valores: {
-      total: 10,
-      frete: 0,
-      desconto: 0
-    },
-    informacoes_adicionais: 'NF-e de teste em HOMOLOGACAO - sem validade fiscal'
-  };
-
-  console.log('🚀 Enviando para nfe-emitir (HOMOLOGAÇÃO)...', payload);
-
-  const { data, error } = await window.supabase.functions.invoke('nfe-emitir', {
-    body: payload,
-    headers: {
-      Authorization: `Bearer ${session.access_token}`
-    }
-  });
-
-  if (error) {
-    console.error('❌ Erro:', error);
-    return;
-  }
-
-  if (!data?.success) {
-    console.error('❌ Falha na emissão:', data);
-    return;
-  }
-
-  console.log('✅ NF-e de teste criada com sucesso!');
-  console.log('📋 Status:', data.status);
-  console.log('📋 Ref interna:', data.internal_ref);
-  console.log('📋 Emission ID:', data.emission_id);
-  console.log('🧪 Ambiente: HOMOLOGAÇÃO (sem validade fiscal)');
-})();
-```
-
----
-
-### Opção 3: Usar a Ferramenta de Teste da Edge Function (Mais Seguro)
-
-Como você tem acesso ao projeto, pode usar a ferramenta `supabase--curl_edge_functions` diretamente da sua conta Lovable (sem precisar do console do navegador):
-
-1. Vá em **Tools** no painel Lovable
-2. Selecione **Test Edge Function**
-3. Configure:
-   - **Function:** `nfe-emitir`
-   - **Method:** `POST`
-   - **Body:** (use o payload JSON da Opção 1 ou 2)
-   - **Auth:** Marque "Use current user session"
-
----
-
-### Checklist de Segurança
-
-Antes de executar **qualquer** emissão, confirme:
-
-- [ ] Você entende que emissão em **produção** gera documentos fiscais reais?
-- [ ] Você verificou se o emissor está em **homologação** (ambiente de teste)?
-- [ ] Você tem créditos disponíveis na carteira fiscal?
-- [ ] Você revisou os dados do destinatário (CPF/CNPJ)?
-- [ ] Você confirmou que o token Focus NFe está configurado? (verificar secrets da edge function)
-
----
-
-### Arquivos Envolvidos (Nenhuma Mudança)
-
-Este plano **NÃO modifica nenhum arquivo** do projeto. Apenas utiliza:
-- Edge function existente: `supabase/functions/nfe-emitir/index.ts`
-- Tabelas existentes: `fiscal_issuers`, `fiscal_wallet`, `nfe_emissions`
-
----
-
-### Resultado Esperado
-
-Após executar o código (Opção 1, 2 ou 3):
-
-**Sucesso:**
-```
-✅ NF-e criada com sucesso!
-📋 Status: authorized | processing | pending
-📋 Ref interna: NFE-d7ace860-1737942784962
-📋 Emission ID: <uuid>
-🔑 Chave de acesso: <44 dígitos> (se autorizada)
-```
-
-**Erro Comum - Saldo Insuficiente:**
-```
-❌ Falha na emissão: {
-  code: "INSUFFICIENT_BALANCE",
-  message: "Saldo insuficiente de emissões..."
+2) Ajustar o preflight OPTIONS para status 204 + headers:
+```ts
+if (req.method === 'OPTIONS') {
+  return new Response(null, { status: 204, headers: corsHeaders });
 }
 ```
-**Solução:** Execute o Passo B (adicionar créditos) antes de tentar novamente.
 
-**Erro Comum - Token Focus Não Configurado:**
-```
-❌ Falha na emissão: {
-  code: "CONFIG_MISSING",
-  message: "Configuração fiscal indisponível..."
+3) Garantir que TODAS as respostas retornem JSON com:
+- `...corsHeaders`
+- `'Content-Type': 'application/json'`
+
+Hoje já existe `jsonResponse()` que faz isso:
+```ts
+function jsonResponse(status: number, body: Record<string, unknown>) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 ```
-**Solução:** Configure o secret `FOCUS_NFE_TOKEN` nas configurações da edge function.
+- Vou manter o helper e apenas garantir que ele use o novo `corsHeaders` (com Methods/Max-Age).
 
+4) Logs mínimos e úteis (sem token)
+Logo no início do handler (após OPTIONS) adicionar:
+```ts
+const origin = req.headers.get("Origin");
+const authHeader = req.headers.get("Authorization");
+console.log("[nfe-emitir] Request", {
+  method: req.method,
+  origin,
+  hasAuthorization: !!authHeader,
+});
+```
+- Não logar token.
+- Em caso de erro inesperado, logar stack:
+```ts
+} catch (error) {
+  console.error("[nfe-emitir] Erro inesperado:", error);
+  if (error instanceof Error) console.error("[nfe-emitir] Stack:", error.stack);
+  return jsonResponse(500, { ... });
+}
+```
+
+B) Edge Function: mesmo CORS em `supabase/functions/nfe-update-status/index.ts`
+Repetir exatamente o mesmo padrão:
+1) Atualizar `corsHeaders` para incluir Methods/Max-Age.
+2) OPTIONS retorna 204.
+3) Todas as respostas usam `json()` (já existe) com `...corsHeaders` + JSON content-type.
+4) Logs mínimos no início:
+```ts
+const origin = req.headers.get("Origin");
+const authHeader = req.headers.get("Authorization");
+console.log("[nfe-update-status] Request", {
+  method: req.method,
+  origin,
+  hasAuthorization: !!authHeader,
+});
+```
+E no catch:
+```ts
+console.error("[nfe-update-status] Unexpected error:", error);
+if (error instanceof Error) console.error("[nfe-update-status] Stack:", error.stack);
+```
+
+C) Front-end: Authorization correto + function name correto em `src/components/fiscal/nfe/NfeEmissionWizard.tsx`
+Mudanças mínimas no `handleSubmit()`:
+
+1) Antes de invocar, buscar session:
+```ts
+const { data: { session } } = await supabase.auth.getSession();
+if (!session?.access_token) {
+  toast.error("Sessão inválida", { description: "Faça login novamente." });
+  return;
+}
+```
+
+2) Garantir que o nome chamado é exatamente “nfe-emitir”:
+- Trocar:
+```ts
+await supabase.functions.invoke("nfe-emissao", { ... })
+```
+- Para:
+```ts
+await supabase.functions.invoke("nfe-emitir", { ... })
+```
+
+3) Enviar Authorization explicitamente (sem Bearer undefined):
+```ts
+const { data, error } = await supabase.functions.invoke("nfe-emitir", {
+  body: payload,
+  headers: {
+    Authorization: `Bearer ${session.access_token}`,
+  },
+});
+```
+
+Observação importante (mínimo para não quebrar):
+- Não vou alterar UI/etapas do wizard.
+- Apenas impedir “chamar com token vazio” e padronizar o nome correto da function.
+
+(Extra opcional, mas ainda mínimo e dentro do mesmo arquivo)
+- Para o polling (`pollStatus`) que chama `nfe-update-status`, hoje ele não envia Authorization explicitamente.
+- Isso pode causar 401 e polling “nunca” concluir.
+- Eu recomendo (e vou incluir, por ser mínimo e no mesmo arquivo) pegar `session.access_token` uma vez e passar nos invokes do polling também:
+  - ou buscar session dentro do `pollStatus`
+  - ou passar o token como parâmetro para `pollStatus`
+- Isso melhora a robustez sem mexer em outras abas.
+
+Validação / Como vamos confirmar que ficou pronto (sem “falso concluído”)
+Após aplicar o patch (no modo de implementação), vou validar com evidência:
+1) No browser (route atual `/dashboard/producer`):
+- Clicar “Emitir NF-e”
+- Confirmar que NÃO aparece mais “Failed to send a request to the Edge Function”.
+
+2) Checar se a request chega na function:
+- Usar logs da Edge Function (Supabase) e procurar:
+  - `[nfe-emitir] Request { method: 'POST', origin: ..., hasAuthorization: true }`
+  - e para preflight:
+  - `[nfe-emitir]` não loga OPTIONS porque retornamos antes (OK), mas o browser deve receber 204 com headers.
+
+3) Garantir resposta JSON sempre:
+- Mesmo em erro (401/400/422/500), o client deve receber JSON e exibir toast com mensagem.
+
+Entrega (o que você vai receber no final da implementação)
+- Lista de arquivos alterados (somente os 3 acima).
+- Trechos exatos alterados (corsHeaders + OPTIONS 204 + invoke “nfe-emitir” + getSession + Authorization).
+- Confirmação explícita: não alterei banco / não criei migrações.
