@@ -132,18 +132,19 @@ const Landing: React.FC = () => {
     try {
       setAuthModal({ isOpen: true, initialTab });
       
-      // Verificar se o modal abriu após timeout
+      // Verificar se o modal abriu após timeout mais longo para produção
+      // O SafeAuthModal já tem seus próprios fallbacks, então só verificamos após 6s
       setTimeout(() => {
         const modalExists = document.querySelector(
           '[data-auth-modal-content], [data-fallback-modal], [data-inline-fallback-modal]'
         );
         if (!modalExists) {
-          console.warn('[Landing] Modal não apareceu após 1.2s, fechando backdrop');
+          console.warn('[Landing] Modal não apareceu após 6s, fechando backdrop e redirecionando');
           setAuthModal({ isOpen: false });
           // Redirecionar direto para /auth como fallback final
           navigate(`/auth?mode=${initialTab || 'signup'}`);
         }
-      }, 1200);
+      }, 6000);
     } catch (error) {
       console.error('[Landing] Erro ao abrir modal:', error);
       setAuthModal({ isOpen: false });
