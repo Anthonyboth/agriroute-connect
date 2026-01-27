@@ -1,11 +1,15 @@
-// P0 HOTFIX: Removido onContactClick - Contato removido do header/menu mobile
+// P0 HOTFIX: Contato RECRIADO - onContactClick restaurado para abrir modal simples
 import { useState, useCallback, useEffect } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useNavigate } from "react-router-dom";
 
-export function MobileMenu() {
+interface MobileMenuProps {
+  onContactClick: () => void;
+}
+
+export function MobileMenu({ onContactClick }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -78,7 +82,18 @@ export function MobileMenu() {
           >
             Sobre
           </button>
-          {/* P0 HOTFIX: Botão Contato REMOVIDO do menu mobile */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen(false);
+              onContactClick();
+            }}
+            className="text-left py-3 px-4 rounded-lg hover:bg-accent transition-colors text-base"
+          >
+            Contato
+          </button>
           
           <div className="border-t pt-4 mt-2 flex flex-col gap-3">
             <Button 

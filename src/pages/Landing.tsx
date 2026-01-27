@@ -76,8 +76,10 @@ const HowItWorksModal = lazy(() => import('@/components/HowItWorksModal'));
 const FreightTransportModal = lazy(() => import('@/components/FreightTransportModal').then(m => ({ default: m.FreightTransportModal })));
 const ServicesModal = lazy(() => import('@/components/ServicesModal').then(m => ({ default: m.ServicesModal })));
 const ServiceRequestModal = lazy(() => import('@/components/ServiceRequestModal'));
-const ContactModal = lazy(() => import('@/components/ContactModal').then(m => ({ default: m.ContactModal })));
 const ReportModal = lazy(() => import('@/components/ReportModal'));
+
+// P0 HOTFIX: Modal de Contato novo, simples, inline - sem Radix, sem lazy
+import { ContactSupportModal } from '@/components/contact/ContactSupportModal';
 
 // Lazy load icons - only import what's needed
 import Truck from 'lucide-react/dist/esm/icons/truck';
@@ -193,10 +195,11 @@ const Landing: React.FC = () => {
             </div>
           </div>
           
-          {/* Desktop Navigation - P0: Removido Contato do header */}
+          {/* Desktop Navigation - P0: Contato RECRIADO com modal simples inline */}
           <nav className="hidden md:flex items-center space-x-6">
             <a href="#features" className="text-muted-foreground hover:text-foreground transition-smooth">Recursos</a>
             <button type="button" onClick={() => navigate('/sobre')} className="text-muted-foreground hover:text-foreground transition-smooth">Sobre</button>
+            <button type="button" onClick={() => setContactModal(true)} className="text-muted-foreground hover:text-foreground transition-smooth">Contato</button>
           </nav>
           
           {/* Actions - P0 HOTFIX: Removido botão Cadastrar-se para estabilizar produção */}
@@ -213,7 +216,7 @@ const Landing: React.FC = () => {
             > 
               Entrar
             </Button>
-            <MobileMenu />
+            <MobileMenu onContactClick={() => setContactModal(true)} />
           </div>
         </div>
       </header>
@@ -410,13 +413,7 @@ const Landing: React.FC = () => {
       </footer>
 
       {/* P0 HOTFIX: SafeAuthModal REMOVIDO - cadastro agora é via página /auth */}
-
-      <Suspense fallback={null}>
-        <ContactModal
-          isOpen={contactModal}
-          onClose={() => setContactModal(false)}
-        />
-      </Suspense>
+      {/* P0 HOTFIX: ContactModal antigo REMOVIDO - usando ContactSupportModal novo no final */}
 
       <Suspense fallback={null}>
         <GuestServiceModal
@@ -474,6 +471,12 @@ const Landing: React.FC = () => {
           onClose={() => setReportModal(false)}
         />
       </Suspense>
+
+      {/* P0 HOTFIX: Modal de Contato NOVO - inline, sem Radix, sem Portal */}
+      <ContactSupportModal
+        isOpen={contactModal}
+        onClose={() => setContactModal(false)}
+      />
     </div>
   );
 };
