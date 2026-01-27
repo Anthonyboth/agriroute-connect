@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useId } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -12,6 +12,7 @@ interface CameraSelfieProps {
 }
 
 export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel, autoStart = false }) => {
+  const nativeSelfieInputId = useId();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,18 +26,17 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
   const [uploadMethod, setUploadMethod] = useState<'CAMERA' | 'GALLERY' | null>(null);
   const [useNativeCapture, setUseNativeCapture] = useState(false);
 
-  // P0 FIX: Usar input nativo com capture="user" como método primário em mobile
-  // Isso GARANTE que abre a câmera sem depender de getUserMedia
+  /**
+   * P0 FIX (robustez máxima):
+   * - Em iOS/Android (webview/PWA), programmatic .click() em <input type=file> pode ser bloqueado.
+   * - Usar <label htmlFor="..."> é o caminho mais confiável (browser trata como gesto do usuário).
+   * Mantemos o .click() como fallback (não depende de async).
+   */
   const handleNativeCameraClick = useCallback(() => {
-    console.log('📸 SELFIE_CAPTURE_CLICK - Usando input nativo com capture="user"');
-    
+    console.log('📸 SELFIE_CAPTURE_CLICK - Label/HTMLFor + fallback click');
     if (cameraInputRef.current) {
-      console.log('📸 INPUT_CLICK_TRIGGERED');
-      // CRÍTICO: Click síncrono, sem await, sem setTimeout
+      // Fallback síncrono (alguns navegadores ainda aceitam)
       cameraInputRef.current.click();
-    } else {
-      console.error('❌ cameraInputRef não disponível');
-      toast.error('Erro ao acessar câmera. Tente recarregar a página.');
     }
   }, []);
 
@@ -292,14 +292,15 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
           {showOptions && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
               {/* P0 FIX: Botão primário usa input nativo com capture="user" */}
-              <Button 
-                type="button"
-                onClick={handleNativeCameraClick} 
-                size="lg" 
-                className="w-full"
-              >
-                <Smartphone className="mr-2 h-5 w-5" />
-                Tirar Selfie (Câmera Frontal)
+              <Button asChild size="lg" className="w-full">
+                <label
+                  htmlFor={nativeSelfieInputId}
+                  onClick={handleNativeCameraClick}
+                  className="cursor-pointer"
+                >
+                  <Smartphone className="mr-2 h-5 w-5" />
+                  Tirar Selfie (Câmera Frontal)
+                </label>
               </Button>
               
               {/* Se getUserMedia funcionou antes, mostrar opção de usar preview */}
@@ -364,21 +365,25 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
         {/* P0 FIX: Input nativo para câmera frontal (selfie) - posição absolute para funcionar em todos browsers */}
         <input
           ref={cameraInputRef}
+          id={nativeSelfieInputId}
           type="file"
           accept="image/*"
           capture="user"
           onChange={handleNativeCameraCapture}
           style={{
-            position: 'absolute',
+            // FIX: manter o input dentro do viewport (iOS pode bloquear quando está "recortado")
+            position: 'fixed',
+            top: 1,
+            left: 1,
             width: '1px',
             height: '1px',
             padding: 0,
-            margin: '-1px',
             overflow: 'hidden',
-            clip: 'rect(0, 0, 0, 0)',
             whiteSpace: 'nowrap',
             border: 0,
-            opacity: 0.01 // NÃO zero - alguns browsers bloqueiam click em opacity:0
+            opacity: 0.01, // NÃO zero - alguns browsers bloqueiam click em opacity:0
+            pointerEvents: 'none',
+            zIndex: 10002,
           }}
           aria-label="Capturar selfie com câmera frontal"
         />
