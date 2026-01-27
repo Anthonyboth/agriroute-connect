@@ -11937,10 +11937,9 @@ export type Database = {
         Returns: string
       }
       decrypt_pii_field: { Args: { p_encrypted: string }; Returns: string }
-      decrypt_sensitive_data: {
-        Args: { encrypted_data: string; key?: string }
-        Returns: string
-      }
+      decrypt_sensitive_data:
+        | { Args: { encrypted_data: string }; Returns: string }
+        | { Args: { encrypted_data: string; key?: string }; Returns: string }
       detect_eta_worsening: {
         Args: { p_freight_id: string; p_threshold_minutes?: number }
         Returns: boolean
@@ -11983,10 +11982,9 @@ export type Database = {
       }
       encrypt_document: { Args: { doc: string }; Returns: string }
       encrypt_pii_field: { Args: { p_value: string }; Returns: string }
-      encrypt_sensitive_data: {
-        Args: { data: string; key?: string }
-        Returns: string
-      }
+      encrypt_sensitive_data:
+        | { Args: { data: string }; Returns: string }
+        | { Args: { data: string; key?: string }; Returns: string }
       ensure_current_user_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: undefined
