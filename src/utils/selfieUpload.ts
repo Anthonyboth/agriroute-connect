@@ -92,21 +92,22 @@ export async function uploadSelfieWithInstrumentation({
 
     console.log('[SELFIE-UPLOAD] Usuário autenticado:', user.id);
 
-    // 3. PREPARAR ARQUIVO
+    // 3. PREPARAR ARQUIVO - bucket privado identity-selfies
     const mime = blob.type || 'image/jpeg';
     const extFromMime = (mime.split('/')[1] || 'jpg').toLowerCase();
     const safeExt = extFromMime === 'jpeg' ? 'jpg' : extFromMime;
-    const filePath = `${user.id}/identity_selfie_${Date.now()}.${safeExt}`;
+    // Caminho: selfies/{userId}/filename.ext (conforme storage policy)
+    const filePath = `selfies/${user.id}/identity_selfie_${Date.now()}.${safeExt}`;
     
-    console.log('[SELFIE-UPLOAD] Destino: bucket=profile-photos, path=', filePath);
+    console.log('[SELFIE-UPLOAD] Destino: bucket=identity-selfies, path=', filePath);
     console.log('[SELFIE-UPLOAD] Content-Type:', mime);
 
-    // 4. FAZER UPLOAD
+    // 4. FAZER UPLOAD ao bucket privado
     const { error: uploadError, data: uploadData } = await supabase.storage
-      .from('profile-photos')
+      .from('identity-selfies')
       .upload(filePath, blob, { 
         contentType: mime,
-        upsert: false, // Não sobrescrever
+        upsert: true, // Permitir sobrescrever (re-upload da mesma selfie)
       });
 
     if (uploadError) {
@@ -150,9 +151,9 @@ export async function uploadSelfieWithInstrumentation({
 
     console.log('[SELFIE-UPLOAD] ✅ Upload concluído:', uploadData?.path);
 
-    // 5. CRIAR URL ASSINADA (bucket é privado por padrão)
+    // 5. CRIAR URL ASSINADA (bucket privado identity-selfies)
     const { data: signedData, error: signedError } = await supabase.storage
-      .from('profile-photos')
+      .from('identity-selfies')
       .createSignedUrl(filePath, 60 * 60 * 24); // 24h
 
     if (signedError) {
