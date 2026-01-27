@@ -1,4 +1,4 @@
-// P0 HOTFIX: Contato RECRIADO - onContactClick restaurado para abrir modal simples
+// P0 HOTFIX: Contato e Cadastrar-se RECRIADOS - onSignupClick adicionado para abrir modal de cadastro
 import { useState, useCallback, useEffect } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,9 +7,10 @@ import { useNavigate } from "react-router-dom";
 
 interface MobileMenuProps {
   onContactClick: () => void;
+  onSignupClick: () => void;
 }
 
-export function MobileMenu({ onContactClick }: MobileMenuProps) {
+export function MobileMenu({ onContactClick, onSignupClick }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -49,6 +50,16 @@ export function MobileMenu({ onContactClick }: MobileMenuProps) {
     setOpen(false);
     navigate('/auth?mode=login');
   }, [navigate]);
+
+  const handleSignupClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(false);
+    // Pequeno delay para garantir que o Sheet feche antes de abrir o modal
+    setTimeout(() => {
+      onSignupClick();
+    }, 100);
+  }, [onSignupClick]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -98,12 +109,18 @@ export function MobileMenu({ onContactClick }: MobileMenuProps) {
           <div className="border-t pt-4 mt-2 flex flex-col gap-3">
             <Button 
               type="button"
+              onClick={handleSignupClick}
+              className="w-full justify-start text-base gradient-primary text-primary-foreground font-medium"
+            >
+              Cadastrar-se
+            </Button>
+            <Button 
+              type="button"
               onClick={handleLoginClick}
               className="w-full justify-start text-base bg-orange-500 hover:bg-orange-600 text-gray-900 font-medium"
             >
               Entrar
             </Button>
-            {/* P0 HOTFIX: Botão Cadastrar-se REMOVIDO do menu mobile */}
           </div>
         </nav>
       </SheetContent>
