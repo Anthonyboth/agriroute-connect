@@ -46,6 +46,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
   const location = useLocation();
   const mountedRef = useRef(true);
   const inFlightRef = useRef(false);
+  const isOnboardingRoute = location.pathname.startsWith('/complete-profile');
   
   const [state, setState] = useState<SubscriptionState>({
     subscribed: false,
@@ -71,7 +72,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     // Gate: não executar na rota /auth
-    if (location.pathname === '/auth') {
+    if (location.pathname === '/auth' || isOnboardingRoute) {
+      // Durante onboarding (/complete-profile) não rodar check-subscription para evitar loops
+      // quando o navegador troca de foco/abre câmera nativa.
+      inFlightRef.current = false;
+      if (!mountedRef.current) return;
+      setState(prev => ({ ...prev, loading: false }));
       return;
     }
 
@@ -98,11 +104,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       
       // Verificar se o token está próximo de expirar (< 2 minutos)
-      const expiresAt = sessionData.session.expires_at || 0;
+      // ✅ CRÍTICO: alguns ambientes podem não fornecer expires_at (0/undefined).
+      // Nesses casos, NÃO tente refresh em loop — use o token atual.
+      const expiresAt = sessionData.session.expires_at;
       const now = Math.floor(Date.now() / 1000);
-      const expiresIn = expiresAt - now;
+      const expiresIn = typeof expiresAt === 'number' ? (expiresAt - now) : null;
       
-      if (expiresIn < 120) {
+      if (typeof expiresIn === 'number' && expiresIn < 120) {
         // Token quase expirando, fazer refresh
         console.log('[SubscriptionContext] Token expiring soon, refreshing...');
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
@@ -222,7 +230,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     console.warn('[SubscriptionContext] Using FREE tier due to session/subscription check failure');
     
     inFlightRef.current = false;
-  }, [user, location.pathname]);
+  }, [user, location.pathname, isOnboardingRoute]);
 
   const createCheckout = useCallback(async (category: string, planType: 'essential' | 'professional') => {
     if (!user) {
@@ -290,8 +298,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    
-    if (user) {
+
+    // ✅ ONBOARDING MODE: não disparar check-subscription em /complete-profile
+    // para evitar cascatas de TOKEN_REFRESHED → refetch de perfil/roles.
+    if (user?.id && !isOnboardingRoute) {
       // Debounce subscription check to avoid multiple calls
       timeoutId = setTimeout(() => {
         checkSubscription();
@@ -309,7 +319,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [user]);
+  }, [user?.id, isOnboardingRoute, checkSubscription]);
 
   const value = useMemo(() => ({
     ...state,
