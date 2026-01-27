@@ -864,12 +864,15 @@ const CompleteProfile = () => {
                               return;
                             }
                             
-                            const path = `${user.id}/identity_selfie_${Date.now()}.jpg`;
+                             const mime = blob.type || 'image/jpeg';
+                             const extFromMime = (mime.split('/')[1] || 'jpg').toLowerCase();
+                             const safeExt = extFromMime === 'jpeg' ? 'jpg' : extFromMime;
+                             const path = `${user.id}/identity_selfie_${Date.now()}.${safeExt}`;
                             console.log('📁 Fazendo upload para:', path);
                             
                             const { error: uploadError } = await supabase.storage
                               .from('profile-photos')
-                              .upload(path, blob, { contentType: 'image/jpeg' });
+                               .upload(path, blob, { contentType: mime });
                             
                             if (uploadError) {
                               console.error('❌ Erro no upload:', uploadError);
