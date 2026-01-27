@@ -1,15 +1,11 @@
-// P0 HOTFIX: Removido onSignupClick - cadastro agora é via navegação /auth
+// P0 HOTFIX: Removido onContactClick - Contato removido do header/menu mobile
 import { useState, useCallback, useEffect } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useNavigate } from "react-router-dom";
 
-interface MobileMenuProps {
-  onContactClick: () => void;
-}
-
-export function MobileMenu({ onContactClick }: MobileMenuProps) {
+export function MobileMenu() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -42,13 +38,6 @@ export function MobileMenu({ onContactClick }: MobileMenuProps) {
       navigate(path);
     }
   }, [navigate]);
-
-  const handleContactClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setOpen(false);
-    onContactClick();
-  }, [onContactClick]);
 
   const handleLoginClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -89,13 +78,7 @@ export function MobileMenu({ onContactClick }: MobileMenuProps) {
           >
             Sobre
           </button>
-          <button
-            type="button"
-            onClick={handleContactClick}
-            className="text-left py-3 px-4 rounded-lg hover:bg-accent transition-colors text-base"
-          >
-            Contato
-          </button>
+          {/* P0 HOTFIX: Botão Contato REMOVIDO do menu mobile */}
           
           <div className="border-t pt-4 mt-2 flex flex-col gap-3">
             <Button 

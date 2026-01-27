@@ -193,11 +193,10 @@ const Landing: React.FC = () => {
             </div>
           </div>
           
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - P0: Removido Contato do header */}
           <nav className="hidden md:flex items-center space-x-6">
             <a href="#features" className="text-muted-foreground hover:text-foreground transition-smooth">Recursos</a>
             <button type="button" onClick={() => navigate('/sobre')} className="text-muted-foreground hover:text-foreground transition-smooth">Sobre</button>
-            <button type="button" onClick={() => setContactModal(true)} className="text-muted-foreground hover:text-foreground transition-smooth">Contato</button>
           </nav>
           
           {/* Actions - P0 HOTFIX: Removido botão Cadastrar-se para estabilizar produção */}
@@ -214,7 +213,7 @@ const Landing: React.FC = () => {
             > 
               Entrar
             </Button>
-            <MobileMenu onContactClick={() => setContactModal(true)} />
+            <MobileMenu />
           </div>
         </div>
       </header>
