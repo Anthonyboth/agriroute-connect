@@ -111,8 +111,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
     navigate(`/auth?mode=signup&role=${selectedRole}`);
   };
 
-  const modalInner = (
-    <>
+  // IMPORTANT: DialogTitle/DialogDescription REQUIRE a <Dialog> context.
+  // In `renderMode="inline"`, we render a portal overlay WITHOUT Radix <Dialog>,
+  // so we must use plain markup for the header to avoid runtime errors like:
+  // "DialogTitle must be used within Dialog".
+  const modalHeader =
+    renderMode === 'inline' ? (
+      <div className="mb-4">
+        <div className="flex items-center justify-center space-x-2 mb-2">
+          <Leaf className="h-8 w-8 text-primary" />
+          <h2 className="text-2xl font-bold text-foreground">AgriRoute</h2>
+        </div>
+        <p className="text-center text-sm text-muted-foreground">Plataforma de fretes agrícolas</p>
+      </div>
+    ) : (
       <DialogHeader>
         <div className="flex items-center justify-center space-x-2 mb-2">
           <Leaf className="h-8 w-8 text-primary" />
@@ -120,6 +132,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
         </div>
         <DialogDescription className="text-center">Plataforma de fretes agrícolas</DialogDescription>
       </DialogHeader>
+    );
+
+  const modalInner = (
+    <>
+      {modalHeader}
 
       <Tabs
         value={activeTab}
