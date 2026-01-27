@@ -50,12 +50,18 @@ export default function DeviceDiagnostics() {
 
         case 'camera':
         case 'microphone':
-          const constraints = type === 'camera'
-            ? { video: true, audio: false }
-            : { video: false, audio: true };
-          const stream = await navigator.mediaDevices.getUserMedia(constraints);
-          stream.getTracks().forEach(track => track.stop());
-          success = true;
+          // P0: não usamos APIs avançadas para abrir câmera/microfone.
+          // Aqui o teste é apenas o status (quando suportado) via Permissions API.
+          if ('permissions' in navigator) {
+            try {
+              const res = await (navigator.permissions as any).query({ name: type });
+              success = res?.state === 'granted';
+            } catch {
+              success = false;
+            }
+          } else {
+            success = false;
+          }
           break;
 
         case 'notifications':
@@ -68,10 +74,15 @@ export default function DeviceDiagnostics() {
 
       setTestResults(prev => ({ ...prev, [type]: success }));
       
+      const label = type === 'camera' ? 'câmera' : type === 'microphone' ? 'microfone' : type;
       if (success) {
-        toast.success(`Teste de ${type} passou!`);
+        toast.success(`Teste de ${label} passou!`);
       } else {
-        toast.error(`Teste de ${type} falhou!`);
+        toast.message(`Teste de ${label}`, {
+          description: type === 'camera' || type === 'microphone'
+            ? 'O navegador só solicita essa permissão no momento da captura nativa.'
+            : 'Não foi possível confirmar a permissão neste momento.',
+        });
       }
 
       await checkAllPermissions();
