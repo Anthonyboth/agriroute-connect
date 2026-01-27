@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -22,16 +22,6 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
   const [method, setMethod] = useState<UploadMethod | null>(null);
   const [confirming, setConfirming] = useState(false);
 
-  const ids = useMemo(() => {
-    const rand = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
-      ? (crypto as any).randomUUID()
-      : Math.random().toString(16).slice(2);
-
-    return {
-      selfie: `selfie_capture_${rand}`,
-      gallery: `selfie_gallery_${rand}`,
-    };
-  }, []);
 
   const reset = useCallback(() => {
     setFile(null);
@@ -135,20 +125,46 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
         <div className="relative bg-muted rounded-lg overflow-hidden min-h-[300px] max-h-[50vh]">
           {!hasPreview ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
-              {/* Fluxo 100% nativo: label htmlFor + input dentro do viewport (fixo) */}
-              <Button asChild size="lg" className="w-full">
-                <label htmlFor={ids.selfie} className="cursor-pointer">
-                  <Smartphone className="mr-2 h-5 w-5" />
-                  Capturar Selfie (Câmera Frontal)
-                </label>
-              </Button>
+              {/* 
+                SOLUÇÃO DEFINITIVA: Input DENTRO do label, não separado
+                Isso garante que o gesto do usuário seja reconhecido pelo navegador
+              */}
+              <label className="relative w-full cursor-pointer">
+                <input
+                  ref={selfieInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={onSelfieChange}
+                  className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer"
+                  style={{ zIndex: 10 }}
+                  aria-label="Capturar selfie com câmera frontal"
+                />
+                <Button asChild size="lg" className="w-full pointer-events-none">
+                  <span>
+                    <Smartphone className="mr-2 h-5 w-5" />
+                    Capturar Selfie (Câmera Frontal)
+                  </span>
+                </Button>
+              </label>
 
-              <Button asChild variant="outline" size="lg" className="w-full">
-                <label htmlFor={ids.gallery} className="cursor-pointer">
-                  <Upload className="mr-2 h-5 w-5" />
-                  Enviar da Galeria
-                </label>
-              </Button>
+              <label className="relative w-full cursor-pointer">
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={onGalleryChange}
+                  className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer"
+                  style={{ zIndex: 10 }}
+                  aria-label="Selecionar imagem da galeria"
+                />
+                <Button asChild variant="outline" size="lg" className="w-full pointer-events-none">
+                  <span>
+                    <Upload className="mr-2 h-5 w-5" />
+                    Enviar da Galeria
+                  </span>
+                </Button>
+              </label>
 
               {onCancel && (
                 <Button type="button" variant="ghost" onClick={onCancel} className="w-full">
@@ -162,43 +178,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
           )}
         </div>
 
-        {/* Inputs nativos (NÃO usar display:none; manter dentro do viewport) */}
-        <input
-          ref={selfieInputRef}
-          id={ids.selfie}
-          type="file"
-          accept="image/*"
-          capture="user"
-          onChange={onSelfieChange}
-          style={{
-            position: 'fixed',
-            top: 8,
-            left: 8,
-            width: 1,
-            height: 1,
-            opacity: 0.01,
-            zIndex: 2147483647,
-          }}
-          aria-label="Capturar selfie com câmera frontal"
-        />
-
-        <input
-          ref={galleryInputRef}
-          id={ids.gallery}
-          type="file"
-          accept="image/*"
-          onChange={onGalleryChange}
-          style={{
-            position: 'fixed',
-            top: 8,
-            left: 12,
-            width: 1,
-            height: 1,
-            opacity: 0.01,
-            zIndex: 2147483647,
-          }}
-          aria-label="Selecionar imagem da galeria"
-        />
+        {/* Inputs INLINE dentro do label - garante gesto direto do usuário */}
 
         {hasPreview && (
           <div className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 pt-3 pb-1 -mx-6 px-6 border-t">
