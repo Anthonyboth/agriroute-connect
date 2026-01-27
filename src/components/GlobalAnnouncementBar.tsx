@@ -31,7 +31,7 @@ export const GlobalAnnouncementBar = () => {
     const isPublicPath = typeof window !== 'undefined' && (
       window.location.pathname === '/' ||
       window.location.pathname.startsWith('/auth') ||
-      ['/about', '/privacy', '/terms', '/cookies', '/plans', '/services', '/help', '/careers', '/status'].includes(window.location.pathname)
+      ['/sobre', '/privacy', '/privacidade', '/terms', '/termos', '/cookies', '/plans', '/services', '/help', '/ajuda', '/careers', '/carreiras', '/status'].includes(window.location.pathname)
     );
 
     // On public pages, avoid Realtime subscriptions (WebSocket errors hurt Lighthouse) and use light polling instead.

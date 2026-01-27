@@ -11,7 +11,7 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 // Check if we're on a public page that doesn't need realtime
 const isPublicPage = typeof window !== 'undefined' && 
-  ['/', '/auth', '/about', '/privacy', '/terms', '/cookies', '/plans', '/services', '/help', '/careers', '/status'].some(
+  ['/', '/auth', '/sobre', '/privacy', '/privacidade', '/terms', '/termos', '/cookies', '/plans', '/services', '/help', '/ajuda', '/careers', '/carreiras', '/status'].some(
     path => window.location.pathname === path || window.location.pathname.startsWith('/auth')
   );
 
