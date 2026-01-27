@@ -38,6 +38,7 @@ const AffiliatedDriverSignup = () => {
   const [isValidating, setIsValidating] = useState(false);
   const [showSelfieModal, setShowSelfieModal] = useState(false);
   const [selfieBlobPending, setSelfieBlobPending] = useState<Blob | null>(null);
+  const [selfieMethodPending, setSelfieMethodPending] = useState<'CAMERA' | 'GALLERY'>('CAMERA');
 
   // Form data
   const [formData, setFormData] = useState({
@@ -305,26 +306,28 @@ const AffiliatedDriverSignup = () => {
 
       if (!profileData) throw new Error('Erro ao criar perfil');
 
-      // 4. Upload selfie após autenticação
+      // 4. Upload selfie após autenticação (com instrumentação completa)
       let selfieUrl = documentUrls.selfie;
       if (selfieBlobPending) {
         try {
-          const fileExt = selfieBlobPending.type.split('/')[1] || 'jpg';
-          const fileName = `${Date.now()}_selfie.${fileExt}`;
-          const filePath = `${authData.user.id}/${fileName}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('profile-photos')
-            .upload(filePath, selfieBlobPending);
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('profile-photos')
-            .getPublicUrl(filePath);
-
-          selfieUrl = publicUrl;
-          console.log('✅ Selfie uploaded successfully:', selfieUrl);
+          const { uploadSelfieWithInstrumentation } = await import('@/utils/selfieUpload');
+          const result = await uploadSelfieWithInstrumentation({
+            blob: selfieBlobPending,
+            uploadMethod: selfieMethodPending || 'CAMERA',
+          });
+          
+          if (result.success && result.signedUrl) {
+            selfieUrl = result.signedUrl;
+            console.log('✅ Selfie uploaded successfully:', selfieUrl);
+          } else if (result.error) {
+            console.error('⚠️ Erro ao fazer upload da selfie:', result.error);
+            const errorDetail = result.error.status 
+              ? `${result.error.message} (${result.error.status})`
+              : result.error.message;
+            toast.message('Selfie não foi enviada', {
+              description: `${errorDetail}. Você poderá enviá-la depois no perfil.`
+            });
+          }
         } catch (error: any) {
           console.error('⚠️ Erro ao fazer upload da selfie:', error);
           toast.message('Selfie não foi enviada', {
@@ -448,8 +451,9 @@ const AffiliatedDriverSignup = () => {
 
   const handleSelfieCapture = async (imageBlob: Blob, uploadMethod: 'CAMERA' | 'GALLERY') => {
     try {
-      // Armazenar Blob em memória - upload será feito após autenticação
+      // Armazenar Blob e método em memória - upload será feito após autenticação
       setSelfieBlobPending(imageBlob);
+      setSelfieMethodPending(uploadMethod);
       
       // Criar preview local
       const previewUrl = URL.createObjectURL(imageBlob);
