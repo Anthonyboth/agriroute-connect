@@ -78,25 +78,28 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({
         }
       }
 
-      // Criar perfil adicional usando a função RPC
-      const { data: newProfileId, error } = await supabase.rpc('create_additional_profile', {
-        p_user_id: user.id,
-        p_role: targetRole
-      });
+      // ✅ P0 HOTFIX: RPC idempotente retorna JSONB
+      const payload = { p_user_id: user.id, p_role: targetRole };
+      console.log('CREATE_ADDITIONAL_PROFILE_CALLED', { userId: user.id, payloadKeys: Object.keys(payload) });
+      
+      const { data: rpcResult, error } = await supabase.rpc('create_additional_profile', payload);
 
       if (error) {
-        console.error('[AddProfileModal] Erro ao criar perfil:', error);
-        
-        const errorMsg = error.message || '';
-        if (errorMsg.includes('já possui um perfil')) {
-          toast.error(errorMsg);
-        } else if (errorMsg.includes('já está cadastrado')) {
-          toast.error('Este CPF/CNPJ já está em uso por outro usuário.');
-        } else {
-          toast.error(`Erro ao criar perfil: ${errorMsg}`);
-        }
+        console.error('CREATE_ADDITIONAL_PROFILE_ERROR', error);
+        toast.error(`Erro ao criar perfil: ${error.message || 'Erro desconhecido'}`);
         return;
       }
+      
+      // RPC retorna JSONB: { success, profile_id, already_exists, message }
+      const result = rpcResult as { success: boolean; profile_id: string | null; already_exists: boolean; message: string };
+      console.log('[AddProfileModal] RPC result:', result);
+      
+      if (!result.success) {
+        toast.error(result.message || 'Erro ao criar perfil');
+        return;
+      }
+      
+      const newProfileId = result.profile_id;
 
       // Salvar novo perfil como ativo
       if (newProfileId) {

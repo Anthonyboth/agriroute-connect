@@ -275,31 +275,40 @@ const Auth = () => {
                   }
                 }
               } else {
-                // Criar novo perfil adicional usando a função RPC
+                // ✅ P0 HOTFIX: Criar novo perfil via RPC (idempotente)
                 try {
-                  const { data: newProfileId, error: rpcError } = await supabase.rpc('create_additional_profile', {
+                  const payload = {
                     p_user_id: loginData.user.id,
                     p_role: targetRole,
                     p_full_name: fullName,
                     p_phone: phone,
                     p_document: cleanDoc
+                  };
+                  console.log('CREATE_ADDITIONAL_PROFILE_CALLED', { 
+                    userId: loginData.user.id, 
+                    payloadKeys: Object.keys(payload) 
                   });
+                  
+                  const { data: rpcResult, error: rpcError } = await supabase.rpc('create_additional_profile', payload);
 
                   if (rpcError) {
-                    console.error('[Auth] Erro ao criar perfil adicional:', rpcError);
-                    
-                    // Exibir mensagem de erro específica
-                    const errorMsg = rpcError.message || '';
-                    if (errorMsg.includes('já possui um perfil')) {
-                      toast.error(errorMsg);
-                    } else if (errorMsg.includes('já está cadastrado')) {
-                      toast.error('Este CPF/CNPJ já está em uso por outro usuário.');
-                    } else {
-                      toast.error(`Erro ao criar perfil: ${errorMsg}`);
-                    }
+                    console.error('CREATE_ADDITIONAL_PROFILE_ERROR', rpcError);
+                    toast.error(`Erro ao criar perfil: ${rpcError.message || 'Erro desconhecido'}`);
                     setLoading(false);
                     return;
                   }
+                  
+                  // ✅ RPC agora retorna JSONB com success, profile_id, already_exists, message
+                  const result = rpcResult as { success: boolean; profile_id: string | null; already_exists: boolean; message: string };
+                  console.log('[Auth] RPC result:', result);
+                  
+                  if (!result.success) {
+                    toast.error(result.message || 'Erro ao criar perfil');
+                    setLoading(false);
+                    return;
+                  }
+                  
+                  const newProfileId = result.profile_id;
 
                   // Ativar o novo perfil
                   localStorage.setItem('current_profile_id', newProfileId);
