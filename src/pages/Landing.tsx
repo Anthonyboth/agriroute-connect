@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PlatformStatsSection } from '@/components/LazyComponents';
 import { MobileMenu } from '@/components/MobileMenu';
 import { SafeAuthModal } from '@/components/SafeAuthModal';
+import { cleanupModalBackdrop } from '@/lib/runtime-health-check';
 
 // Intersection Observer wrapper for deferred loading
 const LazyStatsSection = () => {
@@ -137,6 +138,9 @@ const Landing: React.FC = () => {
     });
     
     try {
+      // ✅ P0 FIX: sempre limpar qualquer overlay/backdrop preso ANTES de abrir
+      cleanupModalBackdrop();
+
       setAuthModal({ isOpen: true, initialTab });
       
       // ✅ P0 FIX: SafeAuthModal gerencia fallbacks internamente
@@ -147,12 +151,14 @@ const Landing: React.FC = () => {
         );
         if (!modalExists) {
           console.warn('[Landing] Modal não apareceu após 8s - fechando (sem redirect automático)');
+          cleanupModalBackdrop();
           setAuthModal({ isOpen: false });
           // ❌ REMOVIDO: navigate() automático - usuario deve clicar novamente
         }
       }, 8000);
     } catch (error) {
       console.error('[Landing] Erro ao abrir modal:', error);
+      cleanupModalBackdrop();
       setAuthModal({ isOpen: false });
       // ❌ REMOVIDO: navigate() automático - usuario deve clicar novamente
     }
@@ -251,6 +257,7 @@ const Landing: React.FC = () => {
             <Button 
               type="button"
               onClick={(e) => {
+                console.log('SIGNUP_CLICK', { tag: e.currentTarget?.tagName, type: (e.currentTarget as any)?.type });
                 e.preventDefault();
                 e.stopPropagation();
                 openAuthModal('signup');
@@ -381,7 +388,13 @@ const Landing: React.FC = () => {
           </h2>
           <Button
             size="lg"
-            onClick={() => openAuthModal('signup')}
+            type="button"
+            onClick={(e) => {
+              console.log('SIGNUP_CLICK', { tag: e.currentTarget?.tagName, type: (e.currentTarget as any)?.type });
+              e.preventDefault();
+              e.stopPropagation();
+              openAuthModal('signup');
+            }}
             className="bg-background text-foreground text-lg px-8 py-6 rounded-xl hover:scale-105 transition-bounce shadow-xl"
           >
             Começar Agora

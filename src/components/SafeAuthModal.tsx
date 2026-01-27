@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Leaf, User, Truck, Wrench, Building2, ArrowRight } from 'lucide-react';
+import { cleanupModalBackdrop } from '@/lib/runtime-health-check';
 
 // Importação ESTÁTICA do AuthModal - evita problemas de chunk loading
 import AuthModal from '@/components/AuthModal';
@@ -27,8 +28,9 @@ import AuthModal from '@/components/AuthModal';
 // ===============================
 // CONFIGURAÇÃO - Timeouts aumentados para produção (redes lentas)
 // ===============================
-const FAILSAFE_TIMEOUT_MS = 1500; // 1.5s para ativar fallback Radix (mais tolerante para produção)
-const ULTIMATE_FALLBACK_MS = 3000; // 3s para tentar inline fallback
+// ✅ P0: fallback deve acontecer rápido para evitar "overlay preto" preso
+const FAILSAFE_TIMEOUT_MS = 300; // <= 300ms
+const ULTIMATE_FALLBACK_MS = 300; // <= 300ms
 const DOM_VERIFICATION_ATTRIBUTE = 'data-auth-modal-content';
 
 // ✅ P0 HOTFIX: Detecta se é ambiente de produção (agriroute-connect.com.br)
@@ -230,6 +232,9 @@ export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProp
       clearTimeout(ultimateTimeoutRef.current);
       ultimateTimeoutRef.current = null;
     }
+
+    // ✅ P0: garantir que não sobra backdrop/portal preso
+    cleanupModalBackdrop();
   }, []);
 
   // Força fechamento do modal se algo der errado
@@ -298,8 +303,10 @@ export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProp
             initialTab,
             fallbackLevel: 'inline',
           });
-          
-           // Ativa inline render (sem Portal)
+          // ✅ P0: limpar overlay antes de alternar para inline
+          cleanupModalBackdrop();
+
+          // Ativa inline render (sem Portal)
           setUseInlineFallback(true);
         }
       }, ULTIMATE_FALLBACK_MS);
