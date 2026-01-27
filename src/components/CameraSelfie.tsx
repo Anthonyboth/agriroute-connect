@@ -134,10 +134,14 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
                   style={{ zIndex: 10 }}
                   aria-label="Capturar selfie com câmera frontal"
                 />
-                <Button asChild size="lg" className="w-full pointer-events-none">
+                <Button 
+                  asChild 
+                  size="lg" 
+                  className="w-full pointer-events-none bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
                   <span>
-                    <Smartphone className="mr-2 h-5 w-5" />
-                    Capturar Selfie (Câmera Frontal)
+                    <Camera className="mr-2 h-5 w-5" />
+                    Capturar Selfie
                   </span>
                 </Button>
               </label>
@@ -179,7 +183,13 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel 
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Refazer
               </Button>
-              <Button type="button" onClick={confirm} size="lg" className="flex-1" disabled={confirming}>
+              <Button 
+                type="button" 
+                onClick={confirm} 
+                size="lg" 
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground" 
+                disabled={confirming}
+              >
                 <Check className="mr-2 h-4 w-4" />
                 {confirming ? 'Confirmando...' : 'Confirmar'}
               </Button>
