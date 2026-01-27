@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2, Mail, Eye, EyeOff, Truck, Building2, ArrowLeft, AlertTriangle, Users, Info, Briefcase, Building } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
@@ -19,10 +18,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getErrorMessage } from '@/lib/error-handler';
 import { ProfileSelectorModal } from '@/components/ProfileSelectorModal';
 import { getDashboardByRole, isValidRole } from '@/lib/auth-utils';
-
-// Valid roles for signup
-const VALID_SIGNUP_ROLES = ['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'PRESTADOR_SERVICOS', 'TRANSPORTADORA'] as const;
-type SignupRole = typeof VALID_SIGNUP_ROLES[number];
+import { RoleSelectionCards } from '@/components/auth/RoleSelectionCards';
+import { VALID_SIGNUP_ROLES, isValidSignupRole, type SignupRole } from '@/lib/user-roles';
 
 // Parse and validate role from URL
 function parseRoleFromUrl(roleParam: string | null): SignupRole | null {
@@ -706,47 +703,31 @@ const Auth = () => {
             <TabsContent value="signup">
               <div className="space-y-4">
                 {/* Step 1: Seleção de Role */}
+                {/* ✅ P0 FIX: Seleção de role via CARDS (removido dropdown/select) */}
                 {signupStep === 'role-selection' && (
-                  <div className="space-y-4">
-                    <Label htmlFor="role">Tipo de Usuário</Label>
-                    <Select 
-                      value={role === 'MOTORISTA' && !driverType ? 'MOTORISTA/TRANSPORTADORA' : role} 
-                      onValueChange={(value) => {
-                        if (value === 'MOTORISTA/TRANSPORTADORA') {
-                          setRole('MOTORISTA');
-                        } else {
-                          setRole(value as 'PRODUTOR' | 'PRESTADOR_SERVICOS');
-                          setDriverType(null);
-                        }
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo de usuário" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PRODUTOR">Produtor/Contratante</SelectItem>
-                        <SelectItem value="MOTORISTA/TRANSPORTADORA">Motorista/Transportadora</SelectItem>
-                        <SelectItem value="PRESTADOR_SERVICOS">Prestador de Serviços</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    
-                    {/* Botão Continuar - aparece quando um tipo é selecionado */}
-                    {role && (
-                      <Button 
-                        type="button"
-                        className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold"
-                        onClick={() => {
-                          if (role === 'MOTORISTA') {
-                            setSignupStep('driver-type');
-                          } else {
-                            setSignupStep('form');
-                          }
-                        }}
-                      >
-                        Continuar
-                      </Button>
-                    )}
-                  </div>
+                  <RoleSelectionCards
+                    selectedRole={role === 'MOTORISTA_AFILIADO' ? null : role}
+                    onRoleSelect={(selectedRole) => {
+                      setRole(selectedRole);
+                      setDriverType(null);
+                    }}
+                    onContinue={() => {
+                      // MOTORISTA vai para driver-type (escolher entre autônomo, afiliado, transportadora)
+                      if (role === 'MOTORISTA') {
+                        setSignupStep('driver-type');
+                      } else if (role === 'TRANSPORTADORA') {
+                        // Transportadora vai direto para form com driverType setado
+                        setDriverType('TRANSPORTADORA');
+                        setSignupStep('form');
+                      } else {
+                        // PRODUTOR e PRESTADOR_SERVICOS vão direto para form
+                        setSignupStep('form');
+                      }
+                    }}
+                    title="Escolha o tipo de conta"
+                    description="Selecione o perfil que melhor se encaixa com você"
+                    continueButtonText="Continuar"
+                  />
                 )}
 
                 {/* Step 2: Escolha entre Motorista, Motorista Afiliado ou Transportadora */}

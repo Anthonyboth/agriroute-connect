@@ -13,8 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Eye, EyeOff, Truck, Users, Leaf, Building2, Wrench, X } from 'lucide-react';
+import { Eye, EyeOff, Leaf, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { USER_ROLES, type CardSelectableRole } from '@/lib/user-roles';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -28,41 +29,12 @@ interface AuthModalProps {
   renderMode?: 'dialog' | 'inline';
 }
 
-type UserRole = 'PRODUTOR' | 'MOTORISTA' | 'TRANSPORTADORA' | 'PRESTADOR_SERVICOS';
-
-const userRoles: { value: UserRole; label: string; icon: React.ReactNode; description: string }[] = [
-  { 
-    value: 'PRODUTOR', 
-    label: 'Produtor/Contratante', 
-    icon: <Users className="h-6 w-6" />,
-    description: 'Contrate fretes para suas cargas'
-  },
-  { 
-    value: 'MOTORISTA', 
-    label: 'Motorista', 
-    icon: <Truck className="h-6 w-6" />,
-    description: 'Encontre e aceite fretes'
-  },
-  { 
-    value: 'TRANSPORTADORA', 
-    label: 'Transportadora', 
-    icon: <Building2 className="h-6 w-6" />,
-    description: 'Gerencie sua frota e motoristas'
-  },
-  { 
-    value: 'PRESTADOR_SERVICOS', 
-    label: 'Prestador de Serviços', 
-    icon: <Wrench className="h-6 w-6" />,
-    description: 'Ofereça serviços auxiliares'
-  },
-];
-
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'login', renderMode = 'dialog' }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const [selectedRole, setSelectedRole] = useState<CardSelectableRole | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   
   const [loginForm, setLoginForm] = useState({
@@ -104,7 +76,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
     navigate('/auth?mode=login');
   };
 
-  const handleSignupRoleSelect = (role: UserRole) => {
+  const handleSignupRoleSelect = (role: CardSelectableRole) => {
     setSelectedRole(role);
   };
 
@@ -205,27 +177,30 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
             <p className="text-sm text-muted-foreground">Selecione o perfil que melhor se encaixa com você</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {userRoles.map((role) => (
-                <Card
-                  key={role.value}
-                  className={`cursor-pointer transition-all duration-200 ${
-                    selectedRole === role.value
-                      ? 'ring-2 ring-primary bg-primary/5 shadow-md'
-                      : 'hover:bg-muted/50 hover:shadow-sm'
-                  }`}
-                  onClick={() => handleSignupRoleSelect(role.value)}
-                >
-                  <CardContent className="flex flex-col items-center justify-center p-4 text-center">
-                    <div
-                      className={`mb-2 ${selectedRole === role.value ? 'text-primary' : 'text-muted-foreground'}`}
-                    >
-                      {role.icon}
-                    </div>
-                    <span className="text-sm font-medium">{role.label}</span>
-                    <span className="text-xs text-muted-foreground mt-1">{role.description}</span>
-                  </CardContent>
-                </Card>
-              ))}
+              {USER_ROLES.map((role) => {
+                const IconComponent = role.icon;
+                return (
+                  <Card
+                    key={role.value}
+                    className={`cursor-pointer transition-all duration-200 ${
+                      selectedRole === role.value
+                        ? 'ring-2 ring-primary bg-primary/5 shadow-md'
+                        : 'hover:bg-muted/50 hover:shadow-sm'
+                    }`}
+                    onClick={() => handleSignupRoleSelect(role.value as CardSelectableRole)}
+                  >
+                    <CardContent className="flex flex-col items-center justify-center p-4 text-center">
+                      <div
+                        className={`mb-2 ${selectedRole === role.value ? 'text-primary' : 'text-muted-foreground'}`}
+                      >
+                        <IconComponent className="h-6 w-6" />
+                      </div>
+                      <span className="text-sm font-medium">{role.label}</span>
+                      <span className="text-xs text-muted-foreground mt-1">{role.description}</span>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
 
