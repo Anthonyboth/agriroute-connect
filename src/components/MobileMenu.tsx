@@ -1,3 +1,4 @@
+// P0 HOTFIX: Removido onSignupClick - cadastro agora é via navegação /auth
 import { useState, useCallback, useEffect } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,10 +7,9 @@ import { useNavigate } from "react-router-dom";
 
 interface MobileMenuProps {
   onContactClick: () => void;
-  onSignupClick?: () => void;
 }
 
-export function MobileMenu({ onContactClick, onSignupClick }: MobileMenuProps) {
+export function MobileMenu({ onContactClick }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -50,25 +50,12 @@ export function MobileMenu({ onContactClick, onSignupClick }: MobileMenuProps) {
     onContactClick();
   }, [onContactClick]);
 
-  const handleSignupClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setOpen(false);
-    // Pequeno delay para garantir que o Sheet fechou antes de abrir o modal
-    setTimeout(() => {
-      if (onSignupClick) {
-        onSignupClick();
-      } else {
-        navigate('/auth?mode=signup');
-      }
-    }, 100);
-  }, [onSignupClick, navigate]);
-
   const handleLoginClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    handleNavigation('/auth?mode=login');
-  }, [handleNavigation]);
+    setOpen(false);
+    navigate('/auth?mode=login');
+  }, [navigate]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -118,13 +105,7 @@ export function MobileMenu({ onContactClick, onSignupClick }: MobileMenuProps) {
             >
               Entrar
             </Button>
-            <Button 
-              type="button"
-              onClick={handleSignupClick}
-              className="w-full justify-start text-base bg-green-600 hover:bg-green-700 text-white"
-            >
-              Cadastrar-se
-            </Button>
+            {/* P0 HOTFIX: Botão Cadastrar-se REMOVIDO do menu mobile */}
           </div>
         </nav>
       </SheetContent>

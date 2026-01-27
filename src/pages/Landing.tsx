@@ -1,5 +1,6 @@
 // Sprint 1: Performance optimization - removed dead carousel code
-import React, { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
+// P0 HOTFIX: Removido SafeAuthModal e cleanupModalBackdrop para eliminar loop infinito
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,8 +8,6 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlatformStatsSection } from '@/components/LazyComponents';
 import { MobileMenu } from '@/components/MobileMenu';
-import { SafeAuthModal } from '@/components/SafeAuthModal';
-import { cleanupModalBackdrop } from '@/lib/runtime-health-check';
 
 // Intersection Observer wrapper for deferred loading
 const LazyStatsSection = () => {
@@ -94,9 +93,7 @@ import { HERO_BG_DESKTOP, HERO_BG_MOBILE } from '@/lib/hero-assets';
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
-  const [authModal, setAuthModal] = useState<{ isOpen: boolean; initialTab?: 'login' | 'signup' }>({
-    isOpen: false,
-  });
+  // P0 HOTFIX: Removido authModal state - cadastro agora é via /auth direto
   
   const [mudancaModal, setMudancaModal] = useState(false);
   const [guestServiceModal, setGuestServiceModal] = useState<{ isOpen: boolean; serviceType?: 'GUINCHO' | 'MUDANCA' | 'FRETE_URBANO' }>({
@@ -129,44 +126,7 @@ const Landing: React.FC = () => {
     closeHowItWorksModal();
   };
 
-  const openAuthModal = useCallback((initialTab?: 'login' | 'signup') => {
-    // ✅ P0 HOTFIX: Instrumentação obrigatória
-    console.log('AUTH_MODAL_OPEN_CLICK', { 
-      pathname: window.location.pathname, 
-      hostname: window.location.hostname,
-      initialTab 
-    });
-    
-    try {
-      // ✅ P0 FIX: sempre limpar qualquer overlay/backdrop preso ANTES de abrir
-      cleanupModalBackdrop();
-
-      setAuthModal({ isOpen: true, initialTab });
-      
-      // ✅ P0 FIX: SafeAuthModal gerencia fallbacks internamente
-      // Timeout de segurança apenas fecha modal e loga - NÃO redireciona automaticamente
-      setTimeout(() => {
-        const modalExists = document.querySelector(
-          '[data-auth-modal-content], [data-fallback-modal], [data-inline-fallback-modal]'
-        );
-        if (!modalExists) {
-          console.warn('[Landing] Modal não apareceu após 8s - fechando (sem redirect automático)');
-          cleanupModalBackdrop();
-          setAuthModal({ isOpen: false });
-          // ❌ REMOVIDO: navigate() automático - usuario deve clicar novamente
-        }
-      }, 8000);
-    } catch (error) {
-      console.error('[Landing] Erro ao abrir modal:', error);
-      cleanupModalBackdrop();
-      setAuthModal({ isOpen: false });
-      // ❌ REMOVIDO: navigate() automático - usuario deve clicar novamente
-    }
-  }, [navigate]);
-
-  const closeAuthModal = useCallback(() => {
-    setAuthModal({ isOpen: false });
-  }, []);
+  // P0 HOTFIX: Removido openAuthModal, closeAuthModal - causava loop infinito
 
   const handleServiceSelect = (service: any) => {
     setSelectedService(service);
@@ -240,7 +200,7 @@ const Landing: React.FC = () => {
             <button onClick={() => setContactModal(true)} className="text-muted-foreground hover:text-foreground transition-smooth">Contato</button>
           </nav>
           
-          {/* Actions */}
+          {/* Actions - P0 HOTFIX: Removido botão Cadastrar-se para estabilizar produção */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             <ThemeToggle />
             <Button 
@@ -254,19 +214,7 @@ const Landing: React.FC = () => {
             > 
               Entrar
             </Button>
-            <Button 
-              type="button"
-              onClick={(e) => {
-                console.log('SIGNUP_CLICK', { tag: e.currentTarget?.tagName, type: (e.currentTarget as any)?.type });
-                e.preventDefault();
-                e.stopPropagation();
-                openAuthModal('signup');
-              }}
-              className="hidden sm:flex gradient-primary"
-            > 
-              Cadastrar-se
-            </Button>
-            <MobileMenu onContactClick={() => setContactModal(true)} onSignupClick={() => openAuthModal('signup')} />
+            <MobileMenu onContactClick={() => setContactModal(true)} />
           </div>
         </div>
       </header>
@@ -380,7 +328,7 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA Section - P0 HOTFIX: Botão "Começar Agora" navega direto para /auth */}
       <section className="py-20 gradient-hero">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-12 drop-shadow-lg">
@@ -390,10 +338,9 @@ const Landing: React.FC = () => {
             size="lg"
             type="button"
             onClick={(e) => {
-              console.log('SIGNUP_CLICK', { tag: e.currentTarget?.tagName, type: (e.currentTarget as any)?.type });
               e.preventDefault();
               e.stopPropagation();
-              openAuthModal('signup');
+              navigate('/auth?mode=signup');
             }}
             className="bg-background text-foreground text-lg px-8 py-6 rounded-xl hover:scale-105 transition-bounce shadow-xl"
           >
@@ -463,12 +410,7 @@ const Landing: React.FC = () => {
         </div>
       </footer>
 
-      {/* SafeAuthModal com fail-safe anti-travamento - importação estática */}
-      <SafeAuthModal 
-        isOpen={authModal.isOpen}
-        onClose={closeAuthModal}
-        initialTab={authModal.initialTab}
-      />
+      {/* P0 HOTFIX: SafeAuthModal REMOVIDO - cadastro agora é via página /auth */}
 
       <Suspense fallback={null}>
         <ContactModal
