@@ -122,9 +122,8 @@ export const getDeviceName = (): string => {
 export const getDeviceCapabilities = async (): Promise<DeviceInfo['capabilities']> => {
   return {
     geolocation: 'geolocation' in navigator,
-    // P0: não dependemos de APIs avançadas de mídia; captura é feita via input nativo.
-    camera: 'mediaDevices' in navigator,
-    microphone: 'mediaDevices' in navigator,
+    camera: 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices,
+    microphone: 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices,
     notifications: 'Notification' in window && 'serviceWorker' in navigator,
     storage: 'localStorage' in window,
   };
