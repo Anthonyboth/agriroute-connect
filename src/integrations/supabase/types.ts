@@ -11929,7 +11929,7 @@ export type Database = {
           p_role: string
           p_user_id: string
         }
-        Returns: string
+        Returns: Json
       }
       current_profile_id: { Args: never; Returns: string }
       decrypt_document: {

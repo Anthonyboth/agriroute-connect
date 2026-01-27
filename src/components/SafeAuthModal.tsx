@@ -31,7 +31,13 @@ const FAILSAFE_TIMEOUT_MS = 1500; // 1.5s para ativar fallback Radix (mais toler
 const ULTIMATE_FALLBACK_MS = 3000; // 3s para tentar inline fallback
 const DOM_VERIFICATION_ATTRIBUTE = 'data-auth-modal-content';
 
-// Detecta se é ambiente de produção
+// ✅ P0 HOTFIX: Detecta se é ambiente de produção (agriroute-connect.com.br)
+const IS_PRODUCTION_DOMAIN = typeof window !== 'undefined' && (
+  window.location.hostname === 'agriroute-connect.com.br' ||
+  window.location.hostname.endsWith('.agriroute-connect.com.br')
+);
+
+// Produção ou Preview publicado (não lovableproject.com)
 const IS_PRODUCTION = typeof window !== 'undefined' &&
   !window.location.hostname.includes('lovableproject.com') &&
   !window.location.hostname.includes('localhost');
@@ -203,9 +209,9 @@ function FallbackAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProps) 
 // SAFE AUTH MODAL (principal)
 // ===============================
 export function SafeAuthModal({ isOpen, onClose, initialTab }: SafeAuthModalProps) {
-  // ✅ PRODUÇÃO: usar modo inline (sem Portal) imediatamente para evitar tela preta
-  // (o visual/UX é o MESMO do AuthModal, apenas sem Radix Portal)
-  const shouldUseInlineFallbackImmediately = IS_PRODUCTION || isSlowConnection();
+  // ✅ P0 HOTFIX: Em agriroute-connect.com.br SEMPRE usa inline (sem Portal) para evitar tela preta
+  // Em outros ambientes de produção, também usa inline por padrão para máxima robustez
+  const shouldUseInlineFallbackImmediately = IS_PRODUCTION_DOMAIN || IS_PRODUCTION || isSlowConnection();
   
   const [useFallback, setUseFallback] = useState(false);
   const [useInlineFallback, setUseInlineFallback] = useState(shouldUseInlineFallbackImmediately);

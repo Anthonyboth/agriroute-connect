@@ -243,8 +243,10 @@ export const useAuth = () => {
         setProfile(null);
         setProfiles([]);
         
-        // Auto-create profile only once
-        await tryAutoCreateProfile(userId);
+        // ✅ P0 HOTFIX: NÃO chamar create_additional_profile automaticamente
+        // A criação de perfil deve ser iniciada explicitamente pelo usuário via Auth.tsx
+        console.log('[useAuth] Nenhum perfil encontrado - usuário pode criar via cadastro');
+        setLoading(false);
       }
     } catch (error) {
       // ✅ Throttling de logs: apenas log completo 1x por minuto
@@ -314,95 +316,11 @@ export const useAuth = () => {
     }
   }, []);
 
-  const tryAutoCreateProfile = async (userId: string) => {
-    // ✅ P0 FIX: Anti-loop guard - only attempt once per session
-    if (autoCreateAttemptedRef.current) {
-      console.log('[useAuth] tryAutoCreateProfile já tentado nesta sessão, ignorando');
-      setLoading(false);
-      return;
-    }
-    autoCreateAttemptedRef.current = true;
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !mountedRef.current) {
-        setLoading(false);
-        return;
-      }
-      
-      const meta = (user as any).user_metadata || {};
-      const roleMeta = (meta.role as any);
-      
-      // Check sessionStorage for pending signup role as fallback
-      const pendingRole = sessionStorage.getItem('pending_signup_role');
-      const resolvedRole = (
-        roleMeta === 'PRODUTOR' || 
-        roleMeta === 'MOTORISTA' || 
-        roleMeta === 'MOTORISTA_AFILIADO' || 
-        roleMeta === 'PRESTADOR_SERVICOS' || 
-        roleMeta === 'TRANSPORTADORA'
-      ) ? roleMeta : (
-        pendingRole && ['PRODUTOR', 'MOTORISTA', 'MOTORISTA_AFILIADO', 'PRESTADOR_SERVICOS', 'TRANSPORTADORA'].includes(pendingRole)
-          ? pendingRole
-          : 'PRODUTOR'
-      );
-      
-      console.log('[useAuth] tryAutoCreateProfile chamado UMA VEZ com role:', resolvedRole);
-      
-      // Use create_additional_profile RPC for proper server-side handling
-      const { data: newProfileId, error: rpcError } = await supabase.rpc('create_additional_profile', {
-        p_user_id: user.id,
-        p_role: resolvedRole,
-        p_full_name: meta.full_name || '',
-        p_phone: meta.phone || '',
-        p_document: meta.document || ''
-      });
-        
-      if (!mountedRef.current) return;
-      
-      if (!rpcError && newProfileId) {
-        // Clear pending role after successful creation
-        sessionStorage.removeItem('pending_signup_role');
-        
-        // Fetch the created profile
-        const { data: createdProfile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', newProfileId)
-          .single();
-        
-        if (createdProfile) {
-          setProfiles([createdProfile as any]);
-          setProfile(createdProfile as any);
-          setProfileError(null);
-        }
-      } else if (rpcError) {
-        const errorMsg = rpcError.message || '';
-        
-        if (errorMsg.includes('já possui um perfil') || errorMsg.includes('já está cadastrado')) {
-          setProfileError({
-            code: 'DOCUMENT_IN_USE',
-            message: errorMsg,
-            document: meta.document
-          });
-        } else {
-          console.error('[useAuth] Erro ao criar perfil via RPC:', rpcError);
-          setProfileError({
-            code: 'PROFILE_CREATION_FAILED',
-            message: 'Não foi possível criar o perfil. Tente novamente.'
-          });
-        }
-        setLoading(false);
-      }
-    } catch (e) {
-      console.error('[useAuth] Erro ao criar perfil:', e);
-      setProfileError({
-        code: 'UNEXPECTED_ERROR',
-        message: 'Erro inesperado ao criar perfil. Tente novamente.'
-      });
-      setLoading(false);
-    }
-  };
+  // ✅ P0 HOTFIX: tryAutoCreateProfile foi REMOVIDO
+  // A criação de perfil agora é feita APENAS via:
+  // - Auth.tsx (cadastro manual)
+  // - AddProfileModal.tsx (perfil adicional)
+  // NÃO deve ser chamada automaticamente ao abrir home/modal
 
   const clearProfileError = () => {
     setProfileError(null);
@@ -419,14 +337,15 @@ export const useAuth = () => {
         data: { document: newDocument, cpf_cnpj: newDocument }
       });
       
-      await tryAutoCreateProfile(user.id);
+      // ✅ P0 HOTFIX: Redirecionar para /auth?mode=signup para criação manual
+      // tryAutoCreateProfile foi removido - criação deve ser explícita
+      window.location.href = '/auth?mode=signup';
     } catch (error) {
       console.error('[useAuth] Erro ao retentar criação:', error);
       setProfileError({
         code: 'RETRY_FAILED',
         message: 'Erro ao tentar novamente. Tente outro documento.'
       });
-    } finally {
       setLoading(false);
     }
   };
