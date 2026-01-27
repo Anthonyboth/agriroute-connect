@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useId } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -12,11 +12,10 @@ interface CameraSelfieProps {
 }
 
 export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel, autoStart = false }) => {
-  const nativeSelfieInputId = useId();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null); // Input com capture="user" para selfie
+  const nativeCaptureInputRef = useRef<HTMLInputElement>(null); // input nativo (file/capture)
   
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -25,20 +24,6 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
   const [videoReady, setVideoReady] = useState(false);
   const [uploadMethod, setUploadMethod] = useState<'CAMERA' | 'GALLERY' | null>(null);
   const [useNativeCapture, setUseNativeCapture] = useState(false);
-
-  /**
-   * P0 FIX (robustez máxima):
-   * - Em iOS/Android (webview/PWA), programmatic .click() em <input type=file> pode ser bloqueado.
-   * - Usar <label htmlFor="..."> é o caminho mais confiável (browser trata como gesto do usuário).
-   * Mantemos o .click() como fallback (não depende de async).
-   */
-  const handleNativeCameraClick = useCallback(() => {
-    console.log('📸 SELFIE_CAPTURE_CLICK - Label/HTMLFor + fallback click');
-    if (cameraInputRef.current) {
-      // Fallback síncrono (alguns navegadores ainda aceitam)
-      cameraInputRef.current.click();
-    }
-  }, []);
 
   // Handler para quando arquivo é selecionado via input nativo
   const handleNativeCameraCapture = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -293,13 +278,25 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
               {/* P0 FIX: Botão primário usa input nativo com capture="user" */}
               <Button asChild size="lg" className="w-full">
-                <label
-                  htmlFor={nativeSelfieInputId}
-                  onClick={handleNativeCameraClick}
-                  className="cursor-pointer"
-                >
-                  <Smartphone className="mr-2 h-5 w-5" />
-                  Tirar Selfie (Câmera Frontal)
+                <label className="relative w-full cursor-pointer">
+                  {/*
+                   * FIX Chrome/PWA (robustez): o clique precisa ser no próprio <input type="file"> (gesto real do usuário)
+                   * - Sem programmatic .click()
+                   * - Sem htmlFor/id
+                   */}
+                  <input
+                    ref={nativeCaptureInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="user"
+                    onChange={handleNativeCameraCapture}
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-[0.01]"
+                    aria-label="Capturar selfie com câmera frontal"
+                  />
+                  <span className="flex w-full items-center justify-center">
+                    <Smartphone className="mr-2 h-5 w-5" />
+                    Tirar Selfie (Câmera Frontal)
+                  </span>
                 </label>
               </Button>
               
@@ -361,32 +358,6 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
             />
           )}
         </div>
-
-        {/* P0 FIX: Input nativo para câmera frontal (selfie) - posição absolute para funcionar em todos browsers */}
-        <input
-          ref={cameraInputRef}
-          id={nativeSelfieInputId}
-          type="file"
-          accept="image/*"
-          capture="user"
-          onChange={handleNativeCameraCapture}
-          style={{
-            // FIX: manter o input dentro do viewport (iOS pode bloquear quando está "recortado")
-            position: 'fixed',
-            top: 1,
-            left: 1,
-            width: '1px',
-            height: '1px',
-            padding: 0,
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            border: 0,
-            opacity: 0.01, // NÃO zero - alguns browsers bloqueiam click em opacity:0
-            pointerEvents: 'none',
-            zIndex: 10002,
-          }}
-          aria-label="Capturar selfie com câmera frontal"
-        />
 
         {/* Input para galeria */}
         <input
