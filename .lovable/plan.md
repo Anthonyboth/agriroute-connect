@@ -1,175 +1,339 @@
+CÂMERA AO VIVO NO MODAL DE SELFIE (WEB + ANDROID + iOS)
 
-Objetivo
-- Eliminar o erro do browser “Failed to send a request to the Edge Function” ao emitir NF-e.
-- Garantir que a requisição chegue na Edge Function e que a resposta seja sempre JSON (inclusive em erro).
-- Mudanças mínimas e objetivas, apenas em Edge Functions e front-end, sem mexer em banco/migrações.
+Objetivo P0
 
-Diagnóstico (com base no código atual)
-1) Front-end está chamando a function errada
-- Em `src/components/fiscal/nfe/NfeEmissionWizard.tsx`, o submit chama `supabase.functions.invoke("nfe-emissao", ...)`.
-- Porém a Edge Function existente e confirmada é `nfe-emitir`.
-- Isso sozinho pode gerar falha no browser dependendo de como o SDK trata 404/Network/CORS.
+Em /complete-profile (e em qualquer lugar que use CameraSelfie):
 
-2) CORS das Edge Functions está incompleto para browser
-- `supabase/functions/nfe-emitir/index.ts` atualmente tem apenas:
-  - Access-Control-Allow-Origin
-  - Access-Control-Allow-Headers
-  - OPTIONS respondendo sem status 204 e sem Allow-Methods/Max-Age.
-- `supabase/functions/nfe-update-status/index.ts` está igual.
-- Preflight (OPTIONS) do browser pode falhar por falta de:
-  - `Access-Control-Allow-Methods: 'POST, OPTIONS'`
-  - `Access-Control-Max-Age: '86400'`
-  - status 204 no OPTIONS
-- Resultado típico: request é bloqueada antes de “chegar” no handler, e o SDK mostra “Failed to send a request…”
+Ao abrir o modal de selfie:
 
-3) Front-end não garante Authorization válido antes de chamar emissão
-- No `NfeEmissionWizard.tsx` hoje não existe `getSession()` antes do invoke principal.
-- E não envia `Authorization: Bearer ...` explicitamente (requisito que você pediu).
+Exibir preview ao vivo da câmera frontal dentro do modal, usando getUserMedia e <video playsInline muted>.
 
-Escopo e garantias
-- Não alterarei banco, não criarei migrações, não renomearei tabelas/colunas.
-- Mudanças serão somente nestes arquivos:
-  1) `supabase/functions/nfe-emitir/index.ts`
-  2) `supabase/functions/nfe-update-status/index.ts`
-  3) `src/components/fiscal/nfe/NfeEmissionWizard.tsx`
+Mostrar botão “Capturar” (verde, padrão do app) que:
 
-Implementação (patch planejado)
+tira a foto via canvas,
 
-A) Edge Function: CORS correto em `supabase/functions/nfe-emitir/index.ts`
-1) Substituir o `corsHeaders` pelo modelo EXATO solicitado:
-```ts
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Max-Age': '86400',
-};
-```
+congela o preview,
 
-2) Ajustar o preflight OPTIONS para status 204 + headers:
-```ts
-if (req.method === 'OPTIONS') {
-  return new Response(null, { status: 204, headers: corsHeaders });
-}
-```
+mostra botões “Refazer” e “Confirmar”.
 
-3) Garantir que TODAS as respostas retornem JSON com:
-- `...corsHeaders`
-- `'Content-Type': 'application/json'`
+Fechar o modal sempre desliga a câmera (chamar track.stop() em todas as tracks) e apaga o LED.
 
-Hoje já existe `jsonResponse()` que faz isso:
-```ts
-function jsonResponse(status: number, body: Record<string, unknown>) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-```
-- Vou manter o helper e apenas garantir que ele use o novo `corsHeaders` (com Methods/Max-Age).
+Fallback nativo com <input type="file" capture="user"> só quando:
 
-4) Logs mínimos e úteis (sem token)
-Logo no início do handler (após OPTIONS) adicionar:
-```ts
-const origin = req.headers.get("Origin");
-const authHeader = req.headers.get("Authorization");
-console.log("[nfe-emitir] Request", {
-  method: req.method,
-  origin,
-  hasAuthorization: !!authHeader,
-});
-```
-- Não logar token.
-- Em caso de erro inesperado, logar stack:
-```ts
-} catch (error) {
-  console.error("[nfe-emitir] Erro inesperado:", error);
-  if (error instanceof Error) console.error("[nfe-emitir] Stack:", error.stack);
-  return jsonResponse(500, { ... });
-}
-```
+getUserMedia não existir ou
 
-B) Edge Function: mesmo CORS em `supabase/functions/nfe-update-status/index.ts`
-Repetir exatamente o mesmo padrão:
-1) Atualizar `corsHeaders` para incluir Methods/Max-Age.
-2) OPTIONS retorna 204.
-3) Todas as respostas usam `json()` (já existe) com `...corsHeaders` + JSON content-type.
-4) Logs mínimos no início:
-```ts
-const origin = req.headers.get("Origin");
-const authHeader = req.headers.get("Authorization");
-console.log("[nfe-update-status] Request", {
-  method: req.method,
-  origin,
-  hasAuthorization: !!authHeader,
-});
-```
-E no catch:
-```ts
-console.error("[nfe-update-status] Unexpected error:", error);
-if (error instanceof Error) console.error("[nfe-update-status] Stack:", error.stack);
-```
+falhar de verdade (após tentativa com gesto do usuário).
 
-C) Front-end: Authorization correto + function name correto em `src/components/fiscal/nfe/NfeEmissionWizard.tsx`
-Mudanças mínimas no `handleSubmit()`:
+1. Contexto atual (não mudar o que está certo)
 
-1) Antes de invocar, buscar session:
-```ts
-const { data: { session } } = await supabase.auth.getSession();
-if (!session?.access_token) {
-  toast.error("Sessão inválida", { description: "Faça login novamente." });
-  return;
-}
-```
+SelfieCaptureModal (portal baseado em createPortal) já está OK para z-index e para rodar em web/Capacitor. Não mude a lógica básica dele.
 
-2) Garantir que o nome chamado é exatamente “nfe-emitir”:
-- Trocar:
-```ts
-await supabase.functions.invoke("nfe-emissao", { ... })
-```
-- Para:
-```ts
-await supabase.functions.invoke("nfe-emitir", { ... })
-```
+CameraSelfie.tsx hoje está 100% no modo fallback, usando <input type="file" capture="user"> e galeria.
+👉 Não existe modo de preview ao vivo (getUserMedia) dentro do modal.
 
-3) Enviar Authorization explicitamente (sem Bearer undefined):
-```ts
-const { data, error } = await supabase.functions.invoke("nfe-emitir", {
-  body: payload,
-  headers: {
-    Authorization: `Bearer ${session.access_token}`,
+O tema do app já tem verde padrão em bg-primary/bg-success.
+
+2. O que implementar em src/components/CameraSelfie.tsx
+
+Transformar CameraSelfie para ter 3 modos claros:
+
+stream – preview ao vivo (câmera ligada)
+
+preview – foto capturada, imagem congelada
+
+fallback – câmera nativa via input capture="user" / galeria (como hoje)
+
+2.1. Novos estados e refs
+
+Adicionar ao componente:
+
+const videoRef = useRef<HTMLVideoElement | null>(null);
+const canvasRef = useRef<HTMLCanvasElement | null>(null);
+const streamRef = useRef<MediaStream | null>(null);
+
+const [mode, setMode] = useState<'stream' | 'preview' | 'fallback'>('stream');
+const [videoReady, setVideoReady] = useState(false);
+const [starting, setStarting] = useState(false);
+const [needsUserAction, setNeedsUserAction] = useState(false); // iOS / autoplay bloqueado
+const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
+const [previewUrl, setPreviewUrl] = useState<string | null>(null); // URL.createObjectURL
+
+
+Manter os estados de galeria/fallback que já existem, mas separar semanticamente:
+– quando estiver em fallback, usar esses estados;
+– quando estiver em stream/preview, usar capturedBlob + previewUrl.
+
+2.2. Função startCamera(origin: 'auto' | 'user')
+
+Implementar algo neste espírito:
+
+Se já houver streamRef.current, não recriar.
+
+Tentar:
+
+const constraints = {
+  video: {
+    facingMode: 'user',
+    width: { ideal: 1280 },
+    height: { ideal: 720 },
   },
-});
-```
+  audio: false,
+};
 
-Observação importante (mínimo para não quebrar):
-- Não vou alterar UI/etapas do wizard.
-- Apenas impedir “chamar com token vazio” e padronizar o nome correto da function.
 
-(Extra opcional, mas ainda mínimo e dentro do mesmo arquivo)
-- Para o polling (`pollStatus`) que chama `nfe-update-status`, hoje ele não envia Authorization explicitamente.
-- Isso pode causar 401 e polling “nunca” concluir.
-- Eu recomendo (e vou incluir, por ser mínimo e no mesmo arquivo) pegar `session.access_token` uma vez e passar nos invokes do polling também:
-  - ou buscar session dentro do `pollStatus`
-  - ou passar o token como parâmetro para `pollStatus`
-- Isso melhora a robustez sem mexer em outras abas.
+const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-Validação / Como vamos confirmar que ficou pronto (sem “falso concluído”)
-Após aplicar o patch (no modo de implementação), vou validar com evidência:
-1) No browser (route atual `/dashboard/producer`):
-- Clicar “Emitir NF-e”
-- Confirmar que NÃO aparece mais “Failed to send a request to the Edge Function”.
+videoRef.current!.srcObject = stream;
 
-2) Checar se a request chega na function:
-- Usar logs da Edge Function (Supabase) e procurar:
-  - `[nfe-emitir] Request { method: 'POST', origin: ..., hasAuthorization: true }`
-  - e para preflight:
-  - `[nfe-emitir]` não loga OPTIONS porque retornamos antes (OK), mas o browser deve receber 204 com headers.
+aguardar loadedmetadata / canplay e depois:
 
-3) Garantir resposta JSON sempre:
-- Mesmo em erro (401/400/422/500), o client deve receber JSON e exibir toast com mensagem.
+try {
+  await video.play();
+  setVideoReady(true);
+  setNeedsUserAction(false);
+  setMode('stream');
+} catch {
+  // típico de iOS/WKWebView: autoplay bloqueado
+  setNeedsUserAction(true);
+  setMode('stream');
+}
 
-Entrega (o que você vai receber no final da implementação)
-- Lista de arquivos alterados (somente os 3 acima).
-- Trechos exatos alterados (corsHeaders + OPTIONS 204 + invoke “nfe-emitir” + getSession + Authorization).
-- Confirmação explícita: não alterei banco / não criei migrações.
+
+Em qualquer erro:
+
+Se origin === 'auto', NÃO cair direto para fallback. Apenas marcar needsUserAction=true e exibir botão “Ativar câmera”.
+
+Se origin === 'user' (o usuário clicou explicitamente) e ainda assim falhar com erros definitivos (NotFoundError, NotReadableError, etc.), então:
+
+logar o erro,
+
+mostrar toast simples,
+
+setMode('fallback').
+
+2.3. Função stopCamera()
+
+Se streamRef.current existir:
+
+streamRef.current.getTracks().forEach(t => t.stop());
+
+streamRef.current = null;
+
+Limpar videoRef.current!.srcObject = null;
+
+setVideoReady(false);
+
+Usar em:
+
+captureFrame
+
+reset
+
+useEffect de cleanup (unmount/fechar modal).
+
+2.4. Função captureFrame()
+
+Só válida quando mode === 'stream' e videoReady.
+
+Pegar dimensões do vídeo: video.videoWidth / video.videoHeight
+
+Ajustar canvas e desenhar:
+
+canvas.width = video.videoWidth;
+canvas.height = video.videoHeight;
+ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+
+Usar canvas.toBlob (preferível a toDataURL):
+
+canvas.toBlob((blob) => {
+  if (!blob) { ...erro...; return; }
+  const url = URL.createObjectURL(blob);
+  setCapturedBlob(blob);
+  setPreviewUrl(url);
+  setMode('preview');
+  stopCamera();
+}, 'image/jpeg', 0.9);
+
+
+Não chamar onCapture aqui – só quando o usuário confirmar.
+
+2.5. Função reset()
+
+Se mode === 'preview':
+
+revogar URL.revokeObjectURL(previewUrl) se existir,
+
+limpar capturedBlob, previewUrl,
+
+setMode('stream'),
+
+chamar startCamera('user').
+
+Se estiver em fallback → apenas limpar estados de arquivo como já faz hoje.
+
+2.6. Função confirm()
+
+Hoje você já converte file em blob e chama onCapture.
+Atualizar para:
+
+Se mode === 'preview' e capturedBlob existir:
+
+onCapture(capturedBlob, 'CAMERA');
+
+Se estiver em fallback por galeria:
+
+manter o comportamento atual (onCapture(blob, 'GALLERY')).
+
+Depois de confirmar, liberar previewUrl e parar câmera se por algum motivo ainda estiver ativa.
+
+3. UX dentro do modal (layout)
+
+Dentro do <Card> de CameraSelfie, ajustar a área principal assim:
+
+3.1. Container de preview
+<div className="relative bg-black rounded-lg overflow-hidden min-h-[320px] max-h-[50vh] flex items-center justify-center">
+  {/* conteúdo por modo */}
+</div>
+<canvas ref={canvasRef} className="hidden" />
+
+3.2. Quando mode === 'stream'
+
+Mostrar <video>:
+
+<video
+  ref={videoRef}
+  autoPlay
+  muted
+  playsInline
+  className="w-full h-full object-cover"
+/>
+
+
+Se !videoReady e não needsUserAction → overlay:
+
+<div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
+  <div className="text-center text-sm">Carregando câmera...</div>
+</div>
+
+
+Se needsUserAction → overlay com botão:
+
+<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 text-white p-4">
+  <p className="text-sm text-center">
+    Toque no botão abaixo para ativar a câmera.
+  </p>
+  <Button
+    type="button"
+    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+    onClick={() => startCamera('user')}
+  >
+    <Camera className="mr-2 h-4 w-4" />
+    Ativar câmera
+  </Button>
+</div>
+
+3.3. Quando mode === 'preview'
+
+Mostrar <img src={previewUrl} className="w-full h-full object-cover" />.
+
+3.4. Quando mode === 'fallback'
+
+Manter a ideia atual de labels + inputs capture="user" e galeria.
+
+Botões:
+
+“Tirar selfie (câmera do dispositivo)” – verde (bg-primary / bg-success).
+
+“Enviar da galeria” – outline.
+
+“Cancelar” – ghost.
+
+4. Barra de ações (botões inferiores)
+
+Trocar a lógica dos botões conforme o mode:
+
+mode === 'stream'
+Mostrar:
+
+<Button
+  type="button"
+  onClick={captureFrame}
+  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+  disabled={!videoReady || starting}
+>
+  <Camera className="mr-2 h-4 w-4" />
+  Capturar
+</Button>
+
+{onCancel && (
+  <Button type="button" variant="outline" onClick={onCancel}>
+    <X className="h-4 w-4" /> Cancelar
+  </Button>
+)}
+
+
+mode === 'preview'
+
+<Button type="button" onClick={reset} variant="outline" size="lg">
+  <RotateCcw className="mr-2 h-4 w-4" />
+  Refazer
+</Button>
+<Button
+  type="button"
+  onClick={confirm}
+  size="lg"
+  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+  disabled={confirming}
+>
+  <Check className="mr-2 h-4 w-4" />
+  {confirming ? 'Confirmando...' : 'Confirmar'}
+</Button>
+
+
+mode === 'fallback'
+Usa os botões/labels já existentes hoje (selfie nativa + galeria + cancelar).
+
+5. Ciclo de vida / cleanup (fundamental)
+
+Em useEffect(() => () => stopCamera(), []) → garantir que ao desmontar o CameraSelfie (fechar modal) a câmera seja desligada.
+
+Sempre que o modal de SelfieCaptureModal for fechado (onClose), o componente é desmontado e isso chama stopCamera().
+
+6. Testes de aceite que eu espero passar
+
+Web/desktop (Chrome/Edge)
+
+Abrir /complete-profile → “Capturar Selfie” → modal abre com preview ao vivo.
+
+Clicar “Capturar” (verde) → imagem congela, LED apaga, aparecem “Refazer/Confirmar”.
+
+“Refazer” volta para preview ao vivo.
+
+“Confirmar” chama onCapture(blob,'CAMERA') e permite seguir no fluxo.
+
+Android (Chrome + Capacitor/WebView)
+
+Mesmo comportamento, com LED da câmera ligando e desligando no tempo certo.
+
+Fechar o modal sempre desliga a câmera (sem LED travado).
+
+iOS (Safari + Capacitor/WKWebView)
+
+Caso autoplay seja bloqueado: ao abrir o modal aparece botão “Ativar câmera”; ao tocar, preview ao vivo inicia.
+
+Captura/Refazer/Confirmar funcionam.
+
+Fechar modal encerra tracks.
+
+Fallback
+
+Bloqueando permissões ou simulando erro de getUserMedia:
+
+UI muda para modo fallback,
+
+“Tirar selfie (câmera do dispositivo)” abre câmera nativa,
+
+Após tirar foto, aparece preview/confirmar como hoje.
+
+Resumo: não quero apenas abrir a câmera nativa; quero preview ao vivo dentro do modal com getUserMedia, botão Capturar verde, e fallback nativo só se isso não for possível. Tudo isso precisa funcionar tanto no site quanto no app (Android/iOS com Capacitor).
