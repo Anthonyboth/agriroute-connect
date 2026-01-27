@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -8,254 +8,112 @@ import { toast } from 'sonner';
 interface CameraSelfieProps {
   onCapture: (imageBlob: Blob, uploadMethod: 'CAMERA' | 'GALLERY') => void;
   onCancel?: () => void;
-  autoStart?: boolean;
+  autoStart?: boolean; // mantido por compatibilidade (não pode abrir câmera sem gesto do usuário)
 }
 
-export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel, autoStart = false }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const nativeCaptureInputRef = useRef<HTMLInputElement>(null); // input nativo (file/capture)
-  
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [videoReady, setVideoReady] = useState(false);
-  const [uploadMethod, setUploadMethod] = useState<'CAMERA' | 'GALLERY' | null>(null);
-  const [useNativeCapture, setUseNativeCapture] = useState(false);
+type UploadMethod = 'CAMERA' | 'GALLERY';
 
-  // Handler para quando arquivo é selecionado via input nativo
-  const handleNativeCameraCapture = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    
-    if (file) {
-      console.log('📸 FILE_SELECTED - Arquivo capturado:', file.name, file.type, file.size);
-      
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result as string;
-          setCapturedImage(result);
-          setUploadMethod('CAMERA');
-          toast.success('Selfie capturada com sucesso!');
-        };
-        reader.onerror = () => {
-          console.error('❌ Erro ao ler arquivo');
-          toast.error('Erro ao processar imagem. Tente novamente.');
-        };
-        reader.readAsDataURL(file);
-      } else {
-        toast.error('Por favor, selecione uma imagem válida.');
-      }
-    } else {
-      console.log('📸 CAPTURE_CANCELLED - Usuário cancelou');
-    }
-    
-    // Reset input para permitir selecionar mesmo arquivo novamente
-    event.target.value = '';
+export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel }) => {
+  const selfieInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  const [file, setFile] = useState<File | null>(null);
+  const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
+  const [method, setMethod] = useState<UploadMethod | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
+  const ids = useMemo(() => {
+    const rand = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+      ? (crypto as any).randomUUID()
+      : Math.random().toString(16).slice(2);
+
+    return {
+      selfie: `selfie_capture_${rand}`,
+      gallery: `selfie_gallery_${rand}`,
+    };
   }, []);
 
-  const startCamera = useCallback(async () => {
-    try {
-      console.log('📹 Tentando iniciar getUserMedia...');
-      setVideoReady(false);
-      
-      // Check if getUserMedia is available
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.log('⚠️ getUserMedia não disponível, usando fallback nativo');
-        setUseNativeCapture(true);
-        return;
-      }
-      
-      toast.info('Solicitando permissão da câmera...');
-      
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: { ideal: 'user' }
-        },
-        audio: false
-      });
+  const reset = useCallback(() => {
+    setFile(null);
+    setPreviewDataUrl(null);
+    setMethod(null);
+    setConfirming(false);
 
-      console.log('✅ Stream obtido:', mediaStream);
-      toast.success('Permissão concedida!');
-
-      setStream(mediaStream);
-      setIsStreaming(true);
-      setUploadMethod('CAMERA');
-      
-    } catch (error) {
-      console.error('❌ Erro no getUserMedia:', error);
-      
-      // FALLBACK: Se getUserMedia falhar, usar input nativo
-      console.log('🔄 Fallback para input nativo com capture="user"');
-      setUseNativeCapture(true);
-      
-      if (error instanceof Error) {
-        if (error.name === 'NotAllowedError') {
-          toast.error('Permissão de câmera negada. Use o botão abaixo para capturar.', {
-            duration: 4000
-          });
-        } else if (error.name === 'NotFoundError') {
-          toast.error('Câmera não encontrada. Use o botão abaixo para capturar.');
-        } else if (error.name === 'NotReadableError') {
-          toast.error('Câmera em uso por outro app. Use o botão abaixo.');
-        } else {
-          toast.error('Erro na câmera. Use o botão abaixo para capturar.');
-        }
-      }
-    }
+    if (selfieInputRef.current) selfieInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
   }, []);
 
-  const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-      setIsStreaming(false);
-      setVideoReady(false);
-    }
-  }, [stream]);
-
-  const capturePhoto = useCallback(() => {
-    if (!videoReady) {
-      toast.message('Aguarde', { description: 'A câmera está carregando...' });
+  const readAndPreview = useCallback((picked: File, pickedMethod: UploadMethod) => {
+    if (!picked.type.startsWith('image/')) {
+      toast.error('Por favor, selecione uma imagem válida.');
       return;
     }
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-      const context = canvas.getContext('2d');
 
-      if (context && video.videoWidth && video.videoHeight) {
-        try {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-          const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-          setCapturedImage(imageDataUrl);
-          setUploadMethod('CAMERA');
-          stopCamera();
-          console.log('✅ Selfie capturada via getUserMedia');
-        } catch (error) {
-          console.error('❌ Erro ao capturar foto:', error);
-          toast.error('Erro ao capturar foto. Tente novamente.');
-        }
-      } else {
-        console.error('❌ Canvas context ou dimensões do vídeo não disponíveis');
-        toast.error('Erro ao preparar câmera. Tente reiniciar.');
-      }
+    // 10MB (evita travamentos com imagens gigantes)
+    if (picked.size > 10 * 1024 * 1024) {
+      toast.error('Imagem muito grande. Máximo 10MB.');
+      return;
     }
-  }, [stopCamera, videoReady]);
 
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result as string;
-          setUploadedImage(result);
-          setUploadMethod('GALLERY');
-        };
-        reader.readAsDataURL(file);
-      } else {
-        toast.error('Por favor, selecione um arquivo de imagem válido.');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string | undefined;
+      if (!result) {
+        toast.error('Não foi possível processar a imagem.');
+        return;
       }
-    }
+      setFile(picked);
+      setMethod(pickedMethod);
+      setPreviewDataUrl(result);
+      toast.success('Imagem pronta para confirmação.');
+    };
+    reader.onerror = () => {
+      toast.error('Erro ao processar imagem. Tente novamente.');
+    };
+    reader.readAsDataURL(picked);
   }, []);
 
-  const retakePhoto = useCallback(() => {
-    setCapturedImage(null);
-    setUploadedImage(null);
-    setUploadMethod(null);
-    if (!useNativeCapture && uploadMethod === 'CAMERA') {
-      startCamera();
+  const onSelfieChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const picked = event.target.files?.[0];
+      if (!picked) return; // usuário cancelou
+
+      readAndPreview(picked, 'CAMERA');
+
+      // reset para permitir nova tentativa, mesmo com o mesmo arquivo
+      event.target.value = '';
+    },
+    [readAndPreview]
+  );
+
+  const onGalleryChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const picked = event.target.files?.[0];
+      if (!picked) return;
+
+      readAndPreview(picked, 'GALLERY');
+      event.target.value = '';
+    },
+    [readAndPreview]
+  );
+
+  const confirm = useCallback(async () => {
+    if (!file || !method) return;
+
+    try {
+      setConfirming(true);
+      const buf = await file.arrayBuffer();
+      const blob = new Blob([buf], { type: file.type || 'image/jpeg' });
+      onCapture(blob, method);
+    } catch (e) {
+      console.error('❌ Erro ao confirmar selfie:', e);
+      toast.error('Erro ao confirmar selfie. Tente novamente.');
+    } finally {
+      setConfirming(false);
     }
-  }, [startCamera, uploadMethod, useNativeCapture]);
+  }, [file, method, onCapture]);
 
-  const confirmPhoto = useCallback(() => {
-    const imageToConfirm = capturedImage || uploadedImage;
-    const method = uploadMethod;
-    
-    if (imageToConfirm && method) {
-      try {
-        // Convert data URL to blob
-        const arr = imageToConfirm.split(',');
-        const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) u8arr[n] = bstr.charCodeAt(n);
-        const blob = new Blob([u8arr], { type: mime });
-        onCapture(blob, method);
-      } catch (error) {
-        console.error('❌ Erro ao confirmar foto:', error);
-        toast.error('Erro ao confirmar foto. Tente novamente.');
-      }
-    }
-  }, [capturedImage, uploadedImage, uploadMethod, onCapture]);
-
-  // Conectar o stream ao elemento de vídeo quando ambos estiverem disponíveis
-  React.useEffect(() => {
-    if (stream && videoRef.current && isStreaming) {
-      const video = videoRef.current;
-      console.log('🎥 Conectando stream ao elemento de vídeo...');
-      
-      video.srcObject = stream;
-      
-      const onLoaded = () => {
-        console.log('✅ Vídeo carregado - dimensões:', video.videoWidth, 'x', video.videoHeight);
-        setVideoReady(true);
-        video.play().then(() => {
-          console.log('▶️ Vídeo iniciado com sucesso');
-        }).catch((playError) => {
-          console.error('❌ Erro ao iniciar vídeo:', playError);
-        });
-      };
-      
-      const onError = (error: Event) => {
-        console.error('❌ Erro no elemento de vídeo:', error);
-      };
-      
-      video.addEventListener('error', onError);
-      
-      if (video.readyState >= 2) {
-        onLoaded();
-      } else {
-        video.onloadedmetadata = onLoaded;
-      }
-      
-      // Forçar play após um pequeno delay
-      setTimeout(() => {
-        if (video.paused) {
-          video.play().catch((e) => console.log('⚠️ Erro no play forçado:', e));
-        }
-      }, 500);
-
-      return () => {
-        video.removeEventListener('error', onError);
-      };
-    }
-  }, [stream, isStreaming]);
-
-  // Auto-start: tentar getUserMedia, se falhar usa fallback nativo
-  React.useEffect(() => {
-    if (autoStart && !isStreaming && !capturedImage && !uploadedImage && !useNativeCapture) {
-      startCamera();
-    }
-  }, [autoStart, isStreaming, startCamera, capturedImage, uploadedImage, useNativeCapture]);
-
-  // Cleanup on unmount
-  React.useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, [stopCamera]);
-
-  const currentImage = capturedImage || uploadedImage;
-  const showOptions = !isStreaming && !currentImage;
+  const hasPreview = Boolean(previewDataUrl);
 
   return (
     <Card className="w-full max-w-md mx-auto max-h-[90vh] flex flex-col">
@@ -265,6 +123,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
           Selfie para Verificação
         </CardTitle>
       </CardHeader>
+
       <CardContent className="space-y-4 overflow-y-auto flex-1">
         <Alert>
           <AlertTriangle className="h-4 w-4" />
@@ -274,153 +133,94 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
         </Alert>
 
         <div className="relative bg-muted rounded-lg overflow-hidden min-h-[300px] max-h-[50vh]">
-          {showOptions && (
+          {!hasPreview ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
-              {/* P0 FIX: Botão primário usa input nativo com capture="user" */}
+              {/* Fluxo 100% nativo: label htmlFor + input dentro do viewport (fixo) */}
               <Button asChild size="lg" className="w-full">
-                <label className="relative w-full cursor-pointer">
-                  {/*
-                   * FIX Chrome/PWA (robustez): o clique precisa ser no próprio <input type="file"> (gesto real do usuário)
-                   * - Sem programmatic .click()
-                   * - Sem htmlFor/id
-                   */}
-                  <input
-                    ref={nativeCaptureInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="user"
-                    onChange={handleNativeCameraCapture}
-                    className="absolute inset-0 h-full w-full cursor-pointer opacity-[0.01]"
-                    aria-label="Capturar selfie com câmera frontal"
-                  />
-                  <span className="flex w-full items-center justify-center">
-                    <Smartphone className="mr-2 h-5 w-5" />
-                    Tirar Selfie (Câmera Frontal)
-                  </span>
+                <label htmlFor={ids.selfie} className="cursor-pointer">
+                  <Smartphone className="mr-2 h-5 w-5" />
+                  Capturar Selfie (Câmera Frontal)
                 </label>
               </Button>
-              
-              {/* Se getUserMedia funcionou antes, mostrar opção de usar preview */}
-              {!useNativeCapture && (
-                <Button 
-                  type="button"
-                  onClick={startCamera} 
-                  variant="outline"
-                  size="lg" 
-                  className="w-full"
-                >
-                  <Camera className="mr-2 h-5 w-5" />
-                  Usar Preview ao Vivo
+
+              <Button asChild variant="outline" size="lg" className="w-full">
+                <label htmlFor={ids.gallery} className="cursor-pointer">
+                  <Upload className="mr-2 h-5 w-5" />
+                  Enviar da Galeria
+                </label>
+              </Button>
+
+              {onCancel && (
+                <Button type="button" variant="ghost" onClick={onCancel} className="w-full">
+                  <X className="mr-2 h-4 w-4" />
+                  Cancelar
                 </Button>
               )}
-              
-              <Button 
-                type="button"
-                onClick={() => fileInputRef.current?.click()} 
-                variant="outline" 
-                size="lg" 
-                className="w-full"
-              >
-                <Upload className="mr-2 h-5 w-5" />
-                Enviar da Galeria
-              </Button>
             </div>
-          )}
-
-          {/* Vídeo para getUserMedia (quando disponível) */}
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover"
-            style={{ 
-              display: isStreaming ? 'block' : 'none',
-              backgroundColor: '#000',
-              minHeight: '200px'
-            }}
-          />
-          
-          {isStreaming && !videoReady && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                <p>Carregando câmera...</p>
-              </div>
-            </div>
-          )}
-
-          {currentImage && (
-            <img
-              src={currentImage}
-              alt="Selfie capturada"
-              className="w-full h-full object-cover"
-            />
+          ) : (
+            <img src={previewDataUrl ?? ''} alt="Selfie capturada" className="w-full h-full object-cover" />
           )}
         </div>
 
-        {/* Input para galeria */}
+        {/* Inputs nativos (NÃO usar display:none; manter dentro do viewport) */}
         <input
-          ref={fileInputRef}
+          ref={selfieInputRef}
+          id={ids.selfie}
           type="file"
           accept="image/*"
-          onChange={handleFileUpload}
-          className="sr-only"
+          capture="user"
+          onChange={onSelfieChange}
+          style={{
+            position: 'fixed',
+            top: 8,
+            left: 8,
+            width: 1,
+            height: 1,
+            opacity: 0.01,
+            zIndex: 2147483647,
+          }}
+          aria-label="Capturar selfie com câmera frontal"
+        />
+
+        <input
+          ref={galleryInputRef}
+          id={ids.gallery}
+          type="file"
+          accept="image/*"
+          onChange={onGalleryChange}
+          style={{
+            position: 'fixed',
+            top: 8,
+            left: 12,
+            width: 1,
+            height: 1,
+            opacity: 0.01,
+            zIndex: 2147483647,
+          }}
           aria-label="Selecionar imagem da galeria"
         />
 
-        <canvas ref={canvasRef} className="hidden" />
-
-        <div className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 pt-3 pb-1 -mx-6 px-6 border-t">
-          <div className="flex gap-2 justify-center">
-            {isStreaming && (
-              <>
-                <Button 
-                  type="button"
-                  onClick={capturePhoto} 
-                  size="lg" 
-                  className="flex-1" 
-                  disabled={!videoReady}
-                >
-                  <Camera className="mr-2 h-4 w-4" />
-                  {videoReady ? 'Capturar' : 'Carregando...'}
-                </Button>
-                {onCancel && (
-                  <Button type="button" variant="outline" onClick={onCancel}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </>
-            )}
-
-            {currentImage && (
-              <>
-                <Button type="button" onClick={retakePhoto} variant="outline" size="lg">
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Refazer
-                </Button>
-                <Button type="button" onClick={confirmPhoto} size="lg" className="flex-1">
-                  <Check className="mr-2 h-4 w-4" />
-                  Confirmar
-                </Button>
-              </>
-            )}
-            
-            {showOptions && onCancel && (
-              <Button type="button" variant="ghost" onClick={onCancel} className="w-full">
-                <X className="mr-2 h-4 w-4" />
-                Cancelar
+        {hasPreview && (
+          <div className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 pt-3 pb-1 -mx-6 px-6 border-t">
+            <div className="flex gap-2 justify-center">
+              <Button type="button" onClick={reset} variant="outline" size="lg" disabled={confirming}>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Refazer
               </Button>
-            )}
+              <Button type="button" onClick={confirm} size="lg" className="flex-1" disabled={confirming}>
+                <Check className="mr-2 h-4 w-4" />
+                {confirming ? 'Confirmando...' : 'Confirmar'}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         <p className="text-xs text-muted-foreground text-center">
-          {uploadMethod === 'CAMERA' 
-            ? '✅ Selfie capturada da câmera' 
-            : uploadMethod === 'GALLERY' 
-            ? '✅ Imagem selecionada da galeria' 
-            : 'Escolha como enviar sua selfie com documento'}
+          {method === 'CAMERA'
+            ? '✅ Selfie capturada da câmera'
+            : method === 'GALLERY'
+              ? '✅ Imagem selecionada da galeria'
+              : 'Escolha como enviar sua selfie com documento'}
         </p>
       </CardContent>
     </Card>

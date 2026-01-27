@@ -163,6 +163,7 @@ export const useDevicePermissions = () => {
   const requestPermission = async (type: PermissionType): Promise<boolean> => {
     try {
       let granted = false;
+      let showInfoInsteadOfError = false;
 
       switch (type) {
         case 'location':
@@ -178,16 +179,11 @@ export const useDevicePermissions = () => {
 
         case 'camera':
         case 'microphone':
-          try {
-            const constraints = type === 'camera'
-              ? { video: true, audio: false }
-              : { video: false, audio: true };
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            stream.getTracks().forEach(track => track.stop());
-            granted = true;
-          } catch {
-            granted = false;
-          }
+          // ⚠️ P0: NÃO solicitamos câmera/microfone via APIs avançadas.
+          // A permissão será solicitada automaticamente pelo navegador no momento
+          // em que o usuário acionar uma captura nativa (input type="file" / capture).
+          granted = (await checkMediaPermission(type)) === 'granted';
+          showInfoInsteadOfError = !granted;
           break;
 
         case 'notifications':
@@ -205,6 +201,10 @@ export const useDevicePermissions = () => {
       if (granted) {
         toast.success(`Permissão de ${getPermissionLabel(type)} concedida`);
         await checkAllPermissions();
+      } else if (showInfoInsteadOfError) {
+        toast.message(`Permissão de ${getPermissionLabel(type)}`, {
+          description: 'O navegador solicita essa permissão automaticamente no momento da captura (selfie/foto/áudio).',
+        });
       } else {
         toast.error(`Permissão de ${getPermissionLabel(type)} negada`);
       }
