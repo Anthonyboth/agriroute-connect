@@ -288,7 +288,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        // ✅ P0 FIX: só fecha quando open virar false, não fecha imediatamente ao abrir
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" data-auth-modal-content>
         {modalInner}
       </DialogContent>
