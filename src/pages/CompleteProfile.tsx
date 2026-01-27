@@ -852,7 +852,7 @@ const CompleteProfile = () => {
                       <DialogHeader>
                         <DialogTitle>Capturar Selfie</DialogTitle>
                       </DialogHeader>
-                      <CameraSelfie autoStart
+                      <CameraSelfie
                         onCapture={async (blob, uploadMethod) => {
                           console.log('📸 Selfie capturada, iniciando upload...');
                           try {
