@@ -361,14 +361,25 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
           )}
         </div>
 
-        {/* P0 FIX: Input nativo para câmera frontal (selfie) - NUNCA display:none */}
+        {/* P0 FIX: Input nativo para câmera frontal (selfie) - posição absolute para funcionar em todos browsers */}
         <input
           ref={cameraInputRef}
           type="file"
           accept="image/*"
           capture="user"
           onChange={handleNativeCameraCapture}
-          className="sr-only"
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            padding: 0,
+            margin: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0, 0, 0, 0)',
+            whiteSpace: 'nowrap',
+            border: 0,
+            opacity: 0.01 // NÃO zero - alguns browsers bloqueiam click em opacity:0
+          }}
           aria-label="Capturar selfie com câmera frontal"
         />
 
