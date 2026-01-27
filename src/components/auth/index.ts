@@ -8,3 +8,4 @@ export { AddProfileModal } from '../AddProfileModal';
 export { AccountSwitcher } from '../AccountSwitcher';
 export { UserProfileModal } from '../UserProfileModal';
 export { ProfilePhotoUpload } from '../ProfilePhotoUpload';
+export { RoleSelectionCards } from './RoleSelectionCards';
