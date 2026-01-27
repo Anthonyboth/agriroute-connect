@@ -81,6 +81,12 @@ export const useAuth = () => {
   const hasFixedActiveModeRef = useRef(false); // ✅ Flag para evitar loop infinito
   const isSigningOutRef = useRef(false); // ✅ Single-flight guard para logout
   const autoCreateAttemptedRef = useRef(false); // ✅ P0 FIX: Anti-loop guard for create_additional_profile
+  const profileRef = useRef<UserProfile | null>(null);
+
+  // Keep latest profile in a ref to allow event handlers to read it without re-subscribing.
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
 
   // Memoized fetch function to prevent recreation on every render
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
@@ -462,8 +468,17 @@ export const useAuth = () => {
             setLoading(false);
             return;
           }
-          
-          fetchProfile(session.user.id);
+
+          // ✅ ONBOARDING MODE: ao abrir câmera nativa (selfie) o navegador pode disparar
+          // ciclos de refresh de sessão (TOKEN_REFRESHED). Isso reentra aqui e causa
+          // refetch em cascata de profiles/user_roles.
+          const isOnboardingRoute = window.location.pathname.startsWith('/complete-profile');
+          const shouldSkipProfileFetch =
+            event === 'TOKEN_REFRESHED' && isOnboardingRoute && !!profileRef.current;
+
+          if (!shouldSkipProfileFetch) {
+            fetchProfile(session.user.id);
+          }
         } else {
           setProfile(null);
           setProfiles([]);
