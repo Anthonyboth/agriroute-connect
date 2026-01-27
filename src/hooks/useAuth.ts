@@ -80,6 +80,7 @@ export const useAuth = () => {
   const ERROR_LOG_THROTTLE_MS = 60000; // 60s entre logs detalhados
   const hasFixedActiveModeRef = useRef(false); // ✅ Flag para evitar loop infinito
   const isSigningOutRef = useRef(false); // ✅ Single-flight guard para logout
+  const autoCreateAttemptedRef = useRef(false); // ✅ P0 FIX: Anti-loop guard for create_additional_profile
 
   // Memoized fetch function to prevent recreation on every render
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
@@ -314,9 +315,20 @@ export const useAuth = () => {
   }, []);
 
   const tryAutoCreateProfile = async (userId: string) => {
+    // ✅ P0 FIX: Anti-loop guard - only attempt once per session
+    if (autoCreateAttemptedRef.current) {
+      console.log('[useAuth] tryAutoCreateProfile já tentado nesta sessão, ignorando');
+      setLoading(false);
+      return;
+    }
+    autoCreateAttemptedRef.current = true;
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !mountedRef.current) return;
+      if (!user || !mountedRef.current) {
+        setLoading(false);
+        return;
+      }
       
       const meta = (user as any).user_metadata || {};
       const roleMeta = (meta.role as any);
@@ -334,6 +346,8 @@ export const useAuth = () => {
           ? pendingRole
           : 'PRODUTOR'
       );
+      
+      console.log('[useAuth] tryAutoCreateProfile chamado UMA VEZ com role:', resolvedRole);
       
       // Use create_additional_profile RPC for proper server-side handling
       const { data: newProfileId, error: rpcError } = await supabase.rpc('create_additional_profile', {
@@ -500,6 +514,8 @@ export const useAuth = () => {
           setProfiles([]);
           setInitialized(true);
           setLoading(false);
+          // ✅ P0 FIX: Reset auto-create guard on sign out
+          autoCreateAttemptedRef.current = false;
 
           const onAuthPage = window.location.pathname === '/auth';
 
@@ -688,6 +704,8 @@ export const useAuth = () => {
       setSession(null);
       setProfile(null);
       setProfiles([]);
+      // ✅ P0 FIX: Reset auto-create guard on sign out
+      autoCreateAttemptedRef.current = false;
       
       // ❌ REMOVIDO: Nenhum toast aqui - logout silencioso
       // Redirect será feito pelo listener onAuthStateChange
@@ -700,6 +718,8 @@ export const useAuth = () => {
       setSession(null);
       setProfile(null);
       setProfiles([]);
+      // ✅ P0 FIX: Reset auto-create guard on sign out (catch branch)
+      autoCreateAttemptedRef.current = false;
       // ❌ REMOVIDO: Nenhum toast de erro - logout silencioso
     }
     // ✅ NÃO resetar isSigningOutRef - o redirect vai recarregar a página

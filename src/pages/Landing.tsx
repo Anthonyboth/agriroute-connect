@@ -232,13 +232,23 @@ const Landing: React.FC = () => {
           <div className="flex items-center space-x-2 sm:space-x-3">
             <ThemeToggle />
             <Button 
-              onClick={() => navigate('/auth?mode=login')}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate('/auth?mode=login');
+              }}
               className="hidden sm:flex bg-orange-500 hover:bg-orange-600 text-gray-900 font-medium"
             > 
               Entrar
             </Button>
             <Button 
-              onClick={() => openAuthModal('signup')}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openAuthModal('signup');
+              }}
               className="hidden sm:flex gradient-primary"
             > 
               Cadastrar-se
