@@ -186,7 +186,7 @@ const Landing: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-background isolate">
+    <div className="min-h-screen bg-background isolate" style={{ contain: 'layout' }}>
       {/* Header - Fixed height to prevent CLS. z-50 is sufficient since Sheet uses z-[9998+] */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 h-[72px]">
         <div className="container mx-auto px-4 pr-2 sm:pr-4 flex items-center justify-between h-full">
@@ -238,7 +238,7 @@ const Landing: React.FC = () => {
       </header>
 
       {/* Hero Section - Fixed height to prevent CLS */}
-      <section className="hero-section relative h-screen w-full flex items-center justify-center overflow-hidden">
+      <section className="hero-section relative h-screen min-h-[600px] w-full flex items-center justify-center overflow-hidden" style={{ contain: 'layout paint' }}>
         {/* Hero background with inline placeholder for faster LCP */}
         <div 
           className="absolute inset-0 bg-[#1a1a2e]"
