@@ -16,7 +16,7 @@ import DocumentUpload from '@/components/DocumentUpload';
 import LocationPermission from '@/components/LocationPermission';
 import MapLibreMap from '@/components/MapLibreMap';
 import { CameraSelfie } from '@/components/CameraSelfie';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { SelfieCaptureModal } from '@/components/selfie/SelfieCaptureModal';
 import { AddressLocationInput } from '@/components/AddressLocationInput';
 import AutomaticApprovalService from '@/components/AutomaticApproval';
 import { CheckCircle, AlertCircle, User, FileText, Truck, MapPin, Building, Plus, X, Shield, Loader2 } from 'lucide-react';
@@ -847,13 +847,14 @@ const CompleteProfile = () => {
                     {documentUrls.selfie ? 'Refazer Selfie' : 'Capturar Selfie'}
                   </Button>
 
-                  <Dialog open={showSelfieModal} onOpenChange={setShowSelfieModal}>
-                    <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Capturar Selfie</DialogTitle>
-                      </DialogHeader>
-                      <CameraSelfie autoStart
-                        onCapture={async (blob, uploadMethod) => {
+                  <SelfieCaptureModal
+                    isOpen={showSelfieModal}
+                    title="Capturar Selfie"
+                    onClose={() => setShowSelfieModal(false)}
+                  >
+                    <CameraSelfie
+                      autoStart
+                      onCapture={async (blob, uploadMethod) => {
                           console.log('📸 Selfie capturada, iniciando upload...');
                           try {
                             toast.loading('Enviando selfie...', { id: 'selfie-upload' });
@@ -923,11 +924,10 @@ const CompleteProfile = () => {
                             console.error('❌ Erro ao enviar selfie:', err);
                             toast.error('Erro ao enviar selfie. Tente novamente.', { id: 'selfie-upload' });
                           }
-                        }}
-                        onCancel={() => setShowSelfieModal(false)}
-                      />
-                    </DialogContent>
-                  </Dialog>
+                      }}
+                      onCancel={() => setShowSelfieModal(false)}
+                    />
+                  </SelfieCaptureModal>
                 </div>
 
                 <DocumentUpload
