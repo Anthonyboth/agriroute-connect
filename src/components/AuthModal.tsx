@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -58,6 +59,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
       document.body.style.overflow = prevOverflow;
     };
   }, [isOpen, renderMode]);
+
+  // Inline mode: close on ESC
+  useEffect(() => {
+    if (renderMode !== 'inline') return;
+    if (!isOpen) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, renderMode, onClose]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,17 +245,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
   if (renderMode === 'inline') {
     if (!isOpen) return null;
 
-    return (
+    const inlineModal = (
       <div
         data-inline-fallback-modal
         className="fixed inset-0 flex items-center justify-center p-4 bg-black/80"
-        style={{ zIndex: 99999 }}
+        style={{ zIndex: 2147483647 }}
         onMouseDown={(e) => {
           if (e.target === e.currentTarget) onClose();
         }}
       >
         <div
           className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto border bg-background p-6 shadow-lg duration-200 animate-in fade-in-0 zoom-in-95 sm:rounded-lg"
+          style={{ zIndex: 2147483647 }}
           data-auth-modal-content
           onMouseDown={(e) => e.stopPropagation()}
         >
@@ -260,6 +274,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTab = 'lo
         </div>
       </div>
     );
+
+    return createPortal(inlineModal, document.body);
   }
 
   return (

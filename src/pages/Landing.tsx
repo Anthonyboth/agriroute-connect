@@ -8,7 +8,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlatformStatsSection } from '@/components/LazyComponents';
 import { MobileMenu } from '@/components/MobileMenu';
-import { SafeAuthModal } from '@/components/SafeAuthModal';
+import AuthModal from '@/components/AuthModal';
 
 // Intersection Observer wrapper for deferred loading
 const LazyStatsSection = () => {
@@ -495,10 +495,11 @@ const Landing: React.FC = () => {
       />
 
       {/* P0 HOTFIX: SafeAuthModal para cadastro com seleção por cards */}
-      <SafeAuthModal
+      <AuthModal
         isOpen={authModal}
         onClose={() => setAuthModal(false)}
         initialTab="signup"
+        renderMode="inline"
       />
     </div>
   );
