@@ -855,75 +855,33 @@ const CompleteProfile = () => {
                     <CameraSelfie
                       autoStart
                       onCapture={async (blob, uploadMethod) => {
-                          console.log('📸 Selfie capturada, iniciando upload...');
-                          try {
-                            toast.loading('Enviando selfie...', { id: 'selfie-upload' });
+                          toast.loading('Enviando selfie...', { id: 'selfie-upload' });
+                          
+                          const { uploadSelfieWithInstrumentation } = await import('@/utils/selfieUpload');
+                          const result = await uploadSelfieWithInstrumentation({ blob, uploadMethod });
+                          
+                          if (!result.success && result.error) {
+                            // Exibir erro real ao usuário
+                            const errorMsg = result.error.status 
+                              ? `${result.error.message} (${result.error.status})`
+                              : result.error.message;
                             
-                            const { data: { user } } = await supabase.auth.getUser();
-                            if (!user) {
-                              toast.error('Faça login para enviar a selfie.', { id: 'selfie-upload' });
-                              return;
+                            toast.error(errorMsg, { id: 'selfie-upload' });
+                            
+                            // Se sessão expirou, redirecionar para login
+                            if (result.error.code === 'SESSION_EXPIRED') {
+                              setTimeout(() => {
+                                localStorage.setItem('redirect_after_login', window.location.pathname);
+                                window.location.href = '/auth';
+                              }, 1500);
                             }
-                            
-                             const mime = blob.type || 'image/jpeg';
-                             const extFromMime = (mime.split('/')[1] || 'jpg').toLowerCase();
-                             const safeExt = extFromMime === 'jpeg' ? 'jpg' : extFromMime;
-                             const path = `${user.id}/identity_selfie_${Date.now()}.${safeExt}`;
-                            console.log('📁 Fazendo upload para:', path);
-                            
-                            const { error: uploadError } = await supabase.storage
-                              .from('profile-photos')
-                               .upload(path, blob, { contentType: mime });
-                            
-                            if (uploadError) {
-                              console.error('❌ Erro no upload:', uploadError);
-                              throw uploadError;
-                            }
-
-                            console.log('✅ Upload concluído com sucesso');
-
-                            // URL assinada para visualização (bucket é privado)
-                            const { data: signedData, error: signedErr } = await supabase.storage
-                              .from('profile-photos')
-                              .createSignedUrl(path, 60 * 60 * 24); // 24h
-                            if (signedErr) {
-                              console.error('❌ Erro ao criar URL assinada:', signedErr);
-                              throw signedErr;
-                            }
-
-                            console.log('🔗 URL assinada criada:', signedData.signedUrl);
-
-                            // Salvar na tabela identity_selfies (mantemos o caminho do arquivo)
-                            const { error: dbError } = await supabase
-                              .from('identity_selfies')
-                              .upsert({
-                                user_id: user.id,
-                                selfie_url: path,
-                                upload_method: uploadMethod,
-                                verification_status: 'PENDING'
-                              }, { onConflict: 'user_id' });
-
-                            if (dbError) {
-                              console.error('❌ Erro ao salvar no DB:', dbError);
-                              throw dbError;
-                            }
-
-
-                            console.log('💾 Selfie salva no banco de dados');
-
-                            // Atualizar o estado com a URL assinada
-                            setDocumentUrls(prev => {
-                              const updated = { ...prev, selfie: signedData?.signedUrl || '' };
-                              console.log('🔄 Estado atualizado:', updated);
-                              return updated;
-                            });
-                            
-                            toast.success(`✅ Selfie ${uploadMethod === 'CAMERA' ? 'capturada' : 'enviada da galeria'} com sucesso!`, { id: 'selfie-upload' });
-                            setShowSelfieModal(false);
-                          } catch (err) {
-                            console.error('❌ Erro ao enviar selfie:', err);
-                            toast.error('Erro ao enviar selfie. Tente novamente.', { id: 'selfie-upload' });
+                            return;
                           }
+                          
+                          // Sucesso - atualizar estado
+                          setDocumentUrls(prev => ({ ...prev, selfie: result.signedUrl || '' }));
+                          toast.success(`✅ Selfie ${uploadMethod === 'CAMERA' ? 'capturada' : 'enviada da galeria'} com sucesso!`, { id: 'selfie-upload' });
+                          setShowSelfieModal(false);
                       }}
                       onCancel={() => setShowSelfieModal(false)}
                     />
