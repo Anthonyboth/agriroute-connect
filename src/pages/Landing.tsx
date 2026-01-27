@@ -1,5 +1,5 @@
 // Sprint 1: Performance optimization - removed dead carousel code
-// P0 HOTFIX: Removido SafeAuthModal e cleanupModalBackdrop para eliminar loop infinito
+// P0 HOTFIX: Restaurado SafeAuthModal para cadastro com seleção por cards
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlatformStatsSection } from '@/components/LazyComponents';
 import { MobileMenu } from '@/components/MobileMenu';
+import { SafeAuthModal } from '@/components/SafeAuthModal';
 
 // Intersection Observer wrapper for deferred loading
 const LazyStatsSection = () => {
@@ -109,6 +110,7 @@ const Landing: React.FC = () => {
     isOpen: false,
   });
   const [contactModal, setContactModal] = useState(false);
+  const [authModal, setAuthModal] = useState(false);
   const [reportModal, setReportModal] = useState(false);
 
   const handleGetStarted = (userType: 'PRODUTOR' | 'MOTORISTA') => {
@@ -202,9 +204,20 @@ const Landing: React.FC = () => {
             <button type="button" onClick={() => setContactModal(true)} className="text-muted-foreground hover:text-foreground transition-smooth">Contato</button>
           </nav>
           
-          {/* Actions - P0 HOTFIX: Removido botão Cadastrar-se para estabilizar produção */}
+          {/* Actions - P0 HOTFIX: Botão Cadastrar-se RESTAURADO com SafeAuthModal */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             <ThemeToggle />
+            <Button 
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setAuthModal(true);
+              }}
+              className="hidden sm:flex gradient-primary text-primary-foreground font-medium"
+            > 
+              Cadastrar-se
+            </Button>
             <Button 
               type="button"
               onClick={(e) => {
@@ -216,7 +229,10 @@ const Landing: React.FC = () => {
             > 
               Entrar
             </Button>
-            <MobileMenu onContactClick={() => setContactModal(true)} />
+            <MobileMenu 
+              onContactClick={() => setContactModal(true)}
+              onSignupClick={() => setAuthModal(true)}
+            />
           </div>
         </div>
       </header>
@@ -476,6 +492,13 @@ const Landing: React.FC = () => {
       <ContactSupportModal
         isOpen={contactModal}
         onClose={() => setContactModal(false)}
+      />
+
+      {/* P0 HOTFIX: SafeAuthModal para cadastro com seleção por cards */}
+      <SafeAuthModal
+        isOpen={authModal}
+        onClose={() => setAuthModal(false)}
+        initialTab="signup"
       />
     </div>
   );
