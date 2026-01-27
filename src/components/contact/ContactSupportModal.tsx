@@ -1,8 +1,10 @@
 /**
- * P0 HOTFIX: Modal de Contato SIMPLES - Sem Radix, sem Portal, sem lazy
- * Renderiza inline com overlay fixed para máxima confiabilidade em produção
+ * P0 HOTFIX: Modal de Contato SIMPLES - Com createPortal para document.body
+ * Renderiza fora de qualquer stacking context (isolate, transform, etc.)
+ * z-index máximo seguro: 2147483647
  */
 import React, { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, MessageCircle, Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { SUPPORT_PHONE_DISPLAY, SUPPORT_EMAIL, getWhatsAppUrl } from '@/lib/support-contact';
 
@@ -66,21 +68,28 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({ isOpen
 
   if (!isOpen) return null;
 
-  return (
+  // P0 HOTFIX: Usar createPortal para renderizar diretamente no document.body
+  // Isso escapa do stacking context criado por 'isolate' na Landing page
+  const modalContent = (
     <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ 
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        zIndex: 2147483647, // Máximo z-index seguro para garantir que fique acima de TUDO
+        isolation: 'isolate' // Cria novo stacking context para o modal
+      }}
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="contact-modal-title"
     >
-      {/* Modal Container */}
+      {/* Modal Container - z-index relativo alto para garantir ordem dentro do portal */}
       <div
         className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl"
         style={{ 
           backgroundColor: 'hsl(var(--card))',
-          color: 'hsl(var(--card-foreground))'
+          color: 'hsl(var(--card-foreground))',
+          zIndex: 2147483647 // Mesmo z-index máximo para o conteúdo
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -238,6 +247,10 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({ isOpen
       </div>
     </div>
   );
+
+  // P0 HOTFIX: Renderizar via createPortal diretamente no document.body
+  // Isso escapa do stacking context 'isolate' da Landing page
+  return createPortal(modalContent, document.body);
 };
 
 export default ContactSupportModal;
