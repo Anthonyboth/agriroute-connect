@@ -1,9 +1,8 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Camera, RotateCcw, Check, X, Upload, AlertTriangle } from 'lucide-react';
+import { Camera, RotateCcw, Check, X, Upload, AlertTriangle, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CameraSelfieProps {
@@ -16,6 +15,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null); // Input com capture="user" para selfie
   
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -23,18 +23,66 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
   const [isStreaming, setIsStreaming] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [uploadMethod, setUploadMethod] = useState<'CAMERA' | 'GALLERY' | null>(null);
+  const [useNativeCapture, setUseNativeCapture] = useState(false);
+
+  // P0 FIX: Usar input nativo com capture="user" como método primário em mobile
+  // Isso GARANTE que abre a câmera sem depender de getUserMedia
+  const handleNativeCameraClick = useCallback(() => {
+    console.log('📸 SELFIE_CAPTURE_CLICK - Usando input nativo com capture="user"');
+    
+    if (cameraInputRef.current) {
+      console.log('📸 INPUT_CLICK_TRIGGERED');
+      // CRÍTICO: Click síncrono, sem await, sem setTimeout
+      cameraInputRef.current.click();
+    } else {
+      console.error('❌ cameraInputRef não disponível');
+      toast.error('Erro ao acessar câmera. Tente recarregar a página.');
+    }
+  }, []);
+
+  // Handler para quando arquivo é selecionado via input nativo
+  const handleNativeCameraCapture = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    
+    if (file) {
+      console.log('📸 FILE_SELECTED - Arquivo capturado:', file.name, file.type, file.size);
+      
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          setCapturedImage(result);
+          setUploadMethod('CAMERA');
+          toast.success('Selfie capturada com sucesso!');
+        };
+        reader.onerror = () => {
+          console.error('❌ Erro ao ler arquivo');
+          toast.error('Erro ao processar imagem. Tente novamente.');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        toast.error('Por favor, selecione uma imagem válida.');
+      }
+    } else {
+      console.log('📸 CAPTURE_CANCELLED - Usuário cancelou');
+    }
+    
+    // Reset input para permitir selecionar mesmo arquivo novamente
+    event.target.value = '';
+  }, []);
 
   const startCamera = useCallback(async () => {
     try {
-      console.log('Solicitando permissão e iniciando câmera...');
+      console.log('📹 Tentando iniciar getUserMedia...');
       setVideoReady(false);
       
       // Check if getUserMedia is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Câmera não disponível neste dispositivo');
+        console.log('⚠️ getUserMedia não disponível, usando fallback nativo');
+        setUseNativeCapture(true);
+        return;
       }
       
-      // Solicitar permissão ao usuário (on-demand)
       toast.info('Solicitando permissão da câmera...');
       
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -46,47 +94,33 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
         audio: false
       });
 
-      console.log('Stream obtido:', mediaStream);
-      console.log('Video tracks:', mediaStream.getVideoTracks());
-
-      // Permissão concedida!
+      console.log('✅ Stream obtido:', mediaStream);
       toast.success('Permissão concedida!');
 
-      // Apenas armazenar o stream e marcar como streaming
-      // O useEffect abaixo cuidará de conectar ao elemento de vídeo
       setStream(mediaStream);
       setIsStreaming(true);
       setUploadMethod('CAMERA');
       
     } catch (error) {
-      console.error('Error accessing camera:', error);
-      let errorMessage = 'Erro ao acessar a câmera.';
+      console.error('❌ Erro no getUserMedia:', error);
+      
+      // FALLBACK: Se getUserMedia falhar, usar input nativo
+      console.log('🔄 Fallback para input nativo com capture="user"');
+      setUseNativeCapture(true);
       
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          errorMessage = 'Permissão de câmera negada';
-          
-          // Fallback automático: Oferecer upload de arquivo
-          toast.error('Permissão de câmera negada', {
-            description: 'Você pode enviar uma foto da galeria',
-            action: {
-              label: 'Escolher Arquivo',
-              onClick: () => fileInputRef.current?.click()
-            }
+          toast.error('Permissão de câmera negada. Use o botão abaixo para capturar.', {
+            duration: 4000
           });
-          
-          // Mostrar apenas opção de galeria
-          setUploadMethod(null);
-          setCapturedImage(null);
-          return;
         } else if (error.name === 'NotFoundError') {
-          errorMessage = 'Câmera não encontrada no dispositivo.';
+          toast.error('Câmera não encontrada. Use o botão abaixo para capturar.');
         } else if (error.name === 'NotReadableError') {
-          errorMessage = 'Câmera está sendo usada por outro aplicativo.';
+          toast.error('Câmera em uso por outro app. Use o botão abaixo.');
+        } else {
+          toast.error('Erro na câmera. Use o botão abaixo para capturar.');
         }
       }
-      
-      toast.error(errorMessage);
     }
   }, []);
 
@@ -118,13 +152,13 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
           setCapturedImage(imageDataUrl);
           setUploadMethod('CAMERA');
           stopCamera();
-          console.log('Selfie captured successfully');
+          console.log('✅ Selfie capturada via getUserMedia');
         } catch (error) {
-          console.error('Error capturing photo:', error);
+          console.error('❌ Erro ao capturar foto:', error);
           toast.error('Erro ao capturar foto. Tente novamente.');
         }
       } else {
-        console.error('Canvas context or video dimensions not available');
+        console.error('❌ Canvas context ou dimensões do vídeo não disponíveis');
         toast.error('Erro ao preparar câmera. Tente reiniciar.');
       }
     }
@@ -151,10 +185,10 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
     setCapturedImage(null);
     setUploadedImage(null);
     setUploadMethod(null);
-    if (uploadMethod === 'CAMERA') {
+    if (!useNativeCapture && uploadMethod === 'CAMERA') {
       startCamera();
     }
-  }, [startCamera, uploadMethod]);
+  }, [startCamera, uploadMethod, useNativeCapture]);
 
   const confirmPhoto = useCallback(() => {
     const imageToConfirm = capturedImage || uploadedImage;
@@ -162,22 +196,17 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
     
     if (imageToConfirm && method) {
       try {
-        if (method === 'CAMERA') {
-          // Convert data URL to blob for camera capture
-          const arr = imageToConfirm.split(',');
-          const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
-          const bstr = atob(arr[1]);
-          let n = bstr.length;
-          const u8arr = new Uint8Array(n);
-          while (n--) u8arr[n] = bstr.charCodeAt(n);
-          const blob = new Blob([u8arr], { type: mime });
-          onCapture(blob, method);
-        } else if (method === 'GALLERY' && fileInputRef.current?.files?.[0]) {
-          // Use the original file for gallery upload
-          onCapture(fileInputRef.current.files[0], method);
-        }
+        // Convert data URL to blob
+        const arr = imageToConfirm.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) u8arr[n] = bstr.charCodeAt(n);
+        const blob = new Blob([u8arr], { type: mime });
+        onCapture(blob, method);
       } catch (error) {
-        console.error('Error confirming photo:', error);
+        console.error('❌ Erro ao confirmar foto:', error);
         toast.error('Erro ao confirmar foto. Tente novamente.');
       }
     }
@@ -187,39 +216,36 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
   React.useEffect(() => {
     if (stream && videoRef.current && isStreaming) {
       const video = videoRef.current;
-      console.log('Conectando stream ao elemento de vídeo...');
+      console.log('🎥 Conectando stream ao elemento de vídeo...');
       
       video.srcObject = stream;
       
       const onLoaded = () => {
-        console.log('Vídeo carregado - dimensões:', video.videoWidth, 'x', video.videoHeight);
+        console.log('✅ Vídeo carregado - dimensões:', video.videoWidth, 'x', video.videoHeight);
         setVideoReady(true);
         video.play().then(() => {
-          console.log('Vídeo iniciado com sucesso');
+          console.log('▶️ Vídeo iniciado com sucesso');
         }).catch((playError) => {
-          console.error('Erro ao iniciar vídeo:', playError);
+          console.error('❌ Erro ao iniciar vídeo:', playError);
         });
       };
       
       const onError = (error: Event) => {
-        console.error('Erro no elemento de vídeo:', error);
+        console.error('❌ Erro no elemento de vídeo:', error);
       };
       
       video.addEventListener('error', onError);
       
       if (video.readyState >= 2) {
-        console.log('Vídeo já pronto, executando onLoaded');
         onLoaded();
       } else {
-        console.log('Aguardando metadata do vídeo...');
         video.onloadedmetadata = onLoaded;
       }
       
       // Forçar play após um pequeno delay
       setTimeout(() => {
         if (video.paused) {
-          console.log('Forçando play do vídeo...');
-          video.play().catch((e) => console.log('Erro no play forçado:', e));
+          video.play().catch((e) => console.log('⚠️ Erro no play forçado:', e));
         }
       }, 500);
 
@@ -229,25 +255,19 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
     }
   }, [stream, isStreaming]);
 
-  // Auto-start camera when component mounts/opened
+  // Auto-start: tentar getUserMedia, se falhar usa fallback nativo
   React.useEffect(() => {
-    if (autoStart && !isStreaming && !capturedImage && !uploadedImage) {
+    if (autoStart && !isStreaming && !capturedImage && !uploadedImage && !useNativeCapture) {
       startCamera();
     }
-  }, [autoStart, isStreaming, startCamera, capturedImage, uploadedImage]);
+  }, [autoStart, isStreaming, startCamera, capturedImage, uploadedImage, useNativeCapture]);
 
   // Cleanup on unmount
   React.useEffect(() => {
     return () => {
       stopCamera();
-      if (capturedImage) {
-        URL.revokeObjectURL(capturedImage);
-      }
-      if (uploadedImage) {
-        URL.revokeObjectURL(uploadedImage);
-      }
     };
-  }, [stopCamera, capturedImage, uploadedImage]);
+  }, [stopCamera]);
 
   const currentImage = capturedImage || uploadedImage;
   const showOptions = !isStreaming && !currentImage;
@@ -271,11 +291,33 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
         <div className="relative bg-muted rounded-lg overflow-hidden min-h-[300px] max-h-[50vh]">
           {showOptions && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
-              <Button onClick={startCamera} size="lg" className="w-full">
-                <Camera className="mr-2 h-5 w-5" />
-                Usar Câmera
-              </Button>
+              {/* P0 FIX: Botão primário usa input nativo com capture="user" */}
               <Button 
+                type="button"
+                onClick={handleNativeCameraClick} 
+                size="lg" 
+                className="w-full"
+              >
+                <Smartphone className="mr-2 h-5 w-5" />
+                Tirar Selfie (Câmera Frontal)
+              </Button>
+              
+              {/* Se getUserMedia funcionou antes, mostrar opção de usar preview */}
+              {!useNativeCapture && (
+                <Button 
+                  type="button"
+                  onClick={startCamera} 
+                  variant="outline"
+                  size="lg" 
+                  className="w-full"
+                >
+                  <Camera className="mr-2 h-5 w-5" />
+                  Usar Preview ao Vivo
+                </Button>
+              )}
+              
+              <Button 
+                type="button"
                 onClick={() => fileInputRef.current?.click()} 
                 variant="outline" 
                 size="lg" 
@@ -287,7 +329,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
             </div>
           )}
 
-          {/* Sempre renderizar o vídeo, mas escondê-lo quando não estiver streaming */}
+          {/* Vídeo para getUserMedia (quando disponível) */}
           <video
             ref={videoRef}
             autoPlay
@@ -298,22 +340,6 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
               display: isStreaming ? 'block' : 'none',
               backgroundColor: '#000',
               minHeight: '200px'
-            }}
-            onLoadedMetadata={() => {
-              console.log('Video metadata carregado');
-              const video = videoRef.current;
-              if (video) {
-                console.log('Dimensões do vídeo:', video.videoWidth, 'x', video.videoHeight);
-              }
-            }}
-            onCanPlay={() => {
-              console.log('Video pode ser reproduzido');
-            }}
-            onPlay={() => {
-              console.log('Video iniciou a reprodução');
-            }}
-            onError={(e) => {
-              console.error('Erro no elemento video:', e);
             }}
           />
           
@@ -335,12 +361,25 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
           )}
         </div>
 
-        <Input
+        {/* P0 FIX: Input nativo para câmera frontal (selfie) - NUNCA display:none */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="user"
+          onChange={handleNativeCameraCapture}
+          className="sr-only"
+          aria-label="Capturar selfie com câmera frontal"
+        />
+
+        {/* Input para galeria */}
+        <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={handleFileUpload}
-          className="hidden"
+          className="sr-only"
+          aria-label="Selecionar imagem da galeria"
         />
 
         <canvas ref={canvasRef} className="hidden" />
@@ -350,6 +389,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
             {isStreaming && (
               <>
                 <Button 
+                  type="button"
                   onClick={capturePhoto} 
                   size="lg" 
                   className="flex-1" 
@@ -359,7 +399,7 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
                   {videoReady ? 'Capturar' : 'Carregando...'}
                 </Button>
                 {onCancel && (
-                  <Button variant="outline" onClick={onCancel}>
+                  <Button type="button" variant="outline" onClick={onCancel}>
                     <X className="h-4 w-4" />
                   </Button>
                 )}
@@ -368,24 +408,31 @@ export const CameraSelfie: React.FC<CameraSelfieProps> = ({ onCapture, onCancel,
 
             {currentImage && (
               <>
-                <Button onClick={retakePhoto} variant="outline" size="lg">
+                <Button type="button" onClick={retakePhoto} variant="outline" size="lg">
                   <RotateCcw className="mr-2 h-4 w-4" />
-                  {uploadMethod === 'CAMERA' ? 'Refazer' : 'Escolher Outra'}
+                  Refazer
                 </Button>
-                <Button onClick={confirmPhoto} size="lg" className="flex-1">
+                <Button type="button" onClick={confirmPhoto} size="lg" className="flex-1">
                   <Check className="mr-2 h-4 w-4" />
                   Confirmar
                 </Button>
               </>
+            )}
+            
+            {showOptions && onCancel && (
+              <Button type="button" variant="ghost" onClick={onCancel} className="w-full">
+                <X className="mr-2 h-4 w-4" />
+                Cancelar
+              </Button>
             )}
           </div>
         </div>
 
         <p className="text-xs text-muted-foreground text-center">
           {uploadMethod === 'CAMERA' 
-            ? 'Selfie capturada da câmera' 
+            ? '✅ Selfie capturada da câmera' 
             : uploadMethod === 'GALLERY' 
-            ? 'Imagem selecionada da galeria' 
+            ? '✅ Imagem selecionada da galeria' 
             : 'Escolha como enviar sua selfie com documento'}
         </p>
       </CardContent>
