@@ -51,24 +51,27 @@ export const useDriverPermissions = (): DriverPermissions => {
   
   const hasVehicle = isAutonomous ? vehicleCount > 0 : true; // Afiliados usam veículos da empresa
   
-  // ✅ CRÍTICO: Verificar se é AFILIADO (não apenas motorista de empresa)
+  // ✅ SIMPLIFICADO: Verificar se é afiliado (apenas para info, não bloqueia propostas)
   const isAffiliatedDriver = companyDriver?.affiliation_type === 'AFFILIATED';
   
-  // ✅ Motorista autônomo (sem vínculo) SEMPRE pode aceitar fretes
-  // ADICIONADO: Verificação explícita de profile?.id
-  const isIndependentDriver = !!profile?.id && !companyDriver && (profile?.role === 'MOTORISTA' || profile?.role === 'MOTORISTA_AFILIADO');
+  // ✅ REGRA NOVA: TODOS os motoristas podem enviar propostas
+  // Independente de ser autônomo, afiliado, de empresa, etc.
+  // A única verificação é se tem perfil de motorista
+  const isDriver = !!profile?.id && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile?.role || '');
   
-  // ✅ Para motorista de empresa, respeitar flag can_accept_freights
-  // Para motorista autônomo: pode aceitar se tiver veículo cadastrado
-  const canAccept = isIndependentDriver ? hasVehicle : !!companyCanAccept;
+  // ✅ TODOS os motoristas podem aceitar fretes agora
+  // Removida a restrição de afiliação e can_accept_freights
+  const canAccept = isDriver;
   
   return {
     isAffiliated: isAffiliatedDriver,
+    // ✅ SEMPRE true para motoristas - sem restrições de proposta
     canAcceptFreights: canAccept,
     canManageVehicles,
     companyId: companyDriver?.company_id || null,
     companyName: companyDriver?.company?.company_name || null,
-    mustUseChat: isAffiliatedDriver && !canAccept,
+    // ✅ mustUseChat agora é sempre false - todos podem propor diretamente
+    mustUseChat: false,
     hasVehicle,
     vehicleCheckLoading: isAutonomous ? vehicleCheckLoading : false,
   };
