@@ -14,37 +14,55 @@ export interface ImageValidationResult {
  * @returns Resultado da validação com status e mensagem de erro se aplicável
  */
 export const validateImageQuality = async (file: File): Promise<ImageValidationResult> => {
+  // Para formatos HEIC/HEIF que navegadores não suportam nativamente,
+  // pular validação de dimensões e confiar no tamanho do arquivo
+  const isHeicFormat = file.type.includes('heic') || 
+                       file.type.includes('heif') || 
+                       file.name.toLowerCase().endsWith('.heic') ||
+                       file.name.toLowerCase().endsWith('.heif');
+  
+  // Verificar tamanho máximo (10MB) primeiro - funciona para qualquer formato
+  if (file.size > 10 * 1024 * 1024) {
+    return {
+      valid: false,
+      reason: 'Arquivo muito grande (máximo 10MB). Tente tirar uma foto com menor resolução.'
+    };
+  }
+  
+  // Verificar tamanho mínimo como indicador de qualidade
+  if (file.size < 50000) { // Reduzido para 50KB para ser mais permissivo
+    return {
+      valid: false,
+      reason: 'Arquivo muito pequeno (mínimo 50KB). Tire uma foto mais nítida.'
+    };
+  }
+  
+  // Para HEIC/HEIF, pular validação de dimensões (navegador não consegue renderizar)
+  if (isHeicFormat) {
+    console.log('[ImageValidator] Formato HEIC/HEIF detectado, pulando validação de dimensões');
+    return { valid: true };
+  }
+  
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     
+    // Timeout de 5 segundos para evitar travamento
+    const timeout = setTimeout(() => {
+      URL.revokeObjectURL(url);
+      console.warn('[ImageValidator] Timeout ao carregar imagem, permitindo upload');
+      resolve({ valid: true }); // Permitir em caso de timeout
+    }, 5000);
+    
     img.onload = () => {
+      clearTimeout(timeout);
       URL.revokeObjectURL(url);
       
-      // Verificar resolução mínima (800x600)
-      if (img.width < 800 || img.height < 600) {
+      // Verificar resolução mínima (reduzido para 640x480 para ser mais permissivo em mobile)
+      if (img.width < 640 || img.height < 480) {
         resolve({
           valid: false,
-          reason: 'Imagem muito pequena (mínimo 800x600 pixels). Use uma câmera de melhor qualidade.'
-        });
-        return;
-      }
-      
-      // Verificar tamanho do arquivo como indicador de qualidade
-      // Imagens menores que 100KB geralmente indicam baixa qualidade ou compressão excessiva
-      if (file.size < 100000) {
-        resolve({
-          valid: false,
-          reason: 'Imagem de baixa qualidade (arquivo muito pequeno). Tire uma foto mais nítida sem compressão.'
-        });
-        return;
-      }
-      
-      // Verificar tamanho máximo (10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        resolve({
-          valid: false,
-          reason: 'Arquivo muito grande (máximo 10MB). Tente tirar uma foto com menor resolução.'
+          reason: 'Imagem muito pequena (mínimo 640x480 pixels). Use uma câmera de melhor qualidade.'
         });
         return;
       }
@@ -53,11 +71,11 @@ export const validateImageQuality = async (file: File): Promise<ImageValidationR
     };
     
     img.onerror = () => {
+      clearTimeout(timeout);
       URL.revokeObjectURL(url);
-      resolve({
-        valid: false,
-        reason: 'Arquivo inválido ou corrompido. Tente fazer o upload novamente.'
-      });
+      // Em caso de erro ao carregar, permitir upload - servidor validará depois
+      console.warn('[ImageValidator] Erro ao carregar imagem para validação, permitindo upload');
+      resolve({ valid: true });
     };
     
     img.src = url;
