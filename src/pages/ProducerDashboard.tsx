@@ -396,8 +396,14 @@ const ProducerDashboard = () => {
       }
 
       let finalData = (data || []).map((freight: any) => {
-        if (freight.status === "DELIVERED_PENDING_CONFIRMATION") {
-          const deliveredDate = freight.updated_at || freight.created_at;
+        // ✅ CORREÇÃO: Mapear profiles para driver_profiles para compatibilidade com FreightInProgressCard
+        const mappedFreight = {
+          ...freight,
+          driver_profiles: freight.profiles || null,
+        };
+        
+        if (mappedFreight.status === "DELIVERED_PENDING_CONFIRMATION") {
+          const deliveredDate = mappedFreight.updated_at || mappedFreight.created_at;
           const deadline = new Date(new Date(deliveredDate).getTime() + 72 * 60 * 60 * 1000);
           const now = new Date();
           const hoursRemaining = Math.max(0, Math.floor((deadline.getTime() - now.getTime()) / (1000 * 60 * 60)));
@@ -414,9 +420,9 @@ const ProducerDashboard = () => {
             displayText = `${days}d ${hours}h restantes`;
           }
 
-          return { ...freight, deliveryDeadline: { hoursRemaining, isUrgent, isCritical, displayText } };
+          return { ...mappedFreight, deliveryDeadline: { hoursRemaining, isUrgent, isCritical, displayText } };
         }
-        return freight;
+        return mappedFreight;
       });
 
       // fallback para não “sumir” pending-confirmation
@@ -442,7 +448,14 @@ const ProducerDashboard = () => {
 
         if (!dpcError && dpcData?.length) {
           const existingIds = new Set(finalData.map((f: any) => f.id));
-          finalData = [...finalData, ...dpcData.filter((f: any) => !existingIds.has(f.id))];
+          // ✅ CORREÇÃO: Mapear profiles para driver_profiles também no fallback
+          const mappedDpc = dpcData
+            .filter((f: any) => !existingIds.has(f.id))
+            .map((f: any) => ({
+              ...f,
+              driver_profiles: f.profiles || null,
+            }));
+          finalData = [...finalData, ...mappedDpc];
         }
       }
 
