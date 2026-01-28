@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -94,7 +94,18 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
     sortOrder: 'desc'
   });
 
-  const fetchProposals = async () => {
+  // Prevent duplicated requests (double clicks / realtime bursts)
+  const acceptInFlightRef = useRef<Set<string>>(new Set());
+  const fetchInFlightRef = useRef(false);
+  const fetchQueuedRef = useRef(false);
+
+  const fetchProposals = useCallback(async () => {
+    if (fetchInFlightRef.current) {
+      fetchQueuedRef.current = true;
+      return;
+    }
+    fetchInFlightRef.current = true;
+
     try {
       const { data: producerFreights, error: freightError } = await supabase
         .from('freights')
@@ -135,8 +146,14 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
       showErrorToast(toast, 'Erro ao carregar propostas', error);
     } finally {
       setLoading(false);
+      fetchInFlightRef.current = false;
+      if (fetchQueuedRef.current) {
+        fetchQueuedRef.current = false;
+        // re-fetch once if something arrived while we were fetching
+        void fetchProposals();
+      }
     }
-  };
+  }, [producerId]);
 
   useEffect(() => {
     if (producerId) {
@@ -160,6 +177,9 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
   }, [producerId]);
 
   const handleAcceptProposal = async (proposal: Proposal) => {
+    if (acceptInFlightRef.current.has(proposal.id)) return;
+    acceptInFlightRef.current.add(proposal.id);
+
     setAccepting(true);
     setLoadingAction({ proposalId: proposal.id, action: 'accept' });
     try {
@@ -189,6 +209,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
     } finally {
       setAccepting(false);
       setLoadingAction({ proposalId: null, action: null });
+      acceptInFlightRef.current.delete(proposal.id);
     }
   };
 
