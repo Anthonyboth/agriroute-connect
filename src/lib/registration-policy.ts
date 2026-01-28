@@ -81,18 +81,23 @@ export function getRegistrationMode(
 
 /**
  * Retorna os passos necessários para cada modo
- * IMPORTANTE: O passo 'documentos_e_veiculos' foi REMOVIDO do onboarding.
+ * IMPORTANTE: Documentos de VEÍCULOS (placa do cavalo, fotos de veículo) foram REMOVIDOS do onboarding.
  * Veículos são cadastrados APÓS a aprovação do perfil, na área interna.
+ * 
+ * MOTORISTAS têm 3 etapas:
+ * 1. dados_basicos - Informações pessoais
+ * 2. documentos_basicos - Selfie e foto do documento
+ * 3. documentos_motorista - CNH, comprovante de endereço, termos (SEM documentos de veículo)
  */
 export function getRequiredSteps(mode: RegistrationMode): RegistrationStep[] {
-  // TODOS os modos agora têm apenas 2 passos no onboarding:
-  // - dados_basicos (dados pessoais)
-  // - documentos_basicos (selfie e documento)
-  // Veículos são cadastrados DEPOIS da aprovação do cadastro
   switch (mode) {
-    case 'TRANSPORTADORA':
+    // Motoristas precisam de 3 etapas (mas SEM documentos de veículo no step 3)
     case 'MOTORISTA_AUTONOMO':
     case 'MOTORISTA_AFILIADO':
+      return ['dados_basicos', 'documentos_basicos', 'documentos_e_veiculos'];
+    
+    // Demais perfis: apenas 2 etapas
+    case 'TRANSPORTADORA':
     case 'PRODUTOR':
     case 'PRESTADOR':
     default:
@@ -118,21 +123,18 @@ export function getStepRequirements(
   }
   
   if (step === 'documentos_basicos') {
-    // Documentos pessoais básicos para todos
-    const basicDocs = ['selfie', 'document_photo'];
-    
-    // Para motoristas: adicionar CNH e comprovante de endereço
-    if (mode === 'MOTORISTA_AUTONOMO' || mode === 'MOTORISTA_AFILIADO') {
-      return [...basicDocs, 'cnh', 'address_proof'];
-    }
-    
-    return basicDocs;
+    // Documentos pessoais básicos para todos (selfie e documento)
+    // Para motoristas, CNH e comprovante vão no step 3
+    return ['selfie', 'document_photo'];
   }
   
-  // O passo 'documentos_e_veiculos' não é mais usado no onboarding
-  // Veículos são cadastrados após aprovação do perfil
+  // O passo 'documentos_e_veiculos' agora é para DOCUMENTOS DE MOTORISTA (CNH, endereço)
+  // SEM documentos de veículo - veículos são cadastrados após aprovação do perfil
   if (step === 'documentos_e_veiculos') {
-    // Retornar array vazio - este passo não existe mais no onboarding
+    // Para motoristas: CNH, comprovante de endereço, localização
+    if (mode === 'MOTORISTA_AUTONOMO' || mode === 'MOTORISTA_AFILIADO') {
+      return ['cnh', 'address_proof', 'localizacao'];
+    }
     return [];
   }
   
@@ -179,19 +181,17 @@ export function getMissingForStep(
       case 'address_proof':
         if (!state.documentUrls.address_proof) missing.push('Comprovante de endereço');
         break;
+      // Localização é obrigatória para motoristas no step 3
+      case 'localizacao':
+        if (!state.locationEnabled) missing.push('Permissão de localização');
+        break;
       // Os casos abaixo foram REMOVIDOS do onboarding - veículos são cadastrados
       // APÓS a aprovação do perfil, na aba de Veículos do painel interno.
-      // Os cases são mantidos aqui para evitar erros de runtime mas NUNCA
-      // serão acionados durante o onboarding pois getStepRequirements()
-      // não retorna mais 'placa_cavalo', 'veiculo' ou 'localizacao'.
       case 'placa_cavalo':
         // REMOVIDO DO ONBOARDING - Veículos cadastrados após aprovação
         break;
       case 'veiculo':
         // REMOVIDO DO ONBOARDING - Veículos cadastrados após aprovação
-        break;
-      case 'localizacao':
-        // Localização agora é opcional durante onboarding
         break;
     }
   }
