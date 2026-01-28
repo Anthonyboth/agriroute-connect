@@ -13,6 +13,7 @@ export interface Freight {
   status: string;
   distance_km: number;
   minimum_antt_price: number;
+  required_trucks?: number; // ✅ Adicionado para suportar fretes com múltiplas carretas
   service_type?: CanonicalServiceType;
   is_service_request?: boolean;
   problem_description?: string;

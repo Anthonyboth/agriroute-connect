@@ -455,8 +455,9 @@ const [pricePerKm, setPricePerKm] = useState('');
     const minAnttTotal = freight.minimum_antt_price || 0;
     const minAnttPerTruck = minAnttTotal > 0 ? getPricePerTruck(minAnttTotal, requiredTrucks) : 0;
     
-    // A proposta original do motorista JÁ É por carreta
-    const driverProposedPrice = originalProposal?.proposed_price || 0;
+    // ✅ CRÍTICO: A proposta do banco é o TOTAL, precisa dividir por carretas
+    const driverProposedPriceTotal = originalProposal?.proposed_price || 0;
+    const driverProposedPerTruck = getPricePerTruck(driverProposedPriceTotal, requiredTrucks);
     
     // Calcular valor proposto atual
     const currentProposedPrice = pricingType === 'PER_KM' 
@@ -499,7 +500,7 @@ const [pricePerKm, setPricePerKm] = useState('');
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Proposta do motorista:</span>
               <span className="font-medium">
-                {formatBRL(driverProposedPrice, true)}
+                {formatBRL(driverProposedPerTruck, true)}
                 {hasMultipleTrucks && <span className="text-xs ml-1">/carreta</span>}
               </span>
             </div>
