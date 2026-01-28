@@ -54,7 +54,8 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
   const [proposedDate, setProposedDate] = useState<Date>();
   const [proposedPrice, setProposedPrice] = useState('');
   const [proposedPricePerKm, setProposedPricePerKm] = useState('');
-  const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM'>(freight?.price_per_km ? 'PER_KM' : 'FIXED');
+  const [proposedPricePerTon, setProposedPricePerTon] = useState('');
+  const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM' | 'PER_TON'>(freight?.price_per_km ? 'PER_KM' : 'FIXED');
   const [message, setMessage] = useState('');
   const [proposalType, setProposalType] = useState<'exact' | 'alternative'>('exact');
   const [pricingSelectOpen, setPricingSelectOpen] = useState(false);
@@ -69,6 +70,21 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!proposedDate) return;
+
+    // ✅ Validações de tipo de precificação
+    const distance = freight.distance_km || 0;
+    const weightTons = (freight.weight || 0) / 1000;
+    
+    if (pricingType === 'PER_KM' && distance <= 0) {
+      toast.error('Para proposta por KM, o frete precisa ter a distância configurada.');
+      return;
+    }
+    
+    if (pricingType === 'PER_TON' && weightTons <= 0) {
+      toast.error('Para proposta por tonelada, o frete precisa ter o peso configurado.');
+      return;
+    }
     if (!proposedDate) return;
 
     setLoading(true);
@@ -95,7 +111,9 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
       if (proposalType === 'exact') {
         const finalPrice = pricingType === 'FIXED' 
           ? parseFloat(proposedPrice) || freight.price
-          : parseFloat(proposedPricePerKm) * (freight.distance_km || 0);
+          : pricingType === 'PER_KM'
+            ? parseFloat(proposedPricePerKm) * distance
+            : parseFloat(proposedPricePerTon) * weightTons;
 
         const proposalData = {
           freight_id: freight.id,
@@ -145,7 +163,9 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
 
         const finalPrice = pricingType === 'FIXED' 
           ? parseFloat(proposedPrice) || freight.price
-          : parseFloat(proposedPricePerKm) * (freight.distance_km || 0);
+          : pricingType === 'PER_KM'
+            ? parseFloat(proposedPricePerKm) * distance
+            : parseFloat(proposedPricePerTon) * weightTons;
 
         const flexibleProposalData = {
           freight_id: freight.id,
@@ -180,6 +200,7 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
     setProposedDate(undefined);
     setProposedPrice('');
     setProposedPricePerKm('');
+    setProposedPricePerTon('');
     setPricingType(freight?.price_per_km ? 'PER_KM' : 'FIXED');
     setMessage('');
     setProposalType('exact');
@@ -334,14 +355,14 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
             </div>
           </div>
 
-          {/* Tipo de Cobrança */}
+          {/* Tipo de Cobrança - 3 opções */}
           <div className="space-y-2">
             <Label>Tipo de Cobrança</Label>
             <Select
               open={pricingSelectOpen}
               onOpenChange={setPricingSelectOpen}
               value={pricingType}
-              onValueChange={(value: 'FIXED' | 'PER_KM') => {
+              onValueChange={(value: 'FIXED' | 'PER_KM' | 'PER_TON') => {
                 const el = document.activeElement as HTMLElement | null;
                 el?.blur?.();
                 setTimeout(() => {
@@ -354,16 +375,24 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
                 <SelectValue placeholder="Selecione o tipo de cobrança" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
-                <SelectItem value="FIXED">Valor Fixo</SelectItem>
+                <SelectItem value="FIXED">Valor Fixo (R$)</SelectItem>
+                <SelectItem value="PER_KM">Por Quilômetro (R$/km)</SelectItem>
+                <SelectItem value="PER_TON">Por Tonelada (R$/ton)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Valor Proposto */}
+          {/* Valor Proposto - 3 tipos */}
           <div className="space-y-2">
-            <Label>{pricingType === 'FIXED' ? 'Valor Fixo (R$)' : 'Valor por KM (R$)'}</Label>
+            <Label>
+              {pricingType === 'FIXED' 
+                ? 'Valor Fixo (R$)' 
+                : pricingType === 'PER_KM' 
+                  ? 'Valor por KM (R$)' 
+                  : 'Valor por Tonelada (R$)'}
+            </Label>
             
+            {/* Valor Fixo */}
             <div className={pricingType === 'FIXED' ? 'block' : 'hidden'}>
               <Input
                 type="number"
@@ -377,6 +406,8 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
                 aria-hidden={pricingType !== 'FIXED'}
               />
             </div>
+            
+            {/* Por KM */}
             <div className={pricingType === 'PER_KM' ? 'block' : 'hidden'}>
               <Input
                 type="number"
@@ -390,17 +421,57 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
                 aria-hidden={pricingType !== 'PER_KM'}
               />
             </div>
+            
+            {/* Por Tonelada */}
+            <div className={pricingType === 'PER_TON' ? 'block' : 'hidden'}>
+              <Input
+                type="number"
+                placeholder="150.00"
+                value={proposedPricePerTon}
+                onChange={(e) => setProposedPricePerTon(e.target.value)}
+                step="0.01"
+                min="0.01"
+                inputMode="decimal"
+                disabled={pricingType !== 'PER_TON'}
+                aria-hidden={pricingType !== 'PER_TON'}
+              />
+            </div>
 
             <div className="text-xs text-muted-foreground">
               {pricingType === 'FIXED' ? (
                 `Deixe em branco para manter o valor original (R$ ${freight.price.toLocaleString()})`
+              ) : pricingType === 'PER_KM' ? (
+                <>
+                  {(freight.distance_km || 0) > 0 ? (
+                    <>
+                      Distância estimada: {freight.distance_km || 0} km
+                      {proposedPricePerKm && (
+                        <div className="mt-1 font-medium text-primary">
+                          Total calculado: R$ {(parseFloat(proposedPricePerKm) * (freight.distance_km || 0)).toLocaleString()}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-yellow-600 dark:text-yellow-400">
+                      ⚠️ Distância não configurada. Não é possível propor por KM.
+                    </span>
+                  )}
+                </>
               ) : (
                 <>
-                  Distância estimada: {freight.distance_km || 0} km
-                  {proposedPricePerKm && (
-                    <div className="mt-1 font-medium">
-                      Total calculado: R$ {(parseFloat(proposedPricePerKm) * (freight.distance_km || 0)).toLocaleString()}
-                    </div>
+                  {((freight.weight || 0) / 1000) > 0 ? (
+                    <>
+                      Peso: {((freight.weight || 0) / 1000).toFixed(1)} toneladas
+                      {proposedPricePerTon && (
+                        <div className="mt-1 font-medium text-primary">
+                          Total calculado: R$ {(parseFloat(proposedPricePerTon) * ((freight.weight || 0) / 1000)).toLocaleString()} ({((freight.weight || 0) / 1000).toFixed(1)} ton)
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-yellow-600 dark:text-yellow-400">
+                      ⚠️ Peso não configurado. Não é possível propor por tonelada.
+                    </span>
                   )}
                 </>
               )}
@@ -427,9 +498,12 @@ export const FlexibleProposalModal: React.FC<FlexibleProposalModalProps> = ({
                 <div>
                   Valor: R$ {(pricingType === 'FIXED' 
                     ? parseFloat(proposedPrice) || freight.price
-                    : parseFloat(proposedPricePerKm) * (freight.distance_km || 0) || freight.price
+                    : pricingType === 'PER_KM'
+                      ? parseFloat(proposedPricePerKm) * (freight.distance_km || 0) || freight.price
+                      : parseFloat(proposedPricePerTon) * ((freight.weight || 0) / 1000) || freight.price
                   ).toLocaleString()}
                   {pricingType === 'PER_KM' && proposedPricePerKm && ` (R$ ${proposedPricePerKm}/km)`}
+                  {pricingType === 'PER_TON' && proposedPricePerTon && ` (R$ ${proposedPricePerTon}/ton)`}
                 </div>
                 <div className="text-muted-foreground">{getDaysDifferenceText()}</div>
               </div>

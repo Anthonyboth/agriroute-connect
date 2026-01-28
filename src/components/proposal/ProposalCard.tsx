@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,13 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatBRL } from '@/lib/formatters';
 import { useProposalChatUnreadCount } from '@/hooks/useProposalChatUnreadCount';
+import { getPricePerTruck, getRequiredTrucks, hasMultipleTrucks as checkMultipleTrucks } from '@/lib/proposal-utils';
 
 interface Proposal {
   id: string;
   freight_id: string;
   driver_id: string;
-  proposed_price: number;
+  proposed_price: number; // ✅ Este valor JÁ É por carreta (motorista envia por unidade)
   message?: string;
   delivery_estimate?: string;
   status: string;
@@ -40,6 +41,7 @@ interface Proposal {
     price: number;
     distance_km: number;
     status: string;
+    weight?: number;
   };
 }
 
@@ -71,8 +73,22 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
   const freight = proposal.freight;
   if (!freight) return null;
 
+  // ✅ CRÍTICO: Cálculos por carreta
+  const requiredTrucks = getRequiredTrucks(freight);
+  const multipleTrucks = checkMultipleTrucks(freight);
+  const freightPricePerTruck = useMemo(() => getPricePerTruck(freight.price, requiredTrucks), [freight.price, requiredTrucks]);
+  
+  // A proposta do motorista JÁ É por carreta (padrão do sistema)
+  const proposalPricePerTruck = proposal.proposed_price;
+  
+  // ANTT mínimo POR CARRETA
+  const minAnttPerTruck = useMemo(() => 
+    freight.minimum_antt_price ? getPricePerTruck(freight.minimum_antt_price, requiredTrucks) : 0, 
+    [freight.minimum_antt_price, requiredTrucks]
+  );
+
   const availableSlots = freight.required_trucks - freight.accepted_trucks;
-  const belowAntt = freight.minimum_antt_price && proposal.proposed_price < freight.minimum_antt_price;
+  const belowAntt = minAnttPerTruck > 0 && proposalPricePerTruck < minAnttPerTruck;
   const timeAgo = formatDistanceToNow(new Date(proposal.created_at), { 
     addSuffix: true, 
     locale: ptBR 
@@ -157,30 +173,59 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
           </div>
         </div>
 
+        {/* ✅ VALORES POR CARRETA */}
         <div className="bg-muted/50 p-4 rounded-lg mb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Valor proposto:</span>
+            <span className="text-sm font-medium flex items-center gap-2">
+              Valor proposto:
+              {multipleTrucks && (
+                <Badge variant="outline" className="text-xs">/carreta</Badge>
+              )}
+            </span>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge variant={belowAntt ? 'destructive' : 'default'} className="text-lg px-3">
-                    {formatBRL(proposal.proposed_price)}
+                    {formatBRL(proposalPricePerTruck, true)}
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent>
                   {belowAntt 
-                    ? 'Valor abaixo do mínimo ANTT' 
-                    : 'Valor dentro da conformidade'}
+                    ? 'Valor abaixo do mínimo ANTT por carreta' 
+                    : multipleTrucks 
+                      ? 'Valor por carreta - dentro da conformidade'
+                      : 'Valor dentro da conformidade'}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
-          {freight.minimum_antt_price && (
+          
+          {/* Valor original do frete por carreta */}
+          <div className="flex items-center justify-between text-sm mb-1">
+            <span className="text-muted-foreground">Valor original:</span>
+            <span className="text-muted-foreground">
+              {formatBRL(freightPricePerTruck, true)}
+              {multipleTrucks && <span className="text-xs ml-1">/carreta</span>}
+            </span>
+          </div>
+          
+          {minAnttPerTruck > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Valor mínimo ANTT:</span>
+              <span className="text-muted-foreground">Mínimo ANTT:</span>
               <span className={belowAntt ? 'text-destructive font-semibold' : 'text-muted-foreground'}>
-                {formatBRL(freight.minimum_antt_price)}
+                {formatBRL(minAnttPerTruck, true)}
+                {multipleTrucks && <span className="text-xs ml-1">/carreta</span>}
               </span>
+            </div>
+          )}
+          
+          {/* Info de múltiplas carretas */}
+          {multipleTrucks && (
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Truck className="h-3 w-3" />
+                <span>Frete com {requiredTrucks} carretas • Proposta para 1 unidade</span>
+              </div>
             </div>
           )}
         </div>
@@ -195,10 +240,10 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                   ⚠️ Valor Abaixo do Mínimo ANTT
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Esta proposta está <span className="font-bold">{formatBRL(freight.minimum_antt_price - proposal.proposed_price)}</span> abaixo do valor mínimo estabelecido pela ANTT para este tipo de transporte.
+                  Esta proposta está <span className="font-bold">{formatBRL(minAnttPerTruck - proposalPricePerTruck, true)}</span> abaixo do valor mínimo estabelecido pela ANTT{multipleTrucks ? ' por carreta' : ''}.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Mínimo ANTT: <span className="font-semibold">{formatBRL(freight.minimum_antt_price)}</span>
+                  Mínimo ANTT{multipleTrucks ? ' /carreta' : ''}: <span className="font-semibold">{formatBRL(minAnttPerTruck, true)}</span>
                 </p>
                 <Button
                   variant="link"
