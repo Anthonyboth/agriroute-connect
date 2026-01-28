@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { queryWithTimeout } from '@/lib/query-utils';
@@ -58,7 +58,8 @@ export interface UserProfile {
   current_state?: string;
 }
 
-export const useAuth = () => {
+// NOTE: Internal implementation. Use the exported `useAuth()` hook (context consumer) instead.
+const useAuthInternal = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -779,4 +780,22 @@ export const useAuth = () => {
     hasRole,
     hasAnyRole
   };
+};
+
+type AuthContextValue = ReturnType<typeof useAuthInternal>;
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const value = useAuthInternal();
+  // Avoid JSX in .ts file (this file is not .tsx)
+  return React.createElement(AuthContext.Provider, { value }, children);
+};
+
+export const useAuth = (): AuthContextValue => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return ctx;
 };

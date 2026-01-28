@@ -18,7 +18,7 @@ import React, { lazy, Suspense } from 'react';
 
 // Import Landing directly (not lazy) - it's the LCP element
 import Landing from "./pages/Landing";
-import { useAuth } from "./hooks/useAuth";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { useCompanyDriver } from "./hooks/useCompanyDriver";
 import { ComponentLoader } from '@/components/LazyComponents';
 import { AppLoader, AuthLoader, DashboardLoader, GlobalLoader } from '@/components/AppLoader';
@@ -796,6 +796,7 @@ const App = () => {
       <ErrorBoundary>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <QueryClientProvider client={queryClient}>
+          <AuthProvider>
           <AppBootProvider>
           <BootstrapGuardWrapper>
           <BootTimeoutGuard>
@@ -992,6 +993,7 @@ const App = () => {
           </BootTimeoutGuard>
           </BootstrapGuardWrapper>
           </AppBootProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>
     </ErrorBoundary>
