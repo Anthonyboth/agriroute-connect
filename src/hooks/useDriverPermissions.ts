@@ -21,7 +21,7 @@ export const useDriverPermissions = (): DriverPermissions => {
   // ✅ PHASE 3: Migrar verificação de veículo para React Query com cache
   const isAutonomous = (profile?.role === 'MOTORISTA' || profile?.role === 'MOTORISTA_AFILIADO') && !companyDriver;
   
-  const { data: vehicleCount = 0, isLoading: vehicleCheckLoading } = useQuery({
+  const { data: vehicleCount = 0, isLoading: vehicleCheckLoading, refetch: refetchVehicleCount } = useQuery({
     queryKey: ['driver-vehicle-count', profile?.id],
     queryFn: async () => {
       if (!profile?.id || !isAutonomous) return 0;
@@ -41,10 +41,10 @@ export const useDriverPermissions = (): DriverPermissions => {
       return count || 0;
     },
     enabled: !!profile?.id && isAutonomous,
-    // ✅ CRITICAL: Cache agressivo para evitar requisições repetidas
-    staleTime: 5 * 60 * 1000, // 5 minutos de cache
-    gcTime: 10 * 60 * 1000, // 10 minutos de garbage collection
-    refetchOnMount: false,
+    // ✅ AJUSTADO: Cache moderado para permitir atualização após cadastro de veículo
+    staleTime: 30 * 1000, // 30 segundos - permite atualização rápida após cadastro
+    gcTime: 5 * 60 * 1000, // 5 minutos de garbage collection
+    refetchOnMount: true, // ✅ Refetch ao montar para pegar veículos recém cadastrados
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });

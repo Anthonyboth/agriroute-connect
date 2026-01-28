@@ -17,6 +17,7 @@ import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { VehiclePhotoGallery } from '@/components/vehicle/VehiclePhotoGallery';
 import { VehiclePhotoThumbnails } from '@/components/vehicle/VehiclePhotoThumbnails';
 import { VehiclePhotoExpandedGallery } from '@/components/vehicle/VehiclePhotoExpandedGallery';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { VEHICLE_TYPES_SELECT, getVehicleTypeLabel } from '@/lib/vehicle-types';
 
@@ -42,6 +43,7 @@ const SMALL_VEHICLE_TYPES = ['MOTO', 'FIORINO', 'VAN', 'HR', 'PICKUP'];
 export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isTransportCompany, company } = useTransportCompany();
   const { can, reason } = usePanelCapabilities();
   const { isAffiliated: isAffiliated } = useCompanyDriver();
@@ -237,6 +239,9 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
       setPhotoCount(0);
       setDuplicatePlateError(null);
       fetchVehicles();
+      
+      // ✅ CRITICAL: Invalidar cache de contagem de veículos para atualizar permissões de aceitar frete
+      queryClient.invalidateQueries({ queryKey: ['driver-vehicle-count', driverProfile.id] });
     } catch (error: any) {
       console.error('Error saving vehicle:', error);
       toast({
