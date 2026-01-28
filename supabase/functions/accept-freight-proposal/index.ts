@@ -11,6 +11,54 @@ interface AcceptProposalRequest {
   producer_id: string;
 }
 
+function normalizeBrazilStateUF(input: string | null | undefined): string | null {
+  if (!input) return null;
+  const raw = String(input).trim();
+  if (!raw) return null;
+
+  // Already UF
+  if (raw.length === 2) return raw.toUpperCase();
+
+  // Remove accents for matching
+  const key = raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+  const map: Record<string, string> = {
+    'acre': 'AC',
+    'alagoas': 'AL',
+    'amapa': 'AP',
+    'amazonas': 'AM',
+    'bahia': 'BA',
+    'ceara': 'CE',
+    'distrito federal': 'DF',
+    'espirito santo': 'ES',
+    'goias': 'GO',
+    'maranhao': 'MA',
+    'mato grosso': 'MT',
+    'mato grosso do sul': 'MS',
+    'minas gerais': 'MG',
+    'para': 'PA',
+    'paraiba': 'PB',
+    'parana': 'PR',
+    'pernambuco': 'PE',
+    'piaui': 'PI',
+    'rio de janeiro': 'RJ',
+    'rio grande do norte': 'RN',
+    'rio grande do sul': 'RS',
+    'rondonia': 'RO',
+    'roraima': 'RR',
+    'santa catarina': 'SC',
+    'sao paulo': 'SP',
+    'sergipe': 'SE',
+    'tocantins': 'TO'
+  };
+
+  return map[key] ?? null;
+}
+
 /**
  * Calcula uma data de coleta segura (sempre no futuro)
  * Retorna no formato YYYY-MM-DD para evitar problemas de timezone
@@ -84,6 +132,10 @@ serve(async (req) => {
           cargo_type,
           vehicle_axles_required,
           high_performance,
+          origin_city,
+          origin_state,
+          destination_city,
+          destination_state,
           pickup_date,
           delivery_date
         )
@@ -187,12 +239,23 @@ serve(async (req) => {
         safeDeliveryDate = newDelivery.toISOString().split('T')[0];
       }
       
+      // Also normalize state fields (some older freights store full state name like "Mato Grosso",
+      // and a DB trigger tries to upsert cities with a UF constraint.)
+      const originUF = normalizeBrazilStateUF((freight as any)?.origin_state);
+      const destinationUF = normalizeBrazilStateUF((freight as any)?.destination_state);
+
+      const updatePayload: Record<string, unknown> = {
+        pickup_date: safePickupDate,
+        delivery_date: safeDeliveryDate,
+      };
+
+      // Only overwrite if we can confidently map to UF
+      if (originUF) updatePayload.origin_state = originUF;
+      if (destinationUF) updatePayload.destination_state = destinationUF;
+
       const { error: freightUpdateErr } = await supabase
         .from('freights')
-        .update({ 
-          pickup_date: safePickupDate,
-          delivery_date: safeDeliveryDate
-        })
+        .update(updatePayload)
         .eq('id', proposal.freight_id);
 
       if (freightUpdateErr) {
@@ -201,7 +264,9 @@ serve(async (req) => {
       } else {
         console.log('[PICKUP-DATE-FIX] Freight dates updated successfully:', {
           pickup_date: safePickupDate,
-          delivery_date: safeDeliveryDate
+          delivery_date: safeDeliveryDate,
+          origin_state: originUF ?? (freight as any)?.origin_state,
+          destination_state: destinationUF ?? (freight as any)?.destination_state
         });
       }
     }
