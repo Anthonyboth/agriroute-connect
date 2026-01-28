@@ -5,6 +5,7 @@ import { FreightCard } from '@/components/FreightCard';
 import { SafeListWrapper } from '@/components/SafeListWrapper';
 import { Brain, DollarSign, CheckCircle } from 'lucide-react';
 import { normalizeServiceType } from '@/lib/service-type-normalization';
+import { getPricePerTruck, formatPricePerTruck } from '@/lib/proposal-utils';
 import type { Proposal } from './types';
 
 interface DriverProposalsTabProps {
@@ -55,14 +56,23 @@ export const DriverProposalsTab: React.FC<DriverProposalsTabProps> = ({
                     showActions={false}
                   />
                   
-                  {/* Informações compactas da proposta */}
-                  <div className="mt-3 p-3 bg-gradient-to-r from-card to-secondary/10 border rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium">Sua Proposta:</span>
-                      <span className="text-lg font-bold text-primary">
-                        R$ {proposal.proposed_price?.toLocaleString('pt-BR')}
-                      </span>
-                    </div>
+                  {/* Informações compactas da proposta - valor POR CARRETA */}
+                  {(() => {
+                    const requiredTrucks = proposal.freight?.required_trucks || 1;
+                    const hasMultipleTrucks = requiredTrucks > 1;
+                    const pricePerTruck = getPricePerTruck(proposal.proposed_price, requiredTrucks);
+                    
+                    return (
+                      <div className="mt-3 p-3 bg-gradient-to-r from-card to-secondary/10 border rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">
+                            Sua Proposta{hasMultipleTrucks ? ' (por carreta)' : ''}:
+                          </span>
+                          <span className="text-lg font-bold text-primary">
+                            {formatPricePerTruck(pricePerTruck, 1)}
+                            {hasMultipleTrucks && <span className="text-xs font-normal ml-1">/carreta</span>}
+                          </span>
+                        </div>
                     
                     <div className="flex justify-between items-center">
                       <Badge 
@@ -85,13 +95,15 @@ export const DriverProposalsTab: React.FC<DriverProposalsTabProps> = ({
                       </span>
                     </div>
                     
-                    {proposal.message && (
-                      <div className="mt-3 pt-3 border-t">
-                        <p className="text-xs text-muted-foreground mb-1">Mensagem:</p>
-                        <p className="text-sm">{proposal.message}</p>
+                        {proposal.message && (
+                          <div className="mt-3 pt-3 border-t">
+                            <p className="text-xs text-muted-foreground mb-1">Mensagem:</p>
+                            <p className="text-sm">{proposal.message}</p>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </div>
               ) : null
             )}
