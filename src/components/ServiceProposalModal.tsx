@@ -13,7 +13,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
 import { usePanelCapabilities } from '@/hooks/usePanelCapabilities';
-import { formatKm } from '@/lib/formatters';
+import { formatKm, formatBRL, formatTons } from '@/lib/formatters';
+import { getPricePerTruck, getWeightInTons } from '@/lib/proposal-utils';
 
 interface ServiceProposalModalProps {
   isOpen: boolean;
@@ -445,40 +446,75 @@ const [pricePerKm, setPricePerKm] = useState('');
 
   const renderCargaForm = () => {
     const distance = freight.distance_km || 0;
-    const weightTons = (freight.weight || 0) / 1000;
     const requiredTrucks = freight.required_trucks || 1;
+    const hasMultipleTrucks = requiredTrucks > 1;
+    
+    // ✅ CRÍTICO: Calcular valores POR CARRETA
+    const freightPricePerTruck = getPricePerTruck(freight.price, requiredTrucks);
+    const weightPerTruckInTons = getWeightInTons(freight.weight, requiredTrucks);
     const minAnttTotal = freight.minimum_antt_price || 0;
-    const minAnttPerTruck = minAnttTotal > 0 ? minAnttTotal / requiredTrucks : 0;
+    const minAnttPerTruck = minAnttTotal > 0 ? getPricePerTruck(minAnttTotal, requiredTrucks) : 0;
+    
+    // A proposta original do motorista JÁ É por carreta
+    const driverProposedPrice = originalProposal?.proposed_price || 0;
     
     // Calcular valor proposto atual
     const currentProposedPrice = pricingType === 'PER_KM' 
       ? (parseFloat(pricePerKm) || 0) * distance
       : pricingType === 'PER_TON'
-        ? (parseFloat(pricePerTon) || 0) * weightTons
+        ? (parseFloat(pricePerTon) || 0) * weightPerTruckInTons
         : parseFloat(proposedPrice) || 0;
     
     const isBelowAntt = minAnttPerTruck > 0 && currentProposedPrice > 0 && currentProposedPrice < minAnttPerTruck;
     
     return (
       <>
+        {/* ✅ AVISO: Frete com múltiplas carretas */}
+        {hasMultipleTrucks && (
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 text-sm font-medium">
+              <Truck className="h-4 w-4" />
+              Frete com {requiredTrucks} carretas
+            </div>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              Você está fazendo proposta para <strong>1 carreta apenas</strong>.
+            </p>
+          </div>
+        )}
+
+        {/* ✅ PROPOSTA ATUAL: Valores por carreta */}
         {originalProposal && (
           <div className="bg-secondary/30 p-3 rounded-lg space-y-2 mb-4">
-            <h3 className="font-semibold text-sm">Proposta Atual</h3>
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              Proposta Atual
+              {hasMultipleTrucks && <Badge variant="outline" className="text-xs">por carreta</Badge>}
+            </h3>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Valor original:</span>
-              <span className="font-medium">R$ {freight.price.toLocaleString()}</span>
+              <span className="font-medium">
+                {formatBRL(freightPricePerTruck, true)}
+                {hasMultipleTrucks && <span className="text-xs ml-1">/carreta</span>}
+              </span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Proposta do motorista:</span>
-              <span className="font-medium">R$ {originalProposal.proposed_price.toLocaleString()}</span>
+              <span className="font-medium">
+                {formatBRL(driverProposedPrice, true)}
+                {hasMultipleTrucks && <span className="text-xs ml-1">/carreta</span>}
+              </span>
             </div>
+            {hasMultipleTrucks && (
+              <div className="pt-1 text-xs text-muted-foreground">
+                Peso por carreta: {formatTons(freight.weight ? freight.weight / requiredTrucks : 0)} • Distância: {distance} km
+              </div>
+            )}
           </div>
         )}
 
         {minAnttPerTruck > 0 && (
           <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
             <p className="text-sm text-blue-900 dark:text-blue-100 font-medium mb-1">
-              ℹ️ Mínimo ANTT por carreta: R$ {minAnttPerTruck.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              ℹ️ Mínimo ANTT{hasMultipleTrucks ? ' por carreta' : ''}: {formatBRL(minAnttPerTruck, true)}
             </p>
             <p className="text-xs text-blue-700 dark:text-blue-300">
               Valor informativo conforme legislação. Você pode propor abaixo se desejar, mas será notificado.
@@ -492,8 +528,8 @@ const [pricePerKm, setPricePerKm] = useState('');
               ⚠️ Você está propondo abaixo do mínimo ANTT
             </p>
             <p className="text-xs text-yellow-700 dark:text-yellow-300">
-              Proposta: R$ {currentProposedPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | 
-              Mínimo: R$ {minAnttPerTruck.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              Proposta: {formatBRL(currentProposedPrice, true)} | 
+              Mínimo{hasMultipleTrucks ? ' /carreta' : ''}: {formatBRL(minAnttPerTruck, true)}
             </p>
             <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">
               O produtor será notificado. É permitido aceitar, mas considere os custos operacionais.
@@ -504,7 +540,10 @@ const [pricePerKm, setPricePerKm] = useState('');
         <div className="space-y-4">
           {/* Tipo de Cobrança - sempre 3 opções */}
           <div className="space-y-2">
-            <Label>Tipo de Cobrança</Label>
+            <Label className="flex items-center gap-2">
+              Tipo de Cobrança
+              {hasMultipleTrucks && <Badge variant="outline" className="text-xs">por carreta</Badge>}
+            </Label>
             <Select 
               value={pricingType} 
               onValueChange={(value: 'FIXED' | 'PER_KM' | 'PER_TON') => setPricingType(value)}
@@ -513,21 +552,22 @@ const [pricePerKm, setPricePerKm] = useState('');
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="FIXED">Valor Fixo</SelectItem>
-                <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
-                <SelectItem value="PER_TON">Por Tonelada (TON)</SelectItem>
+                <SelectItem value="FIXED">Valor Fixo (R$)</SelectItem>
+                <SelectItem value="PER_KM">Por Quilômetro (R$/km)</SelectItem>
+                <SelectItem value="PER_TON">Por Tonelada (R$/ton)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Input dinâmico baseado no tipo */}
           <div className="space-y-2">
-            <Label>
+            <Label className="flex items-center gap-2">
               {pricingType === 'PER_KM'
                 ? 'Valor por KM (R$) *'
                 : pricingType === 'PER_TON'
                   ? 'Valor por TON (R$) *'
                   : 'Valor Proposto (R$) *'}
+              {hasMultipleTrucks && <Badge variant="outline" className="text-xs">por carreta</Badge>}
             </Label>
             
             {pricingType === 'PER_KM' ? (
@@ -564,7 +604,8 @@ const [pricePerKm, setPricePerKm] = useState('');
               distance > 0 ? (
                 pricePerKm ? (
                   <p className="text-sm text-muted-foreground">
-                    Total calculado: R$ {(parseFloat(pricePerKm || '0') * distance).toLocaleString('pt-BR')}
+                    Total calculado: {formatBRL(parseFloat(pricePerKm) * distance, true)}
+                    {hasMultipleTrucks && ' (por carreta)'}
                   </p>
                 ) : null
               ) : (
@@ -576,10 +617,11 @@ const [pricePerKm, setPricePerKm] = useState('');
             
             {/* Mensagem de validação e cálculo para PER_TON */}
             {pricingType === 'PER_TON' && (
-              weightTons > 0 ? (
+              weightPerTruckInTons > 0 ? (
                 pricePerTon ? (
                   <p className="text-sm text-muted-foreground">
-                    Total calculado: R$ {(parseFloat(pricePerTon || '0') * weightTons).toLocaleString('pt-BR')} ({weightTons.toFixed(1)} ton)
+                    Total calculado: {formatBRL(parseFloat(pricePerTon) * weightPerTruckInTons, true)} ({weightPerTruckInTons.toFixed(1)} ton)
+                    {hasMultipleTrucks && ' (por carreta)'}
                   </p>
                 ) : null
               ) : (
