@@ -269,54 +269,41 @@ const CompleteProfile = () => {
         return;
       }
       
-      // Se for motorista autônomo: ir para passo 3
-      if (registrationMode === 'MOTORISTA_AUTONOMO') {
-        setCurrentStep(3);
-        return;
+      // Verificar aceites obrigatórios para motoristas
+      if (registrationMode === 'MOTORISTA_AUTONOMO' || registrationMode === 'MOTORISTA_AFILIADO') {
+        if (!acceptedDocumentsResponsibility) {
+          toast.error('Você deve declarar a veracidade dos documentos enviados');
+          return;
+        }
+        
+        if (!acceptedTermsOfUse) {
+          toast.error('Você deve aceitar os Termos de Uso para continuar');
+          return;
+        }
+        
+        if (!acceptedPrivacyPolicy) {
+          toast.error('Você deve aceitar a Política de Privacidade para continuar');
+          return;
+        }
+
+        // Validar vencimento de CNH apenas para motoristas
+        const cnhValidation = validateCNHExpiry(registrationMode, profileData.cnh_expiry_date);
+        if (!cnhValidation.valid) {
+          toast.error(cnhValidation.message!);
+          return;
+        }
+        if (cnhValidation.message) {
+          toast.warning(cnhValidation.message);
+        }
       }
       
-      // Outros perfis: finalizar aqui
+      // TODOS os perfis finalizam no passo 2
+      // Veículos são cadastrados APÓS aprovação do perfil, na área interna
       await finalizeProfile();
       return;
     }
-
-    // Validar passo 3: documentos e veículos (apenas motorista autônomo)
-    if (currentStep === 3 && registrationMode === 'MOTORISTA_AUTONOMO') {
-      const missing = getMissingForStep(registrationMode, 'documentos_e_veiculos', state);
-      
-      if (missing.length > 0) {
-        toast.error(getDocumentsMissingMessage(registrationMode, missing));
-        return;
-      }
-
-      // Verificar aceites obrigatórios
-      if (!acceptedDocumentsResponsibility) {
-        toast.error('Você deve declarar a veracidade dos documentos enviados');
-        return;
-      }
-      
-      if (!acceptedTermsOfUse) {
-        toast.error('Você deve aceitar os Termos de Uso para continuar');
-        return;
-      }
-      
-      if (!acceptedPrivacyPolicy) {
-        toast.error('Você deve aceitar a Política de Privacidade para continuar');
-        return;
-      }
-
-      // Validar vencimento de CNH
-      const cnhValidation = validateCNHExpiry(registrationMode, profileData.cnh_expiry_date);
-      if (!cnhValidation.valid) {
-        toast.error(cnhValidation.message!);
-        return;
-      }
-      if (cnhValidation.message) {
-        toast.warning(cnhValidation.message);
-      }
-
-      await finalizeProfile();
-    }
+    
+    // Passo 3 foi REMOVIDO - veículos são cadastrados após aprovação do cadastro
   };
 
   const finalizeProfile = async () => {
