@@ -13,6 +13,7 @@ import { DocumentUpload } from '@/components/DocumentUpload';
 import { useNavigate } from 'react-router-dom';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { usePanelCapabilities } from '@/hooks/usePanelCapabilities';
+import { useCompanyDriver } from '@/hooks/useCompanyDriver';
 import { VehiclePhotoGallery } from '@/components/vehicle/VehiclePhotoGallery';
 import { VehiclePhotoThumbnails } from '@/components/vehicle/VehiclePhotoThumbnails';
 import { VehiclePhotoExpandedGallery } from '@/components/vehicle/VehiclePhotoExpandedGallery';
@@ -43,6 +44,7 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
   const navigate = useNavigate();
   const { isTransportCompany, company } = useTransportCompany();
   const { can, reason } = usePanelCapabilities();
+  const { isAffiliated: isAffiliated } = useCompanyDriver();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
@@ -305,7 +307,6 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
   }, [driverProfile]);
 
   const isVehicleLimitReached = vehicles.length >= 1 && driverProfile.role === 'MOTORISTA' && !isTransportCompany;
-  const isAffiliated = driverProfile.role === 'MOTORISTA_AFILIADO';
 
   return (
     <div className="space-y-6">
@@ -315,7 +316,9 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
           <DialogTrigger asChild>
             <Button 
               onClick={handleAddVehicle}
-              disabled={isVehicleLimitReached || isAffiliated}
+               // Não travar o botão por role; a regra real é centralizada em `can('manage_own_vehicles')`
+               // e mostramos feedback via toast em `handleAddVehicle`.
+               disabled={isVehicleLimitReached}
             >
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Veículo
