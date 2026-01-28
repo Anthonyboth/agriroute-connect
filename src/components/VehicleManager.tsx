@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Truck, Plus, Edit, FileText, Camera, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -313,17 +313,16 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Meus Veículos</h3>
         <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              onClick={handleAddVehicle}
-               // Não travar o botão por role; a regra real é centralizada em `can('manage_own_vehicles')`
-               // e mostramos feedback via toast em `handleAddVehicle`.
-               disabled={isVehicleLimitReached}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar Veículo
-            </Button>
-          </DialogTrigger>
+          <Button
+            type="button"
+            onClick={handleAddVehicle}
+            // Não travar o botão por role; a regra real é centralizada em `can('manage_own_vehicles')`
+            // e mostramos feedback via toast em `handleAddVehicle`.
+            disabled={isVehicleLimitReached}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Adicionar Veículo
+          </Button>
           
           <DialogContent className="max-w-2xl">
             <DialogHeader>
