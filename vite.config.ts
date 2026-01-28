@@ -249,8 +249,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
-    // ✅ ATIVADO - CSS async para eliminar render-blocking
-    mode === 'production' && asyncCssPlugin(),
+    // asyncCssPlugin() - DESABILITADO - causa falha no build de produção
     // swVersionPlugin() - não necessário com generateSW strategy
     // criticalCssPlugin() - desabilitado por causar falha no build
     VitePWA({
