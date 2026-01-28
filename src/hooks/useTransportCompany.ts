@@ -1,4 +1,4 @@
-// Transport Company Hook - Updated 2025-12-10
+// Transport Company Hook - Cache Fix 2026-01-28
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -25,8 +25,12 @@ export const useTransportCompany = () => {
       return data;
     },
     enabled: !!profile?.id,
+    // ✅ CRITICAL: Cache agressivo para evitar requisições repetidas
     staleTime: 5 * 60 * 1000, // Cache por 5 minutos
     gcTime: 10 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Buscar motoristas afiliados
