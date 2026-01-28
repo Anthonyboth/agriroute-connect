@@ -425,32 +425,56 @@ export const useAuth = () => {
           return;
         }
 
-        // Correção de sessão inválida: quando o refresh falha e o Supabase não entrega session
+        // ✅ P0 FIX: Correção de redirecionamento indevido
+        // Só processar como logout REAL quando for evento SIGNED_OUT explícito
+        // JWT expirado/inválido (INITIAL_SESSION, TOKEN_REFRESHED) deve tentar renovar silenciosamente
         if (!session) {
-          // Evitar chamadas Supabase aqui (deadlock prevention)
-          clearSupabaseAuthStorage();
-          setProfile(null);
-          setProfiles([]);
-          setInitialized(true);
-          setLoading(false);
-          // ✅ P0 FIX: Reset auto-create guard on sign out
-          autoCreateAttemptedRef.current = false;
-
-          const onAuthPage = window.location.pathname === '/auth';
-
-          // APENAS redirecionar em SIGNED_OUT explícito (usuário clicou sair)
-          // TOKEN_REFRESHED sem sessão: NÃO redireciona - tenta renovar silenciosamente
-          if (event === 'SIGNED_OUT' && !onAuthPage) {
-            try {
-              const path = window.location.pathname + window.location.search + window.location.hash;
-              localStorage.setItem('redirect_after_login', path);
-            } catch {}
-            setTimeout(() => {
-              // ❌ REMOVIDO: toast.error('Você saiu da conta.') - logout silencioso
-              window.location.replace('/auth');
-            }, 0);
+          // ✅ CRÍTICO: Diferenciar logout real vs falha temporária de JWT
+          const isExplicitSignOut = event === 'SIGNED_OUT';
+          const isInitialWithNoSession = event === 'INITIAL_SESSION';
+          const isTokenRefreshFailure = event === 'TOKEN_REFRESHED';
+          
+          // ✅ Se é carregamento inicial sem sessão (usuário não logado), apenas limpar estado
+          // NÃO redirecionar - o usuário pode estar na landing page
+          if (isInitialWithNoSession || isTokenRefreshFailure) {
+            if (import.meta.env.DEV) {
+              console.log(`[useAuth] ${event} sem sessão - limpando estado (sem redirect)`);
+            }
+            setProfile(null);
+            setProfiles([]);
+            setInitialized(true);
+            setLoading(false);
+            autoCreateAttemptedRef.current = false;
+            // NÃO limpar storage aqui - pode ser falha temporária
+            return;
           }
-          // USER_UPDATED ou TOKEN_REFRESHED sem session: não redirecionar, aguardar próximo evento
+          
+          // ✅ SIGNED_OUT explícito: usuário realmente clicou em sair
+          if (isExplicitSignOut) {
+            if (import.meta.env.DEV) {
+              console.log('[useAuth] SIGNED_OUT explícito - limpando tudo e redirecionando');
+            }
+            clearSupabaseAuthStorage();
+            setProfile(null);
+            setProfiles([]);
+            setInitialized(true);
+            setLoading(false);
+            autoCreateAttemptedRef.current = false;
+
+            const onAuthPage = window.location.pathname === '/auth';
+            const onPublicPage = ['/', '/sobre', '/privacidade', '/termos', '/cookies', '/ajuda', '/status', '/carreiras', '/imprensa', '/services'].includes(window.location.pathname);
+            
+            // Só redirecionar se NÃO estiver em página pública/auth
+            if (!onAuthPage && !onPublicPage) {
+              try {
+                const path = window.location.pathname + window.location.search + window.location.hash;
+                localStorage.setItem('redirect_after_login', path);
+              } catch {}
+              setTimeout(() => {
+                window.location.replace('/auth');
+              }, 0);
+            }
+          }
           return;
         }
         
