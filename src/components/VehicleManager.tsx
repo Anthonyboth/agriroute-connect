@@ -324,7 +324,12 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
             Adicionar Veículo
           </Button>
           
-          <DialogContent className="max-w-2xl">
+          {/*
+            NOTE: Adding an explicit z-index here to avoid cases where CSS purging/caching
+            prevents the dialog content z-index class from being generated, which results
+            in the overlay appearing (dark screen) without the modal content.
+          */}
+          <DialogContent className="max-w-2xl z-[10000]">
             <DialogHeader>
               <DialogTitle>
                 {editingVehicle ? 'Editar Veículo' : 'Cadastrar Novo Veículo'}
@@ -593,7 +598,7 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
               <p className="text-muted-foreground mb-4">
                 Nenhum veículo cadastrado ainda.
               </p>
-              <Button onClick={() => setIsAddModalOpen(true)}>
+              <Button type="button" onClick={() => setIsAddModalOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Cadastrar Primeiro Veículo
               </Button>
@@ -604,7 +609,7 @@ export const VehicleManager: React.FC<VehicleManagerProps> = ({ driverProfile })
 
       {/* Modal de galeria de fotos */}
       <Dialog open={!!viewingGalleryVehicleId} onOpenChange={() => setViewingGalleryVehicleId(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg z-[10000]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Camera className="h-5 w-5" />
