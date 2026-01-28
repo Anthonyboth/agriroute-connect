@@ -243,6 +243,8 @@ const DriverDashboard = () => {
 
   // Flag de montagem para evitar setState após unmount
   const isMountedRef = React.useRef(true);
+  // Evitar duplo clique/dupla execução em ações sensíveis (propor/aceitar)
+  const freightActionInFlightRef = React.useRef<Set<string>>(new Set());
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -1728,13 +1730,12 @@ const DriverDashboard = () => {
 
   const handleFreightAction = async (freightId: string, action: 'propose' | 'accept' | 'complete' | 'cancel') => {
     if (!profile?.id) return;
-    
-    // ✅ Bloquear ações de aceitar/propor para afiliados sem permissão
-    if ((action === 'propose' || action === 'accept') && (!canAcceptFreights || mustUseChat)) {
-      toast.error('Negociação via transportadora', {
-        description: 'Entre em contato com sua transportadora pelo chat para negociar fretes.'
-      });
-      return;
+
+    // Travar reentrância (evita múltiplas tentativas gerando mensagens duplicadas)
+    const lockKey = `${action}:${freightId}`;
+    if (action === 'propose' || action === 'accept') {
+      if (freightActionInFlightRef.current.has(lockKey)) return;
+      freightActionInFlightRef.current.add(lockKey);
     }
 
     try {
@@ -1773,7 +1774,7 @@ const DriverDashboard = () => {
           if (existingProposal && (existingProposal.status === 'PENDING' || existingProposal.status === 'ACCEPTED')) {
             toast.info(
               existingProposal.status === 'PENDING'
-                ? 'Você já enviou uma proposta para este frete. Aguarde a resposta.'
+                ? 'Você já enviou uma contra proposta para este frete. Aguarde a resposta.'
                 : 'Sua proposta já foi aceita.'
             );
             return;
@@ -1791,7 +1792,7 @@ const DriverDashboard = () => {
             });
           if (error) throw error;
 
-          toast.success('Proposta enviada com sucesso!');
+          toast.success('Contra proposta enviada. Aguarde a resposta.');
         } else if (action === 'accept') {
           // Check if user is a transport company
           const { data: transportCompanyData } = await supabase
@@ -1996,6 +1997,10 @@ const DriverDashboard = () => {
     } catch (error: any) {
       console.error('Error handling freight action:', error);
       toast.error('Erro ao processar ação. Tente novamente.');
+    } finally {
+      if (action === 'propose' || action === 'accept') {
+        freightActionInFlightRef.current.delete(lockKey);
+      }
     }
   };
 

@@ -103,7 +103,7 @@ export const usePushNotifications = () => {
             user_agent: navigator.userAgent,
             is_active: true,
             last_used_at: new Date().toISOString(),
-          });
+          }, { onConflict: 'user_id,endpoint' });
 
         if (error) throw error;
 
@@ -112,11 +112,14 @@ export const usePushNotifications = () => {
         return;
       }
 
-      // Criar subscription real com VAPID
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      });
+      // Reutilizar subscription existente (evita duplicidade/flood)
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+      }
 
       console.log('[PushNotifications] Subscription criada:', subscription.endpoint);
 
@@ -135,7 +138,7 @@ export const usePushNotifications = () => {
           user_agent: navigator.userAgent,
           is_active: true,
           last_used_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'user_id,endpoint' });
 
       if (error) {
         console.error('[PushNotifications] Erro ao salvar:', error);
@@ -144,6 +147,15 @@ export const usePushNotifications = () => {
 
       setIsSubscribed(true);
       toast.success('Notificações push ativadas com sucesso! 🔔');
+
+      // Desativar possíveis subscriptions antigas do MESMO dispositivo (mesmo user_agent)
+      // Isso evita envio duplicado para o mesmo aparelho/navegador.
+      await supabase
+        .from('push_subscriptions')
+        .update({ is_active: false })
+        .eq('user_id', profile.id)
+        .eq('user_agent', navigator.userAgent)
+        .neq('endpoint', subscription.endpoint);
 
       console.log('[PushNotifications] Configuração completa');
     } catch (error) {
