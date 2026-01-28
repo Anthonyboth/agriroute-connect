@@ -12,25 +12,9 @@ import { generate } from 'critical';
 // ✅ RELEASE HARDENING: Generate unique build ID
 const BUILD_ID = `${new Date().toISOString().replace(/[:.T-]/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 8)}`;
 
-// Plugin to make CSS async (non-render-blocking)
-// ✅ ATIVADO v2 - usando media="print" pattern que é mais confiável
-const asyncCssPlugin = () => ({
-  name: 'async-css-plugin',
-  transformIndexHtml: {
-    order: 'post' as const,
-    handler(html: string) {
-      // Transform synchronous CSS links to async loading pattern using media="print"
-      // This pattern is more reliable than preload as="style" across browsers
-      return html.replace(
-        /<link\s+rel="stylesheet"\s+crossorigin\s+href="([^"]+\.css)">/gi,
-        (match, href) => {
-          return `<link rel="stylesheet" href="${href}" media="print" onload="this.media='all';this.onload=null;">
-    <noscript><link rel="stylesheet" href="${href}"></noscript>`;
-        }
-      );
-    }
-  }
-});
+// Plugin to make CSS async (non-render-blocking) - DESABILITADO
+// Causa falha no build de produção - requer investigação adicional
+// const asyncCssPlugin = () => ({...});
 
 // Plugin to inject cache version into Service Worker (DESABILITADO - usando generateSW)
 // const swVersionPlugin = () => ({
