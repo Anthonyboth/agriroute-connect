@@ -81,7 +81,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
                   <Clock className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium">Horário</p>
-                    <p className="text-sm text-muted-foreground">Seg-Sex: 8h-18h</p>
+                    <p className="text-sm text-muted-foreground">Seg-Seg: 07h-19h</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-center gap-2">
