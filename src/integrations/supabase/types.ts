@@ -11831,6 +11831,10 @@ export type Database = {
         Args: { _target_profile: string; _viewer: string }
         Returns: boolean
       }
+      can_view_vehicle_via_freight: {
+        Args: { vehicle_driver_id: string }
+        Returns: boolean
+      }
       cancel_accepted_service: {
         Args: {
           p_cancellation_reason?: string
@@ -12789,6 +12793,10 @@ export type Database = {
       }
       is_freight_owner: {
         Args: { freight_id: string; user_profile_id: string }
+        Returns: boolean
+      }
+      is_freight_participant: {
+        Args: { target_profile_id: string }
         Returns: boolean
       }
       is_ip_blacklisted: { Args: { check_ip: unknown }; Returns: boolean }
