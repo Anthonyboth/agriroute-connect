@@ -3,6 +3,7 @@
 // LGPD: Logs de acesso registrados automaticamente
 
 import { useEffect, useState, useCallback } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -94,14 +95,7 @@ export default function InspectionView() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-lg">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-              <p className="text-muted-foreground">Carregando dados de fiscalização...</p>
-            </div>
-          </CardContent>
-        </Card>
+        <CenteredSpinner size="lg" />
       </div>
     );
   }

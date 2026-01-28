@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw, DollarSign, Truck, Users, TrendingUp, Percent, Clock } from 'lucide-react';
@@ -141,12 +142,7 @@ export const CompanyReportsTab: React.FC = () => {
   }, [summary, charts, kpiCards]);
 
   if (isLoadingCompany) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <RefreshCw className="h-12 w-12 text-muted-foreground/50 mb-4 animate-spin" />
-        <p className="text-muted-foreground">Carregando dados da empresa...</p>
-      </div>
-    );
+    return <CenteredSpinner size="lg" className="py-12" />;
   }
 
   if (!company?.id) {

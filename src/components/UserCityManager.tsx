@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -264,15 +265,7 @@ export function UserCityManager({ userRole, onCitiesUpdate }: UserCityManagerPro
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="py-8">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <CenteredSpinner />;
   }
 
   const typeOptions = TYPE_OPTIONS[userRole] || [];

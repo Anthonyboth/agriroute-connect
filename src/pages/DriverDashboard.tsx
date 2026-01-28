@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
@@ -2114,14 +2115,7 @@ const DriverDashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Carregando dashboard...</p>
-        </div>
-      </div>
-    );
+    return <AppSpinner fullscreen />;
   }
 
   if (showDetails && selectedFreightId) {

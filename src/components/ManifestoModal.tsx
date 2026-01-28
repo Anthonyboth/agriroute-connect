@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -129,9 +130,7 @@ export const ManifestoModal: React.FC<ManifestoModalProps> = ({ open, onClose, f
             </div>
           </div>
         ) : loading && !manifesto ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <CenteredSpinner className="py-12" />
         ) : error && !manifesto ? (
           <div className="py-8 text-center">
             <AlertCircle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { CenteredSpinner, InlineSpinner } from "@/components/ui/AppSpinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -94,11 +95,7 @@ export const ProposalChatPanel = ({
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <CenteredSpinner className="h-64" />;
   }
 
   return (

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
+import { CenteredSpinner, InlineSpinner } from '@/components/ui/AppSpinner';
 import { toast } from 'sonner';
 import { Clock, DollarSign, Truck, User, MapPin, AlertTriangle, CheckCircle, XCircle, MessageSquare, Loader2, ArrowUpDown, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -288,7 +289,7 @@ export const FreightProposalsManager: React.FC<FreightProposalsManagerProps> = (
           <CardTitle>Propostas de Motoristas</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">Carregando propostas...</p>
+          <CenteredSpinner />
         </CardContent>
       </Card>
     );

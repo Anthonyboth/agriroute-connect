@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -171,11 +172,7 @@ export default function AffiliateSignup() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <AppSpinner fullscreen />;
   }
 
   return (

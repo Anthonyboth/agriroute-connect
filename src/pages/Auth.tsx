@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { toast } from 'sonner';
 import { Loader2, Mail, Eye, EyeOff, Truck, Building2, ArrowLeft, AlertTriangle, Users, Info, Briefcase, Building } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
@@ -602,14 +603,7 @@ const Auth = () => {
 
   // Mostrar loading enquanto verifica sessão
   if (isCheckingSession) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-sm text-muted-foreground">Verificando sessão...</p>
-        </div>
-      </div>
-    );
+    return <AppSpinner fullscreen />;
   }
 
   return (

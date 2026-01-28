@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -244,13 +245,7 @@ export const CompanyProposalsManager: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <p className="text-muted-foreground">Carregando propostas...</p>
-        </CardContent>
-      </Card>
-    );
+    return <CenteredSpinner />;
   }
 
   return (

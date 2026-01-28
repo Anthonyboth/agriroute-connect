@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -176,7 +177,7 @@ export const PendingRatingsPanel: React.FC<PendingRatingsPanelProps> = React.mem
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            <AppSpinner size="sm" />
           </div>
         </CardContent>
       </Card>

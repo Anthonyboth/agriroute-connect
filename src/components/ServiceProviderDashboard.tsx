@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard } from '@/components/ui/stats-card';
@@ -1006,14 +1007,7 @@ export const ServiceProviderDashboard: React.FC = () => {
   });
 
   if (initialLoading) {
-    return (
-      <div className="min-h-[40vh] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Carregando dashboard...</p>
-        </div>
-      </div>
-    );
+    return <CenteredSpinner size="lg" className="min-h-[40vh]" />;
   }
 
   return (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -230,11 +231,7 @@ export const ServiceHistory: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <CenteredSpinner size="lg" />;
   }
 
   const isPrestador = profile?.role === 'PRESTADOR_SERVICOS';

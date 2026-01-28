@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -307,14 +308,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   }, []);
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Carregando detalhes do frete...</p>
-        </CardContent>
-      </Card>
-    );
+    return <CenteredSpinner />;
   }
 
   if (!freight) {
