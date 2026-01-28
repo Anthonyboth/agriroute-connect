@@ -41,9 +41,12 @@ export const useDriverPermissions = (): DriverPermissions => {
       return count || 0;
     },
     enabled: !!profile?.id && isAutonomous,
+    // ✅ CRITICAL: Cache agressivo para evitar requisições repetidas
     staleTime: 5 * 60 * 1000, // 5 minutos de cache
     gcTime: 10 * 60 * 1000, // 10 minutos de garbage collection
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
   
   const hasVehicle = isAutonomous ? vehicleCount > 0 : true; // Afiliados usam veículos da empresa

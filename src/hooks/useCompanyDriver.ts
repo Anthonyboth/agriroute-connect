@@ -39,6 +39,12 @@ export const useCompanyDriver = () => {
       return data;
     },
     enabled: !!profile?.id && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(profile?.active_mode || profile?.role || ''),
+    // ✅ CRITICAL: Cache agressivo para evitar requisições repetidas
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
   
   const result = {
