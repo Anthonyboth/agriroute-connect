@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,10 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight, DollarSign } from 'lucide-react';
+import { DollarSign, Truck, Scale } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { formatBRL, getPricePerTruck, formatTons } from '@/lib/formatters';
 
 interface ProposalCounterModalProps {
   isOpen: boolean;
@@ -17,13 +18,14 @@ interface ProposalCounterModalProps {
   originalProposal: {
     id: string;
     freight_id: string;
-    proposed_price: number;
+    proposed_price: number; // Já é o valor por carreta do motorista
     message?: string;
     driver_name: string;
   } | null;
-  freightPrice: number;
+  freightPrice: number; // Preço TOTAL do frete
   freightDistance?: number;
-  freightWeight?: number;
+  freightWeight?: number; // Peso TOTAL em kg
+  requiredTrucks?: number; // ✅ NOVO: número de carretas
   onSuccess?: () => void;
 }
 
@@ -34,20 +36,28 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
   freightPrice,
   freightDistance = 0,
   freightWeight = 0,
+  requiredTrucks = 1, // ✅ Padrão 1 carreta
   onSuccess
 }) => {
   const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM' | 'PER_TON'>('PER_KM');
+  const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM' | 'PER_TON'>('FIXED');
   const [counterPrice, setCounterPrice] = useState('');
   const [counterPricePerKm, setCounterPricePerKm] = useState('');
   const [counterPricePerTon, setCounterPricePerTon] = useState('');
   const [counterMessage, setCounterMessage] = useState('');
-  
 
   if (!originalProposal) return null;
 
-  const priceDifference = originalProposal.proposed_price - freightPrice;
+  // ✅ CRÍTICO: Calcular valores POR CARRETA
+  const hasMultipleTrucks = requiredTrucks > 1;
+  const pricePerTruck = useMemo(() => getPricePerTruck(freightPrice, requiredTrucks), [freightPrice, requiredTrucks]);
+  const weightPerTruck = useMemo(() => (freightWeight || 0) / requiredTrucks, [freightWeight, requiredTrucks]);
+  const weightPerTruckInTons = weightPerTruck / 1000;
+
+  // A proposta do motorista já é por carreta
+  const driverProposedPrice = originalProposal.proposed_price;
+  const priceDifference = driverProposedPrice - pricePerTruck;
   const isPriceIncrease = priceDifference > 0;
 
   const handleSubmit = async (e: React.FormEvent | React.MouseEvent<HTMLButtonElement>) => {
@@ -75,13 +85,13 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
       return;
     }
 
+    // ✅ Calcular preço final POR CARRETA
     const finalPrice = pricingType === 'FIXED' 
       ? priceFloat 
       : pricingType === 'PER_KM' 
         ? priceFloat * freightDistance 
-        : priceFloat * freightWeight;
+        : priceFloat * weightPerTruckInTons;
     
-    // Validar se o preço final é válido
     if (finalPrice <= 0) {
       toast.error('O valor da proposta deve ser maior que R$ 0,00');
       return;
@@ -89,13 +99,11 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
     setLoading(true);
     try {
-      // Timeout para evitar travamentos
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Timeout na operação')), 10000)
       );
 
       const operationPromise = (async () => {
-        // Buscar o frete para verificar contexto
         const { data: freight, error: freightError } = await supabase
           .from('freights')
           .select('producer_id, driver_id')
@@ -109,54 +117,83 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
         let hasPermission = freight.producer_id === profile.id || freight.driver_id === profile.id;
 
-         // Apenas motoristas AUTÔNOMOS podem enviar contra-proposta
-         if (profile.role === 'MOTORISTA') {
-           // Garantir que motoristas tenham o papel 'driver' para RLS
-           await supabase.rpc('ensure_current_user_role', { _role: 'driver' });
-           // Impedir múltiplas propostas do mesmo motorista
-           const { data: existing, error: checkErr } = await supabase
-             .from('freight_proposals')
-             .select('status')
-             .eq('freight_id', originalProposal.freight_id)
-             .eq('driver_id', profile.id)
-             .maybeSingle();
-           if (checkErr) {
-             console.error('Erro ao verificar proposta existente:', checkErr);
-             throw checkErr;
-           }
-           if (existing && (existing.status === 'PENDING' || existing.status === 'ACCEPTED')) {
-             throw new Error(existing.status === 'PENDING' ? 'Você já enviou uma proposta para este frete.' : 'Sua proposta já foi aceita.');
-           }
+        if (profile.role === 'MOTORISTA') {
+          await supabase.rpc('ensure_current_user_role', { _role: 'driver' });
+          const { data: existing, error: checkErr } = await supabase
+            .from('freight_proposals')
+            .select('status')
+            .eq('freight_id', originalProposal.freight_id)
+            .eq('driver_id', profile.id)
+            .maybeSingle();
+          if (checkErr) {
+            console.error('Erro ao verificar proposta existente:', checkErr);
+            throw checkErr;
+          }
+          if (existing && (existing.status === 'PENDING' || existing.status === 'ACCEPTED')) {
+            throw new Error(existing.status === 'PENDING' ? 'Você já enviou uma proposta para este frete.' : 'Sua proposta já foi aceita.');
+          }
 
-           const { error: createProposalError } = await supabase
-             .from('freight_proposals')
-             .insert({
-               freight_id: originalProposal.freight_id,
-               driver_id: profile.id,
-               proposed_price: finalPrice,
-               status: 'PENDING',
-               message: pricingType === 'PER_KM'
-                 ? `Proposta por km: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total estimado: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)`
-                 : 'Proposta enviada via contra-proposta.'
-             });
+          // ✅ Mensagem indica claramente que é para 1 carreta
+          const proposalMessage = hasMultipleTrucks
+            ? `[Proposta para 1 carreta] ${pricingType === 'PER_KM' 
+                ? `R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total: ${formatBRL(finalPrice, true)})` 
+                : pricingType === 'PER_TON'
+                  ? `R$ ${priceFloat.toLocaleString('pt-BR')}/ton (Total: ${formatBRL(finalPrice, true)})`
+                  : formatBRL(finalPrice, true)}`
+            : pricingType === 'PER_KM'
+              ? `Proposta por km: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total: ${formatBRL(finalPrice, true)} para ${freightDistance} km)`
+              : 'Proposta enviada via contra-proposta.';
 
-           if (createProposalError) {
-             console.error('Erro ao criar proposta:', createProposalError);
-             throw new Error('Não foi possível registrar sua proposta');
-           }
+          const { error: createProposalError } = await supabase
+            .from('freight_proposals')
+            .insert({
+              freight_id: originalProposal.freight_id,
+              driver_id: profile.id,
+              proposed_price: finalPrice, // ✅ Valor já calculado por carreta
+              status: 'PENDING',
+              message: proposalMessage
+            });
 
-           hasPermission = true;
-         }
+          if (createProposalError) {
+            console.error('Erro ao criar proposta:', createProposalError);
+            throw new Error('Não foi possível registrar sua proposta');
+          }
+
+          hasPermission = true;
+        }
 
         if (!hasPermission) {
           throw new Error('Você não tem permissão para enviar mensagens neste frete');
         }
 
-        const messageContent = pricingType === 'FIXED'
-          ? `CONTRA-PROPOSTA: R$ ${finalPrice.toLocaleString('pt-BR')}\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${finalPrice.toLocaleString('pt-BR')}\n\n${counterMessage.trim() || 'Sem observações adicionais'}`
-          : pricingType === 'PER_KM'
-            ? `CONTRA-PROPOSTA POR KM: R$ ${priceFloat.toLocaleString('pt-BR')}/km\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightDistance} km)\n\n${counterMessage.trim() || 'Sem observações adicionais'}`
-            : `CONTRA-PROPOSTA POR TONELADA: R$ ${priceFloat.toLocaleString('pt-BR')}/ton\n\nValor original: R$ ${freightPrice.toLocaleString('pt-BR')}\nProposta do motorista: R$ ${originalProposal.proposed_price.toLocaleString('pt-BR')}\nMinha contra-proposta: R$ ${priceFloat.toLocaleString('pt-BR')}/ton (Total: R$ ${finalPrice.toLocaleString('pt-BR')} para ${freightWeight} toneladas)\n\n${counterMessage.trim() || 'Sem observações adicionais'}`;
+        // ✅ Mensagem de chat com valores por carreta
+        const messageContent = hasMultipleTrucks
+          ? `CONTRA-PROPOSTA (1 carreta de ${requiredTrucks}):\n\n` +
+            `Valor original por carreta: ${formatBRL(pricePerTruck, true)}\n` +
+            `Proposta do motorista: ${formatBRL(driverProposedPrice, true)}\n` +
+            `Minha contra-proposta: ${pricingType === 'FIXED' 
+              ? formatBRL(finalPrice, true)
+              : pricingType === 'PER_KM'
+                ? `R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total: ${formatBRL(finalPrice, true)})`
+                : `R$ ${priceFloat.toLocaleString('pt-BR')}/ton (Total: ${formatBRL(finalPrice, true)})`}\n\n` +
+            `${counterMessage.trim() || 'Sem observações adicionais'}`
+          : pricingType === 'FIXED'
+            ? `CONTRA-PROPOSTA: ${formatBRL(finalPrice, true)}\n\n` +
+              `Valor original: ${formatBRL(pricePerTruck, true)}\n` +
+              `Proposta do motorista: ${formatBRL(driverProposedPrice, true)}\n` +
+              `Minha contra-proposta: ${formatBRL(finalPrice, true)}\n\n` +
+              `${counterMessage.trim() || 'Sem observações adicionais'}`
+            : pricingType === 'PER_KM'
+              ? `CONTRA-PROPOSTA POR KM: R$ ${priceFloat.toLocaleString('pt-BR')}/km\n\n` +
+                `Valor original: ${formatBRL(pricePerTruck, true)}\n` +
+                `Proposta do motorista: ${formatBRL(driverProposedPrice, true)}\n` +
+                `Minha contra-proposta: R$ ${priceFloat.toLocaleString('pt-BR')}/km (Total: ${formatBRL(finalPrice, true)} para ${freightDistance} km)\n\n` +
+                `${counterMessage.trim() || 'Sem observações adicionais'}`
+              : `CONTRA-PROPOSTA POR TONELADA: R$ ${priceFloat.toLocaleString('pt-BR')}/ton\n\n` +
+                `Valor original: ${formatBRL(pricePerTruck, true)}\n` +
+                `Proposta do motorista: ${formatBRL(driverProposedPrice, true)}\n` +
+                `Minha contra-proposta: R$ ${priceFloat.toLocaleString('pt-BR')}/ton (Total: ${formatBRL(finalPrice, true)} para ${weightPerTruckInTons.toFixed(1)} ton)\n\n` +
+                `${counterMessage.trim() || 'Sem observações adicionais'}`;
 
         const { error } = await supabase
           .from('freight_messages')
@@ -174,7 +211,9 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
       await Promise.race([operationPromise, timeoutPromise]);
 
-      toast.success('Contra-proposta enviada com sucesso!');
+      toast.success(hasMultipleTrucks 
+        ? 'Contra-proposta para 1 carreta enviada!' 
+        : 'Contra-proposta enviada com sucesso!');
       
       onClose();
       onSuccess?.();
@@ -183,7 +222,6 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
     } catch (error: any) {
       console.error('Erro ao enviar contra-proposta:', error);
       
-      // Mostrar erro específico para o usuário
       let errorMessage = 'Erro ao enviar contra-proposta.';
       
       if (error?.message) {
@@ -209,7 +247,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
   };
 
   const resetForm = () => {
-    setPricingType('PER_KM');
+    setPricingType('FIXED');
     setCounterPrice('');
     setCounterPricePerKm('');
     setCounterPricePerTon('');
@@ -225,29 +263,58 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
             Fazer Contra-Proposta
           </DialogTitle>
           <DialogDescription className="text-sm">
-            Negocie um valor intermediário com o motorista {originalProposal.driver_name}
+            {hasMultipleTrucks ? (
+              <span className="flex items-center gap-2">
+                <Truck className="h-4 w-4" />
+                Proposta para <strong>1 carreta</strong> de {requiredTrucks} disponíveis
+              </span>
+            ) : (
+              <>Negocie um valor com o motorista {originalProposal.driver_name}</>
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-          {/* Current Proposal Summary */}
+          {/* ✅ AVISO: Frete com múltiplas carretas */}
+          {hasMultipleTrucks && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 text-sm font-medium">
+                <Truck className="h-4 w-4" />
+                Frete com {requiredTrucks} carretas
+              </div>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                Você está negociando o valor para <strong>1 carreta apenas</strong>.
+              </p>
+            </div>
+          )}
+
+          {/* Current Proposal Summary - ✅ Valores por carreta */}
           <div className="bg-secondary/30 p-3 rounded-lg space-y-2">
-            <h3 className="font-semibold text-sm">Proposta Atual</h3>
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              Proposta Atual
+              {hasMultipleTrucks && <Badge variant="outline" className="text-xs">por carreta</Badge>}
+            </h3>
             
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Valor original:</span>
-              <span className="font-medium">R$ {freightPrice.toLocaleString()}</span>
+              <span className="font-medium">{formatBRL(pricePerTruck, true)}</span>
             </div>
             
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Proposta do motorista:</span>
               <div className="flex items-center gap-2">
-                <span className="font-medium">R$ {originalProposal.proposed_price.toLocaleString()}</span>
+                <span className="font-medium">{formatBRL(driverProposedPrice, true)}</span>
                 <Badge variant={isPriceIncrease ? 'destructive' : 'default'} className="text-xs">
-                  {isPriceIncrease ? '+' : ''}{priceDifference.toLocaleString()}
+                  {isPriceIncrease ? '+' : ''}{formatBRL(priceDifference, true)}
                 </Badge>
               </div>
             </div>
+
+            {hasMultipleTrucks && (
+              <div className="pt-1 text-xs text-muted-foreground">
+                Peso por carreta: {formatTons(weightPerTruck)} • Distância: {freightDistance} km
+              </div>
+            )}
 
             {originalProposal.message && (
               <div className="pt-2 border-t">
@@ -266,21 +333,23 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                   <SelectValue placeholder="Selecione o tipo de cobrança" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PER_KM">Por Quilômetro (R$/km)</SelectItem>
                   <SelectItem value="FIXED">Valor Fixo (R$)</SelectItem>
+                  <SelectItem value="PER_KM">Por Quilômetro (R$/km)</SelectItem>
                   <SelectItem value="PER_TON">Por Tonelada (R$/ton)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Counter Offer */}
+            {/* Counter Offer - ✅ Labels indicam "por carreta" */}
             <div className="space-y-1">
-              <Label className="text-sm">
+              <Label className="text-sm flex items-center gap-2">
+                {pricingType === 'PER_TON' ? <Scale className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
                 {pricingType === 'FIXED' 
-                  ? 'Sua Contra-Proposta (R$) *' 
+                  ? 'Sua Contra-Proposta (R$)' 
                   : pricingType === 'PER_KM' 
-                    ? 'Valor por KM (R$) *' 
-                    : 'Valor por Tonelada (R$) *'}
+                    ? 'Valor por KM (R$)' 
+                    : 'Valor por Tonelada (R$)'}
+                {hasMultipleTrucks && <Badge variant="outline" className="text-xs">por carreta</Badge>}
               </Label>
               
               {pricingType === 'FIXED' ? (
@@ -320,22 +389,27 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
 
               <div className="text-xs text-muted-foreground">
                 {pricingType === 'FIXED' ? (
-                  `Sugestão: Valor entre R$ ${freightPrice.toLocaleString()} e R$ ${originalProposal.proposed_price.toLocaleString()}`
+                  <>
+                    Sugestão: Valor entre {formatBRL(pricePerTruck, true)} e {formatBRL(driverProposedPrice, true)}
+                    {hasMultipleTrucks && <span className="block mt-1">Os valores acima são por carreta.</span>}
+                  </>
                 ) : pricingType === 'PER_KM' ? (
                   <>
                     Distância do frete: {freightDistance} km
                     {counterPricePerKm && (
                       <div className="mt-1 font-medium text-primary">
-                        Total calculado: R$ {(parseFloat(counterPricePerKm) * freightDistance).toLocaleString()}
+                        Total calculado: {formatBRL(parseFloat(counterPricePerKm) * freightDistance, true)}
+                        {hasMultipleTrucks && ' (por carreta)'}
                       </div>
                     )}
                   </>
                 ) : (
                   <>
-                    Peso do frete: {freightWeight} toneladas
+                    Peso por carreta: {formatTons(weightPerTruck)}
                     {counterPricePerTon && (
                       <div className="mt-1 font-medium text-primary">
-                        Total calculado: R$ {(parseFloat(counterPricePerTon) * freightWeight).toLocaleString()}
+                        Total calculado: {formatBRL(parseFloat(counterPricePerTon) * weightPerTruckInTons, true)}
+                        {hasMultipleTrucks && ' (por carreta)'}
                       </div>
                     )}
                   </>
@@ -355,29 +429,32 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
               />
             </div>
 
-            {/* Price Comparison */}
+            {/* Price Comparison - ✅ Valores por carreta */}
             {((pricingType === 'FIXED' && counterPrice && !isNaN(parseFloat(counterPrice))) || 
               (pricingType === 'PER_KM' && counterPricePerKm && !isNaN(parseFloat(counterPricePerKm))) ||
               (pricingType === 'PER_TON' && counterPricePerTon && !isNaN(parseFloat(counterPricePerTon)))) && (
               <div className="p-2 bg-primary/5 rounded-lg border border-primary/20">
-                <h4 className="font-semibold mb-1 text-sm">Comparação de Valores</h4>
+                <h4 className="font-semibold mb-1 text-sm flex items-center gap-2">
+                  Comparação de Valores
+                  {hasMultipleTrucks && <Badge variant="outline" className="text-xs">por carreta</Badge>}
+                </h4>
                 <div className="space-y-1 text-xs">
                   <div className="flex items-center justify-between">
                     <span>Valor original:</span>
-                    <span>R$ {freightPrice.toLocaleString()}</span>
+                    <span>{formatBRL(pricePerTruck, true)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Proposta do motorista:</span>
-                    <span>R$ {originalProposal.proposed_price.toLocaleString()}</span>
+                    <span>{formatBRL(driverProposedPrice, true)}</span>
                   </div>
                   <div className="flex items-center justify-between font-medium text-primary">
                     <span>Sua contra-proposta:</span>
                     <span>
                       {pricingType === 'FIXED' 
-                        ? `R$ ${parseFloat(counterPrice).toLocaleString()}`
+                        ? formatBRL(parseFloat(counterPrice), true)
                         : pricingType === 'PER_KM'
-                          ? `R$ ${parseFloat(counterPricePerKm).toLocaleString()}/km (Total: R$ ${(parseFloat(counterPricePerKm) * freightDistance).toLocaleString()})`
-                          : `R$ ${parseFloat(counterPricePerTon).toLocaleString()}/ton (Total: R$ ${(parseFloat(counterPricePerTon) * freightWeight).toLocaleString()})`
+                          ? `R$ ${parseFloat(counterPricePerKm).toLocaleString('pt-BR')}/km (Total: ${formatBRL(parseFloat(counterPricePerKm) * freightDistance, true)})`
+                          : `R$ ${parseFloat(counterPricePerTon).toLocaleString('pt-BR')}/ton (Total: ${formatBRL(parseFloat(counterPricePerTon) * weightPerTruckInTons, true)})`
                       }
                     </span>
                   </div>
@@ -400,7 +477,7 @@ export const ProposalCounterModal: React.FC<ProposalCounterModalProps> = ({
                 ? !counterPrice 
                 : pricingType === 'PER_KM'
                   ? !counterPricePerKm || !freightDistance || freightDistance <= 0
-                  : !counterPricePerTon || !freightWeight || freightWeight <= 0)
+                  : !counterPricePerTon || !weightPerTruckInTons || weightPerTruckInTons <= 0)
             } 
             className="gradient-primary"
             size="sm"
