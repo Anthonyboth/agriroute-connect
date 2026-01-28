@@ -112,7 +112,11 @@ export default defineConfig(({ mode }) => ({
               './index.html',
               './src/**/*.{js,ts,jsx,tsx}',
             ],
-            defaultExtractor: (content: string) => content.match(/[\w-/:]+(?<!:)/g) || [],
+             // ✅ HOTFIX (modais com "tela preta"):
+             // O PurgeCSS estava removendo classes Tailwind com valores arbitrários (ex: z-[10000], left-[50%], translate-x-[-50%]).
+             // Isso faz o overlay do Radix aparecer sem o conteúdo/posicionamento correto.
+             // Incluímos [ ] % . para manter esses utilitários.
+             defaultExtractor: (content: string) => content.match(/[\w-/:.\[\]%]+(?<!:)/g) || [],
             safelist: {
               standard: [
                 /^html/,
@@ -170,6 +174,8 @@ export default defineConfig(({ mode }) => ({
               ],
               greedy: [
                 /^lucide-/,
+                 // ✅ Manter utilitários Tailwind com valores arbitrários: z-[...], left-[...], max-h-[...], translate-x-[...], etc.
+                 /\[[^\]]+\]/,
               ]
             }
           })
