@@ -17,6 +17,7 @@ import { ManifestoModal } from './ManifestoModal';
 import { FreightNfePanel } from './nfe/FreightNfePanel';
 import { ParticipantProfileModal } from './freight/ParticipantProfileModal';
 import { FreightParticipantCard } from './freight/FreightParticipantCard';
+import { DriverVehiclePreview } from './freight/DriverVehiclePreview';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { format } from 'date-fns';
@@ -59,6 +60,7 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
   const [manifestoModalOpen, setManifestoModalOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState<{ open: boolean; userId: string; userType: 'driver' | 'producer'; userName: string }>({ open: false, userId: '', userType: 'driver', userName: '' });
   const [cteModalOpen, setCteModalOpen] = useState(false);
+  const [assignedDrivers, setAssignedDrivers] = useState<any[]>([]);
 
   // Status order for calculating effective status
   const statusOrder = ['OPEN','IN_NEGOTIATION','ACCEPTED','LOADING','LOADED','IN_TRANSIT','DELIVERED_PENDING_CONFIRMATION','DELIVERED','COMPLETED','CANCELLED','REJECTED','PENDING'];
@@ -91,9 +93,9 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
       // ✅ CORREÇÃO BUG 1: Buscar produtor secundariamente se JOIN falhou
       if (data.producer_id && (!normalizedFreight.producer || !normalizedFreight.producer.full_name)) {
         console.log('[FreightDetails] Producer JOIN vazio, buscando diretamente...');
-        const { data: producerData } = await supabase
-          .from('profiles')
-          .select('id, full_name, contact_phone, role')
+        const { data: producerData } = await (supabase as any)
+          .from('profiles_secure')
+          .select('id, full_name, role, profile_photo_url, selfie_url, rating, total_ratings')
           .eq('id', data.producer_id)
           .maybeSingle();
         
@@ -117,6 +119,34 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
             };
           }
         }
+      }
+
+      // ✅ CORREÇÃO BUG 2: Carregar motoristas atribuídos (multi-carretas)
+      // Quando required_trucks > 1, o campo freights.driver_id pode ficar NULL por design.
+      // Nesses casos, precisamos renderizar os perfis de drivers_assigned.
+      try {
+        const assignedIds = Array.isArray((data as any)?.drivers_assigned)
+          ? ((data as any).drivers_assigned as string[])
+          : [];
+
+        if (assignedIds.length > 0) {
+          const { data: driversData, error: driversError } = await (supabase as any)
+            .from('profiles_secure')
+            .select('id, full_name, role, profile_photo_url, selfie_url, rating, total_ratings')
+            .in('id', assignedIds);
+
+          if (!driversError) {
+            setAssignedDrivers((driversData as any[]) || []);
+          } else {
+            console.warn('[FreightDetails] Falha ao buscar drivers_assigned:', driversError);
+            setAssignedDrivers([]);
+          }
+        } else {
+          setAssignedDrivers([]);
+        }
+      } catch (e) {
+        console.warn('[FreightDetails] Erro inesperado ao buscar drivers_assigned:', e);
+        setAssignedDrivers([]);
       }
       
       setFreight(normalizedFreight);
@@ -506,23 +536,81 @@ export const FreightDetails: React.FC<FreightDetailsProps> = ({
         )}
 
         {/* Card do Motorista */}
-        {freight.driver?.id && (
-          <FreightParticipantCard
-            participantId={freight.driver.id}
-            participantType="driver"
-            name={freight.driver.full_name || 'Motorista'}
-            avatarUrl={freight.driver.profile_photo_url || freight.driver.selfie_url}
-            rating={freight.driver.rating || 0}
-            totalRatings={freight.driver.total_ratings || 0}
-            onClick={() => {
-              setProfileModalOpen({ 
-                open: true, 
-                userId: freight.driver.id, 
-                userType: 'driver', 
-                userName: freight.driver.full_name || '' 
-              });
-            }}
-          />
+        {freight.driver?.id ? (
+          <div className="space-y-2">
+            <FreightParticipantCard
+              participantId={freight.driver.id}
+              participantType="driver"
+              name={freight.driver.full_name || 'Motorista'}
+              avatarUrl={freight.driver.profile_photo_url || freight.driver.selfie_url}
+              rating={freight.driver.rating || 0}
+              totalRatings={freight.driver.total_ratings || 0}
+              onClick={() => {
+                setProfileModalOpen({
+                  open: true,
+                  userId: freight.driver.id,
+                  userType: 'driver',
+                  userName: freight.driver.full_name || ''
+                });
+              }}
+            />
+
+            {/* ✅ Exibir fotos do veículo para o produtor */}
+            {isFreightProducer && <DriverVehiclePreview driverId={freight.driver.id} />}
+          </div>
+        ) : assignedDrivers.length > 0 ? (
+          <div className="space-y-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Truck className="h-4 w-4" />
+                  Motoristas atribuídos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-xs text-muted-foreground">
+                  Toque em um motorista para ver perfil e fotos do veículo.
+                </p>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-2">
+              {assignedDrivers.map((d) => (
+                <div key={d.id} className="space-y-2">
+                  <FreightParticipantCard
+                    participantId={d.id}
+                    participantType="driver"
+                    name={d.full_name || 'Motorista'}
+                    avatarUrl={d.profile_photo_url || d.selfie_url}
+                    rating={d.rating || 0}
+                    totalRatings={d.total_ratings || 0}
+                    onClick={() => {
+                      setProfileModalOpen({
+                        open: true,
+                        userId: d.id,
+                        userType: 'driver',
+                        userName: d.full_name || ''
+                      });
+                    }}
+                  />
+
+                  {isFreightProducer && <DriverVehiclePreview driverId={d.id} />}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Truck className="h-4 w-4" />
+                Motorista
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-sm text-muted-foreground">Aguardando motorista</p>
+            </CardContent>
+          </Card>
         )}
       </div>
 
