@@ -82,8 +82,20 @@ export const useAuth = () => {
   const isSigningOutRef = useRef(false); // ✅ Single-flight guard para logout
   const autoCreateAttemptedRef = useRef(false); // ✅ P0 FIX: Anti-loop guard for create_additional_profile
 
+  // ✅ P0 FIX: Ref para rastrear último userId buscado e evitar refetches desnecessários
+  const lastFetchedUserIdRef = useRef<string | null>(null);
+  
   // Memoized fetch function to prevent recreation on every render
   const fetchProfile = useCallback(async (userId: string, force: boolean = false) => {
+    // ✅ CRÍTICO: Verificar se já buscamos este userId recentemente (anti-loop)
+    if (!force && lastFetchedUserIdRef.current === userId && profile) {
+      if (import.meta.env.DEV) {
+        console.log('[useAuth] ⏸️ Já buscamos perfil para este userId, ignorando');
+      }
+      setLoading(false);
+      return;
+    }
+    
     // ✅ CRÍTICO: Verificar cache ANTES de qualquer gate/early return
     if (!force) {
       const cachedProfile = getCachedProfile(userId);
@@ -91,6 +103,7 @@ export const useAuth = () => {
         setProfiles([cachedProfile]);
         setProfile(cachedProfile);
         setLoading(false);  // ✅ Garante que loading seja false
+        lastFetchedUserIdRef.current = userId;
         return;
       }
     }
@@ -113,9 +126,10 @@ export const useAuth = () => {
     // Throttle: prevent too frequent calls
     const now = Date.now();
     
-    if (!force && now - lastFetchTimestamp.current < FETCH_THROTTLE_MS) {
+    // ✅ AUMENTADO: Throttle de 2s para 5s para evitar loops
+    if (!force && now - lastFetchTimestamp.current < 5000) {
       if (import.meta.env.DEV) {
-        console.log('[useAuth] Fetch throttled');
+        console.log('[useAuth] Fetch throttled (5s)');
       }
       setLoading(false);  // ✅ CRÍTICO: Setar loading=false durante throttle
       return;
@@ -237,6 +251,9 @@ export const useAuth = () => {
         
         // ✅ Salvar no cache após sucesso
         setCachedProfile(userId, activeProfile);
+        
+        // ✅ P0 FIX: Marcar que já buscamos este userId
+        lastFetchedUserIdRef.current = userId;
         
         // SECURITY: Removed sensitive profile data logging
       } else {
@@ -548,13 +565,30 @@ export const useAuth = () => {
       }, (payload) => {
         if (!mountedRef.current || fetchingRef.current) return;
         
-        // ✅ Debounce: aguardar 500ms para evitar múltiplas chamadas
+        // ✅ P0 FIX: Verificar se realmente precisa refetch
+        // Se o payload.new.id é o mesmo que o profile atual, pode ser update redundante
+        const newProfile = payload.new as any;
+        if (profile?.id === newProfile?.id) {
+          // Comparar alguns campos chave para decidir se precisa refetch
+          const hasSignificantChange = 
+            profile?.status !== newProfile?.status ||
+            profile?.role !== newProfile?.role ||
+            profile?.active_mode !== newProfile?.active_mode;
+          
+          if (!hasSignificantChange) {
+            if (import.meta.env.DEV) {
+              console.log('[Realtime] Perfil não mudou significativamente, ignorando');
+            }
+            return;
+          }
+        }
+        
+        // ✅ Debounce aumentado: aguardar 2s para evitar múltiplas chamadas
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
           if (!mountedRef.current) return;
-          const newProfile = payload.new as UserProfile;
           fetchProfile(newProfile.user_id, true);
-        }, 500);
+        }, 2000);
       })
       .subscribe((status) => {
         // ✅ Tratamento resiliente de erros do WebSocket (não bloqueante)

@@ -288,7 +288,18 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     return tierHierarchy[state.subscriptionTier] >= tierHierarchy[requiredTier];
   };
 
+  // ✅ P0 FIX: Usar user?.id em vez de user objeto para evitar loops
+  // quando o objeto user é recriado mas o id permanece o mesmo
+  const userIdRef = useRef<string | null>(null);
+  
   useEffect(() => {
+    // ✅ CRÍTICO: Só executar se o ID do usuário realmente mudou
+    if (user?.id === userIdRef.current) {
+      return; // ID não mudou, não refazer a verificação
+    }
+    
+    userIdRef.current = user?.id ?? null;
+    
     let timeoutId: NodeJS.Timeout;
     
     if (user) {
@@ -309,7 +320,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [user]);
+  }, [user?.id]); // ✅ Usar user?.id em vez de user para estabilidade
 
   const value = useMemo(() => ({
     ...state,
