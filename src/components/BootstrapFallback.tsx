@@ -8,9 +8,10 @@
  */
 
 import React from 'react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { AlertTriangle, RefreshCw, LogOut, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { AlertTriangle, RefreshCw, LogOut, Wifi, WifiOff } from 'lucide-react';
 import { clearSupabaseAuthStorage } from '@/utils/authRecovery';
 
 interface BootstrapFallbackProps {
@@ -101,11 +102,7 @@ export const BootstrapFallback: React.FC<BootstrapFallbackProps> = ({
   };
 
   if (isRecovering) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
+    return <AppSpinner fullscreen />;
   }
 
   return (

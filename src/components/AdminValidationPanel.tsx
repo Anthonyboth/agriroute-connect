@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -275,13 +276,7 @@ export const AdminValidationPanel: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-center">Carregando perfis pendentes...</p>
-        </CardContent>
-      </Card>
-    );
+    return <CenteredSpinner />;
   }
 
   return (

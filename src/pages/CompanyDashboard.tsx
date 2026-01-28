@@ -1,4 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { AppSpinner, CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,11 +71,7 @@ const CompanyFinancialDashboard = lazy(() => import('@/components/CompanyFinanci
 const CompanyReportsTab = lazy(() => import('@/pages/company/CompanyReportsTab').then(m => ({ default: m.CompanyReportsTab })));
 
 // Loading fallback for chart components - SEM TEXTO (padrão global)
-const ChartLoader = () => (
-  <div className="flex items-center justify-center p-12 min-h-[300px]">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-  </div>
-);
+const ChartLoader = () => <CenteredSpinner className="p-12 min-h-[300px]" />;
 
 // Definição de tabs
 const getCompanyTabs = (activeCount: number, chatCount: number) => [
@@ -474,11 +471,7 @@ const CompanyDashboard = () => {
 
   // Early return for loading
   if (!company?.id || companyLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <AppSpinner fullscreen />;
   }
 
   if (companyLoading || isSwitchingProfile) {

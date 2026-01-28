@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CheckCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import { CheckCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -55,19 +56,7 @@ export default function PaymentSuccess() {
   const successInfo = getSuccessMessage();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/5">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Processando pagamento...</h2>
-            <p className="text-sm text-muted-foreground text-center">
-              Aguarde enquanto confirmamos sua transação.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <AppSpinner fullscreen />;
   }
 
   return (

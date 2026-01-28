@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Package, MapPin, Loader2, UserPlus, XCircle } from 'lucide-react';
+import { Package, MapPin, UserPlus, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
@@ -233,13 +234,7 @@ export const CompanyFreightsManager: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </Card>
-    );
+    return <CenteredSpinner className="py-12" />;
   }
 
   const openFreights = filterFreights('open');

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -374,11 +375,7 @@ const AdminPanel = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
+    return <AppSpinner fullscreen />;
   }
 
   return (

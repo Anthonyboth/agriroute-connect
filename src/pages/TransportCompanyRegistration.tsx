@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { AppSpinner } from '@/components/ui/AppSpinner';
 import { useNavigate } from 'react-router-dom';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
 import { useAuth } from '@/hooks/useAuth';
@@ -190,11 +191,7 @@ const TransportCompanyRegistration: React.FC = () => {
   };
 
   if (hasExistingCompany || isTransportCompany) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <AppSpinner fullscreen />;
   }
 
   return (

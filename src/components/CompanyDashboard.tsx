@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
@@ -162,16 +163,7 @@ export const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ onNavigateTo
   if (!company) return null;
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardContent className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>Carregando dashboard...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <CenteredSpinner />;
   }
 
   return (

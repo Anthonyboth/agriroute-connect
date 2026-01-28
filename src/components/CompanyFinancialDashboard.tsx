@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { CenteredSpinner } from '@/components/ui/AppSpinner';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard } from '@/components/ui/stats-card';
@@ -201,16 +202,7 @@ export function CompanyFinancialDashboard({ companyId, companyName = 'Empresa' }
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground">Carregando dados financeiros...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <CenteredSpinner className="py-12" />;
   }
 
   if (isError) {

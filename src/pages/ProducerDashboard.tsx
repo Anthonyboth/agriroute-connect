@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy } from "react";
+import { AppSpinner } from "@/components/ui/AppSpinner";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -1112,11 +1113,7 @@ const ProducerDashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/5 to-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <AppSpinner fullscreen />;
   }
 
   // ✅ Ongoing freights list (reuso)
