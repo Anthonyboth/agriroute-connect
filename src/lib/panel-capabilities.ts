@@ -193,20 +193,10 @@ export const computePanelCapabilities = (params: ComputeCapabilitiesParams): Pan
       allowed: isCompanyDriver 
     };
 
-    // submit_freight_proposal: autônomo sempre pode, afiliado depende de can_accept_freights
-    if (!isCompanyDriver) {
-      // ✅ Motorista independente: sempre permitido
-      capabilities.submit_freight_proposal = { allowed: true };
-    } else if (isAffiliated && !canAcceptFreights) {
-      // ❌ Motorista AFILIADO sem can_accept_freights: bloqueado (deve usar chat)
-      capabilities.submit_freight_proposal = { 
-        allowed: false, 
-        reason: PERMISSION_MESSAGES.DRIVER_AFFILIATED_NO_PROPOSAL 
-      };
-    } else {
-      // ✅ Motorista de empresa COM can_accept_freights: permitido
-      capabilities.submit_freight_proposal = { allowed: true };
-    }
+    // ✅ submit_freight_proposal: TODOS os motoristas podem enviar propostas
+    // Regra simplificada: motorista com perfil = pode propor
+    // A única restrição será verificada no momento do envio (frete com produtor cadastrado)
+    capabilities.submit_freight_proposal = { allowed: true };
 
     // submit_service_proposal: mesma lógica que freight proposal
     capabilities.submit_service_proposal = capabilities.submit_freight_proposal;

@@ -12,7 +12,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
-import { usePanelCapabilities } from '@/hooks/usePanelCapabilities';
 import { formatKm, formatBRL, formatTons } from '@/lib/formatters';
 import { getPricePerTruck, getWeightInTons } from '@/lib/proposal-utils';
 
@@ -50,7 +49,6 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   onSuccess
 }) => {
   const { profile } = useAuth();
-  const { can, reason } = usePanelCapabilities();
   const [loading, setLoading] = useState(false);
   const formId = 'service-proposal-form';
   
@@ -120,13 +118,9 @@ const [pricePerKm, setPricePerKm] = useState('');
       return;
     }
 
-    // ✅ Verificar permissão centralizada PRIMEIRO
-    if (!can('submit_service_proposal')) {
-      toast.error(reason('submit_service_proposal') || 'Você não tem permissão para enviar propostas.', {
-        duration: 6000
-      });
-      return;
-    }
+    // ✅ REMOVIDO: Verificação de permissão bloqueante
+    // Agora TODOS os motoristas podem enviar propostas
+    // A única restrição é se o solicitante do frete não tem cadastro
 
     const priceValue =
       pricingType === 'PER_KM' ? pricePerKm :
@@ -189,14 +183,35 @@ const [pricePerKm, setPricePerKm] = useState('');
       
       const profileId = profile.id;
       
+      // ✅ VERIFICAR SE SOLICITANTE TEM CADASTRO (antes de criar proposta)
+      const { data: checkData, error: checkError } = await supabase.functions.invoke('check-freight-requester', {
+        body: { freight_id: freight.id }
+      });
+      
+      if (checkError) {
+        console.error('Erro ao verificar solicitante:', checkError);
+        toast.error('Erro ao verificar solicitante do frete');
+        setLoading(false);
+        return;
+      }
+      
+      // Se solicitante não tem cadastro, bloquear proposta
+      if (checkData?.requester?.has_registration === false) {
+        toast.error('Não é possível enviar proposta: o solicitante deste frete não possui cadastro no sistema.', {
+          duration: 8000
+        });
+        setLoading(false);
+        return;
+      }
+      
       // Evitar múltiplas propostas para o mesmo frete
-      const { data: existingProposal, error: checkError } = await supabase
+      const { data: existingProposal, error: proposalCheckError } = await supabase
         .from('freight_proposals')
         .select('status')
         .eq('freight_id', freight.id)
         .eq('driver_id', profileId)
         .maybeSingle();
-      if (checkError) throw checkError;
+      if (proposalCheckError) throw proposalCheckError;
       
       if (existingProposal) {
         if (existingProposal.status === 'PENDING') {
