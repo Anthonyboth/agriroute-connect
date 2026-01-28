@@ -211,14 +211,22 @@ export const computePanelCapabilities = (params: ComputeCapabilitiesParams): Pan
     // submit_service_proposal: mesma lógica que freight proposal
     capabilities.submit_service_proposal = capabilities.submit_freight_proposal;
 
-    // manage_own_vehicles: depende de canManageVehicles
-    if (!isAffiliated) {
-      capabilities.manage_own_vehicles = { allowed: canManageVehicles };
-    } else {
+    // manage_own_vehicles: 
+    // ✅ CORRIGIDO: Motorista autônomo (sem empresa) SEMPRE pode gerenciar veículos
+    // Motorista de empresa NÃO afiliado: depende de can_manage_vehicles
+    // Motorista AFILIADO: nunca pode (usa veículos da empresa)
+    if (!isCompanyDriver) {
+      // ✅ Motorista independente: SEMPRE pode gerenciar seus veículos
+      capabilities.manage_own_vehicles = { allowed: true };
+    } else if (isAffiliated) {
+      // ❌ Motorista AFILIADO: não gerencia veículos (empresa gerencia)
       capabilities.manage_own_vehicles = { 
         allowed: false, 
         reason: PERMISSION_MESSAGES.DRIVER_AFFILIATED_NO_VEHICLES 
       };
+    } else {
+      // Motorista de empresa (não afiliado): depende de permissão
+      capabilities.manage_own_vehicles = { allowed: canManageVehicles };
     }
 
     // checkin/withdraw: precisa de assignment ativo
