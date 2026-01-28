@@ -474,21 +474,49 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
     }
   };
 
+  // ✅ ATUALIZAÇÃO CONTROLADA: refresh no mount e a cada 10 minutos
+  // Removido polling de segundos que causava spam de requests
+  const AUTO_REFRESH_MS = 10 * 60 * 1000; // 10 minutos
+  const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+  const autoRefreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  // Refresh inicial ao montar
   useEffect(() => {
     if (!profile?.id || !user?.id) return;
     fetchCompatibleFreights();
-  }, [profile?.id, user?.id, fetchCompatibleFreights]);
-
+    setLastRefreshAt(new Date());
+  }, [profile?.id, user?.id]);
+  
+  // Auto-refresh a cada 10 minutos (configurável)
   useEffect(() => {
-    let isMountedLocal = true;
-    let pollInterval: ReturnType<typeof setInterval> | null = null;
-
     if (!profile?.id || !user?.id) return;
-
-    const debouncedFetch = debounce(() => {
-      if (isMountedLocal && isMountedRef.current && !isUpdating) fetchCompatibleFreights();
-    }, 500);
-
+    
+    // Limpa intervalo anterior
+    if (autoRefreshIntervalRef.current) {
+      clearInterval(autoRefreshIntervalRef.current);
+    }
+    
+    // Configura novo intervalo
+    autoRefreshIntervalRef.current = setInterval(() => {
+      if (isMountedRef.current && !updateLockRef.current) {
+        console.log('[SmartFreightMatcher] Auto-refresh (10min)');
+        fetchCompatibleFreights();
+        setLastRefreshAt(new Date());
+      }
+    }, AUTO_REFRESH_MS);
+    
+    return () => {
+      if (autoRefreshIntervalRef.current) {
+        clearInterval(autoRefreshIntervalRef.current);
+      }
+    };
+  }, [profile?.id, user?.id, fetchCompatibleFreights]);
+  
+  // ✅ Realtime APENAS para user_cities (mudanças de área do motorista)
+  // NÃO usar realtime para freights (gera muitos eventos)
+  useEffect(() => {
+    if (!profile?.id || !user?.id) return;
+    
     const { cleanup } = subscriptionWithRetry(
       "user-cities-changes",
       (ch) =>
@@ -496,32 +524,26 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
           "postgres_changes",
           { event: "*", schema: "public", table: "user_cities", filter: `user_id=eq.${user.id}` },
           () => {
-            if (!isMountedLocal || !isMountedRef.current) return;
+            if (!isMountedRef.current) return;
             toast.info("Suas cidades de atendimento foram atualizadas. Recarregando fretes...");
-            debouncedFetch();
+            fetchCompatibleFreights();
+            setLastRefreshAt(new Date());
           },
         ),
       {
-        maxRetries: 5,
-        retryDelayMs: 3000,
+        maxRetries: 3,
+        retryDelayMs: 5000,
         onError: (error) => {
-          console.error("[SmartFreightMatcher] Realtime error:", error);
-          if (!pollInterval) {
-            pollInterval = setInterval(() => {
-              if (isMountedLocal && isMountedRef.current) fetchCompatibleFreights();
-            }, 30000);
-          }
+          console.error("[SmartFreightMatcher] Realtime error (não crítico):", error);
+          // ❌ REMOVIDO: polling de fallback de 30s que causava spam
         },
       },
     );
 
     return () => {
-      isMountedLocal = false;
       cleanup();
-      debouncedFetch.cancel();
-      if (pollInterval) clearInterval(pollInterval);
     };
-  }, [profile?.id, user?.id, isUpdating, fetchCompatibleFreights]);
+  }, [profile?.id, user?.id, fetchCompatibleFreights]);
 
   const filteredFreights = useMemo(() => {
     return compatibleFreights.filter((freight) => {
@@ -648,16 +670,24 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
                 />
               </div>
 
-              <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+              <div className="flex gap-2 flex-wrap sm:flex-nowrap items-center">
                 <Button
                   variant="outline"
-                  onClick={fetchCompatibleFreights}
+                  onClick={() => {
+                    fetchCompatibleFreights();
+                    setLastRefreshAt(new Date());
+                  }}
                   disabled={loading}
                   className="flex items-center gap-2 whitespace-nowrap"
                 >
                   <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                  <span className="hidden sm:inline">Atualizar</span>
+                  <span className="hidden sm:inline">{loading ? 'Atualizando...' : 'Atualizar'}</span>
                 </Button>
+                {lastRefreshAt && !loading && (
+                  <span className="text-xs text-muted-foreground hidden md:inline">
+                    Atualizado às {lastRefreshAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
               </div>
             </div>
 

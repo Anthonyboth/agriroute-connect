@@ -49,10 +49,16 @@ export const useDriverAssignments = (driverId: string | undefined) => {
 /**
  * Hook para buscar fretes disponíveis (matched)
  */
+/**
+ * Hook para buscar fretes disponíveis (matched)
+ * ✅ ATUALIZAÇÃO CONTROLADA: sem polling de segundos
+ * - Atualiza apenas via invalidação manual ou realtime
+ * - staleTime de 10 minutos para evitar refetch desnecessário
+ */
 export const useAvailableFreights = (driverId: string) => {
   const queryClient = useQueryClient();
 
-  // Setup realtime invalidation
+  // Setup realtime invalidation (apenas para eventos reais de mudança)
   useEffect(() => {
     if (!driverId) return;
 
@@ -61,20 +67,22 @@ export const useAvailableFreights = (driverId: string) => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'freights'
         },
         () => {
+          // Só invalida em novos fretes
           queryClient.invalidateQueries({ queryKey: ['available-freights', driverId] });
         }
       )
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
-          table: 'freight_assignments'
+          table: 'freights',
+          filter: 'status=eq.OPEN'
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ['available-freights', driverId] });
@@ -116,10 +124,12 @@ export const useAvailableFreights = (driverId: string) => {
       return data?.freights || [];
     },
     enabled: !!driverId,
-    staleTime: 5 * 1000, // 5 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 10000, // Refetch every 10 seconds
-    refetchOnWindowFocus: true,
+    staleTime: 10 * 60 * 1000, // ✅ 10 minutos - evita refetch desnecessário
+    gcTime: 15 * 60 * 1000, // 15 minutos
+    refetchOnWindowFocus: false, // ✅ NÃO refetch ao focar
+    refetchOnMount: false, // ✅ NÃO refetch ao montar se já tem dados
+    refetchOnReconnect: false, // ✅ NÃO refetch ao reconectar
+    // ❌ REMOVIDO: refetchInterval - causava spam de requests
   });
 };
 

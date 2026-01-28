@@ -43,7 +43,10 @@ export const CompanyDriversMap = () => {
       return data || [];
     },
     enabled: !!company?.id,
-    refetchInterval: 30000, // Refetch a cada 30 segundos
+    staleTime: 60 * 1000, // 1 minuto
+    refetchOnWindowFocus: false,
+    // Mapa de GPS pode ter polling mais frequente (1 minuto) pois é funcionalidade de rastreamento
+    refetchInterval: 60000, // ✅ Reduzido de 30s para 60s
   });
 
   // Realtime subscription para atualizações em tempo real

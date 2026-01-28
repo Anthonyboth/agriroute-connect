@@ -69,8 +69,10 @@ export function CompanyFinancialDashboard({ companyId, companyName = 'Empresa' }
       return data as Transaction[];
     },
     enabled: !!companyId,
-    staleTime: 30000, // Cache por 30 segundos
-    refetchInterval: 60000, // Polling a cada 60s em vez de WebSocket
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    // ❌ REMOVIDO: refetchInterval de 60s - transações financeiras não mudam tão frequentemente
     retry: 2,
   });
 

@@ -511,9 +511,10 @@ export const useUnifiedChats = (userProfileId: string, userRole: string) => {
       return allConversations;
     },
     enabled: !!userProfileId && !!userRole,
-    refetchInterval: 10000, // Polling a cada 10s
+    staleTime: 60 * 1000, // 1 minuto
+    refetchOnWindowFocus: false,
+    // ❌ REMOVIDO: refetchInterval de 10s - realtime subscription já cuida de novas mensagens
   });
-
   // Real-time subscriptions
   useEffect(() => {
     if (!userProfileId) return;
