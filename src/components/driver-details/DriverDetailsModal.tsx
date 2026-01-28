@@ -41,7 +41,9 @@ export const DriverDetailsModal = ({
       return count || 0;
     },
     enabled: !!driverProfileId && !!companyId && open,
-    refetchInterval: 5000,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
+    // ❌ REMOVIDO: refetchInterval de 5s - realtime subscription cuida de novas mensagens
   });
 
   // Buscar chat_enabled_at

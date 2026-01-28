@@ -47,8 +47,9 @@ export const useOptimizedStats = () => {
     },
     staleTime: 2 * 60 * 60 * 1000, // 2 horas - stats mudam pouco
     gcTime: 4 * 60 * 60 * 1000, // 4 horas
-    refetchOnWindowFocus: true, // Atualiza ao voltar para a aba
-    refetchInterval: 2 * 60 * 60 * 1000, // Atualiza a cada 2 horas (stats não mudam tanto)
+    refetchOnWindowFocus: false, // ✅ NÃO atualiza ao focar (economiza requests)
+    refetchOnMount: false, // ✅ NÃO refetch se já tem dados em cache
+    // ❌ REMOVIDO: refetchInterval - realtime subscription já cuida de atualizações
     refetchIntervalInBackground: false // Economiza recursos em background
   });
 

@@ -22,7 +22,9 @@ export const useDriverChat = (companyId: string, driverProfileId: string) => {
       return data || [];
     },
     enabled: !!companyId && !!driverProfileId,
-    refetchInterval: 5000, // Polling fallback when Realtime fails
+    staleTime: 30 * 1000, // 30 segundos
+    refetchOnWindowFocus: false,
+    // ❌ REMOVIDO: refetchInterval de 5s - realtime subscription já cuida de novas mensagens
   });
 
   // Contar mensagens não lidas

@@ -119,7 +119,9 @@ const Header: React.FC<HeaderProps> = ({
       return data || [];
     },
     enabled: !!userProfile?.id && ['MOTORISTA', 'MOTORISTA_AFILIADO'].includes(user?.role || ''),
-    refetchInterval: 30000,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: false,
+    // ❌ REMOVIDO: refetchInterval de 30s - convites pendentes não são urgentes
   });
 
   // Verificar se é transportadora

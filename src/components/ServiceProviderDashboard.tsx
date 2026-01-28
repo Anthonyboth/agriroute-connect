@@ -337,12 +337,15 @@ export const ServiceProviderDashboard: React.FC = () => {
       )
       .subscribe();
 
-    // Refresh automático a cada 30 segundos (apenas disponíveis)
+    // ✅ ATUALIZAÇÃO CONTROLADA: refresh a cada 10 MINUTOS (não 30 segundos)
+    // Isso evita spam de requests e melhora performance
+    const AUTO_REFRESH_MS = 10 * 60 * 1000; // 10 minutos
     const interval = setInterval(() => {
+      console.log('[ServiceProviderDashboard] Auto-refresh (10min)');
       fetchServiceRequests({ scope: 'available', silent: true });
       refreshCounts();
       fetchTotalEarnings();
-    }, 30000);
+    }, AUTO_REFRESH_MS);
 
     return () => {
       supabase.removeChannel(channel);
