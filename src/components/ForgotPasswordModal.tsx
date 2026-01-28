@@ -57,7 +57,7 @@ export const ForgotPasswordModal = ({ open, onOpenChange }: ForgotPasswordModalP
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span>Seg-Sex: 8h-18h | Sáb: 8h-12h</span>
+              <span>Seg-Seg: 07h-19h</span>
             </div>
           </div>
 

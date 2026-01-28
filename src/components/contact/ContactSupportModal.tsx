@@ -211,7 +211,7 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({ isOpen
                 <div className="text-left">
                   <p className="font-medium text-sm">Horário</p>
                   <p className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                    Seg-Sex: 8h-18h
+                    Seg-Seg: 07h-19h
                   </p>
                 </div>
               </div>

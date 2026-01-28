@@ -131,7 +131,7 @@ const Help = () => {
       description: "(66) 9 9273-4632",
       icon: Phone,
       action: "Chamar no WhatsApp",
-      available: "Seg-Sex: 8h-18h"
+      available: "Seg-Seg: 07h-19h"
     }
   ];
 
