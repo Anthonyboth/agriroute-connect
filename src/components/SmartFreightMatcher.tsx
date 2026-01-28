@@ -731,8 +731,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
             )}
           </TabsTrigger>
           <TabsTrigger value="services" className="flex items-center gap-2">
-            <Wrench className="h-4 w-4" />
-            Serviços
+            <Bike className="h-4 w-4" />
+            Fretes Urbanos
             {filteredRequests.length > 0 && (
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                 {filteredRequests.length}
@@ -828,8 +828,8 @@ export const SmartFreightMatcher: React.FC<SmartFreightMatcherProps> = ({ onFrei
               >
                 <div className="space-y-3">
                   <h4 className="font-semibold text-lg flex items-center gap-2">
-                    <Wrench className="h-5 w-5 text-primary" />
-                    Chamados de Serviço (Guincho / Mudança / Moto)
+                    <Bike className="h-5 w-5 text-primary" />
+                    Fretes Urbanos (Moto / Guincho / Mudança)
                   </h4>
 
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
