@@ -75,7 +75,8 @@ export const ServiceProposalModal: React.FC<ServiceProposalModalProps> = ({
   const [packaging, setPackaging] = useState(false);
   
   // Campos específicos para Carga (contra-proposta)
-  const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM'>('FIXED');
+  const [pricingType, setPricingType] = useState<'FIXED' | 'PER_KM' | 'PER_TON'>('FIXED');
+  const [pricePerTon, setPricePerTon] = useState('');
 const [pricePerKm, setPricePerKm] = useState('');
 
   // ✅ Função removida - usamos profile.id diretamente do useAuth
@@ -126,7 +127,11 @@ const [pricePerKm, setPricePerKm] = useState('');
       return;
     }
 
-    const priceValue = pricingType === 'PER_KM' ? pricePerKm : proposedPrice;
+    const priceValue =
+      pricingType === 'PER_KM' ? pricePerKm :
+      pricingType === 'PER_TON' ? pricePerTon :
+      proposedPrice;
+    
     if (!priceValue) {
       toast.error('Informe um valor.');
       return;
@@ -144,13 +149,27 @@ const [pricePerKm, setPricePerKm] = useState('');
       return;
     }
     
+    const distance = freight.distance_km || 0;
+    const weightTons = (freight.weight || 0) / 1000;
+    
     // Validação de "Por KM" - precisa ter distância
-    if (pricingType === 'PER_KM' && (!freight.distance_km || freight.distance_km === 0)) {
+    if (pricingType === 'PER_KM' && distance <= 0) {
       toast.error('Para proposta por KM, precisamos da distância da rota. Use valor fixo ou aguarde o cálculo da rota.');
       return;
     }
     
-    const finalPrice = pricingType === 'PER_KM' ? priceFloat * (freight.distance_km || 0) : priceFloat;
+    // Validação de "Por TON" - precisa ter peso
+    if (pricingType === 'PER_TON' && weightTons <= 0) {
+      toast.error('Para proposta por tonelada (TON), o frete precisa ter o peso configurado.');
+      return;
+    }
+    
+    const finalPrice =
+      pricingType === 'PER_KM'
+        ? priceFloat * distance
+        : pricingType === 'PER_TON'
+          ? priceFloat * weightTons
+          : priceFloat;
     
     // Validar se o preço final é válido
     if (finalPrice <= 0) {
@@ -218,7 +237,12 @@ const [pricePerKm, setPricePerKm] = useState('');
         } else if (freight.service_type === 'MUDANCA') {
           messageContent = `ORÇAMENTO DE MUDANÇA\n\nValor: R$ ${finalPrice.toLocaleString('pt-BR')}\nElevador: ${hasElevator || 'Não informado'}\nAjudantes: ${helpers || 'Não informado'}\nEmbalagem: ${packaging ? 'Incluso' : 'Não incluso'}\n\n${message || 'Orçamento conforme especificações.'}`;
         } else {
-          messageContent = `CONTRA-PROPOSTA: R$ ${finalPrice.toLocaleString('pt-BR')}\n\n${pricingType === 'PER_KM' ? `Valor por KM: R$ ${priceFloat.toLocaleString('pt-BR')}/km\n` : ''}${message || 'Proposta enviada.'}`;
+          const pricingInfo = pricingType === 'PER_KM' 
+            ? `Valor por KM: R$ ${priceFloat.toLocaleString('pt-BR')}/km\n`
+            : pricingType === 'PER_TON'
+              ? `Valor por TON: R$ ${priceFloat.toLocaleString('pt-BR')}/ton\n`
+              : '';
+          messageContent = `CONTRA-PROPOSTA: R$ ${finalPrice.toLocaleString('pt-BR')}\n\n${pricingInfo}${message || 'Proposta enviada.'}`;
         }
 
         await supabase
@@ -259,6 +283,7 @@ const [pricePerKm, setPricePerKm] = useState('');
     setPackaging(false);
     setPricingType('FIXED');
     setPricePerKm('');
+    setPricePerTon('');
   };
 
   const renderGuinchoForm = () => (
@@ -419,15 +444,18 @@ const [pricePerKm, setPricePerKm] = useState('');
   );
 
   const renderCargaForm = () => {
-    const hasDistance = freight.distance_km && freight.distance_km > 0;
+    const distance = freight.distance_km || 0;
+    const weightTons = (freight.weight || 0) / 1000;
     const requiredTrucks = freight.required_trucks || 1;
     const minAnttTotal = freight.minimum_antt_price || 0;
     const minAnttPerTruck = minAnttTotal > 0 ? minAnttTotal / requiredTrucks : 0;
     
     // Calcular valor proposto atual
     const currentProposedPrice = pricingType === 'PER_KM' 
-      ? (parseFloat(pricePerKm) || 0) * (freight.distance_km || 0)
-      : parseFloat(proposedPrice) || 0;
+      ? (parseFloat(pricePerKm) || 0) * distance
+      : pricingType === 'PER_TON'
+        ? (parseFloat(pricePerTon) || 0) * weightTons
+        : parseFloat(proposedPrice) || 0;
     
     const isBelowAntt = minAnttPerTruck > 0 && currentProposedPrice > 0 && currentProposedPrice < minAnttPerTruck;
     
@@ -473,38 +501,50 @@ const [pricePerKm, setPricePerKm] = useState('');
           </div>
         )}
 
-        {!hasDistance && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg mb-4">
-            <p className="text-sm text-yellow-600 dark:text-yellow-400">
-              ⚠️ Distância não calculada. Apenas propostas de <strong>Valor Fixo</strong> estão disponíveis.
-            </p>
-          </div>
-        )}
-
         <div className="space-y-4">
-          {hasDistance && (
-            <div className="space-y-2">
-              <Label>Tipo de Cobrança</Label>
-              <Select value={pricingType} onValueChange={(value: 'FIXED' | 'PER_KM') => setPricingType(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="FIXED">Valor Fixo</SelectItem>
-                  <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
+          {/* Tipo de Cobrança - sempre 3 opções */}
           <div className="space-y-2">
-            <Label>{pricingType === 'PER_KM' ? 'Valor por KM (R$) *' : 'Valor Proposto (R$) *'}</Label>
+            <Label>Tipo de Cobrança</Label>
+            <Select 
+              value={pricingType} 
+              onValueChange={(value: 'FIXED' | 'PER_KM' | 'PER_TON') => setPricingType(value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="FIXED">Valor Fixo</SelectItem>
+                <SelectItem value="PER_KM">Por Quilômetro</SelectItem>
+                <SelectItem value="PER_TON">Por Tonelada (TON)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Input dinâmico baseado no tipo */}
+          <div className="space-y-2">
+            <Label>
+              {pricingType === 'PER_KM'
+                ? 'Valor por KM (R$) *'
+                : pricingType === 'PER_TON'
+                  ? 'Valor por TON (R$) *'
+                  : 'Valor Proposto (R$) *'}
+            </Label>
+            
             {pricingType === 'PER_KM' ? (
               <Input
                 type="number"
                 placeholder="Digite o valor por km"
                 value={pricePerKm}
                 onChange={(e) => setPricePerKm(e.target.value)}
+                step="0.01"
+                min="0.01"
+              />
+            ) : pricingType === 'PER_TON' ? (
+              <Input
+                type="number"
+                placeholder="Digite o valor por tonelada"
+                value={pricePerTon}
+                onChange={(e) => setPricePerTon(e.target.value)}
                 step="0.01"
                 min="0.01"
               />
@@ -518,10 +558,35 @@ const [pricePerKm, setPricePerKm] = useState('');
                 min="0.01"
               />
             )}
-            {pricingType === 'PER_KM' && freight.distance_km && pricePerKm && (
-              <p className="text-sm text-muted-foreground">
-                Total calculado: R$ {(parseFloat(pricePerKm) * freight.distance_km).toLocaleString()}
-              </p>
+            
+            {/* Mensagem de validação e cálculo para PER_KM */}
+            {pricingType === 'PER_KM' && (
+              distance > 0 ? (
+                pricePerKm ? (
+                  <p className="text-sm text-muted-foreground">
+                    Total calculado: R$ {(parseFloat(pricePerKm || '0') * distance).toLocaleString('pt-BR')}
+                  </p>
+                ) : null
+              ) : (
+                <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                  ⚠️ Distância não configurada. Não é possível propor por KM.
+                </p>
+              )
+            )}
+            
+            {/* Mensagem de validação e cálculo para PER_TON */}
+            {pricingType === 'PER_TON' && (
+              weightTons > 0 ? (
+                pricePerTon ? (
+                  <p className="text-sm text-muted-foreground">
+                    Total calculado: R$ {(parseFloat(pricePerTon || '0') * weightTons).toLocaleString('pt-BR')} ({weightTons.toFixed(1)} ton)
+                  </p>
+                ) : null
+              ) : (
+                <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                  ⚠️ Peso não configurado. Não é possível propor por TON.
+                </p>
+              )
             )}
           </div>
 
