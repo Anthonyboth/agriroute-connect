@@ -423,6 +423,41 @@ serve(async (req) => {
       }
       
       // Criar um assignment para cada motorista disponível (até num_trucks)
+      // ✅ CORREÇÃO: Ajustar datas se estiverem no passado (trigger bloqueia pickup_date < CURRENT_DATE)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      let adjustedPickupDate = freight.pickup_date;
+      let adjustedDeliveryDate = freight.delivery_date;
+      let dateWasAdjusted = false;
+      
+      if (freight.pickup_date) {
+        const pickupDate = new Date(freight.pickup_date);
+        pickupDate.setHours(0, 0, 0, 0);
+        
+        if (pickupDate < today) {
+          // Ajustar para hoje
+          adjustedPickupDate = today.toISOString().split('T')[0];
+          dateWasAdjusted = true;
+          console.log(`[DATE-ADJUST] pickup_date ajustada de ${freight.pickup_date} para ${adjustedPickupDate}`);
+          
+          // Também ajustar delivery_date se necessário
+          if (freight.delivery_date) {
+            const deliveryDate = new Date(freight.delivery_date);
+            deliveryDate.setHours(0, 0, 0, 0);
+            
+            if (deliveryDate < today) {
+              // Manter a diferença de dias original ou ajustar para hoje
+              const originalDiff = Math.ceil((deliveryDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24));
+              const newDeliveryDate = new Date(today);
+              newDeliveryDate.setDate(newDeliveryDate.getDate() + Math.max(0, originalDiff));
+              adjustedDeliveryDate = newDeliveryDate.toISOString().split('T')[0];
+              console.log(`[DATE-ADJUST] delivery_date ajustada de ${freight.delivery_date} para ${adjustedDeliveryDate}`);
+            }
+          }
+        }
+      }
+      
       for (let i = 0; i < num_trucks; i++) {
         const driver_id = availableDrivers[i];
         const vehicle_id = availableVehicleIds[i] || null;
@@ -437,11 +472,18 @@ serve(async (req) => {
             agreed_price: agreedPrice,
             pricing_type: pricingType,
             status: 'ACCEPTED',
-            pickup_date: freight.pickup_date || null,
-            delivery_date: freight.delivery_date || null,
-            notes: freightFresh.service_type === 'FRETE_MOTO' && originalPrice < 10
-              ? `Preço ajustado de R$ ${originalPrice.toFixed(2)} para R$ 10,00 (mínimo ANTT)`
-              : null,
+            pickup_date: adjustedPickupDate || null,
+            delivery_date: adjustedDeliveryDate || null,
+            notes: (() => {
+              const notes: string[] = [];
+              if (freightFresh.service_type === 'FRETE_MOTO' && originalPrice < 10) {
+                notes.push(`Preço ajustado de R$ ${originalPrice.toFixed(2)} para R$ 10,00 (mínimo ANTT)`);
+              }
+              if (dateWasAdjusted) {
+                notes.push(`Data de coleta ajustada automaticamente para ${adjustedPickupDate} (data original no passado)`);
+              }
+              return notes.length > 0 ? notes.join('. ') : null;
+            })(),
             metadata: {
               original_price: originalPrice,
               adjusted_price: agreedPrice !== originalPrice,
@@ -450,6 +492,11 @@ serve(async (req) => {
               is_company_assignment: isTransportCompany,
               driver_index: i + 1,
               vehicle_id: vehicle_id || undefined,
+              date_was_adjusted: dateWasAdjusted,
+              original_pickup_date: freight.pickup_date,
+              original_delivery_date: freight.delivery_date,
+              adjusted_pickup_date: dateWasAdjusted ? adjustedPickupDate : undefined,
+              adjusted_delivery_date: dateWasAdjusted ? adjustedDeliveryDate : undefined,
               created_at: new Date().toISOString()
             }
           })
