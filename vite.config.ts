@@ -13,17 +13,18 @@ import { generate } from 'critical';
 const BUILD_ID = `${new Date().toISOString().replace(/[:.T-]/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 8)}`;
 
 // Plugin to make CSS async (non-render-blocking)
+// ✅ ATIVADO v2 - usando media="print" pattern que é mais confiável
 const asyncCssPlugin = () => ({
   name: 'async-css-plugin',
   transformIndexHtml: {
     order: 'post' as const,
     handler(html: string) {
-      // Transform synchronous CSS links to async loading pattern
+      // Transform synchronous CSS links to async loading pattern using media="print"
+      // This pattern is more reliable than preload as="style" across browsers
       return html.replace(
-        /<link ([^>]*?)rel="stylesheet"([^>]*?)href="([^"]+\.css)"([^>]*?)>/gi,
-        (match, before, middle, href, after) => {
-          // Create async CSS loading with preload + onload pattern
-          return `<link ${before}rel="preload"${middle}href="${href}"${after} as="style" onload="this.onload=null;this.rel='stylesheet'">
+        /<link\s+rel="stylesheet"\s+crossorigin\s+href="([^"]+\.css)">/gi,
+        (match, href) => {
+          return `<link rel="stylesheet" href="${href}" media="print" onload="this.media='all';this.onload=null;">
     <noscript><link rel="stylesheet" href="${href}"></noscript>`;
         }
       );
@@ -248,7 +249,8 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
-    // asyncCssPlugin(), // DESABILITADO - quebra carregamento do CSS completamente
+    // ✅ ATIVADO - CSS async para eliminar render-blocking
+    mode === 'production' && asyncCssPlugin(),
     // swVersionPlugin() - não necessário com generateSW strategy
     // criticalCssPlugin() - desabilitado por causar falha no build
     VitePWA({
