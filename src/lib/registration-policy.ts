@@ -81,22 +81,20 @@ export function getRegistrationMode(
 
 /**
  * Retorna os passos necessários para cada modo
+ * IMPORTANTE: O passo 'documentos_e_veiculos' foi REMOVIDO do onboarding.
+ * Veículos são cadastrados APÓS a aprovação do perfil, na área interna.
  */
 export function getRequiredSteps(mode: RegistrationMode): RegistrationStep[] {
+  // TODOS os modos agora têm apenas 2 passos no onboarding:
+  // - dados_basicos (dados pessoais)
+  // - documentos_basicos (selfie e documento)
+  // Veículos são cadastrados DEPOIS da aprovação do cadastro
   switch (mode) {
     case 'TRANSPORTADORA':
-      return ['dados_basicos', 'documentos_basicos'];
-    
     case 'MOTORISTA_AUTONOMO':
-      return ['dados_basicos', 'documentos_basicos', 'documentos_e_veiculos'];
-    
     case 'MOTORISTA_AFILIADO':
-      return ['dados_basicos', 'documentos_basicos'];
-    
     case 'PRODUTOR':
     case 'PRESTADOR':
-      return ['dados_basicos', 'documentos_basicos'];
-    
     default:
       return ['dados_basicos', 'documentos_basicos'];
   }
@@ -104,6 +102,8 @@ export function getRequiredSteps(mode: RegistrationMode): RegistrationStep[] {
 
 /**
  * Retorna os campos obrigatórios para cada passo/modo
+ * IMPORTANTE: Requisitos de veículos (placa_cavalo, veiculo) foram REMOVIDOS
+ * do onboarding. Motoristas cadastram veículos após aprovação do perfil.
  */
 export function getStepRequirements(
   mode: RegistrationMode,
@@ -112,22 +112,28 @@ export function getStepRequirements(
   if (step === 'dados_basicos') {
     const base = ['full_name', 'phone', 'cpf_cnpj', 'fixed_address'];
     
-    if (mode === 'MOTORISTA_AUTONOMO' || mode === 'MOTORISTA_AFILIADO') {
-      return [...base, 'rntrc'];
-    }
-    
+    // RNTRC opcional durante onboarding - pode ser adicionado depois
+    // (muitos motoristas não possuem RNTRC inicialmente)
     return base;
   }
   
   if (step === 'documentos_basicos') {
-    // Todos precisam de selfie e documento com foto
-    return ['selfie', 'document_photo'];
+    // Documentos pessoais básicos para todos
+    const basicDocs = ['selfie', 'document_photo'];
+    
+    // Para motoristas: adicionar CNH e comprovante de endereço
+    if (mode === 'MOTORISTA_AUTONOMO' || mode === 'MOTORISTA_AFILIADO') {
+      return [...basicDocs, 'cnh', 'address_proof'];
+    }
+    
+    return basicDocs;
   }
   
+  // O passo 'documentos_e_veiculos' não é mais usado no onboarding
+  // Veículos são cadastrados após aprovação do perfil
   if (step === 'documentos_e_veiculos') {
-    if (mode === 'MOTORISTA_AUTONOMO') {
-      return ['cnh', 'address_proof', 'placa_cavalo', 'veiculo', 'localizacao'];
-    }
+    // Retornar array vazio - este passo não existe mais no onboarding
+    return [];
   }
   
   return [];
@@ -173,17 +179,19 @@ export function getMissingForStep(
       case 'address_proof':
         if (!state.documentUrls.address_proof) missing.push('Comprovante de endereço');
         break;
+      // Os casos abaixo foram REMOVIDOS do onboarding - veículos são cadastrados
+      // APÓS a aprovação do perfil, na aba de Veículos do painel interno.
+      // Os cases são mantidos aqui para evitar erros de runtime mas NUNCA
+      // serão acionados durante o onboarding pois getStepRequirements()
+      // não retorna mais 'placa_cavalo', 'veiculo' ou 'localizacao'.
       case 'placa_cavalo':
-        const tractorPlate = state.platePhotos?.find(p => p.type === 'TRACTOR');
-        if (!tractorPlate?.url) missing.push('Foto da placa do cavalo');
+        // REMOVIDO DO ONBOARDING - Veículos cadastrados após aprovação
         break;
       case 'veiculo':
-        if (!state.skipVehicleRegistration && (!state.vehicles || state.vehicles.length === 0)) {
-          missing.push('Cadastro de pelo menos um veículo');
-        }
+        // REMOVIDO DO ONBOARDING - Veículos cadastrados após aprovação
         break;
       case 'localizacao':
-        if (!state.locationEnabled) missing.push('Localização habilitada');
+        // Localização agora é opcional durante onboarding
         break;
     }
   }

@@ -93,44 +93,42 @@ serve(async (req) => {
     console.log('[REGISTRATION-MANAGER] Registration mode:', mode)
 
     // Definir passos necessários
+    // IMPORTANTE: O passo 'documentos_e_veiculos' foi REMOVIDO do onboarding.
+    // Veículos são cadastrados APÓS a aprovação do perfil, na área interna.
     let steps: string[]
     
     switch (mode) {
-      case 'TRANSPORTADORA':
-        steps = ['dados_basicos', 'documentos_basicos']
-        break
-      case 'MOTORISTA_AUTONOMO':
-        steps = ['dados_basicos', 'documentos_basicos', 'documentos_e_veiculos']
-        break
       case 'MOTORISTA_AFILIADO_PENDENTE':
         steps = ['aguardando_aprovacao']
         break
+      case 'TRANSPORTADORA':
+      case 'MOTORISTA_AUTONOMO':
       case 'MOTORISTA_AFILIADO':
       case 'PRODUTOR':
       case 'PRESTADOR':
-        steps = ['dados_basicos', 'documentos_basicos']
-        break
       default:
+        // TODOS os modos agora têm apenas 2 passos no onboarding
         steps = ['dados_basicos', 'documentos_basicos']
     }
 
     // Definir requisitos por passo
+    // NOTA: Requisitos de veículos (placa_cavalo, veiculo) foram REMOVIDOS
     const requirementsByStep: Record<string, string[]> = {}
 
-    // Passo 1: Dados básicos
-    if (mode === 'MOTORISTA_AUTONOMO' || mode === 'MOTORISTA_AFILIADO') {
-      requirementsByStep['dados_basicos'] = ['full_name', 'phone', 'cpf_cnpj', 'fixed_address', 'rntrc']
-    } else {
-      requirementsByStep['dados_basicos'] = ['full_name', 'phone', 'cpf_cnpj', 'fixed_address']
-    }
+    // Passo 1: Dados básicos (RNTRC agora é opcional - pode ser adicionado depois)
+    requirementsByStep['dados_basicos'] = ['full_name', 'phone', 'cpf_cnpj', 'fixed_address']
 
     // Passo 2: Documentos básicos
-    requirementsByStep['documentos_basicos'] = ['selfie', 'document_photo']
-
-    // Passo 3: Documentos e veículos (apenas motorista autônomo)
-    if (mode === 'MOTORISTA_AUTONOMO') {
-      requirementsByStep['documentos_e_veiculos'] = ['cnh', 'address_proof', 'placa_cavalo', 'veiculo', 'localizacao']
+    if (mode === 'MOTORISTA_AUTONOMO' || mode === 'MOTORISTA_AFILIADO') {
+      // Motoristas precisam de selfie, documento, CNH e comprovante de endereço
+      requirementsByStep['documentos_basicos'] = ['selfie', 'document_photo', 'cnh', 'address_proof']
+    } else {
+      // Outros perfis: apenas selfie e documento
+      requirementsByStep['documentos_basicos'] = ['selfie', 'document_photo']
     }
+
+    // O passo 'documentos_e_veiculos' não é mais usado no onboarding
+    // Veículos são cadastrados após aprovação do perfil na aba de Veículos
 
     console.log('[REGISTRATION-MANAGER] Requirements:', requirementsByStep)
 
