@@ -12,6 +12,7 @@ import {
   Play, Package, AlertTriangle, ArrowRight
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useDriverTransportCompanyLink } from "@/hooks/useDriverTransportCompanyLink";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/formatters";
 import { LABELS } from "@/lib/labels";
@@ -519,12 +520,19 @@ export const DriverOngoingTab: React.FC = () => {
   const assignments = data?.assignments ?? [];
   const serviceRequests = data?.serviceRequests ?? [];
 
+  // ✅ USAR HOOK DEDICADO para verificar vínculos com transportadora
+  const { hasActiveLink, activeLinks } = useDriverTransportCompanyLink();
+  
+  // ✅ LÓGICA CORRIGIDA: Usar o hook dedicado ao invés de verificações locais
   const hasTransportCompanyLink = useMemo(() => {
-    const anyAssignmentHasCompany = assignments.some((a: any) => !!a?.company_id);
-    const roleSuggestsAffiliation = profile?.role === 'MOTORISTA_AFILIADO';
-    const profileHasCompany = Boolean((profile as any)?.company_id);
-    return anyAssignmentHasCompany || roleSuggestsAffiliation || profileHasCompany;
-  }, [assignments, profile]);
+    // Verificar se algum assignment veio de uma transportadora específica
+    const anyAssignmentHasCompany = assignments.some((a: any) => {
+      if (!a?.company_id) return false;
+      // Verificar se o motorista realmente está vinculado a esta transportadora
+      return activeLinks.some(link => link.companyId === a.company_id);
+    });
+    return anyAssignmentHasCompany || hasActiveLink;
+  }, [assignments, activeLinks, hasActiveLink]);
 
   const totalCount = freights.length + assignments.length + serviceRequests.length;
 
