@@ -24,10 +24,32 @@ export const useDriverTracking = (driverProfileId: string | null, companyId?: st
       return;
     }
 
-    // Fetch initial location
+    // Fetch initial location from dedicated driver_current_locations table (RLS-optimized)
     const fetchLocation = async () => {
+      // First try the dedicated location table (faster, RLS-friendly)
+      const { data: locData, error: locError } = await supabase
+        .from('driver_current_locations')
+        .select('lat, lng, last_gps_update')
+        .eq('driver_profile_id', driverProfileId)
+        .maybeSingle();
+
+      if (locData && !locError) {
+        const isRecent = locData.last_gps_update 
+          ? (new Date().getTime() - new Date(locData.last_gps_update).getTime()) < 5 * 60 * 1000
+          : false;
+
+        setLocation({
+          lat: locData.lat,
+          lng: locData.lng,
+          lastUpdate: locData.last_gps_update,
+          isOnline: isRecent,
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Fallback: Try affiliated_drivers_tracking for company view
       if (companyId) {
-        // Use affiliated_drivers_tracking for company view
         const { data, error } = await supabase
           .from('affiliated_drivers_tracking')
           .select('current_lat, current_lng, last_gps_update')
@@ -47,67 +69,37 @@ export const useDriverTracking = (driverProfileId: string | null, companyId?: st
             isOnline: isRecent,
           });
         }
-      } else {
-        // Use profiles for direct driver view
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('current_location_lat, current_location_lng, last_gps_update')
-          .eq('id', driverProfileId)
-          .maybeSingle();
-
-        if (data && !error) {
-          const isRecent = data.last_gps_update 
-            ? (new Date().getTime() - new Date(data.last_gps_update).getTime()) < 5 * 60 * 1000
-            : false;
-
-          setLocation({
-            lat: data.current_location_lat,
-            lng: data.current_location_lng,
-            lastUpdate: data.last_gps_update,
-            isOnline: isRecent,
-          });
-        }
       }
       setIsLoading(false);
     };
 
     fetchLocation();
 
-    // Setup realtime subscription (may fail with CHANNEL_ERROR)
-    const tableName = companyId ? 'affiliated_drivers_tracking' : 'profiles';
+    // Setup realtime subscription on the dedicated table for faster updates
     const channel = supabase
       .channel(`driver-location-${driverProfileId}`)
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
-          table: tableName,
-          filter: companyId 
-            ? `driver_profile_id=eq.${driverProfileId}` 
-            : `id=eq.${driverProfileId}`,
+          table: 'driver_current_locations',
+          filter: `driver_profile_id=eq.${driverProfileId}`,
         },
         (payload: any) => {
           const newData = payload.new;
+          if (!newData) return;
+          
           const isRecent = newData.last_gps_update 
             ? (new Date().getTime() - new Date(newData.last_gps_update).getTime()) < 5 * 60 * 1000
             : false;
 
-          if (companyId) {
-            setLocation({
-              lat: newData.current_lat,
-              lng: newData.current_lng,
-              lastUpdate: newData.last_gps_update,
-              isOnline: isRecent,
-            });
-          } else {
-            setLocation({
-              lat: newData.current_location_lat,
-              lng: newData.current_location_lng,
-              lastUpdate: newData.last_gps_update,
-              isOnline: isRecent,
-            });
-          }
+          setLocation({
+            lat: newData.lat,
+            lng: newData.lng,
+            lastUpdate: newData.last_gps_update,
+            isOnline: isRecent,
+          });
         }
       )
       .subscribe();
@@ -131,6 +123,29 @@ export const useDriverTracking = (driverProfileId: string | null, companyId?: st
 
     setIsLoading(true);
     
+    // Use the dedicated location table
+    const { data: locData, error: locError } = await supabase
+      .from('driver_current_locations')
+      .select('lat, lng, last_gps_update')
+      .eq('driver_profile_id', driverProfileId)
+      .maybeSingle();
+
+    if (locData && !locError) {
+      const isRecent = locData.last_gps_update 
+        ? (new Date().getTime() - new Date(locData.last_gps_update).getTime()) < 5 * 60 * 1000
+        : false;
+
+      setLocation({
+        lat: locData.lat,
+        lng: locData.lng,
+        lastUpdate: locData.last_gps_update,
+        isOnline: isRecent,
+      });
+      setIsLoading(false);
+      return;
+    }
+    
+    // Fallback for affiliated drivers
     if (companyId) {
       const { data, error } = await supabase
         .from('affiliated_drivers_tracking')
@@ -147,25 +162,6 @@ export const useDriverTracking = (driverProfileId: string | null, companyId?: st
         setLocation({
           lat: data.current_lat,
           lng: data.current_lng,
-          lastUpdate: data.last_gps_update,
-          isOnline: isRecent,
-        });
-      }
-    } else {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('current_location_lat, current_location_lng, last_gps_update')
-        .eq('id', driverProfileId)
-        .maybeSingle();
-
-      if (data && !error) {
-        const isRecent = data.last_gps_update 
-          ? (new Date().getTime() - new Date(data.last_gps_update).getTime()) < 5 * 60 * 1000
-          : false;
-
-        setLocation({
-          lat: data.current_location_lat,
-          lng: data.current_location_lng,
           lastUpdate: data.last_gps_update,
           isOnline: isRecent,
         });
