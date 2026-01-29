@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { showErrorToast } from "@/lib/error-handler";
 import { useAuth } from "@/hooks/useAuth";
 import { usePrefilledUserData } from "@/hooks/usePrefilledUserData";
+import { useFormNotification } from "@/hooks/useFormNotification";
 
 interface ServiceWizardProps {
   serviceType: ServiceType;
@@ -117,6 +118,7 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
 }) => {
   const { profile } = useAuth();
   const { personal: prefilledPersonal, address: prefilledAddress, loading: prefillLoading } = usePrefilledUserData();
+  const { showFormError, showMissingField, showSuccess } = useFormNotification();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ServiceFormData>(() => createInitialFormData(serviceType));
@@ -206,20 +208,28 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
     });
   }, []);
 
-  // Validação por etapa
+  // Validação por etapa - usa useFormNotification para exibir erros claros
   const validateStep = useCallback(
     (step: number): boolean => {
       switch (step) {
         case 1: {
           if (serviceType === "GUINCHO" && !formData.vehicle?.situation) {
-            toast.error("Por favor, selecione a situação do veículo");
+            showFormError({
+              field: "Situação do Veículo",
+              problem: "Este campo é obrigatório para serviço de guincho.",
+              solution: "Selecione se o veículo está funcionando, não liga ou teve acidente.",
+            });
             return false;
           }
           if (
             (serviceType === "MUDANCA_RESIDENCIAL" || serviceType === "MUDANCA_COMERCIAL") &&
             !formData.mudanca?.rooms
           ) {
-            toast.error("Por favor, selecione o número de cômodos");
+            showFormError({
+              field: "Número de Cômodos",
+              problem: "Este campo é obrigatório para mudanças.",
+              solution: "Selecione quantos cômodos serão movidos (1-2, 3-4, 5+).",
+            });
             return false;
           }
           return true;
@@ -227,25 +237,65 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
 
         case 2: {
           if (!formData.personal.name?.trim()) {
-            toast.error("Por favor, preencha seu nome");
+            showMissingField("name", "Nome Completo");
             return false;
           }
           if (!formData.personal.phone?.trim()) {
-            toast.error("Por favor, preencha seu telefone");
+            showMissingField("phone", "Telefone");
             return false;
           }
           return true;
         }
 
         case 3: {
-          if (!formData.origin.city || !formData.origin.street || !formData.origin.number) {
-            toast.error("Por favor, preencha o endereço de origem completo");
+          if (!formData.origin.city) {
+            showFormError({
+              field: "Cidade de Origem",
+              problem: "Cidade não informada.",
+              solution: "Digite o CEP ou selecione a cidade no campo de origem.",
+            });
+            return false;
+          }
+          if (!formData.origin.street) {
+            showFormError({
+              field: "Rua/Logradouro",
+              problem: "Endereço incompleto.",
+              solution: "Preencha o nome da rua, avenida ou fazenda de origem.",
+            });
+            return false;
+          }
+          if (!formData.origin.number) {
+            showFormError({
+              field: "Número",
+              problem: "Número do endereço não informado.",
+              solution: "Informe o número ou digite 'S/N' se não houver.",
+            });
             return false;
           }
 
           if (config.requiresDestination) {
-            if (!formData.destination?.city || !formData.destination?.street || !formData.destination?.number) {
-              toast.error("Por favor, preencha o endereço de destino completo");
+            if (!formData.destination?.city) {
+              showFormError({
+                field: "Cidade de Destino",
+                problem: "Destino não informado.",
+                solution: "Digite o CEP ou selecione a cidade de destino.",
+              });
+              return false;
+            }
+            if (!formData.destination?.street) {
+              showFormError({
+                field: "Rua de Destino",
+                problem: "Endereço de destino incompleto.",
+                solution: "Preencha o nome da rua, avenida ou fazenda de destino.",
+              });
+              return false;
+            }
+            if (!formData.destination?.number) {
+              showFormError({
+                field: "Número de Destino",
+                problem: "Número do endereço de destino não informado.",
+                solution: "Informe o número ou digite 'S/N' se não houver.",
+              });
               return false;
             }
           }
@@ -258,7 +308,11 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
             const weight = parseFloat(formData.cargo?.weight || "0");
             const weightInKg = formData.cargo?.weightUnit === "ton" ? weight * 1000 : weight;
             if (weightInKg > 150) {
-              toast.error("Frete por moto suporta cargas até 150kg");
+              showFormError({
+                field: "Peso da Carga",
+                problem: "Peso excede o limite de 150kg para motoboy.",
+                solution: "Reduza o peso ou escolha 'Frete Urbano' para cargas maiores.",
+              });
               return false;
             }
           }
@@ -272,7 +326,7 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
           return true;
       }
     },
-    [config.requiresDestination, formData, serviceType],
+    [config.requiresDestination, formData, serviceType, showFormError, showMissingField],
   );
 
   const handleNext = () => {
@@ -302,10 +356,13 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
     setLoading(true);
 
     try {
-      // ✅ Bloqueio de segurança: se estiver logado, client_id deve existir
-      // (garante que apareça no painel do produtor)
+      // ✅ Bloqueio de segurança: se não estiver logado, mostra notificação clara
       if (!profile?.id) {
-        toast.error("Você precisa estar logado para acompanhar a solicitação no painel.");
+        showFormError({
+          field: "Autenticação",
+          problem: "Você precisa estar logado para enviar a solicitação.",
+          solution: "Faça login ou crie uma conta para acompanhar sua solicitação no painel.",
+        });
         setLoading(false);
         return;
       }
@@ -397,13 +454,21 @@ export const ServiceWizard: React.FC<ServiceWizardProps> = ({
         ? "Motoristas"
         : "Prestadores";
 
-      toast.success(`Solicitação enviada com sucesso! ${notificationTarget} próximos foram notificados.`);
+      showSuccess(`Solicitação enviada! ${notificationTarget} próximos foram notificados.`);
 
       onSuccess?.();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar solicitação:", error);
-      showErrorToast(toast, "Erro ao enviar solicitação", error);
+      
+      // ✅ Notificação clara do erro com solução
+      showFormError({
+        problem: "Não foi possível enviar sua solicitação.",
+        solution: error?.message?.includes("permission") 
+          ? "Verifique se você está logado corretamente e tente novamente."
+          : "Verifique sua conexão com a internet e tente novamente em alguns segundos.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
