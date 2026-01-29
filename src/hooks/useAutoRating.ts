@@ -8,10 +8,45 @@ interface AutoRatingHookProps {
   freight: any;
 }
 
+/**
+ * Hook para verificar e disparar avaliação automática de frete
+ * 
+ * ✅ CORREÇÃO: Avaliação SOMENTE após pagamento confirmado (status = 'confirmed' em external_payments)
+ * O ciclo correto é:
+ * 1. Motorista reporta entrega (DELIVERED_PENDING_CONFIRMATION)
+ * 2. Produtor confirma pagamento (external_payments.status = 'confirmed')
+ * 3. Frete vai para histórico (COMPLETED)
+ * 4. AGORA ambos podem avaliar
+ */
 export const useAutoRating = ({ freightId, freightStatus, currentUserProfile, freight }: AutoRatingHookProps) => {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [userToRate, setUserToRate] = useState<any>(null);
   const [hasCheckedRating, setHasCheckedRating] = useState(false);
+
+  // Função para verificar se pagamento foi confirmado
+  const checkPaymentConfirmed = async (): Promise<boolean> => {
+    if (!freightId || !currentUserProfile) return false;
+
+    try {
+      // Verificar se existe pagamento confirmado para este frete
+      const { data: payment, error } = await supabase
+        .from('external_payments')
+        .select('id, status')
+        .eq('freight_id', freightId)
+        .eq('status', 'confirmed')
+        .maybeSingle();
+
+      if (error) {
+        console.error('[useAutoRating] Erro ao verificar pagamento:', error);
+        return false;
+      }
+
+      return !!payment;
+    } catch (error) {
+      console.error('[useAutoRating] Erro em checkPaymentConfirmed:', error);
+      return false;
+    }
+  };
 
   // Função para verificar se o usuário já avaliou
   const checkIfUserHasRated = async () => {
@@ -19,13 +54,10 @@ export const useAutoRating = ({ freightId, freightStatus, currentUserProfile, fr
       return false;
     }
     
-    // Aceitar DELIVERED ou DELIVERED_PENDING_CONFIRMATION
-    if (freightStatus !== 'DELIVERED' && freightStatus !== 'DELIVERED_PENDING_CONFIRMATION') {
-      return false;
-    }
-    
-    // Se for DELIVERED_PENDING_CONFIRMATION, só mostrar para motorista
-    if (freightStatus === 'DELIVERED_PENDING_CONFIRMATION' && currentUserProfile.role !== 'MOTORISTA') {
+    // ✅ CORREÇÃO: Só permitir avaliação para status COMPLETED (após confirmação de pagamento)
+    // DELIVERED_PENDING_CONFIRMATION e DELIVERED não são mais gatilhos de avaliação
+    if (freightStatus !== 'COMPLETED') {
+      console.log('[useAutoRating] Status não é COMPLETED, aguardando confirmação de pagamento');
       return false;
     }
 
@@ -54,7 +86,7 @@ export const useAutoRating = ({ freightId, freightStatus, currentUserProfile, fr
     if (!freight || !currentUserProfile) return null;
 
     const isProducer = currentUserProfile.role === 'PRODUTOR';
-    const isDriver = currentUserProfile.role === 'MOTORISTA';
+    const isDriver = currentUserProfile.role === 'MOTORISTA' || currentUserProfile.role === 'MOTORISTA_AFILIADO';
 
     if (isProducer && freight.driver) {
       // Produtor avalia motorista
@@ -78,29 +110,22 @@ export const useAutoRating = ({ freightId, freightStatus, currentUserProfile, fr
   // Efeito principal que monitora mudanças no status
   useEffect(() => {
     const handleAutoRating = async () => {
-      // Só executa se:
-      // 1. Status é DELIVERED ou DELIVERED_PENDING_CONFIRMATION
-      // 2. Temos um usuário logado
-      // 3. Ainda não checamos se precisa mostrar avaliação
-      // 4. Temos dados do frete
-      const acceptedStatuses = ['DELIVERED', 'DELIVERED_PENDING_CONFIRMATION'];
-      if (!acceptedStatuses.includes(freightStatus) || !currentUserProfile || hasCheckedRating || !freight) {
-        return;
-      }
-      
-      // Se for DELIVERED_PENDING_CONFIRMATION, só mostrar para motorista (avalia produtor)
-      if (freightStatus === 'DELIVERED_PENDING_CONFIRMATION' && currentUserProfile.role !== 'MOTORISTA') {
-        return;
-      }
-      
-      // Se for DELIVERED, só mostrar para produtor (avalia motorista)
-      if (freightStatus === 'DELIVERED' && currentUserProfile.role !== 'PRODUTOR') {
+      // ✅ CORREÇÃO: Só executa se status é COMPLETED (após pagamento confirmado)
+      if (freightStatus !== 'COMPLETED' || !currentUserProfile || hasCheckedRating || !freight) {
         return;
       }
 
-      console.log('Checking auto rating for freight:', freightId);
+      console.log('[useAutoRating] Verificando avaliação para frete COMPLETED:', freightId);
 
       try {
+        // ✅ Verificar se pagamento foi confirmado (dupla verificação de segurança)
+        const paymentConfirmed = await checkPaymentConfirmed();
+        if (!paymentConfirmed) {
+          console.log('[useAutoRating] Pagamento não confirmado, aguardando...');
+          setHasCheckedRating(true);
+          return;
+        }
+
         // Verificar se já avaliou
         const hasRated = await checkIfUserHasRated();
         
@@ -109,14 +134,13 @@ export const useAutoRating = ({ freightId, freightStatus, currentUserProfile, fr
           const userToRateData = determineUserToRate();
           
           if (userToRateData) {
-            console.log('Showing auto rating modal for:', userToRateData.full_name);
+            console.log('[useAutoRating] ✅ Mostrando modal de avaliação para:', userToRateData.full_name);
             setUserToRate(userToRateData);
             setShowRatingModal(true);
             
             // Mostrar notificação explicativa
             if (typeof window !== 'undefined') {
               setTimeout(() => {
-                // Usar toast nativo ou criar notificação personalizada
                 const event = new CustomEvent('showRatingNotification', {
                   detail: {
                     userName: userToRateData.full_name,
@@ -131,13 +155,13 @@ export const useAutoRating = ({ freightId, freightStatus, currentUserProfile, fr
 
         setHasCheckedRating(true);
       } catch (error) {
-        console.error('Error in auto rating check:', error);
+        console.error('[useAutoRating] Erro na verificação de avaliação:', error);
         setHasCheckedRating(true);
       }
     };
 
-    // Pequeno delay para garantir que todos os dados estão carregados
-    const timer = setTimeout(handleAutoRating, 2000); // Aumentar para 2 segundos
+    // Delay para garantir que todos os dados estão carregados
+    const timer = setTimeout(handleAutoRating, 2000);
     
     return () => clearTimeout(timer);
   }, [freightStatus, currentUserProfile, freight, freightId, hasCheckedRating]);

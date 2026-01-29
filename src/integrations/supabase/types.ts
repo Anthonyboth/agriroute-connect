@@ -12983,6 +12983,14 @@ export type Database = {
         Args: { target_profile_id: string }
         Returns: boolean
       }
+      is_freight_participant_for_rating: {
+        Args: { p_freight_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_freight_payment_confirmed: {
+        Args: { p_freight_id: string }
+        Returns: boolean
+      }
       is_ip_blacklisted: { Args: { check_ip: unknown }; Returns: boolean }
       is_producer_of_freight: {
         Args: { p_freight_id: string }

@@ -2,12 +2,13 @@ import React from 'react';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface InteractiveStarRatingProps {
+export interface InteractiveStarRatingProps {
   rating: number;
   onRatingChange: (rating: number) => void;
   maxRating?: number;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  disabled?: boolean;
 }
 
 export const InteractiveStarRating: React.FC<InteractiveStarRatingProps> = ({
@@ -15,7 +16,8 @@ export const InteractiveStarRating: React.FC<InteractiveStarRatingProps> = ({
   onRatingChange,
   maxRating = 5,
   size = 'md',
-  className
+  className,
+  disabled = false
 }) => {
   const sizeClasses = {
     sm: 'h-4 w-4',
@@ -24,6 +26,7 @@ export const InteractiveStarRating: React.FC<InteractiveStarRatingProps> = ({
   };
 
   const handleStarClick = (starValue: number) => {
+    if (disabled) return;
     onRatingChange(starValue);
   };
 
@@ -36,9 +39,12 @@ export const InteractiveStarRating: React.FC<InteractiveStarRatingProps> = ({
         key={starValue}
         type="button"
         onClick={() => handleStarClick(starValue)}
+        disabled={disabled}
         className={cn(
-          "transition-colors hover:scale-110 transform transition-transform",
-          "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+          "transition-colors transform transition-transform",
+          disabled 
+            ? "cursor-not-allowed opacity-50" 
+            : "hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
         )}
       >
         <Star 
@@ -46,7 +52,9 @@ export const InteractiveStarRating: React.FC<InteractiveStarRatingProps> = ({
             sizeClasses[size],
             isFilled 
               ? "text-yellow-400 fill-yellow-400" 
-              : "text-muted-foreground/30 hover:text-yellow-300"
+              : disabled 
+                ? "text-muted-foreground/20"
+                : "text-muted-foreground/30 hover:text-yellow-300"
           )}
         />
       </button>

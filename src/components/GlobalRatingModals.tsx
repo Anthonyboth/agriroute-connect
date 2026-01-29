@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGlobalRating } from '@/contexts/RatingContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { showErrorToast } from '@/lib/error-handler';
 import { ErrorMonitoringService } from '@/services/errorMonitoringService';
+import { useRatingSubmit } from '@/hooks/useRatingSubmit';
 import {
   Dialog,
   DialogContent,
@@ -14,8 +15,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Star, X } from 'lucide-react';
+import { Star, X, AlertCircle } from 'lucide-react';
 import { InteractiveStarRating } from '@/components/InteractiveStarRating';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const GlobalRatingModals: React.FC = () => {
   const { profile } = useAuth();
@@ -42,6 +44,25 @@ export const GlobalRatingModals: React.FC = () => {
   const [freightRating, setFreightRating] = useState(0);
   const [freightComment, setFreightComment] = useState('');
   const [freightSubmitting, setFreightSubmitting] = useState(false);
+  const [paymentNotConfirmedWarning, setPaymentNotConfirmedWarning] = useState<string | null>(null);
+
+  // Hook centralizado para submissão de ratings
+  const { canSubmitRating, submitRating } = useRatingSubmit();
+
+  // Verificar se pode avaliar quando o modal de frete abre
+  useEffect(() => {
+    const checkCanSubmit = async () => {
+      if (freightRatingOpen && freightId) {
+        const { canSubmit, reason } = await canSubmitRating(freightId);
+        if (!canSubmit) {
+          setPaymentNotConfirmedWarning(reason || 'Avaliação não disponível');
+        } else {
+          setPaymentNotConfirmedWarning(null);
+        }
+      }
+    };
+    checkCanSubmit();
+  }, [freightRatingOpen, freightId, canSubmitRating]);
 
   const handleServiceRatingSubmit = async () => {
     if (serviceRating === 0 || !serviceRequestId || !serviceRatedUserId || !profile?.id) {
@@ -133,57 +154,26 @@ export const GlobalRatingModals: React.FC = () => {
         ? 'PRODUCER_TO_DRIVER' 
         : 'DRIVER_TO_PRODUCER';
 
-      const { error } = await supabase
-        .from('freight_ratings')
-        .upsert({
-          freight_id: freightId,
-          rater_id: profile.id,
-          rated_user_id: freightRatedUserId,
-          rating: freightRating,
-          comment: freightComment || null,
-          rating_type: ratingType,
-        }, {
-          onConflict: 'freight_id,rater_id,rating_type'
-        });
-
-      if (error) throw error;
-
-      toast.success('Avaliação enviada com sucesso!');
-      
-      // Resetar e fechar
-      setFreightRating(0);
-      setFreightComment('');
-      closeFreightRating();
-    } catch (error: any) {
-      // ✅ LOG DETALHADO
-      console.error('❌ Erro ao enviar avaliação de frete:', {
-        message: error?.message,
-        code: error?.code,
-        details: error?.details,
-        hint: error?.hint,
-        freightId: freightId,
+      // ✅ Usar hook centralizado com verificação de pagamento
+      const success = await submitRating({
+        freightId,
+        raterId: profile.id,
         ratedUserId: freightRatedUserId,
         rating: freightRating,
-        fullError: error
+        comment: freightComment || undefined,
+        ratingType
       });
-      
-      // ✅ ENVIAR PARA TELEGRAM
-      await ErrorMonitoringService.getInstance().captureError(
-        new Error(`Freight Rating Submission Failed: ${error?.message || 'Unknown error'}`),
-        {
-          module: 'GlobalRatingModals',
-          functionName: 'handleFreightRatingSubmit',
-          freightId,
-          ratedUserId: freightRatedUserId,
-          rating: freightRating,
-          errorCode: error?.code,
-          errorDetails: error?.details,
-          errorHint: error?.hint,
-          userFacing: true
-        }
-      );
-      
-      showErrorToast(toast, 'Falha ao enviar avaliação', error);
+
+      if (success) {
+        // Resetar e fechar
+        setFreightRating(0);
+        setFreightComment('');
+        setPaymentNotConfirmedWarning(null);
+        closeFreightRating();
+      }
+    } catch (error: any) {
+      // Log detalhado já feito no hook
+      console.error('❌ Erro ao enviar avaliação de frete:', error);
     } finally {
       setFreightSubmitting(false);
     }
@@ -309,14 +299,25 @@ export const GlobalRatingModals: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
 
+          {/* ✅ Aviso se pagamento não confirmado */}
+          {paymentNotConfirmedWarning && (
+            <Alert variant="destructive" className="my-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {paymentNotConfirmedWarning}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-6 py-6">
             <div className="flex flex-col items-center gap-4">
               <InteractiveStarRating
                 rating={freightRating}
                 onRatingChange={setFreightRating}
                 size="lg"
+                disabled={!!paymentNotConfirmedWarning}
               />
-              {freightRating > 0 && (
+              {freightRating > 0 && !paymentNotConfirmedWarning && (
                 <p className="text-sm font-medium text-muted-foreground">
                   {freightRating === 1 && '😞 Muito ruim'}
                   {freightRating === 2 && '😕 Ruim'}
@@ -337,6 +338,7 @@ export const GlobalRatingModals: React.FC = () => {
                 onChange={(e) => setFreightComment(e.target.value)}
                 rows={3}
                 className="resize-none"
+                disabled={!!paymentNotConfirmedWarning}
               />
             </div>
           </div>
@@ -348,16 +350,18 @@ export const GlobalRatingModals: React.FC = () => {
               disabled={freightSubmitting}
             >
               <X className="h-4 w-4 mr-2" />
-              Avaliar depois
+              {paymentNotConfirmedWarning ? 'Fechar' : 'Avaliar depois'}
             </Button>
-            <Button
-              onClick={handleFreightRatingSubmit}
-              disabled={freightRating === 0 || freightSubmitting}
-              className="bg-primary hover:bg-primary/90"
-            >
-              <Star className="h-4 w-4 mr-2" />
-              {freightSubmitting ? 'Enviando...' : 'Enviar Avaliação'}
-            </Button>
+            {!paymentNotConfirmedWarning && (
+              <Button
+                onClick={handleFreightRatingSubmit}
+                disabled={freightRating === 0 || freightSubmitting}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Star className="h-4 w-4 mr-2" />
+                {freightSubmitting ? 'Enviando...' : 'Enviar Avaliação'}
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
