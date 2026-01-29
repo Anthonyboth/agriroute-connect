@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Truck, Clock, ArrowRight, Calendar, AlertTriangle, Bike, Map, FileText, Loader2 } from 'lucide-react';
 import { getFreightStatusLabel, getFreightStatusVariant, normalizeFreightStatus } from '@/lib/freight-status';
-import { formatKm, formatBRL, formatTons, formatDate } from '@/lib/formatters';
+import { formatKm, formatBRL, formatPricePerTruck, formatTons, formatDate, formatCityState } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 import { getDaysUntilPickup, getPickupDateBadge } from '@/utils/freightDateHelpers';
@@ -40,6 +40,7 @@ interface FreightInProgressCardProps {
     distance_km: number;
     pickup_date: string;
     price: number;
+    required_trucks?: number | null;
     status: string;
     service_type?: 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO';
     driver_profiles?: {
@@ -126,14 +127,14 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
           {/* Origem → Destino */}
           <div className="flex items-center gap-2 mb-2">
             <p className="font-semibold text-sm whitespace-nowrap">
-              {freight.origin_city && freight.origin_state 
-                ? `${freight.origin_city}, ${freight.origin_state}`
+              {freight.origin_city && freight.origin_state
+                ? formatCityState(freight.origin_city, freight.origin_state)
                 : 'Carregando origem...'}
             </p>
             <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <p className="font-semibold text-sm whitespace-nowrap">
               {freight.destination_city && freight.destination_state
-                ? `${freight.destination_city}, ${freight.destination_state}`
+                ? formatCityState(freight.destination_city, freight.destination_state)
                 : 'Carregando destino...'}
             </p>
           </div>
@@ -194,9 +195,29 @@ const FreightInProgressCardComponent: React.FC<FreightInProgressCardProps> = ({
                 );
               })()}
             
-              <p className="font-bold text-lg text-primary whitespace-nowrap">
-                {formatBRL(freight.price, true)}
-              </p>
+              {(() => {
+                const priceInfo = formatPricePerTruck(freight.price, freight.required_trucks, true);
+
+                if (priceInfo.hasMultipleTrucks) {
+                  return (
+                    <div className="flex flex-col items-end">
+                      <p className="font-bold text-lg text-primary whitespace-nowrap">
+                        {priceInfo.pricePerTruck}
+                        <span className="text-xs font-semibold text-muted-foreground">/carreta</span>
+                      </p>
+                      <p className="text-[11px] text-muted-foreground whitespace-nowrap">
+                        Total ({priceInfo.trucksCount} carretas): {priceInfo.totalPrice}
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <p className="font-bold text-lg text-primary whitespace-nowrap">
+                    {formatBRL(freight.price, true)}
+                  </p>
+                );
+              })()}
             </div>
           </div>
 

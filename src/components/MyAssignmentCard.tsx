@@ -10,7 +10,7 @@ import { ShareFreightToDriver } from './ShareFreightToDriver';
 import { driverUpdateFreightStatus, FINAL_STATUSES } from '@/lib/freight-status-helpers';
 import { useAuth } from '@/hooks/useAuth';
 import { useTransportCompany } from '@/hooks/useTransportCompany';
-import { formatTons, formatKm, formatBRL, formatDate } from '@/lib/formatters';
+import { formatTons, formatKm, formatBRL, formatDate, formatCityState } from '@/lib/formatters';
 import { LABELS } from '@/lib/labels';
 import { getPickupDateBadge } from '@/utils/freightDateHelpers';
 
@@ -113,10 +113,8 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
   const isFreightFinal = freight?.status ? FINAL_STATUSES.includes(freight.status as any) : false;
 
   // 🛡️ Proteção de dados para renderização
-  const originCity = freight?.origin_city || '—';
-  const originState = freight?.origin_state || '—';
-  const destinationCity = freight?.destination_city || '—';
-  const destinationState = freight?.destination_state || '—';
+  const originLabel = formatCityState(freight?.origin_city || null, freight?.origin_state || null);
+  const destinationLabel = formatCityState(freight?.destination_city || null, freight?.destination_state || null);
   const distanceKm = typeof freight?.distance_km === 'number' ? freight.distance_km : null;
   const requiredTrucks = typeof freight?.required_trucks === 'number' ? freight.required_trucks : 0;
   const acceptedTrucks = typeof freight?.accepted_trucks === 'number' ? freight.accepted_trucks : 0;
@@ -175,11 +173,11 @@ const MyAssignmentCardComponent: React.FC<MyAssignmentCardProps> = ({ assignment
         <div className="space-y-1 text-sm">
           <p className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-green-600" />
-            <span className="font-medium">Origem:</span> {originCity}, {originState}
+            <span className="font-medium">Origem:</span> {originLabel}
           </p>
           <p className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-red-600" />
-            <span className="font-medium">Destino:</span> {destinationCity}, {destinationState}
+            <span className="font-medium">Destino:</span> {destinationLabel}
           </p>
           <p className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />

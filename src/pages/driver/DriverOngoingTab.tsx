@@ -161,6 +161,7 @@ const DriverFreightCardWithActions: React.FC<{
     distance_km: freight.distance_km ?? 0,
     pickup_date: freight.pickup_date ?? new Date().toISOString(),
     price: freight.price ?? 0,
+    required_trucks: freight.required_trucks ?? null,
     status: freight.status ?? 'OPEN',
     service_type: freight.service_type as 'CARGA' | 'GUINCHO' | 'MUDANCA' | 'FRETE_MOTO' | undefined,
     driver_profiles: freight.producer ? { full_name: freight.producer.full_name } : null,
@@ -505,7 +506,18 @@ export const DriverOngoingTab: React.FC = () => {
                 {assignments.map((a) => (
                   <MyAssignmentCard
                     key={a.id}
-                    assignment={{ ...a, freight: a.freight ? { ...a.freight, price: a.agreed_price ?? a.freight.price } : null }}
+                    assignment={{
+                      ...a,
+                      freight: a.freight
+                        ? {
+                            ...a.freight,
+                            // Para motorista: exibir valor do acordo (não o total do frete)
+                            price: a.agreed_price ?? a.freight.price,
+                            // Evita que o FreightInProgressCard divida de novo o valor por carreta
+                            required_trucks: a.agreed_price ? 1 : (a.freight as any).required_trucks,
+                          }
+                        : null,
+                    }}
                     onAction={() => {
                       if (a.freight?.id) handleOpenDetails(a.freight.id);
                       handleStatusUpdate();
