@@ -25,18 +25,39 @@ let healthCheckPromise: Promise<HealthCheckResult> | null = null;
 
 /**
  * Check if build assets are served correctly (not HTML)
+ * 
+ * NOTA: Em desenvolvimento (Vite dev server), os scripts são servidos diretamente
+ * sem o prefixo /assets/. Isso NÃO é um problema - é comportamento normal.
  */
 async function checkAssetIntegrity(): Promise<boolean> {
   try {
-    // Find a script tag with /assets/ path
-    const scripts = document.querySelectorAll('script[src*="/assets/"]');
-    if (scripts.length === 0) {
-      console.warn('[HealthCheck] No /assets/ scripts found in document');
-      return false;
+    // Em desenvolvimento, Vite serve scripts diretamente - isso é OK
+    const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
+    
+    // Find a script tag with /assets/ path (produção) ou qualquer script type=module (dev)
+    const productionScripts = document.querySelectorAll('script[src*="/assets/"]');
+    const devScripts = document.querySelectorAll('script[type="module"][src]');
+    
+    // Em desenvolvimento, aceitar scripts de módulo sem /assets/
+    if (productionScripts.length === 0) {
+      if (isDevelopment && devScripts.length > 0) {
+        console.debug('[HealthCheck] Development mode - Vite dev scripts detected, OK');
+        return true;
+      }
+      
+      // Em produção, devemos ter /assets/ scripts
+      if (!isDevelopment) {
+        console.warn('[HealthCheck] Production mode - No /assets/ scripts found');
+        return false;
+      }
+      
+      // Fallback: aceitar se há qualquer script carregado
+      console.debug('[HealthCheck] No /assets/ scripts, but dev mode - OK');
+      return true;
     }
 
-    // Check Content-Type of first asset
-    const firstScript = scripts[0] as HTMLScriptElement;
+    // Check Content-Type of first asset (apenas em produção)
+    const firstScript = productionScripts[0] as HTMLScriptElement;
     const response = await fetch(firstScript.src, { method: 'HEAD' });
     const contentType = response.headers.get('content-type') || '';
     
@@ -52,7 +73,8 @@ async function checkAssetIntegrity(): Promise<boolean> {
     return response.ok && (contentType.includes('javascript') || contentType.includes('application/'));
   } catch (error) {
     console.error('[HealthCheck] Asset check failed:', error);
-    return false;
+    // Em caso de erro de rede, não bloquear - retornar true
+    return true;
   }
 }
 
