@@ -65,10 +65,11 @@ export const useParticipantProfile = (
 
     try {
       // Buscar perfil básico usando a view segura para proteção de PII
-      // profiles_secure mascara dados sensíveis para não-proprietários
+      // ✅ CORREÇÃO: profiles_secure não tem colunas 'role', 'selfie_url', 'active_mode' (mascaradas por segurança)
+      // Colunas disponíveis: id, full_name, profile_photo_url, rating, total_ratings, status, created_at
       const { data: profileData, error: profileError } = await (supabase as any)
         .from('profiles_secure')
-        .select('id, full_name, profile_photo_url, selfie_url, role, created_at, rating, total_ratings, status')
+        .select('id, full_name, profile_photo_url, created_at, rating, total_ratings, status')
         .eq('id', userId)
         .maybeSingle();
 
@@ -97,14 +98,14 @@ export const useParticipantProfile = (
         completedFreights = count || 0;
       }
 
-      // Avatar URL
-      const avatarUrl = profileData.profile_photo_url || profileData.selfie_url;
+      // Avatar URL - usar apenas profile_photo_url (selfie_url não está disponível na view segura)
+      const avatarUrl = profileData.profile_photo_url;
 
       setProfile({
         id: profileData.id,
         full_name: profileData.full_name,
         avatar_url: avatarUrl || undefined,
-        role: profileData.role,
+        role: userType === 'driver' ? 'MOTORISTA' : 'PRODUTOR', // Inferir role do tipo passado
         created_at: profileData.created_at,
         completed_freights: completedFreights,
         average_rating: profileData.rating || 0,
