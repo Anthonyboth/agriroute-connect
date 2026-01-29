@@ -49,11 +49,15 @@ export const CompanyPaymentsManager: React.FC = () => {
     if (!company?.id) return;
 
     try {
-      // Buscar pagamentos relacionados aos fretes da empresa
+      // Buscar pagamentos com IDs mascarados (view segura)
       const { data, error } = await supabase
-        .from('freight_payments')
+        .from('freight_payments_secure')
         .select(`
-          *,
+          id,
+          freight_id,
+          amount,
+          status,
+          created_at,
           freight:freights(
             cargo_type,
             driver_id,
@@ -66,18 +70,23 @@ export const CompanyPaymentsManager: React.FC = () => {
       if (error) throw error;
 
       // Calcular sumário financeiro
-      const receivable = data?.filter(p => p.status === 'PENDING').reduce((sum, p) => sum + p.amount, 0) || 0;
-      const completed = data?.filter(p => p.status === 'COMPLETED').reduce((sum, p) => sum + p.amount, 0) || 0;
-      const pending = data?.filter(p => p.status === 'PENDING').length || 0;
+      const normalized = (data || []).map((p: any) => ({
+        ...p,
+        amount: typeof p.amount === 'number' ? p.amount : 0,
+      })) as any[];
+
+      const receivable = normalized.filter(p => p.status === 'PENDING').reduce((sum, p) => sum + p.amount, 0) || 0;
+      const completed = normalized.filter(p => p.status === 'COMPLETED').reduce((sum, p) => sum + p.amount, 0) || 0;
+      const pending = normalized.filter(p => p.status === 'PENDING').length || 0;
 
       setSummary({
         totalReceivable: receivable,
         totalPayable: 0, // Implementar cálculo de repasses aos motoristas
         pending,
-        completed: data?.filter(p => p.status === 'COMPLETED').length || 0
+        completed: normalized.filter(p => p.status === 'COMPLETED').length || 0
       });
 
-      setPayments(data || []);
+      setPayments(normalized as Payment[]);
     } catch (error) {
       console.error('Erro ao buscar pagamentos:', error);
       toast.error('Erro ao carregar dados financeiros');
